@@ -1,0 +1,34 @@
+# Dependencies and local caches
+node_modules/
+.pnpm-store/
+.yarn/cache/
+.cache/
+.vite/
+
+# Generated builds and test output
+dist/
+build/
+out/
+release/
+coverage/
+*.tsbuildinfo
+*.log
+
+# Local evidence and generated assets
+records/
+output/
+
+# Environment files and credentials
+.env
+.env.*
+.aws/
+.ssh/
+credentials*.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Machine-specific files
+.DS_Store
+Thumbs.db
