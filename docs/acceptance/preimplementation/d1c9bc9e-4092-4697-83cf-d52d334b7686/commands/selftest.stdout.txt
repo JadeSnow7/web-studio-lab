@@ -1,0 +1,19 @@
+
+> web-studio-lab-baseline@0.0.0 baseline:selftest
+> tsx --test tests/vertical-slice/selftest.test.ts
+
+(node:17724) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ synthetic: strict task and event contracts reject relaxed goals and extra pass claims (1.344125ms)
+✔ synthetic: postcondition rejects initial/wrong/hidden/duplicate/mixed-run/exception observations (0.447792ms)
+✔ synthetic: mixed run/hash, sequence, lifecycle, logs and nonzero exit are rejected (0.704791ms)
+✔ synthetic: diff detects add/delete and paths/CDP URLs cannot escape boundaries (0.383208ms)
+✔ synthetic: manifest refuses content tampering, missing evidence and mixed-run events (4.598ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 146.762542

@@ -2,7 +2,7 @@
 
 Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) 既有设计与工程经验规划的 Electron 桌面工作区，面向 [OSCHINA 开源大赛 2026](https://www.oschina.net/os2026/) 的新路线探索。
 
-当前仓库处于初始化阶段，仅包含项目说明、忽略规则与 Apache-2.0 许可证。以下能力均为规划目标，尚未实现；目前没有可运行的 Electron 应用、依赖清单或安装步骤。
+当前仓库尚无可运行的 Electron 应用。已建立[首个 vertical slice 验收基线](docs/acceptance/README.md)，包含固定页面 fixture、Zod 契约、测试依赖和实现前失败记录；其中的安装与运行命令只用于验收基准。以下产品能力均为规划目标，尚未实现。
 
 ## 规划目标
 
@@ -37,4 +37,4 @@ Electron 宿主、浏览器内核与终端适配所需的原生能力会单独�
 
 ## 许可证
 
-本项目采用 [Apache License 2.0](LICENSE)。原项目在上述固定基线下也提供 [Apache-2.0 许可证](https://github.com/JadeSnow7/Web-Studio/blob/f377db874f0ecba3390804146776b5e5786d2f86/LICENSE)；其第三方依赖适用各自许可证，可查阅原项目的 [第三方声明](https://github.com/JadeSnow7/Web-Studio/blob/f377db874f0ecba3390804146776b5e5786d2f86/THIRD-PARTY-NOTICES.md)。当前初始化未引入这些依赖。
+本项目采用 [Apache License 2.0](LICENSE)。原项目在上述固定基线下也提供 [Apache-2.0 许可证](https://github.com/JadeSnow7/Web-Studio/blob/f377db874f0ecba3390804146776b5e5786d2f86/LICENSE)；其第三方依赖适用各自许可证，可查阅原项目的 [第三方声明](https://github.com/JadeSnow7/Web-Studio/blob/f377db874f0ecba3390804146776b5e5786d2f86/THIRD-PARTY-NOTICES.md)。本仓库未迁入这些上游依赖；本次新增测试依赖及版本由 `package.json` 和 `package-lock.json` 单独记录，适用各自许可证。
