@@ -1,0 +1,218 @@
+import { DEFAULT_BUDGET, type AllowedScope, type TaskVersion } from '@wsl/protocol';
+import { Notice } from '../components/Badges';
+import { Icon } from '../components/Icon';
+import { CASE_ORDER, CASE_PRESETS, SCOPE_LABELS } from '../domain/cases';
+import { useStore } from '../lib/store';
+import { formatTime } from '../lib/time';
+import { environmentStore } from '../state/execution';
+import { reportError } from '../state/errors';
+import { previewStore } from '../state/preview';
+import { confirmBlockers, toggleScope, workbenchActions, workbenchStore } from '../state/workbench';
+
+const SCOPES = Object.keys(SCOPE_LABELS) as AllowedScope[];
+
+function VersionSummary({ version }: { version: TaskVersion }) {
+  return (
+    <div className="version-card">
+      <div className="row space-between">
+        <strong>
+          任务 v{version.version} · {CASE_PRESETS[version.caseId].label} {CASE_PRESETS[version.caseId].title}
+        </strong>
+        <span className="muted small">已确认 {formatTime(version.confirmedAt)}</span>
+      </div>
+      <p>{version.goal}</p>
+      <dl className="kv">
+        <dt>允许修改</dt>
+        <dd>{version.allowedScopes.map((s) => SCOPE_LABELS[s]).join('、')}</dd>
+        <dt>验收</dt>
+        <dd>
+          <ul className="tight-list">
+            {version.acceptance.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </dd>
+        <dt>预算</dt>
+        <dd>
+          最多 {version.budget.maxAttempts} 次 attempt · {version.budget.timeLimitMinutes} 分钟
+        </dd>
+        <dt>现场</dt>
+        <dd>
+          <code className="wrap">{version.capture.elementSelector}</code> · 文档代次 {version.capture.page.documentGeneration}
+        </dd>
+      </dl>
+    </div>
+  );
+}
+
+/** 任务确认：目标、允许项目、验收与预算。确认后固定为不可变版本，修改会生成新版本。 */
+export function TaskSection() {
+  const state = useStore(workbenchStore, (s) => s);
+  const page = useStore(previewStore, (p) => p?.page ?? null);
+  const harness = useStore(environmentStore, (e) => e.execution?.harness ?? null);
+  const latest = state.versions.at(-1) ?? null;
+  const blockers = confirmBlockers(state, page);
+  const { form } = state;
+
+  const confirm = () => {
+    try {
+      workbenchActions.confirm(page);
+    } catch (error) {
+      reportError('确认任务', error);
+    }
+  };
+
+  return (
+    <section className="wb-section" aria-labelledby="wb-task">
+      <div className="wb-section-head">
+        <h2 id="wb-task">任务确认</h2>
+        {latest ? <span className="muted small">已有 {state.versions.length} 个版本</span> : null}
+      </div>
+
+      {latest && !state.editing ? (
+        <>
+          <VersionSummary version={latest} />
+          <button type="button" className="btn" onClick={workbenchActions.startEditing}>
+            修改任务（确认后生成 v{latest.version + 1}）
+          </button>
+        </>
+      ) : (
+        <form
+          noValidate
+          className="task-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            confirm();
+          }}
+        >
+          <fieldset className="field">
+            <legend>用例</legend>
+            <div className="segmented" role="radiogroup" aria-label="用例">
+              {CASE_ORDER.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={form.caseId === id}
+                  onClick={() => workbenchActions.applyCase(id)}
+                >
+                  {CASE_PRESETS[id].label} {CASE_PRESETS[id].title}
+                </button>
+              ))}
+            </div>
+            <span className="hint">切换用例会用任务计划第 6 节的意图与验收要点重新预填。</span>
+          </fieldset>
+
+          <label className="field">
+            <span className="field-label">修改目标</span>
+            <textarea
+              className="resize-none"
+              rows={3}
+              value={form.goal}
+              onChange={(event) => workbenchActions.updateForm((f) => ({ ...f, goal: event.target.value }))}
+            />
+          </label>
+
+          <fieldset className="field">
+            <legend>允许修改的项目</legend>
+            <div className="checks">
+              {SCOPES.map((scope) => (
+                <label key={scope} className="check">
+                  <input
+                    type="checkbox"
+                    checked={form.allowedScopes.includes(scope)}
+                    onChange={() => workbenchActions.updateForm((f) => toggleScope(f, scope))}
+                  />
+                  {SCOPE_LABELS[scope]}
+                </label>
+              ))}
+              <span className="check check-locked">
+                <Icon name="lock" size={13} /> acceptance/ 与 fixtures/：不可修改（固定）
+              </span>
+            </div>
+          </fieldset>
+
+          <label className="field">
+            <span className="field-label">验收条件（每行一条）</span>
+            <textarea
+              className="resize-none"
+              rows={4}
+              value={form.acceptanceText}
+              onChange={(event) => workbenchActions.updateForm((f) => ({ ...f, acceptanceText: event.target.value }))}
+            />
+          </label>
+
+          <fieldset className="field">
+            <legend>运行预算</legend>
+            <div className="row gap-12">
+              <label className="inline-field">
+                最多
+                <input
+                  type="number"
+                  min={1}
+                  max={DEFAULT_BUDGET.maxAttempts}
+                  value={form.budget.maxAttempts}
+                  onChange={(event) =>
+                    workbenchActions.updateForm((f) => ({
+                      ...f,
+                      budget: { ...f.budget, maxAttempts: clamp(Number(event.target.value), 1, DEFAULT_BUDGET.maxAttempts) },
+                    }))
+                  }
+                />
+                次 attempt
+              </label>
+              <label className="inline-field">
+                时限
+                <input
+                  type="number"
+                  min={1}
+                  max={DEFAULT_BUDGET.timeLimitMinutes}
+                  value={form.budget.timeLimitMinutes}
+                  onChange={(event) =>
+                    workbenchActions.updateForm((f) => ({
+                      ...f,
+                      budget: { ...f.budget, timeLimitMinutes: clamp(Number(event.target.value), 1, DEFAULT_BUDGET.timeLimitMinutes) },
+                    }))
+                  }
+                />
+                分钟
+              </label>
+            </div>
+            <span className="hint">
+              默认最多 {DEFAULT_BUDGET.maxAttempts} 次 attempt（初次 + 最多 2 次修复）、{DEFAULT_BUDGET.timeLimitMinutes} 分钟，只能调低。
+            </span>
+          </fieldset>
+
+          <div className="harness-line">
+            <span className="muted">Harness</span>
+            <span>{harness ? `${harness.name} · 尚未接入/验证` : '读取中…'}</span>
+          </div>
+
+          {blockers.length > 0 ? (
+            <ul className="blockers" aria-label="还不能确认的原因">
+              {blockers.map((b) => (
+                <li key={b}>{b}</li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="row gap-8">
+            <button type="submit" className="btn btn-primary" disabled={blockers.length > 0}>
+              确认任务{latest ? `（生成 v${latest.version + 1}）` : '（生成 v1）'}
+            </button>
+            {latest ? (
+              <button type="button" className="btn btn-ghost" onClick={workbenchActions.cancelEditing}>
+                放弃修改
+              </button>
+            ) : null}
+          </div>
+          {latest ? <Notice>v{latest.version} 与它的运行结果会保留；确认后生成的新版本不会改写旧记录。</Notice> : null}
+        </form>
+      )}
+    </section>
+  );
+}
+
+function clamp(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, Math.round(value)));
+}

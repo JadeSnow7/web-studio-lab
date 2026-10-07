@@ -1,0 +1,16 @@
+node_modules
+pnpm-lock.yaml
+out
+dist
+release
+.local
+playwright-report
+test-results
+*.docx
+*.pdf
+premium-audit.json
+# 封存的设计原型与证据保持原始内容。
+docs/design
+docs/plans/2026-10-os2026-task-plan.md
+# 封存的 sbx 原始证据保留采集内容与哈希，不格式化。
+docs/verification/2026-10-06-sbx/evidence

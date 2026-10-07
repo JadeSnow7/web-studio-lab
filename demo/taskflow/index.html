@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>任务 · TaskFlow 演示</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="demo-banner" role="note">演示页面 · 不是生成 App · 数据为静态示例</div>
+    <header class="app">
+      <span class="brand">TaskFlow</span>
+      <nav aria-label="主导航"><a href="index.html" aria-current="page">任务</a><a href="members.html">成员</a></nav>
+      <span class="who">当前用户 B（演示身份）</span>
+    </header>
+    <main>
+      <div class="toolbar">
+        <h1>全部任务</h1>
+        <button class="primary" type="button" data-testid="new-task">新建任务</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>标题</th>
+            <th>状态</th>
+            <th>负责人</th>
+            <th>截止日期</th>
+          </tr>
+        </thead>
+        <tbody id="task-rows"></tbody>
+      </table>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

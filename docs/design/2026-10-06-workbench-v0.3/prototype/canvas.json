@@ -1,0 +1,165 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Conversations.dc.html": {
+      "h": 948,
+      "radius": 12,
+      "title": "09 会话 · C-01 · v0.3",
+      "w": 1440,
+      "x": 0,
+      "y": 2420,
+      "is_interactive": true,
+      "expand": "fill"
+    },
+    "Home.dc.html": {
+      "h": 948,
+      "radius": 12,
+      "title": "05 首页 · H-01 · v0.3",
+      "w": 1440,
+      "x": 0,
+      "y": 1400,
+      "is_interactive": true,
+      "expand": "fill"
+    },
+    "Main.dc.html": {
+      "h": 948,
+      "radius": 12,
+      "title": "01 P0 工作台 · 可点击原型 · v0.3",
+      "w": 1440,
+      "x": 0,
+      "y": 0,
+      "is_interactive": true,
+      "expand": "fill"
+    },
+    "Overlay.dc.html": {
+      "h": 948,
+      "radius": 12,
+      "title": "07 浮层与中断恢复 · v0.3",
+      "w": 1440,
+      "x": 3040,
+      "y": 1400,
+      "is_interactive": true,
+      "expand": "fill"
+    },
+    "Resources.dc.html": {
+      "h": 948,
+      "radius": 12,
+      "title": "08 资源 · 添加到空间 · R-01 · v0.3",
+      "w": 1440,
+      "x": 4560,
+      "y": 1400,
+      "is_interactive": true,
+      "expand": "fill"
+    },
+    "RunCancel.dc.html": {
+      "h": 948,
+      "radius": 12,
+      "title": "03 P0 失败重试 · 取消等待退出 · v0.3",
+      "w": 1440,
+      "x": 3040,
+      "y": 0,
+      "is_interactive": true,
+      "expand": "fill"
+    },
+    "RunHistory.dc.html": {
+      "h": 948,
+      "radius": 12,
+      "title": "04 P0 历史记录 · 无模型复验 · v0.3",
+      "w": 1440,
+      "x": 4560,
+      "y": 0,
+      "is_interactive": true,
+      "expand": "fill"
+    },
+    "RunPassed.dc.html": {
+      "h": 948,
+      "radius": 12,
+      "title": "02 检查通过，待你审阅 · v0.3",
+      "w": 1440,
+      "x": 1520,
+      "y": 0,
+      "is_interactive": true,
+      "expand": "fill"
+    },
+    "Settings.dc.html": {
+      "h": 948,
+      "radius": 12,
+      "title": "11 设置 · A-01 · v0.3",
+      "w": 1440,
+      "x": 3040,
+      "y": 2420,
+      "is_interactive": true,
+      "expand": "fill"
+    },
+    "Space.dc.html": {
+      "h": 948,
+      "radius": 12,
+      "title": "06 空间 · 平铺与折叠 · S-01 · v0.3",
+      "w": 1440,
+      "x": 1520,
+      "y": 1400,
+      "is_interactive": true,
+      "expand": "fill"
+    },
+    "Tasks.dc.html": {
+      "h": 948,
+      "radius": 12,
+      "title": "10 任务版本与决定 · v0.3",
+      "w": 1440,
+      "x": 1520,
+      "y": 2420,
+      "is_interactive": true,
+      "expand": "fill"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-06T12:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "disclaimer": {
+      "fill": "blue",
+      "size": 24,
+      "text": "全部状态为交互演示；不调用模型、API或进程。Main承载共享状态主路径，其他画板为独立状态变体，不跨板传递运行状态。",
+      "w": 360,
+      "x": 6080,
+      "y": 0
+    },
+    "rowA": {
+      "kind": "title1",
+      "maxW": 5920,
+      "text": "A · 页面问题 → 现场 → 确认 → 修改 → 检查 → 人工审阅 → 无模型复验",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "rowB": {
+      "kind": "title1",
+      "maxW": 5920,
+      "text": "B · 六模块愿景（交互规范 v0.2 第 5–12 章）",
+      "w": 240,
+      "x": 0,
+      "y": 1100
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "RunPassed.dc.html",
+    "RunCancel.dc.html",
+    "RunHistory.dc.html",
+    "Home.dc.html",
+    "Space.dc.html",
+    "Overlay.dc.html",
+    "Resources.dc.html",
+    "Conversations.dc.html",
+    "Tasks.dc.html",
+    "Settings.dc.html"
+  ],
+  "pages": [],
+  "title": "Web Studio 工作台增量设计 v0.3 · 交互演示"
+}

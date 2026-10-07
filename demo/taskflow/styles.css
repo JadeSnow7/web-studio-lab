@@ -1,0 +1,161 @@
+:root {
+  color-scheme: light;
+  --ink: #1d1d1f;
+  --muted: #60656f;
+  --line: #e4e7ec;
+  --soft: #f6f7f9;
+  --accent: #0a67d1;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Helvetica Neue', sans-serif;
+  color: var(--ink);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #fff;
+}
+.demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 24px;
+  background: #fff6e5;
+  color: #5c3600;
+  font-size: 12px;
+  border-bottom: 1px solid #f2ddb8;
+}
+header.app {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+header.app .brand {
+  font-weight: 700;
+  font-size: 15px;
+}
+header.app nav {
+  display: flex;
+  gap: 20px;
+}
+header.app a {
+  color: var(--muted);
+  text-decoration: none;
+}
+header.app a[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+header.app .who {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+main {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 980px;
+}
+h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+button.primary {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+button.secondary {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--muted);
+  background: #f8f9fb;
+  padding: 10px 14px;
+  font-size: 12px;
+}
+td {
+  padding: 11px 14px;
+  border-top: 1px solid var(--line);
+}
+td a {
+  color: var(--ink);
+}
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.status[data-status='进行中']::before {
+  background: var(--accent);
+}
+.status[data-status='已完成']::before {
+  background: #1f7a4d;
+}
+.missing {
+  color: var(--muted);
+}
+dl.detail {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  row-gap: 10px;
+  margin: 0;
+  font-size: 14px;
+}
+dl.detail dt {
+  color: var(--muted);
+}
+dl.detail dd {
+  margin: 0;
+}
+.card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.note {
+  font-size: 12px;
+  color: var(--muted);
+}
