@@ -139,7 +139,7 @@ export class CdpConnection {
       if (result.exceptionDetails) throw new Error('Runtime.evaluate returned exceptionDetails');
       if (result.result.type !== 'string' || result.result.value === undefined) throw new Error('DOM evaluation did not return JSON');
       const observation = observationSchema.parse(JSON.parse(result.result.value));
-      if (observation.readyState === 'complete' && observation.url === identity.previewUrl && observation.matches.length > 0) return observation;
+      if (observation.readyState === 'complete' && observation.url === identity.previewUrl) return observation;
       if (Date.now() >= deadline) throw new Error('Page did not become ready within 10s');
       await timeout(new Promise<void>(resolve => setTimeout(resolve, 100)), 1000, 'DOM readiness pause', signal);
     }

@@ -19,7 +19,15 @@ npm run baseline
 
 退出码 0 表示五项全部通过，1 表示五项已判定且至少一项失败，2 表示存在未能判定的检查。命令尚未进入执行器时的安装/加载错误也可能返回 1，必须同时检查 report 中的原因，不能只看退出码。
 
-## 已保存的实现前结果
+## 当前实现前基线（2026-10-07 方法修复）
+
+PR #1 的两条 P2 修正了验收方法：已加载且 URL 匹配的空 DOM 立即交给 B03 判断；类型检查在原 tests/fixture 范围上加入 `src/**/*.ts` 和 `src/**/*.tsx`。增加了实际调用 `navigateAndObserve` 的合成 CDP transport 自检，覆盖空 DOM、loading、错误 URL 和正常单匹配；没有调用真实 Agent 或 Electron。
+
+新当前回执为 [`78531515-547a-4d5e-a572-ff6efbf2a80b`](preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/receipt.json)，基准 SHA-256 为 `e6e980c11e0ac84baf26c52b5724a9a6706e3de480494aba549293425a2ab928`。macOS arm64 / Node v26.5.0：类型检查退出 0，自检 8/8 通过；[产品验收](preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/report.json)退出 1，五项仍为 `failed / target_missing / performed=false`，不是产品测试通过。HEAD 记录为修复前 `81efecd`，未提交的方法修复由 manifest 逐文件哈希绑定。
+
+[隔离验证输出](preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/)还记录：恢复旧 CDP 条件后新增空 DOM 回归失败；临时副本中合法的显式 `ExecuteTask` adapter 与 TSX 类型检查通过，错误 adapter 返回值及错误 TSX 赋值分别产生 TS2322。真实 checkout 不添加 adapter 占位实现。`src` 纳入编译不会自动证明无类型注解的动态导出满足 `ExecuteTask`；未来实现应显式声明该契约，运行时边界仍须校验。
+
+## 历史实现前结果（原样保留）
 
 2026-10-06 在 macOS arm64、Node v26.5.0 实测：类型检查退出 0，自检 5/5 通过，五条产品验收均为 `failed / target_missing / performed=false`，验收命令退出 1。没有调用真实 Agent、启动 Electron 或生成截图。初次受限环境因 tsx 本地 IPC 被拒而未进入自检，最终记录来自允许本地 IPC 的运行。
 
@@ -27,19 +35,21 @@ npm run baseline
 
 记录中的 Git HEAD 是尚未加入测试的产品基线 `536f0a1`，当时测试文件处于未提交状态；精确测试内容由 manifest 中的逐文件哈希绑定，不把 HEAD 冒充包含这些测试的提交。归档原样保留全部被 manifest 引用的产物，省略未纳入 manifest 的临时 `work/` 副本。receipt 另绑定 manifest 自身和命令输出的哈希。
 
-安装依赖后，可独立验证归档及当前 checkout 使用相同基准：
+旧回执及全部原始文件逐字节保留；旧指纹对应旧方法，不再声称与当前 checkout 相同。安装依赖后，下列命令验证新旧归档完整性，并仅将当前 checkout 与新基线比较：
 
 ```sh
 node --import tsx --input-type=module - <<'JS'
 import { readFileSync } from 'node:fs';
 import { verifyManifest, baselineFingerprint } from './tests/vertical-slice/evidence.ts';
-const dir = 'docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run';
+const historical = 'docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run';
+verifyManifest(historical, JSON.parse(readFileSync(`${historical}/manifest.json`, 'utf8')));
+const dir = 'docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run';
 const manifest = JSON.parse(readFileSync(`${dir}/manifest.json`, 'utf8'));
 verifyManifest(dir, manifest);
 if (baselineFingerprint(process.cwd()).sha256 !== manifest.baseline.sha256) {
   throw new Error('Current checkout uses a different baseline');
 }
-console.log('Archive intact; baseline unchanged');
+console.log('Both archives intact; current method baseline matches');
 JS
 ```
 
@@ -47,7 +57,7 @@ JS
 
 ```text
 package.json / package-lock.json     测试与固定页面依赖
-tsconfig.json                       测试和 fixture 类型检查
+tsconfig.json                       产品 src、测试和 fixture 类型检查
 docs/acceptance/
   README.md                         执行入口和结果解释
   VS001.md                          冻结的成功条件
@@ -82,7 +92,7 @@ records/vertical-slice/<runId>/      每次实际结果，默认被 Git 忽略
 
 ## 实现后的复验
 
-1. 保留这次实现前回执及其全部原始文件，审阅失败原因确实是产品入口缺失。
+1. 使用上述新当前基线，保留新旧实现前回执及其全部原始文件，审阅失败原因确实是产品入口缺失。
 2. 后续产品改动只补 adapter 及实现它所需的最小 Electron/harness 生命周期；保持本基准、固定 fixture 和锁文件不变。
 3. 原样执行上面的四条命令。新 runId 合理，基准内容指纹必须与实现前相同；任务中 runId 改变会使 task 指纹自然不同。
 4. 对比两次 report/manifest，并审阅真实 harness 输出、代码 diff、Electron 页面截图和 CDP 请求/响应。五项全部 passed 才能认定该固定场景闭环通过。

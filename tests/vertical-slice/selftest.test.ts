@@ -5,9 +5,9 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { taskSchema, productEventSchema } from './contracts.js';
-import { postcondition } from './postcondition.js';
+import { assertObservation, postcondition } from './postcondition.js';
 import { changedPaths, hash, inventory, ProductTranscript, safePath, verifyManifest, type Manifest } from './evidence.js';
-import { loopbackUrl } from './cdp.js';
+import { CdpConnection, loopbackUrl } from './cdp.js';
 
 // Synthetic self-checks exercise rejection capability, never the product acceptance path.
 const task = taskSchema.parse({ schemaVersion: 1, taskId: 'VS001', runId: randomUUID(),
@@ -76,4 +76,59 @@ test('synthetic: manifest refuses content tampering, missing evidence and mixed-
     assert.throws(() => verifyManifest(root, manifest));
     assert.equal(readFileSync(join(root, 'task.json'), 'utf8'), taskBytes);
   } finally { rmSync(root, { recursive: true }); }
+});
+
+// Synthetic transport drives the real request/notification/navigation implementation.
+// Exhausting the observations fails immediately instead of hiding an extra readiness poll.
+function syntheticConnection(observations: typeof observation[]) {
+  let evaluations = 0;
+  class SyntheticSocket extends EventTarget {
+    send(raw: string) {
+      const { id, method } = JSON.parse(raw);
+      let result: unknown = {};
+      if (method === 'Page.navigate') result = { frameId: 'synthetic-frame' };
+      if (method === 'Runtime.evaluate') {
+        const next = observations[evaluations++];
+        if (!next) throw new Error('Unexpected extra DOM readiness poll');
+        result = { result: { type: 'string', value: JSON.stringify(next) } };
+      }
+      queueMicrotask(() => {
+        this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ id, result }) }));
+        if (method === 'Page.navigate') this.dispatchEvent(new MessageEvent('message', {
+          data: JSON.stringify({ method: 'Page.loadEventFired', params: {} }),
+        }));
+      });
+    }
+  }
+  // Supply a transport without exposing a new product API or invoking Electron/Agent.
+  const connection: CdpConnection = Reflect.construct(CdpConnection, [new SyntheticSocket(), () => {}]);
+  return { connection, evaluations: () => evaluations };
+}
+const syntheticIdentity = { pid: 123, webContentsId: 1, targetId: 'synthetic-target',
+  cdpEndpoint: 'http://127.0.0.1:9222/', previewUrl };
+
+test('synthetic: complete empty DOM returns immediately and B03 rejects it', async () => {
+  const empty = { ...observation, matches: [] };
+  const transport = syntheticConnection([empty]);
+  const actual = await transport.connection.navigateAndObserve(task, syntheticIdentity, AbortSignal.timeout(1000));
+  assert.deepEqual(actual, empty);
+  assert.equal(transport.evaluations(), 1);
+  assert.throws(() => assertObservation(actual, task, previewUrl), /exactly one element/);
+});
+test('synthetic: navigation waits for complete state and the expected URL', async () => {
+  const transport = syntheticConnection([
+    { ...observation, readyState: 'loading' },
+    { ...observation, url: 'http://127.0.0.1:5173/other' },
+    observation,
+  ]);
+  const actual = await transport.connection.navigateAndObserve(task, syntheticIdentity, AbortSignal.timeout(1000));
+  assert.deepEqual(actual, observation);
+  assert.equal(transport.evaluations(), 3);
+  assertObservation(actual, task, previewUrl);
+});
+test('synthetic: complete single-match DOM returns on the first evaluation', async () => {
+  const transport = syntheticConnection([observation]);
+  const actual = await transport.connection.navigateAndObserve(task, syntheticIdentity, AbortSignal.timeout(1000));
+  assert.equal(transport.evaluations(), 1);
+  postcondition(actual, task, previewUrl, []);
 });
