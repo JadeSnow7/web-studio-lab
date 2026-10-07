@@ -2,15 +2,35 @@
 
 Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) 既有设计与工程经验规划的 Electron 桌面工作区，面向 [OSCHINA 开源大赛 2026](https://www.oschina.net/os2026/) 的新路线探索。
 
-当前仓库处于初始化阶段，仅包含项目说明、忽略规则与 Apache-2.0 许可证。以下能力均为规划目标，尚未实现；目前没有可运行的 Electron 应用、依赖清单或安装步骤。
+当前工作树处于初始化阶段，包含项目说明、架构与开发规范、文档检查脚本、忽略规则与 Apache-2.0 许可证。以下应用能力均为规划目标；本工作树没有可运行的 Electron 应用、依赖清单或安装步骤。其他本地分支及主 checkout 的未提交实现与本树分开记录，见[审查基线](docs/architecture/baseline-2026-10-06.md)。
 
 ## 规划目标
 
-- **Workshop / Browser 双区**：Workshop 承载项目编辑、Agent 协作、终端与构建诊断；Browser 承载持续的页面预览、导航与调试。
+- **Workshop / Browser 双区**：Browser 展示和操作网页、文件、终端等工作资源；Workshop 承载当前会话、任务进展、修改和审阅。导航入口不等同于业务模块。
 - **TypeScript 全栈**：用 TypeScript 组织桌面主进程、preload 桥接、界面和共享数据契约。
 - **实时渲染与调试**：规划开发服务生命周期管理、文件变化与构建状态、热更新预览、前后端诊断及调试上下文关联。
 
 Electron 宿主、浏览器内核与终端适配所需的原生能力会单独选型；“TypeScript 全栈”表示应用层的实现方向。
+
+首版只打通固定 TypeScript 全栈模板、单项目、单 Agent 串行的“提出需求 → 修改代码 → 运行 → 验证 → 审阅”。优先复用现成 Harness，不要求当前依赖 Rein、Veriflow 和原生 Web Studio 三个仓库。
+
+## 开发与架构入口
+
+- [AGENTS.md](AGENTS.md)：人类与 AI Agent 开始工作的约束和实际命令。
+- [CONTRIBUTING.md](CONTRIBUTING.md)：开发流程、编码要求、风险验证、完成标准。
+- [架构基线](docs/ARCHITECTURE.md)：业务模块、分层、状态所有权、进程与权限。
+- [ADR-0001](docs/architecture/adr/0001-modular-monolith.md)：重要取舍及与旧草案的过渡。
+- [增加任务优先级的用例走查](docs/architecture/task-priority-walkthrough.md)：文档级责任与交接验证。
+- [基线与验收记录](docs/architecture/baseline-2026-10-06.md)：当前事实、检查结果与未实现项。
+
+当前本地检查（需 Node，无 npm 安装步骤）：
+
+```sh
+node scripts/check-docs.mjs
+git diff --check
+```
+
+这些命令只检查规范文档入口、链接和空白；不代表应用类型检查、架构源码检查或产品验收已通过。首次接入源码和工具链时必须同步上述入口；历史计划中的 `pnpm` 命令不能直接当成本树已有脚本。
 
 ## 来源与继承边界
 
