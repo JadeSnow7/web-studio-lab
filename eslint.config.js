@@ -35,6 +35,7 @@ export default tseslint.config(
       'apps/desktop/src/preload/**/*.ts',
       'apps/desktop/*.ts',
       'e2e/**/*.{ts,js,mjs}',
+      'scripts/check-docs.mjs',
       '*.ts',
       '*.js',
     ],

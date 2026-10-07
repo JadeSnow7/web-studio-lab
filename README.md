@@ -123,7 +123,7 @@ xattr -dr com.apple.quarantine "/Applications/Web Studio Lab.app"
 
 ## 架构与固定验收入口
 
-[架构约束](docs/ARCHITECTURE.md)说明当前实现与目标边界；[开发规范](CONTRIBUTING.md)说明验证与协作要求。
+[Agent 入口](AGENTS.md)、[架构基线](docs/ARCHITECTURE.md)与[开发规范](CONTRIBUTING.md)说明职责和协作要求；[当前运行时](docs/architecture/current-runtime.md)区分真实实现、目标约束与缺口。目标架构的取舍见 [ADR-0001](docs/architecture/adr/0001-modular-monolith.md)。
 
 main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical-slice`、固定 fixture 和实现前失败证据全部保留，包括 PR1 的观察值拒绝和源码类型检查修复。验收基准已有，不代表产品 adapter 或比赛闭环已完成；真实模型调用须另行明确启用。整合后的运行入口以本树 `package.json` 为准。
 

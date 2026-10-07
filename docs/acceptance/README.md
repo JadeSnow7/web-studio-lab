@@ -1,8 +1,10 @@
 # 首个 vertical slice 验收基线
 
+> 2026-10-07 整合说明：以下“实现前基线”和回执描述其各自历史版本。当前树已引入 Electron 产品，但 `src/vertical-slice/adapter.ts` 仍未实现。当前安装统一使用 `pnpm install --frozen-lockfile`，离线入口为 `pnpm typecheck` 与 `pnpm baseline:selftest`；`pnpm baseline` 仍是单独授权的真实验收入口。原根 npm 锁文件仅保留为固定指纹输入，不能对当前 manifest 执行 `npm ci`，详见 [工具链说明](toolchain/README.md)。整合改变了根 manifest，所以当前指纹必然不同于旧回执；下文将当前 checkout 与历史 SHA 比较的命令仅适用于对应历史 checkout，不作为本次整合通过条件。历史回执和固定验收源码均保持原字节。
+
 本目录交付可复跑的测试基准。Electron 产品入口尚未实现，因此五条产品验收应失败；类型检查和基准自检应通过。[VS001](VS001.md) 定义成功条件、接口职责和证据约束，Zod 源码定义实际数据结构。
 
-## 从干净 checkout 执行
+## 从历史基线 checkout 执行
 
 需要 Node.js ≥22.12 和 npm。首次安装需要访问 npm registry。此阶段不要求 Electron、真实 Agent 凭据或 GUI 会话；它们是未来实现真实闭环时的前提。
 

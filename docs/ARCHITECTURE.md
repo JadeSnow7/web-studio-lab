@@ -1,277 +1,156 @@
-# Web Studio Lab 架构约束（草案）
+# Web Studio Lab 架构基线
 
-> 状态：2026-10-05 起草，2026-10-06 按新版任务计划修订。本文定义比赛版（OSCHINA 开源大赛 2026）的进程边界、依赖方向、运行与证据约定。范围、排期与验收以[任务计划](plans/2026-10-os2026-task-plan.md)为准；本文只约束“怎么搭”，不重复“做什么、何时做”。
->
-> 相对任务计划初稿的调整：
->
-> 1. **直接使用 Electron 承载工作台**（2026-10-05），而不是独立浏览器页面加单独启动的 Chromium。
-> 2. **代码放在本仓库根目录**（2026-10-05），不再嵌套 `competition/`；所有命令从仓库根目录执行。
-> 3. **取消独立的 Hono / WebSocket 工作台服务**（2026-10-06）。桌面与独立 Node 执行服务通过限定 IPC 通信；Hono 只用于生成 App 的 API。
-> 4. **主 harness 确定为 Codex CLI**（2026-10-06），非交互调用加薄 adapter，单 Agent。实际 CLI 版本、模型与参数组合待 T02 实测后冻结。
-> 5. **macOS Apple Silicon 试用包属于 P0**（2026-10-06），交互终端原列 P1；2026-10-06 按用户明确要求接入最小 sbx 终端切片，采用 xterm.js + guest PTY。
->
-> 当前实现状态：`apps/desktop` 有第一版界面，Browser 区加载演示页面；Codex 对话与交互终端已通过独立服务接入 sbx；本轮运行验收见 [sbx 应用验证](verification/2026-10-06-sbx-app/README.md)。任务执行编排、母模板与固定验收尚未实现。
+本项目采用按业务职责组织的模块化单体：一个本地执行核心拥有任务流程，Electron 提供工作环境与用户交互，外部 Harness 通过接口接入。五个业务模块是责任划分，四个代码层次是依赖约束，进程是运行与权限边界，三者不能互相替代。
 
-## 1. 目标与边界
+本文是整合后的目标架构与后续实现约束，不是已有功能清单。2026-10-07 已纳入产品 checkpoint 与 main 的 VS001 验收基线；实际落点、安全边界与缺口见 [当前运行时](architecture/current-runtime.md)。2026-10-06 审查时，本树 `536f0a1` 无应用源码；其他 checkout 的局部实现、设计输入、差异和本轮检查见 [基线记录](architecture/baseline-2026-10-06.md)。“必须/建议/可选”的强度及验证要求见 [开发规范](../CONTRIBUTING.md)。重要取舍见 [ADR-0001](architecture/adr/0001-modular-monolith.md)。
 
-比赛版要完成的闭环：开发者在 Browser 区点选页面元素并确认任务，由 Codex CLI 在唯一母模板的生成副本上修改代码，执行服务启动 App 并运行固定验收，输出可复验的证据，最后由开发者决定是否接受。三个固定用例（C1 持久化字段、C2 权限规则、C3 字段契约）见任务计划第 6 节。
+## 1. 产品职责与范围
 
-设计原则：
+Browser 展示和操作网页、文件、终端等工作资源。Workshop 承载当前会话、目标确认、任务进展、修改和结果审阅。Workspace 组织项目、资源、上下文、权限和布局。导航入口不是业务模块；同一个任务可以在多个视图中展示，但只有一个业务状态所有者。
 
-- **执行核心不依赖 Electron。** 运行编排、验收与证据都放在可独立运行的 Node 执行服务里。`pnpm verify`、`pnpm revalidate` 和 CI 都不启动 Electron；Electron 是外壳、Browser 区页面容器和同页控制的宿主。
-- **只建三个用例所需的边界。** 不做通用运行时、多 Agent 编排、通用沙箱、插件系统。排除项以任务计划第 2.4 节为准。
-- **证据真实优先于功能完整。** 任何设计都不能让“看起来通过”替代“实际运行并验收通过”。演示数据必须带演示标识，与真实运行记录分开。
+首版围绕一个固定 TypeScript 全栈模板，完成“提出需求 → 修改代码 → 运行 → 验证 → 审阅”，一个项目、一个 Agent 串行执行。优先接现成 Codex CLI Harness；有效版本、参数、模型和工具组合须在接入时实测。本次版本整合不新增此链路，不增加云账号、好友、订阅、多 Agent 调度、实时协作、后台任务、第二模板或生成 App 部署。
 
-## 2. 进程结构
+长期分工：Rein 提供单 Agent Harness/runtime；Veriflow 负责任务编排、验收、修复策略与证据组织；Web Studio 提供工作环境、浏览器、终端、文件和交互。当前 Lab 用最小本地应用用例承接所需编排，不要求依赖三个仓库。后续接 Rein/Veriflow 时通过能力接口替换相应实现，必须保持一个任务权威写入者，不在 Main、服务和外部编排器各做一份流程。
 
-```text
-Electron main process
-├── BrowserWindow ── 工作台 renderer（React + Vite）
-│                    └── preload：仅暴露窄 API（见 4.2）
-├── WebContentsView ── Browser 区页面（独立 session，无 preload）
-│                      └── main 通过 webContents.debugger（CDP）点选、截图，后续读取 / 点击 / 输入
-└── 执行服务（独立 Node 进程，utilityProcess.fork）  ←── 限定 IPC（消息通道，Zod 校验）
-      ├── Codex CLI adapter ──> codex 子进程（cwd = 生成工作空间）
-      ├── app runner ─────────> 生成 App：API（Hono + PGlite）+ 前端 dev server
-      ├── acceptance runner ──> Playwright + Chromium（全新 browser context）
-      └── evidence writer ───> .local/runs/<runId>/
+## 2. 业务模块及状态所有权
 
-CLI（pnpm demo:run / verify / revalidate / replay）
-└── 直接调用同一执行服务核心，无 Electron
+以下是责任归属目标；现有聊天、资源和预览只实现其中局部能力，不是要求创建五个包或五套空目录。保留参考的五组职责，因为它们分别因项目身份、资源生命周期、上下文、执行推进、结果判定而变化；跨组数据可以共同存储，写入权限仍归所属模块。
+
+| 模块 | 职责与权威状态 | 公开能力（语义，非已有函数） | 依赖能力与协作 |
+| --- | --- | --- | --- |
+| 空间与项目 | Workspace/Project 注册、项目根目录与获准访问范围、资源归属关系；不拥有运行进程或任务状态 | 注册/读取项目、解析明确项目身份与权限范围、移除关联 | 为其余模块提供只读项目描述和范围判定；接文件选择/配置持久化适配器 |
+| 资源与运行环境 | Resource 描述、ResourceInstance 生命周期、AppInstance 进程组/端口/数据目录、文件版本与保存结果；不判定任务成功 | 打开/释放实例、读取/条件保存文件、启动/停止应用、页面操作/采集 | 用项目范围和任务写入许可；通过文件、PTY、CDP、进程适配器执行；向任务/验证报告事实 |
+| 会话与上下文 | Session、消息、用户选择的上下文引用、不可变上下文快照及失效标记；不拥有执行输入的后续变更权 | 管理会话、采集/冻结上下文、按页面代次使引用失效 | 读取项目身份和资源采集结果；将快照交任务用例，展示任务引用但不修改任务内部 |
+| 任务与执行 | Task/TaskVersion、TaskRun、attempt、预算、项目写入许可、执行事件序列和取消/恢复状态 | 确认目标、创建/查询/取消执行、按固定策略推进或修复 | 读取项目/上下文；调用资源、Harness 端口及验证公开接口；只引用验证/审阅结果，不替它们写表 |
+| 验证、结果与审阅 | 验证要求版本、VerificationResult、证据索引、ReviewDecision 及适用性判定；不修改业务代码 | 对指定快照验证、查询差异/证据、接受或要求修改 | 读取 TaskVersion、执行输出和资源实例；调用验证适配器；将失败证据交任务模块决定是否在预算内修复 |
+
+任务用例协调以上能力；其他模块不反向依赖任务编排的内部实现。资源需要的写入许可由装配层注入或作为已验证能力传入，验证所需任务输入使用公开只读快照，避免相互导入整个模块形成环。
+
+### 术语与身份
+
+| 概念 / ID | 含义与所有者 | 必须区分 |
+| --- | --- | --- |
+| Workspace / `workspaceId` | 空间与项目模块拥有的组织和授权范围 | 不是一个临时 cwd；主 checkout 历史计划曾把工作目录称 workspace，整合时须分清 |
+| Project / `projectId` | 一个明确根目录、代码和数据归属的项目；空间与项目拥有 | 当前焦点项目不是已创建执行的项目 |
+| Resource / `resourceId` | 可重新打开的网页/文件/终端等描述；资源模块拥有 | 描述不是进程，也不是标签页 |
+| ResourceInstance / `resourceInstanceId` | 已打开页面、文件缓冲或终端的活动实例；资源模块拥有 | 同一资源可有多个实例；实例可没有可见 View |
+| View / `viewId` | 标签页/窗格中的展示绑定、布局与焦点；Presentation 拥有 | 关闭 View 不删除 Resource，不等于停止实例 |
+| Session / `sessionId` | 一段对话及上下文选择；会话模块拥有 | Electron Chromium session 是隔离适配细节，用 `browserSessionKey` 区分 |
+| Task / `taskId`；TaskVersion / `taskVersion` | 用户目标和确认版本；任务模块拥有，版本字段组合为 `taskId` + `version` | 消息不直接成为执行；目标变化产生新版本 |
+| TaskRun / `runId` | 一次基于固定任务版本的执行或无模型复验；任务模块拥有 | 沿用已有分支 `RunRecord.runId`，全文仅指任务执行；新代码变量应带明确上下文，不用于应用启动 |
+| Attempt / `attemptId` | 同一 TaskRun 内一次修改与验证尝试；任务模块拥有 | 修复不刷新总预算；输入目标改变需新 TaskVersion/TaskRun |
+| AppInstance / `appInstanceId` | 一次前端/API 启动组合及所属进程、数据目录；资源模块拥有 | 一个 TaskRun 可顺序启动多个 AppInstance；一个应用可支持多个页面实例 |
+| 执行结果 | TaskRun 的退出原因、输出代码引用、文件变更与清理事实；任务模块拥有 | 不是验证通过或用户接受 |
+| VerificationResult / `verificationId` | 一次绑定输入版本与条件的验证事实；验证模块拥有 | 无法运行是 `undetermined`，业务断言不满足是 `failed` |
+| ReviewDecision / `reviewId` | 用户对具体目标、代码和结果的接受/要求修改记录；审阅模块拥有 | Harness 退出 0、验证通过都不等于接受 |
+| SourceSnapshot / `sourceSnapshotId` | 资源模块生成的不可变代码内容标识，由执行/验证引用 | HEAD 不覆盖 dirty/untracked 内容；不能只存 `baseCommit` |
+
+上述是语义基线；未实现的 ID 不意味着本树已有 schema。沿用已有 `runId` 避免无必要接口重命名，应用启动必须使用 `appInstanceId`，只读历史查看不新建 run、不采用 `replay` 执行模式。`TaskRun` 是业务术语，整合已有 `RunRecord` 类型时无需为改名引入第二套对象。
+
+## 3. 代码分层与源码依赖
+
+| 层 | 放什么 | 不放什么 |
+| --- | --- | --- |
+| Presentation | React UI、布局/焦点、未提交输入、业务只读投影；UI 用例客户端 | 项目写入、执行状态机、验收判断、直接访问 Node/Electron |
+| Application | 用例、协调、事务/副作用边界、流程和能力接口 | 具体数据库、进程 API、Harness SDK/命令细节 |
+| Domain | 必要的业务对象、不变量与状态转换 | React、Electron、文件/数据库驱动、具体 Harness |
+| Adapters | Electron IPC、文件/持久化、PTY、CDP、Harness/验证/子进程接入 | 再实现一套任务状态机或修改验收目标 |
+| Composition root（装配入口） | 选择具体适配器、连接端口、启动和关闭作用域 | 业务判断和各模块权威状态 |
+
+下图箭头 **A → B 表示 A 的源码可以依赖/import B**，不表示线程或运行时请求。
+
+```mermaid
+flowchart LR
+    P[Presentation] --> C[公开用例契约 / DTO]
+    A[Application 用例] --> C
+    A --> D[Domain]
+    A --> I[Application 能力接口]
+    X[Adapters] --> I
+    X --> C
+    X --> L[Electron / FS / DB / PTY / CDP / Harness]
+    R[启动装配入口] --> A
+    R --> X
 ```
 
-区域对应：**Workshop** 是左侧导航与工作面板（现场、任务确认、运行阶段、attempt 与审阅）；**Browser** 是 WebContentsView 承载的实际页面，与日志、diff、验收报告共用一条顶部标签栏。右侧是通信栏（空间会话 / 联系人 / 动态）。
+跨进程时 UI 依赖用例客户端契约，经 IPC 适配器调用 Application；同进程可直接调用公开用例。运行时 Application 会调用注入的适配器对象，但源码只依赖它需要的接口。Domain 不反向引用 Application 或 Adapters。接口由需要能力的模块定义；不得为满足图形创建没有真实消费者的接口。
 
-renderer 不直接连接执行服务。renderer → preload → main → 执行服务，每一跳都按 `packages/protocol` 的 schema 校验。执行服务不监听网络端口。
+模块以公开入口协作（独立包用包出口，模块可用 `index.ts` 或明确用例文件）。严禁深层导入私有 store、修改对方状态或数据库表。`packages/protocol` 只容纳确实跨进程共享的 schema、DTO、事件信封；不是全局业务模型包。内部领域对象无需为共享而外露。普通查询和记录直接实现，不机械套复杂聚合、事件溯源或通用 Repository。
 
-## 3. 目录与依赖方向
+### 现有物理落点与后续接入
 
-```text
-apps/
-  desktop/        Electron：src/main、src/preload、src/renderer
-  service/        执行服务：run 编排、Codex adapter、进程与证据管理、CLI 入口（待实现）
-packages/
-  protocol/       Zod schema：页面现场、任务版本、run / attempt / 审阅、IPC 通道
-demo/             演示页面与说明，只用于界面演示
-templates/
-  task-app/       唯一母模板（独立项目，自带锁文件，不加入根 workspace）（待实现）
-fixtures/
-  c1-*/ c2-*/ c3-*/   各用例初始代码覆盖 / 补丁、数据 seed、用户意图（待实现）
-acceptance/
-  c1/ c2/ c3/ shared/ 固定验收（Playwright + API 检查）（待实现）
-docs/
-.local/           运行时数据，不提交：workspaces/<workspaceId>/、runs/<runId>/
+`apps/desktop`、`apps/service`、`packages/protocol` 已存在；下表区分当前宿主与后续职责。`templates/task-app` 和比赛 C1–C3 验收仍未实现；`fixtures/vertical-slice` 与 `tests/vertical-slice` 是独立的 VS001 固定基线。
+
+| 位置 | 责任 |
+| --- | --- |
+| `apps/desktop/src/renderer` | Presentation 与用例客户端；既有 `state/runs.ts` 的演示投影不升级为任务数据库 |
+| `apps/desktop/src/preload` | 窄桥接，使用协议，不导入任务用例实现 |
+| `apps/desktop/src/main` | 窗口、可信来源检查、浏览器/OS 适配和进程装配；现有 `execution.ts` 留作薄转发入口 |
+| `apps/service` | Electron 无关的本地业务核心与 Node 宿主；按需要放五模块应用/领域/适配代码，不复制五套空目录 |
+| `packages/protocol` | 唯一跨进程契约源，延续已有 Zod/类型导出 |
+| `templates/task-app`、`acceptance`、`fixtures` | 后续固定模板、独立验收和初态；模板可独立交付，验收走公开 UI/API，不导入被测内部实现 |
+
+`apps/service` 中的 service 表示执行宿主，不要求 HTTP 服务。现有包结构已满足需求就保留；当前具体实现与已验证范围见 [当前运行时](architecture/current-runtime.md)，不为满足分层图创建第二套实现。
+
+## 4. 进程、通信与权限
+
+目标运行关系如下；箭头是 **带标签的运行时调用/消息方向**，不是源码依赖。图中的聊天/终端消息宿主已有实现；完整任务编排、AppInstance 与固定验收连接尚未实现。
+
+```mermaid
+flowchart TB
+    UI[Workbench Renderer / Presentation] -->|具名用例请求| P[Preload / contextBridge]
+    P -->|限定 IPC| M[Electron Main / 来源校验与装配]
+    M -->|命令与查询消息| S[Node 执行宿主 / 唯一本地业务核心]
+    S -->|状态快照与有序事件| M
+    M -->|事件经 Preload 到 UI| P
+    P -->|只读业务投影| UI
+    S -->|带身份的页面操作请求| M
+    M -->|CDP / 生命周期| V[隔离的项目页面 WebContentsView]
+    S -->|Harness 端口| H[单 Agent Harness 子进程]
+    S -->|资源端口| A[项目 API 与前端子进程 / AppInstance]
+    S -->|验证端口| T[验证执行器]
+    V -->|项目 HTTP 请求| A
+    T -->|公开 UI / API 验证| A
 ```
 
-允许的依赖方向（箭头表示“可以 import”）：
+首版选择独立 Node 执行宿主，可由 Electron utility process 承载；核心应用/领域代码无 Electron import。Main 仅启动宿主、转发经过校验的命令、管理 Electron 资源；页面能力以消息适配器供核心调用。CLI 复验将来调用同一核心。Main 和执行宿主不得各维护 TaskRun、重试、验收或取消状态机。现有聊天宿主与版本前提见当前运行时；任务执行宿主和完整打包通路仍须在接入时实测。
 
-| 模块                    | 可以依赖                                                            | 禁止依赖                                |
-| ----------------------- | ------------------------------------------------------------------- | --------------------------------------- |
-| `packages/protocol`     | `zod`                                                               | Node、DOM、Electron API；任何其他内部包 |
-| `apps/service`          | `protocol`、Node 库、Playwright                                     | `electron`、`apps/desktop`              |
-| `apps/desktop` main     | `protocol`、`electron`、Node 库                                     | `apps/service` 源码（只启动其构建产物） |
-| `apps/desktop` preload  | `electron`（`contextBridge`、`ipcRenderer`）、`protocol` 的通道常量 | 业务逻辑、Node 文件 / 进程 API          |
-| `apps/desktop` renderer | `protocol`、React                                                   | `electron`、Node API                    |
-| `acceptance/`           | Playwright、HTTP 客户端                                             | 母模板源码、`apps/*` 内部实现           |
-| `templates/task-app`    | 自身依赖                                                            | 本仓库任何内部包                        |
+不恢复旧草案的工作台 Hono/WS 监听服务、随机端口/token 发现接口；生成 App 自己的 API 可继续用 Hono。项目页面与工作台 IPC 没有直接通道。运行页面、文件内容和工具输出是外部输入，只能补充上下文，不能自行增加工具、路径、命令或预算权限。
 
-renderer 的禁止项由 ESLint `no-restricted-imports` 检查（见 `eslint.config.js`），renderer 的 tsconfig 不包含 Node 类型。
+目标 Electron 基线：工作台和预览均使用 `contextIsolation: true`、`sandbox: true`、`nodeIntegration: false`、`webSecurity: true`；项目预览无工作台 preload，隔离 browser session，权限默认拒绝，导航/新窗口/外部 URL 按显式策略处理。Main 校验实际 sender、顶层 frame 与来源，并校验请求载荷；Preload 只暴露具名能力及取消订阅，不暴露原始 `ipcRenderer`、任意通道或通用执行脚本能力。这些原则依据 [Electron 官方安全指南](https://www.electronjs.org/docs/latest/tutorial/security)，本次保全运行了离线检查与构建；真实窗口与完整隔离行为不能由这些检查替代，历史结果见具体合同。
 
-母模板与验收都不 import 内部包，原因如下：
+文件适配器必须以固定项目根和获准范围解析路径，检查规范化、符号链接及新建文件父路径；不可用字符串前缀或只信任 Renderer 传入路径。模型凭据由受控适配器按需取得，不进入普通日志、协议 DTO 或默认模型上下文。子进程只接收必要环境、cwd 和能力；Electron renderer sandbox 不等于 Harness/项目 Node 进程的 OS 沙箱。若接入能力不能保证所需范围，应阻止该能力或明确要求新的授权，不能将 UI 白名单包装为强隔离。
 
-- **母模板**：生成工作空间要能脱离本仓库，单独安装、运行和交付（任务计划第 7.1 节要求最终源码快照可独立复验）。
-- **验收**：只通过 App 的公开 HTTP / UI 契约验证结果，不受 Agent 修改的实现细节影响。
+## 5. 生命周期与一致性约束
 
-## 4. Electron 安全基线
+本节是任务执行闭环必须满足的约束。现有聊天/资源代码已有局部状态与清理机制，但尚未实现完整 TaskRun 权威状态与项目写入控制。检查方式同时作为接入时的验收输入。
 
-Browser 区加载的是 Agent 修改过的代码，因此按不可信内容处理。
+| 操作/不变量 | 责任与语义 | 接入验收 |
+| --- | --- | --- |
+| 关闭分页或窗格 | Presentation 解除 View/布局绑定；保留 Resource 和可恢复实例。不隐式取消 TaskRun 或停止应用 | 隐藏/恢复后身份一致，运行状态不被 UI 写回 |
+| 停止应用 | 资源模块停止指定 `appInstanceId` 的进程组，确认退出；不删除文件、不撤销修改。关联执行收到停止事实 | 真实进程与端口释放；不能按进程名/端口批量杀进程 |
+| 取消任务 | 任务模块先关闭新动作入口，进入 `cancelling`；调用 Harness 取消及所属资源停止，等待确认后才能标为已取消 | 在执行中取消，观察新动作停止、执行器及子进程退出、已有 diff 保留；未确认则保持可见未决状态 |
+| 移除资源 | 资源模块移除描述/关联；活跃消费者存在时拒绝并给出显式停止/解除步骤，不悄悄破坏任务 | 移除不等于删除磁盘文件；文件删除是独立授权操作 |
+| 执行输入不随焦点变化 | 创建时固定 `workspaceId`、`projectId`、`taskId/version`、上下文快照、基线 `sourceSnapshotId`、权限及预算 | 切项目/页面后仍对原项目执行；任务变化生成新版本与新 run |
+| 同项目统一写入控制 | 任务与执行模块拥有项目写入许可；Agent 修改、编辑器保存、迁移/修复等 Lab 发起的写入走同一控制。首版拒绝第二个写入执行，不做后台队列 | 重复启动和并行保存有明确冲突；未确认停止不得释放许可让第二个执行覆盖 |
+| 文件版本冲突 | 资源模块保存使用读取时版本/内容哈希，写前及写后核对；外部工具或用户修改产生冲突，保留双方内容，不自动覆盖 | 插入外部修改、删除和新建碰撞后，报冲突并保留文件 |
+| 结果分离 | 任务目标版本、TaskRun 结束、验证结果、用户接受各有记录和所有者 | Harness 退出 0 不能生成验证通过；验证通过不能自动接受 |
+| 验证绑定 | 固定输出快照、TaskVersion、验收版本/hash、环境/依赖/命令/数据版本及 AppInstance | 代码或条件变化后，旧结果留作历史，当前状态变为待验证/不适用 |
+| 异常恢复 | 执行核心核对文件快照、进程身份和未确认结果，必要时进入 `interrupted`/待核对；不直接重放命令 | 模拟响应丢失或宿主崩溃，不重复迁移/写入，不误杀复用 PID 的无关进程 |
 
-### 4.1 窗口与视图配置
+统一写入许可控制的是 Lab 自己发起的动作，不能锁住所有外部编辑器。不能用“检查哈希后直接覆盖”宣称任意外部并发原子安全；Harness 接入时须明确使用受控写入工具或隔离修改副本并带版本条件应用，外部冲突必须可见。由哪个具体适配器落实写入与冲突检查，须与 Harness 能力一起验证；目前未实现。
 
-| 配置                   | 工作台 renderer  | Browser 区视图                                                                                                                                     |
-| ---------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `contextIsolation`     | `true`           | `true`                                                                                                                                             |
-| `sandbox`              | `true`           | `true`                                                                                                                                             |
-| `nodeIntegration`      | `false`          | `false`                                                                                                                                            |
-| `webSecurity`          | `true`           | `true`                                                                                                                                             |
-| preload                | 仅工作台 preload | **无**                                                                                                                                             |
-| session                | 默认 session     | 独立分区，与工作台隔离。真实运行用 `persist:preview-<workspaceId>`；当前演示用内存分区 `preview-demo`                                              |
-| 权限请求               | 默认拒绝         | 默认全部拒绝                                                                                                                                       |
-| `window.open` / 新窗口 | 拒绝             | 拒绝                                                                                                                                               |
-| 导航                   | 只允许本应用页面 | 只允许当前 run 的预览源（`127.0.0.1` / `localhost` 的指定端口）；当前演示允许 `wsl-demo://taskflow`；用户授权的公开 HTTPS 采用下述只读文档代理路径 |
+### 目标状态与结果适用性
 
-其他要求：
+TaskVersion 确认后不可变。TaskRun 的流程可以有 `queued → preparing → executing → completed`，并区分失败、取消中/已取消、超时和中断待核对；具体 schema 在首次实现时统一定义，不把现有分支聚合 UI `RunStatus` 当领域权威。`completed` 仅表示执行动作和必要清理结束。
 
-- 工作台 renderer 设置 CSP：`default-src 'self'`，只放行本应用资源与 `data:` 截图。
-- 不使用 `remote` 模块，不关闭 `webSecurity`，不启用 `allowRunningInsecureContent`。
-- 生产加载使用本地文件；开发时才加载 Vite dev server。
-- 演示页面通过只注册在 Browser 区 session 上的自定义协议提供，只读取 `demo/` 目录内的文件。
+验证状态独立为 `passed / failed / undetermined`；未运行单独显示。用户审阅独立为待审阅、接受或要求修改。沿用既有交互契约：只有固定验收通过且仍适用于当前版本，才能进入接受操作；未通过时可以记录意见或要求修改，不能标为接受。接受记录绑定任务版本、代码快照和相关结果，不改写验证状态。新代码、新目标或新的复验不继承旧接受；旧记录不可覆写。
 
-### 4.2 preload 与 IPC
+SourceSnapshot 必须覆盖实际参与验证/交付的完整代码内容，包括未跟踪新文件、迁移和锁文件；明确排除凭据和非输入构建产物。记录基线 commit、变更与完整内容标识，不只记录 HEAD 或 diffHash。验证使用固定快照/隔离副本；必须使用可变目录时至少检验前后内容一致，变化即无法判定该轮有效性。无模型复验创建新 TaskRun 并引用 `sourceRunId`，使用原验收要求和明确的新运行条件；历史查看只读取旧记录。
 
-preload 只暴露以下几类能力，请求一律使用 `ipcRenderer.invoke`，事件订阅返回取消函数，不直接暴露 `ipcRenderer`：
+取消/超时先阻止新工具动作，再传播停止到 Harness、验证器和本次独占的 AppInstance/子进程，记录实际退出；共享或用户先前打开的资源只有取得所有权后才能停止。停止等待超时要报告尚存进程和未决结果，不把 `Promise` 已取消当作进程已停止。Lab 退出也走同一清理入口；首版不把任务悄悄留在后台。
 
-- Browser 区：设置布局与可见性、导航、刷新、前进后退、开始 / 取消点选、重新附着 CDP、读取状态。
-- 应用信息与执行服务状态（只读）。
-- 普通对话：查询 CLI 状态、读取/发送/取消/重置个人或空间会话，订阅会话快照与不可用状态。
-- 菜单命令事件（例如 ⌘B 切换 Workshop）。
-- 以后：`revealArtifact(path)`，只允许打开 `.local/runs/` 内的路径。
+## 6. 约束怎样落地
 
-main process 对每个 IPC 请求做两项检查：
+本轮已落地的是文档导航、权威约定、ADR、[代表性用例走查](architecture/task-priority-walkthrough.md) 与文档检查脚本。未落地的是应用源码、导入规则、真实 Harness、写入控制、取消/恢复、版本绑定和持久化审阅。
 
-- 用 `protocol` 中的 Zod schema 校验参数，校验失败直接抛错，不做兜底。
-- 检查 `event.sender` 是主窗口的 webContents，且 `event.senderFrame` 是顶层工作台页面；Browser 区视图发来的 IPC 一律拒绝。
-
-新增 IPC 通道必须先在 `protocol` 中定义 schema。
-
-### 4.3 页面现场与同页控制
-
-- 点选、截图和以后的读取 / 点击 / 输入都通过同一个 Browser 区 `webContents` 的 CDP 完成，现场记录 `webContents` 身份、文档代次、URL、采集时间。
-- 页面导航（包括同文档导航）后，文档代次加一，旧现场标记失效，确认任务前必须重新采集。
-- 人工打开 DevTools 等原因导致 CDP 断开时，界面显示原因，暂停页面自动操作；重新附着后重新采集现场。
-- 被浮层遮挡时，主进程隐藏原生视图，renderer 显示同一页面的静态快照，不让原生视图盖住浮层。
-
-## 5. 服务接口
-
-### sbx 对话与终端（2026-10-06 接入）
-
-`apps/service` 独立构建为 Node 产物，main 通过 `utilityProcess.fork` 启动，核心不依赖 Electron。跨进程契约统一定义在 `packages/protocol`；renderer 仅持有快照投影，不能选择宿主任意命令。`WSL_SBX_NAME` 选择已存在的 mountless Codex sandbox，`WSL_SBX_BIN` 可指定 sbx CLI；未配置、目标不符或连接失败直接报告不可用。
-
-`SbxConnection` 负责定位 sbx、核验目标身份/挂载、读取 guest Codex 版本；`GuestProcess` 负责传输和退出回执。实际 Codex 与 shell 都在 `/home/agent/workspace` 内运行。认证保留模板的 provider 与代理配置，不读取或复制 host 凭据。应用不创建、删除或停止整个 sandbox；组件准备见[依赖说明](development/dependencies.md)。
-
-每次进程调用通过 `sbx exec -i` 启动内置 Python 标准库 helper。helper 在 guest 内管理所属进程、PTY 与清理；stdin 控制帧和模型 prompt 分开，stdout 使用明确帧封装。终端使用 xterm.js 与 fit addon 展示 guest PTY，不依赖 Electron native node-pty ABI。输入、尺寸和会话身份在 IPC 边界校验；隐藏终端保留同一 shell，关闭时等待远端清理确认。
-
-Codex 首轮使用 `exec --json`，续轮显式 `exec resume <threadId>`，采用 `workspace-write` 并启用 guest 工具。消息历史按应用会话隔离，但各会话和终端共享 guest 文件系统；开始新对话不删除文件。服务拥有 generation、threadId、turnId 与序号，保留有界工具结果和非致命警告，截断结果明确标示。成功要求助手文本、会话身份、完成事件、正常退出和远端清理确认。
-
-每会话最多一个活动回复。取消、重置、终端关闭和窗口退出均等待已登记 guest 进程清理；宿主 sbx 进程退出不等于远端清理成功。缺少回执时显示失败并保留占用，不能把未知状态伪装成可重新开始。应用内消息与终端投影只在本次启动保存，CLI 自身会话和 guest 文件仍由 CLI/sandbox 管理。
-
-连接检查不调用模型；普通测试使用确定性 sbx fixture，真实模型和真实 guest 生命周期须显式启用。该接入不等于下述任务 run 编排或固定验收完成。
-
-### 公开网页与空间资源（2026-10-06 授权实现）
-
-公开页面使用单独的 HTTPS 获取与只读文档路径：main 对全部 DNS 地址和每次跳转校验公网范围，连接固定到已验证 IP，保留 TLS 证书校验。解析响应后仅把转义后的标题和正文放入固定模板；原站脚本、属性、样式、Cookie、网络提示和子资源不会进入 Browser。界面明确标注只读文档，真实页面快照含原始字节和正文散列，不宣称原站布局或动态交互。
-
-用户主动加入的公开文档由服务保存在固定空间资源文件中。renderer 只传空间和预览页面身份；main 捕获已显示的同一代文档，服务验证快照并提供幂等新增、版本更新与删除。当前只对已有 TaskFlow 空间开放 IPC；接口权威在 `packages/protocol/src/resources.ts`。
-
-空间会话开始时，服务按固定 conversationId→spaceId 映射冻结有界资源包；个人会话是空包。guest helper 把资源包放入 sealed memfd，单次 Codex 调用加载有限 stdio MCP：仅枚举与按资源身份/版本读取。没有 host mount、Docker socket、新凭据或持久 MCP 配置。资源内容为非可信数据；资源包不赋予写权限。活动回复期间禁止变更，变更后切断旧 CLI thread，下一轮获得新资源包。共享 guest 的既有同 UID 文件系统不提供 OS 级空间保密，已进入历史的内容也无法撤回。
-
-实现和验收边界见 [公开资源合同](verification/2026-10-06-public-resources/SPEC.md)。完成状态只能依据该轮实测证据，MCP 客户端通过不能代替真实模型工具调用。
-
-### 任务执行（待 T04 实现）
-
-- **进程**：main 用 `utilityProcess.fork` 启动服务，备选 `child_process.fork`。服务不监听网络端口。
-- **通信**：消息通道上的请求 / 响应与有序运行事件。所有消息的 schema 在 `packages/protocol` 中定义，两端都校验。
-- **接口划分**：创建 run（携带已确认的任务版本）、取消 run、查询 run / manifest、列出证据；运行事件按 `seq` 推送，renderer 断开后可以从 `seq` 续读。
-- **并发**：每个工作空间同时只允许一个活动 run，重复创建返回明确错误。
-- **CLI**：CLI 入口直接调用服务核心模块，结果与通过桌面调用一致。
-
-在服务接入之前，main 只报告“执行服务未接入”的状态，renderer 据此禁用真实执行按钮并说明原因，不返回伪造的运行结果。
-
-## 6. Run 生命周期与进程管理
-
-### 6.1 状态
-
-```text
-queued → preparing → attempt(n): agent → app_starting → app_ready → accepting
-                                                              ├─ 通过 → passed（待开发者审阅）
-                                                              ├─ 失败且未超预算 → attempt(n+1)，附带失败证据
-                                                              └─ 失败且预算用尽 → failed
-任意非终态 → cancelled | timed_out
-工具故障（无法得到验收结论）→ inconclusive
-```
-
-终态为 `passed`、`failed`、`inconclusive`、`timed_out`、`cancelled`。基础设施错误（安装失败、端口冲突、CDP 断开等）导致无法得出验收结论时记为 `inconclusive` 并带 `reason`，**不能记成业务验收失败**。预算默认每个 run 最多 3 次 attempt、总时限 15 分钟，随 run 一起记录。
-
-run、attempt 与开发者审阅是三件事：run 通过只说明固定验收通过；开发者“接受结果”是独立的审阅记录，绑定任务版本与源码快照；“要求修改”产生新的任务版本，不改写旧 run。
-
-### 6.2 进程归属与清理
-
-- run 启动的每个子进程（Codex、App API、前端 dev server、验收）都登记在该 run 的进程组下。POSIX 上使用 `detached: true` 新建进程组，清理时向整个组发信号。
-- 取消或超时时先发 `SIGTERM`，等待一段宽限期后发 `SIGKILL`，**并等待进程真正退出**，再进入终态。界面不再有输出不代表进程已清理。
-- 端口由服务分配并记录在 run 中，终态后释放。只清理属于该 run 的进程和端口，不按名字或端口号批量结束进程。
-- Electron 退出时，先让服务取消所有活动 run 并等待清理完成。
-
-### 6.3 Electron 与服务的关系
-
-- 服务崩溃时 main 在工作台中显示错误，不静默重启后假装 run 仍在进行。
-- CLI 与 CI 用系统 Node 运行同一服务核心。系统 Node 的主版本与 Electron 内置 Node 的主版本保持一致（Electron 44.5.1 内置 Node 24）。
-
-## 7. 事件、manifest 与证据
-
-字段定义以任务计划第 7.1 节为准，这里约束实现方式。
-
-- **事件流**：每个 run 一个只追加的 `events.jsonl`。
-  - 事件信封为 `{ runId, attemptId?, seq, timestamp, type, payload }`；`seq` 在 run 内严格递增，由服务单点分配。
-  - 最小事件类型：任务确认、现场采集 / 失效、`run.started`、`attempt.started`、`agent.event`、`files.changed`、`command.started`、`command.finished`、`app.ready`、CDP 暂停 / 重新附着、`acceptance.result`、`artifact.added`、`run.finished`。
-  - Codex 的原始 JSONL 事件放在 `agent.event.payload.raw` 中保留。无法解析的事件照样记录，不能丢弃，也不能把解析失败记成成功。
-- **manifest**：每个 run 一个 `manifest.json`，内容包括：
-  - `mode`（`online` / `revalidate` / `replay`）、用例、工作空间、`taskVersion`；
-  - `sourceState`（基线 commit 加 diff 或内容哈希，不能只记录 HEAD）、`fixtureVersion`、运行前后的 `acceptanceHash`；
-  - harness 与模型的名称和版本、预算、各 attempt 摘要、终态与原因；
-  - 页面现场引用（URL、`webContents` 身份、采集时间）；
-  - artifact 的**相对路径**列表。
-- **artifact**：命令日志、App 日志、截图、Playwright trace 和验收报告都写在 `.local/runs/<runId>/` 下。证据包可以整体搬走，不引用开发机上的绝对路径。
-- **只追加**：已写入的事件和失败记录不改写、不删除。复验产生新的 run（`mode: revalidate`）；历史查看只读取，界面必须标明“历史记录”。
-
-## 8. 工作空间、模板、fixture 与验收隔离
-
-- **生成工作空间**：每个工作空间在 `.local/workspaces/<workspaceId>/` 下，由「母模板 + 用例 fixture」展开得到。Codex 的 `cwd` 和允许写入的范围限定在这个目录。
-- **固定验收**：`acceptance/` 和原始 `fixtures/` 不在 Agent 写入范围内。每次 run 前后都计算 `acceptance/` 的哈希，不一致时直接判为失败。
-- **独立安装**：母模板是独立项目，带自己的 `pnpm-lock.yaml`，生成工作空间单独安装。这样导出的最终源码快照包含锁文件和迁移，可以脱离本仓库复验。
-- **故意出错的 fixture**：C3 这类 fixture 只在生成副本中展开，不进入根 workspace 的类型检查和默认 CI。
-- **验收判定**：验收必须能区分两种情况：“初始状态下预期失败”，以及“修复后仍然失败”。
-- **防止放宽验收**：禁止通过修改验收、放宽 schema 或预先写入期望数据让用例通过。这类改动即使出现在 Agent 的 diff 里，也必须判为失败。
-
-## 9. 数据与浏览器生命周期
-
-### 9.1 数据库
-
-- PGlite 由生成 App 的 API 进程持有，每个工作空间使用独立的持久化目录，验收数据和演示数据分开存放。
-- API 运行期间，其他进程不能打开同一个数据库目录。核对数据优先走 API；确实需要直接执行 SQL 时，先停掉 API。
-- “持久化”验收必须包括停止并重启 API 进程。重启前不能重新 seed，也不能写入期望值。
-
-### 9.2 浏览器
-
-预览和固定验收使用两条不同的浏览器路径：
-
-| 用途                            | 浏览器                                     | 说明                                                                                    |
-| ------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------- |
-| 用户观察、点选与 Agent 同页操作 | Electron Browser 区 WebContentsView        | 用户看到的就是被操作的页面。证据中记录 URL、session 分区、`webContents` 身份和 App 实例 |
-| 固定验收 / 无模型复验           | Playwright 自带 Chromium，使用全新 context | 不依赖 Electron，可以在 CI 中 headless 运行。身份和初始数据显式准备                     |
-
-两者的结果分开标注。iframe 或另一个 Chromium 访问同一个 URL，不能证明共享了同一份登录或存储状态。
-
-## 10. 凭据与日志
-
-- 模型凭据由用户按 Codex CLI 的方式自行配置，只传给 Codex 子进程，不写入 manifest、事件、日志、截图或仓库，也不经过 renderer。
-- 写入证据前，对命令行参数和环境变量摘要做脱敏处理。
-- `.env*`、`.local/`、构建产物与测试输出已被 `.gitignore` 忽略。
-- A/B 身份来自受控的测试会话，服务端根据可信会话判断当前用户，不信任客户端传来的用户 ID。
-
-## 11. 不在 P0 范围的 Electron 能力
-
-签名与公证、自动更新、多窗口、托盘、终端多会话与恢复、暗黑与暖色主题。
-
-macOS Apple Silicon 未签名试用包属于 P0（`pnpm package`），打包后必须在包内重复页面加载、点选与执行通路检查。
-
-### 降级路径
-
-如果 Electron 外壳或同页控制阻塞 C1 闭环，按任务计划第 9 节集中修复集成、压缩界面与可选功能，并记录排期影响。执行服务核心、协议、验收和证据不受影响。
-
-## 12. 待验证的决策
-
-| 决策                            | 当前结论 / 候选                                                                          | 在哪一步验证 |
-| ------------------------------- | ---------------------------------------------------------------------------------------- | ------------ |
-| Electron 构建工具               | electron-vite 5（配 Vite 7），第一版界面已采用                                           | T14          |
-| Node / pnpm / Electron 版本组合 | Electron 44.5.1（Node 24.21、Chromium 152）；pnpm 10.34.6；系统 Node 主版本应为 24       | T14          |
-| 打包工具                        | electron-builder，mac arm64，未签名                                                      | T14          |
-| 执行服务宿主                    | `utilityProcess.fork`；备选 `child_process.fork`                                         | T04          |
-| harness 与模型                  | 已确定 Codex CLI；有效版本、模型与参数待实测                                             | T02          |
-| 同页控制通道                    | main 通过 `webContents.debugger` 发送 CDP 命令；点选与截图已采用，读取 / 点击 / 输入待接 | T14          |
-| fixture 表示方式                | 模板之上的文件覆盖或补丁，加上 seed 数据                                                 | T03          |
-
-每项决策验证后，把结论写回本节和任务计划决策表。
-
-## 2026-10-07 guest 浏览器验收扩展
-
-用户明确批准隔离工作树中的最小 headless guest 浏览器桥接，合同见 [guest 浏览器验收](verification/2026-10-07-sandbox-browser/SPEC.md)。该切片将浏览器与 CDP 控制放入既有 sandbox，宿主仅接收有界产物并复用资源存储。现有 Electron 预览路径及其安全合同保留；本轮不声称完整产品迁移或模型验证已完成。
+后续首次整合时，优先复用已有分支 `apps/desktop`、`@wsl/protocol` 和 lint/测试配置：将真实请求接入薄 `main/execution.ts`，任务权威放 `apps/service`；`renderer/state/runs.ts` 消费投影；扩充协议身份与版本绑定；资源适配器落实文件/进程安全；验证与审阅模块保存真实记录。详细差异、来源和接入检查见 [基线记录](architecture/baseline-2026-10-06.md)，不在本轮复制或修改其他 checkout 的源码。
