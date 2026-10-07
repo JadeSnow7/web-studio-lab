@@ -1,0 +1,4 @@
+
+> web-studio-lab-baseline@0.0.0 typecheck
+> node node_modules/typescript/lib/tsc.js --noEmit
+

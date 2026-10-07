@@ -1,0 +1,54 @@
+{
+  "runId": "d1c9bc9e-4092-4697-83cf-d52d334b7686",
+  "taskSha256": "01c0eed7114a567d7dbcc1264e1547a5ca33252fa7898dd3eb536e0aee782a16",
+  "ignoredGeneratedDirectories": [
+    "node_modules",
+    "dist",
+    ".vite"
+  ],
+  "changedPaths": [],
+  "before": [
+    {
+      "path": "index.html",
+      "size": 200,
+      "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+    },
+    {
+      "path": "package.json",
+      "size": 121,
+      "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+    },
+    {
+      "path": "src/App.tsx",
+      "size": 104,
+      "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+    },
+    {
+      "path": "src/main.tsx",
+      "size": 202,
+      "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+    }
+  ],
+  "after": [
+    {
+      "path": "index.html",
+      "size": 200,
+      "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+    },
+    {
+      "path": "package.json",
+      "size": 121,
+      "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+    },
+    {
+      "path": "src/App.tsx",
+      "size": 104,
+      "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+    },
+    {
+      "path": "src/main.tsx",
+      "size": 202,
+      "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+    }
+  ]
+}

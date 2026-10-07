@@ -1,0 +1,10 @@
+{
+  "command": [
+    "npm",
+    "run",
+    "baseline:selftest"
+  ],
+  "startedAt": "2026-10-06T07:29:53.168076+00:00",
+  "endedAt": "2026-10-06T07:29:53.490902+00:00",
+  "exitCode": 0
+}

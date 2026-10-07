@@ -1,0 +1,9 @@
+{
+  "command": [
+    "npm",
+    "run",
+    "baseline"
+  ],
+  "startedAt": "2026-10-07T07:54:56.485400+00:00",
+  "exitCode": 1
+}
