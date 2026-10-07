@@ -1,0 +1,210 @@
+{
+  "source": {
+    "artifact": "https://claude.ai/code/artifact/8b93cd88-9837-4b1b-a1e3-919ad9fb929e",
+    "alsoAddressedAs": "https://claude.ai/artifact/JEfair7hR8hvWWLyYmNNHb",
+    "artifactType": "Design (canvas)",
+    "version": "1791260337-7503",
+    "exportedAt": "2026-10-06",
+    "note": "本文件由导出脚本根据 artifact/project/canvas.json 生成，是映射摘要，不是原始导出文件。"
+  },
+  "canvas": {
+    "title": "Web Studio 工作台设计",
+    "launch": {
+      "view": "canvas"
+    },
+    "notes": {
+      "disclaimer": {
+        "fill": "blue",
+        "size": 24,
+        "text": "全部画板均为交互设计示意。示例人物、哈希、文件和状态用于说明规则，不代表已实现或已运行的功能。方括号内容为待定项（如 harness 选型见 T02）。",
+        "w": 360,
+        "x": 6080,
+        "y": 0
+      },
+      "rowA": {
+        "kind": "title1",
+        "maxW": 5920,
+        "text": "A · 比赛 P0 工作台：run → 预览 → 验收 → 证据",
+        "w": 240,
+        "x": 0,
+        "y": -300
+      },
+      "rowB": {
+        "kind": "title1",
+        "maxW": 5920,
+        "text": "B · 六模块愿景（交互规范 v0.2 第 5–12 章）",
+        "w": 240,
+        "x": 0,
+        "y": 1100
+      }
+    },
+    "canvasJsonSha256": "7eb8742f6136537b528ae19ffc8a7565f250f6d1ac3a8ece432e10200bbeeda1"
+  },
+  "boards": [
+    {
+      "order": 1,
+      "number": "01",
+      "title": "01 P0 工作台 · 可点击原型",
+      "name": "P0 工作台 · 可点击原型",
+      "file": "project/Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "radius": 12,
+      "interactive": true,
+      "bytes": 47711,
+      "sha256": "97cf5c74a6baa29ace80db9f92ef2e33511cf8ec6483a73dfa648d584c57e826"
+    },
+    {
+      "order": 2,
+      "number": "02",
+      "title": "02 P0 验收通过 · 证据包",
+      "name": "P0 验收通过 · 证据包",
+      "file": "project/RunPassed.dc.html",
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "radius": 12,
+      "interactive": false,
+      "bytes": 19926,
+      "sha256": "f469df82522eb962bf23d7093785befc2cafd95a4e1536f9abfffb2eaabde829"
+    },
+    {
+      "order": 3,
+      "number": "03",
+      "title": "03 P0 失败重试 · 取消等待退出",
+      "name": "P0 失败重试 · 取消等待退出",
+      "file": "project/RunCancel.dc.html",
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "radius": 12,
+      "interactive": false,
+      "bytes": 15572,
+      "sha256": "1aaf8d4f03b9ab6b103909e0ca0cfddc42dc245e81382078b09cf03601dd66f3"
+    },
+    {
+      "order": 4,
+      "number": "04",
+      "title": "04 P0 历史记录 · 无模型复验",
+      "name": "P0 历史记录 · 无模型复验",
+      "file": "project/RunHistory.dc.html",
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "radius": 12,
+      "interactive": false,
+      "bytes": 15643,
+      "sha256": "c4e8f957b6fb9911b54ebfb8ad67d669760e295f3369baa0a6a1562e360d9ce0"
+    },
+    {
+      "order": 5,
+      "number": "05",
+      "title": "05 首页 · H-01",
+      "name": "首页 · H-01",
+      "file": "project/Home.dc.html",
+      "x": 0,
+      "y": 1400,
+      "w": 1440,
+      "h": 900,
+      "radius": 12,
+      "interactive": false,
+      "bytes": 14165,
+      "sha256": "d1236f4d0629ae612138b0eb6f59dede0cdb82d6a30e4efee98b97ac37251738"
+    },
+    {
+      "order": 6,
+      "number": "06",
+      "title": "06 空间 · 平铺与折叠 · S-01",
+      "name": "空间 · 平铺与折叠 · S-01",
+      "file": "project/Space.dc.html",
+      "x": 1520,
+      "y": 1400,
+      "w": 1440,
+      "h": 900,
+      "radius": 12,
+      "interactive": false,
+      "bytes": 18992,
+      "sha256": "6734f1829f5db3c21b1daebc9ce5a40a647f9acd71583444140ead7157d3d8b9"
+    },
+    {
+      "order": 7,
+      "number": "07",
+      "title": "07 顶部地址浮层 · Workshop 展开",
+      "name": "顶部地址浮层 · Workshop 展开",
+      "file": "project/Overlay.dc.html",
+      "x": 3040,
+      "y": 1400,
+      "w": 1440,
+      "h": 900,
+      "radius": 12,
+      "interactive": false,
+      "bytes": 15155,
+      "sha256": "b8570cb79f2eaa3567d64cac565886ced7619b24daf069777c3b7427f19a8c31"
+    },
+    {
+      "order": 8,
+      "number": "08",
+      "title": "08 资源 · 添加到空间 · R-01",
+      "name": "资源 · 添加到空间 · R-01",
+      "file": "project/Resources.dc.html",
+      "x": 4560,
+      "y": 1400,
+      "w": 1440,
+      "h": 900,
+      "radius": 12,
+      "interactive": false,
+      "bytes": 13368,
+      "sha256": "022c03bdc3062b1704fa94055a89e15c9f966ea96b66491fcd0f7d70f7c2f5fe"
+    },
+    {
+      "order": 9,
+      "number": "09",
+      "title": "09 会话 · C-01",
+      "name": "会话 · C-01",
+      "file": "project/Conversations.dc.html",
+      "x": 0,
+      "y": 2420,
+      "w": 1440,
+      "h": 900,
+      "radius": 12,
+      "interactive": false,
+      "bytes": 13980,
+      "sha256": "4334895a30b41b5811516bdfa09e38be05524504f54bfd00bdf25998028f9dd7"
+    },
+    {
+      "order": 10,
+      "number": "10",
+      "title": "10 任务 · T-01",
+      "name": "任务 · T-01",
+      "file": "project/Tasks.dc.html",
+      "x": 1520,
+      "y": 2420,
+      "w": 1440,
+      "h": 900,
+      "radius": 12,
+      "interactive": false,
+      "bytes": 14057,
+      "sha256": "c606ec3a3c2e7e22b218c23af24e7d81787f03cbd44955fc89ebec436a333a00"
+    },
+    {
+      "order": 11,
+      "number": "11",
+      "title": "11 设置 · A-01",
+      "name": "设置 · A-01",
+      "file": "project/Settings.dc.html",
+      "x": 3040,
+      "y": 2420,
+      "w": 1440,
+      "h": 900,
+      "radius": 12,
+      "interactive": false,
+      "bytes": 13125,
+      "sha256": "a7d3e2d8ec4ddd5c452684f31fef89a01552d9d5486022682a41cafff23176b1"
+    }
+  ]
+}

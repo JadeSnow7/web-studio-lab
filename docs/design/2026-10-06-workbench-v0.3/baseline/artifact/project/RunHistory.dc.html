@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>P0 历史记录 · 无模型复验</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.w{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Helvetica Neue",sans-serif;color:#1D1D1F;-webkit-font-smoothing:antialiased}
+.w button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mono{font-family:"SF Mono",Menlo,Consolas,monospace}
+a{color:#0A67D1}a:hover{color:#08539F}
+</style>
+</helmet>
+<div class="w" style="width:1440px;height:900px;box-sizing:border-box;background:#F6F7F9;display:flex;flex-direction:column;overflow:hidden;border-radius:12px;border:1px solid #D8DCE3">
+
+  <header style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;background:#F4F6FA;border-bottom:1px solid #D8DCE3">
+    <div aria-hidden="true" style="display:flex;gap:8px;width:72px;flex:none">
+      <span style="width:12px;height:12px;border-radius:50%;background:#FF5F57"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#FEBC2E"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#28C840"></span>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;gap:8px;padding-left:8px;font-size:13px">
+      <span style="font-weight:600">任务</span>
+      <svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px;color:#60656F"><path d="m9 6 6 6-6 6"></path></svg>
+      <span style="color:#60656F">运行记录</span>
+      <span style="font-size:12px;color:#60656F;margin-left:12px">管理页 · TaskFlow 现场在后台保留</span>
+    </div>
+    <a href="Main.dc.html" style="font-size:12px;display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px;border-radius:7px;box-shadow:inset 0 0 0 1px #D8DCE3;color:#1D1D1F;text-decoration:none">返回现场</a>
+    <button aria-label="通信面板" style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#60656F">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"></path></svg>
+    </button>
+  </header>
+
+  <div style="flex:1;display:flex;min-height:0">
+
+    <nav aria-label="Workshop" style="width:56px;flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:#F4F6FA;border-right:1px solid #D8DCE3">
+      <button aria-disabled="true" title="P0 未接入" style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#8A9099;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"></path></svg>首页
+      </button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>空间
+      </button>
+      <button aria-disabled="true" title="P0 未接入" style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#8A9099;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"></path></svg>资源
+      </button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"></path></svg>会话
+      </button>
+      <button aria-current="page" style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:#E3EDFA;color:#0A67D1;font-size:11px;font-weight:600">
+        <svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="m8 12 3 3 5-6"></path></svg>任务
+      </button>
+      <div style="flex:1"></div>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg>设置
+      </button>
+    </nav>
+
+    <section aria-label="筛选" style="width:220px;flex:none;background:#F4F6FA;border-right:1px solid #D8DCE3;padding:16px 12px;display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div style="font-size:11px;color:#60656F;padding:0 8px 6px;font-weight:600">用例</div>
+        <button style="display:flex;justify-content:space-between;height:30px;align-items:center;padding:0 8px;border-radius:7px;background:#E3EDFA;color:#0A4F9E;font-size:13px;font-weight:600"><span>全部</span><span>14</span></button>
+        <button style="display:flex;justify-content:space-between;height:30px;align-items:center;padding:0 8px;border-radius:7px;font-size:13px"><span>C1 持久化字段</span><span style="color:#60656F">6</span></button>
+        <button style="display:flex;justify-content:space-between;height:30px;align-items:center;padding:0 8px;border-radius:7px;font-size:13px"><span>C2 权限规则</span><span style="color:#60656F">3</span></button>
+        <button style="display:flex;justify-content:space-between;height:30px;align-items:center;padding:0 8px;border-radius:7px;font-size:13px"><span>C3 字段契约</span><span style="color:#60656F">5</span></button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div style="font-size:11px;color:#60656F;padding:0 8px 6px;font-weight:600">模式</div>
+        <label style="display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;font-size:13px"><input type="checkbox" checked="checked"> online</label>
+        <label style="display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;font-size:13px"><input type="checkbox" checked="checked"> revalidate</label>
+        <label style="display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;font-size:13px"><input type="checkbox"> replay</label>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div style="font-size:11px;color:#60656F;padding:0 8px 6px;font-weight:600">终态</div>
+        <label style="display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;font-size:13px"><input type="checkbox" checked="checked"> passed</label>
+        <label style="display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;font-size:13px"><input type="checkbox" checked="checked"> failed</label>
+        <label style="display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;font-size:13px"><input type="checkbox" checked="checked"> timed_out</label>
+        <label style="display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;font-size:13px"><input type="checkbox" checked="checked"> cancelled</label>
+      </div>
+    </section>
+
+    <main aria-label="运行记录列表" style="flex:1;min-width:0;padding:20px 24px;display:flex;flex-direction:column;gap:14px;min-height:0">
+      <div style="display:flex;align-items:center;gap:12px">
+        <h1 style="margin:0;font-size:20px;font-weight:600;flex:1">运行记录</h1>
+        <label style="display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:8px;background:#FFFFFF;box-shadow:0 0 0 1px #D8DCE3;font-size:13px;color:#60656F;width:220px">
+          <svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>
+          <input placeholder="搜索 run id" style="border:0;outline:none;font:inherit;background:transparent;flex:1;min-width:0">
+        </label>
+      </div>
+      <div style="border-radius:10px;background:#FFFFFF;box-shadow:0 0 0 1px #D8DCE3;overflow:hidden;font-size:13px">
+        <div style="display:grid;grid-template-columns:1.8fr 0.6fr 0.9fr 1fr 0.6fr 0.8fr;gap:8px;padding:10px 16px;background:#F8F9FB;color:#60656F;font-size:12px"><span>Run</span><span>用例</span><span>模式</span><span>终态</span><span>attempt</span><span>时间</span></div>
+        <div style="display:grid;grid-template-columns:1.8fr 0.6fr 0.9fr 1fr 0.6fr 0.8fr;gap:8px;padding:11px 16px;border-top:1px solid #EDF0F4;align-items:center"><span class="mono" style="font-size:12px">run-20261006-1017</span><span>C3</span><span>online</span><span style="color:#60656F;display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border:1.5px solid #60656F;border-radius:2px;box-sizing:border-box"></span>cancelled</span><span>2</span><span style="color:#60656F">10:17</span></div>
+        <div style="display:grid;grid-template-columns:1.8fr 0.6fr 0.9fr 1fr 0.6fr 0.8fr;gap:8px;padding:11px 16px;border-top:1px solid #EDF0F4;align-items:center;background:#F1F6FD;box-shadow:inset 3px 0 0 #0A67D1"><span class="mono" style="font-size:12px;font-weight:600">run-20261006-0942</span><span>C1</span><span>online</span><span style="color:#16603C;display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#1F7A4D"></span>passed</span><span>1</span><span style="color:#60656F">09:42</span></div>
+        <div style="display:grid;grid-template-columns:1.8fr 0.6fr 0.9fr 1fr 0.6fr 0.8fr;gap:8px;padding:11px 16px;border-top:1px solid #EDF0F4;align-items:center"><span class="mono" style="font-size:12px">run-20261006-0915</span><span>C3</span><span>online</span><span style="color:#B42318;display:inline-flex;align-items:center;gap:5px"><span style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid #B42318"></span>failed · acceptance</span><span>3</span><span style="color:#60656F">09:15</span></div>
+        <div style="display:grid;grid-template-columns:1.8fr 0.6fr 0.9fr 1fr 0.6fr 0.8fr;gap:8px;padding:11px 16px;border-top:1px solid #EDF0F4;align-items:center"><span class="mono" style="font-size:12px">run-20261005-2230</span><span>C2</span><span>revalidate</span><span style="color:#16603C;display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#1F7A4D"></span>passed</span><span>—</span><span style="color:#60656F">昨天</span></div>
+        <div style="display:grid;grid-template-columns:1.8fr 0.6fr 0.9fr 1fr 0.6fr 0.8fr;gap:8px;padding:11px 16px;border-top:1px solid #EDF0F4;align-items:center"><span class="mono" style="font-size:12px">run-20261005-2104</span><span>C2</span><span>online</span><span style="color:#7A4500;display:inline-flex;align-items:center;gap:5px"><svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>timed_out</span><span>2</span><span style="color:#60656F">昨天</span></div>
+        <div style="display:grid;grid-template-columns:1.8fr 0.6fr 0.9fr 1fr 0.6fr 0.8fr;gap:8px;padding:11px 16px;border-top:1px solid #EDF0F4;align-items:center"><span class="mono" style="font-size:12px">run-20261005-1840</span><span>C1</span><span>online</span><span style="color:#B42318;display:inline-flex;align-items:center;gap:5px"><span style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid #B42318"></span>failed · install</span><span>1</span><span style="color:#60656F">昨天</span></div>
+      </div>
+      <div style="font-size:12px;color:#60656F">终态同时用形状和文字表示，不只靠颜色区分。失败记录不会被改写，也不会被删除。</div>
+    </main>
+
+    <aside aria-label="run 详情" style="width:400px;flex:none;background:#FFFFFF;border-left:1px solid #D8DCE3;display:flex;flex-direction:column;min-height:0">
+      <div role="status" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:#FFF6E5;border-bottom:1px solid #F2DDB8;font-size:12px;color:#5C3600">
+        <svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+        <span><strong>历史记录 · 只读。</strong>这里展示的是 09:42 保存的结果，查看不会重新运行。</span>
+      </div>
+      <div style="padding:18px 18px 12px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #EDF0F4">
+        <div class="mono" style="font-size:12px;color:#60656F">run-20261006-0942</div>
+        <h2 style="margin:0;font-size:17px;font-weight:600">C1 新增持久化字段</h2>
+        <div style="display:flex;gap:8px;align-items:center;font-size:12px"><span style="display:inline-flex;align-items:center;gap:5px;color:#16603C;font-weight:600"><span style="width:8px;height:8px;border-radius:50%;background:#1F7A4D"></span>passed</span><span style="color:#60656F">online · attempt 1 · 07:58</span></div>
+      </div>
+      <dl class="mono" style="margin:0;padding:14px 18px;display:grid;grid-template-columns:120px 1fr;row-gap:7px;font-size:11.5px;border-bottom:1px solid #EDF0F4">
+        <dt style="color:#60656F">sourceState</dt><dd style="margin:0">base 3c1e9a2 + diff 7d41…e0</dd>
+        <dt style="color:#60656F">fixtureVersion</dt><dd style="margin:0">c1@1</dd>
+        <dt style="color:#60656F">acceptanceHash</dt><dd style="margin:0">b81f…20（前后一致）</dd>
+        <dt style="color:#60656F">artifacts</dt><dd style="margin:0">7 个文件</dd>
+      </dl>
+      <div style="padding:14px 18px;display:flex;flex-direction:column;gap:8px;flex:1">
+        <div style="font-size:12px;color:#60656F">由此 run 派生</div>
+        <div style="border:1px solid #EDF0F4;border-radius:8px;padding:10px 12px;font-size:12px;display:flex;justify-content:space-between"><span class="mono">run-20261006-1105</span><span style="color:#60656F">revalidate · 尚未开始</span></div>
+      </div>
+      <div style="padding:14px 18px 18px;border-top:1px solid #EDF0F4;display:flex;flex-direction:column;gap:8px">
+        <button style="height:36px;border-radius:8px;background:#0A67D1;color:#FFFFFF;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 5v6h-6"></path></svg>无模型复验</button>
+        <div style="font-size:11.5px;color:#60656F;line-height:1.5">复验会用这次的最终源码快照新建一个 mode: revalidate 的 run，不调用模型，也不改写这条记录。</div>
+        <button style="height:34px;border-radius:8px;box-shadow:inset 0 0 0 1px #D8DCE3;font-size:13px">打开证据目录</button>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

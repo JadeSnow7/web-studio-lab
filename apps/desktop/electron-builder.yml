@@ -1,0 +1,26 @@
+# macOS Apple Silicon 本地试用包。未签名、未公证，只供本机试用。
+appId: dev.webstudiolab.desktop
+productName: Web Studio Lab
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+extraResources:
+  - from: ../service/out
+    to: service
+  # 演示页面单独存放，只由 Browser 区的 wsl-demo 协议读取。
+  - from: ../../demo/taskflow
+    to: demo/taskflow
+asar: true
+npmRebuild: false
+mac:
+  category: public.app-category.developer-tools
+  identity: null
+  target:
+    - target: dmg
+      arch: [arm64]
+    - target: zip
+      arch: [arm64]
+dmg:
+  writeUpdateInfo: false

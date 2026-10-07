@@ -1,0 +1,26 @@
+PASS Start: uncollected, visible, no confirmation
+PASS Capture and immutable version
+PASS Command exit, ready, checks, review are separate
+PASS Repair: same run, attempt 2, cumulative time
+PASS Cancel waits for cleanup
+PASS Tool error is undetermined; no source means no verify
+PASS Navigation/detach invalid; reattach insufficient
+PASS No-model verify new record, source metadata, not accepted
+PASS Missing evidence preserves historical conclusion
+PASS Revision does not inherit acceptance
+PASS Narrow sidebar exclusivity
+PASS All cases have correct frozen checks
+PASS 11 format-compatible boards and resolvable bindings
+PASS Confirmed scene invalidation blocks start; recapture makes new version
+PASS Tool evidence never becomes PASS
+PASS Active run prevents historical verification
+PASS Draft does not block valid source verification
+PASS Single attempt exhaustion cleans and preserves failure
+PASS Historical failed attempt evidence stays FAIL after repair pass
+PASS Pending cleanup cannot be bypassed by collect confirm or start
+PASS Failed terminal cannot cancel or repair, non-pass has no review
+{
+  "passed": 21,
+  "failed": 0,
+  "scope": "pure design-state and format checks; browser/keyboard/visual checks by primary"
+}

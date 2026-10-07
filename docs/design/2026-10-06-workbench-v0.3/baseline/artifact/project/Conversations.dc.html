@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>会话 · C-01</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.w{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Helvetica Neue",sans-serif;color:#1D1D1F;-webkit-font-smoothing:antialiased}
+.w button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mono{font-family:"SF Mono",Menlo,Consolas,monospace}
+a{color:#0A67D1}a:hover{color:#08539F}
+</style>
+</helmet>
+<div class="w" style="width:1440px;height:900px;box-sizing:border-box;background:#F6F7F9;display:flex;flex-direction:column;overflow:hidden;border-radius:12px;border:1px solid #D8DCE3">
+
+  <header style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;background:#F4F6FA;border-bottom:1px solid #D8DCE3">
+    <div aria-hidden="true" style="display:flex;gap:8px;width:72px;flex:none">
+      <span style="width:12px;height:12px;border-radius:50%;background:#FF5F57"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#FEBC2E"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#28C840"></span>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;gap:8px;padding-left:8px;font-size:13px"><span style="font-weight:600">会话</span><span style="font-size:12px;color:#60656F">账号可见的跨空间列表 · 不授权 Agent 读取其他空间</span></div>
+    <button aria-label="通信面板" style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#60656F"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"></path></svg></button>
+  </header>
+
+  <div style="flex:1;display:flex;min-height:0">
+    <nav aria-label="Workshop" style="width:56px;flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:#F4F6FA;border-right:1px solid #D8DCE3">
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px"><svg class="ic" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"></path></svg>首页</button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>空间</button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px"><svg class="ic" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"></path></svg>资源</button>
+      <button aria-current="page" style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:#E3EDFA;color:#0A67D1;font-size:11px;font-weight:600"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"></path></svg>会话</button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="m8 12 3 3 5-6"></path></svg>任务</button>
+      <div style="flex:1"></div>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg>设置</button>
+    </nav>
+
+    <section aria-label="会话列表" style="width:340px;flex:none;background:#F4F6FA;border-right:1px solid #D8DCE3;display:flex;flex-direction:column;min-height:0">
+      <div style="padding:12px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #D8DCE3">
+        <div role="tablist" aria-label="会话类别" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px;padding:2px;border-radius:9px;background:#E6E9EF">
+          <button role="tab" aria-selected="true" style="height:28px;border-radius:7px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,0.08);font-size:13px;font-weight:600">Agent 工作</button>
+          <button role="tab" aria-selected="false" style="height:28px;border-radius:7px;font-size:13px;color:#60656F">联系人与群聊 · 3</button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:12px">
+          <button style="padding:4px 10px;border-radius:12px;background:#1D1D1F;color:#FFFFFF">等待输入</button>
+          <button style="padding:4px 10px;border-radius:12px;box-shadow:inset 0 0 0 1px #D8DCE3">工作中</button>
+          <button style="padding:4px 10px;border-radius:12px;box-shadow:inset 0 0 0 1px #D8DCE3">全部空间 ▾</button>
+          <button style="padding:4px 10px;border-radius:12px;box-shadow:inset 0 0 0 1px #D8DCE3">Harness ▾</button>
+        </div>
+      </div>
+      <ul style="list-style:none;margin:0;padding:8px;display:flex;flex-direction:column;gap:4px">
+        <li style="padding:10px 12px;border-radius:10px;background:#FFFFFF;box-shadow:0 0 0 1.5px #0A67D1;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;flex:1">实现会话</span><span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#7A4500"><span style="width:8px;height:8px;border-radius:2px;background:#A15C00;transform:rotate(45deg)"></span>等待输入</span></div>
+          <div style="font-size:12px;color:#60656F">TaskFlow · [harness] · 最后确认 09:58</div>
+          <div style="font-size:12px;color:#3C4049">请确认移动端布局后继续验收</div>
+        </li>
+        <li style="padding:10px 12px;border-radius:10px;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;flex:1">资料整理</span><span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#60656F"><span style="width:8px;height:8px;border-radius:50%;border:1.5px dashed #60656F;box-sizing:border-box"></span>状态未知</span></div>
+          <div style="font-size:12px;color:#60656F">研究空间 · 连接断开 · 最后确认 08:12</div>
+          <div style="font-size:12px;color:#3C4049">断线前状态：工作中（已过期）</div>
+        </li>
+        <li style="padding:10px 12px;border-radius:10px;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;flex:1">首页对话</span><span style="font-size:12px;color:#60656F">空闲</span></div>
+          <div style="font-size:12px;color:#60656F">个人 · 默认 Agent</div>
+        </li>
+      </ul>
+    </section>
+
+    <main aria-label="会话详情" style="flex:1;min-width:0;background:#FFFFFF;display:flex;flex-direction:column;min-height:0">
+      <div style="padding:14px 22px;border-bottom:1px solid #EDF0F4;display:flex;align-items:center;gap:12px">
+        <div style="flex:1">
+          <h1 style="margin:0;font-size:17px;font-weight:600">TaskFlow · 实现会话</h1>
+          <div style="font-size:12px;color:#60656F;margin-top:3px">Execution exe-31 · waitingInput · 关联任务「完成移动端适配」第 2 次尝试</div>
+        </div>
+        <a href="Space.dc.html" style="height:32px;padding:0 12px;border-radius:8px;box-shadow:inset 0 0 0 1px #D8DCE3;font-size:13px;color:#1D1D1F;text-decoration:none;display:inline-flex;align-items:center;gap:6px"><svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"></path></svg>前往现场</a>
+      </div>
+      <div style="display:flex;gap:8px;padding:10px 22px;border-bottom:1px solid #EDF0F4;align-items:center;font-size:12px">
+        <span style="color:#60656F;margin-right:4px">运行控制</span>
+        <button style="height:28px;padding:0 10px;border-radius:7px;box-shadow:inset 0 0 0 1px #D8DCE3;display:inline-flex;align-items:center;gap:5px"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><rect x="6" y="6" width="12" height="12" rx="1.5"></rect></svg>停止<span style="color:#16603C">· 已验证</span></button>
+        <button disabled="disabled" title="此 Harness 不支持暂停" style="height:28px;padding:0 10px;border-radius:7px;background:#F1F3F6;color:#8A9099;display:inline-flex;align-items:center;gap:5px">暂停 · 不支持</button>
+        <button disabled="disabled" title="恢复能力尚未验证" style="height:28px;padding:0 10px;border-radius:7px;background:#F1F3F6;color:#8A9099;display:inline-flex;align-items:center;gap:5px">恢复 · 未验证</button>
+        <span style="flex:1"></span>
+        <a href="Settings.dc.html">能力详情</a>
+      </div>
+      <div style="flex:1;min-height:0;padding:18px 22px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+        <div style="align-self:flex-end;max-width:62%;background:#0A67D1;color:#FFFFFF;border-radius:12px 12px 4px 12px;padding:10px 14px;font-size:13px;line-height:1.55">看看移动端布局，按验收文档逐项检查。<div style="font-size:11px;opacity:0.85;margin-top:4px">已发送 09:41</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px;max-width:72%">
+          <div style="font-size:12px;color:#60656F">操作时间线</div>
+          <div class="mono" style="border-radius:8px;background:#F8F9FB;padding:10px 12px;font-size:11.5px;line-height:1.8;color:#3C4049">
+            <div>09:42 读取 验收清单.md r12</div>
+            <div>09:47 修改 src/styles/layout.css</div>
+            <div>09:55 截图 375×812 · 已存为结果</div>
+          </div>
+        </div>
+        <div style="max-width:72%;background:#FFFFFF;box-shadow:0 0 0 1px #D8DCE3;border-radius:12px 12px 12px 4px;padding:10px 14px;font-size:13px;line-height:1.55">已完成页面调整。请看左侧预览，确认后我继续验收。<div style="font-size:11px;color:#60656F;margin-top:4px">引用：验收清单.md r12 · 项目网页</div></div>
+        <div style="align-self:flex-end;max-width:62%;background:#FFF1F0;color:#7A1A12;border-radius:12px 12px 4px 12px;padding:10px 14px;font-size:13px;line-height:1.55;box-shadow:inset 0 0 0 1px #F0D3CF">按钮再大一点<div style="font-size:11px;margin-top:4px;display:flex;gap:10px"><span>发送失败 · 结果待核对</span><button style="color:#B42318;font-weight:600;font-size:11px">核对后重试</button></div></div>
+      </div>
+      <div style="padding:12px 22px 16px;border-top:1px solid #EDF0F4">
+        <div style="border-radius:10px;box-shadow:0 0 0 1px #D8DCE3;padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:12px;color:#0A4F9E;font-weight:600">发送到 · TaskFlow / 实现会话 / [harness]</div>
+          <label for="cv-input" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">消息</label>
+          <textarea id="cv-input" rows="2" placeholder="补充信息…" style="resize:none;border:0;outline:none;font:inherit;font-size:13px;background:transparent"></textarea>
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#60656F"><span>与右栏共用同一会话和草稿</span><button aria-label="发送" style="width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#FFFFFF;background:#0A67D1"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M4 12 20 4l-6 16-3-7z"></path></svg></button></div>
+        </div>
+      </div>
+    </main>
+
+    <aside aria-label="上下文" style="width:300px;flex:none;background:#F4F6FA;border-left:1px solid #D8DCE3;padding:16px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h2 style="margin:0;font-size:13px;font-weight:600">本轮采用的上下文</h2>
+        <div style="font-size:12px;color:#60656F">ContextSelection · 只列实际读取的来源</div>
+        <div style="background:#FFFFFF;border-radius:8px;box-shadow:0 0 0 1px #D8DCE3;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:12px">
+          <span>验收清单.md · r12 · 空间副本</span>
+          <span>项目网页 · 09:55 快照</span>
+          <span>本空间已提交消息 · 4 条</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h2 style="margin:0;font-size:13px;font-weight:600">不会自动进入</h2>
+        <ul style="margin:0;padding-left:18px;font-size:12px;color:#3C4049;line-height:1.7">
+          <li>未发送的草稿</li>
+          <li>首页个人对话</li>
+          <li>其他空间的数据</li>
+          <li>联系人私聊（需「摘录到空间」）</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

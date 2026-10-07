@@ -32,3 +32,8 @@ credentials*.json
 # Machine-specific files
 .DS_Store
 Thumbs.db
+
+# Runtime workspaces, evidence and test output
+.local/
+playwright-report/
+test-results/
