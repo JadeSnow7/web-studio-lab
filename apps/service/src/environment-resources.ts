@@ -168,6 +168,21 @@ export class EnvironmentResources {
         } else throw new FileObservationError('unauthorized', 'Environment is not configured');
       }
       return await entry.terminal.open(cols, rows);
+    } catch (error) {
+      // No adapter was acquired: connection/configuration failure happened
+      // before any shell request, so there is no process with unknown ownership.
+      if (!entry.terminal && !entry.retired)
+        this.onTerminal(
+          {
+            ...this.terminalSnapshot(identity),
+            seq: 1,
+            state: 'failed',
+            cleanupPending: false,
+            error: (error as Error).message,
+          },
+          identity,
+        );
+      throw error;
     } finally {
       entry.terminalOpening = false;
     }

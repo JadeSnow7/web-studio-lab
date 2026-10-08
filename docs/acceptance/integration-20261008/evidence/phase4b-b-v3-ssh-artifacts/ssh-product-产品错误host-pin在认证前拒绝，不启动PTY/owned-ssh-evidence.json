@@ -1,0 +1,14 @@
+{
+  "nonce": "SSH_db93ef8d-4fdc-4781-974c-d3f0a953596a",
+  "connections": 2,
+  "authentications": 0,
+  "signedAuthentications": 0,
+  "ptysStarted": 0,
+  "ptysCleaned": 0,
+  "resize": [],
+  "transportErrors": [
+    "KEY_EXCHANGE_FAILED",
+    "read ECONNRESET",
+    "KEY_EXCHANGE_FAILED"
+  ]
+}

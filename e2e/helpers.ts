@@ -4,7 +4,7 @@ declare global {
     studio: StudioApi;
   }
 }
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -22,6 +22,7 @@ export const target = process.env['WSL_E2E_TARGET'] === 'packaged' ? 'packaged' 
 export async function launchApp(
   options: {
     observationRoot?: string;
+    sshEnvironment?: { host: string; port: number; username: string; hostKeySha256: string; root: string; agent: string };
     controlledObservation?: boolean;
     codexBin?: string;
     sbxBin?: string;
@@ -34,6 +35,16 @@ export async function launchApp(
   // 默认回归不得消耗模型；真实模型仅在显式 live 模式使用已选 sbx。
   const env = {
     ...process.env,
+    ...(options.sshEnvironment
+      ? {
+          WSL_SSH_HOST: options.sshEnvironment.host,
+          WSL_SSH_PORT: String(options.sshEnvironment.port),
+          WSL_SSH_USER: options.sshEnvironment.username,
+          WSL_SSH_HOST_KEY_SHA256: options.sshEnvironment.hostKeySha256,
+          WSL_SSH_ROOT: options.sshEnvironment.root,
+          SSH_AUTH_SOCK: options.sshEnvironment.agent,
+        }
+      : {}),
     ...(options.observationRoot === undefined ? {} : { WSL_OBSERVATION_ROOT: options.observationRoot }),
     WSL_SBX_NAME: options.live ? (process.env['WSL_SBX_NAME'] ?? 'wsl-sbx-smoke-20261006') : (options.sandbox ?? 'fixture-sandbox'),
     WSL_SBX_BIN: options.live
@@ -124,13 +135,14 @@ require(${JSON.stringify(path.join(desktopDir, 'out/main/index.js'))});
   app.close = async () => {
     if (closed) return;
     closed = true;
-    const running = app.process().exitCode === null;
+    const running = app.process().exitCode === null && app.process().signalCode === null;
     const early =
       target === 'build' && running
         ? await app.evaluate(() => (globalThis as unknown as { __wslRendererErrors: string[] }).__wslRendererErrors)
         : [];
     rendererErrors.push(...early.filter((message) => !rendererErrors.some((error) => error.includes(message))));
     if (running) await originalClose();
+    await rm(path.dirname(bootstrap), { recursive: true, force: true });
     assert.deepEqual(rendererErrors, [], 'Workbench renderer exceptions/errors fail every E2E');
   };
   try {

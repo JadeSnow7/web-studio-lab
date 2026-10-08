@@ -1,0 +1,35 @@
+
+Running 2 tests using 1 worker
+
+(node:62675) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/ssh-product.spec.ts:20:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 (7.0s)
+(node:62705) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 e2e/ssh-product.spec.ts:135:1 › 产品错误host pin在认证前拒绝，不启动PTY (1.1s)
+
+
+  1) e2e/ssh-product.spec.ts:20:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 ────────────────
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "completed"
+    Received: undefined
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      47 |     await expect(files.getByRole('button', { name: '继续读取', exact: true })).toBeVisible();
+      48 |     await files.getByRole('button', { name: '继续读取', exact: true }).click();
+    > 49 |     await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.observations.at(-1)!.status).toBe('completed');
+         |                                                                                                               ^
+      50 |     const continuation = (await workspaceSnapshot(page)).workspaces[0]!.observations.at(-1)!;
+      51 |     expect(continuation.result).toMatchObject({ source: 'sftp', coverage: { range: { startByte: expect.any(Number) } } });
+      52 |     await files.getByLabel('文件路径').fill('.');
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/ssh-product.spec.ts:49:111
+
+    Error Context: test-results/e2e/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md
+
+  1 failed
+    e2e/ssh-product.spec.ts:20:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 ─────────────────
+  1 passed (8.7s)

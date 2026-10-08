@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "e2e/ssh-product.spec.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T12:15:53.956374Z",
+  "ended_at": "2026-10-08T12:15:54.460307Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "First argument must use the object destructuring pattern: _fixtures\n\n   at ssh-product.spec.ts:39\n\n  37 | }\n  38 |\n> 39 | test('产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止', async (_fixtures, info) => {\n     | ^\n  40 |   const fixture = await sshLoopback();\n  41 |   let app: Awaited<ReturnType<typeof launchApp>>['app'] | undefined;\n  42 |   let originalFailure: unknown;\nFirst argument must use the object destructuring pattern: _fixtures\n\n   at ssh-product.spec.ts:183\n\n  181 | });\n  182 |\n> 183 | test('产品错误host pin在认证前拒绝，不启动PTY', async (_fixtures, info) => {\n      | ^\n  184 |   const fixture = await sshLoopback();\n  185 |   let app: Awaited<ReturnType<typeof launchApp>>['app'] | undefined;\n  186 |   let originalFailure: unknown;\n\n",
+  "stderr": "",
+  "stdout_base64": "Rmlyc3QgYXJndW1lbnQgbXVzdCB1c2UgdGhlIG9iamVjdCBkZXN0cnVjdHVyaW5nIHBhdHRlcm46IF9maXh0dXJlcwoKICAgYXQgc3NoLXByb2R1Y3Quc3BlYy50czozOQoKICAzNyB8IH0KICAzOCB8Cj4gMzkgfCB0ZXN0KCfkuqflk4FTU0hfQVVUSF9TT0NL6K6k6K+B44CBU0ZUUOiMg+WbtC/nu63or7sv5pCc57Si5LiO55yf5a6eUFRZ5ZCM5a6e5L6L6KeC5a+fL+mHjeW8gC/lgZzmraInLCBhc3luYyAoX2ZpeHR1cmVzLCBpbmZvKSA9PiB7CiAgICAgfCBeCiAgNDAgfCAgIGNvbnN0IGZpeHR1cmUgPSBhd2FpdCBzc2hMb29wYmFjaygpOwogIDQxIHwgICBsZXQgYXBwOiBBd2FpdGVkPFJldHVyblR5cGU8dHlwZW9mIGxhdW5jaEFwcD4+WydhcHAnXSB8IHVuZGVmaW5lZDsKICA0MiB8ICAgbGV0IG9yaWdpbmFsRmFpbHVyZTogdW5rbm93bjsKRmlyc3QgYXJndW1lbnQgbXVzdCB1c2UgdGhlIG9iamVjdCBkZXN0cnVjdHVyaW5nIHBhdHRlcm46IF9maXh0dXJlcwoKICAgYXQgc3NoLXByb2R1Y3Quc3BlYy50czoxODMKCiAgMTgxIHwgfSk7CiAgMTgyIHwKPiAxODMgfCB0ZXN0KCfkuqflk4HplJnor69ob3N0IHBpbuWcqOiupOivgeWJjeaLkue7ne+8jOS4jeWQr+WKqFBUWScsIGFzeW5jIChfZml4dHVyZXMsIGluZm8pID0+IHsKICAgICAgfCBeCiAgMTg0IHwgICBjb25zdCBmaXh0dXJlID0gYXdhaXQgc3NoTG9vcGJhY2soKTsKICAxODUgfCAgIGxldCBhcHA6IEF3YWl0ZWQ8UmV0dXJuVHlwZTx0eXBlb2YgbGF1bmNoQXBwPj5bJ2FwcCddIHwgdW5kZWZpbmVkOwogIDE4NiB8ICAgbGV0IG9yaWdpbmFsRmFpbHVyZTogdW5rbm93bjsKCg==",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:2edefec0c50d265d97a85b9489386f94a108d938091523cc4e44b2a52f1532ee:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:2edefec0c50d265d97a85b9489386f94a108d938091523cc4e44b2a52f1532ee:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:2edefec0c50d265d97a85b9489386f94a108d938091523cc4e44b2a52f1532ee:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

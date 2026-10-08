@@ -1,0 +1,29 @@
+
+ RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+
+ ❯ apps/service/src/environment-resources.test.ts (6 tests | 1 failed) 56ms
+   × reports failed SSH connection before shell acquisition as confirmed no process, bound to the Main instance 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/environment-resources.test.ts > reports failed SSH connection before shell acquisition as confirmed no process, bound to the Main instance
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…}, …(1) ]
+
+Number of calls: 0
+
+ ❯ apps/service/src/environment-resources.test.ts:107:18
+    105|     await resources.register(binding);
+    106|     await expect(resources.openTerminal(binding, 80, 24)).rejects.toTh…
+    107|     expect(emit).toHaveBeenCalledWith(expect.objectContaining({ state:…
+       |                  ^
+    108|     expect(() => resources.terminal(binding)).toThrow('not open');
+    109|     await resources.shutdown();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 29 passed (30)
+   Start at  19:56:06
+   Duration  581ms (tests 54%, transform 27%, import 19%)
+

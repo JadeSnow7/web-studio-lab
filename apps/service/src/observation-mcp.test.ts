@@ -71,8 +71,10 @@ describe('per-turn observation MCP host', () => {
       );
     });
     await chat.send(scope.sessionId, 'concurrent', scope);
-    await vi.waitFor(() => expect(signals).toHaveLength(4));
-    expect(chat.get(scope.sessionId).messages.at(-1)?.text).toContain('budget_exceeded');
+    await vi.waitFor(() => {
+      expect(signals).toHaveLength(4);
+      expect(chat.get(scope.sessionId).messages.at(-1)?.text).toContain('budget_exceeded');
+    });
     await chat.cancel(scope.sessionId);
     expect(signals.every((signal) => signal.aborted)).toBe(true);
   });

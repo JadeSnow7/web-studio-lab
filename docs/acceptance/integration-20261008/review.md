@@ -144,3 +144,17 @@ Phase4a PDF 独立复核覆盖全部九页，15 处现有 E 索引跳转、E01�
 独立文档走查校正了两处会影响新维护者的操作：当前 host 仅注册 demo 与受控公开 HTTPS 文档，不支持 localhost 运行预览或 guest 服务端口转发；本地文件读取经 PATH 的 Python 3 做 openat/dir_fd，而本地 PTY 固定使用 `/usr/bin/python3`。结论由当前 `host.ts`、`observation-files.ts` 和 `local-terminal.ts` 的实际调用复核，不从规划文字推断能力。
 
 F27 精确探针在五轮中四轮复现：一次 members 提交使 initial index 与 members 两次 loadURL Promise 重叠；旧 Promise 先报 error.url=members，旧 index 的迟到 did-fail-load 随后使新 Promise 报 index 的 -3，虽然最终页面成功。`phase4b-navigation-probe-1.json` 同时保存唯一 submit、load ID、IPC commandId 和结果；这比旧 focus probe 提供了完整归因，修复与复验另记。
+
+F27 修复已独立提交 `965ebcd`：initial load、navigate、reload、back/forward 在同一实例中协调，等待前一 Promise 与 did-stop-loading 两个边界，避免旧原生事件拒绝新 Promise；只有明确被替代的旧 abort 消解，当前错误、非 abort 原调用错误及销毁后的迟到结果仍拒绝。主线程复核三文件、23 定向测试、desktop 类型、lint/format、build 与最终五轮真实窗口 trace。最终 probe 独立脚本及调用输入输出、源码哈希完全冻结；旧单元夹具错误期望、初轮不完整stderr、v2脚本取样变化均保留并限定，正式仅采用 `phase4b-navigation-final-runs.json`。该五轮也读取实际 WC 正文，members 页包含“身份/说明”，两预览无 loadError，全局错误为空；没有验证系统焦点。
+
+## Phase4b 产品 SSH 回环审查
+
+F28：错误主机 pin 在认证前已拒绝、服务未取得 terminal adapter，Main 却无条件标记 cleanupPending，导致用户无法重试。首次完整原文 `phase4b-ssh-product-first.log` 保存该失败；首次窗口 context 未在后续 Playwright 清理前复制，不能声称该截图仍存在。服务现在仅在尚无 adapter 时发送同一实例的 failed/cleanupPending=false，Main 保留已收到的当前实例证明；未知失败或旧实例证明不能解除清理限制。真实错误 pin 重试已到达新实例、新代次和第二条连接，认证与 PTY 次数均为零，正式回执另记。
+
+正常 SSH 路径使用临时 ssh-agent、回环 ssh2 服务器及系统 Python 创建的真实 PTY，未连接外部主机或复制用户认证。前几轮新增用例中分别出现读取尚在 pending、误用 record.status、Playwright 中文输入未进入 xterm、shell printf 转义不适用等测试问题；对应失败原文保持，不能当作产品 UTF-8 或中文输入法缺陷证明。修正后的 UTF-8 检查使用 ASCII 命令产生中文输出；系统中文候选窗仍需原生验收。
+
+断线场景有意验证清理未知：服务端所属 PTY 已由夹具确认退出，但断开的产品无法获得这一证明，因此保持 cleanupPending。重连原来静默 no-op，正在补明确拒绝反馈。产品在关闭时同样拒绝把未知清理当作已完成，第五轮因此出现窗口关闭等待及 worker teardown timeout；只对核对过 profile/进程身份的本轮 Electron 做收尾。最终测试将分别记录正常停止的确认和断线后的受控强退，不能将后者记作正常 shutdown 通过。
+
+第七轮两个产品场景通过，原文 `phase4b-ssh-product-seventh.log`：真实 agent 签名、SFTP 中文/续读/搜索/越界、PTY尺寸和独立中文输出行、关闭标签保留同一实例、同源观察、正常停止后新建实例与PTY会话，以及错误 pin 在认证前拒绝并可重试。续读和两个拒绝操作都等待新 requestId 的终态，避免读取上一轮结果。第六轮失败来自测试 helper 未将 signalCode 视为已退出，已更正。正式版本将另行保存落盘 JSON 证据与来源指纹；此前 info.attach 的内存 body 不声称已有磁盘附件。
+
+主线程已复读 F28 的 Main/service 与三个新增负例、SSH fixture/spec 及 helpers 差异：服务证明只在无 adapter 且未退休时发送；旧绑定事件由 Main 拒绝，未知仍保持限制；failed 且 cleanupPending 的重连返回明确 execution_failed。SSH 签名验证只接受严格 true，真实 PTY 以 child close 等待 stdout 清理帧，测试原错误与清理错误共同保存。最终回执待下面独立命令执行。

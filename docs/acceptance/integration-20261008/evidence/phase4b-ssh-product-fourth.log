@@ -1,0 +1,43 @@
+
+Running 2 tests using 1 worker
+
+(node:62940) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/ssh-product.spec.ts:20:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 (7.9s)
+(node:62973) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 e2e/ssh-product.spec.ts:135:1 › 产品错误host pin在认证前拒绝，不启动PTY (1.1s)
+
+
+  1) e2e/ssh-product.spec.ts:20:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 ────────────────
+
+    Error: expect(received).toContain(expected) // indexOf
+
+    Expected substring: "中文_SSH_d0f42d01-3384-4ce3-901e-be8fc323e896"
+    Received string:    "·
+    The default interactive shell is now zsh.·
+    To update your account to use zsh, please run `chsh -s /bin/zsh`.·
+    For more details, please visit https://support.apple.com/kb/HT208050.·
+    PTY> stty -echo; tty; stty size; printf '\\u4e2d\\u6587_SSH_d0f42d01-3384-4ce3-901e-be8fc323e896\\n'·
+    /dev/ttys006·
+    41 115·
+    \\u4e2d\\u6587_SSH_d0f42d01-3384-4ce3-901e-be8fc323e896·
+    PTY> "
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      71 |     await input.pressSequentially(`stty -echo; tty; stty size; printf '\\u4e2d\\u6587_${fixture.nonce}\\n'`);
+      72 |     await input.press('Enter');
+    > 73 |     await expect.poll(async () => (await resource(page, '回环真PTY')).terminal?.output).toContain(`中文_${fixture.nonce}`);
+         |                                                                                      ^
+      74 |     expect((await resource(page, '回环真PTY')).terminal!.output).toMatch(/\/dev\/(?:ttys\w+|pts\/\d+)/);
+      75 |     const size = fixture.evidence.resize.at(-1);
+      76 |     expect(size).toBeDefined();
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/ssh-product.spec.ts:73:86
+
+    Error Context: test-results/e2e/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md
+
+  1 failed
+    e2e/ssh-product.spec.ts:20:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 ─────────────────
+  1 passed (9.6s)

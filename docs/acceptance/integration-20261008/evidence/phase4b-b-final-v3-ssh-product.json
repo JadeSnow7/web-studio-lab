@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "e2e/ssh-product.spec.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T12:17:59.144608Z",
+  "ended_at": "2026-10-08T12:18:04.451224Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\nRunning 2 tests using 1 worker\n\n  ✓  1 e2e/ssh-product.spec.ts:39:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 (3.6s)\n  ✓  2 e2e/ssh-product.spec.ts:183:1 › 产品错误host pin在认证前拒绝，不启动PTY (921ms)\n\n  2 passed (4.9s)\n",
+  "stderr": "(node:68643) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+  "stdout_base64": "ClJ1bm5pbmcgMiB0ZXN0cyB1c2luZyAxIHdvcmtlcgoKICDinJMgIDEgZTJlL3NzaC1wcm9kdWN0LnNwZWMudHM6Mzk6MSDigLog5Lqn5ZOBU1NIX0FVVEhfU09DS+iupOivgeOAgVNGVFDojIPlm7Qv57ut6K+7L+aQnOe0ouS4juecn+WunlBUWeWQjOWunuS+i+inguWvny/ph43lvIAv5YGc5q2iICgzLjZzKQogIOKckyAgMiBlMmUvc3NoLXByb2R1Y3Quc3BlYy50czoxODM6MSDigLog5Lqn5ZOB6ZSZ6K+vaG9zdCBwaW7lnKjorqTor4HliY3mi5Lnu53vvIzkuI3lkK/liqhQVFkgKDkyMW1zKQoKICAyIHBhc3NlZCAoNC45cykK",
+  "stderr_base64": "KG5vZGU6Njg2NDMpIFdhcm5pbmc6IFRoZSAnTk9fQ09MT1InIGVudiBpcyBpZ25vcmVkIGR1ZSB0byB0aGUgJ0ZPUkNFX0NPTE9SJyBlbnYgYmVpbmcgc2V0LgooVXNlIGBub2RlIC0tdHJhY2Utd2FybmluZ3MgLi4uYCB0byBzaG93IHdoZXJlIHRoZSB3YXJuaW5nIHdhcyBjcmVhdGVkKQo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:1e65a74339380b656832058608e1e1ffa3e33b892f764ce1d17a1bb4234f7948:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:1e65a74339380b656832058608e1e1ffa3e33b892f764ce1d17a1bb4234f7948:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:1e65a74339380b656832058608e1e1ffa3e33b892f764ce1d17a1bb4234f7948:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

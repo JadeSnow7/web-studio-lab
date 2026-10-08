@@ -1,0 +1,22 @@
+{
+  "ownedWorker": 63087,
+  "ownedAgent": 63091,
+  "ownedElectron": 63093,
+  "ptyHelpersObservedRunning": false,
+  "normalWindowClose": "refused after unknown SSH cleanup; not accepted as successful shutdown",
+  "actions": [
+    {
+      "signal": "SIGTERM",
+      "pid": 63093,
+      "result": "sent; process subsequently exited during worker teardown"
+    },
+    {
+      "signal": "SIGKILL",
+      "pid": 63093,
+      "result": "ESRCH; already exited"
+    }
+  ],
+  "processesAfterTeardown": "all three exact PIDs absent",
+  "remainingOwnedDirectory": "/private/tmp/wsl-ssh-NzNsFR",
+  "nonceFileSha256": "b5befd3d4bd28beb172297144e29a6480612ba5e4950a3998a011df4104fa987"
+}

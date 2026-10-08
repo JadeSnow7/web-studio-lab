@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+
+
+ Test Files  2 passed (2)
+      Tests  31 passed (31)
+   Start at  20:00:47
+   Duration  769ms (tests 59%, transform 24%, import 17%)
+

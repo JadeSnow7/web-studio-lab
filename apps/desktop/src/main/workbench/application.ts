@@ -1180,6 +1180,8 @@ export class WorkbenchApplication {
           }
           case 'terminalOpen': {
             const r = this.terminalResource(w, c.resourceId);
+            if (r.terminal?.state === 'failed' && r.terminal.cleanupPending)
+              throw new Error('execution_failed: 终端清理未确认，不能重新连接');
             if (r.terminal?.cleanupPending || ['running', 'starting', 'closing'].includes(r.terminal?.state ?? '')) return rememberResult();
             const environment = this.snapshot.environments.find((environment) => environment.environmentId === r.environmentId);
             if (!environment?.capabilities.terminal) throw new Error('unsupported: 终端环境未配置');
@@ -1417,7 +1419,12 @@ export class WorkbenchApplication {
             const workspace = this.requireWorkspace(binding.workspaceId);
             const resource = this.terminalResource(workspace, binding.resourceId);
             if (resource.instanceId !== binding.instanceId || resource.generation !== binding.instanceGeneration) return null;
-            resource.terminal = { ...resource.terminal!, state: 'failed', cleanupPending: true, error: (error as Error).message };
+            resource.terminal = {
+              ...resource.terminal!,
+              state: 'failed',
+              cleanupPending: resource.terminal?.state === 'failed' ? resource.terminal.cleanupPending : true,
+              error: (error as Error).message,
+            };
             return workspace;
           }, true),
       )

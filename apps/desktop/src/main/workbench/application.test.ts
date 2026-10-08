@@ -1008,3 +1008,100 @@ describe('workbench authoritative commands', () => {
     expect(runtime.hideBrowsers).toHaveBeenCalledOnce();
   });
 });
+
+it('preserves current-instance service proof that terminal startup failed before creating a process', async () => {
+  const { app, runtime } = await make();
+  const w = (await app.getSnapshot()).workspaces[0]!;
+  const r = w.resources.find((r) => r.kind === 'terminal')!;
+  vi.mocked(runtime.terminalOpen).mockImplementation(async () => {
+    const current = (await app.getSnapshot()).workspaces[0]!.resources.find((item) => item.resourceId === r.resourceId)!;
+    app.onTerminal(
+      r.resourceId,
+      { seq: 1, sessionId: null, sandbox: null, cwd: null, state: 'failed', cleanupPending: false, output: '', error: 'host pin rejected' },
+      {
+        workspaceId: w.workspaceId,
+        resourceId: r.resourceId,
+        kind: 'terminal',
+        environmentId: current.environmentId!,
+        instanceId: current.instanceId!,
+        instanceGeneration: current.generation,
+      },
+    );
+    throw new Error('host pin rejected');
+  });
+  await app.command({
+    type: 'terminalOpen',
+    commandId: 'pin-rejected',
+    workspaceId: w.workspaceId,
+    resourceId: r.resourceId,
+    cols: 80,
+    rows: 24,
+  });
+  await vi.waitFor(() => expect((app as unknown as { terminalLaunches: Map<string, unknown> }).terminalLaunches.size).toBe(0));
+  await vi.waitFor(async () =>
+    expect((await app.getSnapshot()).workspaces[0]!.resources.find((item) => item.resourceId === r.resourceId)!.terminal).toMatchObject({
+      state: 'failed',
+      error: 'host pin rejected',
+      cleanupPending: false,
+    }),
+  );
+});
+
+it('keeps cleanup unknown without current-instance terminal proof and ignores old binding proofs', async () => {
+  for (const lateOldBinding of [false, true]) {
+    const { app, runtime } = await make();
+    const w = (await app.getSnapshot()).workspaces[0]!;
+    const r = w.resources.find((r) => r.kind === 'terminal')!;
+    vi.mocked(runtime.terminalOpen).mockImplementation(async () => {
+      const current = (await app.getSnapshot()).workspaces[0]!.resources.find((item) => item.resourceId === r.resourceId)!;
+      if (lateOldBinding)
+        app.onTerminal(
+          r.resourceId,
+          {
+            seq: 999,
+            sessionId: null,
+            sandbox: null,
+            cwd: null,
+            state: 'failed',
+            cleanupPending: false,
+            output: '',
+            error: 'old safe rejection',
+          },
+          {
+            workspaceId: w.workspaceId,
+            resourceId: r.resourceId,
+            kind: 'terminal',
+            environmentId: current.environmentId!,
+            instanceId: 'old-retired-instance',
+            instanceGeneration: current.generation - 1,
+          },
+        );
+      throw new Error('startup result unknown');
+    });
+    await app.command({
+      type: 'terminalOpen',
+      commandId: 'unknown-start',
+      workspaceId: w.workspaceId,
+      resourceId: r.resourceId,
+      cols: 80,
+      rows: 24,
+    });
+    await vi.waitFor(() => expect((app as unknown as { terminalLaunches: Map<string, unknown> }).terminalLaunches.size).toBe(0));
+    expect((await app.getSnapshot()).workspaces[0]!.resources.find((item) => item.resourceId === r.resourceId)!.terminal).toMatchObject({
+      state: 'failed',
+      error: 'startup result unknown',
+      cleanupPending: true,
+    });
+    expect(
+      await app.command({
+        type: 'terminalOpen',
+        commandId: 'unknown-retry',
+        workspaceId: w.workspaceId,
+        resourceId: r.resourceId,
+        cols: 80,
+        rows: 24,
+      }),
+    ).toMatchObject({ ok: false, error: { code: 'execution_failed' } });
+    expect(runtime.terminalOpen).toHaveBeenCalledTimes(1);
+  }
+});

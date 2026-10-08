@@ -91,3 +91,26 @@ it('rejects cancelled and invalid external reads without granting a file source'
   });
   expect(await resources.observe({ ...request(identity), target: null })).toMatchObject({ error: 'unauthorized' });
 });
+
+it('reports failed SSH connection before shell acquisition as confirmed no process, bound to the Main instance', async () => {
+  const { SshObservationConnection } = await import('./observation-ssh');
+  const connect = vi.spyOn(SshObservationConnection, 'connect').mockRejectedValue(new Error('host pin rejected'));
+  const emit = vi.fn();
+  const resources = new EnvironmentResources(new SbxConnection(), emit, vi.fn(), {
+    WSL_SSH_HOST: '127.0.0.1',
+    WSL_SSH_USER: 'owned-test',
+    WSL_SSH_ROOT: '/owned',
+    WSL_SSH_HOST_KEY_SHA256: 'a'.repeat(64),
+    SSH_AUTH_SOCK: '/owned/agent.sock',
+  });
+  const binding = { ...identity, kind: 'terminal' as const, environmentId: 'ssh' };
+  try {
+    await resources.register(binding);
+    await expect(resources.openTerminal(binding, 80, 24)).rejects.toThrow('host pin rejected');
+    expect(emit).toHaveBeenCalledWith(expect.objectContaining({ state: 'failed', sessionId: null, cleanupPending: false }), binding);
+    expect(() => resources.terminal(binding)).toThrow('not open');
+    await resources.shutdown();
+  } finally {
+    connect.mockRestore();
+  }
+});

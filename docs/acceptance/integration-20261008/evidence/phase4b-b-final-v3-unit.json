@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "pnpm",
+    "test"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T12:16:52.033549Z",
+  "ended_at": "2026-10-08T12:16:57.472655Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n> web-studio-lab@ test /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n> vitest run\n\n\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/observation-mcp.test.ts (7 tests | 1 failed) 1299ms\n   ❯ per-turn observation MCP host (7)\n     × enforces four pending calls and cancels all of them on turn shutdown 156ms\n\n Test Files  1 failed | 60 passed | 4 skipped (65)\n      Tests  1 failed | 415 passed | 8 skipped (424)\n   Start at  20:16:52\n   Duration  4.84s (tests 77%, import 13%, transform 9%, worker 1%)\n\n    Isolate  65 workers spawned · ~120ms startup each (spawn + environment, per file)\n             at least ~745ms faster with isolate: false — reuses workers across files instead of one per file\n\n ELIFECYCLE  Test failed. See above for more details.\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/observation-mcp.test.ts > per-turn observation MCP host > enforces four pending calls and cancels all of them on turn shutdown\nAssertionError: expected 'concurrent' to contain 'budget_exceeded'\n\nExpected: \"budget_exceeded\"\nReceived: \"concurrent\"\n\n ❯ apps/service/src/observation-mcp.test.ts:75:61\n     73|     await chat.send(scope.sessionId, 'concurrent', scope);\n     74|     await vi.waitFor(() => expect(signals).toHaveLength(4));\n     75|     expect(chat.get(scope.sessionId).messages.at(-1)?.text).toContain(…\n       |                                                             ^\n     76|     await chat.cancel(scope.sessionId);\n     77|     expect(signals.every((signal) => signal.aborted)).toBe(true);\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "Cj4gd2ViLXN0dWRpby1sYWJAIHRlc3QgL1VzZXJzL2h1YW9kb25nLy5jb2RleC93b3JrdHJlZXMvYmY2NC93ZWItc3R1ZGlvLWxhYgo+IHZpdGVzdCBydW4KCgogUlVOICB2NS4wLjMgL1VzZXJzL2h1YW9kb25nLy5jb2RleC93b3JrdHJlZXMvYmY2NC93ZWItc3R1ZGlvLWxhYgoKIOKdryBhcHBzL3NlcnZpY2Uvc3JjL29ic2VydmF0aW9uLW1jcC50ZXN0LnRzICg3IHRlc3RzIHwgMSBmYWlsZWQpIDEyOTltcwogICDina8gcGVyLXR1cm4gb2JzZXJ2YXRpb24gTUNQIGhvc3QgKDcpCiAgICAgw5cgZW5mb3JjZXMgZm91ciBwZW5kaW5nIGNhbGxzIGFuZCBjYW5jZWxzIGFsbCBvZiB0aGVtIG9uIHR1cm4gc2h1dGRvd24gMTU2bXMKCiBUZXN0IEZpbGVzICAxIGZhaWxlZCB8IDYwIHBhc3NlZCB8IDQgc2tpcHBlZCAoNjUpCiAgICAgIFRlc3RzICAxIGZhaWxlZCB8IDQxNSBwYXNzZWQgfCA4IHNraXBwZWQgKDQyNCkKICAgU3RhcnQgYXQgIDIwOjE2OjUyCiAgIER1cmF0aW9uICA0Ljg0cyAodGVzdHMgNzclLCBpbXBvcnQgMTMlLCB0cmFuc2Zvcm0gOSUsIHdvcmtlciAxJSkKCiAgICBJc29sYXRlICA2NSB3b3JrZXJzIHNwYXduZWQgwrcgfjEyMG1zIHN0YXJ0dXAgZWFjaCAoc3Bhd24gKyBlbnZpcm9ubWVudCwgcGVyIGZpbGUpCiAgICAgICAgICAgICBhdCBsZWFzdCB+NzQ1bXMgZmFzdGVyIHdpdGggaXNvbGF0ZTogZmFsc2Ug4oCUIHJldXNlcyB3b3JrZXJzIGFjcm9zcyBmaWxlcyBpbnN0ZWFkIG9mIG9uZSBwZXIgZmlsZQoK4oCJRUxJRkVDWUNMReKAiSBUZXN0IGZhaWxlZC4gU2VlIGFib3ZlIGZvciBtb3JlIGRldGFpbHMuCg==",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL29ic2VydmF0aW9uLW1jcC50ZXN0LnRzID4gcGVyLXR1cm4gb2JzZXJ2YXRpb24gTUNQIGhvc3QgPiBlbmZvcmNlcyBmb3VyIHBlbmRpbmcgY2FsbHMgYW5kIGNhbmNlbHMgYWxsIG9mIHRoZW0gb24gdHVybiBzaHV0ZG93bgpBc3NlcnRpb25FcnJvcjogZXhwZWN0ZWQgJ2NvbmN1cnJlbnQnIHRvIGNvbnRhaW4gJ2J1ZGdldF9leGNlZWRlZCcKCkV4cGVjdGVkOiAiYnVkZ2V0X2V4Y2VlZGVkIgpSZWNlaXZlZDogImNvbmN1cnJlbnQiCgog4p2vIGFwcHMvc2VydmljZS9zcmMvb2JzZXJ2YXRpb24tbWNwLnRlc3QudHM6NzU6NjEKICAgICA3M3wgICAgIGF3YWl0IGNoYXQuc2VuZChzY29wZS5zZXNzaW9uSWQsICdjb25jdXJyZW50Jywgc2NvcGUpOwogICAgIDc0fCAgICAgYXdhaXQgdmkud2FpdEZvcigoKSA9PiBleHBlY3Qoc2lnbmFscykudG9IYXZlTGVuZ3RoKDQpKTsKICAgICA3NXwgICAgIGV4cGVjdChjaGF0LmdldChzY29wZS5zZXNzaW9uSWQpLm1lc3NhZ2VzLmF0KC0xKT8udGV4dCkudG9Db250YWluKOKApgogICAgICAgfCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBeCiAgICAgNzZ8ICAgICBhd2FpdCBjaGF0LmNhbmNlbChzY29wZS5zZXNzaW9uSWQpOwogICAgIDc3fCAgICAgZXhwZWN0KHNpZ25hbHMuZXZlcnkoKHNpZ25hbCkgPT4gc2lnbmFsLmFib3J0ZWQpKS50b0JlKHRydWUpOwoK4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6vWzEvMV3ijq8KCg==",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:1e65a74339380b656832058608e1e1ffa3e33b892f764ce1d17a1bb4234f7948:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:1e65a74339380b656832058608e1e1ffa3e33b892f764ce1d17a1bb4234f7948:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:1e65a74339380b656832058608e1e1ffa3e33b892f764ce1d17a1bb4234f7948:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}
