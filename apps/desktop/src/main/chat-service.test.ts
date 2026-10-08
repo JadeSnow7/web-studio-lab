@@ -73,6 +73,14 @@ describe('对话服务宿主故障', () => {
     );
     mock.callbacks.get('message')?.({
       type: 'terminal-event',
+      binding: {
+        workspaceId: 'w',
+        environmentId: 'sandbox',
+        resourceId: 'terminal-resource',
+        kind: 'terminal',
+        instanceId: 'main-instance',
+        instanceGeneration: 1,
+      },
       resourceId: 'terminal-resource',
       terminal: {
         seq: 1,
@@ -101,6 +109,14 @@ describe('对话服务宿主故障', () => {
         ? { type: 'event', conversation: failed }
         : {
             type: 'terminal-event',
+            binding: {
+              workspaceId: 'w',
+              environmentId: 'sandbox',
+              resourceId: 'terminal-resource',
+              kind: 'terminal',
+              instanceId: 'main-instance',
+              instanceGeneration: 1,
+            },
             resourceId: 'terminal-resource',
             terminal: {
               seq: 1,

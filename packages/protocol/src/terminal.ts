@@ -13,6 +13,7 @@ export const TerminalSnapshotSchema = z.object({
   cwd: z.string().nullable(),
   state: z.enum(['idle', 'starting', 'running', 'closing', 'closed', 'failed']),
   output: z.string().max(262144),
+  outputOffset: z.number().int().nonnegative().optional(),
   cleanupPending: z.boolean(),
   error: z.string().nullable(),
 });

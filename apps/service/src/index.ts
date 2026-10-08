@@ -1,6 +1,6 @@
 import { ChatServiceMessageSchema, ChatServiceRequestSchema, type ChatServiceMessage } from '@wsl/protocol';
 import { CodexChat } from './codex-chat';
-import { Terminal } from './terminal';
+import { EnvironmentResources } from './environment-resources';
 import { ResourceStore } from './resource-store';
 
 // utilityProcess 的消息接口由宿主提供，核心模块不依赖 Electron。
@@ -15,16 +15,13 @@ if (!root) throw new Error('缺少对话运行目录');
 const send = (message: ChatServiceMessage) => parent.postMessage(ChatServiceMessageSchema.parse(message));
 const resources = new ResourceStore(root);
 const chat = new CodexChat(root, (conversation) => send({ type: 'event', conversation }), undefined, resources);
-const terminals = new Map<string, Terminal>();
-const terminalFor = (resourceId: string): Terminal => {
-  let instance = terminals.get(resourceId);
-  if (!instance) {
-    instance = new Terminal(chat.connection, (snapshot) => send({ type: 'terminal-event', terminal: snapshot, resourceId }));
-    terminals.set(resourceId, instance);
-  }
-  return instance;
-};
-const allTerminals = () => [...terminals.values()];
+const environments = new EnvironmentResources(
+  chat.connection,
+  (terminal, binding) => send({ type: 'terminal-event', terminal, resourceId: binding.resourceId, binding }),
+  (hint) => send({ type: 'file-hint', hint }),
+);
+const observations = new Map<string, AbortController>();
+const terminalFor = (resourceId: string) => environments.terminal(environments.identity(resourceId));
 const ready = chat.initialize().then((status) => {
   send({ type: 'initialized', status, cleanupPending: chat.connection.getCleanupPending() });
   return status;
@@ -35,9 +32,31 @@ parent.on('message', ({ data }) => {
   const request = ChatServiceRequestSchema.parse(data);
   const execute = async () => {
     try {
-      if (['send', 'terminal.open', 'resources.save', 'resources.remove'].includes(request.method)) await ready;
+      if (['send', 'resources.save', 'resources.remove'].includes(request.method)) await ready;
       let result;
       switch (request.method) {
+        case 'environments.list':
+          result = environments.list();
+          break;
+        case 'resource.register':
+          await environments.register(request.payload);
+          result = null;
+          break;
+        case 'observation.read': {
+          if (observations.has(request.payload.requestId)) throw new Error('Duplicate observation request');
+          const controller = new AbortController();
+          observations.set(request.payload.requestId, controller);
+          try {
+            result = await environments.observe(request.payload, controller.signal);
+          } finally {
+            observations.delete(request.payload.requestId);
+          }
+          break;
+        }
+        case 'observation.cancel':
+          observations.get(request.payload.requestId)?.abort();
+          result = null;
+          break;
         case 'resources.list':
           result = await resources.list(request.payload.spaceId);
           break;
@@ -73,11 +92,14 @@ parent.on('message', ({ data }) => {
           result = await chat.reset(request.payload.conversationId);
           break;
         case 'terminal.get':
-          result = terminalFor(request.resourceId).get();
+          result = environments.terminalSnapshot(environments.identity(request.resourceId));
           break;
-        case 'terminal.open':
-          result = await terminalFor(request.payload.resourceId).open(request.payload.cols, request.payload.rows);
+        case 'terminal.open': {
+          const identity = environments.identity(request.payload.resourceId);
+          if (identity.environmentId === 'sandbox') await ready;
+          result = await environments.openTerminal(identity, request.payload.cols, request.payload.rows);
           break;
+        }
         case 'terminal.write':
           terminalFor(request.payload.resourceId).write(request.payload.sessionId, request.payload.data);
           result = null;
@@ -90,7 +112,8 @@ parent.on('message', ({ data }) => {
           result = await terminalFor(request.payload.resourceId).close(request.payload.sessionId);
           break;
         case 'shutdown': {
-          const results = await Promise.allSettled([chat.shutdown(), ...allTerminals().map((instance) => instance.shutdown())]);
+          for (const controller of observations.values()) controller.abort();
+          const results = await Promise.allSettled([chat.shutdown(), environments.shutdown()]);
           const failure = results.find((result) => result.status === 'rejected');
           if (failure?.status === 'rejected') throw failure.reason;
 
@@ -110,7 +133,8 @@ parent.on('message', ({ data }) => {
 });
 
 process.on('SIGTERM', () => {
-  void Promise.all([chat.shutdown(), ...allTerminals().map((instance) => instance.shutdown())])
+  for (const controller of observations.values()) controller.abort();
+  void Promise.all([chat.shutdown(), environments.shutdown()])
     .then(() => process.exit(0))
     .catch((error: unknown) => {
       console.error('guest 清理失败', error);

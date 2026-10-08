@@ -358,6 +358,7 @@ export class FileObservationProvider {
     assertActive: () => void,
   ): Promise<Observation> {
     const source = input.source ?? 'disk';
+    const effectiveSource = source === 'disk' && this.transport.remote ? 'sftp' : source;
     const normalized = this.normalize(input.path);
     const editor = source === 'editor' ? this.editors.get(normalized) : undefined;
     if (source === 'editor' && !editor) throw new FileObservationError('unsupported', 'No open editor document model for this resource');
@@ -392,7 +393,7 @@ export class FileObservationProvider {
     if (image)
       return this.observation(
         normalized,
-        source,
+        effectiveSource,
         {
           path: input.path,
           mediaType: image,
@@ -419,7 +420,7 @@ export class FileObservationProvider {
     const fragment = bytes.subarray(offset, end).toString('utf8');
     const result = this.observation(
       normalized,
-      source === 'disk' && this.transport.remote ? 'sftp' : source,
+      effectiveSource,
       {
         path: input.path,
         text: fragment,

@@ -217,3 +217,32 @@ it('cancelled file requests refuse the result without changing a different insta
   await expect(files.read({ path: 'x' }, Date.now() + 5000, cancellation.signal)).rejects.toMatchObject({ code: 'cancelled' });
   expect(files.source().available).toBe(true);
 });
+
+it('reports SFTP provenance for remote images while preserving the Main resource identity', async () => {
+  const resource = {
+    workspaceId: 'w-image',
+    environmentId: 'ssh',
+    resourceId: 'file-image',
+    instanceId: 'image-instance',
+    instanceGeneration: 4,
+  };
+  const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const files = new FileObservationProvider({
+    ...resource,
+    root: '/authorized',
+    transport: {
+      generation: 'connection-image',
+      remote: true,
+      available: true,
+      realpath: async (file: string) => file,
+      read: async () => bytes,
+      list: async () => ({ entries: [], truncated: false }),
+    },
+  });
+  providers.push(files);
+  expect(await files.read({ path: 'image.png' })).toMatchObject({
+    source: 'sftp',
+    resource: { ...resource, kind: 'file' },
+    data: { mediaType: 'image/png' },
+  });
+});

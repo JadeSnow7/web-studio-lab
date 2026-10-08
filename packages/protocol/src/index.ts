@@ -16,3 +16,5 @@ export * from './guest-browser';
 export * from './workspace';
 
 export * from './observation';
+
+export * from './environments';

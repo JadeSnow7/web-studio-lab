@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "python3",
+    "/private/tmp/wsl-local-cleanup-review.py"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T08:36:40.413779Z",
+  "ended_at": "2026-10-08T08:36:40.731480Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "{\"type\": \"ready\"}\n{\"helper_returncode\": 1, \"frames\": [{\"type\": \"cleanup\", \"ok\": false}], \"stderr\": \"Traceback (most recent call last):\\n  File \\\"/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/local-terminal.py\\\", line 233, in <module>\\n    raise RuntimeError('owned shell cleanup not confirmed')\\nRuntimeError: owned shell cleanup not confirmed\\n\", \"owned_detached_child_alive\": true, \"child_pid\": 15900}\n",
+  "stderr": "",
+  "stdout_base64": "eyJ0eXBlIjogInJlYWR5In0KeyJoZWxwZXJfcmV0dXJuY29kZSI6IDEsICJmcmFtZXMiOiBbeyJ0eXBlIjogImNsZWFudXAiLCAib2siOiBmYWxzZX1dLCAic3RkZXJyIjogIlRyYWNlYmFjayAobW9zdCByZWNlbnQgY2FsbCBsYXN0KTpcbiAgRmlsZSBcIi9Vc2Vycy9odWFvZG9uZy8uY29kZXgvd29ya3RyZWVzL2JmNjQvd2ViLXN0dWRpby1sYWIvYXBwcy9zZXJ2aWNlL3NyYy9sb2NhbC10ZXJtaW5hbC5weVwiLCBsaW5lIDIzMywgaW4gPG1vZHVsZT5cbiAgICByYWlzZSBSdW50aW1lRXJyb3IoJ293bmVkIHNoZWxsIGNsZWFudXAgbm90IGNvbmZpcm1lZCcpXG5SdW50aW1lRXJyb3I6IG93bmVkIHNoZWxsIGNsZWFudXAgbm90IGNvbmZpcm1lZFxuIiwgIm93bmVkX2RldGFjaGVkX2NoaWxkX2FsaXZlIjogdHJ1ZSwgImNoaWxkX3BpZCI6IDE1OTAwfQo=",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:2bb89a94ac273d5a84cfc71a46a75c2557338a282990c569ef2edf5cfdb5f2ea:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:2bb89a94ac273d5a84cfc71a46a75c2557338a282990c569ef2edf5cfdb5f2ea:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:2bb89a94ac273d5a84cfc71a46a75c2557338a282990c569ef2edf5cfdb5f2ea:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

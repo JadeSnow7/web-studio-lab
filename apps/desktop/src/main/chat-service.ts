@@ -2,6 +2,11 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { app, utilityProcess, type UtilityProcess } from 'electron';
 import {
+  EnvironmentListSchema,
+  ObservationResultSchema,
+  type ResourceInstanceIdentity,
+  type ObservationRequest,
+  type FileInvalidationHint,
   ResourceCollectionSchema,
   ResourceListRequestSchema,
   ResourceSaveRequestSchema,
@@ -39,11 +44,14 @@ export class ChatService {
   private readonly conversations = new Map<ChatSlot, ChatConversation>();
   private sequence = 0;
   private readonly terminals = new Map<string, TerminalSnapshot>();
+  private readonly resourceBindings = new Map<string, ResourceInstanceIdentity>();
   private lastStatus: ChatStatus | null = null;
   constructor(
     private readonly onConversation: (conversation: ChatConversation) => void,
     private readonly onStatus: (status: ChatStatus) => void,
-    private readonly onTerminal: (snapshot: TerminalSnapshot, resourceId: string) => void = () => undefined,
+    private readonly onTerminal: (snapshot: TerminalSnapshot, resourceId: string, binding: ResourceInstanceIdentity) => void = () =>
+      undefined,
+    private readonly onFileHint: (hint: FileInvalidationHint) => void = () => undefined,
   ) {
     const entry = app.isPackaged
       ? path.join(process.resourcesPath, 'service/index.cjs')
@@ -70,8 +78,13 @@ export class ChatService {
           return;
         }
         if (message.type === 'terminal-event') {
+          this.resourceBindings.set(message.resourceId, message.binding);
           this.terminals.set(message.resourceId, message.terminal);
-          this.onTerminal(message.terminal, message.resourceId);
+          this.onTerminal(message.terminal, message.resourceId, message.binding);
+          return;
+        }
+        if (message.type === 'file-hint') {
+          this.onFileHint(message.hint);
           return;
         }
         const request = this.pending.get(message.id);
@@ -124,9 +137,15 @@ export class ChatService {
       sandbox: this.lastStatus?.sandbox ?? null,
       cwd: this.lastStatus?.cwd ?? null,
     });
-    for (const [resourceId, terminal] of this.terminals)
-      if (terminal.cleanupPending)
-        this.onTerminal({ ...terminal, seq: terminal.seq + 1, state: 'failed', error: this.failure + '；guest 清理未确认' }, resourceId);
+    for (const [resourceId, terminal] of this.terminals) {
+      const binding = this.resourceBindings.get(resourceId);
+      if (terminal.cleanupPending && binding)
+        this.onTerminal(
+          { ...terminal, seq: terminal.seq + 1, state: 'failed', error: this.failure + '；guest 清理未确认' },
+          resourceId,
+          binding,
+        );
+    }
     for (const conversation of this.conversations.values()) {
       if (conversation.cleanupPending) {
         this.onConversation({ ...conversation, seq: ++this.sequence, state: 'failed', error: this.failure + '；guest 清理未确认' });
@@ -164,6 +183,19 @@ export class ChatService {
       this.pending.set(data.id, { resolve, reject, start, resourceId });
       this.child.postMessage(data);
     });
+  }
+  async environmentsList() {
+    return EnvironmentListSchema.parse(await this.request({ method: 'environments.list' }));
+  }
+  async registerResource(binding: ResourceInstanceIdentity) {
+    await this.request({ method: 'resource.register', payload: binding });
+    this.resourceBindings.set(binding.resourceId, binding);
+  }
+  async observe(request: ObservationRequest) {
+    return ObservationResultSchema.parse(await this.request({ method: 'observation.read', payload: request }));
+  }
+  async cancelObservation(requestId: string) {
+    await this.request({ method: 'observation.cancel', payload: { requestId } });
   }
   async resourcesList(spaceId: string) {
     return ResourceCollectionSchema.parse(

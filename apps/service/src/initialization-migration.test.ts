@@ -6,7 +6,10 @@ const fixture = vi.hoisted(() => ({
 }));
 vi.mock('./codex-chat', () => ({
   CodexChat: class {
-    connection = { getCleanupPending: () => false };
+    connection = {
+      getCleanupPending: () => false,
+      getStatus: () => ({ available: false, reason: 'initializing', sandbox: null, version: null, cwd: null }),
+    };
     initialize = fixture.initialize;
     register = vi.fn();
     getStatus = () => ({ available: false, reason: 'initializing', version: null, sandbox: null, cwd: null });
@@ -65,6 +68,18 @@ describe('R6 service boundary initialization', () => {
       { id: 'status', method: 'status' },
       { id: 'get', method: 'get', payload: { conversationId: 'session-fixture' } },
       { id: 'resources', method: 'resources.list', payload: { spaceId: 'taskflow-demo' } },
+      {
+        id: 'lease',
+        method: 'resource.register',
+        payload: {
+          workspaceId: 'taskflow-demo',
+          environmentId: 'sandbox',
+          resourceId: 'terminal-resource',
+          kind: 'terminal',
+          instanceId: 'main-allocated',
+          instanceGeneration: 1,
+        },
+      },
       { id: 'terminal', method: 'terminal.get', resourceId: 'terminal-resource' },
     ];
     for (const request of requests) fixture.listener!({ data: request });
@@ -75,7 +90,7 @@ describe('R6 service boundary initialization', () => {
             .filter(([message]) => message.type === 'response')
             .map(([message]) => message.id)
             .sort(),
-        ).toEqual(['get', 'register', 'resources', 'status', 'terminal']),
+        ).toEqual(['get', 'lease', 'register', 'resources', 'status', 'terminal']),
       { timeout: 100 },
     );
   });

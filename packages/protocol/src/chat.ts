@@ -1,3 +1,10 @@
+import { EnvironmentListSchema, RuntimeResourceIdentitySchema } from './environments';
+import {
+  ObservationRequestSchema,
+  ObservationResultSchema,
+  ResourceInstanceIdentitySchema,
+  FileInvalidationHintSchema,
+} from './observation';
 import { z } from 'zod';
 import { TerminalOpenSchema, TerminalWriteSchema, TerminalResizeSchema, TerminalTargetSchema, TerminalSnapshotSchema } from './terminal';
 
@@ -41,6 +48,16 @@ export const ChatSendSchema = z.object({ conversationId: ChatSlotSchema, text: z
 export const ChatTargetSchema = z.object({ conversationId: ChatSlotSchema });
 export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
   z.object({ id: z.string(), method: z.literal('status') }),
+  z.object({ id: z.string(), method: z.literal('environments.list') }).strict(),
+  z.object({ id: z.string(), method: z.literal('resource.register'), payload: RuntimeResourceIdentitySchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('observation.read'), payload: ObservationRequestSchema }).strict(),
+  z
+    .object({
+      id: z.string(),
+      method: z.literal('observation.cancel'),
+      payload: z.object({ requestId: z.string().min(1).max(200) }).strict(),
+    })
+    .strict(),
   z
     .object({
       id: z.string(),
@@ -65,11 +82,25 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
 export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('initialized'), status: ChatStatusSchema, cleanupPending: z.boolean() }),
   z.object({ type: z.literal('event'), conversation: ChatConversationSchema }),
-  z.object({ type: z.literal('terminal-event'), terminal: TerminalSnapshotSchema, resourceId: z.string().min(1) }),
+  z.object({
+    type: z.literal('terminal-event'),
+    terminal: TerminalSnapshotSchema,
+    resourceId: z.string().min(1),
+    binding: ResourceInstanceIdentitySchema,
+  }),
+  z.object({ type: z.literal('file-hint'), hint: FileInvalidationHintSchema }).strict(),
   z.object({
     type: z.literal('response'),
     id: z.string(),
-    result: z.union([ChatStatusSchema, ChatConversationSchema, TerminalSnapshotSchema, ResourceCollectionSchema, z.null()]),
+    result: z.union([
+      ChatStatusSchema,
+      ChatConversationSchema,
+      TerminalSnapshotSchema,
+      ResourceCollectionSchema,
+      EnvironmentListSchema,
+      ObservationResultSchema,
+      z.null(),
+    ]),
   }),
   z.object({ type: z.literal('error'), id: z.string(), error: z.string() }),
 ]);

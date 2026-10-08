@@ -21,9 +21,9 @@
 | F06 | Sidebar自落点拖拽先删除自身后indexOf=-1，真实窗口中首标签移位；sources/sidebar-selfdrop-probe.json | 待Phase3修复 |
 | F07 | Session选择v2后selectedRunId仍指v1，任务正文与运行日志错配；sources/history-version-probe.json | 待Phase3修复 |
 | F08 | VS001 verifyManifest 只在 B05 passed 分支重评观察证据；单独 B03 passed 且无 identity/observation/CDP 的合成负例仍被接受；sources/vs001-verifier-probe.json | 待独立修复复核器，固定目标、fixture、postcondition 与历史指纹不变；新方法版本单独记录 |
-| F09 | 远程文件图片结果误标 disk，文本结果正确标 sftp | Phase2a 已补来源修复及负例，待本段终审 |
-| F10 | LocalTerminal helper 未确认清理后 child=null，及 SSH 断线后 shell=null，close/shutdown 仍可返回成功，令未知进程被当作已关闭 | 主线程 Phase2a 差异审查发现，退回 coder 补失败证据和修复 |
-| F11 | sandbox Terminal 输出截断未增加 outputOffset；超过 262144 字符后 renderer 不能判断新窗口偏移 | 待同一 PTY 连续输出回归与 Phase3 消费者接线 |
+| F09 | 远程文件图片结果误标 disk，文本结果正确标 sftp | Phase2a 已修复，负例与最终回归通过 |
+| F10 | LocalTerminal helper 未确认清理后 child=null，及 SSH 断线后 shell=null，close/shutdown 仍可返回成功，令未知进程被当作已关闭 | Phase2a 已修复；启动前、启动中及关闭中断线均保留 unknown，失败及复验原文保留 |
+| F11 | sandbox Terminal 输出截断未增加 outputOffset；超过 262144 字符后 renderer 不能判断新窗口偏移 | Phase2a 同一 PTY 连续输出回归通过；Phase3 消费者接线待完成 |
 
 ## 全量静态覆盖
 
@@ -32,3 +32,16 @@
 主线程另行读取 Main 工作台 application/host/repository/ports/layout、启动与关闭、IPC/来源校验/preload/菜单、PreviewController 和公开文档代理、所有既有协议，以及 service 的 Codex/PTY/sbx/资源存储、guest 浏览器与 Python MCP。重点核对单一状态归属、持久化与失败回滚、跨空间代次、取消/清理确认、网络与文件边界；新代码按各阶段 manifest 补评，不能沿用基准结论。
 
 现有 live 测试正文已逐项核对：真实对话两轮及 reset；sandbox 前台/后台进程、EOF 与 PID 清理；资源 nonce 不进入 prompt、要求实际 MCP 调用和精确内容；guest 浏览器 DOM/PNG 摘要与 sealed memfd 负例；空间运行及 PTY 跨页/跨空间实例保持。发现 guest-browser live 证据路径写死在旧目录、sbx UI live 未清理本轮 guestDir，交后续测试工作包修复。正文审查不构成 live 已执行通过。
+
+## Phase2a 审查结论
+
+主线程审查 26 个源码及测试文件，并核对最终 manifest 的全部 SHA256 与当前字节一致。最终 typecheck、build、改动文件 lint/format 与全量 unit（367 passed、8 live skipped）均通过；各回执执行期间 revision 稳定。原文为 `evidence/phase2a-final-*.json`。此结论只覆盖环境及服务适配，Main 与 MCP 接线尚未完成。
+
+| ID | 发现与证据 | 修复与复验 |
+| --- | --- | --- |
+| F12 | 原 local helper 仅按原进程组清理；脱离后代仍活着时曾回报成功。`phase2a-detached-process-before.json` 的进程探针退出码 0 仅代表探针执行完毕，`owned_detached_child_alive=true` 才是该场景失败依据 | 按本轮随机继承标记、用户及进程出生身份识别后代，发信号前再次核对；不可核实时保留 unknown。相同探针最终 cleanup=true 且 child_alive=false。另测出生身份改变和标记不可读时不发信号；未声称实际制造 PID 重用 |
+| F13 | 中文输入按字符数通过 TypeScript 边界后，UTF-8 字节超出 helper 预算，导致 PTY 异常退出 | 边界改为 UTF-8 字节预算；超额输入拒绝后，同一 PTY 仍可执行下一条命令。before 失败原文保留，最终回归通过 |
+
+本地终端以当前用户权限运行，指定目录只是起始目录；文件观察的授权根是读取边界。这不是操作系统沙箱，也不保证清除主动移除继承标记的恶意进程。
+
+基准 `9e1df45` 的 apps/packages/scripts/e2e/tests/fixtures 共 169 个执行源码文件：原 138 文件表映射其中 119 个；主线程补读 45 个，其余 5 个（service 与 e2e 的 Codex/sbx fixture、raw.d.ts、service Vite 配置）由独立审查补齐。没有剩余未读执行源码。fixture 的进程和清理回执是确定性模拟，不能作为 live 清理证据；新增代码仍按阶段独立审查。

@@ -46,7 +46,18 @@ describe('guest helper 宿主边界', () => {
   });
   it('正常PTY输入与resize转发且关闭须确认，旧session不得操作新终端', async () => {
     await connection.initialize();
-    const terminal = new Terminal(connection, () => undefined);
+    const terminal = new Terminal(
+      connection,
+      {
+        workspaceId: 'test',
+        environmentId: 'sandbox',
+        resourceId: 'terminal-test',
+        kind: 'terminal',
+        instanceId: 'terminal-instance',
+        instanceGeneration: 1,
+      },
+      () => undefined,
+    );
     const starting = await terminal.open(80, 24);
     await expect.poll(() => terminal.get().state).toBe('running');
     terminal.write(starting.sessionId!, '中文\u0003');
@@ -64,7 +75,18 @@ describe('guest helper 宿主边界', () => {
   it('清理失败阻止terminal重新open并保留失败状态', async () => {
     await connection.initialize();
     vi.stubEnv('WSL_SBX_FIXTURE_CASE', 'cleanup-fail');
-    const terminal = new Terminal(connection, () => undefined);
+    const terminal = new Terminal(
+      connection,
+      {
+        workspaceId: 'test',
+        environmentId: 'sandbox',
+        resourceId: 'terminal-test',
+        kind: 'terminal',
+        instanceId: 'terminal-instance',
+        instanceGeneration: 1,
+      },
+      () => undefined,
+    );
     const opened = await terminal.open(80, 24);
     await expect.poll(() => terminal.get().state).toBe('running');
     await expect(terminal.close(opened.sessionId!)).rejects.toThrow('清理失败');
@@ -87,7 +109,18 @@ describe('guest helper 宿主边界', () => {
   });
   it('terminal 清理未知阻止同 sandbox 的新资源对话', async () => {
     await connection.initialize();
-    const terminal = new Terminal(connection, () => undefined);
+    const terminal = new Terminal(
+      connection,
+      {
+        workspaceId: 'test',
+        environmentId: 'sandbox',
+        resourceId: 'terminal-test',
+        kind: 'terminal',
+        instanceId: 'terminal-instance',
+        instanceGeneration: 1,
+      },
+      () => undefined,
+    );
     vi.stubEnv('WSL_SBX_FIXTURE_CASE', 'cleanup-fail');
     const opened = await terminal.open(80, 24);
     await expect.poll(() => terminal.get().state).toBe('running');
