@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/service/src/observation-files.test.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T12:37:57.033253Z",
+  "ended_at": "2026-10-08T12:37:57.830277Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/observation-files.test.ts (15 tests | 1 failed) 329ms\n   ❯ real local file observations (8)\n     × does not deliver invalidation hints for an actual filesystem change after close 20ms\n\n Test Files  1 failed (1)\n      Tests  1 failed | 14 passed (15)\n     Errors  1 error\n   Start at  20:37:57\n   Duration  433ms (tests 87%, transform 10%, import 2%)\n\n",
+  "stderr": "(node:72807) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 4)\n(Use `node --trace-warnings ...` to show where the warning was created)\n\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/observation-files.test.ts > real local file observations > does not deliver invalidation hints for an actual filesystem change after close\nError: EMFILE: too many open files, watch\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯\n\nVitest caught 1 unhandled error during the test run.\nThis might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.\n\n⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯\nError: EMFILE: too many open files, watch\n ❯ FSEvent.FSWatcher._handle.onchange node:internal/fs/watchers:269:21\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\nSerialized Error: { errno: -24, syscall: 'watch', code: 'EMFILE', filename: null }\nThis error originated in \"apps/service/src/observation-files.test.ts\" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.\nThe last test to run before this error was \"does not deliver invalidation hints for an actual filesystem change after close\". This means either:\n- the error was thrown while Vitest was running this test, or\n- the error was thrown after the test completed, and this was the most recent test at that point.\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvc2VydmljZS9zcmMvb2JzZXJ2YXRpb24tZmlsZXMudGVzdC50cyAoMTUgdGVzdHMgfCAxIGZhaWxlZCkgMzI5bXMKICAg4p2vIHJlYWwgbG9jYWwgZmlsZSBvYnNlcnZhdGlvbnMgKDgpCiAgICAgw5cgZG9lcyBub3QgZGVsaXZlciBpbnZhbGlkYXRpb24gaGludHMgZm9yIGFuIGFjdHVhbCBmaWxlc3lzdGVtIGNoYW5nZSBhZnRlciBjbG9zZSAyMG1zCgogVGVzdCBGaWxlcyAgMSBmYWlsZWQgKDEpCiAgICAgIFRlc3RzICAxIGZhaWxlZCB8IDE0IHBhc3NlZCAoMTUpCiAgICAgRXJyb3JzICAxIGVycm9yCiAgIFN0YXJ0IGF0ICAyMDozNzo1NwogICBEdXJhdGlvbiAgNDMzbXMgKHRlc3RzIDg3JSwgdHJhbnNmb3JtIDEwJSwgaW1wb3J0IDIlKQoK",
+  "stderr_base64": "KG5vZGU6NzI4MDcpIFByb21pc2VSZWplY3Rpb25IYW5kbGVkV2FybmluZzogUHJvbWlzZSByZWplY3Rpb24gd2FzIGhhbmRsZWQgYXN5bmNocm9ub3VzbHkgKHJlamVjdGlvbiBpZDogNCkKKFVzZSBgbm9kZSAtLXRyYWNlLXdhcm5pbmdzIC4uLmAgdG8gc2hvdyB3aGVyZSB0aGUgd2FybmluZyB3YXMgY3JlYXRlZCkKCuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL29ic2VydmF0aW9uLWZpbGVzLnRlc3QudHMgPiByZWFsIGxvY2FsIGZpbGUgb2JzZXJ2YXRpb25zID4gZG9lcyBub3QgZGVsaXZlciBpbnZhbGlkYXRpb24gaGludHMgZm9yIGFuIGFjdHVhbCBmaWxlc3lzdGVtIGNoYW5nZSBhZnRlciBjbG9zZQpFcnJvcjogRU1GSUxFOiB0b28gbWFueSBvcGVuIGZpbGVzLCB3YXRjaArijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq9bMS8xXeKOrwoK4o6v4o6v4o6v4o6v4o6v4o6vIFVuaGFuZGxlZCBFcnJvcnMg4o6v4o6v4o6v4o6v4o6v4o6vCgpWaXRlc3QgY2F1Z2h0IDEgdW5oYW5kbGVkIGVycm9yIGR1cmluZyB0aGUgdGVzdCBydW4uClRoaXMgbWlnaHQgY2F1c2UgZmFsc2UgcG9zaXRpdmUgdGVzdHMuIFJlc29sdmUgdW5oYW5kbGVkIGVycm9ycyB0byBtYWtlIHN1cmUgeW91ciB0ZXN0cyBhcmUgbm90IGFmZmVjdGVkLgoK4o6v4o6v4o6v4o6vIFVuaGFuZGxlZCBSZWplY3Rpb24g4o6v4o6v4o6v4o6v4o6vCkVycm9yOiBFTUZJTEU6IHRvbyBtYW55IG9wZW4gZmlsZXMsIHdhdGNoCiDina8gRlNFdmVudC5GU1dhdGNoZXIuX2hhbmRsZS5vbmNoYW5nZSBub2RlOmludGVybmFsL2ZzL3dhdGNoZXJzOjI2OToyMQoK4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6vClNlcmlhbGl6ZWQgRXJyb3I6IHsgZXJybm86IC0yNCwgc3lzY2FsbDogJ3dhdGNoJywgY29kZTogJ0VNRklMRScsIGZpbGVuYW1lOiBudWxsIH0KVGhpcyBlcnJvciBvcmlnaW5hdGVkIGluICJhcHBzL3NlcnZpY2Uvc3JjL29ic2VydmF0aW9uLWZpbGVzLnRlc3QudHMiIHRlc3QgZmlsZS4gSXQgZG9lc24ndCBtZWFuIHRoZSBlcnJvciB3YXMgdGhyb3duIGluc2lkZSB0aGUgZmlsZSBpdHNlbGYsIGJ1dCB3aGlsZSBpdCB3YXMgcnVubmluZy4KVGhlIGxhc3QgdGVzdCB0byBydW4gYmVmb3JlIHRoaXMgZXJyb3Igd2FzICJkb2VzIG5vdCBkZWxpdmVyIGludmFsaWRhdGlvbiBoaW50cyBmb3IgYW4gYWN0dWFsIGZpbGVzeXN0ZW0gY2hhbmdlIGFmdGVyIGNsb3NlIi4gVGhpcyBtZWFucyBlaXRoZXI6Ci0gdGhlIGVycm9yIHdhcyB0aHJvd24gd2hpbGUgVml0ZXN0IHdhcyBydW5uaW5nIHRoaXMgdGVzdCwgb3IKLSB0aGUgZXJyb3Igd2FzIHRocm93biBhZnRlciB0aGUgdGVzdCBjb21wbGV0ZWQsIGFuZCB0aGlzIHdhcyB0aGUgbW9zdCByZWNlbnQgdGVzdCBhdCB0aGF0IHBvaW50Lgrijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq8KCg==",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:0b5d90e3f05f9dc5ce4959ab8621202214fb3685acc7d7ef593c6be84375c7c4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:0b5d90e3f05f9dc5ce4959ab8621202214fb3685acc7d7ef593c6be84375c7c4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:0b5d90e3f05f9dc5ce4959ab8621202214fb3685acc7d7ef593c6be84375c7c4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

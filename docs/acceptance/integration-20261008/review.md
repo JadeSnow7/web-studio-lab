@@ -158,3 +158,7 @@ F28：错误主机 pin 在认证前已拒绝、服务未取得 terminal adapter�
 第七轮两个产品场景通过，原文 `phase4b-ssh-product-seventh.log`：真实 agent 签名、SFTP 中文/续读/搜索/越界、PTY尺寸和独立中文输出行、关闭标签保留同一实例、同源观察、正常停止后新建实例与PTY会话，以及错误 pin 在认证前拒绝并可重试。续读和两个拒绝操作都等待新 requestId 的终态，避免读取上一轮结果。第六轮失败来自测试 helper 未将 signalCode 视为已退出，已更正。正式版本将另行保存落盘 JSON 证据与来源指纹；此前 info.attach 的内存 body 不声称已有磁盘附件。
 
 主线程已复读 F28 的 Main/service 与三个新增负例、SSH fixture/spec 及 helpers 差异：服务证明只在无 adapter 且未退休时发送；旧绑定事件由 Main 拒绝，未知仍保持限制；failed 且 cleanupPending 的重连返回明确 execution_failed。SSH 签名验证只接受严格 true，真实 PTY 以 child close 等待 stdout 清理帧，测试原错误与清理错误共同保存。最终回执待下面独立命令执行。
+
+Phase4b-B 最终 v4 的8份回执同一revision、运行前后稳定，主线程逐一核验8源码/8回执/62证据SHA。全量416 pass/8 live skip，MCP7 pass、产品SSH2 pass，type/build/scoped lint/format/diff通过；以 `247247b` 保存。暂存92个明确路径与实际字节一致，凭据模式检查无匹配；28条空白告警全属于原失败日志/窗口context，保留原文。首次类型/lint、v2测试收集、v3 MCP异步采证失败均保留，最终只采用v4。
+
+MCP用例此前在4个请求进入后立即读取第5个超预算回复，未等待其经guest管道归并，v3全量为415 pass/1 fail/8 skip。测试现在同一waitFor同时要求长度恰4和budget_exceeded消息，再保留全部取消断言；生产MCP未修改。正式SSH附件显示1次签名认证、2个PTY均清理、115x41尺寸，错误pin两次连接均认证0/PTY0；SFTP续读16382→32765同散列，两次越界各自新request，终端会话观察完整保持原绑定。

@@ -1,0 +1,18 @@
+{
+  "checked_at": "2026-10-08T12:27:52.728878+00:00",
+  "head": "247247b78a2aae96fde49cd7b37e264642cbea0c",
+  "tool": "cua.getState({ emit: false })",
+  "errors": [
+    "Native apps: Error: The Mac is locked and automatic unlock could not unlock it. Ask the user to unlock the Mac manually before continuing."
+  ],
+  "apps": [],
+  "status": "blocked_environment",
+  "not_verified": [
+    "native focus",
+    "real drag",
+    "OS Chinese IME candidate window",
+    "OS composite window overlay and click-through"
+  ],
+  "user_unlock_request": "already pending; no reply received; no repeated question",
+  "scope": "environment prerequisite only; not proof of product failure"
+}

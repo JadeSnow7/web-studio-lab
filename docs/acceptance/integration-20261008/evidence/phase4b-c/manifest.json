@@ -1,0 +1,105 @@
+{
+  "phase": "4b-C",
+  "baseHead": "247247b78a2aae96fde49cd7b37e264642cbea0c",
+  "sources": [
+    {
+      "path": "e2e/observation-live.spec.ts",
+      "sha256": "026bf78994b790525889ac31be710b6bb41a9dc1e9d28adc88a6b1397f01ddaf",
+      "bytes": 17773
+    },
+    {
+      "path": "apps/service/src/observation-files.test.ts",
+      "sha256": "8d71bd105efa33408b39f2b2034298c33452826eab6857fbcda1666aa827d264",
+      "bytes": 13099
+    }
+  ],
+  "receipts": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/collect.json",
+      "sha256": "4d6836c96ebb51a97fcd66351b96638cb99b68fe1112e0d361c7c0c07c844920",
+      "bytes": 2344,
+      "exitCode": 0,
+      "revisionBefore": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "revisionAfter": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/default-skip.json",
+      "sha256": "bf9fed328a836a999ee2e911a332476d18987d0ffc3ef81aea1ebb0c14117cdf",
+      "bytes": 2794,
+      "exitCode": 0,
+      "revisionBefore": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "revisionAfter": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/diff.json",
+      "sha256": "2103eed865186a7c3f29a7aa4540d189547d5003860f96b026d2ca3411ffbc37",
+      "bytes": 1960,
+      "exitCode": 0,
+      "revisionBefore": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "revisionAfter": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/file-authorized.json",
+      "sha256": "7eb6102e44273d033d93ac1699402389f6bf7047fecb2f683bd6670cf1361604",
+      "bytes": 2444,
+      "exitCode": 0,
+      "revisionBefore": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "revisionAfter": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/file-unprivileged.json",
+      "sha256": "86af0885223eefdf81e92d3b22ff059f9db82838092bf31366d8c4072087b2b8",
+      "bytes": 6886,
+      "exitCode": 1,
+      "revisionBefore": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:0b5d90e3f05f9dc5ce4959ab8621202214fb3685acc7d7ef593c6be84375c7c4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "revisionAfter": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:0b5d90e3f05f9dc5ce4959ab8621202214fb3685acc7d7ef593c6be84375c7c4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/format.json",
+      "sha256": "2cd398f73ea3e05bb1ab1f29b66d8403aaf3d1090ecc5e69af192ea3043147eb",
+      "bytes": 2158,
+      "exitCode": 0,
+      "revisionBefore": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "revisionAfter": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/lint.json",
+      "sha256": "d65ec2fee387118c2eff9221ee237e01b1a34e7e19570f2369aef704ffbfb3fe",
+      "bytes": 1986,
+      "exitCode": 0,
+      "revisionBefore": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "revisionAfter": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/type.json",
+      "sha256": "0a73343a8de52e8b509c67a8002992bfedff0f6e00de2a6a63f3babba31fbb19",
+      "bytes": 3366,
+      "exitCode": 0,
+      "revisionBefore": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "revisionAfter": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e2e2186ce2b7e2b24533acf33f2c3b3ad7675163430318932dd1adb15f23d052:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    }
+  ],
+  "artifacts": [],
+  "results": {
+    "authorizedFileTests": "15 passed",
+    "typecheck": "passed",
+    "scopedLint": "passed",
+    "scopedFormat": "passed",
+    "playwrightCollect": "1 collected",
+    "defaultFlag": "1 skipped (WSL_LIVE_OBSERVATION=0); no app/model/sandbox launched",
+    "diff": "passed"
+  },
+  "limitations": [
+    "Actual live not executed; root serial preflight/model run still required.",
+    "No native focus/IME claim; Mac remains locked.",
+    "Unprivileged fs.watch failure retained: 14 passed, 1 EMFILE failure plus unhandled rejection; same file tests pass with authorized native filesystem watching.",
+    "Root freeze was requested before receipts; no response was received by completion. Each final receipt independently confirms revision_before equals revision_after and all seven share the identical revision.",
+    "Live harness requires running binding before and after real UI switch; a run that finishes before switching fails the isolation acceptance rather than being claimed as covered."
+  ],
+  "design": [
+    "Nonces are generated in owned actual Browser DOM, authorized local file and actual sandbox PTY; no nonce value is in prompt.",
+    "Task confirm/startRun establishes Main frozen scope. Actual MCP events are matched with immutable Main records and full resource/instance/environment identity.",
+    "Only owned run/PTY/directory/profile cleanup, aggregate errors preserved; unknown cleanup does not authorize deletion.",
+    "No helper or product code change; provider behavior coverage only."
+  ]
+}

@@ -10,7 +10,7 @@
 | Node.js                                                 | 建议 Node 24，与 `.nvmrc` 和 Electron 内置 Node 主版本对齐；根 `engines` 允许 `>=24` | 本轮系统检查实际使用 Node 26.5.0；Node 24 组合待单独验证 |
 | pnpm                                                    | `10.34.6`，由根 `package.json` 固定                                                  | 安装和检查使用此版本                                     |
 | Electron、React、TypeScript、Zod、Vitest、Playwright 等 | 精确版本由各 `package.json` 与 `pnpm-lock.yaml` 管理                                 | 不单独全局安装这些项目依赖                               |
-| Codex CLI                                               | 安装在 guest 中，使用 sbx 宿主 OAuth 代理与 CLI 默认模型                             | 连接检查与真实模型回复分别验证；见对话 SPEC 与验证记录   |
+| Codex CLI                                               | 安装在 guest 中，沿用 sbx 已配置认证与 CLI 默认模型                                  | 连接检查与真实模型回复分别验证；见对话 SPEC 与验证记录   |
 
 ### 从零准备 host 工具
 
@@ -91,14 +91,14 @@ Homebrew tap 是另一条可选安装路线：`brew trust docker/tap` 会持久�
 
 ### 完成 host 认证
 
-2026-10-06 Docker OAuth 已由用户完成；OpenAI OAuth 当前仅支持 global 保存，已在用户明确授权系统钥匙串保存后，通过 `sbx secret set openai --oauth` 成功完成（退出码 0）。从零登录需要用户完成浏览器流程；`sbx login` 涉及服务协议接受，由用户本人确认：
+历史记录：2026-10-06 Docker OAuth 由用户完成；当时 OpenAI OAuth 仅支持 global 保存，在用户明确授权系统钥匙串保存后，通过 `sbx secret set openai --oauth` 成功完成（退出码 0）。从零登录需要用户完成浏览器流程；`sbx login` 涉及服务协议接受，由用户本人确认：
 
 ```bash
 sbx login
 sbx secret set openai --oauth
 ```
 
-文档与脚本不读取、复制或打印认证文件、访问令牌或模型密钥。登录是模型执行的前置条件，读取验证器本身不检查认证状态；模型启动或执行失败会保留证据并失败退出。
+本轮继续使用既有 sandbox。登录状态检查只记录成功与方式布尔值；guest CLI 显示的 API key 方式不证明 sbx 代理上游凭据的来源。文档与脚本不读取、复制或打印认证文件、访问令牌或模型密钥。登录是模型执行的前置条件，读取验证器本身不检查认证状态；模型启动或执行失败会保留证据并失败退出。
 
 ### 检查设置并创建独立沙箱
 
@@ -213,7 +213,7 @@ WSL_LIVE_SBX=1 WSL_SBX_NAME=wsl-sbx-smoke-20261006 npx pnpm@10.34.6 exec playwri
 | sandbox | `WSL_SBX_NAME`，可选 `WSL_SBX_BIN`                                                                                            | 使用已配置的 Codex sandbox；终端工作目录 `/home/agent/workspace`，不自动提供 sandbox 文件观察适配器 |
 | SSH     | `WSL_SSH_HOST`、`WSL_SSH_USER`、`WSL_SSH_HOST_KEY_SHA256`、`WSL_SSH_ROOT`、已有 `SSH_AUTH_SOCK`；可选 `WSL_SSH_PORT`，默认 22 | 完整配置后才可创建 SSH 终端或 SFTP 文件资源；仅列出环境不会连接远端，实际打开资源时建立连接         |
 
-`WSL_SSH_HOST_KEY_SHA256` 使用可信来源预先确认的公钥 SHA256 十六进制串（64 位），不能把首次收到的未知 host key 当作可信值。应用使用已有 SSH agent，不复制私钥或认证文件；缺配置和 pin 不匹配会失败。本轮已完成 Provider 级临时回环测试；Main→service→agent→SSH/SFTP 产品回环与实际窗口尚待最终执行，不据此声称生产远端验收通过。
+`WSL_SSH_HOST_KEY_SHA256` 使用可信来源预先确认的公钥 SHA256 十六进制串（64 位），不能把首次收到的未知 host key 当作可信值。应用使用已有 SSH agent，不复制私钥或认证文件；缺配置和 pin 不匹配会失败。本轮 Provider 级临时回环及 Main→service→agent→SSH/SFTP 两个产品回环场景已分阶段运行，后者见 `247247b` 及[SSH原始证据](../acceptance/integration-20261008/evidence/phase4b-b-source-manifest.json)。最终完整验证单列，未指定外部主机，不能据此声称生产远端验收通过。
 
 本地文件读取使用固定根描述符和逐级不跟随符号链接的路径打开；续读核对内容散列，变化提示可能合并，不能证明文件从未变化。SFTP 的路径检查不能提供恶意远端并发替换下的原子 beneath 保证，远端权限范围仍需由可信服务器约束。
 

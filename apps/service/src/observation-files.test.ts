@@ -1,4 +1,6 @@
 import { mkdtemp, rm, writeFile, symlink, mkdir, rename, realpath } from 'node:fs/promises';
+import { watch } from 'node:fs';
+import { once } from 'node:events';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -39,6 +41,52 @@ describe('real local file observations', () => {
     await expect(transport.read(authorized, 1024)).rejects.toMatchObject({ code: 'unauthorized' });
     const canonical = await realpath(root);
     await expect(transport.list(path.join(canonical, 'parent'), 100)).rejects.toMatchObject({ code: 'unauthorized' });
+  });
+  it('revokes an authorized root after the entire directory is renamed and replaced', async () => {
+    const { root, files } = await setup();
+    await writeFile(path.join(root, 'x'), 'original');
+    expect((await files.read({ path: 'x' })).data.text).toBe('original');
+    const retired = root + '-retired';
+    await rename(root, retired);
+    roots.push(retired);
+    await mkdir(root);
+    await writeFile(path.join(root, 'x'), 'UNAUTHORIZED_REPLACEMENT');
+    for (const operation of [() => files.read({ path: 'x' }), () => files.list(), () => files.search({ query: 'REPLACEMENT' })]) {
+      await expect(operation()).rejects.toMatchObject({ code: expect.stringMatching(/^(unauthorized|unavailable)$/) });
+    }
+    await expect(files.read({ path: 'x' })).rejects.toMatchObject({ code: expect.stringMatching(/^(unauthorized|unavailable)$/) });
+  });
+  it('does not deliver invalidation hints for an actual filesystem change after close', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'observation-closed-watch-'));
+    roots.push(root);
+    await writeFile(path.join(root, 'x'), 'before');
+    const hints: FileInvalidationHint[] = [];
+    const files = new FileObservationProvider({
+      workspaceId: 'w',
+      resourceId: 'f',
+      instanceId: 'i',
+      instanceGeneration: 1,
+      environmentId: 'local',
+      root,
+      onInvalidated: (hint) => hints.push(hint),
+    });
+    providers.push(files);
+    await files.read({ path: 'x' });
+    const control = watch(root);
+    try {
+      await files.close();
+      await files.close();
+      const frozen = structuredClone(hints);
+      const delivered = once(control, 'change');
+      await writeFile(path.join(root, 'x'), 'after-close');
+      await delivered;
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(hints).toEqual(frozen);
+      expect(hints.filter((hint) => hint.change === 'closed')).toHaveLength(1);
+      await expect(files.read({ path: 'x' })).rejects.toMatchObject({ code: 'unavailable' });
+    } finally {
+      control.close();
+    }
   });
   it('keeps UTF-8 whole across bounded continuation and rejects changed versions', async () => {
     const { root, files } = await setup();

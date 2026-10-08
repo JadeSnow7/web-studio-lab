@@ -1,11 +1,23 @@
-# 整合当前状态
+# 整合交付与验收入口
 
-已保存八个独立本地提交：重制基准 `9e1df45`、观察 Provider `331c47f`、来源审查 `fc71b55`、环境/终端适配 `c97b673`、Main/迁移/MCP 接线 `d9beb8a`、空间界面 `612cde0`、验证工具与参赛稿 `46cab72`、网页导航竞态 `965ebcd`。Phase3 的空间文件、观察界面及展示修复已完成源码审查：406 项单元通过，8 项既有 live 跳过；Electron 相关子集 46 通过、1 原生焦点失败、2 live 跳过。CUA 确认 Mac 已锁定，原生验收等待解锁复跑；整体验收仍为 undetermined。
+六板块重制已保存为独立本地基准 `9e1df45`，现有观察、本地文件/终端、SSH/SFTP 已分阶段接入 Main 和空间界面。最终完整检查、打包、live、原生界面及剩余缺口统一见[最终验收记录](evidence/final/README.md)。阶段通过不代表整体验收；原生工具仍确认 Mac 锁定，真实拖拽、焦点和中文候选窗尚未完成。
 
-[本轮目标与验收](SPEC.md)；[阶段审查](review.md)；[最终验收矩阵](acceptance-matrix.md)；[来源裁决](integration-disposition.md)；[Phase3 源码与原始证据](evidence/phase3-final-source-manifest-v3.json)。验证器与 guest 控制帧修复已形成 Phase4a 工作包：406 项单元、12 项 VS001 合成自检通过；旧失败与新方法指纹分别保留。完整 guest 通路、产品 SSH 回环、最终 Electron/打包/live、实际拖拽和中文候选窗仍待执行。
+| 本地提交  | 内容                                    |
+| --------- | --------------------------------------- |
+| `9e1df45` | 六板块空间重制基准                      |
+| `331c47f` | 观察协议与 Provider                     |
+| `fc71b55` | 工作树与远端来源冻结、审查              |
+| `c97b673` | 本地/SSH环境和终端生命周期              |
+| `d9beb8a` | Main归属、显式迁移与MCP                 |
+| `612cde0` | 文件标签、会话观察与展示修复            |
+| `46cab72` | VS001复核门槛、guest帧预算、参赛稿导出  |
+| `965ebcd` | 原生网页导航竞态                        |
+| `247247b` | SSH启动重试、真实agent/SFTP/PTY产品回归 |
 
-其他工作树保持只读。15 树实际文件已完整冻结；第 16 树全部 49 个 dirty 候选两遍一致，但 324 个未改旧文件实际字节未确认，按 partial 登记，不从未确认文件迁入。基准 169 个执行源码均已完成正文审查，新增代码按各阶段 manifest 复评。
+后续最终验证或修复提交继续追加，不改写基准；全部提交和最终源码 SHA 见最终验收记录。未推送、合并main、发布或提交参赛材料。
 
-[Phase4a 源码与原始证据](evidence/phase4a-final-source-manifest.json)；[九页 PDF 独立结构及版面复核](evidence/phase4a-pdf-review/review.json)。VS001 合成自检不等于真实产品固定场景验收。
+[目标与验收](SPEC.md)、[阶段审查](review.md)、[验收条件](acceptance-matrix.md)、[来源裁决](integration-disposition.md)提供完整范围。其他工作树只读：15树实际文件完整冻结，第16树49个dirty候选稳定；324个非脏旧文件实际字节未确认，不从这些未知字节迁入。基准169个执行源码已读，新增文件按各阶段manifest复评。
 
-[导航修复源码与原始证据](evidence/phase4b-a-source-manifest.json)：23 项定向测试及最终五轮 Electron 导航探针通过；旧加载停止后才启动新请求，当前请求真实失败继续传播。这是导航范围复验，不能替代全量 Electron、原生焦点或最终打包。
+SSH 工作包 [Phase4b-B清单](evidence/phase4b-b-source-manifest.json) 对应416项单元通过、8项live跳过和两个实际SSH产品场景通过；断线未知状态下的受控强退不算正常shutdown通过。[根线程原始证据复核](evidence/phase4b-b-root-review.json)保留早期测试/采证问题及界限。导航修复另有23项定向测试及五轮真实Electron探针；VS001为12项合成自检，产品adapter仍缺失。
+
+[参赛PDF版面与链接复核](evidence/final/pdf/review.json)覆盖当前稿件九页；导出源、PDF和PNG有各自指纹。这是本地草稿质量检查，不是产品验收或正式参赛提交。

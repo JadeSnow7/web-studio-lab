@@ -48,7 +48,7 @@ WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm dev
 pnpm check
 ```
 
-`pnpm check` 依次运行类型检查（含 e2e 与配置文件）、ESLint、Prettier 格式检查和 Vitest 单元测试。
+`pnpm check` 依次运行类型检查（含 e2e 与配置文件）、ESLint、Prettier 格式检查和 Vitest 单元测试，并在首个失败时停止。本整合树保留 VS001 与来源档案的原始格式；全树 lint/格式的已知失败和当前代码结果在[最终验收记录](docs/acceptance/integration-20261008/evidence/final/README.md)分列。需要全部结果时分别运行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm test`，不要自动格式化封存证据。
 
 ```bash
 pnpm test:e2e
@@ -58,7 +58,7 @@ pnpm test:e2e
 
 ## 沙箱对话与终端
 
-先按[依赖说明](docs/development/dependencies.md)准备 sbx、宿主 OAuth 和 guest Codex/Node。启动时用 `WSL_SBX_NAME` 选择已有沙箱，历史测试使用 `wsl-sbx-smoke-20261006`；`WSL_SBX_BIN` 可指定 CLI 路径。SR-1 重制阶段没有调用真实模型；本次整合已获 live 验证授权，执行结果单独记录在当前验收中。应用从 PATH、`/opt/homebrew/bin/sbx`、`/usr/local/bin/sbx` 定位 sbx，配置不成功时明确禁用发送。生产通路不再使用 `WSL_CODEX_BIN` 或 host Codex。
+先按[依赖说明](docs/development/dependencies.md)准备 sbx、该 sandbox 已配置的认证和 guest Codex/Node。启动时用 `WSL_SBX_NAME` 选择已有沙箱，历史测试使用 `wsl-sbx-smoke-20261006`；`WSL_SBX_BIN` 可指定 CLI 路径。SR-1 重制阶段没有调用真实模型；本次整合已获 live 验证授权，执行结果单独记录在当前验收中。应用从 PATH、`/opt/homebrew/bin/sbx`、`/usr/local/bin/sbx` 定位 sbx，配置不成功时明确禁用发送。生产通路不再使用 `WSL_CODEX_BIN` 或 host Codex。
 
 首页个人对话和会话页支持 Enter 发送、Shift+Enter 换行、取消和开始新对话。空间会话标签分别保存草稿、任务版本与运行，进入新会话使用空间的新建会话入口。界面显示 sandbox 与 guest cwd，运行详情可查看工具结果及警告。Codex 可以使用 guest 工具读写 `/home/agent/workspace`；对话历史分开，但文件系统与终端共享。新对话不会删除 guest 文件，也不承诺删除 CLI 历史。
 

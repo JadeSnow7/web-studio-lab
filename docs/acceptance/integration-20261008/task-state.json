@@ -293,6 +293,16 @@
       "status": "completed",
       "receipt": "965ebcd12bc97ccc669dd90cf6009c9446e93d2d",
       "idempotency_key": "phase4b-a-965ebcd"
+    },
+    {
+      "id": "ACT-009",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "247247b78a2aae96fde49cd7b37e264642cbea0c",
+      "status": "completed",
+      "receipt": "247247b78a2aae96fde49cd7b37e264642cbea0c",
+      "idempotency_key": "phase4b-b-247247b"
     }
   ],
   "decisions": [

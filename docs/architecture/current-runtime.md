@@ -107,7 +107,7 @@ Codex 首轮使用 `exec --json`，续轮显式 `exec resume <threadId>`，采�
 
 观察请求在 Main 元数据队列中冻结归属，Provider I/O 在队列之外执行；完成时重新定位请求并核对完整实例身份。空间会话入口包含真实 sessionId；模型调用还包含真实 runId，源列表在运行启动时冻结。独立文件标签的 sessionId/runId 明确为空，只允许文件读取，不伪造匿名会话。每个运行的调用计数与 200 条近期观察窗口分开，终态释放 scope 与计数。
 
-Browser 观察来自对应资源的 WebContents；终端 UI 和 headless VT 使用同一 PTY 输出。文件观察保留授权根、内容散列、续读游标和有损变化提示，失效/缺口明确返回。SSH/SFTP使用可信host-key pin和现有agent，连接中断不推定远端进程已退出。
+Browser 观察来自对应资源的 WebContents；终端 UI 和 headless VT 使用同一 PTY 输出。文件观察保留授权根、内容散列、续读游标和有损变化提示，失效/缺口明确返回。SSH/SFTP使用可信host-key pin和现有agent，连接中断不推定远端进程已退出。若服务在取得终端适配器前失败，它按当前实例发送未创建进程的明确状态，Main允许重试；未收到同一实例证明的失败继续保留cleanupPending，不能以错误文字或旧实例事件解除。
 
 service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用每轮临时Unix socket，限制4个在途请求、64次调用和完整报文预算。图像在当前文本模型通路只返回证据元数据，不声称模型看到了截图。完整guest控制流与真实模型仍须以最终live记录判断。
 
