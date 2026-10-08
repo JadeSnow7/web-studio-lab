@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-08T15:09:25.831116+00:00",
+  "requestedBy": "primary after fixture terminal confirmed closed in native UI",
+  "action": "SIGINT to owned harness 20048",
+  "harnessSessionExitCode": 130,
+  "ownedProcesses": {
+    "20048": "exited",
+    "20050": "exited"
+  },
+  "userInstancesTouched": false
+}

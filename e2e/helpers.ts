@@ -24,6 +24,7 @@ export async function launchApp(
     observationRoot?: string;
     sshEnvironment?: { host: string; port: number; username: string; hostKeySha256: string; root: string; agent: string };
     controlledObservation?: boolean;
+    controlledTerminal?: boolean;
     codexBin?: string;
     sbxBin?: string;
     sandbox?: string;
@@ -63,15 +64,21 @@ const { app } = require('electron');
 app.setAppPath(${JSON.stringify(desktopDir)});
 globalThis.__wslRendererErrors = [];
 ${
-  options.controlledObservation
+  options.controlledObservation || options.controlledTerminal
     ? `
 const { utilityProcess } = require('electron');
 const originalFork = utilityProcess.fork.bind(utilityProcess);
 globalThis.__wslObservationGate = { armed: false, deliveries: [], reads: 0 };
+globalThis.__wslTerminalGate = { armed: ${JSON.stringify(options.controlledTerminal ?? false)}, deliveries: [] };
 utilityProcess.fork = (...args) => {
   const child = originalFork(...args);
   const originalPost = child.postMessage.bind(child);
   child.postMessage = (message) => {
+    const terminalGate = globalThis.__wslTerminalGate;
+    if (terminalGate.armed && message.method === 'terminal.open') {
+      terminalGate.deliveries.push(() => originalPost(message));
+      return;
+    }
     const gate = globalThis.__wslObservationGate;
     if (message.method === 'observation.read') gate.reads++;
     if (gate.armed && message.method === 'environments.list') {
@@ -130,12 +137,13 @@ require(${JSON.stringify(path.join(desktopDir, 'out/main/index.js'))});
     rendererErrors.push(error.stack ?? error.message);
     console.error('RENDERER', error.stack ?? error.message);
   });
+  const ownedProcess = app.process();
   const originalClose = app.close.bind(app);
   let closed = false;
   app.close = async () => {
     if (closed) return;
     closed = true;
-    const running = app.process().exitCode === null && app.process().signalCode === null;
+    const running = ownedProcess.exitCode === null && ownedProcess.signalCode === null;
     const early =
       target === 'build' && running
         ? await app.evaluate(() => (globalThis as unknown as { __wslRendererErrors: string[] }).__wslRendererErrors)

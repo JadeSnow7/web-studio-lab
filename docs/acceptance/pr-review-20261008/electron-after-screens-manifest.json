@@ -1,0 +1,114 @@
+{
+  "run": "electron-after-fixes",
+  "includedCurrentRunArtifacts": [
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/remake-six-sections.preview.png",
+      "sha256": "80f09f009ba55ebf5511acac32d78103f1b610029e2f3ac5be6ae783462021ec"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workspace-narrow.renderer.png",
+      "sha256": "d3560efbb0e424ed52360f7c92261fe30a66c6b14a57283e41538b1987db36bb"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workspace-three-panes-warm.renderer.png",
+      "sha256": "ee7b35011576244a53a82ab7879be19af892c232834434201582af34912f3b04"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workspace-switcher.window.png",
+      "sha256": "5f760b4de74e4573144ad102adfffc8b50190a548eff22059b86a5c66ca63482"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workspace-switcher.renderer.png",
+      "sha256": "5f760b4de74e4573144ad102adfffc8b50190a548eff22059b86a5c66ca63482"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/remake-floating-panels.png",
+      "sha256": "71ac39cc8376caa3bcc00197496f9318d8b390b817c76a5988884c3e45da58e5"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/remake-terminal-dark.png",
+      "sha256": "06872c297ef28a3c8fb740c582d1897c8280ebeca411f3784aeefc96eddfeeed"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workspace-three-panes-light.renderer.png",
+      "sha256": "3e3f04be2061e794fcd622a885b2c78d296f3a8444d5ac3911d895d343e9b6b5"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/sbx-terminal-fixture-narrow.png",
+      "sha256": "4efb51e4b70e8de697f943d8a4e6e06a4888d02e94ec642fd8f4eb99513abb59"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/resources-fixture-narrow.png",
+      "sha256": "b037aa441fcfbd3fbeaa6831454898ca94680c1d685a49e716de21134f5af5ab"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/remake-terminal-light.png",
+      "sha256": "c0e21d40ac12c086ebf25c8e1b88250c85a64492527afd0532ea953524d8b5a4"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workspace-three-panes-light.window.png",
+      "sha256": "3e3f04be2061e794fcd622a885b2c78d296f3a8444d5ac3911d895d343e9b6b5"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/remake-six-sections.png",
+      "sha256": "cc47950a526e003c6e657b5c2647d0b0b32d64f893e2e7f8f710856ca9ac753b"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workspace-three-panes-dark.renderer.png",
+      "sha256": "ac3788e44d4a45258da57650e967d8e795982f87eedb314f127b3461d7aaf007"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workbench-start.png",
+      "sha256": "96cf6c4be44b797b7ca843303670e9e19bbc7aa9dccf05e150ad3d2c9846b917"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/public-document-controlled-evidence.json",
+      "sha256": "18dd058587abb86c51692c78e0488155daa697cb17e576eae03ba8bbbe25e292"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/chat-fixture.png",
+      "sha256": "ba8bc8dfe6029772c7b2c7580f0ccc7fc022cbf88611100e32de2bec070548d9"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workspace-narrow.window.png",
+      "sha256": "d3560efbb0e424ed52360f7c92261fe30a66c6b14a57283e41538b1987db36bb"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workbench-context-before-confirm.png",
+      "sha256": "5c007eb3ec594d8974f961c1434af6c41f3e250a4accee772849571145134d89"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/public-document-controlled-redirect-saved.preview.png",
+      "sha256": "7ae77941ddfeba7c0d863458023960fd843ce1ddb24755e0e4e3e46a0b7fc50f"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/remake-terminal-warm.png",
+      "sha256": "cedcf69a1c31305cea33d55d67279164a6ddda9cf1b88e971129f01520ae90af"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workbench-context-before-confirm.preview.png",
+      "sha256": "2bf918c7b65e1860d67ba7fc6d720b45cf93fbfec43a2bce04e515b38a3fc951"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/remake-floating-panels.preview.png",
+      "sha256": "c2df818db67638cfdafb82f37f8c77952628c5a08ed078b308356678e94985fb"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/public-document-controlled-redirect-saved.png",
+      "sha256": "ba974300b08e2ca5cfd3024fa5df4014ed730d068056c79ee6e72342f972a503"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workspace-three-panes-warm.window.png",
+      "sha256": "ee7b35011576244a53a82ab7879be19af892c232834434201582af34912f3b04"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workbench-start.preview.png",
+      "sha256": "80f09f009ba55ebf5511acac32d78103f1b610029e2f3ac5be6ae783462021ec"
+    },
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-after-screens/workspace-three-panes-dark.window.png",
+      "sha256": "ac3788e44d4a45258da57650e967d8e795982f87eedb314f127b3461d7aaf007"
+    }
+  ],
+  "excludedStaleCopiedNames": []
+}

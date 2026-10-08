@@ -523,11 +523,9 @@ export class WorkbenchApplication {
             if (!frozen || resource.instanceId !== frozen.instanceId || resource.generation !== frozen.instanceGeneration)
               throw new Error('unavailable: 执行冻结的资源实例已失效');
           } else if (resource.kind === 'web' && !resource.instanceId) {
-            resource.instanceId = randomUUID();
-            resource.generation++;
-            browser = structuredClone(resource);
+            browser = { ...structuredClone(resource), instanceId: randomUUID(), generation: resource.generation + 1 };
           } else this.fileInstance(resource);
-          target = this.instance(workspace, resource);
+          target = this.instance(workspace, browser ?? resource);
           if (environmentId !== undefined && environmentId !== target.environmentId) throw new Error('unauthorized: 环境不属于资源');
           if (!input.tool.startsWith(target.kind === 'browser' ? 'browser.' : target.kind === 'file' ? 'files.' : 'terminal.'))
             throw new Error('unsupported: 工具与资源类型不匹配');
@@ -612,14 +610,21 @@ export class WorkbenchApplication {
         }
         await this.serialize(() => {
           const resource = this.resource(this.requireWorkspace(request!.workspaceId), request!.target!.resourceId);
-          if (resource.instanceId !== request!.target!.instanceId || resource.generation !== request!.target!.instanceGeneration)
-            throw new Error('unavailable: 观察预处理期间资源实例已更换');
+          const unchanged = browser
+            ? resource.instanceId === null && resource.generation === browser.generation - 1
+            : resource.instanceId === request!.target!.instanceId && resource.generation === request!.target!.instanceGeneration;
+          if (!unchanged) throw new Error('unavailable: 观察预处理期间资源实例已更换');
           const environment = environments.find((environment) => environment.environmentId === request!.target!.environmentId);
           const capability = request!.target!.kind === 'browser' ? 'browser' : request!.target!.kind === 'file' ? 'files' : 'terminal';
           if (!environment?.capabilities[capability]) throw new Error('unavailable: 资源环境未配置此能力');
+          if (browser && !controller.signal.aborted) {
+            this.runtime.ensureBrowser(request!.workspaceId, browser);
+            resource.preview = this.runtime.browserState(resource.resourceId);
+            resource.instanceId = browser.instanceId;
+            resource.generation = browser.generation;
+          }
         });
         if (controller.signal.aborted) return { error: 'cancelled' as const, message: '观察已取消' };
-        if (browser) this.runtime.ensureBrowser(request!.workspaceId, browser);
         const result = ObservationResultSchema.parse(await this.runtime.observe(request!, controller.signal));
         if (!('error' in result)) {
           validateObservationData(result);
@@ -648,6 +653,7 @@ export class WorkbenchApplication {
         result = timedOut ? { error: 'timeout', message: '观察超时' } : { error: 'cancelled', message: '观察已取消' };
       else if (
         resource &&
+        !('error' in result) &&
         (resource.instanceId !== request!.target!.instanceId || resource.generation !== request!.target!.instanceGeneration)
       )
         result = { error: 'unavailable', message: '观察期间资源实例已更换' };
@@ -1185,6 +1191,7 @@ export class WorkbenchApplication {
             if (r.terminal?.cleanupPending || ['running', 'starting', 'closing'].includes(r.terminal?.state ?? '')) return rememberResult();
             const environment = this.snapshot.environments.find((environment) => environment.environmentId === r.environmentId);
             if (!environment?.capabilities.terminal) throw new Error('unsupported: 终端环境未配置');
+            const beforeOpen = { instanceId: r.instanceId, generation: r.generation, terminal: r.terminal };
             r.instanceId = randomUUID();
             r.generation++;
             r.terminal = {
@@ -1198,7 +1205,12 @@ export class WorkbenchApplication {
               cleanupPending: true,
               error: null,
             };
-            await this.persist(w, c.commandId);
+            try {
+              await this.persist(w, c.commandId);
+            } catch (error) {
+              Object.assign(r, beforeOpen);
+              throw error;
+            }
             this.requestTerminalOpen(this.instance(w, r), c.cols, c.rows);
             return rememberResult();
           }

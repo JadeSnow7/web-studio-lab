@@ -1,0 +1,19 @@
+{
+  "nonce": "SSH_916e012d-f094-4ad4-8d1f-51c95530dc34",
+  "connections": 1,
+  "authentications": 3,
+  "signedAuthentications": 1,
+  "ptysStarted": 2,
+  "ptysCleaned": 2,
+  "resize": [
+    {
+      "cols": 115,
+      "rows": 41
+    },
+    {
+      "cols": 115,
+      "rows": 41
+    }
+  ],
+  "transportErrors": []
+}

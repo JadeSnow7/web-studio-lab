@@ -730,3 +730,91 @@ it('replacement during environment preflight rejects the frozen instance before 
   expect(await reading).toMatchObject({ error: 'unavailable' });
   expect(runtime.observe).not.toHaveBeenCalled();
 });
+
+it('retries native browser creation after an observation creation failure', async () => {
+  const { app, runtime, command } = await setup();
+  const workspace = (await app.getSnapshot()).workspaces[0];
+  const browser = workspace?.resources.find((resource) => resource.kind === 'web');
+  const session = workspace?.sessions[0];
+  if (!workspace || !browser || !session) throw new Error('fixture browser missing');
+  vi.mocked(runtime.ensureBrowser).mockImplementationOnce(() => {
+    throw new Error('native browser unavailable');
+  });
+  const observed = await app.observe({
+    ...input(browser.resourceId, workspace.workspaceId, session.sessionId),
+    tool: 'browser.snapshot',
+    args: {},
+  });
+  expect(observed).toMatchObject({ error: 'unavailable', message: 'native browser unavailable' });
+  expect(runtime.observe).not.toHaveBeenCalled();
+  expect(
+    (await app.getSnapshot()).workspaces[0]?.resources.find((resource) => resource.resourceId === browser.resourceId)?.instanceId,
+  ).toBeNull();
+  expect((await command(workspace.workspaceId, { type: 'browserAction', resourceId: browser.resourceId, action: 'reload' })).ok).toBe(true);
+  expect(runtime.ensureBrowser).toHaveBeenCalledTimes(2);
+});
+
+it.each(['unavailable', 'cancelled'] as const)('keeps an unopened browser identity empty after %s preflight', async (failure) => {
+  const { app, runtime } = await setup();
+  const workspace = (await app.getSnapshot()).workspaces[0];
+  const browser = workspace?.resources.find((resource) => resource.kind === 'web');
+  const session = workspace?.sessions[0];
+  if (!workspace || !browser || !session) throw new Error('fixture browser missing');
+  const environments = await app.environments();
+  const controller = new AbortController();
+  if (failure === 'unavailable') vi.mocked(runtime.environmentsList).mockResolvedValueOnce([]);
+  else
+    vi.mocked(runtime.environmentsList).mockImplementationOnce(async () => {
+      controller.abort();
+      return environments;
+    });
+  expect(
+    await app.observe(
+      {
+        ...input(browser.resourceId, workspace.workspaceId, session.sessionId),
+        tool: 'browser.snapshot',
+        args: {},
+      },
+      controller.signal,
+    ),
+  ).toMatchObject({ error: failure, ...(failure === 'unavailable' ? { message: 'unavailable: 资源环境未配置此能力' } : {}) });
+  expect(runtime.ensureBrowser).not.toHaveBeenCalled();
+  expect(runtime.observe).not.toHaveBeenCalled();
+  expect((await app.getSnapshot()).workspaces[0]?.resources.find((resource) => resource.resourceId === browser.resourceId)).toMatchObject({
+    instanceId: null,
+    generation: browser.generation,
+  });
+});
+
+it('does not replace a browser created by another command while observation preflight is pending', async () => {
+  const { app, runtime, command } = await setup();
+  const workspace = (await app.getSnapshot()).workspaces[0];
+  const browser = workspace?.resources.find((resource) => resource.kind === 'web');
+  const session = workspace?.sessions[0];
+  if (!workspace || !browser || !session) throw new Error('fixture browser missing');
+  const environments = await app.environments();
+  let finish!: (value: typeof environments) => void;
+  let entered = false;
+  vi.mocked(runtime.environmentsList).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        entered = true;
+        finish = resolve;
+      }),
+  );
+  const pending = app.observe({
+    ...input(browser.resourceId, workspace.workspaceId, session.sessionId),
+    tool: 'browser.snapshot',
+    args: {},
+  });
+  await vi.waitFor(() => expect(entered).toBe(true));
+  expect((await command(workspace.workspaceId, { type: 'browserAction', resourceId: browser.resourceId, action: 'reload' })).ok).toBe(true);
+  const created = (await app.getSnapshot()).workspaces[0]?.resources.find((resource) => resource.resourceId === browser.resourceId);
+  finish(environments);
+  expect(await pending).toMatchObject({ error: 'unavailable' });
+  expect(runtime.ensureBrowser).toHaveBeenCalledOnce();
+  expect(runtime.observe).not.toHaveBeenCalled();
+  expect(
+    (await app.getSnapshot()).workspaces[0]?.resources.find((resource) => resource.resourceId === browser.resourceId)?.instanceId,
+  ).toBe(created?.instanceId);
+});

@@ -1,0 +1,6 @@
+{
+  "cleanupUnknown": true,
+  "normalAppShutdownAccepted": false,
+  "forcedOwnedPid": 19541,
+  "reason": "Product deliberately refuses normal window close with unknown remote cleanup; fixture independently confirmed owned PTYs exited"
+}

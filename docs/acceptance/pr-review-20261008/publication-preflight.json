@@ -1,0 +1,55 @@
+{
+  "capturedAt": "2026-10-08T15:11:17.921779+00:00",
+  "head": "4fc5054741b0c2bf21bbe10455d0a8e0ce649161",
+  "branch": "codex/space-remake-integration-20261008",
+  "remoteMainVerified": "2466936454658153e47a430ce1da853826f69f69",
+  "initialHistoricalManifestEntries": 232,
+  "initialHistoricalManifestMismatches": [],
+  "currentChangesFromHistoricalManifest": [
+    "apps/desktop/src/main/workbench/application.test.ts",
+    "apps/desktop/src/main/workbench/application.ts",
+    "apps/desktop/src/main/workbench/observation-application.test.ts",
+    "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+    "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+    "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+    "e2e/helpers.ts",
+    "e2e/resources.spec.ts",
+    "e2e/workspace-upgrade.spec.ts"
+  ],
+  "trackedModifiedPaths": [
+    "apps/desktop/src/main/workbench/application.test.ts",
+    "apps/desktop/src/main/workbench/application.ts",
+    "apps/desktop/src/main/workbench/observation-application.test.ts",
+    "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+    "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+    "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+    "e2e/helpers.ts",
+    "e2e/resources.spec.ts",
+    "e2e/workspace-upgrade.spec.ts"
+  ],
+  "oldEvidencePathsChanged": [],
+  "excludedUntracked": "premium-audit.json",
+  "excludedSha256": "95b6c732a7617d9679a4dd600415dcc4081d59814689d168d29040eb70be3670",
+  "publicationScan": {
+    "fileCount": 2961,
+    "bytes": 152721895,
+    "binaryFilesExcludedFromRegex": 428,
+    "filesOver50MiB": [],
+    "credentialPatternHits": [],
+    "commitPatchPatternHits": [],
+    "scope": "Current PR files and textual patches of existing commits; limited token/key regex, not a full secret/security audit",
+    "missingPaths": [],
+    "pathEncoding": "git -z; complete Unicode paths"
+  },
+  "finalModifiedSourceSha256": {
+    "apps/desktop/src/main/workbench/application.test.ts": "e90e882db961f33a0ecf6129295f8f20515f409b405cc5c9656631fc73183aad",
+    "apps/desktop/src/main/workbench/application.ts": "14427bf24e984a299d72e18931e5e2fb21abb6d376c1895b97c78c16e6ee4af0",
+    "apps/desktop/src/main/workbench/observation-application.test.ts": "3d7e86ef4f7341d40544f310556fee33dec861ec6a375a529ef6fcb65cde3833",
+    "apps/desktop/src/main/workbench/public-resources-migration.test.ts": "f58477c35c700ab948f3fee875daedd4790285249944b106b50d9062bc8fdede",
+    "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx": "2130b145443e4c0babeedf86fce62c697a3b6b86b77a81d80d34837fddc6aae5",
+    "apps/desktop/src/renderer/src/workspace/Terminal.tsx": "a2a7e0ad497dddf649f784dfb9d9981176baf89f72d46b121c8e70ceab605ae3",
+    "e2e/helpers.ts": "463e03bff753077984238a5cb2c4855c29132256c93568fe9244bcaa145706a7",
+    "e2e/resources.spec.ts": "6285ec1c51cda904c280b234c77fb53d18e87b53976685fe9eb97c134a73dbd1",
+    "e2e/workspace-upgrade.spec.ts": "674336e141534f1bde8655b5b004b49880fb911c08f881ad4e5742572e7c82cd"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "title": "PR Review 20261008 · isolated fixture",
+  "electronPid": 20050,
+  "harnessPid": 20048,
+  "userData": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-e2e-mXNQrP",
+  "target": "bf64/apps/desktop/out/main/index.js",
+  "modelMode": "fixture-only",
+  "closure": "Ctrl-C harness session 9682 invokes app.close; primary owns window review"
+}

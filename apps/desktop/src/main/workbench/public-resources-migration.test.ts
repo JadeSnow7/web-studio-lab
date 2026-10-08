@@ -140,3 +140,17 @@ describe('Main public resource contract migration', () => {
     expect(runtime.publicResourcesRemove).not.toHaveBeenCalled();
   });
 });
+
+it('explicit initialization retry refreshes a failed list and publishes the later collection', async () => {
+  const list = vi.fn().mockRejectedValueOnce(new Error('list temporarily unavailable')).mockResolvedValue(collection(7));
+  const { app } = await setup(list);
+  await vi.waitFor(async () =>
+    expect((await app.getSnapshot()).workspaces[0]?.publicResourcesError).toContain('list temporarily unavailable'),
+  );
+  await app.getSnapshot();
+  expect(list).toHaveBeenCalledOnce();
+  await app.retryInitialization();
+  await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]?.publicResources?.revision).toBe(7));
+  expect(list).toHaveBeenCalledTimes(2);
+  expect((await app.getSnapshot()).workspaces[0]?.publicResourcesError).toBeNull();
+});

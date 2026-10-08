@@ -1105,3 +1105,29 @@ it('keeps cleanup unknown without current-instance terminal proof and ignores ol
     expect(runtime.terminalOpen).toHaveBeenCalledTimes(1);
   }
 });
+
+it('rolls back a terminal reservation when persisting open fails before the runtime starts', async () => {
+  const { app, repository, runtime } = await make();
+  const workspace = (await app.getSnapshot()).workspaces[0];
+  const resource = workspace?.resources.find((resource) => resource.kind === 'terminal');
+  if (!workspace || !resource) throw new Error('fixture terminal missing');
+  const open = { type: 'terminalOpen' as const, workspaceId: workspace.workspaceId, resourceId: resource.resourceId, cols: 80, rows: 24 };
+  vi.mocked(repository.save).mockRejectedValueOnce(new Error('disk full'));
+  const failed = await app.command({ ...open, commandId: 'open-save-failed' });
+  expect(failed.ok).toBe(false);
+  expect(runtime.terminalOpen).not.toHaveBeenCalled();
+  expect(failed.snapshot.workspaces[0]?.resources.find((item) => item.resourceId === resource.resourceId)).toEqual(resource);
+  vi.mocked(runtime.terminalOpen).mockResolvedValue({
+    seq: 1,
+    sessionId: 'retry-session',
+    sandbox: null,
+    cwd: '/',
+    state: 'running',
+    output: '',
+    outputOffset: 0,
+    cleanupPending: true,
+    error: null,
+  });
+  expect((await app.command({ ...open, commandId: 'open-save-retry' })).ok).toBe(true);
+  await vi.waitFor(() => expect(runtime.terminalOpen).toHaveBeenCalledOnce());
+});

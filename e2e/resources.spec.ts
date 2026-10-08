@@ -174,3 +174,54 @@ test('fixture UI：公开快照保存、重复、更新、失败恢复、移除�
   await expect(page.getByRole('region', { name: '混合输入' }).getByRole('textbox')).toBeVisible();
   await shot(page, 'resources-fixture-narrow');
 });
+
+test('resource refresh retries Main after a transient list failure and receives the new revision', async () => {
+  ({ app, page } = await launchApp());
+  await app.evaluate(async ({ ipcMain, BrowserWindow }) => {
+    type Host = typeof globalThis & { refreshAttempts: number };
+    const host = globalThis as Host;
+    host.refreshAttempts = 0;
+    type Handler = (event: Electron.IpcMainInvokeEvent) => Promise<WorkbenchSnapshot>;
+    const handlers = (ipcMain as unknown as { _invokeHandlers: Map<string, Handler> })._invokeHandlers;
+    const get = handlers.get('workbench:get-snapshot');
+    if (!get) throw new Error('snapshot handler missing');
+    const snapshot = async (event: Electron.IpcMainInvokeEvent) => {
+      const state = await get(event);
+      const workspace = state.workspaces.find((workspace) => workspace.workspaceId === 'taskflow-demo');
+      if (!workspace) throw new Error('fixture workspace missing');
+      workspace.publicResources = { spaceId: workspace.workspaceId, revision: host.refreshAttempts ? 7 : 0, resources: [] };
+      workspace.publicResourcesError = host.refreshAttempts ? null : 'fixture: transient list failure';
+      state.seq += 10000 + host.refreshAttempts;
+      return state;
+    };
+    ipcMain.removeHandler('workbench:get-snapshot');
+    ipcMain.handle('workbench:get-snapshot', snapshot);
+    ipcMain.removeHandler('workbench:reload');
+    ipcMain.handle('workbench:reload', async (event) => {
+      host.refreshAttempts++;
+      return snapshot(event);
+    });
+    const window = BrowserWindow.getAllWindows()[0];
+    if (!window) throw new Error('fixture window missing');
+    const event = { sender: window.webContents, senderFrame: window.webContents.mainFrame } as Electron.IpcMainInvokeEvent;
+    const initial = await snapshot(event);
+    window.webContents.send('workbench:event', {
+      eventId: crypto.randomUUID(),
+      workspaceId: 'taskflow-demo',
+      entityId: 'fixture-resource-list',
+      occurredAt: new Date().toISOString(),
+      seq: initial.seq,
+      instanceId: null,
+      generation: 0,
+      type: 'snapshot',
+      snapshot: initial,
+    });
+  });
+  await workshopNavigate(page, '资源');
+  await expect(page.getByRole('alert').filter({ hasText: 'transient list failure' })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: '集合版本' })).toContainText('集合版本 0');
+  await page.getByRole('button', { name: '刷新列表', exact: true }).click();
+  await expect.poll(() => app.evaluate(() => (globalThis as unknown as { refreshAttempts: number }).refreshAttempts)).toBe(1);
+  await expect(page.getByRole('status').filter({ hasText: '集合版本' })).toContainText('集合版本 7');
+  await expect(page.getByRole('alert').filter({ hasText: 'transient list failure' })).toHaveCount(0);
+});

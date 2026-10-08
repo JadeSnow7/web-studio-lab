@@ -1,0 +1,32 @@
+{
+  "capturedAt": "2026-10-08T15:12:30.357187+00:00",
+  "checks": {
+    "newReportLocalLinks": {
+      "checked": 27,
+      "missing": 0
+    },
+    "normativeDocs": {
+      "checked": 18,
+      "passed": true,
+      "limit": "Local target existence and trailing whitespace only"
+    },
+    "gitDiffCheck": {
+      "exitCode": 0,
+      "scope": "Tracked code changes before staging new evidence"
+    },
+    "stagedDiffCheck": {
+      "exitCode": 2,
+      "productAndReviewDocExitCode": 0,
+      "receipt": "staged-check.json"
+    }
+  },
+  "ephemeralRunnerCachesExcluded": [
+    "docs/acceptance/pr-review-20261008/a12-before-artifacts/.last-run.json",
+    "docs/acceptance/pr-review-20261008/electron-after-artifacts/.last-run.json",
+    "docs/acceptance/pr-review-20261008/electron-before-artifacts/.last-run.json",
+    "docs/acceptance/pr-review-20261008/electron-focused-artifacts/.last-run.json",
+    "docs/acceptance/pr-review-20261008/resource-event-final-artifacts/.last-run.json",
+    "docs/acceptance/pr-review-20261008/resources-before-artifacts/.last-run.json"
+  ],
+  "rawReceiptsAndFailureArtifactsPreserved": true
+}

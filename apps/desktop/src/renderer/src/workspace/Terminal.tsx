@@ -110,13 +110,13 @@ export function Terminal({
   }, [resource, occluded]);
   const activation = useRef('');
   useEffect(() => {
-    const next = `${active}:${visible}:${resource.terminal?.state}`;
+    const next = `${active}:${visible}`;
     const changed = activation.current !== next;
     activation.current = next;
     if (active && visible) fit.current?.fit();
-    // Closing a dialog restores its trigger; only pane activation or connection requests terminal focus.
+    // Runtime readiness must not override focus chosen after a connection request.
     if (changed && active && visible && !occluded) term.current?.focus();
-  }, [active, visible, occluded, resource.terminal?.state]);
+  }, [active, visible, occluded]);
   const running = resource.terminal?.state === 'running',
     busy = resource.terminal?.state === 'starting' || resource.terminal?.state === 'closing';
   return (
@@ -169,14 +169,15 @@ export function Terminal({
             type="button"
             className="btn"
             disabled={busy || !resource.environmentId || !!unavailable}
-            onClick={() =>
+            onClick={() => {
+              term.current?.focus();
               void workspaceCommand(workspaceId, {
                 type: 'terminalOpen',
                 resourceId: resource.resourceId,
                 cols: term.current?.cols ?? 80,
                 rows: term.current?.rows ?? 24,
-              })
-            }
+              });
+            }}
           >
             {busy ? '正在连接或关闭…' : '连接终端'}
           </button>

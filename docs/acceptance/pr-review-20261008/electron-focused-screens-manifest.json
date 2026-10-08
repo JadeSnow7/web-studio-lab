@@ -1,0 +1,10 @@
+{
+  "run": "electron-final-focused",
+  "includedCurrentRunArtifacts": [
+    {
+      "path": "docs/acceptance/pr-review-20261008/electron-focused-screens/resources-fixture-narrow.png",
+      "sha256": "b037aa441fcfbd3fbeaa6831454898ca94680c1d685a49e716de21134f5af5ab"
+    }
+  ],
+  "excludedStaleCopiedNames": []
+}

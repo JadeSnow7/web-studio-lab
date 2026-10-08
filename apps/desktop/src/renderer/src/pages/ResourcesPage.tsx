@@ -61,7 +61,7 @@ export function ResourcesPage() {
             <p className="muted small" role="status">
               {loading ? '正在读取资源…' : `共 ${resources?.resources.length ?? 0} 条 · 集合版本 ${resources?.revision ?? 0}`}
             </p>
-            <button type="button" className="btn" disabled={loading || pending} onClick={() => void initializeWorkspace()}>
+            <button type="button" className="btn" disabled={loading || pending} onClick={() => void initializeWorkspace(true)}>
               刷新列表
             </button>
           </div>
