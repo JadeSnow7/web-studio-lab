@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/service/src/resource-chat.test.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T13:49:06.972518Z",
+  "ended_at": "2026-10-08T13:49:07.636129Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/resource-chat.test.ts (15 tests | 1 failed) 183ms\n   ❯ space resources per-turn capability (15)\n     × retains observation provenance with oversized metadata=timestamp 3ms\n\n Test Files  1 failed (1)\n      Tests  1 failed | 14 passed (15)\n   Start at  21:49:07\n   Duration  356ms (tests 61%, transform 25%, import 14%)\n\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/resource-chat.test.ts > space resources per-turn capability > retains observation provenance with oversized metadata=timestamp\nAssertionError: expected 20535 to be less than or equal to 16000\n ❯ apps/service/src/resource-chat.test.ts:236:34\n    234|     await f.chat.shutdown();\n    235|     expect(record.truncated).toBe(true);\n    236|     expect(record.output.length).toBeLessThanOrEqual(16000);\n       |                                  ^\n    237|     const { revision: _revision, coverage: _coverage, ...identity } = …\n    238|     expect(JSON.parse(record.output)).toEqual(\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvc2VydmljZS9zcmMvcmVzb3VyY2UtY2hhdC50ZXN0LnRzICgxNSB0ZXN0cyB8IDEgZmFpbGVkKSAxODNtcwogICDina8gc3BhY2UgcmVzb3VyY2VzIHBlci10dXJuIGNhcGFiaWxpdHkgKDE1KQogICAgIMOXIHJldGFpbnMgb2JzZXJ2YXRpb24gcHJvdmVuYW5jZSB3aXRoIG92ZXJzaXplZCBtZXRhZGF0YT10aW1lc3RhbXAgM21zCgogVGVzdCBGaWxlcyAgMSBmYWlsZWQgKDEpCiAgICAgIFRlc3RzICAxIGZhaWxlZCB8IDE0IHBhc3NlZCAoMTUpCiAgIFN0YXJ0IGF0ICAyMTo0OTowNwogICBEdXJhdGlvbiAgMzU2bXMgKHRlc3RzIDYxJSwgdHJhbnNmb3JtIDI1JSwgaW1wb3J0IDE0JSkKCg==",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL3Jlc291cmNlLWNoYXQudGVzdC50cyA+IHNwYWNlIHJlc291cmNlcyBwZXItdHVybiBjYXBhYmlsaXR5ID4gcmV0YWlucyBvYnNlcnZhdGlvbiBwcm92ZW5hbmNlIHdpdGggb3ZlcnNpemVkIG1ldGFkYXRhPXRpbWVzdGFtcApBc3NlcnRpb25FcnJvcjogZXhwZWN0ZWQgMjA1MzUgdG8gYmUgbGVzcyB0aGFuIG9yIGVxdWFsIHRvIDE2MDAwCiDina8gYXBwcy9zZXJ2aWNlL3NyYy9yZXNvdXJjZS1jaGF0LnRlc3QudHM6MjM2OjM0CiAgICAyMzR8ICAgICBhd2FpdCBmLmNoYXQuc2h1dGRvd24oKTsKICAgIDIzNXwgICAgIGV4cGVjdChyZWNvcmQudHJ1bmNhdGVkKS50b0JlKHRydWUpOwogICAgMjM2fCAgICAgZXhwZWN0KHJlY29yZC5vdXRwdXQubGVuZ3RoKS50b0JlTGVzc1RoYW5PckVxdWFsKDE2MDAwKTsKICAgICAgIHwgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXgogICAgMjM3fCAgICAgY29uc3QgeyByZXZpc2lvbjogX3JldmlzaW9uLCBjb3ZlcmFnZTogX2NvdmVyYWdlLCAuLi5pZGVudGl0eSB9ID0g4oCmCiAgICAyMzh8ICAgICBleHBlY3QoSlNPTi5wYXJzZShyZWNvcmQub3V0cHV0KSkudG9FcXVhbCgKCuKOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr1sxLzFd4o6vCgo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:5738acd52f559735db5bbc851f1e4512bc3ebff619b6f7b20b77f4b245031c17:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:5738acd52f559735db5bbc851f1e4512bc3ebff619b6f7b20b77f4b245031c17:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:5738acd52f559735db5bbc851f1e4512bc3ebff619b6f7b20b77f4b245031c17:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

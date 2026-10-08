@@ -1,0 +1,46 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/service/src/guest-browser.live.test.ts",
+    "--no-file-parallelism"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T14:15:27.427612Z",
+  "ended_at": "2026-10-08T14:15:44.637206Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/guest-browser.live.test.ts (1 test | 1 failed) 16656ms\n   ❯ 既有 sandbox guest 浏览器与同一产物 MCP（无模型） (1)\n     × 采集真实 DOM/PNG、保存空间资源并经 guest stdio MCP 精确读取 16655ms\n\n Test Files  1 failed (1)\n      Tests  1 failed (1)\n   Start at  22:15:27\n   Duration  16.85s (tests 99%)\n\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/guest-browser.live.test.ts > 既有 sandbox guest 浏览器与同一产物 MCP（无模型） > 采集真实 DOM/PNG、保存空间资源并经 guest stdio MCP 精确读取\nAssertionError: NETWORK_FAILED: 固定目标网页访问失败 [navigation]: expected false to be true // Object.is equality\n\n- Expected\n+ Received\n\n- true\n+ false\n\n ❯ apps/service/src/guest-browser.live.test.ts:30:89\n     28|       : result;\n     29|     await writeFile(path.join(attemptRoot, 'capture-result.json'), JSO…\n     30|     expect(result.ok, result.ok ? '' : result.error.code + ': ' + resu…\n       |                                                                                         ^\n     31|     if (!result.ok) return;\n     32|     const saved = await saveGuestCapture(new ResourceStore(path.join(a…\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvc2VydmljZS9zcmMvZ3Vlc3QtYnJvd3Nlci5saXZlLnRlc3QudHMgKDEgdGVzdCB8IDEgZmFpbGVkKSAxNjY1Nm1zCiAgIOKdryDml6LmnIkgc2FuZGJveCBndWVzdCDmtY/op4jlmajkuI7lkIzkuIDkuqfniakgTUNQ77yI5peg5qih5Z6L77yJICgxKQogICAgIMOXIOmHh+mbhuecn+WuniBET00vUE5H44CB5L+d5a2Y56m66Ze06LWE5rqQ5bm257uPIGd1ZXN0IHN0ZGlvIE1DUCDnsr7noa7or7vlj5YgMTY2NTVtcwoKIFRlc3QgRmlsZXMgIDEgZmFpbGVkICgxKQogICAgICBUZXN0cyAgMSBmYWlsZWQgKDEpCiAgIFN0YXJ0IGF0ICAyMjoxNToyNwogICBEdXJhdGlvbiAgMTYuODVzICh0ZXN0cyA5OSUpCgo=",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL2d1ZXN0LWJyb3dzZXIubGl2ZS50ZXN0LnRzID4g5pei5pyJIHNhbmRib3ggZ3Vlc3Qg5rWP6KeI5Zmo5LiO5ZCM5LiA5Lqn54mpIE1DUO+8iOaXoOaooeWei++8iSA+IOmHh+mbhuecn+WuniBET00vUE5H44CB5L+d5a2Y56m66Ze06LWE5rqQ5bm257uPIGd1ZXN0IHN0ZGlvIE1DUCDnsr7noa7or7vlj5YKQXNzZXJ0aW9uRXJyb3I6IE5FVFdPUktfRkFJTEVEOiDlm7rlrprnm67moIfnvZHpobXorr/pl67lpLHotKUgW25hdmlnYXRpb25dOiBleHBlY3RlZCBmYWxzZSB0byBiZSB0cnVlIC8vIE9iamVjdC5pcyBlcXVhbGl0eQoKLSBFeHBlY3RlZAorIFJlY2VpdmVkCgotIHRydWUKKyBmYWxzZQoKIOKdryBhcHBzL3NlcnZpY2Uvc3JjL2d1ZXN0LWJyb3dzZXIubGl2ZS50ZXN0LnRzOjMwOjg5CiAgICAgMjh8ICAgICAgIDogcmVzdWx0OwogICAgIDI5fCAgICAgYXdhaXQgd3JpdGVGaWxlKHBhdGguam9pbihhdHRlbXB0Um9vdCwgJ2NhcHR1cmUtcmVzdWx0Lmpzb24nKSwgSlNP4oCmCiAgICAgMzB8ICAgICBleHBlY3QocmVzdWx0Lm9rLCByZXN1bHQub2sgPyAnJyA6IHJlc3VsdC5lcnJvci5jb2RlICsgJzogJyArIHJlc3XigKYKICAgICAgIHwgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIF4KICAgICAzMXwgICAgIGlmICghcmVzdWx0Lm9rKSByZXR1cm47CiAgICAgMzJ8ICAgICBjb25zdCBzYXZlZCA9IGF3YWl0IHNhdmVHdWVzdENhcHR1cmUobmV3IFJlc291cmNlU3RvcmUocGF0aC5qb2luKGHigKYKCuKOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr1sxLzFd4o6vCgo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:4ef404836ed53c6a950ae384dec0fb57fd91a5d16e022ae809959b1f9c96f93f:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:4ef404836ed53c6a950ae384dec0fb57fd91a5d16e022ae809959b1f9c96f93f:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:4ef404836ed53c6a950ae384dec0fb57fd91a5d16e022ae809959b1f9c96f93f:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

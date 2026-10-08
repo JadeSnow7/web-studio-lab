@@ -1,0 +1,15 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/terminal.ts b/private/tmp/wsl-integration-sources/08-eb15/packages/protocol/src/terminal.ts
+index ebebee4..4ac4993 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/terminal.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/packages/protocol/src/terminal.ts
+@@ -2,8 +2,8 @@ import { z } from 'zod';
+ 
+ const Columns = z.number().int().min(2).max(500);
+ const Rows = z.number().int().min(1).max(300);
+-export const TerminalOpenSchema = z.object({ cols: Columns, rows: Rows, resourceId: z.string().min(1).max(200) });
+-export const TerminalTargetSchema = z.object({ sessionId: z.string().min(1), resourceId: z.string().min(1).max(200) });
++export const TerminalOpenSchema = z.object({ cols: Columns, rows: Rows, resourceId: z.string().min(1).max(200).optional() });
++export const TerminalTargetSchema = z.object({ sessionId: z.string().min(1), resourceId: z.string().min(1).max(200).optional() });
+ export const TerminalWriteSchema = TerminalTargetSchema.extend({ data: z.string().min(1).max(65536) });
+ export const TerminalResizeSchema = TerminalTargetSchema.extend({ cols: Columns, rows: Rows });
+ export const TerminalSnapshotSchema = z.object({

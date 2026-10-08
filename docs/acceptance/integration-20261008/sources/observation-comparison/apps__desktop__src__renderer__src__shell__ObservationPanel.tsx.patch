@@ -1,0 +1,33 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/desktop/src/renderer/src/shell/ObservationPanel.tsx b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/shell/ObservationPanel.tsx
+index ebc60bb..a7bae07 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/desktop/src/renderer/src/shell/ObservationPanel.tsx
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/shell/ObservationPanel.tsx
+@@ -1,3 +1,4 @@
++import { observationHintsStore, relevantInvalidation } from '../state/observation-hints';
+ import { useEffect, useId, useRef, useState } from 'react';
+ import type { ObservationResult, ObservationRequest } from '@wsl/protocol';
+ import { useStore } from '../lib/store';
+@@ -23,6 +24,8 @@ function ObservationReader({ tab, sessionId, pageId }: { tab: string; sessionId:
+     projection.projectionSessionId === sessionId &&
+     projection.renderedSeq === projection.snapshot?.seq;
+   const [result, setResult] = useState<ObservationResult | null>(null);
++  const latestHint = useStore(observationHintsStore, (state) => state.latest);
++  const invalidation = relevantInvalidation(result, latestHint);
+   const [filePath, setFilePath] = useState('');
+   const [pending, setPending] = useState(false);
+   const [failure, setFailure] = useState<string | null>(null);
+@@ -133,6 +136,14 @@ function ObservationReader({ tab, sessionId, pageId }: { tab: string; sessionId:
+             {failure}
+           </p>
+         ) : null}
++        {invalidation ? (
++          <p className="muted small" role="status" aria-label="文件更新提示">
++            {invalidation.change === 'root_replaced' || invalidation.change === 'closed'
++              ? '文件读取连接已失效，当前结果保留为历史证据。'
++              : '文件目录有变化提示，当前读取结果可能已过期。请按需重新读取。'}{' '}
++            通知只覆盖已观察目录且可能丢失，未收到提示不代表内容未变化。
++          </p>
++        ) : null}
+         {result ? (
+           'error' in result ? (
+             <p role="status" className="text-warn">

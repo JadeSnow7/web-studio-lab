@@ -1,0 +1,16 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/desktop/src/preload/index.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/preload/index.ts
+index fce396c..80b75c3 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/desktop/src/preload/index.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/preload/index.ts
+@@ -25,7 +25,10 @@ function subscribe<C extends EventChannel>(channel: C, listener: (payload: Event
+ }
+ 
+ const studio: StudioApi = {
+-  observation: { read: (request) => invoke('observation:read', request) },
++  observation: {
++    read: (request) => invoke('observation:read', request),
++    onInvalidated: (listener) => subscribe('observation:invalidated', listener),
++  },
+   resources: {
+     list: (spaceId) => invoke('resources:list', ResourceListRequestSchema.parse({ spaceId })),
+     capture: (spaceId, expectedPage, resourceId) =>

@@ -1,0 +1,22 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/packages/protocol/src/bridge.ts b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/bridge.ts
+index e0a928b..644bcb2 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/packages/protocol/src/bridge.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/bridge.ts
+@@ -1,4 +1,4 @@
+-import type { ObservationRequest, ObservationResult } from './observation';
++import type { FileInvalidationHint, ObservationRequest, ObservationResult } from './observation';
+ import type { ResourceCollection } from './resources';
+ import type { PageIdentity } from './preview';
+ import type { TerminalSnapshot } from './terminal';
+@@ -14,7 +14,10 @@ export type Unsubscribe = () => void;
+  * 每个方法对应 ipc.ts 中的一个通道；不暴露 ipcRenderer 本身。
+  */
+ export interface StudioApi {
+-  observation: { read(request: ObservationRequest): Promise<ObservationResult> };
++  observation: {
++    read(request: ObservationRequest): Promise<ObservationResult>;
++    onInvalidated(listener: (hint: FileInvalidationHint) => void): Unsubscribe;
++  };
+   resources: {
+     list(spaceId: string): Promise<ResourceCollection>;
+     capture(spaceId: string, expectedPage: PageIdentity, resourceId?: string): Promise<ResourceCollection>;

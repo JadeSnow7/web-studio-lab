@@ -1,0 +1,70 @@
+diff --git a/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/state/runs.ts b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/state/runs.ts
+new file mode 100644
+index 0000000..788297e
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/state/runs.ts
+@@ -0,0 +1,64 @@
++import type { RunRecord } from '@wsl/protocol';
++import { DEMO_RUNS } from '../demo/runScenarios';
++import { createStore } from '../lib/store';
++
++export interface RunsState {
++  /** 演示记录（origin = 'demo'）。审阅动作只改变这里的界面状态，不代表真实结果。 */
++  demoRecords: readonly RunRecord[];
++  /** 真实记录（origin = 'live'），由执行服务（T04）产生；当前为空。 */
++  liveRecords: readonly RunRecord[];
++  selectedRunId: string | null;
++  demoPanelOpen: boolean;
++}
++
++export const initialRuns: RunsState = {
++  demoRecords: DEMO_RUNS,
++  liveRecords: [],
++  selectedRunId: null,
++  demoPanelOpen: false,
++};
++
++export function canReview(record: RunRecord): boolean {
++  return record.status === 'passed' && record.mode === 'online' && record.review.state === 'pending';
++}
++
++/** 接受结果：只能对已通过固定验收、等待审阅的 run 进行，绑定任务版本与源码快照。 */
++export function acceptRun(record: RunRecord, now: Date): RunRecord {
++  if (!canReview(record)) throw new Error('只有通过固定验收、等待审阅的 run 才能接受');
++  if (record.sourceState === null) throw new Error('缺少源码快照，不能接受');
++  return {
++    ...record,
++    review: { state: 'accepted', decidedAt: now.toISOString(), taskVersion: record.taskRef.version, sourceState: record.sourceState },
++  };
++}
++
++/** 要求修改：记录原因；后续修改通过新的任务版本进行，不改写这次 run。 */
++export function requestChanges(record: RunRecord, note: string, now: Date): RunRecord {
++  if (!canReview(record)) throw new Error('只有通过固定验收、等待审阅的 run 才能要求修改');
++  const trimmed = note.trim();
++  if (trimmed === '') throw new Error('请写明需要修改的原因');
++  return {
++    ...record,
++    review: { state: 'changes_requested', decidedAt: now.toISOString(), taskVersion: record.taskRef.version, note: trimmed },
++  };
++}
++
++export function findRun(state: RunsState, runId: string | null): RunRecord | null {
++  if (runId === null) return null;
++  return state.liveRecords.find((r) => r.runId === runId) ?? state.demoRecords.find((r) => r.runId === runId) ?? null;
++}
++
++function updateDemo(state: RunsState, runId: string, update: (record: RunRecord) => RunRecord): RunsState {
++  return { ...state, demoRecords: state.demoRecords.map((r) => (r.runId === runId ? update(r) : r)) };
++}
++
++export const runsStore = createStore<RunsState>(initialRuns);
++
++export const runsActions = {
++  select: (runId: string | null) => runsStore.set((s) => (s.selectedRunId === runId ? s : { ...s, selectedRunId: runId })),
++  setDemoPanelOpen: (open: boolean) => runsStore.set((s) => ({ ...s, demoPanelOpen: open })),
++  accept: (runId: string) => runsStore.set((s) => updateDemo(s, runId, (r) => acceptRun(r, new Date()))),
++  requestChanges: (runId: string, note: string) => runsStore.set((s) => updateDemo(s, runId, (r) => requestChanges(r, note, new Date()))),
++  /** 恢复演示记录的初始审阅状态，便于重复检查界面。 */
++  resetDemo: () => runsStore.set((s) => ({ ...s, demoRecords: initialRuns.demoRecords })),
++};

@@ -1,0 +1,17 @@
+COMMAND: pnpm typecheck
+SOURCE SHA256: 7eff9b2af337ee5ef0604b2b55c8b118712bedf1be8e997139fecd4b9bbfa246
+
+> web-studio-lab@ typecheck /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> pnpm -r typecheck && tsc -p tsconfig.e2e.json && pnpm typecheck:baseline
+
+Scope: 3 of 4 workspace projects
+packages/protocol typecheck$ tsc -p tsconfig.json
+packages/protocol typecheck: Done
+apps/desktop typecheck$ tsc -p tsconfig.node.json && tsc -p tsconfig.web.json
+apps/service typecheck$ tsc -p tsconfig.json
+apps/service typecheck: Done
+apps/desktop typecheck: Done
+
+> web-studio-lab@ typecheck:baseline /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> node node_modules/typescript-baseline/lib/tsc.js -p tsconfig.json --noEmit
+

@@ -1,0 +1,46 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "e2e/workspace-migration.spec.ts",
+    "--list"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T13:09:27.813722Z",
+  "ended_at": "2026-10-08T13:09:28.414723Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "Listing tests:\n  workspace-migration.spec.ts:23:1 › R1 可见导航进入真实任务历史，查看日志/diff/报告不执行\n  workspace-migration.spec.ts:47:1 › R2 通信栏菜单控制通知，独立专注入口控制布局\n  workspace-migration.spec.ts:65:1 › R1 通知定位后台同一运行，打开与已读分离且重启保持回执\n  workspace-migration.spec.ts:100:1 › R7 首页空间卡片由当前快照生成，按稳定身份切换\n  workspace-migration.spec.ts:125:1 › R4 单窗格窄窗从网页关联会话并采集\n  workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点\n  workspace-migration.spec.ts:248:1 › E2E 异常门槛负控：build启动前注入异常必须失败\n  workspace-migration.spec.ts:254:1 › E2E 异常门槛负控：运行期异常必须失败\nTotal: 8 tests in 1 file\n",
+  "stderr": "",
+  "stdout_base64": "TGlzdGluZyB0ZXN0czoKICB3b3Jrc3BhY2UtbWlncmF0aW9uLnNwZWMudHM6MjM6MSDigLogUjEg5Y+v6KeB5a+86Iiq6L+b5YWl55yf5a6e5Lu75Yqh5Y6G5Y+y77yM5p+l55yL5pel5b+XL2RpZmYv5oql5ZGK5LiN5omn6KGMCiAgd29ya3NwYWNlLW1pZ3JhdGlvbi5zcGVjLnRzOjQ3OjEg4oC6IFIyIOmAmuS/oeagj+iPnOWNleaOp+WItumAmuefpe+8jOeLrOeri+S4k+azqOWFpeWPo+aOp+WItuW4g+WxgAogIHdvcmtzcGFjZS1taWdyYXRpb24uc3BlYy50czo2NToxIOKAuiBSMSDpgJrnn6XlrprkvY3lkI7lj7DlkIzkuIDov5DooYzvvIzmiZPlvIDkuI7lt7Lor7vliIbnprvkuJTph43lkK/kv53mjIHlm57miacKICB3b3Jrc3BhY2UtbWlncmF0aW9uLnNwZWMudHM6MTAwOjEg4oC6IFI3IOmmlumhteepuumXtOWNoeeJh+eUseW9k+WJjeW/q+eFp+eUn+aIkO+8jOaMieeos+Wumui6q+S7veWIh+aNogogIHdvcmtzcGFjZS1taWdyYXRpb24uc3BlYy50czoxMjU6MSDigLogUjQg5Y2V56qX5qC856qE56qX5LuO572R6aG15YWz6IGU5Lya6K+d5bm26YeH6ZuGCiAgd29ya3NwYWNlLW1pZ3JhdGlvbi5zcGVjLnRzOjE1MToxIOKAuiBSMyDlj4znvZHpobXljp/nlJ9mb2N1c+S6i+S7tuWGs+WumuWcsOWdgOS4juWIt+aWsOebruagh++8jOW4g+WxgOabtOaWsOS/neaMgeeEpueCuQogIHdvcmtzcGFjZS1taWdyYXRpb24uc3BlYy50czoyNDg6MSDigLogRTJFIOW8guW4uOmXqOanm+i0n+aOp++8mmJ1aWxk5ZCv5Yqo5YmN5rOo5YWl5byC5bi45b+F6aG75aSx6LSlCiAgd29ya3NwYWNlLW1pZ3JhdGlvbi5zcGVjLnRzOjI1NDoxIOKAuiBFMkUg5byC5bi46Zeo5qeb6LSf5o6n77ya6L+Q6KGM5pyf5byC5bi45b+F6aG75aSx6LSlClRvdGFsOiA4IHRlc3RzIGluIDEgZmlsZQo=",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:ffef45380d4482dc2d9957cab02e17f57a36bf6f5427378dcf6c145a490cd449:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:ffef45380d4482dc2d9957cab02e17f57a36bf6f5427378dcf6c145a490cd449:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:ffef45380d4482dc2d9957cab02e17f57a36bf6f5427378dcf6c145a490cd449:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

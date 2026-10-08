@@ -1,0 +1,60 @@
+
+Running 5 tests using 1 worker
+
+(node:37679) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/space-remake.spec.ts:21:1 › SR01/02/07/09：六个入口、空间专属标签、设置主题、草稿与原实例保持 (2.0s)
+  ✘  2 e2e/space-remake.spec.ts:49:1 › SR03/04/06/10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点 (5.7s)
+(node:37763) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 e2e/space-remake.spec.ts:76:1 › SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页 (1.8s)
+  ✓  4 e2e/space-remake.spec.ts:102:1 › SR05/11：独立固定偏好、窄窗投影不改分割树、重启只恢复pin (1.5s)
+  ✘  5 e2e/space-remake.spec.ts:136:1 › SR01/09：首页新建对话框取消回原入口，主题同步实际终端与系统 (6.1s)
+
+
+  1) e2e/space-remake.spec.ts:49:1 › SR03/04/06/10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点 ──────────────────────
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      63 |   await expect.poll(nativeVisible).toBe(false);
+      64 |   await page.getByRole('complementary', { name: 'Workshop（临时展开）' }).press('Escape');
+    > 65 |   await expect.poll(nativeVisible).toBe(true);
+         |                                    ^
+      66 |   await expect(page.getByRole('button', { name: '展开 Workshop', exact: true })).toBeFocused();
+      67 |   const native = (await previewInfo(app)).bounds;
+      68 |   for (const trigger of [page.getByRole('button', { name: '展开 Workshop', exact: true }), notifications()]) {
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/space-remake.spec.ts:65:36
+
+    Error Context: test-results/e2e/space-remake-SR03-04-06-10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点/error-context.md
+
+  2) e2e/space-remake.spec.ts:136:1 › SR01/09：首页新建对话框取消回原入口，主题同步实际终端与系统 ────────────────────────────
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      161 |       const swatch = document.createElement('span');swatch.style.backgroundColor=getComputedStyle(document.documentElement).getPropertyValue('--content');document.body.append(swatch);
+      162 |       const expected=getComputedStyle(swatch).backgroundColor;swatch.remove();return getComputedStyle(element).backgroundColor===expected;
+    > 163 |     })).toBe(true);
+          |         ^
+      164 |     await windowShots(app,page,`remake-terminal-${value}`);
+      165 |     await workshopNavigate(page,'设置');
+      166 |   }
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/space-remake.spec.ts:163:9
+
+    Error Context: test-results/e2e/space-remake-SR01-09：首页新建对话框取消回原入口，主题同步实际终端与系统/error-context.md
+
+  2 failed
+    e2e/space-remake.spec.ts:49:1 › SR03/04/06/10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点 ───────────────────────
+    e2e/space-remake.spec.ts:136:1 › SR01/09：首页新建对话框取消回原入口，主题同步实际终端与系统 ─────────────────────────────
+  3 passed (17.9s)

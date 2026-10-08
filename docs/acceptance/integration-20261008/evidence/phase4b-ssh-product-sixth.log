@@ -1,0 +1,56 @@
+
+Running 2 tests using 1 worker
+
+(node:64486) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/ssh-product.spec.ts:32:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 (3.6s)
+(node:64517) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 e2e/ssh-product.spec.ts:175:1 › 产品错误host pin在认证前拒绝，不启动PTY (1.0s)
+
+
+  1) e2e/ssh-product.spec.ts:32:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 ────────────────
+
+    AggregateError: Product SSH scenario and cleanup failed
+
+      169 |     await info.attach('owned-ssh-evidence', { body: JSON.stringify(fixture.evidence, null, 2), contentType: 'application/json' });
+      170 |     if (failures.length)
+    > 171 |       throw new AggregateError([...(originalFailure ? [originalFailure] : []), ...failures], 'Product SSH scenario and cleanup failed');
+          |             ^
+      172 |   }
+      173 | });
+      174 |
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/ssh-product.spec.ts:171:13
+
+    Error: electronApplication.evaluate: Target page, context or browser has been closed
+    Browser logs:
+
+    <launching> /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/node_modules/.pnpm/electron@44.5.1/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron --inspect=0 --remote-debugging-port=0 /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-e2e-bootstrap-krOXTM/main.cjs --user-data-dir=/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-e2e-iwWAbr
+    <launched> pid=64492
+    [pid=64492][err] Debugger listening on ws://127.0.0.1:51273/53020d6a-7a00-4f40-93de-8e26f706eb44
+    [pid=64492][err] For help, see: https://nodejs.org/learn/getting-started/debugging
+    [pid=64492][err] Debugger attached.
+    [pid=64492][err] 
+    [pid=64492][err] DevTools listening on ws://127.0.0.1:51275/devtools/browser/103ce8bb-5ec5-4169-84b3-88d434f4d419
+    [pid=64492][err] (node:64492) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    [pid=64492][err] (Use `Electron --trace-warnings ...` to show where the warning was created)
+    [pid=64492] <process did exit: exitCode=null, signal=SIGKILL>
+    [pid=64492] starting temporary directories cleanup
+
+       at helpers.ts:141
+
+      139 |     const early =
+      140 |       target === 'build' && running
+    > 141 |         ? await app.evaluate(() => (globalThis as unknown as { __wslRendererErrors: string[] }).__wslRendererErrors)
+          |                     ^
+      142 |         : [];
+      143 |     rendererErrors.push(...early.filter((message) => !rendererErrors.some((error) => error.includes(message))));
+      144 |     if (running) await originalClose();
+        at ElectronApplication2.close (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/helpers.ts:141:21)
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/ssh-product.spec.ts:160:18
+
+    Error Context: test-results/e2e/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md
+
+  1 failed
+    e2e/ssh-product.spec.ts:32:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 ─────────────────
+  1 passed (5.3s)

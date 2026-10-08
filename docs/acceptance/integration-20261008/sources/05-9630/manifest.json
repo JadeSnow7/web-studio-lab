@@ -1,0 +1,1938 @@
+{
+  "source": "/Users/huaodong/.codex/worktrees/9630/web-studio-lab",
+  "state": {
+    "head": "536f0a1948e522a09310aa20784ec512476dc7be",
+    "status": " M .gitignore\n M README.md\n?? .nvmrc\n?? .prettierignore\n?? .prettierrc.json\n?? CLAUDE.md\n?? CONTRIBUTING.md\n?? DESIGN.md\n?? UX-CONTRACT.md\n?? Web_Studio_macOS_Interaction_Design_v0.2.docx\n?? Web_Studio_macOS_Interaction_Design_v0.2.pdf\n?? apps/desktop/electron-builder.yml\n?? apps/desktop/electron.vite.config.ts\n?? apps/desktop/package.json\n?? apps/desktop/src/main/chat-service.test.ts\n?? apps/desktop/src/main/chat-service.ts\n?? apps/desktop/src/main/execution.ts\n?? apps/desktop/src/main/index.ts\n?? apps/desktop/src/main/ipc-guard.test.ts\n?? apps/desktop/src/main/ipc-guard.ts\n?? apps/desktop/src/main/ipc.ts\n?? apps/desktop/src/main/menu.ts\n?? apps/desktop/src/main/preview/controller.ts\n?? apps/desktop/src/main/preview/demo-path.ts\n?? apps/desktop/src/main/preview/demo-protocol.ts\n?? apps/desktop/src/main/preview/element-summary.ts\n?? apps/desktop/src/main/preview/geometry.ts\n?? apps/desktop/src/main/preview/navigation-policy.ts\n?? apps/desktop/src/main/preview/preview-pure.test.ts\n?? apps/desktop/src/main/window.ts\n?? apps/desktop/src/preload/index.ts\n?? apps/desktop/src/renderer/index.html\n?? apps/desktop/src/renderer/src/App.tsx\n?? apps/desktop/src/renderer/src/components/Badges.tsx\n?? apps/desktop/src/renderer/src/components/Icon.tsx\n?? apps/desktop/src/renderer/src/demo/runScenarios.ts\n?? apps/desktop/src/renderer/src/demo/sampleData.ts\n?? apps/desktop/src/renderer/src/domain/cases.ts\n?? apps/desktop/src/renderer/src/domain/space.ts\n?? apps/desktop/src/renderer/src/env.d.ts\n?? apps/desktop/src/renderer/src/lib/store.ts\n?? apps/desktop/src/renderer/src/lib/time.ts\n?? apps/desktop/src/renderer/src/lib/viewport.ts\n?? apps/desktop/src/renderer/src/main.tsx\n?? apps/desktop/src/renderer/src/pages/ConversationsPage.tsx\n?? apps/desktop/src/renderer/src/pages/HomePage.tsx\n?? apps/desktop/src/renderer/src/pages/ResourcesPage.tsx\n?? apps/desktop/src/renderer/src/pages/SettingsPage.tsx\n?? apps/desktop/src/renderer/src/pages/SpacePage.tsx\n?? apps/desktop/src/renderer/src/pages/TasksPage.tsx\n?? apps/desktop/src/renderer/src/shell/ChatMessages.tsx\n?? apps/desktop/src/renderer/src/shell/Composer.tsx\n?? apps/desktop/src/renderer/src/shell/Overlays.tsx\n?? apps/desktop/src/renderer/src/shell/RightPanel.tsx\n?? apps/desktop/src/renderer/src/shell/TitleBar.tsx\n?? apps/desktop/src/renderer/src/shell/Workshop.tsx\n?? apps/desktop/src/renderer/src/shell/routes.ts\n?? apps/desktop/src/renderer/src/state/chat.test.ts\n?? apps/desktop/src/renderer/src/state/chat.ts\n?? apps/desktop/src/renderer/src/state/drafts.test.ts\n?? apps/desktop/src/renderer/src/state/drafts.ts\n?? apps/desktop/src/renderer/src/state/errors.ts\n?? apps/desktop/src/renderer/src/state/execution.ts\n?? apps/desktop/src/renderer/src/state/preview.ts\n?? apps/desktop/src/renderer/src/state/runs.test.ts\n?? apps/desktop/src/renderer/src/state/runs.ts\n?? apps/desktop/src/renderer/src/state/shell.test.ts\n?? apps/desktop/src/renderer/src/state/shell.ts\n?? apps/desktop/src/renderer/src/state/terminal.test.ts\n?? apps/desktop/src/renderer/src/state/terminal.ts\n?? apps/desktop/src/renderer/src/state/ui.ts\n?? apps/desktop/src/renderer/src/state/workbench.test.ts\n?? apps/desktop/src/renderer/src/state/workbench.ts\n?? apps/desktop/src/renderer/src/styles/app.css\n?? apps/desktop/src/renderer/src/workbench/BrowserToolbar.tsx\n?? apps/desktop/src/renderer/src/workbench/CaptureSection.tsx\n?? apps/desktop/src/renderer/src/workbench/PreviewHost.tsx\n?? apps/desktop/src/renderer/src/workbench/RunSection.tsx\n?? apps/desktop/src/renderer/src/workbench/RunSummary.tsx\n?? apps/desktop/src/renderer/src/workbench/RunViews.tsx\n?? apps/desktop/src/renderer/src/workbench/TaskSection.tsx\n?? apps/desktop/src/renderer/src/workbench/TerminalPanel.tsx\n?? apps/desktop/src/renderer/src/workbench/WorkbenchPanel.tsx\n?? apps/desktop/tsconfig.node.json\n?? apps/desktop/tsconfig.web.json\n?? apps/service/package.json\n?? apps/service/src/codex-chat.test.ts\n?? apps/service/src/codex-chat.ts\n?? apps/service/src/fixtures/sbx.mjs\n?? apps/service/src/guest-helper.py\n?? apps/service/src/index.ts\n?? apps/service/src/raw.d.ts\n?? apps/service/src/sbx-contract.test.ts\n?? apps/service/src/sbx.live.test.ts\n?? apps/service/src/sbx.test.ts\n?? apps/service/src/sbx.ts\n?? apps/service/src/terminal.ts\n?? apps/service/tsconfig.json\n?? apps/service/vite.config.ts\n?? demo/README.md\n?? demo/taskflow/app.js\n?? demo/taskflow/index.html\n?? demo/taskflow/members.html\n?? demo/taskflow/styles.css\n?? demo/taskflow/task.html\n?? docs/ARCHITECTURE.md\n?? docs/design/2026-10-06-workbench-v0.3/README.md\n?? docs/design/2026-10-06-workbench-v0.3/SPEC.md\n?? docs/design/2026-10-06-workbench-v0.3/baseline/README.md\n?? docs/design/2026-10-06-workbench-v0.3/baseline/SHA256SUMS\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/SKILL.md\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/app.css\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/app.js\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/dc-runtime.js\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/brand-colors.md\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/brand-typography.md\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/craft.md\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/design-system-components.md\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/diagrams.md\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/format.md\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/print.md\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/questions.md\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/view-state.md\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/thumbnail/thumbnail.json\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/index.html\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Conversations.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Home.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Main.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Overlay.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Resources.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/RunCancel.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/RunHistory.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/RunPassed.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Settings.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Space.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Tasks.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/canvas.json\n?? docs/design/2026-10-06-workbench-v0.3/baseline/board-map.json\n?? docs/design/2026-10-06-workbench-v0.3/baseline/tools/serve-local.mjs\n?? docs/design/2026-10-06-workbench-v0.3/evidence/baseline-main-1440.jpg\n?? docs/design/2026-10-06-workbench-v0.3/evidence/final-local-11boards-1024.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/final-local-11boards-1440.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/final-local-history-1440.jpg\n?? docs/design/2026-10-06-workbench-v0.3/evidence/final-local-longtext-1024.jpg\n?? docs/design/2026-10-06-workbench-v0.3/evidence/final-local-paths.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/final-local-start-1440.jpg\n?? docs/design/2026-10-06-workbench-v0.3/evidence/integrity-result.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/local-11boards.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/local-abnormal-results.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/local-cancel-1440.jpg\n?? docs/design/2026-10-06-workbench-v0.3/evidence/local-capture-1440.jpg\n?? docs/design/2026-10-06-workbench-v0.3/evidence/local-history-1440.jpg\n?? docs/design/2026-10-06-workbench-v0.3/evidence/local-modal-1024.jpg\n?? docs/design/2026-10-06-workbench-v0.3/evidence/local-modal-focus.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/local-passed-1440.jpg\n?? docs/design/2026-10-06-workbench-v0.3/evidence/local-prefinal-runtime-error.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/local-repair-evidence-1440.jpg\n?? docs/design/2026-10-06-workbench-v0.3/evidence/publication.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-11boards.txt\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-extra-results.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-final-start.png\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-history.png\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-keyboard-result.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-longtext-1024.png\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-modal-1024.png\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Conversations.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Home.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Main.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Overlay.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Resources.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/RunCancel.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/RunHistory.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/RunPassed.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Settings.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Space.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Tasks.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/canvas.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/published-repair-evidence.png\n?? docs/design/2026-10-06-workbench-v0.3/evidence/release-integrity.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/repository-baseline.json\n?? docs/design/2026-10-06-workbench-v0.3/evidence/verification-baseline.md\n?? docs/design/2026-10-06-workbench-v0.3/evidence/verification-report.md\n?? docs/design/2026-10-06-workbench-v0.3/handoff/demo-script.md\n?? docs/design/2026-10-06-workbench-v0.3/handoff/difference-table.md\n?? docs/design/2026-10-06-workbench-v0.3/handoff/engineering-handoff.md\n?? docs/design/2026-10-06-workbench-v0.3/prototype/Conversations.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/prototype/Home.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/prototype/Main.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/prototype/Overlay.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/prototype/README.md\n?? docs/design/2026-10-06-workbench-v0.3/prototype/Resources.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/prototype/RunCancel.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/prototype/RunHistory.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/prototype/RunPassed.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/prototype/Settings.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/prototype/Space.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/prototype/Tasks.dc.html\n?? docs/design/2026-10-06-workbench-v0.3/prototype/canvas.json\n?? docs/design/2026-10-06-workbench-v0.3/prototype/check.mjs\n?? docs/design/2026-10-06-workbench-v0.3/prototype/generate.py\n?? docs/design/2026-10-06-workbench-v0.3/prototype/index.html\n?? docs/design/2026-10-06-workbench-v0.3/prototype/logic.js\n?? docs/design/2026-10-06-workbench-v0.3/prototype/serve.py\n?? docs/design/2026-10-06-workbench-v0.3/prototype/source-manifest.json\n?? docs/design/2026-10-06-workbench-v0.3/prototype/state-check-results.txt\n?? docs/design/2026-10-06-workbench-v0.3/prototype/support.js\n?? docs/design/2026-10-06-workbench-v0.3/prototype/template.html\n?? docs/development/dependencies.md\n?? docs/plans/2026-10-os2026-task-plan.md\n?? docs/verification/2026-10-06-codex-chat/README.md\n?? docs/verification/2026-10-06-codex-chat/SPEC.md\n?? docs/verification/2026-10-06-desktop-ui/README.md\n?? docs/verification/2026-10-06-desktop-ui/screens/01-workbench-initial.png\n?? docs/verification/2026-10-06-desktop-ui/screens/01-workbench-initial.preview.png\n?? docs/verification/2026-10-06-desktop-ui/screens/02-capture.png\n?? docs/verification/2026-10-06-desktop-ui/screens/02-capture.preview.png\n?? docs/verification/2026-10-06-desktop-ui/screens/03-task-confirmed.png\n?? docs/verification/2026-10-06-desktop-ui/screens/04-capture-stale.png\n?? docs/verification/2026-10-06-desktop-ui/screens/04-capture-stale.preview.png\n?? docs/verification/2026-10-06-desktop-ui/screens/05-report-demo.png\n?? docs/verification/2026-10-06-desktop-ui/screens/06-demo-cancelling.png\n?? docs/verification/2026-10-06-desktop-ui/screens/07-home.png\n?? docs/verification/2026-10-06-desktop-ui/screens/08-settings.png\n?? docs/verification/2026-10-06-desktop-ui/screens/09-workshop-overlay.png\n?? docs/verification/2026-10-06-desktop-ui/screens/10-narrow-overlay.png\n?? docs/verification/2026-10-06-desktop-ui/screens/11-narrow.png\n?? docs/verification/2026-10-06-desktop-ui/screens/11-narrow.preview.png\n?? docs/verification/2026-10-06-desktop-ui/screens/real-window-bug-inspect-mode-left-on.jpg\n?? docs/verification/2026-10-06-desktop-ui/screens/real-window-packaged-capture.jpg\n?? docs/verification/2026-10-06-desktop-ui/screens/real-window-workshop-overlay.jpg\n?? docs/verification/2026-10-06-sbx-app/README.md\n?? docs/verification/2026-10-06-sbx-app/SPEC.md\n?? docs/verification/2026-10-06-sbx-app/evidence/backend-baseline-red.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/baseline-comparison.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/baseline.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/build.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/chat-live-multiturn.png\n?? docs/verification/2026-10-06-sbx-app/evidence/chat-live-new.png\n?? docs/verification/2026-10-06-sbx-app/evidence/check.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/cleanup-green.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/cleanup-pending-red.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/guest-lifecycle-live.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/guest-pty-capability.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/init-cleanup-red.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/live-evidence-summary.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/premium-audit.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/premium-baseline-comparison.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/sandbox-before.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/sandbox-during-ui.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/sandbox-final.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/sbx-chat-live-read.png\n?? docs/verification/2026-10-06-sbx-app/evidence/sbx-live-conversation.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/sbx-live-terminal.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/sbx-terminal-live-narrow.png\n?? docs/verification/2026-10-06-sbx-app/evidence/sbx-terminal-live-wide.png\n?? docs/verification/2026-10-06-sbx-app/evidence/shutdown-ack-red.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/tested-source.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/ui-active-close-green.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/ui-active-close-red.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/ui-baseline-red.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/ui-fixture-first-failures.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/ui-fixture.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/ui-live-first-error.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/ui-live-first.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/ui-live-second.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/ui-live-third.txt\n?? docs/verification/2026-10-06-sbx-app/evidence/ui-shared-file-verified.txt\n?? docs/verification/2026-10-06-sbx/README.md\n?? docs/verification/2026-10-06-sbx/SPEC.md\n?? docs/verification/2026-10-06-sbx/evidence/baseline-comparison.json\n?? docs/verification/2026-10-06-sbx/evidence/guest-components-install.txt\n?? docs/verification/2026-10-06-sbx/evidence/guest-versions.txt\n?? docs/verification/2026-10-06-sbx/evidence/inspect-created.json\n?? docs/verification/2026-10-06-sbx/evidence/inspect-pre-model.json\n?? docs/verification/2026-10-06-sbx/evidence/inspect-stopped.json\n?? docs/verification/2026-10-06-sbx/evidence/installation.json\n?? docs/verification/2026-10-06-sbx/evidence/isolation-check.txt\n?? docs/verification/2026-10-06-sbx/evidence/policy-final.json\n?? docs/verification/2026-10-06-sbx/evidence/probe-a/codex.jsonl\n?? docs/verification/2026-10-06-sbx/evidence/probe-a/codex.stderr\n?? docs/verification/2026-10-06-sbx/evidence/probe-a/exit-code.txt\n?? docs/verification/2026-10-06-sbx/evidence/probe-a/nonce.txt\n?? docs/verification/2026-10-06-sbx/evidence/probe-a/prompt.txt\n?? docs/verification/2026-10-06-sbx/evidence/probe-a/shell-read.txt\n?? docs/verification/2026-10-06-sbx/evidence/probe-a/summary.json\n?? docs/verification/2026-10-06-sbx/evidence/probe-export-verified.json\n?? docs/verification/2026-10-06-sbx/evidence/stop.txt\n?? docs/verification/2026-10-06-sbx/evidence/verifier-fixtures.txt\n?? docs/verification/2026-10-06-sbx/evidence/version.txt\n?? e2e/chat.spec.ts\n?? e2e/fixtures/codex.mjs\n?? e2e/fixtures/sbx.mjs\n?? e2e/helpers.ts\n?? e2e/sbx.spec.ts\n?? e2e/workbench.spec.ts\n?? eslint.config.js\n?? package.json\n?? packages/protocol/package.json\n?? packages/protocol/src/app.ts\n?? packages/protocol/src/bridge.ts\n?? packages/protocol/src/chat.ts\n?? packages/protocol/src/execution.ts\n?? packages/protocol/src/index.ts\n?? packages/protocol/src/ipc.ts\n?? packages/protocol/src/preview.ts\n?? packages/protocol/src/protocol.test.ts\n?? packages/protocol/src/run.ts\n?? packages/protocol/src/task.ts\n?? packages/protocol/src/terminal.ts\n?? packages/protocol/tsconfig.json\n?? playwright.config.ts\n?? pnpm-lock.yaml\n?? pnpm-workspace.yaml\n?? premium-audit.json\n?? premium-ui.json\n?? scripts/sbx-prepare-guest.sh\n?? scripts/sbx-read-smoke.py\n?? tsconfig.base.json\n?? tsconfig.e2e.json\n?? vitest.config.ts\n",
+    "branch": null
+  },
+  "entries": [
+    {
+      "path": ".gitignore",
+      "kind": "file",
+      "size": 474,
+      "sha256": "0f1c380a7a0547f96749e0fca3e8a6a72e0a333c7a377563185cf17733f712c2"
+    },
+    {
+      "path": ".nvmrc",
+      "kind": "file",
+      "size": 3,
+      "sha256": "68ca3fba3b7e864770cb61aeb306d4bd4354b68ab4dd38450860c5d823e42a53"
+    },
+    {
+      "path": ".prettierignore",
+      "kind": "file",
+      "size": 336,
+      "sha256": "b9c87690f5889c9c5d74b3c6c9459f4c83c5f4ea72a8659cb419787d196dad30"
+    },
+    {
+      "path": ".prettierrc.json",
+      "kind": "file",
+      "size": 73,
+      "sha256": "86f8a8cc11020b187cad1e427f2a4724e2e6de02da0db32055973fec27856fd2"
+    },
+    {
+      "path": "CLAUDE.md",
+      "kind": "file",
+      "size": 6125,
+      "sha256": "d8e83f10dc94d494e37a48c1580841f1898b2d544a59997134e8c0eb658637d6"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "kind": "file",
+      "size": 6537,
+      "sha256": "f3715a256490ae3db0619c0b94c5e5c40f7e98a9e84a717c7265bdb839c95c96"
+    },
+    {
+      "path": "DESIGN.md",
+      "kind": "file",
+      "size": 2202,
+      "sha256": "42f4f221e3806068fbb6ad96cd152912c2b25f39c806089be9bdde48c7c632ad"
+    },
+    {
+      "path": "LICENSE",
+      "kind": "file",
+      "size": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "README.md",
+      "kind": "file",
+      "size": 11784,
+      "sha256": "28fd61978deba98398be2809c79cf362b73559abd0e292578c221d45ff53680c"
+    },
+    {
+      "path": "UX-CONTRACT.md",
+      "kind": "file",
+      "size": 2208,
+      "sha256": "cfdd4b5c2fd13a641a2e71654ca1c5dae8aa656d311b8a1b1eb65c45c079118d"
+    },
+    {
+      "path": "Web_Studio_macOS_Interaction_Design_v0.2.docx",
+      "kind": "file",
+      "size": 1907092,
+      "sha256": "fce4119c1eafda9d853f3448c570730548f5fba09e7e1e8ced4391c43437f410"
+    },
+    {
+      "path": "Web_Studio_macOS_Interaction_Design_v0.2.pdf",
+      "kind": "file",
+      "size": 2636669,
+      "sha256": "8d3d51fe5334fe84369141c38d9304d46b2c1abdc417837853d07fe27fd433fa"
+    },
+    {
+      "path": "apps/desktop/electron-builder.yml",
+      "kind": "file",
+      "size": 614,
+      "sha256": "7841df7ed916111dc87cef8364f66e2042c3523f33de3f8eee340bd22984ec0f"
+    },
+    {
+      "path": "apps/desktop/electron.vite.config.ts",
+      "kind": "file",
+      "size": 654,
+      "sha256": "9ce9bfe237b1b6724ae4179332cca8b0678d91e51bbece5b40cb74fd06003a7d"
+    },
+    {
+      "path": "apps/desktop/package.json",
+      "kind": "file",
+      "size": 986,
+      "sha256": "05c09d9e6f1ce348387e3e85e7ddf904ac5a6f939a9cf9b5807940cddb163b57"
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.test.ts",
+      "kind": "file",
+      "size": 10381,
+      "sha256": "38b13970c91323076ff55f0e6ffcbc1a5c78f56eb7750209d2ad6bcdd880a067"
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.ts",
+      "kind": "file",
+      "size": 9041,
+      "sha256": "e38b068e17ac2939d467753701c3f323e403af5fe3e8dceeee9e7df09ed62d36"
+    },
+    {
+      "path": "apps/desktop/src/main/execution.ts",
+      "kind": "file",
+      "size": 568,
+      "sha256": "b6b8ba23b74cc0425ace472d0d251d5c6cff8c843300f03d4cef8750c9304f2f"
+    },
+    {
+      "path": "apps/desktop/src/main/index.ts",
+      "kind": "file",
+      "size": 2818,
+      "sha256": "9ae09e74197282919870699745fd2a86e4caba16902b7b030e41cc028a57995f"
+    },
+    {
+      "path": "apps/desktop/src/main/ipc-guard.test.ts",
+      "kind": "file",
+      "size": 1631,
+      "sha256": "6da49034cc222facee9e5cbf06398564a4ac0efd5f2fa6ce9bc07bfe6a446ff5"
+    },
+    {
+      "path": "apps/desktop/src/main/ipc-guard.ts",
+      "kind": "file",
+      "size": 1279,
+      "sha256": "0396cb78268324125b838b448efa1752295ac0e6839e2fc86b098fa22c76b721"
+    },
+    {
+      "path": "apps/desktop/src/main/ipc.ts",
+      "kind": "file",
+      "size": 3561,
+      "sha256": "070ad1e0e1c2aff6b8bfaa5842b288b29f6d466a2401d5466b6629034a5e0e70"
+    },
+    {
+      "path": "apps/desktop/src/main/menu.ts",
+      "kind": "file",
+      "size": 2345,
+      "sha256": "b44d2c808443a02b0613547ea627677b113e20bfdf0b5e05b4c366fff0cc25f3"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller.ts",
+      "kind": "file",
+      "size": 11324,
+      "sha256": "51faedf3db51ea38649eea2525c13adb51facd7197a6baea59bd83fc13075ed7"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/demo-path.ts",
+      "kind": "file",
+      "size": 923,
+      "sha256": "d581238244a92090a894b4e01043ecb3b0c94401aa86962a518e7ba40b161df9"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/demo-protocol.ts",
+      "kind": "file",
+      "size": 1171,
+      "sha256": "ceae3bafa4fe8bddd1ee3b6d4e616d40ac25d13e9e36dffde28a01f8f1009cde"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/element-summary.ts",
+      "kind": "file",
+      "size": 3902,
+      "sha256": "0f283507467999c9bc7b628569a1e23c9fc7bfc191f56d19861abfe831eb59da"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/geometry.ts",
+      "kind": "file",
+      "size": 715,
+      "sha256": "6eb9e018c8fbf66517fff6307837b2bd610786e315c5c8e175aee709d6814479"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/navigation-policy.ts",
+      "kind": "file",
+      "size": 607,
+      "sha256": "279e8d3b7d823b2f422618d6b3b01d2e67ff8a704664ddb0cc09f32a67a339bd"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/preview-pure.test.ts",
+      "kind": "file",
+      "size": 2922,
+      "sha256": "7e2465f16387a54f6f9c4d7a721e462731c2839ac30293d726b625f0f2504acd"
+    },
+    {
+      "path": "apps/desktop/src/main/window.ts",
+      "kind": "file",
+      "size": 1603,
+      "sha256": "116b6375299c2c5a348d86e122b5d0c738448f837e3bff390786f3badc3ea776"
+    },
+    {
+      "path": "apps/desktop/src/preload/index.ts",
+      "kind": "file",
+      "size": 2916,
+      "sha256": "3496fb8f79b9aa2e4017baf54ab5cf212edb3543be52b336e8e3eeb9164a10f5"
+    },
+    {
+      "path": "apps/desktop/src/renderer/index.html",
+      "kind": "file",
+      "size": 472,
+      "sha256": "ebfc6571b1a6392618dcf472b1fe8723b189668920aeb46512bf154427420ab7"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/App.tsx",
+      "kind": "file",
+      "size": 2579,
+      "sha256": "21a0476e4540bf579db80e8ec9e4d5f890780e85314182d39e7d187aa87ea09c"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/components/Badges.tsx",
+      "kind": "file",
+      "size": 2926,
+      "sha256": "a3e823e99b0c966e09b84f10e892e58296f394ace0ee0d1a9d08ed60f43fabc2"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/components/Icon.tsx",
+      "kind": "file",
+      "size": 3380,
+      "sha256": "2902bbf018624e324119561defc0ae1bca394ecd438a0e6ada9853290aa1934c"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/demo/runScenarios.ts",
+      "kind": "file",
+      "size": 15120,
+      "sha256": "73a2ec49026d1cb9f9f5e430973fb8481bcf03c312a6692f82b4a6d4f5a501e8"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/demo/sampleData.ts",
+      "kind": "file",
+      "size": 2698,
+      "sha256": "ab6fb44b2573d3b72bfe2bc57ad3419578092a9811b31636976ca55fbc585a32"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/domain/cases.ts",
+      "kind": "file",
+      "size": 2054,
+      "sha256": "3cf6ba39f52ca34cf3202774e912d7d513fa8fe6e422e9cde26f4890dc897e35"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/domain/space.ts",
+      "kind": "file",
+      "size": 203,
+      "sha256": "a886bd48f923674f3ba673db513f616fb7ccc6a8fde73d4397728d5f20ae99c1"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/env.d.ts",
+      "kind": "file",
+      "size": 214,
+      "sha256": "2282dbcf21d3103170cf12e03c42db9f8bf859b32c3543b95b5e39e6b13f7d8f"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/lib/store.ts",
+      "kind": "file",
+      "size": 990,
+      "sha256": "9fc9a777c54c492c7d528099160c8ce090acf6dfa6d749d1541a4a457ef74066"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/lib/time.ts",
+      "kind": "file",
+      "size": 484,
+      "sha256": "2fbe5d3f9f1fdbd8787211cc4fa63fc022822c1509775184922e6a177125adb4"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/lib/viewport.ts",
+      "kind": "file",
+      "size": 446,
+      "sha256": "6d5f0afe942f1bd4cb319aa502203408e229d5724aeb6647e4ecc9cf5fa9e7c5"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/main.tsx",
+      "kind": "file",
+      "size": 2019,
+      "sha256": "7bc13f4490e8c62c48fb4d02017b13e6d917ac84dce85804d8e19eecbad90c76"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/ConversationsPage.tsx",
+      "kind": "file",
+      "size": 3505,
+      "sha256": "8a895286204473324238d1c5bcbb5fa0c065a51a98dd7305c77d8e9df21b5ed7"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/HomePage.tsx",
+      "kind": "file",
+      "size": 3624,
+      "sha256": "6db30268ed03de77d4efe731673484db646c537f72ef0e4f3c0a9a58d0f60e90"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+      "kind": "file",
+      "size": 2765,
+      "sha256": "c1a021846f6eb7ad41b0b48226c7a1c7d3bda73d3a174295f735d37886869080"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/SettingsPage.tsx",
+      "kind": "file",
+      "size": 4197,
+      "sha256": "86ed3635276b14e90b769706fb04c6ed0a17286465943b43bcc75c7472382078"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/SpacePage.tsx",
+      "kind": "file",
+      "size": 1365,
+      "sha256": "25879c5e7d1c3e434159a22c7d51228a1abc70b3c734e18e091e9f8514ac0277"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/TasksPage.tsx",
+      "kind": "file",
+      "size": 5765,
+      "sha256": "d8d0d2a732da15bc194b24c0c5ff2baf9a0dd4b7c3c3fdd4908b61c6990c3a6b"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/ChatMessages.tsx",
+      "kind": "file",
+      "size": 4132,
+      "sha256": "8fe2668ea8b7a1534da1bb8a213cd998af04a6893b158be9cfa7cc4a7b1000ba"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/Composer.tsx",
+      "kind": "file",
+      "size": 3283,
+      "sha256": "e9d4c8543d4debac3a1f3cfeae095638262177c64be49fc574c31a97fe2106e8"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/Overlays.tsx",
+      "kind": "file",
+      "size": 1768,
+      "sha256": "fceb68fd66d0c803438268e8ef4273bc0d847176c5176fc12619cd0f72f0e79a"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/RightPanel.tsx",
+      "kind": "file",
+      "size": 3943,
+      "sha256": "ee4fa95aede726485d204be8b6c9307a77f1d37e5d60f3c04569e98d67f0f370"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/TitleBar.tsx",
+      "kind": "file",
+      "size": 4465,
+      "sha256": "4883e9d415691a51dfa656783695b22bf1326f5264c264744dc70d8dd18ff980"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/Workshop.tsx",
+      "kind": "file",
+      "size": 3973,
+      "sha256": "bedf0f5b2207e2f3f24b3e894268b93383fb064145c0a3ccc3d3f053144a937c"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/routes.ts",
+      "kind": "file",
+      "size": 659,
+      "sha256": "e7fa38e027a6cbce0f0fb6f6a1036fe35237d37aa473f07cb9a16edbfcbccf79"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/chat.test.ts",
+      "kind": "file",
+      "size": 1239,
+      "sha256": "360fc5e89e2156bd62fab9dc0d0355d76855887c7c1b8c31c901c39e7dfd674c"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/chat.ts",
+      "kind": "file",
+      "size": 3235,
+      "sha256": "dc47417deceb6706085fe427287af22634eaf3138c59bb1266324d7f717996fa"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/drafts.test.ts",
+      "kind": "file",
+      "size": 1554,
+      "sha256": "296cc9148c956f0a7a8cba83a968e56afe5e40820330736c974a227c4ee1a316"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/drafts.ts",
+      "kind": "file",
+      "size": 2405,
+      "sha256": "2f781ef08220b9d0c5f8025b505fda0de776c7fa1f1104972c8dbc2d72a35be2"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/errors.ts",
+      "kind": "file",
+      "size": 1096,
+      "sha256": "1367e2a74d80e41858138e9b828dc4653ef921fa15a22f3a2b6e4fd15907f8fe"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/execution.ts",
+      "kind": "file",
+      "size": 396,
+      "sha256": "2f4b12a63b1486878db922da3849f99e108454fc716da64cebfac3e62a0099a3"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/preview.ts",
+      "kind": "file",
+      "size": 261,
+      "sha256": "d421844cc4f64754f9451a370b47a05f78178d2cd3826a6b12bd26baf5197e9a"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/runs.test.ts",
+      "kind": "file",
+      "size": 2572,
+      "sha256": "cd1b5b49be4073ac8f7c739cef3e66518bab7a8acc53893aa1ef65fd3b6f39e3"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/runs.ts",
+      "kind": "file",
+      "size": 3119,
+      "sha256": "874d164516739a36e50b3bf64fe30a5197803e05d8b46d3c9b1374f872463a68"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/shell.test.ts",
+      "kind": "file",
+      "size": 1999,
+      "sha256": "4eb6ba669c03c19d6cf56e566dda478afe6d03b4e42628d29685ac6189535977"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/shell.ts",
+      "kind": "file",
+      "size": 3347,
+      "sha256": "761e9fb03319850b3ab638e46b254a671dbe6170e7d2c73362bd9a02989d89ae"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/terminal.test.ts",
+      "kind": "file",
+      "size": 1204,
+      "sha256": "258e6d7e846a82610eb50c4f813fc879e7c2497acb64feee0b9c9b37328267d3"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/terminal.ts",
+      "kind": "file",
+      "size": 1779,
+      "sha256": "b7d5ca980b8acbc4cd31049ad7c37613d1f2dfce8f55210a1276589a72f94572"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/ui.ts",
+      "kind": "file",
+      "size": 671,
+      "sha256": "2cbd8a70f38bc791c02f4107ee8bddf442f17f2bbfd70b2824fd353ac0e49c5f"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workbench.test.ts",
+      "kind": "file",
+      "size": 3313,
+      "sha256": "1e8c2987e19f7eec122d1144e1ac8b16109f4df9d1810a2b280a51bd269eb346"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workbench.ts",
+      "kind": "file",
+      "size": 5867,
+      "sha256": "3412164138f31ae757b5881ad243f85ecf8c3fd8a0bc76cef84aa125e89fb040"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/styles/app.css",
+      "kind": "file",
+      "size": 29303,
+      "sha256": "250eb0508c651b7fde33364252b3118ac231053ed9049faf23a9377535a191ae"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workbench/BrowserToolbar.tsx",
+      "kind": "file",
+      "size": 4473,
+      "sha256": "da668b470811c1685a098aab604cb68e2a41f9dc5841d78a54b4ed183420bade"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workbench/CaptureSection.tsx",
+      "kind": "file",
+      "size": 5312,
+      "sha256": "2f0a0d83629d3760c92089667d70b69f11d0bc9da193601c6b735e0a88ce9500"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workbench/PreviewHost.tsx",
+      "kind": "file",
+      "size": 2479,
+      "sha256": "1d306a26e34564e7d10fda25c4879cd9ebdc83634e0291e86bf59a6b775e814a"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workbench/RunSection.tsx",
+      "kind": "file",
+      "size": 3699,
+      "sha256": "42c7c4a58e773efe482aadf32a2138f20c105b9a6c0b1f2e86793b6e2e2b87d4"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workbench/RunSummary.tsx",
+      "kind": "file",
+      "size": 7166,
+      "sha256": "1d3f5e71909c2f054975389fa21c2727ab37a248ed48b213c90b84129f675406"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workbench/RunViews.tsx",
+      "kind": "file",
+      "size": 5324,
+      "sha256": "2c5375ade909fa2b1fec14648cadf9ff5f6eb771e268496303dd8569c480de1e"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workbench/TaskSection.tsx",
+      "kind": "file",
+      "size": 8218,
+      "sha256": "3a967a831180682a1489a60a415fc5a6ca467c4271d05f6eb81693ba4c60986e"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workbench/TerminalPanel.tsx",
+      "kind": "file",
+      "size": 5510,
+      "sha256": "f70bc2d83ef135c3bb7754a32e30f92e70c3bb97c4bcedd15ced373979101980"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workbench/WorkbenchPanel.tsx",
+      "kind": "file",
+      "size": 737,
+      "sha256": "9c16f5f31a8b17a0a10c584c380b2567ad5b29bb49c1d266c2d2a0483cadd3cb"
+    },
+    {
+      "path": "apps/desktop/tsconfig.node.json",
+      "kind": "file",
+      "size": 202,
+      "sha256": "c9af611604e6f0bf31eda4413b0946f38cd32cfe8c4d06475b05f71f7cd7db24"
+    },
+    {
+      "path": "apps/desktop/tsconfig.web.json",
+      "kind": "file",
+      "size": 243,
+      "sha256": "33095ddf246dff51dd177101a0d8bc18f1b5e2812645b478c28d2d690f2a0e93"
+    },
+    {
+      "path": "apps/service/package.json",
+      "kind": "file",
+      "size": 314,
+      "sha256": "483bcc7dbb3beec1bc2eb0e7aa2503989c1614d68e8b4f33b535e6411b48e3f8"
+    },
+    {
+      "path": "apps/service/src/codex-chat.test.ts",
+      "kind": "file",
+      "size": 6040,
+      "sha256": "fd1ef988d24456d1f6f3df2450476c8cbf9bf43dec571d5e7dbd432d74055bbc"
+    },
+    {
+      "path": "apps/service/src/codex-chat.ts",
+      "kind": "file",
+      "size": 9833,
+      "sha256": "8d0e6cc2945fe399c291eef34085c1df2309fe9ff682f05a7d529e84d992ca11"
+    },
+    {
+      "path": "apps/service/src/fixtures/sbx.mjs",
+      "kind": "file",
+      "size": 2659,
+      "sha256": "87e6a477c3c414ac6c74f1cc8d0353722ad5f5e66419c8dc260db5cf2ca02893"
+    },
+    {
+      "path": "apps/service/src/guest-helper.py",
+      "kind": "file",
+      "size": 8275,
+      "sha256": "0597f6139eeb7250513fa8d960be5f139395d8f76fc76edae983d0bed8d6ecbf"
+    },
+    {
+      "path": "apps/service/src/index.ts",
+      "kind": "file",
+      "size": 3321,
+      "sha256": "02d09a15be18ed33586b37fea14de19f795c6cb89df0f4bef50e599506731ccb"
+    },
+    {
+      "path": "apps/service/src/raw.d.ts",
+      "kind": "file",
+      "size": 79,
+      "sha256": "9f4da020bc3a2d14fef0e5ea54e3290540c5c8613c1cfd65d53d9492868ee431"
+    },
+    {
+      "path": "apps/service/src/sbx-contract.test.ts",
+      "kind": "file",
+      "size": 2168,
+      "sha256": "137454cd74da770dd9d24a47ab5ddc8119b425881ad128355db79c16d0540b75"
+    },
+    {
+      "path": "apps/service/src/sbx.live.test.ts",
+      "kind": "file",
+      "size": 6528,
+      "sha256": "2d0d9ada8f81590964f853e466db71ccba445633154986af2667a2b78daaf2f5"
+    },
+    {
+      "path": "apps/service/src/sbx.test.ts",
+      "kind": "file",
+      "size": 5311,
+      "sha256": "9da351a74d99237d6e0251c9750ac7ca789c8b3da0237f0d3b8cb4bc48037863"
+    },
+    {
+      "path": "apps/service/src/sbx.ts",
+      "kind": "file",
+      "size": 8674,
+      "sha256": "026a09d66e752dbe32dea087873bfdbad3ee4fd87eced2cdb907da32c028c0d7"
+    },
+    {
+      "path": "apps/service/src/terminal.ts",
+      "kind": "file",
+      "size": 3820,
+      "sha256": "c45f943fa64a0bc5f75084fce4dcee6f11a1a5d97e4e099b1e52d0f454455069"
+    },
+    {
+      "path": "apps/service/tsconfig.json",
+      "kind": "file",
+      "size": 147,
+      "sha256": "596c754cf51463a030b75194ebd91e3079acd17e19d3245294e309a65837b479"
+    },
+    {
+      "path": "apps/service/vite.config.ts",
+      "kind": "file",
+      "size": 517,
+      "sha256": "7b67c66de8086844c01a76f51d39b0b94fa31a20fbb88c9073e50b83161bccd2"
+    },
+    {
+      "path": "demo/README.md",
+      "kind": "file",
+      "size": 661,
+      "sha256": "5efbdb87720a85ca1ba057b4ca847e113fd1a4ec321325893f6bb7e3d26f142a"
+    },
+    {
+      "path": "demo/taskflow/app.js",
+      "kind": "file",
+      "size": 2398,
+      "sha256": "54e7ca232151c6e44fabc6a7bcd75fc10ee534c51006ebe027a9c3f6be6d04a9"
+    },
+    {
+      "path": "demo/taskflow/index.html",
+      "kind": "file",
+      "size": 1127,
+      "sha256": "1260e8a9dde196c26bc54f911b4a71f4d35010288c8e7e19931bd03aeaf89257"
+    },
+    {
+      "path": "demo/taskflow/members.html",
+      "kind": "file",
+      "size": 1343,
+      "sha256": "a2ff722567dcaced361ad1522217d4acd82ec667a3f371f01c2bd07b098879fb"
+    },
+    {
+      "path": "demo/taskflow/styles.css",
+      "kind": "file",
+      "size": 2716,
+      "sha256": "d0f8e00d9743dff7bf2b1937fa8b88f262d28af84aaf50d57d5f0323e4911283"
+    },
+    {
+      "path": "demo/taskflow/task.html",
+      "kind": "file",
+      "size": 730,
+      "sha256": "6dc700363ed008a1dc16a10f16f9de380c5cc6a204c8bcc46561db9e1086a0ed"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "kind": "file",
+      "size": 22739,
+      "sha256": "5cc5542b9a197ed9bcabaca4c4e468588663e5f406fe74d4cd0fef50977b4279"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/README.md",
+      "kind": "file",
+      "size": 3778,
+      "sha256": "904322a3527d15d16d59f2ad0b52dfe9baf3878e22d5e5c6c72766e1a14ba66a"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/SPEC.md",
+      "kind": "file",
+      "size": 3383,
+      "sha256": "2eb9389fa5ff77ffa106214955570fd0bb1d200f3d704e6f415c87354fc0e7d2"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/README.md",
+      "kind": "file",
+      "size": 10253,
+      "sha256": "ec487f5ad8c72674539d7a4087a0e1d2253c8b9aec24f7cd42487f29c7f705de"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/SHA256SUMS",
+      "kind": "file",
+      "size": 2880,
+      "sha256": "7337e54c9afbe2389a443d1db63b5ec30f2cfa324e0aabde11071c4d194e265c"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/SKILL.md",
+      "kind": "file",
+      "size": 16041,
+      "sha256": "dfc19b2503613070faea0a4d796ef455b383d30da84b2fb0764d1566961993b6"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/app.css",
+      "kind": "file",
+      "size": 456322,
+      "sha256": "3eff7aee853696eecdc480540da08bdf259ce91fb1c107e475130196e2dbee51"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/app.js",
+      "kind": "file",
+      "size": 3640802,
+      "sha256": "c30dca8fee6cee9326050b2eb168a66e6a2fe1dd8300c892f0823834375f20d4"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/dc-runtime.js",
+      "kind": "file",
+      "size": 187897,
+      "sha256": "3f160299989dc595cf434dac7b7f3e6fd20ed015a2d99e075c3eac09dffe0f10"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/brand-colors.md",
+      "kind": "file",
+      "size": 2234,
+      "sha256": "f451f1e68b640f2bbe4d15420339ddcb7a84595cb7d12e888caa1a6bd5bd4b3a"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/brand-typography.md",
+      "kind": "file",
+      "size": 1534,
+      "sha256": "d3aa7f635e355d674680a54fe305d4efc66463c25ec04e0a1243f8937a9ece20"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/craft.md",
+      "kind": "file",
+      "size": 16081,
+      "sha256": "6f6b9444635cdd5e371ee2ce85e62a61be2b44d6b0a14359313a7070a01db344"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/design-system-components.md",
+      "kind": "file",
+      "size": 12139,
+      "sha256": "757251bf066881fa449229679c9e12d185a572d1a6c78a559c861c48af23df10"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/diagrams.md",
+      "kind": "file",
+      "size": 9638,
+      "sha256": "c5747e7ab8d8bd04e7ac484f10be02728b9f8f2df1c024024d1d218be9bb20a7"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/format.md",
+      "kind": "file",
+      "size": 11295,
+      "sha256": "b509b31cc2db41a7ddc247f67b164c0f6f755e3f07d909ad3baf20a27718b771"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/print.md",
+      "kind": "file",
+      "size": 5443,
+      "sha256": "ed7b2b2c069c0fb164201afe15041158f2c5427bed2cb6c25a84876d51ac0253"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/questions.md",
+      "kind": "file",
+      "size": 4419,
+      "sha256": "34139a6b25e7b6048b8c98afbb7892116c9c3dc7369f22b5cf9c88d06cab108e"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/view-state.md",
+      "kind": "file",
+      "size": 8777,
+      "sha256": "2f50b955fdd7aaf17488d0eaff524a313e92ee0f8f5f81f1e403cfb0a80b5c96"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/thumbnail/thumbnail.json",
+      "kind": "file",
+      "size": 359,
+      "sha256": "eb391285e03f9f372be5219759be433cebeee2deda20841593a06f050c3fbb9c"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/index.html",
+      "kind": "file",
+      "size": 33362,
+      "sha256": "e81ba95d716b219e0c37b5c8ace2d6bd26df964aca5a8d20fda1bf8d8aaf677d"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Conversations.dc.html",
+      "kind": "file",
+      "size": 13980,
+      "sha256": "4334895a30b41b5811516bdfa09e38be05524504f54bfd00bdf25998028f9dd7"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Home.dc.html",
+      "kind": "file",
+      "size": 14165,
+      "sha256": "d1236f4d0629ae612138b0eb6f59dede0cdb82d6a30e4efee98b97ac37251738"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Main.dc.html",
+      "kind": "file",
+      "size": 47711,
+      "sha256": "97cf5c74a6baa29ace80db9f92ef2e33511cf8ec6483a73dfa648d584c57e826"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Overlay.dc.html",
+      "kind": "file",
+      "size": 15155,
+      "sha256": "b8570cb79f2eaa3567d64cac565886ced7619b24daf069777c3b7427f19a8c31"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Resources.dc.html",
+      "kind": "file",
+      "size": 13368,
+      "sha256": "022c03bdc3062b1704fa94055a89e15c9f966ea96b66491fcd0f7d70f7c2f5fe"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/RunCancel.dc.html",
+      "kind": "file",
+      "size": 15572,
+      "sha256": "1aaf8d4f03b9ab6b103909e0ca0cfddc42dc245e81382078b09cf03601dd66f3"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/RunHistory.dc.html",
+      "kind": "file",
+      "size": 15643,
+      "sha256": "c4e8f957b6fb9911b54ebfb8ad67d669760e295f3369baa0a6a1562e360d9ce0"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/RunPassed.dc.html",
+      "kind": "file",
+      "size": 19926,
+      "sha256": "f469df82522eb962bf23d7093785befc2cafd95a4e1536f9abfffb2eaabde829"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Settings.dc.html",
+      "kind": "file",
+      "size": 13125,
+      "sha256": "a7d3e2d8ec4ddd5c452684f31fef89a01552d9d5486022682a41cafff23176b1"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Space.dc.html",
+      "kind": "file",
+      "size": 18992,
+      "sha256": "6734f1829f5db3c21b1daebc9ce5a40a647f9acd71583444140ead7157d3d8b9"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Tasks.dc.html",
+      "kind": "file",
+      "size": 14057,
+      "sha256": "c606ec3a3c2e7e22b218c23af24e7d81787f03cbd44955fc89ebec436a333a00"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/canvas.json",
+      "kind": "file",
+      "size": 3091,
+      "sha256": "7eb8742f6136537b528ae19ffc8a7565f250f6d1ac3a8ece432e10200bbeeda1"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/board-map.json",
+      "kind": "file",
+      "size": 5876,
+      "sha256": "65d953bdd8b031187552c74c8b328d63321429576595be4460bb6dd6107c1ed1"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/tools/serve-local.mjs",
+      "kind": "file",
+      "size": 3407,
+      "sha256": "eed45984b32ec614297b78c8458b0ac621e98570898b3a16ea5c8c01ad34d9ee"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/baseline-main-1440.jpg",
+      "kind": "file",
+      "size": 100481,
+      "sha256": "ed5ee792a01a5dd5cb80a81b15669808e40053a9e68a3fa605bf976c0546490a"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/final-local-11boards-1024.json",
+      "kind": "file",
+      "size": 2150,
+      "sha256": "e06ba2cd260ca484cdcab957f46bbc6946e19b5b61695a8fa8c491ec50e52b15"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/final-local-11boards-1440.json",
+      "kind": "file",
+      "size": 1622,
+      "sha256": "d74bb38159641579dc960b2ae33dcfa0a5e58ed2e90995f2fe00fcf5b7981392"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/final-local-history-1440.jpg",
+      "kind": "file",
+      "size": 154113,
+      "sha256": "f055073d113e5b3f2a8ff808dc243b4554e7ebfec3aaf36ff7f434e9774178e1"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/final-local-longtext-1024.jpg",
+      "kind": "file",
+      "size": 117436,
+      "sha256": "14c89c907df5439295fd4ae56054d962fc62e5f87991e6753ffc4dcc8f9bd0a8"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/final-local-paths.json",
+      "kind": "file",
+      "size": 1857,
+      "sha256": "5538099e36c135eca48f69fbb73bf8e194d1c94ea5dcb5b15127d0a007c867e8"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/final-local-start-1440.jpg",
+      "kind": "file",
+      "size": 109986,
+      "sha256": "7488f635f50e342c7b1bc2b2dcf043c2a93facd3c0aea64c0087829c96daf911"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/integrity-result.json",
+      "kind": "file",
+      "size": 102,
+      "sha256": "cb2c2623367ef91455da13657c3d2ff7b11bbf4c3fa65671896a2767479c02da"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/local-11boards.json",
+      "kind": "file",
+      "size": 1997,
+      "sha256": "b93a84373c19fb97b3b8ba91583ac751a41dcce5e89125f13c3f52ebc17e8941"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/local-abnormal-results.json",
+      "kind": "file",
+      "size": 1056,
+      "sha256": "d96833651aee83ec251e565a227dd24e920f680bc3df9e2ab42c2ad96eb00fdf"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/local-cancel-1440.jpg",
+      "kind": "file",
+      "size": 141893,
+      "sha256": "cc9187a0617a9f68a9ba06e20ef3dbd134e2205435dde19526dd512b2737eacd"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/local-capture-1440.jpg",
+      "kind": "file",
+      "size": 118109,
+      "sha256": "98b49cb3ee9902614a248c38f9f1699c4e8d9fc8f99ce33089317512a0e9c6f9"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/local-history-1440.jpg",
+      "kind": "file",
+      "size": 154149,
+      "sha256": "3543fb703aecf43e9730ba71e49308356d2fd3c2ac90d6a2021ff0f760751a3f"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/local-modal-1024.jpg",
+      "kind": "file",
+      "size": 77716,
+      "sha256": "9a0eb03940aa9d21fcdc5fd0400532bbf5d5f0270ab2b7c156287cd9e382a046"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/local-modal-focus.json",
+      "kind": "file",
+      "size": 116,
+      "sha256": "ecc3c748c1c86b8526d5df7a974791990f1a4e723a8b8365ec529cd2fecc9532"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/local-passed-1440.jpg",
+      "kind": "file",
+      "size": 142090,
+      "sha256": "dda898d1229c243218f51dda994a83aa5ede661079a669f4f305894d5d850903"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/local-prefinal-runtime-error.json",
+      "kind": "file",
+      "size": 1732,
+      "sha256": "43e8d1c4dcd62f2e58a987fd6a88375bb75fe0e4ebbd4e5aa37c33a8f0dfb439"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/local-repair-evidence-1440.jpg",
+      "kind": "file",
+      "size": 135376,
+      "sha256": "b885da486fcc9c0a0a61773e5c22ef2b13d458650edef1709b33d2c49a113710"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/publication.json",
+      "kind": "file",
+      "size": 10321,
+      "sha256": "71e3b1907c6ad3725f3febbc6d4b29a63c4597b96dd6457840f99cc9f37a0f9c"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-11boards.txt",
+      "kind": "file",
+      "size": 1051,
+      "sha256": "e176e7560e91b12d5ea99d3fa45a0a5f2c3be11efce398c8549c0dd6300f5177"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-extra-results.json",
+      "kind": "file",
+      "size": 1953,
+      "sha256": "911fd27bf5a7966f8f474dd27e8b98a8b5aae94c22cfc5991e0cf4a84a4b0420"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-final-start.png",
+      "kind": "file",
+      "size": 439684,
+      "sha256": "ec5193657255d392a233522726bdfef3dd740ac6c6f17150a6f2ac1adac35792"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-history.png",
+      "kind": "file",
+      "size": 529464,
+      "sha256": "96c4b713d47264d1c75080ce08d04a043d48386779eaeaf0eeef0ebcf2d22eb9"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-keyboard-result.json",
+      "kind": "file",
+      "size": 469,
+      "sha256": "a4133f26d4df911ccf3d4c4f211c6a2ebed1a8e88e7ca84d9bcd3d27a4ea4af5"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-longtext-1024.png",
+      "kind": "file",
+      "size": 483345,
+      "sha256": "f2c1fd58914ec8a7ddd11d732498260b4fbfb3b47bb5f0471f3f0e111cb0ecfa"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-modal-1024.png",
+      "kind": "file",
+      "size": 370593,
+      "sha256": "57d4ab2e9e0d794051352b5f5efc33945ad7bb7c6acd297e2aef06d8a07cbf22"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Conversations.dc.html",
+      "kind": "file",
+      "size": 56580,
+      "sha256": "1b8b4a767c89804dc7a78e165e78e53c2760aa2f38e691217fdbf6ce76950112"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Home.dc.html",
+      "kind": "file",
+      "size": 56571,
+      "sha256": "e8340f643ff4eed0c09f396c4ada09fd9cfb58a2acfcfc9e0e5a196a5a809ac6"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Main.dc.html",
+      "kind": "file",
+      "size": 56588,
+      "sha256": "ad3e6c76ecbd31d6264ccbbafbe85205d750cc839c973aa856dcda4aa7a7867f"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Overlay.dc.html",
+      "kind": "file",
+      "size": 56581,
+      "sha256": "e6c77af92b824fda4949260fa71f04fb80974fab7fd0948394546e0c98be4ad9"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Resources.dc.html",
+      "kind": "file",
+      "size": 56595,
+      "sha256": "c371a2bee8a172735efc69c777acd92d1c7aab69b85466096f20d40eec4c5701"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/RunCancel.dc.html",
+      "kind": "file",
+      "size": 56599,
+      "sha256": "7cb8ebe167a71622bd222644e537f78c8b8f969443a19f3632e0c91e127a307a"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/RunHistory.dc.html",
+      "kind": "file",
+      "size": 56597,
+      "sha256": "466c3034f5b2b8d216ab16144905a26e11e026f7e50fe4a305f5673c106c8eef"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/RunPassed.dc.html",
+      "kind": "file",
+      "size": 56589,
+      "sha256": "edd908b9f6f5f4669dfd8c750cff57fe3396903ffc66e4d898f28c696225a1fb"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Settings.dc.html",
+      "kind": "file",
+      "size": 56575,
+      "sha256": "10823f9e864d23364c30a3931a5043a580448f5eb8763c1d833493b27af0e234"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Space.dc.html",
+      "kind": "file",
+      "size": 56591,
+      "sha256": "f6833ea2081707d4796fb16585d705deadfa20d550261916c1fe80876e2f0530"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/Tasks.dc.html",
+      "kind": "file",
+      "size": 56579,
+      "sha256": "543e3916665f6aa9a7eef1b3ebb7ca50408ee3e1382a299a7613f11ce90e9090"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-readback/project/canvas.json",
+      "kind": "file",
+      "size": 3757,
+      "sha256": "e4e6616331a5ee2ea2e6d4e85828ee93d22128c0aafc95ac5b34671e9963e664"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/published-repair-evidence.png",
+      "kind": "file",
+      "size": 484678,
+      "sha256": "576f540e4d347da80709ddf81ee42c7c26f6aeec7054bdc14ef0a0f7b8b43551"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/release-integrity.json",
+      "kind": "file",
+      "size": 2351,
+      "sha256": "cf50da2ad9fe42844ae0c7f4508c8156dcb6cbb8550b1c19bad82ba54fa1d343"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/repository-baseline.json",
+      "kind": "file",
+      "size": 15364,
+      "sha256": "0f1a2a9771dce98c27ffdf269f26cf6b3f3bbc884da71b28568aea41724dfed8"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/verification-baseline.md",
+      "kind": "file",
+      "size": 2769,
+      "sha256": "4db70a43372880635dc54ec49bfcc95de62402db533dfeeebd460e42ef654397"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/evidence/verification-report.md",
+      "kind": "file",
+      "size": 8439,
+      "sha256": "41aa5f02088ba40e9518c9b050ef65de15d026377b04408b370745403fa04944"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/handoff/demo-script.md",
+      "kind": "file",
+      "size": 3839,
+      "sha256": "405b4e3b169b43e61ea5ca4ddd89ac504946b759cd430a35b009123085a532a8"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/handoff/difference-table.md",
+      "kind": "file",
+      "size": 11010,
+      "sha256": "07b10f5f002e39eabb62db1691ff0e4cea68c5594b4bd940362f985552e66d2a"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/handoff/engineering-handoff.md",
+      "kind": "file",
+      "size": 6841,
+      "sha256": "058f7c279e189fa5cc10dce59bbbe6100c685284c8837dced72f8a87f8bccafc"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Conversations.dc.html",
+      "kind": "file",
+      "size": 56580,
+      "sha256": "1b8b4a767c89804dc7a78e165e78e53c2760aa2f38e691217fdbf6ce76950112"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Home.dc.html",
+      "kind": "file",
+      "size": 56571,
+      "sha256": "e8340f643ff4eed0c09f396c4ada09fd9cfb58a2acfcfc9e0e5a196a5a809ac6"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Main.dc.html",
+      "kind": "file",
+      "size": 56588,
+      "sha256": "ad3e6c76ecbd31d6264ccbbafbe85205d750cc839c973aa856dcda4aa7a7867f"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Overlay.dc.html",
+      "kind": "file",
+      "size": 56581,
+      "sha256": "e6c77af92b824fda4949260fa71f04fb80974fab7fd0948394546e0c98be4ad9"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/README.md",
+      "kind": "file",
+      "size": 4358,
+      "sha256": "f4f89b54c974b69a04192143194e679d1f841848e5af818605e73ca7f3587d0c"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Resources.dc.html",
+      "kind": "file",
+      "size": 56595,
+      "sha256": "c371a2bee8a172735efc69c777acd92d1c7aab69b85466096f20d40eec4c5701"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/RunCancel.dc.html",
+      "kind": "file",
+      "size": 56599,
+      "sha256": "7cb8ebe167a71622bd222644e537f78c8b8f969443a19f3632e0c91e127a307a"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/RunHistory.dc.html",
+      "kind": "file",
+      "size": 56597,
+      "sha256": "466c3034f5b2b8d216ab16144905a26e11e026f7e50fe4a305f5673c106c8eef"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/RunPassed.dc.html",
+      "kind": "file",
+      "size": 56589,
+      "sha256": "edd908b9f6f5f4669dfd8c750cff57fe3396903ffc66e4d898f28c696225a1fb"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Settings.dc.html",
+      "kind": "file",
+      "size": 56575,
+      "sha256": "10823f9e864d23364c30a3931a5043a580448f5eb8763c1d833493b27af0e234"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Space.dc.html",
+      "kind": "file",
+      "size": 56591,
+      "sha256": "f6833ea2081707d4796fb16585d705deadfa20d550261916c1fe80876e2f0530"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Tasks.dc.html",
+      "kind": "file",
+      "size": 56579,
+      "sha256": "543e3916665f6aa9a7eef1b3ebb7ca50408ee3e1382a299a7613f11ce90e9090"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/canvas.json",
+      "kind": "file",
+      "size": 3757,
+      "sha256": "e4e6616331a5ee2ea2e6d4e85828ee93d22128c0aafc95ac5b34671e9963e664"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/check.mjs",
+      "kind": "file",
+      "size": 8550,
+      "sha256": "7e1511a17ee71995d4a293514e2383ed7fbf09510622c1e035380c629e213b18"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/generate.py",
+      "kind": "file",
+      "size": 2025,
+      "sha256": "06f7b450289eaa153882ab49ac1b6ff16f45091dc2a542a8af984845a91f7c7b"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/index.html",
+      "kind": "file",
+      "size": 1184,
+      "sha256": "de91ba24ea353fd0dd3d8c229b57145a68d9d9ecdf24102c8833d0fb798bbb0a"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/logic.js",
+      "kind": "file",
+      "size": 32638,
+      "sha256": "9ff3b0ff7292d7cead23273d1c89efa14155d2abf4eee057e888d5879910da6c"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/serve.py",
+      "kind": "file",
+      "size": 475,
+      "sha256": "1bad25385f17b2b7da0a631ab8aa771180be6b986be8f2969f6ec0eb56bc716c"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/source-manifest.json",
+      "kind": "file",
+      "size": 1682,
+      "sha256": "8a64ee72f58732d49d443fdc141907b9360afcdec07de65b56c2e1f40480e470"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/state-check-results.txt",
+      "kind": "file",
+      "size": 1230,
+      "sha256": "6f4e7d31ea60217b44226edd14c4dd96c769ea425f08855e470021a6b9ced87e"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/support.js",
+      "kind": "file",
+      "size": 187897,
+      "sha256": "3f160299989dc595cf434dac7b7f3e6fd20ed015a2d99e075c3eac09dffe0f10"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/template.html",
+      "kind": "file",
+      "size": 23931,
+      "sha256": "9202dc62f1c890238c61dea9da9bb12a389ec939e5c67924c2194585fd9d6a2c"
+    },
+    {
+      "path": "docs/development/dependencies.md",
+      "kind": "file",
+      "size": 14381,
+      "sha256": "21d8b020c147b8c8f694e4c9a67c5e8b84a2757c25ccd7af29ffb4a54c9e9f46"
+    },
+    {
+      "path": "docs/plans/2026-10-os2026-task-plan.md",
+      "kind": "file",
+      "size": 42985,
+      "sha256": "6e779f705f262f837d5188959f9293decb675c2a388cf58726a10f0654cbe7c8"
+    },
+    {
+      "path": "docs/verification/2026-10-06-codex-chat/README.md",
+      "kind": "file",
+      "size": 6686,
+      "sha256": "6524e0b789d27ae5f4b643102347af196ae3971a12295e3c2f0918ffda388148"
+    },
+    {
+      "path": "docs/verification/2026-10-06-codex-chat/SPEC.md",
+      "kind": "file",
+      "size": 4488,
+      "sha256": "f85a516b1d8d901947bd24ecb021f3af2280b41ecdc61e6f2c9ad69e60c45f39"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/README.md",
+      "kind": "file",
+      "size": 9834,
+      "sha256": "c1b81a9fafccae1e4facb7916867bb4f3d83b08857e1255f884ee55397a90d34"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/01-workbench-initial.png",
+      "kind": "file",
+      "size": 388535,
+      "sha256": "68b2001f8a76139bd454e8c2b9ef3e02a44a39a55d20e963a905ef67cabb0d9b"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/01-workbench-initial.preview.png",
+      "kind": "file",
+      "size": 72264,
+      "sha256": "c2704253acfb4fd8020ebbc5d0e78ddedaa8fe0d180b4f39c5a3300290a28097"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/02-capture.png",
+      "kind": "file",
+      "size": 350496,
+      "sha256": "54ab1d1eedad67ee2518ba9b491c5c7ef17c24db8e5315bc40446ff74c7d14dc"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/02-capture.preview.png",
+      "kind": "file",
+      "size": 72264,
+      "sha256": "c2704253acfb4fd8020ebbc5d0e78ddedaa8fe0d180b4f39c5a3300290a28097"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/03-task-confirmed.png",
+      "kind": "file",
+      "size": 396128,
+      "sha256": "b08077bbe4089b4717dad6263582f252a9383808cebe542dd96a33656e7f69ec"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/04-capture-stale.png",
+      "kind": "file",
+      "size": 375634,
+      "sha256": "3efdefc78122aea9c3a98b8f35b42e14dd35b3d6c96092acc550e7b51dc57215"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/04-capture-stale.preview.png",
+      "kind": "file",
+      "size": 78549,
+      "sha256": "b90edbc723b44bea2a3e4936cecec9c2874b9334a39579565641666e3b8094fc"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/05-report-demo.png",
+      "kind": "file",
+      "size": 505286,
+      "sha256": "1f517de5e583a287aef7d66934f0baeb305d29a606989f49cf469d889e6f41ec"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/06-demo-cancelling.png",
+      "kind": "file",
+      "size": 523990,
+      "sha256": "33c7da59aa7eacdcc5a06c07d5cb67878d5c3321b5c8a226afbc4e2c05e8c2ad"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/07-home.png",
+      "kind": "file",
+      "size": 225492,
+      "sha256": "118328d657c67d19593f95e7f534b509f9137e26f13b6d6e54a62a8541f3ea2e"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/08-settings.png",
+      "kind": "file",
+      "size": 268465,
+      "sha256": "79c5cdf859bc1e8ae5beaf2e0019300a712651b5717c7c7001070b15d45f1706"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/09-workshop-overlay.png",
+      "kind": "file",
+      "size": 422027,
+      "sha256": "b8f7b4fb57bec611d163b5ff1f65fe07841145e2ab228b49958850f16c4113a4"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/10-narrow-overlay.png",
+      "kind": "file",
+      "size": 368783,
+      "sha256": "f4de42f506c5655bac032c3581ca9aa699d2e46e1dac3b752652f0b5c4f69de1"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/11-narrow.png",
+      "kind": "file",
+      "size": 216107,
+      "sha256": "13ebb220ca29bb787acdd662a42d2ac7d0aaa0a64726d66a83dc1872ba12e3f3"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/11-narrow.preview.png",
+      "kind": "file",
+      "size": 69965,
+      "sha256": "80ac71674a1dde4dd0c4063bb5d9387e9dc44abde600173478233261c9cc0c25"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/real-window-bug-inspect-mode-left-on.jpg",
+      "kind": "file",
+      "size": 200909,
+      "sha256": "21f7f1b289b3aff5bfd5d88fa45ce3d1465f283c77f780bc70841ce4c208a321"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/real-window-packaged-capture.jpg",
+      "kind": "file",
+      "size": 195308,
+      "sha256": "058ebc80977aceb062731f6e9c903c751bc8c5742edd71680ef943c16060d884"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/real-window-workshop-overlay.jpg",
+      "kind": "file",
+      "size": 63062,
+      "sha256": "f403f795a8de2325acc16da686537c4ac9ebc50b24eba1cc66699b290256113e"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/README.md",
+      "kind": "file",
+      "size": 11715,
+      "sha256": "bdb803ca2a154de8f1bfac438a22c90b23064ed9a40077c47ddfba905e91ec15"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/SPEC.md",
+      "kind": "file",
+      "size": 4331,
+      "sha256": "e9c1d24999433d4eb2670397cadb10d7a0bc4426077f0e2510b79a5b1240beb9"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/backend-baseline-red.txt",
+      "kind": "file",
+      "size": 3200,
+      "sha256": "2472bd98c6a1feb7786b8f02d5542af9cecd5be8f6b2b49a3b21ae3014e87f32"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/baseline-comparison.txt",
+      "kind": "file",
+      "size": 8612,
+      "sha256": "8cab6940879ef9b91700457e44e36cde11f9f4d22ab3bc1f0519bda879a3d0d9"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/baseline.txt",
+      "kind": "file",
+      "size": 45036,
+      "sha256": "23a911d3f9d2356afdcf001af23375006159c2a349b4dd0de23a2e6b7a54e057"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "b84440d0a61759513e5e1df1e36631c90d8600f2c9bdd65c48c156a4e6611b5e"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/chat-live-multiturn.png",
+      "kind": "file",
+      "size": 304751,
+      "sha256": "a85d3eac176de66f4bcb62aece9bb3bd9d6f383355dbc2d884f70af9b0c91c59"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/chat-live-new.png",
+      "kind": "file",
+      "size": 326630,
+      "sha256": "e61701c6a7f7b0c4bc8a6823407e47b9a74426bd4b0b2d6af1a5b8ee224cbedb"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/check.txt",
+      "kind": "file",
+      "size": 1166,
+      "sha256": "36f0d33940b6ea1421ff3282a7b8fad70d961e95b33dd1c2c7d4a23fdc2de55c"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/cleanup-green.txt",
+      "kind": "file",
+      "size": 202,
+      "sha256": "464b95688c25b0cebf120396857d7fa58e820e250d6d333e979d4af8f5cbb81c"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/cleanup-pending-red.txt",
+      "kind": "file",
+      "size": 2595,
+      "sha256": "bb161ce92b04adcba317beac07b075aad7fa413155b4d650b275ac4872cf3606"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/guest-lifecycle-live.txt",
+      "kind": "file",
+      "size": 177,
+      "sha256": "41868a1a5d4fe80d1bf6ddc96b27e20e5a9594930eebb34230c27bbcf40df068"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/guest-pty-capability.txt",
+      "kind": "file",
+      "size": 155,
+      "sha256": "1771160e4fc6a51da0ce951ab6d268498fba6c595f2616a909c5d5340c90fcda"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/init-cleanup-red.txt",
+      "kind": "file",
+      "size": 1276,
+      "sha256": "0e80ec0fff721635dc302414925bb4acb47c9d8d27ccd009cb21a08b92c955ec"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/live-evidence-summary.txt",
+      "kind": "file",
+      "size": 611,
+      "sha256": "46f4019792cbb18deabba2b918f1799e9bfb3c0823615a8e85e6698a2cf27500"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/premium-audit.txt",
+      "kind": "file",
+      "size": 3178,
+      "sha256": "5f18865ce26e821cec64ad45e9dad6f91ca5e6400bca5d32c5dd8157a5abbf64"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/premium-baseline-comparison.txt",
+      "kind": "file",
+      "size": 1011,
+      "sha256": "7a431ccda5ccdd2ea0839ce9050f894280a1ddc16ff71d55e4e9169e663c5b9a"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/sandbox-before.txt",
+      "kind": "file",
+      "size": 632,
+      "sha256": "07ba31e5eb4f6734f60234edc55d3f6205205723654ea304c42eee97a2d56b3e"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/sandbox-during-ui.txt",
+      "kind": "file",
+      "size": 632,
+      "sha256": "bd6b5ae5ae41215f388288801ed20980d6e71b10dcfb6163e9bb516c86972636"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/sandbox-final.txt",
+      "kind": "file",
+      "size": 656,
+      "sha256": "c507505ae3d0bd16318dcbea9206db633990e4294f0e265ec5c144c3fa1abce9"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/sbx-chat-live-read.png",
+      "kind": "file",
+      "size": 225051,
+      "sha256": "2b37a15a669b71f4ea7e0394ed572402bdfe836266922101566486b3d669a628"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/sbx-live-conversation.txt",
+      "kind": "file",
+      "size": 1471,
+      "sha256": "9cdda4ba1cb762ec2f19b6363266ff4554ba03c567abd1104ccd9cc5bd3b6372"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/sbx-live-terminal.txt",
+      "kind": "file",
+      "size": 2100,
+      "sha256": "65e5a5a4387c164064b1bbb1e748155cb3f4e31f224b07cfd6d3c14c84f0d400"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/sbx-terminal-live-narrow.png",
+      "kind": "file",
+      "size": 528553,
+      "sha256": "a900fb654e8e8e2896a3fad02aa9e1c8bc66d11dc363a685e4d7ff32057ba6bc"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/sbx-terminal-live-wide.png",
+      "kind": "file",
+      "size": 573977,
+      "sha256": "4314051e2b0a70f63fb7264b90d7128524b716abd63d335f3e9d90114c9651d5"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/shutdown-ack-red.txt",
+      "kind": "file",
+      "size": 1217,
+      "sha256": "e7887a9fd1de5df05b53e3b2c1a544b5942740e009843fec5f1e2a9314f5a9da"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/tested-source.txt",
+      "kind": "file",
+      "size": 18092,
+      "sha256": "3996efeea723260cd5d8342c66fbb00c2738b465f1afdd574a1cff781b896f08"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/ui-active-close-green.txt",
+      "kind": "file",
+      "size": 328,
+      "sha256": "2d8834118fbb6d516d79c3c23475bb06b0be44aa6d94476f82203c833dce0166"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/ui-active-close-red.txt",
+      "kind": "file",
+      "size": 2883,
+      "sha256": "03c4702cda76d4cdc625328898a1870301fdd531c2fc53ee678b88c817ae7ca2"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/ui-baseline-red.txt",
+      "kind": "file",
+      "size": 3901,
+      "sha256": "66445c1367f8c29dd38c30373125d75abbbaab0598d1eebf95e46a6c88e7c76f"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/ui-fixture-first-failures.txt",
+      "kind": "file",
+      "size": 7028,
+      "sha256": "24b78736030de59a1f8ed8d37b05f54f821b63576de7f4f2e949476103b84fcb"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/ui-fixture.txt",
+      "kind": "file",
+      "size": 2324,
+      "sha256": "ad4ee37e5c5c137025b1b1abeb300c866cbfe7d442102ae69bfff09977607e93"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/ui-live-first-error.txt",
+      "kind": "file",
+      "size": 9719,
+      "sha256": "8c03def71caf65dd29857b9ae20ed145f377a2864502fcda9ca5bc5d89e513b3"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/ui-live-first.txt",
+      "kind": "file",
+      "size": 2585,
+      "sha256": "95ca74f4d4559cfe0df341a12e7102f8989a6f9aca171a46b2dadb423162f5ce"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/ui-live-second.txt",
+      "kind": "file",
+      "size": 4840,
+      "sha256": "66b5ee1464b4762daf5cab5a24f9e1ec7a75c85886c505961341fe1231f16571"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/ui-live-third.txt",
+      "kind": "file",
+      "size": 2615,
+      "sha256": "a2a914c21b69a2496bb1693bc14a224cad56980a9643c43fc487277bd931c76a"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/evidence/ui-shared-file-verified.txt",
+      "kind": "file",
+      "size": 554,
+      "sha256": "1c5cdd263649fafffcb03fb0d36684f1fc5e9e189d3a3a3e2cc6b4002efd5de7"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/README.md",
+      "kind": "file",
+      "size": 7391,
+      "sha256": "a8690b9ee1102364911c21a3fdb9a61c4d7fe703db86341696cba4037b0ff511"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/SPEC.md",
+      "kind": "file",
+      "size": 2516,
+      "sha256": "9ab8743f4a39ae2c24f5da353bf982823142281ca3c38839d0f65280f1e20892"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/baseline-comparison.json",
+      "kind": "file",
+      "size": 109,
+      "sha256": "23f4a7b952fb12b1cf090cab0c66f73e5acaa2818549ee1589f64c4936644914"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/guest-components-install.txt",
+      "kind": "file",
+      "size": 1434,
+      "sha256": "ad14c433772e2b46b18d683c5d1b28da9454ee375c1f216f84fe5ca07d7af109"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/guest-versions.txt",
+      "kind": "file",
+      "size": 130,
+      "sha256": "dcdc595924206cd912d62f7fffb4ddb63ea5c233a984e59f8c3d7e5695957e8e"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/inspect-created.json",
+      "kind": "file",
+      "size": 630,
+      "sha256": "1617c9440732d019a00c7170f4b46c7dc2e40263916273389b60fadcb6bc7a6a"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/inspect-pre-model.json",
+      "kind": "file",
+      "size": 631,
+      "sha256": "cb7ee218d9d473faa7e19184d7a66f014ecbe81af4c207cdd9149448e415415f"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/inspect-stopped.json",
+      "kind": "file",
+      "size": 631,
+      "sha256": "4971a9e42538fcfa825161ef9cdedf82a2fea02a76363604f8a2a31bb2810699"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/installation.json",
+      "kind": "file",
+      "size": 1274,
+      "sha256": "cb77ab18b1fbb355d5f92fa67cddbd705fa5756469099164d10a594225c46116"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/isolation-check.txt",
+      "kind": "file",
+      "size": 466,
+      "sha256": "fb6d6415cd52e83df0d5b046749d67ff3686c01fa3bddb5b37eba2cb7b0bdfdf"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/policy-final.json",
+      "kind": "file",
+      "size": 2880,
+      "sha256": "16cedfc890545ef6757bf52b2d40a0222fe385a11bb0c588949a1bc46e4f8520"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/probe-a/codex.jsonl",
+      "kind": "file",
+      "size": 1580,
+      "sha256": "862f9b8fa92feca851e2743cf0107c506012e6e75327da72e86abb665dd7a88f"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/probe-a/codex.stderr",
+      "kind": "file",
+      "size": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/probe-a/exit-code.txt",
+      "kind": "file",
+      "size": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/probe-a/nonce.txt",
+      "kind": "file",
+      "size": 65,
+      "sha256": "47516b25f1fc54af07fc76126144bc69c516e82a6eeb78af3165bdd28323d4fd"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/probe-a/prompt.txt",
+      "kind": "file",
+      "size": 109,
+      "sha256": "f071ccef11912822818449f479da5cfdc3abf53bd43c523f14d72b9e15d357cc"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/probe-a/shell-read.txt",
+      "kind": "file",
+      "size": 65,
+      "sha256": "47516b25f1fc54af07fc76126144bc69c516e82a6eeb78af3165bdd28323d4fd"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/probe-a/summary.json",
+      "kind": "file",
+      "size": 549,
+      "sha256": "641f2c783ab211aa4b851e9762c4ca8f9c5fbd56e47f315aedaf6ebf04a00065"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/probe-export-verified.json",
+      "kind": "file",
+      "size": 652,
+      "sha256": "59a88a91cd685b6673068a9236b16c1db2a55bc791f2521dd0413f133470191d"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/stop.txt",
+      "kind": "file",
+      "size": 111,
+      "sha256": "57faffa00ce00b029a2eb52319d9d2867965d0194177f5c5fa8579a94c0a6756"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/verifier-fixtures.txt",
+      "kind": "file",
+      "size": 204,
+      "sha256": "f7c6d9ed878f65d6921eaa48673989f9f7aa651d8a8ff39ee3c0917b44494c00"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/evidence/version.txt",
+      "kind": "file",
+      "size": 62,
+      "sha256": "3dc8b06feb15fec36ee8a071ac34799c67d333903fb85d8dbe4fca494fcff573"
+    },
+    {
+      "path": "e2e/chat.spec.ts",
+      "kind": "file",
+      "size": 6638,
+      "sha256": "0d1c38287f528ff03270a22ae1b089386266b47fea68c0a240f2d1c8ea1c99b8"
+    },
+    {
+      "path": "e2e/fixtures/codex.mjs",
+      "kind": "file",
+      "size": 2184,
+      "sha256": "8b5450a9437f1f28461161dda202f755b4199d9ed4278bdebdb14708241d5e6d"
+    },
+    {
+      "path": "e2e/fixtures/sbx.mjs",
+      "kind": "file",
+      "size": 4422,
+      "sha256": "8f310786626fb777de6a1458a76face5394569b597ff9b420235d4838c79e08a"
+    },
+    {
+      "path": "e2e/helpers.ts",
+      "kind": "file",
+      "size": 5461,
+      "sha256": "60f7391da7c440ca40114a0809c32ed900d3d022d19b6a7ef25d372a39d26c1b"
+    },
+    {
+      "path": "e2e/sbx.spec.ts",
+      "kind": "file",
+      "size": 12941,
+      "sha256": "ab4e4e5cb9f69ec87039f8958ef84089c8823039698b0be60823d7d6ef31669e"
+    },
+    {
+      "path": "e2e/workbench.spec.ts",
+      "kind": "file",
+      "size": 13822,
+      "sha256": "018dfc9865ae3cf0fc608168aedd278eb3d944b3bc6f38316963ab2e74647983"
+    },
+    {
+      "path": "eslint.config.js",
+      "kind": "file",
+      "size": 2234,
+      "sha256": "b8938a64be564db2362bd359b31fce92da7518953433a3dbe6b88c75082efe82"
+    },
+    {
+      "path": "package.json",
+      "kind": "file",
+      "size": 1318,
+      "sha256": "7fefefeeee92d7fd3b61c4fb4fdbd26f11a304e7b7bed38826caed6bc3ccedd4"
+    },
+    {
+      "path": "packages/protocol/package.json",
+      "kind": "file",
+      "size": 336,
+      "sha256": "b01cf9be222fcd7d710d91270c9f2fbb56e3d4d946bd2fa314e1ef5d94788e0e"
+    },
+    {
+      "path": "packages/protocol/src/app.ts",
+      "kind": "file",
+      "size": 580,
+      "sha256": "bf5dc1201119d938fd080c3664c9eeda1018567b1b31692284d6757462aef82a"
+    },
+    {
+      "path": "packages/protocol/src/bridge.ts",
+      "kind": "file",
+      "size": 2281,
+      "sha256": "48ca1cb8abc15226c4713c0af814ece19df8b461ac8c2b136db265f66ed83871"
+    },
+    {
+      "path": "packages/protocol/src/chat.ts",
+      "kind": "file",
+      "size": 3582,
+      "sha256": "22414738bd48f758eaa1aa507ec0538af74170fe9c11a1862ffb6742c3d88d32"
+    },
+    {
+      "path": "packages/protocol/src/execution.ts",
+      "kind": "file",
+      "size": 717,
+      "sha256": "eefc8ec04789dcf1241d451a2aa0108d7ec4250c5d1f4f1e58b4cf9dc9595729"
+    },
+    {
+      "path": "packages/protocol/src/index.ts",
+      "kind": "file",
+      "size": 228,
+      "sha256": "4497c4fca91ef37504e2c1923162990db027703069271c435ffbf5495de74553"
+    },
+    {
+      "path": "packages/protocol/src/ipc.ts",
+      "kind": "file",
+      "size": 3407,
+      "sha256": "ea8ab2f8993ff837ce7654a25d374ba3d43065247a685acadf207f7eb7eb6b36"
+    },
+    {
+      "path": "packages/protocol/src/preview.ts",
+      "kind": "file",
+      "size": 4175,
+      "sha256": "42ca2620fe4b7bbf0f09bc461a55627aa9cf6838a1535e3eaf9b236bde6c2e23"
+    },
+    {
+      "path": "packages/protocol/src/protocol.test.ts",
+      "kind": "file",
+      "size": 2918,
+      "sha256": "494ce07e223a1dcc0ad7024e53d36af6ff9535f18ce56ae48bc7d0dd16056023"
+    },
+    {
+      "path": "packages/protocol/src/run.ts",
+      "kind": "file",
+      "size": 4931,
+      "sha256": "8ae86ea1a805ea3ee134b7fe3ceb27f620c9a46374e6cbbb86eee20fcb5b09a0"
+    },
+    {
+      "path": "packages/protocol/src/task.ts",
+      "kind": "file",
+      "size": 1828,
+      "sha256": "6d9ed523734e649a230fa8c24c01b501d7d08509ec8f1da04a2fa7c12bc83d94"
+    },
+    {
+      "path": "packages/protocol/src/terminal.ts",
+      "kind": "file",
+      "size": 919,
+      "sha256": "578493d1ac1caaa8ce374cb1b9285bffd9df35d033e91ea51983ae484740dc63"
+    },
+    {
+      "path": "packages/protocol/tsconfig.json",
+      "kind": "file",
+      "size": 133,
+      "sha256": "fe2fcfc11ee3613141a6d6f53f0a0e81ce4f4c11dd21e63dfe39ad6f00ca2f80"
+    },
+    {
+      "path": "playwright.config.ts",
+      "kind": "file",
+      "size": 280,
+      "sha256": "7fed99c0109093f0fd454ebb30c2ea8af83faa5738f70ce2f1cde770d34f38d4"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "kind": "file",
+      "size": 147492,
+      "sha256": "7a8752037c5b26cf129e467504e10f6bd56830a4624c52e771cc26285dde59b3"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "kind": "file",
+      "size": 201,
+      "sha256": "996c06053b6c327a083c732c7fe1aa69d17850f95f4baba34b2eed05615f84e2"
+    },
+    {
+      "path": "premium-audit.json",
+      "kind": "file",
+      "size": 237,
+      "sha256": "95b6c732a7617d9679a4dd600415dcc4081d59814689d168d29040eb70be3670"
+    },
+    {
+      "path": "premium-ui.json",
+      "kind": "file",
+      "size": 466,
+      "sha256": "18470d6440f4a401d7efeae07b2e0e707fcec32f016cf4ce69b0c899a02fe676"
+    },
+    {
+      "path": "scripts/sbx-prepare-guest.sh",
+      "kind": "file",
+      "size": 1002,
+      "sha256": "db994fa0995a13de36c0f1fbb72d24f7fda2d6a5725e7ad7c20f33f8b082930c"
+    },
+    {
+      "path": "scripts/sbx-read-smoke.py",
+      "kind": "file",
+      "size": 4098,
+      "sha256": "26c95deaa9d3230dc61e4244551dc75c7fe93e5502a627ac35d683f1f7e8fa11"
+    },
+    {
+      "path": "tsconfig.base.json",
+      "kind": "file",
+      "size": 413,
+      "sha256": "4a65a7281153c63610722d0155c85c9db038f58692824005e738f4cc05b8128e"
+    },
+    {
+      "path": "tsconfig.e2e.json",
+      "kind": "file",
+      "size": 316,
+      "sha256": "337a61e5b0e010defffa8be7542dcce4ca86b9287ebbb12caae5a32e7d60ac83"
+    },
+    {
+      "path": "vitest.config.ts",
+      "kind": "file",
+      "size": 194,
+      "sha256": "c1c33443453fd2726a9095962d4bc4d532a44293159e7a5c507d5cc25b8d07a6"
+    }
+  ],
+  "stable": true,
+  "attempt": 1
+}

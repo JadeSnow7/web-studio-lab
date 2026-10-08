@@ -1,0 +1,91 @@
+{
+  "phase": "4b-C-v2",
+  "baseHead": "247247b78a2aae96fde49cd7b37e264642cbea0c",
+  "sources": [
+    {
+      "path": "e2e/observation-live.spec.ts",
+      "sha256": "32c9e03e943453bbc0ed43074fdaedbc89b0ebacc5ea6d10ef848c3662b5f331",
+      "bytes": 18852
+    },
+    {
+      "path": "apps/service/src/observation-files.test.ts",
+      "sha256": "8d71bd105efa33408b39f2b2034298c33452826eab6857fbcda1666aa827d264",
+      "bytes": 13099
+    }
+  ],
+  "receipts": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/collect-v2.json",
+      "sha256": "b1eae3ca4487e52849531db5ddb7d088f7ea11acb14da680e6a4a414908b6213",
+      "bytes": 2344,
+      "exitCode": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e40fde3b660499d29c11fbb528f590e1fb04a02c2621dec6e2917466ceff3259:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/default-skip-v2.json",
+      "sha256": "5c30d3c9a536d12c073688e195481d28c1e695ac9797948028bb57a9d9baac69",
+      "bytes": 2794,
+      "exitCode": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e40fde3b660499d29c11fbb528f590e1fb04a02c2621dec6e2917466ceff3259:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/diff-v2.json",
+      "sha256": "5916d17f303c2b3053510d385c52bc1c0c1e80c963af5e9d324768571250b38a",
+      "bytes": 1960,
+      "exitCode": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e40fde3b660499d29c11fbb528f590e1fb04a02c2621dec6e2917466ceff3259:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/file-authorized-v2.json",
+      "sha256": "b21be13be2bab0e694570a4f148bd97d2375d136316e391cf3f459a4e04ee04e",
+      "bytes": 2443,
+      "exitCode": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e40fde3b660499d29c11fbb528f590e1fb04a02c2621dec6e2917466ceff3259:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/format-v2.json",
+      "sha256": "abe530fb0b07554d67898815e15f27ba775484178a89a4cb534f67d8872b740b",
+      "bytes": 2158,
+      "exitCode": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e40fde3b660499d29c11fbb528f590e1fb04a02c2621dec6e2917466ceff3259:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/lint-v2.json",
+      "sha256": "51ef2e5d900a17d97065c26b2f9c6bb9fdf6a61d21f90d25e15070c01b205a9f",
+      "bytes": 1986,
+      "exitCode": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e40fde3b660499d29c11fbb528f590e1fb04a02c2621dec6e2917466ceff3259:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/type-v2.json",
+      "sha256": "8833a1e042382c59c61950e6d52ae37a99325f2863c7c9b0fd89243539eb7b61",
+      "bytes": 3366,
+      "exitCode": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e40fde3b660499d29c11fbb528f590e1fb04a02c2621dec6e2917466ceff3259:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    }
+  ],
+  "preservedPreviousManifest": {
+    "path": "docs/acceptance/integration-20261008/evidence/phase4b-c/manifest.json",
+    "sha256": "0e04ed859d87d4be59b478ef3bad855896d7c2513280760323eb27e36b742174",
+    "bytes": 7154
+  },
+  "results": {
+    "file": "15 passed",
+    "fulltype": "passed",
+    "scopedlint": "passed",
+    "scopedformat": "passed",
+    "collect": "1 test collected",
+    "defaultskip": "1 skipped, flag0; no model/sandbox",
+    "diff": "passed"
+  },
+  "enhancements": [
+    "Frozen run conversationId equals run.sessionId; generation/turnId match executionBinding. Final conversationId equals frozen value; no invented binding.conversationId field.",
+    "Last assistant message must include all three actual observation nonces and exclude interference nonce.",
+    "All executed tools belong to frozen turn and only the four requested MCP types; shell/other tools reject acceptance."
+  ],
+  "limitations": [
+    "Actual live has not been run; root serial review/preflight/live remains required.",
+    "Only live harness/test assertions changed since v1; file provider coverage retains same bytes.",
+    "Mac locked; no native focus/IME acceptance."
+  ]
+}

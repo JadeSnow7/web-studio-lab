@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "pnpm",
+    "typecheck"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T12:12:59.427812Z",
+  "ended_at": "2026-10-08T12:13:05.865193Z",
+  "exit_code": 2,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n> web-studio-lab@ typecheck /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n> pnpm -r typecheck && tsc -p tsconfig.e2e.json && pnpm typecheck:baseline\n\nScope: 3 of 4 workspace projects\npackages/protocol typecheck$ tsc -p tsconfig.json\npackages/protocol typecheck: Done\napps/desktop typecheck$ tsc -p tsconfig.node.json && tsc -p tsconfig.web.json\napps/service typecheck$ tsc -p tsconfig.json\napps/service typecheck: Done\napps/desktop typecheck: Done\ne2e/ssh-product.spec.ts(72,88): error TS2339: Property 'revision' does not exist on type '{ resource: { workspaceId: string; environmentId: string; resourceId: string; kind: \"browser\" | \"terminal\" | \"file\"; instanceId: string; instanceGeneration: number; }; generation: string; ... 9 more ...; evidenceRef?: string | undefined; } | { ...; }'.\n  Property 'revision' does not exist on type '{ kind: \"sources\"; workspaceId: string; sources: { resource: { workspaceId: string; resourceId: string; kind: \"browser\" | \"terminal\" | \"file\"; environmentId: string | null; }; instance: { ...; } | null; title: string; capabilities: string[]; state: \"unavailable\" | ... 1 more ... | \"closed\"; reason: string | null; }[...'.\ne2e/ssh-product.spec.ts(73,33): error TS2339: Property 'coverage' does not exist on type '{ resource: { workspaceId: string; environmentId: string; resourceId: string; kind: \"browser\" | \"terminal\" | \"file\"; instanceId: string; instanceGeneration: number; }; generation: string; ... 9 more ...; evidenceRef?: string | undefined; } | { ...; }'.\n  Property 'coverage' does not exist on type '{ kind: \"sources\"; workspaceId: string; sources: { resource: { workspaceId: string; resourceId: string; kind: \"browser\" | \"terminal\" | \"file\"; environmentId: string | null; }; instance: { ...; } | null; title: string; capabilities: string[]; state: \"unavailable\" | ... 1 more ... | \"closed\"; reason: string | null; }[...'.\n ELIFECYCLE  Command failed with exit code 2.\n",
+  "stderr": "",
+  "stdout_base64": "Cj4gd2ViLXN0dWRpby1sYWJAIHR5cGVjaGVjayAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCj4gcG5wbSAtciB0eXBlY2hlY2sgJiYgdHNjIC1wIHRzY29uZmlnLmUyZS5qc29uICYmIHBucG0gdHlwZWNoZWNrOmJhc2VsaW5lCgpTY29wZTogMyBvZiA0IHdvcmtzcGFjZSBwcm9qZWN0cwpwYWNrYWdlcy9wcm90b2NvbCB0eXBlY2hlY2skIHRzYyAtcCB0c2NvbmZpZy5qc29uCnBhY2thZ2VzL3Byb3RvY29sIHR5cGVjaGVjazogRG9uZQphcHBzL2Rlc2t0b3AgdHlwZWNoZWNrJCB0c2MgLXAgdHNjb25maWcubm9kZS5qc29uICYmIHRzYyAtcCB0c2NvbmZpZy53ZWIuanNvbgphcHBzL3NlcnZpY2UgdHlwZWNoZWNrJCB0c2MgLXAgdHNjb25maWcuanNvbgphcHBzL3NlcnZpY2UgdHlwZWNoZWNrOiBEb25lCmFwcHMvZGVza3RvcCB0eXBlY2hlY2s6IERvbmUKZTJlL3NzaC1wcm9kdWN0LnNwZWMudHMoNzIsODgpOiBlcnJvciBUUzIzMzk6IFByb3BlcnR5ICdyZXZpc2lvbicgZG9lcyBub3QgZXhpc3Qgb24gdHlwZSAneyByZXNvdXJjZTogeyB3b3Jrc3BhY2VJZDogc3RyaW5nOyBlbnZpcm9ubWVudElkOiBzdHJpbmc7IHJlc291cmNlSWQ6IHN0cmluZzsga2luZDogImJyb3dzZXIiIHwgInRlcm1pbmFsIiB8ICJmaWxlIjsgaW5zdGFuY2VJZDogc3RyaW5nOyBpbnN0YW5jZUdlbmVyYXRpb246IG51bWJlcjsgfTsgZ2VuZXJhdGlvbjogc3RyaW5nOyAuLi4gOSBtb3JlIC4uLjsgZXZpZGVuY2VSZWY/OiBzdHJpbmcgfCB1bmRlZmluZWQ7IH0gfCB7IC4uLjsgfScuCiAgUHJvcGVydHkgJ3JldmlzaW9uJyBkb2VzIG5vdCBleGlzdCBvbiB0eXBlICd7IGtpbmQ6ICJzb3VyY2VzIjsgd29ya3NwYWNlSWQ6IHN0cmluZzsgc291cmNlczogeyByZXNvdXJjZTogeyB3b3Jrc3BhY2VJZDogc3RyaW5nOyByZXNvdXJjZUlkOiBzdHJpbmc7IGtpbmQ6ICJicm93c2VyIiB8ICJ0ZXJtaW5hbCIgfCAiZmlsZSI7IGVudmlyb25tZW50SWQ6IHN0cmluZyB8IG51bGw7IH07IGluc3RhbmNlOiB7IC4uLjsgfSB8IG51bGw7IHRpdGxlOiBzdHJpbmc7IGNhcGFiaWxpdGllczogc3RyaW5nW107IHN0YXRlOiAidW5hdmFpbGFibGUiIHwgLi4uIDEgbW9yZSAuLi4gfCAiY2xvc2VkIjsgcmVhc29uOiBzdHJpbmcgfCBudWxsOyB9Wy4uLicuCmUyZS9zc2gtcHJvZHVjdC5zcGVjLnRzKDczLDMzKTogZXJyb3IgVFMyMzM5OiBQcm9wZXJ0eSAnY292ZXJhZ2UnIGRvZXMgbm90IGV4aXN0IG9uIHR5cGUgJ3sgcmVzb3VyY2U6IHsgd29ya3NwYWNlSWQ6IHN0cmluZzsgZW52aXJvbm1lbnRJZDogc3RyaW5nOyByZXNvdXJjZUlkOiBzdHJpbmc7IGtpbmQ6ICJicm93c2VyIiB8ICJ0ZXJtaW5hbCIgfCAiZmlsZSI7IGluc3RhbmNlSWQ6IHN0cmluZzsgaW5zdGFuY2VHZW5lcmF0aW9uOiBudW1iZXI7IH07IGdlbmVyYXRpb246IHN0cmluZzsgLi4uIDkgbW9yZSAuLi47IGV2aWRlbmNlUmVmPzogc3RyaW5nIHwgdW5kZWZpbmVkOyB9IHwgeyAuLi47IH0nLgogIFByb3BlcnR5ICdjb3ZlcmFnZScgZG9lcyBub3QgZXhpc3Qgb24gdHlwZSAneyBraW5kOiAic291cmNlcyI7IHdvcmtzcGFjZUlkOiBzdHJpbmc7IHNvdXJjZXM6IHsgcmVzb3VyY2U6IHsgd29ya3NwYWNlSWQ6IHN0cmluZzsgcmVzb3VyY2VJZDogc3RyaW5nOyBraW5kOiAiYnJvd3NlciIgfCAidGVybWluYWwiIHwgImZpbGUiOyBlbnZpcm9ubWVudElkOiBzdHJpbmcgfCBudWxsOyB9OyBpbnN0YW5jZTogeyAuLi47IH0gfCBudWxsOyB0aXRsZTogc3RyaW5nOyBjYXBhYmlsaXRpZXM6IHN0cmluZ1tdOyBzdGF0ZTogInVuYXZhaWxhYmxlIiB8IC4uLiAxIG1vcmUgLi4uIHwgImNsb3NlZCI7IHJlYXNvbjogc3RyaW5nIHwgbnVsbDsgfVsuLi4nLgrigIlFTElGRUNZQ0xF4oCJIENvbW1hbmQgZmFpbGVkIHdpdGggZXhpdCBjb2RlIDIuCg==",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:f90dafdc0eddb54815eccc54a229056386e32ce4f882e13938e5119784b3f911:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:f90dafdc0eddb54815eccc54a229056386e32ce4f882e13938e5119784b3f911:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:f90dafdc0eddb54815eccc54a229056386e32ce4f882e13938e5119784b3f911:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

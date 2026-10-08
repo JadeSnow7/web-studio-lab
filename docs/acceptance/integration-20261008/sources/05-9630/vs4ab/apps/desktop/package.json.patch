@@ -1,0 +1,12 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/package.json b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/package.json
+index 8a6cff9..5de2b57 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/package.json
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/package.json
+@@ -24,6 +24,7 @@
+     "electron": "44.5.1",
+     "electron-builder": "26.15.3",
+     "electron-vite": "5.0.0",
++    "parse5": "8.0.1",
+     "react": "19.3.0",
+     "react-dom": "19.3.0",
+     "typescript": "6.0.3",

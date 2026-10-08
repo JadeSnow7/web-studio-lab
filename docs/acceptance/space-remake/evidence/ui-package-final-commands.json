@@ -1,0 +1,73 @@
+[
+  {
+    "command": "pnpm build",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:29:51.776990+00:00",
+    "sourceSha256": "07d5b3611cbc63b98591d80cbc509d241bdc15534c1f36925b6e8437890de601",
+    "log": "ui-package-final-build.txt",
+    "logSha256": "a7d78f86f30b7ef35381339ab89e2bb62718ddb8d2efe63af8694b8f2a3f7590"
+  },
+  {
+    "command": "pnpm typecheck",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:29:54.912949+00:00",
+    "sourceSha256": "07d5b3611cbc63b98591d80cbc509d241bdc15534c1f36925b6e8437890de601",
+    "log": "ui-package-final-typecheck.txt",
+    "logSha256": "32944ac31bc788b875914b865d067cdb52937b9bf4bb0d9fea5abfef0b28cb94"
+  },
+  {
+    "command": "pnpm test",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:30:00.141586+00:00",
+    "sourceSha256": "07d5b3611cbc63b98591d80cbc509d241bdc15534c1f36925b6e8437890de601",
+    "log": "ui-package-final-unit.txt",
+    "logSha256": "dcb26d80b44117b987f7a9127559c79fb50bd06c280a02870ad445b1c40853f7"
+  },
+  {
+    "command": "pnpm exec eslint apps packages e2e",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:30:02.925644+00:00",
+    "sourceSha256": "07d5b3611cbc63b98591d80cbc509d241bdc15534c1f36925b6e8437890de601",
+    "log": "ui-package-final-scoped-lint.txt",
+    "logSha256": "3a86ba54d6499ffa19aaff3eb9b6abaad5c16c565d0db4bcbf953221b10b7f9b"
+  },
+  {
+    "command": "node --import tsx --test tests/vertical-slice/selftest.test.ts",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:30:05.579997+00:00",
+    "sourceSha256": "07d5b3611cbc63b98591d80cbc509d241bdc15534c1f36925b6e8437890de601",
+    "log": "ui-package-final-vs001-selftest.txt",
+    "logSha256": "2c1e06279fcfeb5bbb8a3f4d28853d595800ca23b6e76669074417d3218187c6"
+  },
+  {
+    "command": "PATH=/private/tmp/wsl-remake-bin:$PATH pnpm exec playwright test",
+    "exitCode": 0,
+    "sourceSha256": "07d5b3611cbc63b98591d80cbc509d241bdc15534c1f36925b6e8437890de601",
+    "startedAt": "2026-10-08T06:30:37.909075+00:00",
+    "finishedAt": "2026-10-08T06:31:26.578705+00:00",
+    "log": "ui-package-final-electron-all.txt",
+    "logSha256": "7404247ac4898fadb43847aea0cd43715ee858612a29117c72826bdb859b9b56",
+    "summary": "45 passed, 4 explicitly disabled live cases skipped, zero renderer exceptions outside expected negative controls"
+  },
+  {
+    "command": "pnpm exec prettier --check apps packages e2e package.json pnpm-workspace.yaml playwright.config.ts vitest.config.ts eslint.config.js tsconfig.base.json tsconfig.e2e.json .prettierrc.json",
+    "exitCode": 1,
+    "log": "ui-package-prettier.txt",
+    "logSha256": "1bca6d4db52ac703c836832ee05cf1fbe4f9705ea83dccfc94ac137039628d62",
+    "sourceSha256": "07d5b3611cbc63b98591d80cbc509d241bdc15534c1f36925b6e8437890de601"
+  },
+  {
+    "command": "pnpm exec prettier --write e2e/workspace-debug.spec.ts",
+    "exitCode": 0,
+    "log": "ui-package-prettier-write.txt",
+    "logSha256": "82f23c8c0602f7b1c6d079470bbdaba93704c2b5b91fbef748c34bb0990f3b0a",
+    "sourceSha256": "200ff658241080c786b1fe4c10a81e53090260a3d6273ae3d8cf34ecee705c9b"
+  },
+  {
+    "command": "pnpm exec prettier --check apps packages e2e package.json pnpm-workspace.yaml playwright.config.ts vitest.config.ts eslint.config.js tsconfig.base.json tsconfig.e2e.json .prettierrc.json",
+    "exitCode": 0,
+    "log": "ui-package-prettier-final.txt",
+    "logSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+    "sourceSha256": "200ff658241080c786b1fe4c10a81e53090260a3d6273ae3d8cf34ecee705c9b"
+  }
+]

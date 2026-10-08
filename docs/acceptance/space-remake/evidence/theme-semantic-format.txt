@@ -1,0 +1,4 @@
+COMMAND: pnpm exec prettier --check apps packages e2e package.json pnpm-workspace.yaml playwright.config.ts vitest.config.ts eslint.config.js tsconfig.base.json tsconfig.e2e.json .prettierrc.json
+SOURCE SHA256: 7eff9b2af337ee5ef0604b2b55c8b118712bedf1be8e997139fecd4b9bbfa246
+Checking formatting...
+All matched files use Prettier code style!

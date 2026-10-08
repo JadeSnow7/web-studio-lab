@@ -1,0 +1,60 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/preview/controller.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/preview/controller.ts
+index b304691..5e259de 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/preview/controller.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/preview/controller.ts
+@@ -1,5 +1,5 @@
+ import { randomUUID } from 'node:crypto';
+-import { WebContentsView, BrowserWindow } from 'electron';
++import { WebContentsView, type BrowserWindow } from 'electron';
+ import type {
+   CdpState,
+   PageCapture,
+@@ -53,7 +53,6 @@ export class PreviewController {
+   private blockedNavigation: string | null = null;
+   private pickError: string | null = null;
+   private visible = false;
+-  private devToolsWindow: BrowserWindow | null = null;
+   private disposed = false;
+   private navigationEpoch = 0;
+   private brokerFailureEpoch: number | null = null;
+@@ -82,7 +81,6 @@ export class PreviewController {
+       protocol = new PublicDocumentProtocol(this.webContents.session, {
+         allowedOrigins: options.allowedOrigins,
+         webContentsId: this.webContents.id,
+-        devToolsWebContentsId: () => this.devToolsWindow?.webContents.id,
+         epoch: () => this.navigationEpoch,
+         onDocument: (document, epoch) => {
+           this.publicDocument = { document, epoch };
+@@ -455,23 +453,7 @@ export class PreviewController {
+   }
+ 
+   openDevTools(): void {
+-    if (!this.devToolsWindow) {
+-      // Establish owner identity before the frontend's first request; Electron's builtin owner getter is populated after frontend load.
+-      const tools = new BrowserWindow({
+-        width: 900,
+-        height: 700,
+-        show: false,
+-        webPreferences: { partition: this.options.partition, sandbox: true, contextIsolation: true, nodeIntegration: false },
+-      });
+-      this.devToolsWindow = tools;
+-      tools.on('closed', () => {
+-        this.devToolsWindow = null;
+-      });
+-      this.webContents.setDevToolsWebContents(tools.webContents);
+-      this.webContents.openDevTools({ mode: 'detach' });
+-    }
+-    this.devToolsWindow.show();
+-    this.devToolsWindow.focus();
++    this.webContents.openDevTools({ mode: 'detach' });
+   }
+ 
+   /** 窗口关闭时显式释放页面：断开 CDP，关闭 webContents。 */
+@@ -479,7 +461,6 @@ export class PreviewController {
+     if (this.disposed) return;
+     this.invalidatePick('网页实例已销毁');
+     this.disposed = true;
+-    this.devToolsWindow?.destroy();
+     this.publicProtocol.dispose();
+     if (this.webContents.debugger.isAttached()) this.webContents.debugger.detach();
+     this.window.contentView.removeChildView(this.view);

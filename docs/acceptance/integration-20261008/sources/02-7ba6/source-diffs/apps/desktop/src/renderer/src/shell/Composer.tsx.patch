@@ -1,0 +1,70 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/shell/Composer.tsx b/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/shell/Composer.tsx
+index c14d799..371020a 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/shell/Composer.tsx
++++ b/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/shell/Composer.tsx
+@@ -1,12 +1,11 @@
+-import { useId, useRef, useState, type KeyboardEvent } from 'react';
++import { useId, useState, type KeyboardEvent } from 'react';
+ import { useStore } from '../lib/store';
+ import { draftActions, draftsStore, type ComposerTarget } from '../state/drafts';
+-import { chatActions, chatBlockedReason, chatStore } from '../state/chat';
+ import { Icon } from '../components/Icon';
+ 
+ interface ComposerProps {
+   target: ComposerTarget;
+-  /** 不能发送的原因；为 null 时允许发送。为 null 时使用真实聊天状态。 */
++  /** 不能发送的原因；为 null 时允许发送。本版本 Codex CLI 未接入，始终有原因。 */
+   sendBlockedReason: string | null;
+   placeholder: string;
+   harnessLabel: string;
+@@ -19,11 +18,8 @@ interface ComposerProps {
+  */
+ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel, rows = 2 }: ComposerProps) {
+   const inputId = useId();
+-  const input = useRef<HTMLTextAreaElement>(null);
+   const conversationId = target.kind === 'conversation' ? target.conversation.id : null;
+   const draft = useStore(draftsStore, (d) => (conversationId ? (d[conversationId] ?? '') : ''));
+-  useStore(chatStore, (state) => state);
+-  const blocked = sendBlockedReason ?? (conversationId ? chatBlockedReason(conversationId) : null);
+   const [notice, setNotice] = useState<string | null>(null);
+ 
+   if (target.kind === 'none') {
+@@ -39,11 +35,10 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,
+ 
+   const attemptSend = () => {
+     if (draft.trim() === '') return;
+-    if (blocked) {
+-      setNotice(`未发送：${blocked}`);
++    if (sendBlockedReason) {
++      setNotice(`未发送：${sendBlockedReason}`);
+       return;
+     }
+-    void chatActions.send(target.conversation.id, draft);
+   };
+ 
+   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+@@ -60,8 +55,6 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,
+         发送到 · {target.conversation.scopeLabel} / {target.conversation.title} / {harnessLabel}
+       </label>
+       <textarea
+-        className="resize-none"
+-        ref={input}
+         id={inputId}
+         rows={rows}
+         value={draft}
+@@ -78,12 +71,9 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,
+           type="button"
+           className="icon-btn primary"
+           aria-label="发送"
+-          aria-disabled={blocked !== null}
+-          title={blocked ?? '发送'}
+-          onClick={() => {
+-            attemptSend();
+-            input.current?.focus();
+-          }}
++          aria-disabled={sendBlockedReason !== null}
++          title={sendBlockedReason ?? '发送'}
++          onClick={attemptSend}
+         >
+           <Icon name="send" size={15} />
+         </button>

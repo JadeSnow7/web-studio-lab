@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/service/src/ssh-terminal.test.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T08:42:09.562512Z",
+  "ended_at": "2026-10-08T08:42:10.209456Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/ssh-terminal.test.ts (5 tests | 1 failed) 120ms\n   × rejects close when the connection is lost while waiting for channel closure 32ms\n\n Test Files  1 failed (1)\n      Tests  1 failed | 4 passed (5)\n   Start at  16:42:09\n   Duration  245ms (tests 69%, transform 21%, import 9%, worker 1%)\n\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/ssh-terminal.test.ts > rejects close when the connection is lost while waiting for channel closure\nAssertionError: promise resolved \"{ seq: 4, sessionId: 'remote', …(7) }\" instead of rejecting\n\n- Expected\n+ Received\n\n- Error {\n-   \"message\": \"rejected promise\",\n+ {\n+   \"cleanupPending\": true,\n+   \"cwd\": null,\n+   \"error\": \"Connection lost; remote process recovery is unknown\",\n+   \"output\": \"\",\n+   \"outputOffset\": 0,\n+   \"sandbox\": \"ssh\",\n+   \"seq\": 4,\n+   \"sessionId\": \"remote\",\n+   \"state\": \"failed\",\n  }\n\n ❯ apps/service/src/ssh-terminal.test.ts:145:49\n    143|   );\n    144|   const opened = await terminal.open(80, 24);\n    145|   await expect(terminal.close(opened.sessionId!)).rejects.toThrow('unk…\n       |                                                 ^\n    146|   expect(terminal.get().cleanupPending).toBe(true);\n    147|   await expect(terminal.shutdown()).rejects.toThrow('unknown');\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvc2VydmljZS9zcmMvc3NoLXRlcm1pbmFsLnRlc3QudHMgKDUgdGVzdHMgfCAxIGZhaWxlZCkgMTIwbXMKICAgw5cgcmVqZWN0cyBjbG9zZSB3aGVuIHRoZSBjb25uZWN0aW9uIGlzIGxvc3Qgd2hpbGUgd2FpdGluZyBmb3IgY2hhbm5lbCBjbG9zdXJlIDMybXMKCiBUZXN0IEZpbGVzICAxIGZhaWxlZCAoMSkKICAgICAgVGVzdHMgIDEgZmFpbGVkIHwgNCBwYXNzZWQgKDUpCiAgIFN0YXJ0IGF0ICAxNjo0MjowOQogICBEdXJhdGlvbiAgMjQ1bXMgKHRlc3RzIDY5JSwgdHJhbnNmb3JtIDIxJSwgaW1wb3J0IDklLCB3b3JrZXIgMSUpCgo=",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL3NzaC10ZXJtaW5hbC50ZXN0LnRzID4gcmVqZWN0cyBjbG9zZSB3aGVuIHRoZSBjb25uZWN0aW9uIGlzIGxvc3Qgd2hpbGUgd2FpdGluZyBmb3IgY2hhbm5lbCBjbG9zdXJlCkFzc2VydGlvbkVycm9yOiBwcm9taXNlIHJlc29sdmVkICJ7IHNlcTogNCwgc2Vzc2lvbklkOiAncmVtb3RlJywg4oCmKDcpIH0iIGluc3RlYWQgb2YgcmVqZWN0aW5nCgotIEV4cGVjdGVkCisgUmVjZWl2ZWQKCi0gRXJyb3IgewotICAgIm1lc3NhZ2UiOiAicmVqZWN0ZWQgcHJvbWlzZSIsCisgeworICAgImNsZWFudXBQZW5kaW5nIjogdHJ1ZSwKKyAgICJjd2QiOiBudWxsLAorICAgImVycm9yIjogIkNvbm5lY3Rpb24gbG9zdDsgcmVtb3RlIHByb2Nlc3MgcmVjb3ZlcnkgaXMgdW5rbm93biIsCisgICAib3V0cHV0IjogIiIsCisgICAib3V0cHV0T2Zmc2V0IjogMCwKKyAgICJzYW5kYm94IjogInNzaCIsCisgICAic2VxIjogNCwKKyAgICJzZXNzaW9uSWQiOiAicmVtb3RlIiwKKyAgICJzdGF0ZSI6ICJmYWlsZWQiLAogIH0KCiDina8gYXBwcy9zZXJ2aWNlL3NyYy9zc2gtdGVybWluYWwudGVzdC50czoxNDU6NDkKICAgIDE0M3wgICApOwogICAgMTQ0fCAgIGNvbnN0IG9wZW5lZCA9IGF3YWl0IHRlcm1pbmFsLm9wZW4oODAsIDI0KTsKICAgIDE0NXwgICBhd2FpdCBleHBlY3QodGVybWluYWwuY2xvc2Uob3BlbmVkLnNlc3Npb25JZCEpKS5yZWplY3RzLnRvVGhyb3coJ3Vua+KApgogICAgICAgfCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBeCiAgICAxNDZ8ICAgZXhwZWN0KHRlcm1pbmFsLmdldCgpLmNsZWFudXBQZW5kaW5nKS50b0JlKHRydWUpOwogICAgMTQ3fCAgIGF3YWl0IGV4cGVjdCh0ZXJtaW5hbC5zaHV0ZG93bigpKS5yZWplY3RzLnRvVGhyb3coJ3Vua25vd24nKTsKCuKOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr1sxLzFd4o6vCgo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c79cf63e61072906772ab389bd2271f90455f28978e26ee1721b8dce4bdf64b2:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c79cf63e61072906772ab389bd2271f90455f28978e26ee1721b8dce4bdf64b2:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c79cf63e61072906772ab389bd2271f90455f28978e26ee1721b8dce4bdf64b2:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

@@ -1,0 +1,13 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/state/shell.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/state/shell.ts
+index 8ebe436..ef39218 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/state/shell.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/state/shell.ts
+@@ -2,7 +2,7 @@ import { createStore } from '../lib/store';
+ import { DEMO_SPACE } from '../domain/space';
+ 
+ export type Route = 'home' | 'space' | 'resources' | 'conversations' | 'tasks' | 'settings';
+-export type BrowserTab = 'preview' | 'log' | 'diff' | 'report';
++export type BrowserTab = 'preview' | 'terminal' | 'log' | 'diff' | 'report';
+ export type RightTab = 'space' | 'contacts' | 'feed';
+ 
+ /** 当前输入作用域：首页是个人作用域，进入空间后才是该空间。 */

@@ -1,0 +1,31 @@
+
+Running 1 test using 1 worker
+
+(node:52606) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 (6.6s)
+
+
+  1) e2e/workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 ─────────────────────
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      194 |     await expect
+      195 |       .poll(() => app.evaluate(({ webContents }, id) => webContents.fromId(id)!.isDevToolsOpened(), web.preview!.page.webContentsId))
+    > 196 |       .toBe(true);
+          |        ^
+      197 |     expect(
+      198 |       await app.evaluate(({ webContents }, id) => webContents.fromId(id)!.isDevToolsOpened(), secondResource.preview!.page.webContentsId),
+      199 |     ).toBe(false);
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/workspace-migration.spec.ts:196:8
+
+    Error Context: test-results/e2e/workspace-migration-R3-双网页原生focus事件决定地址与刷新目标，布局更新保持焦点/error-context.md
+
+  1 failed
+    e2e/workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 ──────────────────────

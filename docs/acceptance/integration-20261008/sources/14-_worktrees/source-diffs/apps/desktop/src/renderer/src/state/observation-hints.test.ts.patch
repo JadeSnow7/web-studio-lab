@@ -1,0 +1,95 @@
+diff --git a/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/observation-hints.test.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/observation-hints.test.ts
+new file mode 100644
+index 0000000..c966fd4
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/observation-hints.test.ts
+@@ -0,0 +1,89 @@
++import { afterEach, describe, expect, it, vi } from 'vitest';
++import { FileInvalidationHintSchema, type FileInvalidationHint, type Observation } from '@wsl/protocol';
++import {
++  initializeObservationHints,
++  observationHintsStore,
++  projectInvalidation,
++  relevantInvalidation,
++  type ObservationHintState,
++} from './observation-hints';
++const hint: FileInvalidationHint = {
++  workspaceId: 'taskflow-demo',
++  environmentId: 'local',
++  resourceId: 'files:local',
++  generation: 'files-1',
++  watchGeneration: 1,
++  sequence: 4,
++  capturedAt: '2026-10-07T10:00:01.000Z',
++  change: 'change',
++  coverage: { scope: 'observed-directories', recursive: false, lossy: true },
++};
++const initial: ObservationHintState = { latest: null, retiredGenerations: [] };
++const result: Observation = {
++  resource: { workspaceId: 'taskflow-demo', environmentId: 'local', resourceId: 'file:hash', kind: 'file' },
++  generation: 'files-1',
++  revision: { value: 'hash', strength: 'content-hash' },
++  snapshotId: '00000000-0000-0000-0000-000000000000',
++  capturedAt: '2026-10-07T10:00:00.000Z',
++  source: 'disk',
++  representation: 'text',
++  coverage: { status: 'complete' },
++  data: { text: 'old' },
++};
++afterEach(() => {
++  vi.unstubAllGlobals();
++  observationHintsStore.set(() => initial);
++});
++describe('file invalidation UI projection', () => {
++  it('rejects older sequences and watch generations, and does not revive a retired resource generation', () => {
++    const current = projectInvalidation(initial, hint);
++    expect(projectInvalidation(current, { ...hint, sequence: 3 })).toBe(current);
++    expect(projectInvalidation(current, { ...hint, watchGeneration: 0, sequence: 100 })).toBe(current);
++    const restarted = projectInvalidation(current, { ...hint, watchGeneration: 2, sequence: 1 });
++    expect(restarted.latest?.watchGeneration).toBe(2);
++    const replaced = projectInvalidation(restarted, {
++      ...hint,
++      generation: 'files-2',
++      change: 'root_replaced',
++      capturedAt: '2026-10-07T10:00:02.000Z',
++    });
++    expect(replaced.latest?.generation).toBe('files-2');
++    expect(projectInvalidation(replaced, { ...hint, sequence: 100, capturedAt: '2026-10-07T10:00:03.000Z' })).toBe(replaced);
++    expect(projectInvalidation(replaced, { ...hint, environmentId: 'ssh:test' })).toBe(replaced);
++  });
++  it('shows a hint only for the displayed old local file, including root replacement, and clears after a later explicit read', () => {
++    expect(relevantInvalidation(result, hint)).toEqual(hint);
++    expect(relevantInvalidation({ ...result, resource: { ...result.resource, kind: 'browser' } }, hint)).toBeNull();
++    expect(
++      relevantInvalidation({ ...result, source: 'sftp', resource: { ...result.resource, environmentId: 'ssh:test' } }, hint),
++    ).toBeNull();
++    expect(relevantInvalidation({ ...result, capturedAt: '2026-10-07T10:00:02.000Z' }, hint)).toBeNull();
++    expect(relevantInvalidation(result, { ...hint, generation: 'files-2', change: 'root_replaced' })).not.toBeNull();
++    expect(() => FileInvalidationHintSchema.parse({ ...hint, coverage: { ...hint.coverage, recursive: true } })).toThrow();
++  });
++  it('subscribes to named events without reading resources or invoking an agent', () => {
++    let receive!: (value: FileInvalidationHint) => void;
++    const read = vi.fn();
++    const send = vi.fn();
++    const unsubscribe = vi.fn();
++    vi.stubGlobal('window', {
++      studio: {
++        observation: {
++          read,
++          onInvalidated: (listener: typeof receive) => {
++            receive = listener;
++            return unsubscribe;
++          },
++        },
++        chat: { send },
++      },
++    });
++    const stop = initializeObservationHints();
++    receive(hint);
++    expect(observationHintsStore.get().latest).toEqual(hint);
++    expect(read).not.toHaveBeenCalled();
++    expect(send).not.toHaveBeenCalled();
++    stop();
++    expect(unsubscribe).toHaveBeenCalledOnce();
++  });
++});

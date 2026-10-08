@@ -1,0 +1,50 @@
+[
+  {
+    "command": "pnpm --filter @wsl/desktop exec tsc -p tsconfig.node.json",
+    "startedAt": "2026-10-08T05:41:20.670347+00:00",
+    "exitCode": 0,
+    "sourceSha256": "5cda427d21fd6e33463fe6273ad24369e018ef18ca5188b0768e56a9d823e306",
+    "log": "stage2-final-main-typecheck.txt",
+    "logSha256": "44ff0dc19ae2307e3449e1dc94e6c354e6888272a72b4622bb3c848ae6efad28"
+  },
+  {
+    "command": "pnpm --filter @wsl/service typecheck",
+    "startedAt": "2026-10-08T05:41:21.978613+00:00",
+    "exitCode": 0,
+    "sourceSha256": "5cda427d21fd6e33463fe6273ad24369e018ef18ca5188b0768e56a9d823e306",
+    "log": "stage2-final-service-typecheck.txt",
+    "logSha256": "a42f4ee798078a346159669dcbcad54fddf3046e871ed659f0a415c4046e262e"
+  },
+  {
+    "command": "pnpm --filter @wsl/protocol typecheck",
+    "startedAt": "2026-10-08T05:41:22.965280+00:00",
+    "exitCode": 0,
+    "sourceSha256": "5cda427d21fd6e33463fe6273ad24369e018ef18ca5188b0768e56a9d823e306",
+    "log": "stage2-final-protocol-typecheck.txt",
+    "logSha256": "e9027f5e56cbdffac5371c752820c475ca5f932a3d8892f593848318ddbdb554"
+  },
+  {
+    "command": "pnpm exec vitest run packages/protocol/src apps/desktop/src/main apps/service/src",
+    "startedAt": "2026-10-08T05:41:23.682004+00:00",
+    "exitCode": 0,
+    "sourceSha256": "5cda427d21fd6e33463fe6273ad24369e018ef18ca5188b0768e56a9d823e306",
+    "log": "stage2-final-unit.txt",
+    "logSha256": "38f7c78a7b9ccdde5890bc66c3fe3ec57cb5f5cb0982267b2881766576d8e1a6"
+  },
+  {
+    "command": "pnpm exec vitest run apps/service/src/resource-mcp.test.ts",
+    "startedAt": "2026-10-08T05:41:26.432911+00:00",
+    "exitCode": 0,
+    "sourceSha256": "5cda427d21fd6e33463fe6273ad24369e018ef18ca5188b0768e56a9d823e306",
+    "log": "stage2-final-resource-mcp.txt",
+    "logSha256": "badcd7ef4cc59d12e22df05c0e1d91452064f5065bb9d8dedd37d2a47d305688"
+  },
+  {
+    "command": "pnpm --filter @wsl/desktop exec tsc -p tsconfig.web.json",
+    "exitCode": 1,
+    "sourceSha256": "5cda427d21fd6e33463fe6273ad24369e018ef18ca5188b0768e56a9d823e306",
+    "log": "stage2-renderer-incompatibility.txt",
+    "logSha256": "bb771c73ee4ab968bf32c96ec516ac0381f5ff76448ee5a2301f2c576ddf58b6",
+    "status": "expected transitional incompatibility; renderer migration deferred"
+  }
+]

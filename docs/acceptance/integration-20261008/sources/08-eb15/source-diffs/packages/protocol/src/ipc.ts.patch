@@ -1,0 +1,46 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/ipc.ts b/private/tmp/wsl-integration-sources/08-eb15/packages/protocol/src/ipc.ts
+index 24a5ec7..491ad15 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/ipc.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/packages/protocol/src/ipc.ts
+@@ -1,10 +1,13 @@
+ import { WorkbenchCommandSchema, WorkbenchEventSchema, WorkbenchResultSchema, WorkbenchSnapshotSchema } from './workspace';
++import { ResourceCollectionSchema, ResourceListRequestSchema, ResourceRemoveRequestSchema } from './resources';
+ import { z } from 'zod';
++import { TerminalOpenSchema, TerminalWriteSchema, TerminalResizeSchema, TerminalTargetSchema, TerminalSnapshotSchema } from './terminal';
+ import { AppInfoSchema, ShellCommandSchema } from './app';
+ import { ChatConversationSchema, ChatSendSchema, ChatStatusSchema, ChatTargetSchema } from './chat';
+ import { ExecutionStatusSchema } from './execution';
+ 
+ const NoArgs = z.undefined();
++const NoResult = z.void();
+ 
+ /**
+  * renderer → main 的请求通道。每个通道声明参数与返回值 schema；
+@@ -14,12 +17,19 @@ export const invokeChannels = {
+   'workbench:reload': { request: NoArgs, response: WorkbenchSnapshotSchema },
+   'workbench:get-snapshot': { request: NoArgs, response: WorkbenchSnapshotSchema },
+   'workbench:command': { request: WorkbenchCommandSchema, response: WorkbenchResultSchema },
++  'resources:list': { request: ResourceListRequestSchema, response: ResourceCollectionSchema },
++  'resources:remove': { request: ResourceRemoveRequestSchema, response: ResourceCollectionSchema },
+   'app:get-info': { request: NoArgs, response: AppInfoSchema },
+   'chat:get-status': { request: NoArgs, response: ChatStatusSchema },
+   'chat:get': { request: ChatTargetSchema, response: ChatConversationSchema },
+   'chat:send': { request: ChatSendSchema, response: ChatConversationSchema },
+   'chat:cancel': { request: ChatTargetSchema, response: ChatConversationSchema },
+   'chat:reset': { request: ChatTargetSchema, response: ChatConversationSchema },
++  'terminal:get': { request: NoArgs, response: TerminalSnapshotSchema },
++  'terminal:open': { request: TerminalOpenSchema, response: TerminalSnapshotSchema },
++  'terminal:write': { request: TerminalWriteSchema, response: NoResult },
++  'terminal:resize': { request: TerminalResizeSchema, response: NoResult },
++  'terminal:close': { request: TerminalTargetSchema, response: TerminalSnapshotSchema },
+   'execution:get-status': { request: NoArgs, response: ExecutionStatusSchema },
+ } as const;
+ 
+@@ -30,6 +40,7 @@ export type InvokeResponse<C extends InvokeChannel> = z.output<(typeof invokeCha
+ /** main → renderer 的事件通道。 */
+ export const eventChannels = {
+   'workbench:event': WorkbenchEventSchema,
++  'terminal:state': TerminalSnapshotSchema,
+   'chat:status': ChatStatusSchema,
+   'chat:conversation': ChatConversationSchema,
+   'shell:command': ShellCommandSchema,

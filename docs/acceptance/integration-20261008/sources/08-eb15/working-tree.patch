@@ -1,0 +1,268 @@
+diff --git a/.gitignore b/.gitignore
+index 1c0eee9..2eceea4 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -32,3 +32,8 @@ credentials*.json
+ # Machine-specific files
+ .DS_Store
+ Thumbs.db
++
++# Runtime workspaces, evidence and test output
++.local/
++playwright-report/
++test-results/
+diff --git a/README.md b/README.md
+index e349d73..eaae126 100644
+--- a/README.md
++++ b/README.md
+@@ -1,22 +1,128 @@
+ # Web Studio Lab
+ 
+-Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) 既有设计与工程经验规划的 Electron 桌面工作区，面向 [OSCHINA 开源大赛 2026](https://www.oschina.net/os2026/) 的新路线探索。
++Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) 既有设计与工程经验构建的 Electron 桌面工作台，参加 [OSCHINA 开源大赛 2026](https://www.oschina.net/os2026/)。目标闭环：在运行页面上点选元素、确认任务，由 Codex CLI 修改代码，工作台启动 App 并执行固定验收，给出可复验的证据，最后由开发者决定是否接受结果。
+ 
+-当前仓库尚无可运行的 Electron 应用。已建立[首个 vertical slice 验收基线](docs/acceptance/README.md)，包含固定页面 fixture、Zod 契约、测试依赖和实现前失败记录；其中的安装与运行命令只用于验收基准。以下产品能力均为规划目标，尚未实现。
++范围、排期与验收以[任务计划](docs/plans/2026-10-os2026-task-plan.md)为准，实现约束见[架构文档](docs/ARCHITECTURE.md)。
+ 
+-## 规划目标
++## 当前状态
+ 
+-- **Workshop / Browser 双区**：Workshop 承载项目编辑、Agent 协作、终端与构建诊断；Browser 承载持续的页面预览、导航与调试。
+-- **TypeScript 全栈**：用 TypeScript 组织桌面主进程、preload 桥接、界面和共享数据契约。
+-- **实时渲染与调试**：规划开发服务生命周期管理、文件变化与构建状态、热更新预览、前后端诊断及调试上下文关联。
++空间工作台已接入稳定空间、统一标签、最多四个窗格、布局与草稿持久化，以及白、暗、暖和系统主题。真实网页沿用 Electron `WebContentsView`，终端和 Agent 沿用 sbx / guest PTY / Codex CLI；切换空间和关闭标签不终止后台执行。
+ 
+-Electron 宿主、浏览器内核与终端适配所需的原生能力会单独选型；“TypeScript 全栈”表示应用层的实现方向。
++空间会话的任务版本、运行、检查与审阅已分别建模。检查适配器、TaskFlow 业务 API、SSH 和文件编辑仍未接入；界面明确说明缺失能力，不能把聊天结束或静态示例当成检查通过。比赛母模板、固定 C1–C3 验收与 VS001 产品 adapter 仍是独立缺口。
++
++当前源码与权限边界见[空间工作台架构](docs/architecture/workspace-workbench.md)，分阶段范围见[实施合同](docs/implementation/workspace-upgrade.md)，本轮测试、真实宿主与外部环境结果见[逐项验收](docs/acceptance/workspace-upgrade.md)。历史集成快照的记录继续保留，不视为当前验证结果。
++
++R1–R7 能力迁移与竞态修复的当前状态见[本轮交付记录](docs/acceptance/workspace-migration-r1-r7/task-summary.md)。任务历史、通知和运行详情读当前工作台快照；旧演示独立标识，缺少真实 diff 或报告时明确显示缺证据。静态、fixture 与真实窗口结果分别登记。
++
++## 环境
++
++详细安装与独立 sbx 沙箱测试前置条件见[开发依赖与安装](docs/development/dependencies.md)。sbx v0.47.0 已安装，Docker/OpenAI OAuth 已完成，独立沙箱内 Codex 读取内部文件的真实 smoke 已通过，见[沙箱验证记录](docs/verification/2026-10-06-sbx/README.md)。桌面对话与终端现已接入同一个 sbx 环境，应用层测试见 [sbx 接入验证](docs/verification/2026-10-06-sbx-app/README.md)。
++
++- macOS Apple Silicon。其他平台没有验证。
++- Node：与 Electron 44.5.1 内置的 Node 24 对齐，`.nvmrc` 为 24。2026-10-06 的本地验证实际运行在 Node 26.5.0 上，Node 24 尚未单独验证。
++- pnpm 10.34.6（见根 `package.json` 的 `packageManager`）。Node 25 起不再自带 Corepack，可以 `npm install -g pnpm@10.34.6`，或者在下面的命令前加 `npx pnpm@10.34.6` 代替 `pnpm`。
++- 首次运行 Electron 时会下载 Electron 二进制（约 100 MB）；首次打包时 electron-builder 还会下载自己的 Electron 包与 dmg 工具。需要网络。
++
++## 启动与检查
++
++所有命令都从仓库根目录执行。
++
++```bash
++pnpm install --frozen-lockfile
++```
++
++```bash
++WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm dev
++```
++
++`pnpm dev` 启动 Vite dev server 和 Electron 工作台。启动后 TaskFlow 空间加载演示页面 `wsl-demo://taskflow/index.html`。空间名称打开切换器，旁边按钮控制垂直标签。会话的“任务”页明确选择网页目标并采集元素，再确认任务版本。
++
++```bash
++pnpm check
++```
++
++`pnpm check` 依次运行类型检查（含 e2e 与配置文件）、ESLint、Prettier 格式检查和 Vitest 单元测试。
++
++```bash
++pnpm test:e2e
++```
++
++`pnpm test:e2e` 先 `pnpm build`，再用 Playwright 驱动真实的 Electron 窗口，检查启动与安全边界、空间切换、标签和窗格、任务与草稿、原生页面及资源等行为。截图写到 `test-results/screens/`。
++
++## 沙箱对话与终端
++
++先按[依赖说明](docs/development/dependencies.md)准备 sbx、宿主 OAuth 和 guest Codex/Node。启动时用 `WSL_SBX_NAME` 选择已有沙箱，本机本轮使用 `wsl-sbx-smoke-20261006`；`WSL_SBX_BIN` 可指定 CLI 路径。应用从 PATH、`/opt/homebrew/bin/sbx`、`/usr/local/bin/sbx` 定位 sbx，配置不成功时明确禁用发送。生产通路不再使用 `WSL_CODEX_BIN` 或 host Codex。
++
++首页个人对话、个人会话页与空间 Agent 标签提供对话入口：Enter 发送，Shift+Enter 换行，可以取消和开始新对话。界面显示 sandbox 与 guest cwd，工程详情可查看工具结果及警告。Codex 可以使用 guest 工具读写 `/home/agent/workspace`；对话历史分开，但文件系统与终端共享。新对话不会删除 guest 文件，也不承诺删除 CLI 历史。
++
++空间标签栏的“开发终端”打开终端视图，明确连接后创建交互 shell，支持持续 cwd/环境、Ctrl-C、窗口尺寸变化与关闭。切换或关闭标签保留 shell；“停止实例”或取消对话须确认所属远端进程退出。应用不会停止整个 sandbox，sandbox 内安装与文件由 sbx 保留。Browser 可加载演示页面和受控公开 HTTPS 只读文档，尚未转发 guest 服务端口。
++
++普通 `pnpm test:e2e` 使用缺失配置或确定性 sbx fixture，不调用真实模型。显式真实检查需要本机已准备好的 sandbox、有效 OAuth、网络和原生窗口权限：
++
++```bash
++pnpm build
++WSL_LIVE_SBX=1 WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm exec playwright test e2e/sbx.spec.ts --grep 'live'
++```
++
++固定范围见 [sbx 应用 SPEC](docs/verification/2026-10-06-sbx-app/SPEC.md)，执行结果见[验证记录](docs/verification/2026-10-06-sbx-app/README.md)。原来的 [host 对话记录](docs/verification/2026-10-06-codex-chat/README.md)保留为历史证据。
++
++## 公开网页与空间快照
++
++沿用集成快照的只读公开文档路径：在地址栏输入公开 HTTPS URL，成功加载后点击“加入空间”。工作坊资源页可查看 URL、标题、正文、资源身份、版本与摘要，并用当前同 URL 页面更新或移除。公开资源保存及 MCP 目前仅对已有 TaskFlow 空间开放；新空间不会继承该资源集合。外部脚本、子资源和登录状态不进入该文档视图；不支持的响应会明确失败。
++
++空间会话通过有限只读 MCP 获取用户保存的快照，个人会话是空资源范围。资源更新或删除后下一轮读取新集合；历史消息保留。该功能不创建 host mount，不改变已有沙箱认证。真实网络与模型结果、DNS 阻塞和受控 fixture 必须分别判断，见[本轮合同](docs/verification/2026-10-06-public-resources/SPEC.md)。
++
++普通测试默认不调用模型。以下分别是实际 Codex 读取明确标识的内存测试资料，以及真实公网到 UI 空间再到模型的链路；需显式运行并保留实际结果，不能相互替代：
++
++```bash
++WSL_LIVE_RESOURCE_AGENT=1 WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm exec vitest run apps/service/src/resource-agent.live.test.ts
++pnpm build
++WSL_LIVE_RESOURCE=1 WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm exec playwright test e2e/resources-live.spec.ts
++```
++
++## 打包
++
++```bash
++pnpm package
++```
++
++生成 macOS Apple Silicon 试用包，输出到 `apps/desktop/release/`（`.dmg`、`.zip` 与 `mac-arm64/Web Studio Lab.app`）。打包后可以对包内应用重跑同一套检查：
++
++```bash
++pnpm test:e2e:packaged
++```
++
++试用包**没有签名，也没有公证**（只有链接器生成的 ad-hoc 签名，Gatekeeper 评估不通过）。从其他机器下载后，macOS 会拦截打开，可以在 Finder 中右键选择“打开”，或者去掉隔离属性：
++
++```bash
++xattr -dr com.apple.quarantine "/Applications/Web Studio Lab.app"
++```
++
++## 目录
++
++| 路径                 | 内容                                                                                                |
++| -------------------- | --------------------------------------------------------------------------------------------------- |
++| `apps/desktop`       | Electron：`src/main`（窗口、IPC、Browser 区控制）、`src/preload`（窄 API）、`src/renderer`（React） |
++| `apps/service`       | 独立 Node Codex 对话与 PTY、公开资源服务；任务用例在 Main workbench 组装                            |
++| `packages/protocol`  | Zod schema：页面现场、任务版本、run / attempt / 审阅、IPC 通道                                      |
++| `demo/`              | 演示页面，只供 Browser 区演示加载，与真实运行数据分开                                               |
++| `e2e/`               | Playwright 驱动 Electron 的端到端检查                                                               |
++| `docs/plans/`        | 比赛任务计划                                                                                        |
++| `docs/verification/` | 验证记录与截图                                                                                      |
++
++安全基线：工作台与 Browser 区都启用 `contextIsolation`、`sandbox`，关闭 `nodeIntegration`；Browser 区没有 preload，使用独立 session；IPC 在主进程用 Zod 校验参数，并只接受主窗口顶层工作台页面的请求。详见[运行时安全边界](docs/architecture/current-runtime.md)。
++
++## 架构与固定验收入口
++
++[Agent 入口](AGENTS.md)、[架构基线](docs/ARCHITECTURE.md)与[开发规范](CONTRIBUTING.md)说明职责和协作要求；[当前运行时](docs/architecture/current-runtime.md)区分真实实现、目标约束与缺口。目标架构的取舍见 [ADR-0001](docs/architecture/adr/0001-modular-monolith.md)。
++
++main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical-slice`、固定 fixture 和实现前失败证据全部保留，包括 PR1 的观察值拒绝和源码类型检查修复。验收基准已有，不代表产品 adapter 或比赛闭环已完成；真实模型调用须另行明确启用。整合后的运行入口以本树 `package.json` 为准。
+ 
+ ## 来源与继承边界
+ 
+ 原项目：[JadeSnow7/Web-Studio](https://github.com/JadeSnow7/Web-Studio)。
+ 
+-参考基线固定为 [`f377db874f0ecba3390804146776b5e5786d2f86`](https://github.com/JadeSnow7/Web-Studio/tree/f377db874f0ecba3390804146776b5e5786d2f86)。本仓库从独立 Git 历史开始，当前没有迁入原项目源码、设计文档正文或二进制资产。
++参考基线固定为 [`f377db874f0ecba3390804146776b5e5786d2f86`](https://github.com/JadeSnow7/Web-Studio/tree/f377db874f0ecba3390804146776b5e5786d2f86)。本仓库从独立 Git 历史开始，没有迁入原项目源码、设计文档正文或二进制资产，也不迁入上游 Swift、Metal 与 Ghostty 代码。
+ 
+ 优先参考以下已形成的设计契约：
+ 
+@@ -25,8 +131,6 @@ Electron 宿主、浏览器内核与终端适配所需的原生能力会单独
+ - Agent 请求使用显式确认的有界快照，保持请求不可变，忽略取消后的迟到结果。
+ - 持久化恢复描述，不自动恢复终端进程；保存需要处理版本与并发修订冲突。
+ 
+-原项目的通用双栏布局与 Swift/macOS 实现需要重新设计或适配，不能直接视为已完成的 Workshop / Browser 或 Electron 实现。
+-
+ 固定基线下的设计入口：
+ 
+ - [产品与结构设计（DESIGN.md）](https://github.com/JadeSnow7/Web-Studio/blob/f377db874f0ecba3390804146776b5e5786d2f86/DESIGN.md)
+@@ -37,4 +141,4 @@ Electron 宿主、浏览器内核与终端适配所需的原生能力会单独
+ 
+ ## 许可证
+ 
+-本项目采用 [Apache License 2.0](LICENSE)。原项目在上述固定基线下也提供 [Apache-2.0 许可证](https://github.com/JadeSnow7/Web-Studio/blob/f377db874f0ecba3390804146776b5e5786d2f86/LICENSE)；其第三方依赖适用各自许可证，可查阅原项目的 [第三方声明](https://github.com/JadeSnow7/Web-Studio/blob/f377db874f0ecba3390804146776b5e5786d2f86/THIRD-PARTY-NOTICES.md)。本仓库未迁入这些上游依赖；本次新增测试依赖及版本由 `package.json` 和 `package-lock.json` 单独记录，适用各自许可证。
++本项目采用 [Apache License 2.0](LICENSE)。原项目在上述固定基线下也提供 [Apache-2.0 许可证](https://github.com/JadeSnow7/Web-Studio/blob/f377db874f0ecba3390804146776b5e5786d2f86/LICENSE)。本仓库引入的 npm 依赖适用各自许可证，依赖许可清单在冻结前统一生成（T12）；打包产物中的 Chromium 与 Electron 许可随包附带。
+diff --git a/docs/acceptance/README.md b/docs/acceptance/README.md
+index 6dcdea6..474f1d7 100644
+--- a/docs/acceptance/README.md
++++ b/docs/acceptance/README.md
+@@ -1,8 +1,12 @@
+ # 首个 vertical slice 验收基线
+ 
++当前工作台能力迁移 R1–R7 使用[单独记录](workspace-migration-r1-r7/task-summary.md)，不替代下列 VS001 固定产品验收。
++
++> 2026-10-07 整合说明：以下“实现前基线”和回执描述其各自历史版本。当前树已引入 Electron 产品，但 `src/vertical-slice/adapter.ts` 仍未实现。当前安装统一使用 `pnpm install --frozen-lockfile`，离线入口为 `pnpm typecheck` 与 `pnpm baseline:selftest`；`pnpm baseline` 仍是单独授权的真实验收入口。原根 npm 锁文件仅保留为固定指纹输入，不能对当前 manifest 执行 `npm ci`，详见 [工具链说明](toolchain/README.md)。整合改变了根 manifest，所以当前指纹必然不同于旧回执；下文将当前 checkout 与历史 SHA 比较的命令仅适用于对应历史 checkout，不作为本次整合通过条件。历史回执和固定验收源码均保持原字节。
++
+ 本目录交付可复跑的测试基准。Electron 产品入口尚未实现，因此五条产品验收应失败；类型检查和基准自检应通过。[VS001](VS001.md) 定义成功条件、接口职责和证据约束，Zod 源码定义实际数据结构。
+ 
+-## 从干净 checkout 执行
++## 从历史基线 checkout 执行
+ 
+ 需要 Node.js ≥22.12 和 npm。首次安装需要访问 npm registry。此阶段不要求 Electron、真实 Agent 凭据或 GUI 会话；它们是未来实现真实闭环时的前提。
+ 
+@@ -80,13 +84,13 @@ records/vertical-slice/<runId>/      每次实际结果，默认被 Git 忽略
+ 
+ ## 如何读五项结果
+ 
+-| 检查 | 对应可观察结果 |
+-| --- | --- |
+-| B01 | 有真实 harness 会话/退出记录，且只修改允许的页面文件 |
+-| B02 | Electron/CDP 页面身份属于本次启动和本次 run |
+-| B03 | 从同一 target 实际读取页面状态与 runId |
+-| B04 | 唯一、可见的标题精确为 `Hello Web Studio`，观测窗口无运行时异常 |
+-| B05 | 截图、原始日志及全部 manifest 引用可重新计算并匹配 |
++| 检查 | 对应可观察结果                                                  |
++| ---- | --------------------------------------------------------------- |
++| B01  | 有真实 harness 会话/退出记录，且只修改允许的页面文件            |
++| B02  | Electron/CDP 页面身份属于本次启动和本次 run                     |
++| B03  | 从同一 target 实际读取页面状态与 runId                          |
++| B04  | 唯一、可见的标题精确为 `Hello Web Studio`，观测窗口无运行时异常 |
++| B05  | 截图、原始日志及全部 manifest 引用可重新计算并匹配              |
+ 
+ 完整判定及反例见 [VS001 的五条检查](VS001.md#五条冻结检查)。`failed / target_missing` 是当前缺失产品能力的基线；未来 adapter 存在后，同样的命令才会执行真实过程。自检中的合成样本只检验判定器的拒绝能力，不能记为上述五项已通过。
+ 
+diff --git a/package.json b/package.json
+index ae64f42..cd89a20 100644
+--- a/package.json
++++ b/package.json
+@@ -1,23 +1,48 @@
+ {
+-  "name": "web-studio-lab-baseline",
++  "name": "web-studio-lab",
+   "private": true,
+-  "version": "0.0.0",
+-  "type": "module",
+-  "engines": { "node": ">=22.12.0" },
++  "description": "Web Studio Lab：以运行页面为中心的 Electron 开发工作台（OSCHINA 开源大赛 2026 比赛版）",
++  "license": "Apache-2.0",
++  "packageManager": "pnpm@10.34.6",
++  "engines": {
++    "node": ">=24"
++  },
+   "scripts": {
+-    "typecheck": "node node_modules/typescript/lib/tsc.js --noEmit",
++    "dev": "pnpm build:service && pnpm --filter @wsl/desktop dev",
++    "build:service": "pnpm --filter @wsl/desktop exec vite build --config ../service/vite.config.ts",
++    "build": "pnpm build:service && pnpm --filter @wsl/desktop build",
++    "typecheck": "pnpm -r typecheck && tsc -p tsconfig.e2e.json && pnpm typecheck:baseline",
++    "lint": "eslint .",
++    "format": "prettier --write .",
++    "format:check": "prettier --check .",
++    "test": "vitest run",
++    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
++    "test:e2e": "pnpm build && playwright test",
++    "package": "pnpm build:service && pnpm --filter @wsl/desktop package",
++    "test:e2e:packaged": "WSL_E2E_TARGET=packaged playwright test",
++    "typecheck:baseline": "node node_modules/typescript-baseline/lib/tsc.js -p tsconfig.json --noEmit",
+     "baseline:selftest": "tsx --test tests/vertical-slice/selftest.test.ts",
+     "baseline": "tsx tests/vertical-slice/run.ts"
+   },
+   "devDependencies": {
++    "@eslint/js": "10.0.1",
++    "@playwright/test": "1.63.0",
++    "eslint": "10.12.0",
++    "eslint-plugin-react-hooks": "7.1.1",
++    "globals": "17.13.0",
++    "prettier": "3.9.9",
++    "typescript": "6.0.3",
++    "typescript-eslint": "8.71.1",
++    "vitest": "5.0.3",
+     "@types/node": "22.19.11",
+     "@types/react": "19.2.14",
+     "@types/react-dom": "19.2.3",
+     "react": "19.2.4",
+     "react-dom": "19.2.4",
+     "tsx": "4.21.0",
+-    "typescript": "5.9.3",
++    "typescript-baseline": "npm:typescript@5.9.3",
+     "vite": "7.3.1",
+     "zod": "4.3.6"
+-  }
++  },
++  "type": "module"
+ }

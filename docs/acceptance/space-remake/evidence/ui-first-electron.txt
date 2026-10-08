@@ -1,0 +1,143 @@
+
+Running 4 tests using 1 worker
+
+(node:29430) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/space-remake.spec.ts:11:1 › SR01/02/07/09：六个入口、空间专属标签、设置主题、草稿与原实例保持 (32.3s)
+(node:31746) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/space-remake.spec.ts:34:1 › SR03/04/06/10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点 (6.0s)
+(node:32157) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 e2e/space-remake.spec.ts:58:1 › SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页 (30.8s)
+(node:33365) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 e2e/space-remake.spec.ts:81:1 › SR05/11：独立固定偏好、窄窗投影不改分割树、重启只恢复pin (31.0s)
+
+
+  1) e2e/space-remake.spec.ts:11:1 › SR01/02/07/09：六个入口、空间专属标签、设置主题、草稿与原实例保持 ───────────────────────
+
+    TimeoutError: locator.fill: Timeout 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('textbox', { name: '任务目标' })
+
+
+      15 |   const before = await previewInfo(app);
+      16 |   await tabs().getByRole('button',{name:'Agent 会话',exact:true}).click();
+    > 17 |   await page.getByRole('textbox',{name:'修改目标'}).fill('保留跨页中文草稿742');
+         |                                                 ^
+      18 |   for (const name of ['首页','资源','会话','任务','设置']) {
+      19 |     await workshopNavigate(page,name);
+      20 |     await expect(tabs()).toHaveCount(0);
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/space-remake.spec.ts:17:49
+
+    Error Context: test-results/e2e/space-remake-SR01-02-07-09：六个入口、空间专属标签、设置主题、草稿与原实例保持/error-context.md
+
+  2) e2e/space-remake.spec.ts:34:1 › SR03/04/06/10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点 ──────────────────────
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      44 |   await expect(page.getByRole('complementary',{name:'通知栏'}).getByRole('textbox')).toHaveCount(0);
+      45 |   await page.getByRole('button',{name:'收起通知栏',exact:true}).click();
+    > 46 |   await expect.poll(nativeVisible).toBe(false);
+         |                                    ^
+      47 |   await page.getByRole('complementary',{name:'Workshop（临时展开）'}).press('Escape');
+      48 |   await expect.poll(nativeVisible).toBe(true);
+      49 |   await expect(page.getByRole('button',{name:'展开 Workshop',exact:true})).toBeFocused();
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/space-remake.spec.ts:46:36
+
+    Error Context: test-results/e2e/space-remake-SR03-04-06-10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点/error-context.md
+
+  3) e2e/space-remake.spec.ts:58:1 › SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页 ─────────────
+
+    TimeoutError: locator.click: Timeout 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: '窗格操作', exact: true })
+        - locator resolved to <button type="button" class="icon-btn" aria-label="窗格操作">···</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <header class="row space-between panel-controls">…</header> from <aside aria-label="通知栏" class="right-panel right-panel-overlay">…</aside> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <header class="row space-between panel-controls">…</header> from <aside aria-label="通知栏" class="right-panel right-panel-overlay">…</aside> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        57 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <header class="row space-between panel-controls">…</header> from <aside aria-label="通知栏" class="right-panel right-panel-overlay">…</aside> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+
+
+      59 |   await launch();
+      60 |   await notifications().click();
+    > 61 |   await page.getByRole('button',{name:'窗格操作',exact:true}).click();
+         |                                                           ^
+      62 |   await page.getByRole('button',{name:'收起通知栏',exact:true}).click();
+      63 |   await expect.poll(nativeVisible).toBe(false);
+      64 |   await page.getByRole('menuitem',{name:'关闭菜单',exact:true}).click();
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/space-remake.spec.ts:61:59
+
+    Error Context: test-results/e2e/space-remake-SR10：通知与窗格菜单共-bc73f-r交接editor、快速开关resize不复活原生网页/error-context.md
+
+  4) e2e/space-remake.spec.ts:81:1 › SR05/11：独立固定偏好、窄窗投影不改分割树、重启只恢复pin ─────────────────────────────
+
+    TimeoutError: locator.click: Timeout 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: '收起通知栏', exact: true })
+        - locator resolved to <button type="button" class="icon-btn" aria-label="收起通知栏">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="notification-edge">…</div> intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="notification-edge">…</div> intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        57 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div class="notification-edge">…</div> intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+
+
+      85 |   for (let index = 0; index < 3; index++) {
+      86 |     await notifications().click();
+    > 87 |     await setWindowSize(app, 1420 + index * 5, 900);
+         |                                                     ^
+      88 |     await expect.poll(nativeVisible).toBe(false);
+      89 |     await notifications().click();
+      90 |     await expect.poll(nativeVisible).toBe(true);
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/space-remake.spec.ts:87:60
+
+    Error Context: test-results/e2e/space-remake-SR05-11：独立固定偏好、窄窗投影不改分割树、重启只恢复pin/error-context.md
+
+  4 failed
+    e2e/space-remake.spec.ts:11:1 › SR01/02/07/09：六个入口、空间专属标签、设置主题、草稿与原实例保持 ────────────────────────
+    e2e/space-remake.spec.ts:34:1 › SR03/04/06/10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点 ───────────────────────
+    e2e/space-remake.spec.ts:58:1 › SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页 ──────────────
+    e2e/space-remake.spec.ts:81:1 › SR05/11：独立固定偏好、窄窗投影不改分割树、重启只恢复pin ──────────────────────────────

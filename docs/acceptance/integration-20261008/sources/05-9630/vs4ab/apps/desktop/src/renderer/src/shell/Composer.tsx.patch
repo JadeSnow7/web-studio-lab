@@ -1,0 +1,12 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/shell/Composer.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/shell/Composer.tsx
+index 82e0a93..c14d799 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/shell/Composer.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/shell/Composer.tsx
+@@ -60,6 +60,7 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,
+         发送到 · {target.conversation.scopeLabel} / {target.conversation.title} / {harnessLabel}
+       </label>
+       <textarea
++        className="resize-none"
+         ref={input}
+         id={inputId}
+         rows={rows}

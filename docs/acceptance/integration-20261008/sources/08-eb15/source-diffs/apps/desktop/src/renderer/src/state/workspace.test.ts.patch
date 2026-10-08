@@ -1,0 +1,12 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/workspace.test.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/state/workspace.test.ts
+index dc6d705..93fd357 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/workspace.test.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/state/workspace.test.ts
+@@ -13,6 +13,7 @@ const workspace = (workspaceId: string, revision = 0): WorkspaceSnapshot => ({
+   sessions: [],
+   runs: [],
+   theme: 'light',
++  sidebarMode: 'pinned',
+   publicResources: null,
+   publicResourcesError: null,
+ });

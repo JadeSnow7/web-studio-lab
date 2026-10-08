@@ -1,0 +1,12 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/resource-dispatch.test.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/resource-dispatch.test.ts
+index 38338d6..18506d1 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/resource-dispatch.test.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/resource-dispatch.test.ts
+@@ -24,6 +24,7 @@ vi.mock('./codex-chat', () => ({
+   CodexChat: class {
+     connection = { getCleanupPending: () => false };
+     initialize = async () => ({ available: true, reason: null, version: 'fixture', sandbox: 'fixture', cwd: '/home/agent/workspace' });
++    setObservationReader = vi.fn();
+     assertResourceMutationAllowed = mocks.assertMutation;
+     invalidateResources = mocks.invalidate;
+     send = mocks.send;

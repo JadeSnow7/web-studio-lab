@@ -1,0 +1,21 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/execution.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/main/execution.ts
+index b0bf647..486ab6c 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/execution.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/main/execution.ts
+@@ -1,10 +1,13 @@
+ import type { ExecutionStatus } from '@wsl/protocol';
+ 
+-/** 固定比赛执行与验收服务的状态；空间会话 Runner 的连接状态由 chatStatus 单独报告。 */
++/**
++ * 执行服务的接入点。T04 实现独立 Node 执行服务后，由这里报告真实状态并转发 run 请求；
++ * 在那之前只如实报告“未接入”，不提供任何启动 run 的通道。
++ */
+ export function getExecutionStatus(): ExecutionStatus {
+   return {
+     available: false,
+-    reason: '固定比赛执行与验收服务（T04）尚未接入。空间任务已接入 sbx Codex CLI Runner；当前连接与可用性请查看沙箱对话状态。',
+-    harness: { name: 'Codex CLI', state: 'integrated', version: null, model: null },
++    reason: '执行服务（T04）与 Codex CLI 通路（T02）尚未接入，本版本不启动真实 run。',
++    harness: { name: 'Codex CLI', state: 'not_integrated', version: null, model: null },
+   };
+ }

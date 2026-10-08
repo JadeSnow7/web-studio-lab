@@ -1,0 +1,58 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/codex-chat.ts b/private/tmp/wsl-integration-sources/15-_worktrees/apps/service/src/codex-chat.ts
+index 7bb817d..6f46551 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/codex-chat.ts
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/service/src/codex-chat.ts
+@@ -88,12 +88,6 @@ interface Slot {
+ }
+ export class CodexChat {
+   private readonly slots = new Map<ChatSlot, Slot>();
+-  private readonly workspaceBySession = new Map<ChatSlot, string>();
+-  register(id: ChatSlot, workspaceId: string) {
+-    const previous = this.workspaceBySession.get(id);
+-    if (previous && previous !== workspaceId) throw new Error('会话归属已冻结');
+-    this.workspaceBySession.set(id, workspaceId);
+-  }
+   private sequence = 0;
+   private closing = false;
+   readonly connection: SbxConnection;
+@@ -153,30 +147,26 @@ export class CodexChat {
+   assertResourceMutationAllowed(spaceId: string): void {
+     this.assertCleanupKnown();
+     if (spaceId !== 'taskflow-demo') throw new Error('未知资源空间');
+-    for (const [id, slot] of this.slots)
+-      if ((id === 'conv-space-taskflow-demo-impl' || this.workspaceBySession.get(id) === spaceId) && (slot.active || slot.preparing))
+-        throw new Error('空间对话正在运行，请先停止回复再修改资源');
++    const slot = this.slots.get('conv-space-taskflow-demo-impl');
++    if (slot?.active || slot?.preparing) throw new Error('空间对话正在运行，请先停止回复再修改资源');
+   }
+   invalidateResources(spaceId: string): void {
+     this.assertResourceMutationAllowed(spaceId);
+-    for (const [id, slot] of this.slots) {
+-      if (id !== 'conv-space-taskflow-demo-impl' && this.workspaceBySession.get(id) !== spaceId) continue;
+-      slot.conversation.threadId = null;
+-      const warning = '空间资源已变更；下一轮使用新资源快照，历史消息保留为旧记录。';
+-      if (!slot.conversation.warnings.includes(warning)) slot.conversation.warnings.push(warning);
+-      slot.conversation.warnings = slot.conversation.warnings.slice(-20);
+-      this.publish(slot);
+-    }
++    const slot = this.slots.get('conv-space-taskflow-demo-impl');
++    if (!slot) return;
++    slot.conversation.threadId = null;
++    const warning = '空间资源已变更；下一轮使用新资源快照，历史消息保留为旧记录。';
++    if (!slot.conversation.warnings.includes(warning)) slot.conversation.warnings.push(warning);
++    slot.conversation.warnings = slot.conversation.warnings.slice(-20);
++    this.publish(slot);
+   }
+   async send(id: ChatSlot, text: string): Promise<ChatConversation> {
+     if (this.closing) throw new Error('对话服务正在关闭');
+-    if (id !== 'conv-personal-default' && id !== 'conv-space-taskflow-demo-impl' && !this.workspaceBySession.has(id))
+-      throw new Error('会话尚未由宿主注册');
+     const status = this.getStatus();
+     if (!status.available) throw new Error(status.reason ?? 'sbx 不可用');
+     const slot = this.slot(id);
+     if (slot.active || slot.preparing) throw new Error(slot.active?.cleanupError ?? '当前会话正在等待回复');
+-    const spaceId = id === 'conv-space-taskflow-demo-impl' || this.workspaceBySession.get(id) === 'taskflow-demo' ? 'taskflow-demo' : null;
++    const spaceId = id === 'conv-space-taskflow-demo-impl' ? 'taskflow-demo' : null;
+     if (spaceId) this.assertCleanupKnown();
+     let collection: ResourceCollection = { spaceId: 'taskflow-demo', revision: 0, resources: [] };
+     if (spaceId && this.resources) {

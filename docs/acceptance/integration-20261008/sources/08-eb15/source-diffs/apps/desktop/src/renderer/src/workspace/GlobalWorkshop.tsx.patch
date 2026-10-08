@@ -1,0 +1,37 @@
+diff --git a/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/workspace/GlobalWorkshop.tsx b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/workspace/GlobalWorkshop.tsx
+new file mode 100644
+index 0000000..3aa4550
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/workspace/GlobalWorkshop.tsx
+@@ -0,0 +1,31 @@
++import { useStore } from '../lib/store';
++import { shellStore } from '../state/shell';
++import { HomePage } from '../pages/HomePage';
++import { ResourcesPage } from '../pages/ResourcesPage';
++import { ConversationsPage } from '../pages/ConversationsPage';
++import { TasksPage } from '../pages/TasksPage';
++import { SettingsPage } from '../pages/SettingsPage';
++
++/** 个人对话及公开资源继续由原应用接口持有；导航容器与空间标签共用。 */
++export function GlobalWorkshop({ visible, onCreateWorkspace }: { visible: boolean; onCreateWorkspace: () => void }) {
++  const route = useStore(shellStore, (s) => s.route);
++  return (
++    <section className="global-workshop" aria-label="全局工作坊" hidden={!visible}>
++      <div className="page" hidden={route !== 'home'}>
++        <HomePage onCreateWorkspace={onCreateWorkspace} />
++      </div>
++      <div className="page" hidden={route !== 'resources'}>
++        <ResourcesPage />
++      </div>
++      <div className="page" hidden={route !== 'conversations'}>
++        <ConversationsPage />
++      </div>
++      <div className="page" hidden={route !== 'tasks'}>
++        <TasksPage />
++      </div>
++      <div className="page" hidden={route !== 'settings'}>
++        <SettingsPage />
++      </div>
++    </section>
++  );
++}

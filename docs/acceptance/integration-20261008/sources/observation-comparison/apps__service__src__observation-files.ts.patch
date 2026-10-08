@@ -1,0 +1,164 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/service/src/observation-files.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-files.ts
+index c344e33..ef29559 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/service/src/observation-files.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-files.ts
+@@ -4,7 +4,8 @@ import { open, realpath, stat } from 'node:fs/promises';
+ import type { FileHandle } from 'node:fs/promises';
+ import path from 'node:path';
+ import { execFile, spawn } from 'node:child_process';
+-import type { Observation } from '@wsl/protocol';
++import type { Observation, FileInvalidationHint } from '@wsl/protocol';
++import { LocalFileWatch } from './local-file-watch';
+ 
+ const MAX_FILE = 8 * 1024 * 1024;
+ const MAX_READ = 64 * 1024;
+@@ -68,11 +69,14 @@ finally:
+  for fd in reversed(fds): os.close(fd)
+ `;
+ export class LocalFileTransport implements FileTransport {
+-  readonly generation = randomUUID();
++  generation = randomUUID();
+   readonly remote = false;
++  available = true;
++  watcher?: LocalFileWatch;
+   private rootHandle?: Promise<{ handle: FileHandle; canonical: string }>;
+   constructor(private readonly root: string) {}
+   private pinnedRoot() {
++    if (!this.available) throw new FileObservationError('unavailable', 'Workspace root is closed or replaced');
+     this.rootHandle ??= (async () => {
+       const canonical = await realpath(this.root);
+       const expected = await stat(canonical);
+@@ -86,7 +90,13 @@ export class LocalFileTransport implements FileTransport {
+     })();
+     return this.rootHandle;
+   }
++  invalidateRoot() {
++    this.available = false;
++    this.generation = randomUUID();
++  }
+   async close() {
++    this.watcher?.close();
++    if (this.available) this.invalidateRoot();
+     if (this.rootHandle) {
+       const root = await this.rootHandle;
+       await root.handle.close();
+@@ -106,7 +116,11 @@ export class LocalFileTransport implements FileTransport {
+     }
+   }
+   private async capture(mode: 'read' | 'list', file: string, budget: number, deadline: number): Promise<Record<string, unknown>> {
++    const generation = this.generation;
+     const root = await this.pinnedRoot();
++    this.watcher?.authorizeRoot(await root.handle.stat(), root.canonical);
++    await this.watcher?.observe(mode === 'list' ? file : path.dirname(file));
++    if (!this.available) throw new FileObservationError('unavailable', 'Workspace root was replaced');
+     const relative = path.relative(root.canonical, file);
+     if (relative === '..' || relative.startsWith('../') || path.isAbsolute(relative))
+       throw new FileObservationError('unauthorized', 'Path outside pinned workspace root');
+@@ -140,6 +154,8 @@ export class LocalFileTransport implements FileTransport {
+           return;
+         }
+         try {
++          if (!this.available || this.generation !== generation)
++            throw new FileObservationError('unavailable', 'File resource changed during capture');
+           const data: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+           if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid reader response');
+           if ('error' in data) {
+@@ -192,6 +208,7 @@ export interface FileProviderOptions {
+   environmentId: string;
+   root: string;
+   transport?: FileTransport;
++  onInvalidated?: (hint: FileInvalidationHint) => void;
+ }
+ export class FileObservationProvider {
+   readonly transport: FileTransport;
+@@ -199,6 +216,22 @@ export class FileObservationProvider {
+   private readonly cursors = new Map<string, Cursor>();
+   constructor(private readonly options: FileProviderOptions) {
+     this.transport = options.transport ?? new LocalFileTransport(options.root);
++    if (this.transport instanceof LocalFileTransport) {
++      const transport = this.transport;
++      transport.watcher = new LocalFileWatch(
++        path.resolve(options.root),
++        (hint) =>
++          options.onInvalidated?.({
++            ...hint,
++            workspaceId: options.workspaceId,
++            environmentId: options.environmentId,
++            resourceId: `files:${options.environmentId}`,
++            generation: transport.generation,
++            coverage: { scope: 'observed-directories', recursive: false, lossy: true },
++          }),
++        () => transport.invalidateRoot(),
++      );
++    }
+   }
+   async close() {
+     if (this.transport instanceof LocalFileTransport) await this.transport.close();
+@@ -215,6 +248,10 @@ export class FileObservationProvider {
+       name: this.transport.remote ? 'SSH files' : 'Workspace files',
+       capabilities: ['files.list', 'files.search', 'files.read', ...(this.editors.size ? ['editor'] : [])],
+       available: this.transport.available ?? true,
++      watch:
++        this.transport instanceof LocalFileTransport
++          ? this.transport.watcher?.status()
++          : { supported: false, reason: 'SFTP watch unsupported' },
+     };
+   }
+   private normalize(file: string) {
+@@ -279,10 +316,30 @@ export class FileObservationProvider {
+       source,
+       representation: 'json',
+       coverage: { status: partial ? 'partial' : 'complete', range, reasons },
+-      data,
++      data: {
++        ...data,
++        watch:
++          this.transport instanceof LocalFileTransport
++            ? this.transport.watcher?.status(Array.isArray(data.entries) || Array.isArray(data.matches) ? file : path.dirname(file))
++            : { supported: false, reason: 'SFTP watch unsupported' },
++      },
+     };
+   }
+-  async read(
++  private async stable<T>(operation: () => Promise<T>): Promise<T> {
++    const generation = this.transport.generation;
++    this.assertCurrent(generation);
++    const result = await operation();
++    this.assertCurrent(generation);
++    return result;
++  }
++  private assertCurrent(generation: string) {
++    if (this.transport.available === false || this.transport.generation !== generation)
++      throw new FileObservationError('unavailable', 'File resource changed during observation');
++  }
++  read(input: { path: string; source?: 'disk' | 'editor'; cursor?: string; maxBytes?: number }, deadline = Date.now() + 5000) {
++    return this.stable(() => this.readCurrent(input, deadline));
++  }
++  private async readCurrent(
+     input: { path: string; source?: 'disk' | 'editor'; cursor?: string; maxBytes?: number },
+     deadline = Date.now() + 5000,
+   ): Promise<Observation> {
+@@ -381,7 +438,10 @@ export class FileObservationProvider {
+     }
+     return result;
+   }
+-  async list(input: { path?: string; limit?: number } = {}): Promise<Observation> {
++  list(input: { path?: string; limit?: number } = {}): Promise<Observation> {
++    return this.stable(() => this.listCurrent(input));
++  }
++  private async listCurrent(input: { path?: string; limit?: number }): Promise<Observation> {
+     const deadline = Date.now() + 5000;
+     const file = await this.resolve(input.path ?? '.', deadline);
+     const { entries, truncated } = await this.transport.list(file, Math.max(1, Math.min(500, input.limit ?? 100)), deadline);
+@@ -406,7 +466,10 @@ export class FileObservationProvider {
+       ],
+     );
+   }
+-  async search(input: { path?: string; query: string; limit?: number }): Promise<Observation> {
++  search(input: { path?: string; query: string; limit?: number }): Promise<Observation> {
++    return this.stable(() => this.searchCurrent(input));
++  }
++  private async searchCurrent(input: { path?: string; query: string; limit?: number }): Promise<Observation> {
+     if (!input.query || input.query.length > 512 || input.query.includes('\0'))
+       throw new FileObservationError('unsupported', 'Query must contain 1–512 characters');
+     const deadline = Date.now() + 5000;

@@ -1,0 +1,127 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/chat-service.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/chat-service.ts
+index 35f6f3d..b7f4dd3 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/chat-service.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/chat-service.ts
+@@ -27,7 +27,7 @@ export class ChatService {
+       resolve: (result: unknown) => void;
+       reject: (error: Error) => void;
+       resourceId?: string;
+-      start: { kind: 'chat'; slot: ChatSlot; seq: number } | { kind: 'terminal'; seq: number; resourceId: string } | null;
++      start: { kind: 'chat'; slot: ChatSlot; seq: number } | { kind: 'terminal'; seq: number; resourceId?: string } | null;
+     }
+   >();
+   private unknownCleanup = false;
+@@ -38,12 +38,13 @@ export class ChatService {
+   private readonly exit: Promise<void>;
+   private readonly conversations = new Map<ChatSlot, ChatConversation>();
+   private sequence = 0;
++  private terminalSnapshot: TerminalSnapshot | null = null;
+   private readonly terminals = new Map<string, TerminalSnapshot>();
+   private lastStatus: ChatStatus | null = null;
+   constructor(
+     private readonly onConversation: (conversation: ChatConversation) => void,
+     private readonly onStatus: (status: ChatStatus) => void,
+-    private readonly onTerminal: (snapshot: TerminalSnapshot, resourceId: string) => void = () => undefined,
++    private readonly onTerminal: (snapshot: TerminalSnapshot, resourceId?: string) => void = () => undefined,
+   ) {
+     const entry = app.isPackaged
+       ? path.join(process.resourcesPath, 'service/index.cjs')
+@@ -70,7 +71,8 @@ export class ChatService {
+           return;
+         }
+         if (message.type === 'terminal-event') {
+-          this.terminals.set(message.resourceId, message.terminal);
++          if (message.resourceId) this.terminals.set(message.resourceId, message.terminal);
++          else this.terminalSnapshot = message.terminal;
+           this.onTerminal(message.terminal, message.resourceId);
+           return;
+         }
+@@ -84,7 +86,7 @@ export class ChatService {
+             if (request.resourceId) {
+               const before = this.terminals.get(request.resourceId);
+               if (!before || before.seq < message.result.seq) this.terminals.set(request.resourceId, message.result);
+-            }
++            } else if (!this.terminalSnapshot || this.terminalSnapshot.seq < message.result.seq) this.terminalSnapshot = message.result;
+           }
+           request.resolve(message.result);
+         }
+@@ -104,7 +106,12 @@ export class ChatService {
+     for (const request of this.pending.values()) {
+       const start = request.start;
+       if (!start) continue;
+-      const current = start.kind === 'chat' ? this.conversations.get(start.slot) : this.terminals.get(start.resourceId);
++      const current =
++        start.kind === 'chat'
++          ? this.conversations.get(start.slot)
++          : start.resourceId
++            ? this.terminals.get(start.resourceId)
++            : this.terminalSnapshot;
+       // 新快照的清理确认可解除尚未收到 ACK 的启动请求占用。
+       if (!current || current.seq <= start.seq || current.cleanupPending) this.unknownCleanup = true;
+     }
+@@ -117,13 +124,20 @@ export class ChatService {
+         this.initializationPending ||
+         this.unknownCleanup ||
+         [...this.conversations.values()].some((conversation) => conversation.cleanupPending) ||
+-        [...this.terminals.values()].some((t) => t.cleanupPending)
++        this.terminalSnapshot?.cleanupPending
+           ? this.failure + '；guest 清理未确认'
+           : this.failure,
+       version: null,
+       sandbox: this.lastStatus?.sandbox ?? null,
+       cwd: this.lastStatus?.cwd ?? null,
+     });
++    if (this.terminalSnapshot?.cleanupPending)
++      this.onTerminal({
++        ...this.terminalSnapshot,
++        seq: this.terminalSnapshot.seq + 1,
++        state: 'failed',
++        error: this.failure + '；guest 清理未确认',
++      });
+     for (const [resourceId, terminal] of this.terminals)
+       if (terminal.cleanupPending)
+         this.onTerminal({ ...terminal, seq: terminal.seq + 1, state: 'failed', error: this.failure + '；guest 清理未确认' }, resourceId);
+@@ -152,7 +166,9 @@ export class ChatService {
+             ? {
+                 kind: 'terminal' as const,
+                 resourceId: data.payload.resourceId,
+-                seq: this.terminals.get(data.payload.resourceId)?.seq ?? -1,
++                seq: data.payload.resourceId
++                  ? (this.terminals.get(data.payload.resourceId)?.seq ?? -1)
++                  : (this.terminalSnapshot?.seq ?? -1),
+               }
+             : null;
+       const resourceId =
+@@ -207,19 +223,19 @@ export class ChatService {
+   async reset(id: ChatSlot) {
+     return ChatConversationSchema.parse(await this.request({ method: 'reset', payload: { conversationId: id } }));
+   }
+-  async terminalGet(resourceId: string) {
++  async terminalGet(resourceId?: string) {
+     return TerminalSnapshotSchema.parse(await this.request({ method: 'terminal.get', resourceId }));
+   }
+-  async terminalOpen(cols: number, rows: number, resourceId: string) {
++  async terminalOpen(cols: number, rows: number, resourceId?: string) {
+     return TerminalSnapshotSchema.parse(await this.request({ method: 'terminal.open', payload: { cols, rows, resourceId } }));
+   }
+-  async terminalWrite(sessionId: string, data: string, resourceId: string) {
++  async terminalWrite(sessionId: string, data: string, resourceId?: string) {
+     await this.request({ method: 'terminal.write', payload: { sessionId, data, resourceId } });
+   }
+-  async terminalResize(sessionId: string, cols: number, rows: number, resourceId: string) {
++  async terminalResize(sessionId: string, cols: number, rows: number, resourceId?: string) {
+     await this.request({ method: 'terminal.resize', payload: { sessionId, cols, rows, resourceId } });
+   }
+-  async terminalClose(sessionId: string, resourceId: string) {
++  async terminalClose(sessionId: string, resourceId?: string) {
+     return TerminalSnapshotSchema.parse(await this.request({ method: 'terminal.close', payload: { sessionId, resourceId } }));
+   }
+   shutdown(): Promise<void> {
+@@ -231,6 +247,7 @@ export class ChatService {
+         (this.initializationPending ||
+           this.unknownCleanup ||
+           [...this.conversations.values()].some((conversation) => conversation.cleanupPending) ||
++          this.terminalSnapshot?.cleanupPending ||
+           [...this.terminals.values()].some((t) => t.cleanupPending))
+       )
+         throw new Error(this.failure + '；guest 清理未确认');

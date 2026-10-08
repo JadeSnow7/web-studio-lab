@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "e2e/observation-live.spec.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T13:40:07.232108Z",
+  "ended_at": "2026-10-08T13:40:37.297595Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\nRunning 1 test using 1 worker\n\nLIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-observation-live-3lZQX7/profile ELECTRON_PID 93378\n  ✘  1 e2e/observation-live.spec.ts:41:1 › live：真实Codex统一观察三来源，运行中换空间仍保持原冻结归属 (29.3s)\n\n\n  1) e2e/observation-live.spec.ts:41:1 › live：真实Codex统一观察三来源，运行中换空间仍保持原冻结归属 ────────────────────────\n\n    Error: expect(received).toBe(expected) // Object.is equality\n\n    Expected: \"running\"\n    Received: \"starting\"\n\n    Call Log:\n    - Timeout 5000ms exceeded while waiting on the predicate\n\n      122 |             .terminal?.state,\n      123 |       )\n    > 124 |       .toBe('running');\n          |        ^\n      125 |     const input = panel.getByLabel('终端输入');\n      126 |     guestCreated = true;\n      127 |     await input.pressSequentially(\n        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/observation-live.spec.ts:124:8\n\n    attachment #1: observation-live-before-cleanup (application/json) ──────────────────────────────\n    test-results/e2e/observation-live-live：真实Codex统一观察三来源，运行中换空间仍保持原冻结归属/attachments/observation-live-before-cleanup-c468b4b3377076892c17352e4896fa5413bc3644.json\n    ────────────────────────────────────────────────────────────────────────────────────────────────\n\n    attachment #2: observation-live-evidence (application/json) ────────────────────────────────────\n    test-results/e2e/observation-live-live：真实Codex统一观察三来源，运行中换空间仍保持原冻结归属/attachments/observation-live-evidence-cd23c736cde6f69a28409b13344557301bb393d1.json\n    ────────────────────────────────────────────────────────────────────────────────────────────────\n\n    Error Context: test-results/e2e/observation-live-live：真实Codex统一观察三来源，运行中换空间仍保持原冻结归属/error-context.md\n\n  1 failed\n    e2e/observation-live.spec.ts:41:1 › live：真实Codex统一观察三来源，运行中换空间仍保持原冻结归属 ─────────────────────────\n",
+  "stderr": "(node:93377) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\nELECTRON_STDERR (node:93378) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `Electron --trace-warnings ...` to show where the warning was created)\n\nELECTRON_STDERR Debugger ending on ws://127.0.0.1:60047/745f4815-059c-4ea3-87d8-f0714063e758\nFor help, see: https://nodejs.org/learn/getting-started/debugging\n\n",
+  "stdout_base64": "ClJ1bm5pbmcgMSB0ZXN0IHVzaW5nIDEgd29ya2VyCgpMSVZFX1BST0ZJTEUgL3Zhci9mb2xkZXJzLzg3L2d5aHgxM2hzNDUzNTFqN3Z3a2RycjRzcjAwMDBnbi9UL3dzbC1vYnNlcnZhdGlvbi1saXZlLTNsWlFYNy9wcm9maWxlIEVMRUNUUk9OX1BJRCA5MzM3OAogIOKcmCAgMSBlMmUvb2JzZXJ2YXRpb24tbGl2ZS5zcGVjLnRzOjQxOjEg4oC6IGxpdmXvvJrnnJ/lrp5Db2RleOe7n+S4gOinguWvn+S4ieadpea6kO+8jOi/kOihjOS4reaNouepuumXtOS7jeS/neaMgeWOn+WGu+e7k+W9kuWxniAoMjkuM3MpCgoKICAxKSBlMmUvb2JzZXJ2YXRpb24tbGl2ZS5zcGVjLnRzOjQxOjEg4oC6IGxpdmXvvJrnnJ/lrp5Db2RleOe7n+S4gOinguWvn+S4ieadpea6kO+8jOi/kOihjOS4reaNouepuumXtOS7jeS/neaMgeWOn+WGu+e7k+W9kuWxniDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCiAgICBFcnJvcjogZXhwZWN0KHJlY2VpdmVkKS50b0JlKGV4cGVjdGVkKSAvLyBPYmplY3QuaXMgZXF1YWxpdHkKCiAgICBFeHBlY3RlZDogInJ1bm5pbmciCiAgICBSZWNlaXZlZDogInN0YXJ0aW5nIgoKICAgIENhbGwgTG9nOgogICAgLSBUaW1lb3V0IDUwMDBtcyBleGNlZWRlZCB3aGlsZSB3YWl0aW5nIG9uIHRoZSBwcmVkaWNhdGUKCiAgICAgIDEyMiB8ICAgICAgICAgICAgIC50ZXJtaW5hbD8uc3RhdGUsCiAgICAgIDEyMyB8ICAgICAgICkKICAgID4gMTI0IHwgICAgICAgLnRvQmUoJ3J1bm5pbmcnKTsKICAgICAgICAgIHwgICAgICAgIF4KICAgICAgMTI1IHwgICAgIGNvbnN0IGlucHV0ID0gcGFuZWwuZ2V0QnlMYWJlbCgn57uI56uv6L6T5YWlJyk7CiAgICAgIDEyNiB8ICAgICBndWVzdENyZWF0ZWQgPSB0cnVlOwogICAgICAxMjcgfCAgICAgYXdhaXQgaW5wdXQucHJlc3NTZXF1ZW50aWFsbHkoCiAgICAgICAgYXQgL1VzZXJzL2h1YW9kb25nLy5jb2RleC93b3JrdHJlZXMvYmY2NC93ZWItc3R1ZGlvLWxhYi9lMmUvb2JzZXJ2YXRpb24tbGl2ZS5zcGVjLnRzOjEyNDo4CgogICAgYXR0YWNobWVudCAjMTogb2JzZXJ2YXRpb24tbGl2ZS1iZWZvcmUtY2xlYW51cCAoYXBwbGljYXRpb24vanNvbikg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACiAgICB0ZXN0LXJlc3VsdHMvZTJlL29ic2VydmF0aW9uLWxpdmUtbGl2Ze+8muecn+WunkNvZGV457uf5LiA6KeC5a+f5LiJ5p2l5rqQ77yM6L+Q6KGM5Lit5o2i56m66Ze05LuN5L+d5oyB5Y6f5Ya757uT5b2S5bGeL2F0dGFjaG1lbnRzL29ic2VydmF0aW9uLWxpdmUtYmVmb3JlLWNsZWFudXAtYzQ2OGI0YjMzNzcwNzY4OTJjMTczNTJlNDg5NmZhNTQxM2JjMzY0NC5qc29uCiAgICDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCiAgICBhdHRhY2htZW50ICMyOiBvYnNlcnZhdGlvbi1saXZlLWV2aWRlbmNlIChhcHBsaWNhdGlvbi9qc29uKSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKICAgIHRlc3QtcmVzdWx0cy9lMmUvb2JzZXJ2YXRpb24tbGl2ZS1saXZl77ya55yf5a6eQ29kZXjnu5/kuIDop4Llr5/kuInmnaXmupDvvIzov5DooYzkuK3mjaLnqbrpl7Tku43kv53mjIHljp/lhrvnu5PlvZLlsZ4vYXR0YWNobWVudHMvb2JzZXJ2YXRpb24tbGl2ZS1ldmlkZW5jZS1jZDIzYzczNmNkZTZmNjlhMjg0MDliMTMzNDQ1NTczMDFiYjM5M2QxLmpzb24KICAgIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKICAgIEVycm9yIENvbnRleHQ6IHRlc3QtcmVzdWx0cy9lMmUvb2JzZXJ2YXRpb24tbGl2ZS1saXZl77ya55yf5a6eQ29kZXjnu5/kuIDop4Llr5/kuInmnaXmupDvvIzov5DooYzkuK3mjaLnqbrpl7Tku43kv53mjIHljp/lhrvnu5PlvZLlsZ4vZXJyb3ItY29udGV4dC5tZAoKICAxIGZhaWxlZAogICAgZTJlL29ic2VydmF0aW9uLWxpdmUuc3BlYy50czo0MToxIOKAuiBsaXZl77ya55yf5a6eQ29kZXjnu5/kuIDop4Llr5/kuInmnaXmupDvvIzov5DooYzkuK3mjaLnqbrpl7Tku43kv53mjIHljp/lhrvnu5PlvZLlsZ4g4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACg==",
+  "stderr_base64": "KG5vZGU6OTMzNzcpIFdhcm5pbmc6IFRoZSAnTk9fQ09MT1InIGVudiBpcyBpZ25vcmVkIGR1ZSB0byB0aGUgJ0ZPUkNFX0NPTE9SJyBlbnYgYmVpbmcgc2V0LgooVXNlIGBub2RlIC0tdHJhY2Utd2FybmluZ3MgLi4uYCB0byBzaG93IHdoZXJlIHRoZSB3YXJuaW5nIHdhcyBjcmVhdGVkKQpFTEVDVFJPTl9TVERFUlIgKG5vZGU6OTMzNzgpIFdhcm5pbmc6IFRoZSAnTk9fQ09MT1InIGVudiBpcyBpZ25vcmVkIGR1ZSB0byB0aGUgJ0ZPUkNFX0NPTE9SJyBlbnYgYmVpbmcgc2V0LgooVXNlIGBFbGVjdHJvbiAtLXRyYWNlLXdhcm5pbmdzIC4uLmAgdG8gc2hvdyB3aGVyZSB0aGUgd2FybmluZyB3YXMgY3JlYXRlZCkKCkVMRUNUUk9OX1NUREVSUiBEZWJ1Z2dlciBlbmRpbmcgb24gd3M6Ly8xMjcuMC4wLjE6NjAwNDcvNzQ1ZjQ4MTUtMDU5Yy00ZWEzLTg3ZDgtZjA3MTQwNjNlNzU4CkZvciBoZWxwLCBzZWU6IGh0dHBzOi8vbm9kZWpzLm9yZy9sZWFybi9nZXR0aW5nLXN0YXJ0ZWQvZGVidWdnaW5nCgo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c3ea94f92e60bb064b00fa9c7650de5283875db45525d2a68644a735c75d79b4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c3ea94f92e60bb064b00fa9c7650de5283875db45525d2a68644a735c75d79b4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c3ea94f92e60bb064b00fa9c7650de5283875db45525d2a68644a735c75d79b4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

@@ -1,0 +1,47 @@
+{
+  "argv": [
+    "python3",
+    "/Users/huaodong/Documents/evidence-driven-development/skill/veriflow/scripts/validate_task.py",
+    "docs/acceptance/integration-20261008/task-state.json",
+    "--repo",
+    ".",
+    "--gate",
+    "record"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T14:29:37.306635Z",
+  "ended_at": "2026-10-08T14:29:37.492257Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "{\n  \"ok\": true,\n  \"gate\": \"record\",\n  \"current_revision\": null,\n  \"spec_version\": \"INTEGRATION-1\",\n  \"spec_sha256\": \"32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02\",\n  \"spec_satisfaction\": \"not_assessed\",\n  \"spec_unmet_conditions\": [\n    {\n      \"id\": \"INT-ALL\",\n      \"metric_ids\": [\n        \"MET-001\"\n      ]\n    }\n  ],\n  \"errors\": [],\n  \"warnings\": [\n    {\n      \"code\": \"AUTH_SNAPSHOT_UNKNOWN\",\n      \"message\": \"ACT-001 has no authorization snapshot\"\n    },\n    {\n      \"code\": \"AUTH_SNAPSHOT_UNKNOWN\",\n      \"message\": \"ACT-002 has no authorization snapshot\"\n    },\n    {\n      \"code\": \"AUTH_SNAPSHOT_UNKNOWN\",\n      \"message\": \"ACT-003 has no authorization snapshot\"\n    },\n    {\n      \"code\": \"AUTH_SNAPSHOT_UNKNOWN\",\n      \"message\": \"ACT-004 has no authorization snapshot\"\n    },\n    {\n      \"code\": \"AUTH_SNAPSHOT_UNKNOWN\",\n      \"message\": \"ACT-005 has no authorization snapshot\"\n    },\n    {\n      \"code\": \"AUTH_SNAPSHOT_UNKNOWN\",\n      \"message\": \"ACT-006 has no authorization snapshot\"\n    },\n    {\n      \"code\": \"AUTH_SNAPSHOT_UNKNOWN\",\n      \"message\": \"ACT-007 has no authorization snapshot\"\n    },\n    {\n      \"code\": \"AUTH_SNAPSHOT_UNKNOWN\",\n      \"message\": \"ACT-008 has no authorization snapshot\"\n    },\n    {\n      \"code\": \"AUTH_SNAPSHOT_UNKNOWN\",\n      \"message\": \"ACT-009 has no authorization snapshot\"\n    },\n    {\n      \"code\": \"AUTH_SNAPSHOT_UNKNOWN\",\n      \"message\": \"ACT-010 has no authorization snapshot\"\n    }\n  ],\n  \"limits\": \"Structural consistency is not proof of product success or authorization authenticity.\"\n}\n",
+  "stderr": "",
+  "stdout_base64": "ewogICJvayI6IHRydWUsCiAgImdhdGUiOiAicmVjb3JkIiwKICAiY3VycmVudF9yZXZpc2lvbiI6IG51bGwsCiAgInNwZWNfdmVyc2lvbiI6ICJJTlRFR1JBVElPTi0xIiwKICAic3BlY19zaGEyNTYiOiAiMzJjN2ZhMGQ5ZWM5NDI3YzkzZTk2ZWI1NGJlMmJiNDhhZDdhMDBlNDI5MzA1OGEzZmZhY2Y1OGNjYzI4NmYwMiIsCiAgInNwZWNfc2F0aXNmYWN0aW9uIjogIm5vdF9hc3Nlc3NlZCIsCiAgInNwZWNfdW5tZXRfY29uZGl0aW9ucyI6IFsKICAgIHsKICAgICAgImlkIjogIklOVC1BTEwiLAogICAgICAibWV0cmljX2lkcyI6IFsKICAgICAgICAiTUVULTAwMSIKICAgICAgXQogICAgfQogIF0sCiAgImVycm9ycyI6IFtdLAogICJ3YXJuaW5ncyI6IFsKICAgIHsKICAgICAgImNvZGUiOiAiQVVUSF9TTkFQU0hPVF9VTktOT1dOIiwKICAgICAgIm1lc3NhZ2UiOiAiQUNULTAwMSBoYXMgbm8gYXV0aG9yaXphdGlvbiBzbmFwc2hvdCIKICAgIH0sCiAgICB7CiAgICAgICJjb2RlIjogIkFVVEhfU05BUFNIT1RfVU5LTk9XTiIsCiAgICAgICJtZXNzYWdlIjogIkFDVC0wMDIgaGFzIG5vIGF1dGhvcml6YXRpb24gc25hcHNob3QiCiAgICB9LAogICAgewogICAgICAiY29kZSI6ICJBVVRIX1NOQVBTSE9UX1VOS05PV04iLAogICAgICAibWVzc2FnZSI6ICJBQ1QtMDAzIGhhcyBubyBhdXRob3JpemF0aW9uIHNuYXBzaG90IgogICAgfSwKICAgIHsKICAgICAgImNvZGUiOiAiQVVUSF9TTkFQU0hPVF9VTktOT1dOIiwKICAgICAgIm1lc3NhZ2UiOiAiQUNULTAwNCBoYXMgbm8gYXV0aG9yaXphdGlvbiBzbmFwc2hvdCIKICAgIH0sCiAgICB7CiAgICAgICJjb2RlIjogIkFVVEhfU05BUFNIT1RfVU5LTk9XTiIsCiAgICAgICJtZXNzYWdlIjogIkFDVC0wMDUgaGFzIG5vIGF1dGhvcml6YXRpb24gc25hcHNob3QiCiAgICB9LAogICAgewogICAgICAiY29kZSI6ICJBVVRIX1NOQVBTSE9UX1VOS05PV04iLAogICAgICAibWVzc2FnZSI6ICJBQ1QtMDA2IGhhcyBubyBhdXRob3JpemF0aW9uIHNuYXBzaG90IgogICAgfSwKICAgIHsKICAgICAgImNvZGUiOiAiQVVUSF9TTkFQU0hPVF9VTktOT1dOIiwKICAgICAgIm1lc3NhZ2UiOiAiQUNULTAwNyBoYXMgbm8gYXV0aG9yaXphdGlvbiBzbmFwc2hvdCIKICAgIH0sCiAgICB7CiAgICAgICJjb2RlIjogIkFVVEhfU05BUFNIT1RfVU5LTk9XTiIsCiAgICAgICJtZXNzYWdlIjogIkFDVC0wMDggaGFzIG5vIGF1dGhvcml6YXRpb24gc25hcHNob3QiCiAgICB9LAogICAgewogICAgICAiY29kZSI6ICJBVVRIX1NOQVBTSE9UX1VOS05PV04iLAogICAgICAibWVzc2FnZSI6ICJBQ1QtMDA5IGhhcyBubyBhdXRob3JpemF0aW9uIHNuYXBzaG90IgogICAgfSwKICAgIHsKICAgICAgImNvZGUiOiAiQVVUSF9TTkFQU0hPVF9VTktOT1dOIiwKICAgICAgIm1lc3NhZ2UiOiAiQUNULTAxMCBoYXMgbm8gYXV0aG9yaXphdGlvbiBzbmFwc2hvdCIKICAgIH0KICBdLAogICJsaW1pdHMiOiAiU3RydWN0dXJhbCBjb25zaXN0ZW5jeSBpcyBub3QgcHJvb2Ygb2YgcHJvZHVjdCBzdWNjZXNzIG9yIGF1dGhvcml6YXRpb24gYXV0aGVudGljaXR5LiIKfQo=",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:4ef404836ed53c6a950ae384dec0fb57fd91a5d16e022ae809959b1f9c96f93f:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:4ef404836ed53c6a950ae384dec0fb57fd91a5d16e022ae809959b1f9c96f93f:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:4ef404836ed53c6a950ae384dec0fb57fd91a5d16e022ae809959b1f9c96f93f:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

@@ -1,0 +1,45 @@
+{
+  "ok": false,
+  "gate": "record",
+  "current_revision": null,
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_satisfaction": "not_assessed",
+  "spec_unmet_conditions": [
+    {
+      "id": "INT-ALL",
+      "metric_ids": [
+        "MET-001"
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": "FIELD_MISSING",
+      "message": "root.recovery_strategy is required"
+    },
+    {
+      "code": "DISCOVERY_FIELD_EMPTY",
+      "message": "discovery.user is required when ready"
+    },
+    {
+      "code": "DISCOVERY_FIELD_EMPTY",
+      "message": "discovery.scenario is required when ready"
+    },
+    {
+      "code": "DISCOVERY_FIELD_EMPTY",
+      "message": "discovery.problem is required when ready"
+    },
+    {
+      "code": "DISCOVERY_FIELD_EMPTY",
+      "message": "discovery.acceptable_result is required when ready"
+    }
+  ],
+  "warnings": [
+    {
+      "code": "AUTH_SNAPSHOT_UNKNOWN",
+      "message": "ACT-001 has no authorization snapshot"
+    }
+  ],
+  "limits": "Structural consistency is not proof of product success or authorization authenticity."
+}

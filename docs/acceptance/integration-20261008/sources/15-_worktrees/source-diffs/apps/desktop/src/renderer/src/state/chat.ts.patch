@@ -1,0 +1,15 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/chat.ts b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/state/chat.ts
+index 4ed601d..b8f87ff 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/chat.ts
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/state/chat.ts
+@@ -55,9 +55,7 @@ export async function initializeChat() {
+     const status = await window.studio.chat.getStatus();
+     chatStore.set((state) => ({ ...state, status }));
+     await Promise.all(
+-      Object.keys(CONVERSATIONS)
+-        .filter((id) => CONVERSATIONS[id]?.scope.kind === 'personal')
+-        .map(async (id) => receiveConversation(await window.studio.chat.get(ChatSlotSchema.parse(id)))),
++      Object.keys(CONVERSATIONS).map(async (id) => receiveConversation(await window.studio.chat.get(ChatSlotSchema.parse(id)))),
+     );
+   } catch (error) {
+     chatStore.set((state) => ({

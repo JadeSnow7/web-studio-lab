@@ -1,0 +1,55 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/sbx.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/sbx.ts
+index f2ec77e..c1fac38 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/sbx.ts
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/sbx.ts
+@@ -7,12 +7,16 @@ import { z } from 'zod';
+ import { ResourceBundleSchema, type ChatStatus, type ResourceBundle } from '@wsl/protocol';
+ import helper from './guest-helper.py?raw';
+ import resourceMcp from './resource_mcp.py?raw';
++import terminalRc from './terminal-bash-integration.sh?raw';
+ 
+-const guestHelper = helper.replace('RESOURCE_MCP_BASE64 = ""', `RESOURCE_MCP_BASE64 = "${Buffer.from(resourceMcp).toString('base64')}"`);
++const guestHelper = helper
++  .replace('TERMINAL_RC_BASE64 = ""', `TERMINAL_RC_BASE64 = "${Buffer.from(terminalRc).toString('base64')}"`)
++  .replace('RESOURCE_MCP_BASE64 = ""', `RESOURCE_MCP_BASE64 = "${Buffer.from(resourceMcp).toString('base64')}"`);
+ 
+ export const GUEST_CWD = '/home/agent/workspace';
+ const PREFIX = 'WSL_GUEST_FRAME:';
+ const FrameSchema = z.discriminatedUnion('type', [
++  z.object({ type: z.literal('observation-call'), id: z.string(), tool: z.string(), args: z.record(z.string(), z.unknown()) }),
+   z.object({ type: z.literal('ready'), pid: z.number().int().positive() }),
+   z.object({ type: z.literal('output'), stream: z.enum(['stdout', 'stderr']), data: z.string() }),
+   z.object({ type: z.literal('exit'), exitCode: z.number().int().nullable() }),
+@@ -26,7 +30,15 @@ export interface GuestOutcome {
+   confirmed: boolean;
+ }
+ export type GuestStart =
+-  | { type: 'start'; mode: 'codex'; argv: string[]; prompt?: string; resourceBundle?: ResourceBundle }
++  | {
++      type: 'start';
++      mode: 'codex';
++      argv: string[];
++      prompt?: string;
++      resourceBundle?: ResourceBundle;
++      observation?: boolean;
++      observationImages?: boolean;
++    }
+   | { type: 'start'; mode: 'terminal'; cols: number; rows: number };
+ 
+ export async function resolveSbxBinary(override = process.env['WSL_SBX_BIN']): Promise<string> {
+@@ -117,7 +129,14 @@ export class GuestProcess {
+     });
+     this.write(start);
+   }
+-  write(frame: GuestStart | { type: 'input'; data: string } | { type: 'resize'; cols: number; rows: number } | { type: 'close' }) {
++  write(
++    frame:
++      | { type: 'observation-result'; id: string; result: unknown }
++      | GuestStart
++      | { type: 'input'; data: string }
++      | { type: 'resize'; cols: number; rows: number }
++      | { type: 'close' },
++  ) {
+     if (this.ended) throw new Error('guest 传输已关闭');
+     this.child.stdin.write(JSON.stringify(frame) + '\n');
+   }

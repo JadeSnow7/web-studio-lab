@@ -1,0 +1,6 @@
+COMMAND: pnpm --filter @wsl/service typecheck
+SOURCE SHA256: ecf29f1411930c55daad329e1a7f3f09b2c4283cc9bdd102c9456275d28e3a2d
+
+> @wsl/service@0.1.0 typecheck /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service
+> tsc -p tsconfig.json
+

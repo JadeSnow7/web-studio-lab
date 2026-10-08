@@ -1,0 +1,12 @@
+{
+  "finding": "F29",
+  "root_review": "Complete diff, protocol unions and scalar budgets reviewed; sources branch identities and count omission, errors bounded message, observations exact metadata or explicitly omitted optional values; final JSON length gate also handles long Codex status. No transport/record budgets raised.",
+  "sources": {
+    "apps/service/src/codex-chat.ts": "95987bc1a6ce2f58abffbf3afce97daa0a508ae268d5101c399cf68d0e83e345",
+    "apps/service/src/resource-chat.test.ts": "72ce74c4876446db2f85d555c204c6e82a4a902ef488e30829ce9eb2568928dd",
+    "e2e/observation-live.spec.ts": "e0b76a4cb4f39c2597f0c8b5ed0be660ce1858c4e5f6753b2ccaff2b4522dfd7"
+  },
+  "evidence": "observation-receipt-gate-manifest-v2.json",
+  "test_assumption_correction": "ObservationSources.workspaceId has max200; original root claim and long-ID expected failure were mistaken. Before/failed test preserved; only valid long status demonstrates final gate defect.",
+  "live": "C still awaiting rebuilt source, no earlier failed result relabeled passed"
+}

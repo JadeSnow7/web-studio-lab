@@ -1,0 +1,10 @@
+{
+  "observed_at_utc": "2026-10-08T11:05:47.937417+00:00",
+  "tool": "mcp__cua_repl.js",
+  "invocation": "await cua.getState();",
+  "native_apps": [],
+  "native_error": "Native apps: Error: The Mac is locked and automatic unlock could not unlock it. Ask the user to unlock the Mac manually before continuing.",
+  "classification": "blocked_environment",
+  "conclusion": "CUA native interaction unavailable until the user manually unlocks the Mac. Native focus, physical drag and IME candidate-window acceptance remain undetermined. Browser tab inventory is unrelated and intentionally not archived.",
+  "user_input": "Asynchronous request to unlock sent; independent source/toolchain/live work continues."
+}

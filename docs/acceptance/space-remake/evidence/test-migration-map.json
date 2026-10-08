@@ -1,0 +1,28 @@
+[
+  {
+    "archive": "evidence/old-e2e/",
+    "current": "e2e/workbench.spec.ts",
+    "preserved": "capture before confirmation, immutable versions, invalidated context after navigation, recapture, independent run/check/review, personal draft isolation, pane bounds, shortcuts",
+    "adaptation": "global six-route buttons; close retains pinned then explicit unpin/repin; Main workbench snapshot and commands replace old single-workbench IPC"
+  },
+  {
+    "current": "e2e/resources.spec.ts + public-document.spec.ts",
+    "preserved": "save, duplicate, update, error recovery, removal confirmation, personal isolation, native public reader ownership",
+    "adaptation": "resource collection from Main workspace snapshot; utility-process resource API stays private"
+  },
+  {
+    "current": "e2e/sbx.spec.ts",
+    "preserved": "persistent cwd, Ctrl-C, resize, background terminal, confirmed stop and process exit",
+    "adaptation": "resourceId is required; Main workbench resource terminal snapshot/commands; process-aware close observer"
+  },
+  {
+    "current": "e2e/chat.spec.ts + workspace-runtime.spec.ts",
+    "preserved": "fixture multi-turn, isolation, programmatic composition/keyboard events (not macOS candidate-window acceptance), duplicate prevention, failure recovery, cancel, same background run reopen, restart drafts/layout/history",
+    "adaptation": "personal Home remains independent, space Agent Session is vertical tab"
+  },
+  {
+    "current": "e2e/workspace-migration.spec.ts",
+    "preserved": "R1 task log/diff/report paths, notification stable location/read separation/restart, R4 precise native capture, R3 focus/address/reload/DevTools, R7 home snapshot cards, renderer error negative controls",
+    "adaptation": "theme moved Settings; exact native target ID; CDP mouseMove before pick; custom owned DevTools frontend identity/window/DOM replaces builtin-view boolean, menu-only close/reopen"
+  }
+]

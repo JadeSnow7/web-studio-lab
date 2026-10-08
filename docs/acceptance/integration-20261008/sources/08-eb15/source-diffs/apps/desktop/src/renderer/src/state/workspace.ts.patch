@@ -1,0 +1,29 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/workspace.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/state/workspace.ts
+index 3a83b4d..0bb5c84 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/workspace.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/state/workspace.ts
+@@ -1,5 +1,4 @@
+ import type { WorkbenchCommand, WorkbenchSnapshot, WorkspaceSnapshot, PaneLayout } from '@wsl/protocol';
+-import { occlusion, installOcclusionHider } from './occlusion';
+ import { createStore } from '../lib/store';
+ 
+ type Payload = WorkbenchCommand extends infer C
+@@ -49,7 +48,6 @@ const runtimeCommands = new Set([
+ ]);
+ async function executeCommand(workspaceId: string, payload: Payload, revision?: number) {
+   try {
+-    if (payload.type === 'browserLayout' && occlusion.blocked()) payload = { ...payload, layout: { ...payload.layout, visible: false } };
+     const result = await window.studio.workbench.command({
+       ...payload,
+       commandId: crypto.randomUUID(),
+@@ -115,10 +113,3 @@ export function initializeWorkspace(retry = false): Promise<void> {
+   })();
+   return initializing;
+ }
+-
+-installOcclusionHider(async () => {
+-  const workspace = selectedWorkspace();
+-  if (!workspace) return true;
+-  const result = await workspaceCommand(workspace.workspaceId, { type: 'hideBrowsers' });
+-  return result?.ok === true;
+-});

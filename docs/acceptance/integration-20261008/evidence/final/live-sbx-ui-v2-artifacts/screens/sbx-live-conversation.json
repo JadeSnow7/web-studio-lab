@@ -1,0 +1,40 @@
+{
+  "conversationId": "conv-personal-default",
+  "generation": "0c9611b4-ca41-4274-a6b1-102f630b5a91",
+  "seq": 12,
+  "threadId": "01a11baf-8b4f-73a1-9f01-c629a4891427",
+  "turnId": "b02b4a31-c748-4aed-8860-bfdcb511e750",
+  "state": "idle",
+  "messages": [
+    {
+      "id": "b02b4a31-c748-4aed-8860-bfdcb511e750",
+      "role": "user",
+      "text": "使用工具读取文件 /home/agent/workspace/wsl-ui-bf85d6d8-8a43-4841-b213-63280d929945/nonce.txt，仅回复文件的完整内容。"
+    },
+    {
+      "id": "b02b4a31-c748-4aed-8860-bfdcb511e750:item_2",
+      "role": "assistant",
+      "text": "我会读取该文件。\n"
+    },
+    {
+      "id": "b02b4a31-c748-4aed-8860-bfdcb511e750:item_4",
+      "role": "assistant",
+      "text": "8562840b-1566-4b23-bbd5-22e1985773b6"
+    }
+  ],
+  "toolExecutions": [
+    {
+      "id": "item_3",
+      "turnId": "b02b4a31-c748-4aed-8860-bfdcb511e750",
+      "command": "/bin/bash -lc 'cat /home/agent/workspace/wsl-ui-bf85d6d8-8a43-4841-b213-63280d929945/nonce.txt'",
+      "output": "8562840b-1566-4b23-bbd5-22e1985773b6",
+      "exitCode": 0,
+      "truncated": false
+    }
+  ],
+  "warnings": [
+    "Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored."
+  ],
+  "cleanupPending": false,
+  "error": null
+}

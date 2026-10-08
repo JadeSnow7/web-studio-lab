@@ -1,0 +1,53 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/pages/SettingsPage.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
+index b098731..7b6b664 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
+@@ -1,5 +1,6 @@
+-import { DisabledAction, Notice } from '../components/Badges';
++import { Notice } from '../components/Badges';
+ import { useStore } from '../lib/store';
++import { chatStore } from '../state/chat';
+ import { environmentStore } from '../state/execution';
+ import { shellActions, shellStore } from '../state/shell';
+ 
+@@ -8,7 +9,7 @@ const CAPABILITIES = ['createSession', 'observeState', 'cancel', 'pause', 'resum
+ export function SettingsPage() {
+   const env = useStore(environmentStore, (e) => e);
+   const pinned = useStore(shellStore, (s) => s.workshop.pinned);
+-  const harness = env.execution?.harness ?? null;
++  const chat = useStore(chatStore, (state) => state.status);
+ 
+   return (
+     <div className="page-columns">
+@@ -49,12 +50,19 @@ export function SettingsPage() {
+         <Notice tone="warn">{env.execution?.reason ?? '正在读取执行服务状态…'}</Notice>
+         <dl className="kv">
+           <dt>主 Harness</dt>
+-          <dd>{harness ? `${harness.name} · 尚未接入/验证` : '读取中…'}</dd>
++          <dd>{chat ? `Codex CLI · ${chat.available ? '对话已连接' : '对话不可用'}` : '读取中…'}</dd>
++          <dt>沙箱</dt>
++          <dd>{chat?.sandbox ?? '未选择'}</dd>
++          <dt>工作目录</dt>
++          <dd>
++            <code className="wrap">{chat?.cwd ?? '未读取'}</code>
++          </dd>
+           <dt>CLI 版本</dt>
+-          <dd>{harness?.version ?? '未记录（T02 实测后冻结）'}</dd>
++          <dd>{chat?.version ?? '未读取'}</dd>
+           <dt>模型</dt>
+-          <dd>{harness?.model ?? '未记录（T02 实测后冻结）'}</dd>
++          <dd>由 Codex CLI 默认配置决定；连接检查不代表模型回复已验证</dd>
+         </dl>
++        <Notice>{chat?.reason ?? '对话已连接；任务执行服务仍未接入。'}</Notice>
+         <table className="table">
+           <thead>
+             <tr>
+@@ -75,7 +83,7 @@ export function SettingsPage() {
+             ))}
+           </tbody>
+         </table>
+-        <DisabledAction label="测试连接" reason="Codex CLI adapter 尚未实现（T02）" />
++        <p className="muted small">对话与终端使用所选 sbx 中的环境；OAuth 由 Docker Sandboxes 宿主凭据存储管理。</p>
+ 
+         <h2 id="settings-about">关于</h2>
+         <dl className="kv">

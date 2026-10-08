@@ -1,0 +1,71 @@
+{
+  "frozenBaselineAltered": [],
+  "importDeltaByteMismatches": [],
+  "head": "2466936454658153e47a430ce1da853826f69f69",
+  "indexDiff": "",
+  "nodeVersion": "v26.5.0",
+  "pnpmVersion": "10.34.6",
+  "dependencySetup": "APFS cp -cR donor node_modules into bf64; no package installation; .bin NODE_PATH relocated; workspace symlinks stay relative",
+  "screens": [
+    {
+      "path": "old-window-screens/01-workbench-initial.png",
+      "sha256": "9beb31485ee8679865b900209730464497113d3649c68a203fbc55e6e98d53cc"
+    },
+    {
+      "path": "old-window-screens/01-workbench-initial.preview.png",
+      "sha256": "a521444ed96a9f8280c2256b2a58a2f5931297ba9b67e5f276c4256d2c7b99b4"
+    },
+    {
+      "path": "old-window-screens/02-capture.png",
+      "sha256": "bbebf17d546b40404f2172e254dd90ca12dd47c5fa78f6c2f708e79d86da5e2c"
+    },
+    {
+      "path": "old-window-screens/02-capture.preview.png",
+      "sha256": "a521444ed96a9f8280c2256b2a58a2f5931297ba9b67e5f276c4256d2c7b99b4"
+    },
+    {
+      "path": "old-window-screens/03-task-confirmed.png",
+      "sha256": "29ef42de359f5284fa18e3a10b103937a098059fade24fe893fc08baa3c2d6c8"
+    },
+    {
+      "path": "old-window-screens/04-capture-stale.png",
+      "sha256": "ec444fc0cbe6f4ba0ea4a295a45e0735fe16d828d640ff4d7a493d6fe4cbbaea"
+    },
+    {
+      "path": "old-window-screens/04-capture-stale.preview.png",
+      "sha256": "f4118c94150edb903e395c8b4dc4303a941b7c2fde811bec0b852c91c411abd3"
+    },
+    {
+      "path": "old-window-screens/05-report-demo.png",
+      "sha256": "e129a83a89aa12159c06c4c80078e3735aff4b60839fad0fcc021d31591df666"
+    },
+    {
+      "path": "old-window-screens/06-demo-cancelling.png",
+      "sha256": "fc04943fae8ab00442756a65f9e9356bd0eaf7d75e9ad85e8f7eee02c9a721ee"
+    },
+    {
+      "path": "old-window-screens/07-home.png",
+      "sha256": "7dc0d82ddc9d75c778293ce9f8c8da53a83592d1182df891bbe00e1ac1a9c70a"
+    },
+    {
+      "path": "old-window-screens/08-settings.png",
+      "sha256": "9c240bb818eba85a925491ad604414317b3afba927899cefc576beac5c2941f7"
+    },
+    {
+      "path": "old-window-screens/09-workshop-overlay.png",
+      "sha256": "f420110c085e5e7f206eaed420d5d55b3343f5162418b20509c8a5730b3bfdc7"
+    },
+    {
+      "path": "old-window-screens/10-narrow-overlay.png",
+      "sha256": "8b404d5bb555f8e9192e9869fbd162c69dbe8455449db3028d38b2b24b94acd6"
+    },
+    {
+      "path": "old-window-screens/11-narrow.png",
+      "sha256": "7c7d798b2434f16c9c35a0d08f8fbe0c71946b4cdcee22d682c704031ad79371"
+    },
+    {
+      "path": "old-window-screens/11-narrow.preview.png",
+      "sha256": "ec994bf85e57b7e547e66715d5fe92936611ee7489d01f1d4d2dee21b8a366c4"
+    }
+  ]
+}

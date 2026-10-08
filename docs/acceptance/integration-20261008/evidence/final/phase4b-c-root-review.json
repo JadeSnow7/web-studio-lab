@@ -1,0 +1,20 @@
+{
+  "result": "reviewed",
+  "manifest": "../phase4b-c/manifest-v2.json",
+  "source_files": 2,
+  "verified_receipts": 7,
+  "raw_result": "file 15 passed, type/lint/format/collect/default skip/diff passed",
+  "checks": [
+    "Main createWorkspace accepts supplied workspaceId",
+    "MCP untrusted/data envelope matches Python producer",
+    "actual WC and PTY identities compared to full Main record",
+    "frozen session/generation/turn and final assistant three nonces required",
+    "no extra shell/tools accepted",
+    "root replacement revoked; real post-close fs.watch change cannot emit provider hints"
+  ],
+  "limits": [
+    "Live not yet executed",
+    "Default skip is not acceptance",
+    "Unprivileged EMFILE failure preserved"
+  ]
+}

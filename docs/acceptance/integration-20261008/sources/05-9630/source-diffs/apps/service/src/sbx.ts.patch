@@ -1,0 +1,69 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/sbx.ts b/private/tmp/wsl-integration-sources/05-9630/apps/service/src/sbx.ts
+index f2ec77e..7aecdf5 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/sbx.ts
++++ b/private/tmp/wsl-integration-sources/05-9630/apps/service/src/sbx.ts
+@@ -4,11 +4,8 @@ import { constants } from 'node:fs';
+ import path from 'node:path';
+ import { createInterface } from 'node:readline';
+ import { z } from 'zod';
+-import { ResourceBundleSchema, type ChatStatus, type ResourceBundle } from '@wsl/protocol';
++import type { ChatStatus } from '@wsl/protocol';
+ import helper from './guest-helper.py?raw';
+-import resourceMcp from './resource_mcp.py?raw';
+-
+-const guestHelper = helper.replace('RESOURCE_MCP_BASE64 = ""', `RESOURCE_MCP_BASE64 = "${Buffer.from(resourceMcp).toString('base64')}"`);
+ 
+ export const GUEST_CWD = '/home/agent/workspace';
+ const PREFIX = 'WSL_GUEST_FRAME:';
+@@ -26,8 +23,7 @@ export interface GuestOutcome {
+   confirmed: boolean;
+ }
+ export type GuestStart =
+-  | { type: 'start'; mode: 'codex'; argv: string[]; prompt?: string; resourceBundle?: ResourceBundle }
+-  | { type: 'start'; mode: 'terminal'; cols: number; rows: number };
++  { type: 'start'; mode: 'codex'; argv: string[]; prompt?: string } | { type: 'start'; mode: 'terminal'; cols: number; rows: number };
+ 
+ export async function resolveSbxBinary(override = process.env['WSL_SBX_BIN']): Promise<string> {
+   const candidates = override
+@@ -66,11 +62,10 @@ export class GuestProcess {
+   private stderr = '';
+   private timer: ReturnType<typeof setTimeout>;
+   constructor(binary: string, sandbox: string, start: GuestStart, onFrame: (frame: GuestFrame) => void) {
+-    if (start.mode === 'codex' && start.resourceBundle) ResourceBundleSchema.parse(start.resourceBundle);
+     this.done = new Promise((resolve) => {
+       this.finish = resolve;
+     });
+-    this.child = spawn(binary, ['exec', '-i', '-w', GUEST_CWD, sandbox, 'python3', '-u', '-c', guestHelper], {
++    this.child = spawn(binary, ['exec', '-i', '-w', GUEST_CWD, sandbox, 'python3', '-u', '-c', helper], {
+       stdio: ['pipe', 'pipe', 'pipe'],
+     });
+     this.timer = setTimeout(() => this.fail('guest helper 启动超时'), 30000);
+@@ -143,7 +138,6 @@ export class GuestProcess {
+ export class SbxConnection {
+   private probe: GuestProcess | null = null;
+   private closing = false;
+-  private cleanupUnknown = false;
+   private binary: string | null = null;
+   private status: ChatStatus = { available: false, reason: '正在检查 sbx…', version: null, sandbox: null, cwd: null };
+   async initialize(): Promise<ChatStatus> {
+@@ -185,7 +179,7 @@ export class SbxConnection {
+     return { ...this.status };
+   }
+   getCleanupPending(): boolean {
+-    return this.probe !== null || this.cleanupUnknown;
++    return this.probe !== null;
+   }
+   async shutdown(): Promise<void> {
+     this.closing = true;
+@@ -197,10 +191,6 @@ export class SbxConnection {
+   start(start: GuestStart, onFrame: (frame: GuestFrame) => void): GuestProcess {
+     if (this.closing) throw new Error('sbx 服务正在关闭');
+     if (!this.status.available || !this.binary || !this.status.sandbox) throw new Error(this.status.reason ?? 'sbx 不可用');
+-    const guest = new GuestProcess(this.binary, this.status.sandbox, start, onFrame);
+-    void guest.done.then((outcome) => {
+-      if (!outcome.confirmed) this.cleanupUnknown = true;
+-    });
+-    return guest;
++    return new GuestProcess(this.binary, this.status.sandbox, start, onFrame);
+   }
+ }

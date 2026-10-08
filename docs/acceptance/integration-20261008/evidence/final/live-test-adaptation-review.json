@@ -1,0 +1,21 @@
+{
+  "source_files": [
+    {
+      "path": "apps/service/src/sbx.live.test.ts",
+      "sha256": "12f925ce05655d21b9caa0b2eb4627606e254455252057ff92034751b3faa2f4"
+    },
+    {
+      "path": "e2e/workspace-runtime.spec.ts",
+      "sha256": "27b65eeb98ee8557e1e2df298d882bfdf98a7e38d3b1375188c12d99310b454a"
+    }
+  ],
+  "failure": "live-service-sbx.json 5 passed /1 failed because initial prompt no longer contains bash",
+  "review": [
+    "Ready frame plus actual unique printf complete line required",
+    "120 second total budget permits serial initialize/close/three guest cleanup probes, individual polls remain bounded",
+    "Existing sizes/cwd/CtrlC/three process disappearance checks retained",
+    "workspace live old close wording corrected by source contract inspection, state and cleanupPending false required"
+  ],
+  "production_changes": false,
+  "validation": "Final all-source commands rerun after these test changes; no live result yet"
+}

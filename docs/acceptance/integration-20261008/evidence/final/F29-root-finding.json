@@ -1,0 +1,54 @@
+{
+  "id": "F29",
+  "status": "confirmed",
+  "source": "apps/service/src/codex-chat.ts boundedMcpOutput",
+  "receipt": "live-observation-v3.json",
+  "artifact": "live-observation-v3-artifacts/results/observation-live-live：真实Codex统一观察三来源，运行中换空间仍保持原冻结归属/observation-live-evidence.json",
+  "runId": "7ca0fe01-7dfa-4d19-96a1-fbc98755730e",
+  "tool": {
+    "id": "item_6",
+    "turnId": "3cee42c3-7d22-4d72-a598-45ea25fb21b6",
+    "command": "mcp:wsl_space.terminal_read_output {\"resourceId\":\"18d7e3ec-c0af-4833-ad81-3dc79b7f46d4\",\"maxChars\":4096}",
+    "output": "{\"status\":\"completed\",\"truncated\":true,\"untrusted\":true,\"receipt\":{}}",
+    "exitCode": 0,
+    "truncated": true
+  },
+  "main_record_identity": {
+    "resource": {
+      "workspaceId": "taskflow-demo",
+      "environmentId": "sandbox",
+      "resourceId": "18d7e3ec-c0af-4833-ad81-3dc79b7f46d4",
+      "kind": "terminal",
+      "instanceId": "e739477e-86ba-4ba9-aab8-94da32a6e160",
+      "instanceGeneration": 1
+    },
+    "generation": "9ec652d1-b4c8-4731-8fc1-5777d422d702",
+    "revision": {
+      "value": "239",
+      "strength": "sequence"
+    },
+    "snapshotId": "9be9dfb0-084b-4413-a45e-eed15ec54dbf",
+    "capturedAt": "2026-10-08T13:43:50.505Z",
+    "source": "terminal_output",
+    "representation": "terminal_output",
+    "coverage": {
+      "status": "complete",
+      "range": {
+        "maxChars": 4096,
+        "returnedChars": 626,
+        "retainedFromSeq": 1
+      },
+      "reasons": []
+    },
+    "evidenceRef": "observations/6e5f2633-777c-4cae-b023-9c050817ab67.json"
+  },
+  "main_result_chars": 32745,
+  "facts": [
+    "Final real assistant text contains all three unknown markers; all four requested tools complete in original run",
+    "Current 16000-character UI event limit is intentional; full Main evidence remains archived",
+    "Large unified observation output compresses to empty receipt because summarizer only selects legacy public resource fields",
+    "Missing identity in tool receipt prevents matching retained summary to full evidence; test remains failed",
+    "Original error and teardown preserved; applicationExited and processCleanupConfirmed true, no cleanupErrors"
+  ],
+  "correction": "Retain bounded observation identity, source/coverage and immutable evidenceRef while preserving budgets and explicit truncation; test compares valid summary against authoritative completed Main result."
+}

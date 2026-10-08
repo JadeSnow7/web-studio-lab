@@ -1,0 +1,97 @@
+diff --git a/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/workbench/RunSection.tsx b/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/workbench/RunSection.tsx
+new file mode 100644
+index 0000000..9f0900c
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/workbench/RunSection.tsx
+@@ -0,0 +1,91 @@
++import { DemoBadge, DisabledAction, Notice } from '../components/Badges';
++import { Icon } from '../components/Icon';
++import { DEMO_SCENARIOS } from '../demo/runScenarios';
++import { useStore } from '../lib/store';
++import { environmentStore } from '../state/execution';
++import { findRun, runsActions, runsStore } from '../state/runs';
++import { workbenchStore } from '../state/workbench';
++import { RunSummary } from './RunSummary';
++
++/**
++ * 运行区：真实执行入口保持禁用并说明原因；演示入口单独放置，只切换到写死的演示记录，
++ * 不启动任何进程，也不用定时器推进状态。
++ */
++export function RunSection() {
++  const execution = useStore(environmentStore, (e) => e.execution);
++  const latest = useStore(workbenchStore, (s) => s.versions.at(-1) ?? null);
++  const runs = useStore(runsStore, (s) => s);
++  const selected = findRun(runs, runs.selectedRunId);
++
++  const reasons: string[] = [];
++  if (execution === null) reasons.push('正在读取执行服务状态');
++  else if (!execution.available && execution.reason) reasons.push(execution.reason);
++  if (latest === null) reasons.push('需要先确认任务');
++
++  return (
++    <section className="wb-section" aria-labelledby="wb-run">
++      <div className="wb-section-head">
++        <h2 id="wb-run">运行</h2>
++      </div>
++      <DisabledAction label={latest ? `用任务 v${latest.version} 开始运行` : '开始运行'} reason={reasons.join('；')} icon="play" />
++      {runs.liveRecords.length === 0 ? <p className="hint">还没有真实运行记录。</p> : null}
++
++      <div className="demo-box">
++        <button
++          type="button"
++          className="demo-toggle"
++          aria-expanded={runs.demoPanelOpen}
++          onClick={() => runsActions.setDemoPanelOpen(!runs.demoPanelOpen)}
++        >
++          <Icon name={runs.demoPanelOpen ? 'chevronDown' : 'chevronRight'} size={14} />
++          演示状态检查
++          <DemoBadge />
++        </button>
++        {runs.demoPanelOpen ? (
++          <div className="stack-8">
++            <p className="hint">
++              选择一条演示记录，检查运行、取消、失败、无法判断、待审阅、接受、要求修改和复验在界面上的呈现。它们都是写死的静态数据。
++            </p>
++            <div className="scenario-grid" role="listbox" aria-label="演示记录">
++              {DEMO_SCENARIOS.map((s) => (
++                <button
++                  key={s.runId}
++                  type="button"
++                  role="option"
++                  aria-selected={runs.selectedRunId === s.runId}
++                  className="scenario"
++                  onClick={() => runsActions.select(s.runId)}
++                  title={s.summary}
++                >
++                  {s.title}
++                </button>
++              ))}
++            </div>
++            <div className="row gap-8">
++              <button
++                type="button"
++                className="btn btn-ghost"
++                onClick={() => runsActions.select(null)}
++                disabled={runs.selectedRunId === null}
++              >
++                清除选择
++              </button>
++              <button type="button" className="btn btn-ghost" onClick={runsActions.resetDemo}>
++                恢复演示审阅状态
++              </button>
++            </div>
++          </div>
++        ) : null}
++      </div>
++
++      {selected ? (
++        <>
++          {selected.origin === 'demo' ? (
++            <Notice tone="warn">正在查看演示记录：不是真实运行结果，不能作为任何用例通过的证据。</Notice>
++          ) : null}
++          <RunSummary record={selected} />
++        </>
++      ) : null}
++    </section>
++  );
++}

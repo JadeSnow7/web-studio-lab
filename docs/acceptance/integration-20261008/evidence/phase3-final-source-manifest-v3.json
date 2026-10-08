@@ -1,0 +1,385 @@
+{
+  "phase": "3",
+  "head": "d9beb8ac0164e6a56d0b5f1e451e42d716fa77fd",
+  "source_files": [
+    {
+      "path": "apps/desktop/src/main/index.ts",
+      "sha256": "7c5c5a1905c8a5c846fcf40cc2fd9b797bfb2399393a5d062d7f60aaa8c19405"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.ts",
+      "sha256": "05e66573ccc62ff0b1c5971af1568e5a95f46378ea38ceebe8873122a3f7bd0c"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/observation-application.test.ts",
+      "sha256": "45f65dd2b70ae89a4d2fb2ebf5b5fefdb521a889a71279bb595db6844fff76b8"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/lib/ime.ts",
+      "sha256": "ba60dc18b0494b8a25d133d9aa990c988b6c0c925b1561d3f8e57168a8684e58"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/SpacePage.tsx",
+      "sha256": "3f609185b8312c6f4005477bd3a59b739ce3e8a9639c42dac5a53c174374c1c2"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/space-ui.ts",
+      "sha256": "0c9078d7feda144a6708a816e540fc569fc3bc67b37a1efb2b641f363d2962bb"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workspace.ts",
+      "sha256": "e7eb4e6bacdd757631da62355a21a74ac37b74f164cb51704103d70a4125eb57"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/styles/app.css",
+      "sha256": "7adfadfe19391110e2300300d218425e856b642d5119e9f6741093ea9e3c933b"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Files.tsx",
+      "sha256": "74a472d407f6eb94ee6aaffc9be4bfb0d087062e0cda682c34ede3141b091d05"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Observation.tsx",
+      "sha256": "0b5397e283c0f2a2d6c5b3e17d751f6e940e0a195ec451c6a0bc3d373cfb04df"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Panes.tsx",
+      "sha256": "d15063ab9bec2165addef6916ec5f02642a1928ef3222bdc98481967b0f4a643"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Session.tsx",
+      "sha256": "84b08563b30028836310f250ed48e69eb8b1e250b5cfa7e0e715ec5ecb2d760e"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Sidebar.tsx",
+      "sha256": "2da39eaabb8e73a835e47770b904bdcd9c5a578efd9356f4d25a30674474b19e"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+      "sha256": "41a6f1f08a4254eca14b1e29aff3793f70745500393a64e9e1edcb38f927f86b"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/presentation.test.ts",
+      "sha256": "565ebe550f16bad21c7379e39af2577ec8bcae63cb6bc1f5371c05ebc052cfc9"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/presentation.ts",
+      "sha256": "4239ab05f2c5f811c3b75ca4cc7ef98daafee2a5b38a92b51a6dd9f993e383d2"
+    },
+    {
+      "path": "e2e/helpers.ts",
+      "sha256": "beaa5f5d892700012aac66f86923e64cb707d932ce3445e8eb9f4c0eb9c4c7e4"
+    },
+    {
+      "path": "e2e/sbx.spec.ts",
+      "sha256": "cc45cf2970fa8debdfb1972a1529d9ca5e2c6b77587e3d60a5859c3ad0daac94"
+    },
+    {
+      "path": "e2e/space-remake.spec.ts",
+      "sha256": "bce428407cefd05a16fd11cd2c52d0c3485186cf0e4c287d8fbe7e2a011f77ad"
+    },
+    {
+      "path": "e2e/workbench.spec.ts",
+      "sha256": "fff90d320c371566aa83f91bbcfaba8cd222c7457fa935270da0969ee160984d"
+    },
+    {
+      "path": "e2e/workspace-migration.spec.ts",
+      "sha256": "4f826fbca2b59510fc89b3bdb72f2b371554868e8b18328bcd434c9c81a464ac"
+    },
+    {
+      "path": "e2e/workspace-observation.spec.ts",
+      "sha256": "7e3f51a6f8aa08b63f93d914652c466df0d42885118d1be362ae1f6d88bd7e3b"
+    },
+    {
+      "path": "e2e/workspace-runtime.spec.ts",
+      "sha256": "008f7c72b53038c2768fded5281cda23f88d321e572462bd5d012040abc37567"
+    },
+    {
+      "path": "e2e/workspace-upgrade.spec.ts",
+      "sha256": "5e81f29fd20047592485a331ccc1e2cd5aea1dcef63b00585f64ceeee88c709f"
+    },
+    {
+      "path": "e2e/workspace-visual.spec.ts",
+      "sha256": "5754f22c9f36299bb5ec91bcdb9d44941da621df6eb42bf76724545cbc0aab79"
+    },
+    {
+      "path": "premium-ui.json",
+      "sha256": "2009b01a6e03804ead56419d5fd8ae567434b578aa6b878e203fea9129e81679"
+    }
+  ],
+  "receipts": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-build.json",
+      "sha256": "a3556de9c43f2cfad7f8bcba158e3406d10e8314c9c826d4be8890ccb5fe2d35",
+      "exit_code": 0,
+      "revision_changed_paths": []
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-diff.json",
+      "sha256": "3a6d0463fcf2d00dbc77dd35a5074f214558642ab3bd73e65c4242042df671dd",
+      "exit_code": 0,
+      "revision_changed_paths": []
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-electron.json",
+      "sha256": "fcbb56571389f3507b63d9a5b6780fbfa4c424c34daeb244220b7b4719ecf4be",
+      "exit_code": 1,
+      "revision_changed_paths": []
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-focus-rerun.json",
+      "sha256": "f2c0ae97dcd0c64948e7b042d2fb3283546217258c81756cb535683daefb91ab",
+      "exit_code": 1,
+      "revision_changed_paths": []
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-format.json",
+      "sha256": "ee6204d28d6f5cc509c4ad8207820a03819fe7612369cd4bd0f85b077497cbbf",
+      "exit_code": 0,
+      "revision_changed_paths": []
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-lint.json",
+      "sha256": "28d4267c65ea3b229b58f56303c5b30db4d399abea3f136c5703080211f8f338",
+      "exit_code": 0,
+      "revision_changed_paths": []
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-premium.json",
+      "sha256": "8d4ba0dd5bcf434a8b70e73e8c76360f6d037c125a489754fbd982bde7462c60",
+      "exit_code": 0,
+      "revision_changed_paths": []
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-typecheck.json",
+      "sha256": "5c790893c45eaa262695b948bd74e98a9f11ba64d2d68726debb9693ff2d3c0c",
+      "exit_code": 0,
+      "revision_changed_paths": []
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-unit.json",
+      "sha256": "2cf57184bbb7cf24a28a1fe8c64792f77093cb0a7f9c2781fe84e3b11aef0e2a",
+      "exit_code": 0,
+      "revision_changed_paths": []
+    }
+  ],
+  "evidence_files": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-environment-refresh-after.log",
+      "sha256": "79964b5d81daf3c0fc8d24772d12be3ed8ada05505824c054bd1f3e1201497e4"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-environment-refresh-before.log",
+      "sha256": "df78928c4e0f2c1c89cad140d1291d81fea73d970d35b2df17193a0fe3f0b025"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-environment-refresh-build.log",
+      "sha256": "3ba2a4fd5d6fc092ed4fa4d3ffc6d312378a014b08e50589df3a2878bf899a5b"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-environment-refresh-electron.log",
+      "sha256": "dff0343e1fbdbee8b54e95819aa8dad4327a30b25a2a4745c382be28ea66e304"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-environment-refresh-typecheck.log",
+      "sha256": "4f90b2f09f4a6a135fb83d4d693691bd7da8a30846181edf2c0e53c1c3d83203"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-build.json",
+      "sha256": "42e80ca727d34b5dc378ecf26c75fcf707a16ef0c95163bbf22c771f4463fb01"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-diff.json",
+      "sha256": "eeef205f664785cfa7b17d4fe43a629c70e5a26461144ad13efef657bfa1eaa8"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-electron.json",
+      "sha256": "aec1b98899458d9f70d30877ed44a4d74b50a36d31b2807b45566465d32e2259"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-format.json",
+      "sha256": "34b73ea5fbc20f819df56ce492f8f4f55d6d3e14610683749541a24af4d6ce8f"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-lint.json",
+      "sha256": "356423cbfe58b9034e8e743646c9ea2f496b4424cf36345c2d6f8f029c27766b"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-premium.json",
+      "sha256": "73482b09da345ceaab3f53dad783c8b8d3f75796b113d5f61e7c6b0ddaf06264"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-typecheck.json",
+      "sha256": "9b0ce75022b429111249ec9e884547ec596eb6703dca97f7df1ab65777418647"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-unit.json",
+      "sha256": "1dbb6707339263895ea0850b7191583c5de7b2b56b41a48993235ec3773e9508"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-focus-environment-summary.json",
+      "sha256": "3bc3e982eb99ace58944991d9dcf7f8e76ea5219a5c00b930d7ab170fe30a2e1"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-focus-probe-activated.json",
+      "sha256": "6b65744c10ff102e6110fd72c6cc43c0402eb82f0b4c68cb376b1a403ce38db3"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-focus-probe-held-final.json",
+      "sha256": "cf27bdb44e4b76de235a42e9ff12678cb51588d950fcf3654c7335f97286948f"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-focus-probe-held.json",
+      "sha256": "cf27bdb44e4b76de235a42e9ff12678cb51588d950fcf3654c7335f97286948f"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-focus-probe-shown.json",
+      "sha256": "58ba194f5d302f4377587b7799e083180f9c88295dc4f4cd570a07427ba25bbf"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-focus-probe.json",
+      "sha256": "b145e9965932d3a710f8021fb24e23fb1ae8e9c42b7649a68b6d911024e64965"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-native-lock.json",
+      "sha256": "6cf8c138fc1fd2f54a57bdfba2dbcd7c5bd600a36e46408989b9f25179c768df"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-preflight-cancel-before.json",
+      "sha256": "f81f516724620119bcd1bbf2046cec665c863b08ede6c7a1fb86fe9bcc473728"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-premium-audit-after.json",
+      "sha256": "e57c9b2894f101241a505b42872fb9dc7b306f18cd242d66580c46e3b3c5958b"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-premium-audit-before.json",
+      "sha256": "0a9622c46474d010ccae26d8913ff8ccaa3f3ab1f8885f67f2e3f2a644ad7232"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-premium-audit-final.json",
+      "sha256": "e57c9b2894f101241a505b42872fb9dc7b306f18cd242d66580c46e3b3c5958b"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-premium-audit-v2.json",
+      "sha256": "e57c9b2894f101241a505b42872fb9dc7b306f18cd242d66580c46e3b3c5958b"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-premium-audit.json",
+      "sha256": "0a9622c46474d010ccae26d8913ff8ccaa3f3ab1f8885f67f2e3f2a644ad7232"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-presentation-before.json",
+      "sha256": "ed9c297f363cc0f896e96a5524ccf386cea8be1e075eb628b92b9bba17bafbd1"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-provider-offset-before.json",
+      "sha256": "7bea092fb01db4ec9955b6fa907a29c7657164e0b8caf898a731046c6f544492"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-sbx-capability-failure-context.md",
+      "sha256": "4cc738f79596fe4613fc251f4bbe4714a82f2fcb5e8f77bebb5c925ca92d34c2"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-ui-initial-output.log",
+      "sha256": "b18214f996e561c1024be9eaaf7c2a1711eb4085a1b096f74ae7d54dd1f9e7db"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-ui-review-output.log",
+      "sha256": "d4224481fd955497cd26c3c53246119ea044ae26c70ab1539a5e6b6f0d67ce5a"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-build.json",
+      "sha256": "a3556de9c43f2cfad7f8bcba158e3406d10e8314c9c826d4be8890ccb5fe2d35"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-diff.json",
+      "sha256": "3a6d0463fcf2d00dbc77dd35a5074f214558642ab3bd73e65c4242042df671dd"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-electron.json",
+      "sha256": "fcbb56571389f3507b63d9a5b6780fbfa4c424c34daeb244220b7b4719ecf4be"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-focus-failure-context.md",
+      "sha256": "c1f520f01a4aa01649e934cd8df8f7e990137f732cf0a5a65cd713c336de00c3"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-focus-rerun.json",
+      "sha256": "f2c0ae97dcd0c64948e7b042d2fb3283546217258c81756cb535683daefb91ab"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-format.json",
+      "sha256": "ee6204d28d6f5cc509c4ad8207820a03819fe7612369cd4bd0f85b077497cbbf"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-lint.json",
+      "sha256": "28d4267c65ea3b229b58f56303c5b30db4d399abea3f136c5703080211f8f338"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-premium.json",
+      "sha256": "8d4ba0dd5bcf434a8b70e73e8c76360f6d037c125a489754fbd982bde7462c60"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-typecheck.json",
+      "sha256": "5c790893c45eaa262695b948bd74e98a9f11ba64d2d68726debb9693ff2d3c0c"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-v2-unit.json",
+      "sha256": "2cf57184bbb7cf24a28a1fe8c64792f77093cb0a7f9c2781fe84e3b11aef0e2a"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase3-focus-probe-before.ts",
+      "sha256": "097fad9c0ed26e848977a1a2391a30cd04fd6b19ce72b7b5c83f4ff7853c3346"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase3-focus-probe-held.mjs",
+      "sha256": "09da4a0d3db0eb821d972b07f3d178d978834082bb14bf69779320dbb85f6427"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase3-focus-probe-held.ts",
+      "sha256": "691621e91e1b39d8d59cd890e8d8b79058d7c4226bcdb821a36ab0f746365abe"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase3-focus-probe.mjs",
+      "sha256": "3c390a310c5ab34bf1be7a42f7573fd020d5be079044dc74005a1fa5a00581cd"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase3-focus-probe.ts",
+      "sha256": "36a3c4a5592926fb0ffad91d2ce6fb7498732cd3ef5ff88675919bbc2ef4716a"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-electron-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md",
+      "sha256": "6ce5930202db88f4d8fac89c7a04d0164d68399622c725921c7edc282912776f"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-electron-failures/sbx-fixture：终端持久-cwd、Ctrl-C、resize、切标签保留与确认关闭/error-context.md",
+      "sha256": "6698aefdc3c58180dae3e845326b8d02b234c57ea0d87343d2a8944baf6e19ff"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-electron-failures/sbx-sbx：空间提供独立终端标签，切换时隐藏原生预览/error-context.md",
+      "sha256": "3db9e248f47064b2f01ac8ae0083556be8e6db3352c3266f8a17633cb8b58bc6"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-electron-failures/workspace-upgrade-A02-A11-真实UI新建空间与会话，草稿隔离，搜索定位与无结果不切换/error-context.md",
+      "sha256": "c51fb928b0e56efcead21da712ae78e9768e993f80fbc6cef73a6107dfdb7a2e"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-electron-failures/workspace-upgrade-A12-三窗格活动PTY关闭切换器后不抢走触发器焦点/error-context.md",
+      "sha256": "33d391f4749f783a024183efe2909b23786e3155e9277ef749e5640f9a730b5f"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase3-final-electron-failures/workspace-visual-A12-三窗格、切换器、暗暖主题与窄窗真实窗口截图/error-context.md",
+      "sha256": "b864fbff375ec55c1face1868865628382da52e809cae8cae79aa2e8babcec06"
+    }
+  ],
+  "limitations": [
+    "Electron v2: 46 passed / 1 native OS-focus failure / 2 existing live skips; same failure repeats in unchanged R3. Native CUA directly reports Mac locked. Native focus acceptance blocked_environment pending unlock/retest, not a confirmed product focus defect.",
+    "Native OS Chinese IME and real human drag not performed in this phase.",
+    "Live model/sandbox, packaged and complete Electron suite deferred to final integration phase.",
+    "Controlled environment-delay UI transport is build-only and is not live/packaged evidence.",
+    "Original presentation before tests used incorrect end-offset semantics; actual provider-start-offset before directly proves one zero-clipping missed append."
+  ],
+  "manifest_revision": 3,
+  "source_unchanged_since_v2": true
+}

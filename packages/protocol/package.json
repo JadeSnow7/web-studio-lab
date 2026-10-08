@@ -1,0 +1,17 @@
+{
+  "name": "@wsl/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "description": "跨进程数据的 Zod schema（唯一定义）",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  }
+}

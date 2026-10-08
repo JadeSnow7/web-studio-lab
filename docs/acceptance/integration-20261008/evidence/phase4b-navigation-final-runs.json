@@ -1,0 +1,87 @@
+{
+  "script": "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe-final.mjs",
+  "scriptSha256": "7a4130e32ceacaf9be84453af984f865ef1d207ccb211eda801294f978a39e67",
+  "sourceSha256": "5bef90ee1b8c47d46f95fc6c09a5adf7ac417b6a7e9f668fdd91e27a83d84b61",
+  "runs": [
+    {
+      "command": [
+        "/opt/homebrew/Cellar/node/26.5.0/bin/node",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe-final.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-1.json"
+      ],
+      "started": "2026-10-08T11:47:28.915Z",
+      "finished": "2026-10-08T11:47:30.003Z",
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-1.json",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "error": null,
+      "scriptHashUnchanged": true,
+      "sourceHashUnchanged": true
+    },
+    {
+      "command": [
+        "/opt/homebrew/Cellar/node/26.5.0/bin/node",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe-final.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-2.json"
+      ],
+      "started": "2026-10-08T11:47:30.003Z",
+      "finished": "2026-10-08T11:47:31.031Z",
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-2.json",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "error": null,
+      "scriptHashUnchanged": true,
+      "sourceHashUnchanged": true
+    },
+    {
+      "command": [
+        "/opt/homebrew/Cellar/node/26.5.0/bin/node",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe-final.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-3.json"
+      ],
+      "started": "2026-10-08T11:47:31.031Z",
+      "finished": "2026-10-08T11:47:32.050Z",
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-3.json",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "error": null,
+      "scriptHashUnchanged": true,
+      "sourceHashUnchanged": true
+    },
+    {
+      "command": [
+        "/opt/homebrew/Cellar/node/26.5.0/bin/node",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe-final.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-4.json"
+      ],
+      "started": "2026-10-08T11:47:32.050Z",
+      "finished": "2026-10-08T11:47:33.081Z",
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-4.json",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "error": null,
+      "scriptHashUnchanged": true,
+      "sourceHashUnchanged": true
+    },
+    {
+      "command": [
+        "/opt/homebrew/Cellar/node/26.5.0/bin/node",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe-final.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-5.json"
+      ],
+      "started": "2026-10-08T11:47:33.081Z",
+      "finished": "2026-10-08T11:47:34.140Z",
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-5.json",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "error": null,
+      "scriptHashUnchanged": true,
+      "sourceHashUnchanged": true
+    }
+  ]
+}

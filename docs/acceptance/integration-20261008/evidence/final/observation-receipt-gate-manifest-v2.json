@@ -1,0 +1,32 @@
+{
+  "finding": "F29 final serialization hard gate v2",
+  "sources": {
+    "apps/service/src/codex-chat.ts": "95987bc1a6ce2f58abffbf3afce97daa0a508ae268d5101c399cf68d0e83e345",
+    "apps/service/src/resource-chat.test.ts": "72ce74c4876446db2f85d555c204c6e82a4a902ef488e30829ce9eb2568928dd",
+    "e2e/observation-live.spec.ts": "e0b76a4cb4f39c2597f0c8b5ed0be660ce1858c4e5f6753b2ccaff2b4522dfd7"
+  },
+  "receipts": {
+    "tests": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-gate-tests-v2.json",
+      "sha256": "2f664e5ca6fd02598965edc3a2d8bbad7fb925201fb8d3ceb0979928bfef4820",
+      "exitCode": 0,
+      "revisionStable": true
+    },
+    "lint": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-gate-lint-v2.json",
+      "sha256": "811244cf472ad7ad3ec03fb7ed59fe8235ac5ad5c5899c7fc15921e32bd5e84c",
+      "exitCode": 0,
+      "revisionStable": true
+    },
+    "format": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-gate-format-v2.json",
+      "sha256": "80dad35318c4de5f6c1d693f439d4f373aed540026a28c7c6f1147e37db09f9d",
+      "exitCode": 0,
+      "revisionStable": true
+    }
+  },
+  "behavior": "Every summary output is checked after serialization against16000. Overflow fixed receiptUnavailable never includes unchecked status. Existing valid receipt identities unchanged.",
+  "assumptionCorrection": "Sources workspaceId schema has max200. Initial test assumed 20000 chars were valid, wrongly expected unavailable; gate-tests original39pass1fail preserved. Revised test asserts schema rejects and unknown MCP legacy {} summary preserved. Long event.status is valid and proves final hard gate.",
+  "liveExecuted": false,
+  "diffCheckExitCode": 0
+}

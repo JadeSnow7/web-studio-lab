@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "python3",
+    "/private/tmp/wsl-local-cleanup-review.py"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T08:34:33.312763Z",
+  "ended_at": "2026-10-08T08:34:33.696956Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "{\"type\": \"ready\"}\n{\"helper_returncode\": 0, \"frames\": [{\"type\": \"exit\", \"exitCode\": -1}, {\"type\": \"cleanup\", \"ok\": true}], \"stderr\": \"\", \"owned_detached_child_alive\": true, \"child_pid\": 15492}\n",
+  "stderr": "",
+  "stdout_base64": "eyJ0eXBlIjogInJlYWR5In0KeyJoZWxwZXJfcmV0dXJuY29kZSI6IDAsICJmcmFtZXMiOiBbeyJ0eXBlIjogImV4aXQiLCAiZXhpdENvZGUiOiAtMX0sIHsidHlwZSI6ICJjbGVhbnVwIiwgIm9rIjogdHJ1ZX1dLCAic3RkZXJyIjogIiIsICJvd25lZF9kZXRhY2hlZF9jaGlsZF9hbGl2ZSI6IHRydWUsICJjaGlsZF9waWQiOiAxNTQ5Mn0K",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:4ffba6d83f28996fb01d207ce694e61da927e2157ed886034c444f4431c491d5:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:4ffba6d83f28996fb01d207ce694e61da927e2157ed886034c444f4431c491d5:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:4ffba6d83f28996fb01d207ce694e61da927e2157ed886034c444f4431c491d5:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

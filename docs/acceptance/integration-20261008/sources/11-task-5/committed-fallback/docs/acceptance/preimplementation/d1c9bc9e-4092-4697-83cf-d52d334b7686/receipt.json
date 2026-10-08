@@ -1,0 +1,56 @@
+{
+  "runId": "d1c9bc9e-4092-4697-83cf-d52d334b7686",
+  "taskSha256": "01c0eed7114a567d7dbcc1264e1547a5ca33252fa7898dd3eb536e0aee782a16",
+  "baselineSha256": "92ac18313e5a30a5d72570c138f27ac41d6727d80a74f7bcff085cb67f318f6a",
+  "productBase": "536f0a1948e522a09310aa20784ec512476dc7be",
+  "manifestPath": "run/manifest.json",
+  "manifestSha256": "7fb8a30387235cf8de8c87d9e054bef1cdeb3315cb4ae378381a90c1256c0da5",
+  "commandEvidence": [
+    {
+      "path": "commands/baseline.json",
+      "size": 177,
+      "sha256": "ddb3c0f9b4481f77743f1331ac8579a07b0cc22a7d738f876bd04b7131334716"
+    },
+    {
+      "path": "commands/baseline.stderr.txt",
+      "size": 191,
+      "sha256": "f52ad3632037e3c950aacb3a2cc641cf0ff8edfd755109a3162c358d48ed9010"
+    },
+    {
+      "path": "commands/baseline.stdout.txt",
+      "size": 556,
+      "sha256": "34a1971b7b2e5342db2de15d7ce416876fba69a9ee3d1915941d7e2ee7497171"
+    },
+    {
+      "path": "commands/selftest.json",
+      "size": 186,
+      "sha256": "77dc0a827d338915062c2665d972960832c86482b1527ded1b294ba4fdf122c7"
+    },
+    {
+      "path": "commands/selftest.stderr.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "commands/selftest.stdout.txt",
+      "size": 921,
+      "sha256": "b686f3dc92e2d76511c45958999984c9156447ff3a2212ad0dc6899385e5a829"
+    },
+    {
+      "path": "commands/typecheck.json",
+      "size": 178,
+      "sha256": "453439e4e056d9630ba78e5bffcceb8550c07c8ed419f7be9dbee8598cdab883"
+    },
+    {
+      "path": "commands/typecheck.stderr.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "commands/typecheck.stdout.txt",
+      "size": 95,
+      "sha256": "bbeaa029972876d145fcba85a48a91b61c75d0e93b21a3e43a3ca9a26dcb6dc4"
+    }
+  ],
+  "interpretation": "Expected missing-product baseline; no Agent, Electron, CDP observation or screenshot was performed. Raw command records were captured by the primary reviewer."
+}

@@ -1,0 +1,67 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/e2e/workbench.spec.ts b/private/tmp/wsl-integration-sources/08-eb15/e2e/workbench.spec.ts
+index 21543de..d30d72d 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/e2e/workbench.spec.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/e2e/workbench.spec.ts
+@@ -31,7 +31,7 @@ test('启动：窗口、安全边界与 Browser 区真实加载', async () => {
+   ).toEqual({
+     require: 'undefined',
+     process: 'undefined',
+-    studio: ['workbench', 'chat', 'app', 'execution', 'shell'],
++    studio: ['workbench', 'resources', 'chat', 'terminal', 'app', 'execution', 'shell'],
+   });
+   await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
+   const info = await previewInfo(app);
+@@ -101,18 +101,12 @@ test('导航：页面跳转后旧现场失效，历史版本仍保留原目标',
+   const s = await workspaceSnapshot(page);
+   expect(s.workspaces[0]!.sessions[0]!.taskVersions[0]?.capture?.page.url).toBe('wsl-demo://taskflow/index.html');
+   await session().getByRole('button', { name: '重新选择元素' }).click();
+-  await expect
+-    .poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.resources.find((r) => r.kind === 'web')!.preview!.picking)
+-    .toBe(true);
+   await previewClick(app, await previewElementCenter(app, '[data-testid="edit-task"]'));
+   await expect(session()).toContainText('现场适用性：有效');
+ });
+ 
+ test('选择模式中导航：退出选择模式，之后页面点击正常生效', async () => {
+   await session().getByRole('button', { name: '重新选择元素' }).click();
+-  await expect
+-    .poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.resources.find((r) => r.kind === 'web')!.preview!.picking)
+-    .toBe(true);
+   const address = page.getByLabel('页面地址');
+   await address.fill('wsl-demo://taskflow/members.html');
+   await address.press('Enter');
+@@ -157,19 +151,15 @@ test('导航与草稿：个人作用域不沿用空间输入，回空间恢复
+ });
+ 
+ test('侧栏：隐藏和临时展开使网页让位，按钮路径可固定恢复', async () => {
+-  await page.getByRole('button', { name: '显示或隐藏 Workshop（⌘B）', exact: true }).click();
++  await page.getByRole('button', { name: '收起空间标签', exact: true }).click();
+   await expect(page.getByRole('navigation', { name: '空间标签' })).toHaveCount(0);
+-  const edge = page.getByRole('button', { name: '展开 Workshop', exact: true });
+-  await edge.click();
++  await page.getByRole('button', { name: '临时展开空间标签' }).click();
+   await expect(page.getByRole('navigation', { name: '空间标签' })).toBeVisible();
+   await expect.poll(async () => (await previewInfo(app)).visible).toBe(false);
+-  await expect(page.getByRole('button', { name: '取消固定 Workshop', exact: true })).toHaveAttribute('aria-pressed', 'true');
+-  await page.getByRole('button', { name: '取消固定 Workshop', exact: true }).click();
+-  await expect(page.getByRole('navigation', { name: '空间标签' })).toHaveCount(0);
+-  await edge.click();
+-  await page.getByRole('button', { name: '固定 Workshop', exact: true }).click();
+-  await expect(page.getByRole('button', { name: '取消固定 Workshop', exact: true })).toHaveAttribute('aria-pressed', 'true');
+-  await expect.poll(async () => (await previewInfo(app)).visible).toBe(true);
++  await page.getByRole('button', { name: '侧栏模式' }).click();
++  await page.getByRole('button', { name: '收起空间标签', exact: true }).click();
++  await page.getByRole('button', { name: '展开空间标签', exact: true }).click();
++  await expect(page.getByRole('navigation', { name: '空间标签' })).toBeVisible();
+ });
+ 
+ test('菜单快捷键：应用菜单⌘B与⌘L仍走明确导航路径', async () => {
+@@ -198,7 +188,7 @@ test('菜单快捷键：应用菜单⌘B与⌘L仍走明确导航路径', async
+ test('窄窗口：活动窗格保留原生bounds，扩大恢复多窗格', async () => {
+   const original = (await workspaceSnapshot(page)).workspaces[0]!.layout;
+   if (!(await page.getByRole('navigation', { name: '空间标签' }).isVisible()))
+-    await page.getByRole('button', { name: '展开 Workshop', exact: true }).click();
++    await page.getByRole('button', { name: '展开空间标签', exact: true }).click();
+   await page.getByRole('button', { name: 'TaskFlow 预览', exact: true }).click();
+   await setWindowSize(app, 900, 700);
+   await expect(page.locator('[data-pane-id]:visible')).toHaveCount(1);

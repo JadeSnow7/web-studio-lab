@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>空间 · 平铺与折叠 · S-01</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.w{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Helvetica Neue",sans-serif;color:#1D1D1F;-webkit-font-smoothing:antialiased}
+.w button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mono{font-family:"SF Mono",Menlo,Consolas,monospace}
+a{color:#0A67D1}a:hover{color:#08539F}
+</style>
+</helmet>
+<div class="w" style="width:1440px;height:900px;box-sizing:border-box;background:#F6F7F9;display:flex;flex-direction:column;overflow:hidden;border-radius:12px;border:1px solid #D8DCE3">
+
+  <header style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;background:#F4F6FA;border-bottom:1px solid #D8DCE3">
+    <div aria-hidden="true" style="display:flex;gap:8px;width:72px;flex:none">
+      <span style="width:12px;height:12px;border-radius:50%;background:#FF5F57"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#FEBC2E"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#28C840"></span>
+    </div>
+    <nav aria-label="TaskFlow 空间的标签" style="display:flex;align-items:center;gap:4px;flex:1;min-width:0;padding-left:8px">
+      <button style="display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:8px;background:#FFFFFF;box-shadow:0 0 0 1px #D8DCE3;font-size:13px;font-weight:500">
+        <svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px;color:#0A67D1"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"></path></svg>
+        项目网页
+      </button>
+      <button style="display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:8px;font-size:13px;color:#3C4049">
+        <svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m7 9 3 3-3 3M12 15h5"></path></svg>
+        本地终端
+      </button>
+      <button style="display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:8px;font-size:13px;color:#3C4049">
+        <svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M6 3h8l4 4v14H6z"></path><path d="M14 3v4h4M9 12h6M9 16h6"></path></svg>
+        验收文档
+      </button>
+      <button aria-label="设计参考，已折叠，点击恢复" style="display:flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:13px;font-size:12px;color:#60656F;box-shadow:inset 0 0 0 1px #D8DCE3;border:0">
+        <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="m7 14 5-5 5 5"></path></svg>
+        设计参考 · 已折叠
+      </button>
+      <button aria-label="新建 Tab" style="width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#60656F">
+        <svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M12 5v14M5 12h14"></path></svg>
+      </button>
+    </nav>
+    <button aria-label="通信面板，已展开" style="position:relative;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#E3EDFA;color:#0A67D1">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"></path></svg>
+      <span style="position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:#0A67D1;box-shadow:0 0 0 2px #F4F6FA"></span>
+    </button>
+  </header>
+
+  <div style="flex:1;display:flex;min-height:0">
+
+    <nav aria-label="Workshop" style="width:56px;flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:#F4F6FA;border-right:1px solid #D8DCE3">
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"></path></svg>首页
+      </button>
+      <button aria-current="page" style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:#E3EDFA;color:#0A67D1;font-size:11px;font-weight:600">
+        <svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>空间
+      </button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"></path></svg>资源
+      </button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"></path></svg>会话
+      </button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="m8 12 3 3 5-6"></path></svg>任务
+      </button>
+      <div style="flex:1"></div>
+      <button aria-label="固定 Workshop（已固定）" style="width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#0A67D1">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3H7l3-3z"></path><path d="M12 13v7"></path></svg>
+      </button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg>设置
+      </button>
+    </nav>
+
+    <section aria-label="空间列表" style="width:252px;flex:none;background:#F4F6FA;border-right:1px solid #D8DCE3;display:flex;flex-direction:column;padding:12px 10px;gap:10px">
+      <div style="display:flex;align-items:center;gap:6px;padding:0 4px">
+        <h2 style="margin:0;font-size:15px;font-weight:600;flex:1">空间</h2>
+        <button aria-label="搜索空间" style="width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#60656F"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg></button>
+        <button aria-label="新建空间" style="width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#0A67D1"><svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M12 5v14M5 12h14"></path></svg></button>
+      </div>
+      <ul role="tree" aria-label="空间与资源" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px">
+        <li role="treeitem" aria-expanded="true" style="display:flex;flex-direction:column;gap:2px">
+          <div style="display:flex;align-items:center;gap:4px;height:34px;padding:0 6px;border-radius:8px;background:#E3EDFA">
+            <button aria-label="收起 TaskFlow" style="width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:#0A4F9E"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="m6 9 6 6 6-6"></path></svg></button>
+            <span style="flex:1;font-size:13px;font-weight:600;color:#0A4F9E">TaskFlow</span>
+            <span style="font-size:11px;color:#0A4F9E">等待输入</span>
+          </div>
+          <div class="mono" style="padding:0 10px 4px 32px;font-size:10.5px;color:#60656F">~/taskflow · main · :5173</div>
+          <ul role="group" style="list-style:none;margin:0;padding:0 0 0 22px;display:flex;flex-direction:column;gap:1px">
+            <li role="treeitem" style="display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:7px;background:#FFFFFF;font-size:13px"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px;color:#0A67D1"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"></path></svg>项目网页</li>
+            <li role="treeitem" style="display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:7px;font-size:13px"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px;color:#60656F"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m7 9 3 3-3 3M12 15h5"></path></svg><span style="flex:1">本地终端</span><span style="width:7px;height:7px;border-radius:50%;background:#1F7A4D" title="运行中"></span></li>
+            <li role="treeitem" style="display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:7px;font-size:13px"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px;color:#60656F"><path d="M6 3h8l4 4v14H6z"></path><path d="M14 3v4h4M9 12h6M9 16h6"></path></svg><span style="flex:1">验收文档</span><span style="font-size:10.5px;color:#60656F">副本</span></li>
+            <li role="treeitem" style="display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:7px;font-size:13px;color:#60656F"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"></path></svg><span style="flex:1">设计参考</span><span style="font-size:10.5px">已折叠</span></li>
+          </ul>
+          <div style="display:flex;gap:6px;padding:6px 0 4px 28px">
+            <button style="font-size:12px;color:#0A67D1;display:flex;align-items:center;gap:4px"><svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M12 5v14M5 12h14"></path></svg>新建页面</button>
+            <button style="font-size:12px;color:#0A67D1">添加资源</button>
+          </div>
+        </li>
+        <li role="treeitem" aria-expanded="false" style="display:flex;align-items:center;gap:4px;height:34px;padding:0 6px;border-radius:8px">
+          <button aria-label="展开研究空间" style="width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:#60656F"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="m9 6 6 6-6 6"></path></svg></button>
+          <span style="flex:1;font-size:13px">研究空间</span>
+          <span style="font-size:11px;color:#60656F">空闲</span>
+        </li>
+        <li role="treeitem" aria-expanded="false" style="display:flex;align-items:center;gap:4px;height:34px;padding:0 6px;border-radius:8px">
+          <button aria-label="展开临时空间" style="width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:#60656F"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="m9 6 6 6-6 6"></path></svg></button>
+          <span style="flex:1;font-size:13px;color:#60656F">临时空间 · 未命名</span>
+        </li>
+      </ul>
+      <div style="flex:1"></div>
+      <button style="height:34px;border-radius:8px;background:#FFFFFF;box-shadow:0 0 0 1px #D8DCE3;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M4 5h16v11H9l-5 4z"></path></svg>新建本空间会话</button>
+    </section>
+
+    <main aria-label="Browser · TaskFlow 工作现场" style="flex:1;min-width:0;display:flex;gap:8px;padding:10px">
+      <section aria-label="窗格：项目网页（活动）" style="flex:1.1;min-width:0;border-radius:10px;background:#FFFFFF;box-shadow:0 0 0 2px #0A67D1;display:flex;flex-direction:column;overflow:hidden">
+        <div style="height:34px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid #EDF0F4;font-size:12px;color:#60656F">
+          <span class="mono">localhost:5173</span>
+          <span style="flex:1"></span>
+          <span>分区 persist:space-taskflow</span>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:17px;font-weight:600">任务看板</div>
+          <div style="border-radius:8px;background:#F4F6FA;padding:12px 14px;font-size:13px">完善首页</div>
+          <div style="border-radius:8px;background:#F4F6FA;padding:12px 14px;font-size:13px">移动端适配</div>
+          <div style="border-radius:8px;background:#F4F6FA;padding:12px 14px;font-size:13px">结果验收</div>
+        </div>
+      </section>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+        <section aria-label="窗格：本地终端" style="flex:1;min-height:0;border-radius:10px;background:#1B1D21;color:#D9DEE6;display:flex;flex-direction:column;overflow:hidden">
+          <div style="height:34px;flex:none;display:flex;align-items:center;gap:8px;padding:0 8px 0 12px;border-bottom:1px solid #2C3038;font-size:12px;color:#A9B1BD">
+            <span class="mono">~/taskflow</span><span style="flex:1"></span>
+            <button aria-label="折叠此页" style="display:flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:6px;color:#C8CED8;font-size:12px"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="m7 10 5 5 5-5"></path></svg>折叠此页</button>
+          </div>
+          <div class="mono" style="padding:12px 14px;font-size:12px;line-height:1.8">
+            <div><span style="color:#8C95A3">$</span> pnpm dev</div>
+            <div style="color:#A9B1BD">VITE ready · Local http://localhost:5173/</div>
+            <div style="color:#7FD1A4">本地进程 · 运行中</div>
+          </div>
+        </section>
+        <section aria-label="窗格：验收文档" style="flex:1;min-height:0;border-radius:10px;background:#FFFFFF;box-shadow:0 0 0 1px #D8DCE3;display:flex;flex-direction:column;overflow:hidden">
+          <div style="height:34px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid #EDF0F4;font-size:12px;color:#60656F">
+            <span>验收清单.md</span><span style="flex:1"></span><span>空间副本 · 来自个人资料 r12</span>
+          </div>
+          <div style="padding:14px 18px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.5">
+            <div style="font-size:15px;font-weight:600">移动端检查</div>
+            <div>☐ 布局无横向溢出</div>
+            <div>☐ 触控按钮可操作</div>
+            <div>☐ 提交可复现证据</div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <aside aria-label="通信" style="width:340px;flex:none;display:flex;flex-direction:column;background:#F4F6FA;border-left:1px solid #D8DCE3;min-height:0">
+      <div style="padding:12px 14px 10px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #D8DCE3">
+        <div role="tablist" aria-label="通信分区" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:2px;border-radius:9px;background:#E6E9EF">
+          <button role="tab" aria-selected="true" style="height:28px;border-radius:7px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,0.08);font-size:13px;font-weight:600">空间</button>
+          <button role="tab" aria-selected="false" style="height:28px;border-radius:7px;font-size:13px;color:#60656F">联系人</button>
+          <button role="tab" aria-selected="false" style="height:28px;border-radius:7px;font-size:13px;color:#60656F">动态</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:14px;font-weight:600">TaskFlow · 实现会话</div>
+          <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#7A4500"><span style="width:8px;height:8px;border-radius:2px;background:#A15C00;transform:rotate(45deg)"></span>等待输入</span>
+        </div>
+        <div style="font-size:12px;color:#60656F">可检索 3 项本空间资源 · 最后确认 09:58</div>
+      </div>
+      <div style="flex:1;min-height:0;padding:14px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+        <div style="align-self:flex-end;max-width:85%;background:#0A67D1;color:#FFFFFF;border-radius:12px 12px 4px 12px;padding:9px 12px;font-size:13px;line-height:1.5">看看移动端布局，按验收文档逐项检查。</div>
+        <div style="max-width:92%;background:#FFFFFF;box-shadow:0 0 0 1px #D8DCE3;border-radius:12px 12px 12px 4px;padding:10px 12px;font-size:13px;line-height:1.55;display:flex;flex-direction:column;gap:8px">
+          <span>已完成页面调整。请看左侧预览，确认后我继续验收。</span>
+          <span style="font-size:11.5px;color:#60656F">引用：验收清单.md r12 · 项目网页 · 本地终端输出</span>
+        </div>
+      </div>
+      <div style="padding:12px 14px 14px;border-top:1px solid #D8DCE3">
+        <div style="border-radius:10px;background:#FFFFFF;box-shadow:0 0 0 1px #D8DCE3;padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:12px;color:#0A4F9E;font-weight:600">TaskFlow · 实现会话 · [harness]</div>
+          <label for="sp-input" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">补充要求</label>
+          <textarea id="sp-input" rows="2" placeholder="补充要求…" style="resize:none;border:0;outline:none;font:inherit;font-size:13px;background:transparent"></textarea>
+          <div style="display:flex;justify-content:flex-end">
+            <button aria-label="发送到 TaskFlow 实现会话" style="width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#FFFFFF;background:#0A67D1"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M4 12 20 4l-6 16-3-7z"></path></svg></button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

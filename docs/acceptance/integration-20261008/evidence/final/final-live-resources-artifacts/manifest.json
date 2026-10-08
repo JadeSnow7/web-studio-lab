@@ -1,0 +1,25 @@
+{
+  "count": 4,
+  "files": [
+    {
+      "path": "results/.last-run.json",
+      "bytes": 45,
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    {
+      "path": "screens/resources-live-agent-mcp-read.png",
+      "bytes": 380787,
+      "sha256": "8d22e62a73206a7e6ee1099a089efa26346c4c952baeeb344f60ab6038cf15d3"
+    },
+    {
+      "path": "screens/resources-live-evidence.json",
+      "bytes": 5335,
+      "sha256": "ae8d9b056da4dee949898b6ee34609658229bb790f306c81fc01cae252105434"
+    },
+    {
+      "path": "screens/resources-live-saved.png",
+      "bytes": 236170,
+      "sha256": "ac61e0707cd47bc36679d235e8637f92e47a516274e39feddb836a528001983e"
+    }
+  ]
+}

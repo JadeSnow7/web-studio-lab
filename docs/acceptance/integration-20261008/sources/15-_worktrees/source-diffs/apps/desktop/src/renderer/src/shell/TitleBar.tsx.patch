@@ -1,0 +1,148 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/shell/TitleBar.tsx b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/shell/TitleBar.tsx
+index 08b8b23..9de9dcb 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/shell/TitleBar.tsx
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/shell/TitleBar.tsx
+@@ -1,16 +1,77 @@
+-import { Icon } from '../components/Icon';
++import { Icon, type IconName } from '../components/Icon';
+ import { useStore } from '../lib/store';
+ import { chatStore } from '../state/chat';
+-import { shellActions, shellStore } from '../state/shell';
+-import { workspaceStore } from '../state/workspace';
+-import { spaceActions } from '../state/space-ui';
++import { previewStore } from '../state/preview';
++import { shellActions, shellStore, type BrowserTab } from '../state/shell';
+ import { ROUTE_TITLES } from './routes';
++
++const BROWSER_TABS: ReadonlyArray<{ tab: BrowserTab; label: string; icon: IconName }> = [
++  { tab: 'preview', label: '', icon: 'globe' },
++  { tab: 'terminal', label: '终端', icon: 'terminal' },
++  { tab: 'log', label: '运行日志', icon: 'terminal' },
++  { tab: 'diff', label: '源码 diff', icon: 'diff' },
++  { tab: 'report', label: '验收报告', icon: 'doc' },
++];
++
++function BrowserTabs() {
++  const active = useStore(shellStore, (s) => s.browserTab);
++  const pageTitle = useStore(previewStore, (p) => p?.page.title ?? '');
++  return (
++    <nav className="tabs no-drag" role="tablist" aria-label="TaskFlow 演示空间的标签">
++      {BROWSER_TABS.map(({ tab, label, icon }) => (
++        <button
++          key={tab}
++          type="button"
++          role="tab"
++          aria-selected={active === tab}
++          id={`space-tab-${tab}`}
++          aria-controls={`space-panel-${tab}`}
++          tabIndex={active === tab ? 0 : -1}
++          onKeyDown={(event) => {
++            const index = BROWSER_TABS.findIndex((item) => item.tab === tab);
++            const next =
++              event.key === 'ArrowRight'
++                ? (index + 1) % BROWSER_TABS.length
++                : event.key === 'ArrowLeft'
++                  ? (index + BROWSER_TABS.length - 1) % BROWSER_TABS.length
++                  : event.key === 'Home'
++                    ? 0
++                    : event.key === 'End'
++                      ? BROWSER_TABS.length - 1
++                      : null;
++            if (next === null) return;
++            event.preventDefault();
++            const target = BROWSER_TABS[next]!.tab;
++            shellActions.setBrowserTab(target);
++            document.getElementById(`space-tab-${target}`)?.focus();
++          }}
++          className="tab"
++          onClick={() => shellActions.setBrowserTab(tab)}
++          title={tab === 'preview' ? pageTitle : label}
++        >
++          <Icon name={icon} size={15} />
++          <span className="tab-label">{tab === 'preview' ? pageTitle || '演示页面' : label}</span>
++        </button>
++      ))}
++      <button
++        type="button"
++        className="icon-btn"
++        aria-label="新建 Tab（尚未接入）"
++        title="新建 Tab 尚未接入：本版本只有一个页面 Tab"
++        disabled
++      >
++        <Icon name="plus" size={15} />
++      </button>
++    </nav>
++  );
++}
++
+ export function TitleBar() {
+   const route = useStore(shellStore, (s) => s.route);
+-  const focused = useStore(shellStore, (s) => s.focusMode);
+-  const state = useStore(workspaceStore, (s) => s);
+-  const workspace = state.snapshot?.workspaces.find((w) => w.workspaceId === state.selectedId);
+-  const chat = useStore(chatStore, (s) => s.status);
++  const rightOpen = useStore(shellStore, (s) => s.rightPanel.open);
++  const scope = useStore(shellStore, (s) => s.activeScope);
++  const chat = useStore(chatStore, (state) => state.status);
++
+   return (
+     <header className="titlebar">
+       <div className="traffic-space" aria-hidden="true" />
+@@ -18,38 +79,38 @@ export function TitleBar() {
+         type="button"
+         className="icon-btn no-drag"
+         aria-label="显示或隐藏 Workshop（⌘B）"
+-        onClick={() => void shellActions.toggleWorkshop()}
++        title="显示或隐藏 Workshop（⌘B）"
++        onClick={shellActions.toggleWorkshop}
+       >
+         <Icon name="sidebar" size={17} />
+       </button>
+       {route === 'space' ? (
+-        <button
+-          type="button"
+-          className="space-switch-button no-drag"
+-          aria-label="切换空间"
+-          disabled={!workspace}
+-          onClick={() => void spaceActions.openSwitcher()}
+-        >
+-          <span className="space-symbol">▦</span>
+-          <strong>{workspace?.name ?? '加载空间…'}</strong>
+-          <span>⌄</span>
+-        </button>
++        <BrowserTabs />
+       ) : (
+         <div className="titlebar-title">
+           <strong>{ROUTE_TITLES[route]}</strong>
+-          <span className="muted">空间现场在后台保留</span>
++          <span className="muted">{scope.kind === 'personal' ? '个人作用域 · 空间现场在后台保留' : '管理页 · 空间现场在后台保留'}</span>
+         </div>
+       )}
+       <div className="titlebar-right no-drag">
+-        {focused ? (
+-          <button type="button" className="btn" onClick={shellActions.toggleFocus}>
+-            恢复布局
+-          </button>
+-        ) : null}
+-        <button type="button" className="chip chip-button" onClick={() => shellActions.navigate('settings')}>
++        <button
++          type="button"
++          className="chip chip-button"
++          onClick={() => shellActions.navigate('settings')}
++          title="查看连接与 Harness 状态"
++        >
+           <span className="shape shape-dashed" aria-hidden="true" />
+           {chat ? `Codex CLI · ${chat.available ? '对话已连接' : '对话不可用'}` : '读取对话状态…'}
+         </button>
++        <button
++          type="button"
++          className="icon-btn"
++          aria-label={rightOpen ? '收起通信栏（⌥⌘B）' : '展开通信栏（⌥⌘B）'}
++          aria-pressed={rightOpen}
++          onClick={shellActions.toggleRightPanel}
++        >
++          <Icon name="chat" size={17} />
++        </button>
+       </div>
+     </header>
+   );

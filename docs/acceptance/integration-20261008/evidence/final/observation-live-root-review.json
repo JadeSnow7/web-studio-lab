@@ -1,0 +1,18 @@
+{
+  "path": "e2e/observation-live.spec.ts",
+  "sha256": "9d2de8a273486eb312250b3c23420d87bb0db2b4da5c1cd39de524a1bfc645c0",
+  "reviewed": [
+    "createWorkspace is empty by contract; explicit createTab adds actual isolation WebContents",
+    "nonce stays absent from model prompt; four tool results checked against Main evidence and full identity",
+    "space switch must finish while same run remains running",
+    "cached child process used after app.close; first failure persisted before teardown",
+    "cleanup/evidence failures aggregate with original failure; app closes even without ownerId"
+  ],
+  "static_receipts": [
+    "observation-live-harness-type.json",
+    "observation-live-harness-lint.json",
+    "observation-live-harness-format.json",
+    "observation-live-harness-collect.json"
+  ],
+  "first_failure": "live-observation.json retained; original exception masked, no inferred original message claimed"
+}

@@ -1,0 +1,9 @@
+
+/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/src/main/workbench/application.test.ts
+  911:27  error  'command' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/src/renderer/src/App.tsx
+  42:6  warning  React Hook useEffect has a missing dependency: 'workspace'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 2 problems (1 error, 1 warning)
+

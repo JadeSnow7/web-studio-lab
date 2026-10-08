@@ -1,0 +1,37 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/resource-chat.test.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/service/src/resource-chat.test.ts
+index d6dcd04..74cc94d 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/resource-chat.test.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/service/src/resource-chat.test.ts
+@@ -64,32 +64,6 @@ describe('space resources per-turn capability', () => {
+     f.finish();
+     await f.chat.shutdown();
+   });
+-  it('binds a host-registered dynamic session to TaskFlow resources and freezes its workspace', async () => {
+-    const f = fixture();
+-    const id = 'session-dynamic';
+-    await expect(f.chat.send(id, 'unregistered')).rejects.toThrow('宿主注册');
+-    f.chat.register(id, 'taskflow-demo');
+-    expect(() => f.chat.register(id, 'other')).toThrow('归属已冻结');
+-    await f.chat.send(id, 'read');
+-    expect(f.start.mock.calls[0]?.[0]).toMatchObject({
+-      resourceBundle: { conversationId: id, spaceId: 'taskflow-demo', collectionRevision: 4 },
+-    });
+-    expect(() => f.chat.assertResourceMutationAllowed('taskflow-demo')).toThrow();
+-    f.finish();
+-    await vi.waitFor(() => expect(f.chat.get(id).state).toBe('idle'));
+-    f.chat.invalidateResources('taskflow-demo');
+-    expect(f.chat.get(id).threadId).toBeNull();
+-    await f.chat.shutdown();
+-  });
+-  it('another registered workspace has no TaskFlow capability', async () => {
+-    const f = fixture();
+-    f.chat.register('session-other', 'other');
+-    await f.chat.send('session-other', 'hello');
+-    expect(f.resources.list).not.toHaveBeenCalled();
+-    expect(f.start.mock.calls[0]?.[0]).toMatchObject({ resourceBundle: { spaceId: null, resources: [] } });
+-    f.finish();
+-    await f.chat.shutdown();
+-  });
+   it('personal conversation receives an empty capability without listing a space', async () => {
+     const f = fixture();
+     await f.chat.send(personal, 'hello');

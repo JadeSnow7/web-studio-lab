@@ -1,0 +1,84 @@
+{
+  "runId": "36b54fe1-c607-4755-9d15-e5e8b43ddd71",
+  "taskSha256": "789bf6c465a316ba1235d51b8bfb35967780fea4d5474e310e319ddafbdd9be1",
+  "baseline": {
+    "sha256": "94536a5749212a9526ef89c53a3c4b8e39b8f06a2f69d996eff46d0369e3e332",
+    "files": [
+      {
+        "path": "docs/acceptance/VS001.md",
+        "sha256": "6fadef2edeb1c7667464dcae582bf06d01258d3d1ab50a252bf94303fbcc4c9e"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/index.html",
+        "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/package.json",
+        "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/src/App.tsx",
+        "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/src/main.tsx",
+        "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "f9494aa9639637b438929aee8061429ea123879607d5ad63319f7a8e5eb9cd37"
+      },
+      {
+        "path": "package.json",
+        "sha256": "3213aedb95e2f13871a1527c3823500e7fe080b6fe286c9a0fecf5b2e30da5f2"
+      },
+      {
+        "path": "tests/vertical-slice/cdp.ts",
+        "sha256": "08f7eb8bb48cb0f4cb344f25246e2f733df0019c06bd8a34611f8547ece85da0"
+      },
+      {
+        "path": "tests/vertical-slice/contracts.ts",
+        "sha256": "4f4e47294f2e2650db775a78674a85099e3a7da34e020045b945b63f58193e00"
+      },
+      {
+        "path": "tests/vertical-slice/evidence.ts",
+        "sha256": "89637e2a6aeacc9d4c0ea384e1aedb5f375ef27f47658cd7e502da4afd171aa1"
+      },
+      {
+        "path": "tests/vertical-slice/postcondition.ts",
+        "sha256": "20920d99eb9280ec6fd62a025eea6489ff893a863095cb977d4a52f4e3d5627c"
+      },
+      {
+        "path": "tests/vertical-slice/run.ts",
+        "sha256": "f335a3439e293372ab645810398644a1d211cec314c53982ee69a9316b5fdde4"
+      },
+      {
+        "path": "tests/vertical-slice/selftest.test.ts",
+        "sha256": "8476ca90b1bff6cebfe41edc59e7bb00112809eeddf2f9d7323b129d582acfee"
+      },
+      {
+        "path": "tsconfig.json",
+        "sha256": "4a7a58e5cdf40cf08aee0aa74b4a60693c73232b4df58a7fad075788325c426a"
+      }
+    ]
+  },
+  "startedAt": "2026-10-08T12:47:31.250Z",
+  "node": "v26.5.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "gitHead": "5d9542e1cfc1f213b1150b0d1a6561e00509cb4f",
+  "gitStatus": "?? docs/acceptance/integration-20261008/evidence/final/boundaries-v2.json\n?? docs/acceptance/integration-20261008/evidence/final/boundaries.json\n?? docs/acceptance/integration-20261008/evidence/final/build.json\n?? docs/acceptance/integration-20261008/evidence/final/docs-v2.json\n?? docs/acceptance/integration-20261008/evidence/final/docs.json\n?? docs/acceptance/integration-20261008/evidence/final/exporter-test-v2.json\n?? docs/acceptance/integration-20261008/evidence/final/exporter-test.json\n?? docs/acceptance/integration-20261008/evidence/final/generated-bytecode-cleanup.json\n?? docs/acceptance/integration-20261008/evidence/final/premium-results.json\n?? docs/acceptance/integration-20261008/evidence/final/premium-static.json\n?? docs/acceptance/integration-20261008/evidence/final/type.json\n?? docs/acceptance/integration-20261008/evidence/final/unit.json\n?? docs/acceptance/integration-20261008/evidence/final/vs001-selftest-v2.json\n?? docs/acceptance/integration-20261008/evidence/final/vs001-selftest.json\n?? premium-audit.json\n",
+  "adapterPath": "src/vertical-slice/adapter.ts",
+  "adapterSha256": null,
+  "workspaceGeneratedDirectoriesIgnored": [
+    "node_modules",
+    "dist",
+    ".vite"
+  ],
+  "workspaceEvidence": "before/ and after/ mirror every non-generated file; work/ is excluded from the artifact inventory",
+  "timeouts": {
+    "totalMs": 120000,
+    "cdpRequestMs": 10000,
+    "cleanupMs": 10000
+  }
+}

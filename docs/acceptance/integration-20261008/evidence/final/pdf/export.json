@@ -1,0 +1,27 @@
+{
+  "scope": "submission manuscript and exporter only; product code may be changing independently",
+  "argv": [
+    "/Users/huaodong/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "docs/submission/export_pdf.py",
+    "--font",
+    "/System/Library/Fonts/STHeiti Light.ttc",
+    "--output",
+    "output/submission/integration-final-draft.pdf"
+  ],
+  "started": "2026-10-08T12:09:19.499488+00:00",
+  "exit_code": 0,
+  "stdout": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/output/submission/integration-final-draft.pdf\n",
+  "stderr": "",
+  "inputs_before": {
+    "docs/submission/export_pdf.py": "3eaf2f1cee529f8182e863d08dc0401f7f367865aaac2788f318079a0715dd94",
+    "docs/submission/oschina-2026.md": "64d9804cad838de90b9eceacc642ee545a4167b94280f6339ee0b573c4dc0be4",
+    "docs/submission/oschina-2026-evidence.md": "42e396749b46f452536937dee0e10913ff8da53ea5fb26607c17acd1057b407d"
+  },
+  "inputs_after": {
+    "docs/submission/export_pdf.py": "3eaf2f1cee529f8182e863d08dc0401f7f367865aaac2788f318079a0715dd94",
+    "docs/submission/oschina-2026.md": "64d9804cad838de90b9eceacc642ee545a4167b94280f6339ee0b573c4dc0be4",
+    "docs/submission/oschina-2026-evidence.md": "42e396749b46f452536937dee0e10913ff8da53ea5fb26607c17acd1057b407d"
+  },
+  "inputs_stable": true,
+  "pdf_sha256": "0439fa701ed8b432da3e1614b556d851fecdc877d5a3ba0d48393f6e7eb507e0"
+}

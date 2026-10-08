@@ -1,0 +1,261 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/e2e/observation.spec.ts b/private/tmp/wsl-integration-sources/14-_worktrees/e2e/observation.spec.ts
+index 9f714c3..68e546e 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/e2e/observation.spec.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/e2e/observation.spec.ts
+@@ -1,14 +1,17 @@
+-import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
++import { access, mkdir, mkdtemp, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+ import { createRequire } from 'node:module';
+-import { randomUUID } from 'node:crypto';
++import { createHash, randomUUID } from 'node:crypto';
+ import { tmpdir } from 'node:os';
+ import path from 'node:path';
+ import { _electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
+-import type { Observation, ObservationRequest, ObservationResult, StudioApi } from '../packages/protocol/src';
++import { ObservationSchema } from '../packages/protocol/src';
++import type { Observation, ObservationRequest, ObservationResult, StudioApi, FileInvalidationHint } from '../packages/protocol/src';
+ 
+ declare global {
+   interface Window {
+     studio: StudioApi;
++    observationTestHints: FileInvalidationHint[];
++    stopObservationTestHints: (() => void) | undefined;
+   }
+ }
+ 
+@@ -79,13 +82,50 @@ test.afterEach(async ({ browserName }, info) => {
+     });
+   }
+ });
+-test.afterAll(async () => {
++test.afterAll(async ({ browserName }, info) => {
++  void browserName;
++  let evidenceSaved = false;
+   try {
+     await app?.close();
++    // Only the service's immutable snapshot directory; never archive the whole profile.
++    if (userData) {
++      const directory = path.join(userData, 'chat', 'observations');
++      const entries = await readdir(directory, { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
++        if (error.code === 'ENOENT') return [];
++        throw error;
++      });
++      const snapshots = entries.filter((entry) => entry.isFile() && /^[a-f0-9-]{36}\.json$/i.test(entry.name));
++      if (snapshots.length > 100) throw new Error('Snapshot evidence exceeds 100-file archive budget; profile retained');
++      let totalBytes = 0;
++      for (const entry of snapshots) {
++        const file = path.join(directory, entry.name);
++        const size = (await stat(file)).size;
++        totalBytes += size;
++        if (size > 2 * 1024 * 1024 || totalBytes > 16 * 1024 * 1024) {
++          throw new Error('Snapshot evidence exceeds archive byte budget; profile retained');
++        }
++        const body = await readFile(file);
++        const snapshot = ObservationSchema.parse(JSON.parse(body.toString('utf8')));
++        if (entry.name !== `${snapshot.snapshotId}.json` || snapshot.resource.workspaceId !== 'taskflow-demo') {
++          throw new Error('Snapshot identity mismatch; profile retained');
++        }
++        await info.attach(`observation-${snapshot.snapshotId}.json`, { body, contentType: 'application/json' });
++      }
++      await info.attach('observation-evidence-manifest.json', {
++        body: JSON.stringify({ files: snapshots.map((entry) => entry.name), totalBytes }),
++        contentType: 'application/json',
++      });
++    }
++    evidenceSaved = true;
+   } finally {
+-    if (!failed) {
++    if (!failed && evidenceSaved) {
+       if (userData) await rm(userData, { recursive: true, force: true });
+       if (filesRoot) await rm(filesRoot, { recursive: true, force: true });
++    } else {
++      await info.attach('retained-test-directories.json', {
++        body: JSON.stringify({ userData, filesRoot }),
++        contentType: 'application/json',
++      });
+     }
+   }
+ });
+@@ -137,10 +177,26 @@ test('same visible WebContents: unsaved form state, coverage, native query and s
+   expect(snapshot.coverage.status).toBe('partial');
+   expect(snapshot.coverage.reasons?.join(' ')).toMatch(/Canvas/);
+   expect(snapshot.coverage.reasons?.join(' ')).toMatch(/child target|iframe|cross-origin/i);
+-  const elements = snapshot.data.elements as { ref?: string; name?: string; role?: string }[];
++  const elements = snapshot.data.elements as { ref?: string; name?: string; role?: string; frameId?: string }[];
+   const input = elements.find((e) => e.name === 'Observation input' && e.role === 'textbox' && e.ref);
+   if (!input?.ref) throw new Error('Missing input ref');
+-  expect(JSON.stringify(observation(await read('browser.query', { ref: input.ref })).data)).toContain(`unsaved:${nonce}`);
++  const frameTree = snapshot.data.frames as { frame: { id: string }; childFrames?: { frame: { id: string } }[] };
++  expect(input.frameId).toBe(frameTree.frame.id);
++  expect(input.frameId).toBeTruthy();
++  const children = frameTree.childFrames?.map((child) => child.frame.id) ?? [];
++  expect(children.length).toBeGreaterThan(0);
++  expect(snapshot.data.frameCoverage).toMatchObject({
++    coveredFrameIds: [frameTree.frame.id],
++    missingFrameIds: expect.arrayContaining(children),
++  });
++  const queried = observation(await read('browser.query', { ref: input.ref }));
++  expect(JSON.stringify(queried.data)).toContain(`unsaved:${nonce}`);
++  expect(queried.data.frameId).toBe(input.frameId);
++  const styles = queried.data.computedStyles as Record<string, string>;
++  expect(Object.keys(styles).sort()).toEqual(['background-color', 'color', 'display', 'font-size', 'font-weight', 'visibility']);
++  expect(styles.visibility).toBe('visible');
++  expect(styles['font-size']).toMatch(/px$/);
++
+   const shot = observation(await read('browser.screenshot'));
+   expect(shot.data.target).toBe(browserId);
+   expect(shot.data.width).toBeGreaterThan(0);
+@@ -174,6 +230,16 @@ test('foreign WebContents rejected; navigation invalidates old references', asyn
+   expect(await read('browser.query', { ref })).toMatchObject({ error: 'stale_ref' });
+   const events = observation(await read('browser.read_events'));
+   expect(JSON.stringify(events.data)).toContain('navigation');
++  const beforeDetach = observation(await read('browser.snapshot'));
++  const currentRef = (beforeDetach.data.elements as { ref?: string }[]).find((element) => element.ref)?.ref;
++  expect(currentRef).toBeTruthy();
++  const beforeUrl = await previewEval('location.href');
++  await app.evaluate(({ webContents }, id) => webContents.fromId(id)?.debugger.detach(), browserId);
++  expect(await read('browser.query', { ref: currentRef })).toMatchObject({ error: 'stale_ref' });
++  const reconnected = observation(await read('browser.snapshot'));
++  expect(reconnected.generation).not.toBe(beforeDetach.generation);
++  expect(reconnected.resource.resourceId).toBe(beforeDetach.resource.resourceId);
++  expect(await previewEval('location.href')).toBe(beforeUrl);
+ });
+ 
+ test('local files: bounded continuation, mutation invalidation, scope, editor honesty', async () => {
+@@ -186,6 +252,28 @@ test('local files: bounded continuation, mutation invalidation, scope, editor ho
+   expect(await read('files.read', { path: '../outside.txt' })).toMatchObject({ error: 'unauthorized' });
+   expect(await read('files.read', { path: 'acceptance.txt', source: 'editor' })).toMatchObject({ error: 'unsupported' });
+   expect(JSON.stringify(observation(await read('files.list')).data)).toContain('acceptance.txt');
++  // Real local PNG bytes, no screenshot model or vision claim.
++  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWZkAAAAASUVORK5CYII=', 'base64');
++  await writeFile(path.join(filesRoot, 'pixel.png'), png);
++  const image = observation(await read('files.read', { environmentId: 'local', resourceId: 'files:local', path: 'pixel.png' }));
++  expect(image.resource).toMatchObject({ workspaceId: 'taskflow-demo', environmentId: 'local', kind: 'file' });
++  expect(image.resource.resourceId).not.toBe(part.resource.resourceId);
++  expect(image.source).toBe('disk');
++  expect(image.data).toMatchObject({
++    path: 'pixel.png',
++    mediaType: 'image/png',
++    size: png.length,
++    imageInputRequired: true,
++    imageAvailable: true,
++  });
++  expect(image.data.contentSha256).toBe(createHash('sha256').update(png).digest('hex'));
++  expect(Buffer.from(String(image.data.base64), 'base64')).toEqual(png);
++  expect(image.coverage.status).toBe('complete');
++  expect(image.evidenceRef).toBe(`observation:${image.snapshotId}`);
++  const repeated = observation(await read('files.read', { environmentId: 'local', path: 'pixel.png' }));
++  expect(repeated.resource.resourceId).toBe(image.resource.resourceId);
++  expect(repeated.revision).toEqual(image.revision);
++  expect(repeated.snapshotId).not.toBe(image.snapshotId);
+ });
+ 
+ test('user-facing observation controls perform a real read', async ({ browserName }, info) => {
+@@ -199,6 +287,62 @@ test('user-facing observation controls perform a real read', async ({ browserNam
+   await communication.getByRole('button', { name: '读取当前资源', exact: true }).click();
+   await expect(communication.getByRole('status').filter({ hasText: 'accessibility' })).toBeVisible();
+   await info.attach('observation-controls.png', { body: await page.screenshot(), contentType: 'image/png' });
++  const nested = path.join(filesRoot, 'nested');
++  await mkdir(nested);
++  await writeFile(path.join(nested, 'watched.txt'), 'watch before');
++  const beforeChat = await page.evaluate(() => window.studio.chat.get('conv-space-taskflow-demo-impl'));
++  await page.evaluate(() => {
++    window.observationTestHints = [];
++    window.stopObservationTestHints = window.studio.observation.onInvalidated((hint) => window.observationTestHints.push(hint));
++  });
++  try {
++    const fileInput = communication.getByRole('textbox', { name: '工作区内文件路径', exact: true });
++    await fileInput.fill('nested/watched.txt');
++    await communication.getByRole('button', { name: '读取文件', exact: true }).click();
++    await expect(communication.getByRole('status').filter({ hasText: 'disk' })).toBeVisible();
++    const reader = communication.locator('details.chat-tools');
++    await communication.getByText('读取内容与来源详情', { exact: true }).click();
++    const initial = ObservationSchema.parse(JSON.parse(await reader.locator('pre').innerText()));
++    expect(initial.data.text).toBe('watch before');
++    const initialHintCount = await page.evaluate(() => window.observationTestHints.length);
++    await writeFile(path.join(nested, 'watched.txt'), 'watch after');
++    await expect.poll(() => page.evaluate(() => window.observationTestHints.length)).toBeGreaterThan(initialHintCount);
++    await expect(communication.getByLabel('文件更新提示')).toBeVisible();
++    expect(ObservationSchema.parse(JSON.parse(await reader.locator('pre').innerText())).snapshotId).toBe(initial.snapshotId);
++    await communication.getByRole('button', { name: '读取文件', exact: true }).click();
++    await expect(communication.getByLabel('文件更新提示')).toHaveCount(0);
++    const refreshed = ObservationSchema.parse(JSON.parse(await reader.locator('pre').innerText()));
++    expect(refreshed.data.text).toBe('watch after');
++    expect(refreshed.snapshotId).not.toBe(initial.snapshotId);
++
++    let count = await page.evaluate(() => window.observationTestHints.length);
++    await rename(path.join(nested, 'watched.txt'), path.join(nested, 'renamed.txt'));
++    await expect.poll(() => page.evaluate(() => window.observationTestHints.length)).toBeGreaterThan(count);
++    await expect(communication.getByLabel('文件更新提示')).toBeVisible();
++    await fileInput.fill('nested/renamed.txt');
++    await communication.getByRole('button', { name: '读取文件', exact: true }).click();
++    await expect(communication.getByLabel('文件更新提示')).toHaveCount(0);
++    count = await page.evaluate(() => window.observationTestHints.length);
++    await rm(path.join(nested, 'renamed.txt'));
++    await expect.poll(() => page.evaluate(() => window.observationTestHints.length)).toBeGreaterThan(count);
++    await expect(communication.getByLabel('文件更新提示')).toBeVisible();
++    const hints = await page.evaluate(() => window.observationTestHints);
++    expect(
++      hints.every((hint) => hint.workspaceId === 'taskflow-demo' && hint.environmentId === 'local' && hint.resourceId === 'files:local'),
++    ).toBe(true);
++    expect(hints.every((hint) => hint.coverage.recursive === false && hint.coverage.lossy === true)).toBe(true);
++    expect(hints.every((hint, index) => index === 0 || hint.sequence > hints[index - 1]!.sequence)).toBe(true);
++    expect(hints.every((hint) => !('path' in hint))).toBe(true);
++    await info.attach('file-watch-hints.json', { body: JSON.stringify(hints), contentType: 'application/json' });
++    const afterChat = await page.evaluate(() => window.studio.chat.get('conv-space-taskflow-demo-impl'));
++    expect(afterChat.messages).toEqual(beforeChat.messages);
++    expect(afterChat.toolExecutions).toEqual(beforeChat.toolExecutions);
++  } finally {
++    await page.evaluate(() => {
++      window.stopObservationTestHints?.();
++      window.stopObservationTestHints = undefined;
++    });
++  }
+ });
+ 
+ test('real local PTY: command failure, screen and same-session UI stream', async () => {
+@@ -219,6 +363,44 @@ test('real local PTY: command failure, screen and same-session UI stream', async
+     const uiState = await page.evaluate(() => window.studio.terminal.get());
+     expect(uiState.sessionId).toBe(sessionId);
+     expect(uiState.output).toContain(`TERMINAL_${nonce}`);
++    const send = (data: string) => page.evaluate(({ id, data }) => window.studio.terminal.write(id, data), { id: sessionId, data });
++    const screen = async () => observation(await read('terminal.read_screen', { environmentId: 'local' }));
++    const lines = (result: Observation) => (result.data.lines as { text: string }[]).map((line) => line.text);
++    await send("printf 'OLD_TEXT\\rNEW\\033[K\\n'\n");
++    await expect.poll(async () => lines(await screen()).includes('NEW')).toBe(true);
++    await send("printf '\\033[?1049h\\033[2J\\033[HOBS_ALT\\n'\n");
++    await expect.poll(async () => (await screen()).data.buffer).toBe('alternate');
++    expect(lines(await screen())).toContain('OBS_ALT');
++    await send("printf '\\033[?1049l'\n");
++    await expect.poll(async () => (await screen()).data.buffer).toBe('normal');
++    expect(lines(await screen())).toContain('NEW');
++
++    await page.getByRole('tab', { name: '终端', exact: true }).click();
++    await send('for i in {1..100}; do printf \'OBS_SCROLL_%03d\\n\' "$i"; done\n');
++    await expect.poll(async () => lines(await screen()).some((line) => line.includes('OBS_SCROLL_100'))).toBe(true);
++    const surface = page.locator('.terminal-surface');
++    await surface.hover();
++    await page.mouse.wheel(0, -12000);
++    const communication = page.getByRole('complementary', { name: '通信栏', exact: true });
++    const reader = communication.locator('details.chat-tools');
++    if ((await reader.getAttribute('open')) === null) await communication.getByText('读取工作现场', { exact: true }).click();
++    const current = communication.getByRole('button', { name: '读取当前资源', exact: true });
++    await expect(current).toBeEnabled();
++    await current.click();
++    await expect(communication.getByRole('status').filter({ hasText: 'terminal_screen' })).toBeVisible();
++    const details = communication.getByText('读取内容与来源详情', { exact: true });
++    await details.click();
++    const visible = ObservationSchema.parse(JSON.parse(await reader.locator('pre').innerText()));
++    expect(visible.coverage.range).toMatchObject({ scope: 'requested_scrollback_viewport' });
++    expect(Number(visible.data.viewportY)).toBeLessThan(Number(visible.data.baseY));
++    expect(lines(visible).some((line) => /^OBS_SCROLL_\d{3}$/.test(line))).toBe(true);
++    expect(lines(visible)).not.toContain('OBS_SCROLL_100');
++    const sameViewport = observation(await read('terminal.read_screen', { environmentId: 'local', viewportY: visible.data.viewportY }));
++    expect(lines(visible)).toEqual(lines(sameViewport));
++    const latest = await screen();
++    expect(latest.coverage.range).toMatchObject({ scope: 'latest_screen' });
++    expect(lines(visible)).not.toEqual(lines(latest));
++    expect(lines(latest).some((line) => line.includes('OBS_SCROLL_100'))).toBe(true);
+   } finally {
+     await page.evaluate((id) => window.studio.terminal.close(id), sessionId);
+   }

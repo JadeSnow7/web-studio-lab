@@ -1,0 +1,20 @@
+{
+  "name": "@wsl/service",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@wsl/protocol": "workspace:*",
+    "zod": "4.6.5",
+    "@xterm/headless": "6.0.0",
+    "ssh2": "1.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "typescript": "6.0.3",
+    "@types/ssh2": "1.15.5"
+  }
+}

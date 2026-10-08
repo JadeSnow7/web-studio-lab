@@ -1,0 +1,23 @@
+{
+  "owned_root": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-observation-live-E4SiXQ",
+  "electron_pid": 90399,
+  "process_check": {
+    "command": [
+      "ps",
+      "-p",
+      "90399",
+      "-o",
+      "pid=,ppid=,lstart=,command="
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "conclusion": "exact PID absent"
+  },
+  "ownership": "live-observation.json launch profile and test-created unique parent",
+  "recovered_business_snapshot": "live-observation-v1-recovered-workbench.json",
+  "sha256": "5f6881d558e2f89119c8c4d1344368bc5f7053e22308f5ba5d5603d4a4a11dfa",
+  "guest_cleanup": "not_created: initial failure before terminal creation; recovery snapshot has no terminal instance",
+  "auth": "No credential files read or copied",
+  "at": "2026-10-08T13:47:59.787796+00:00",
+  "host_owned_root_removed": true
+}

@@ -1,0 +1,19 @@
+{
+  "finding": "F26",
+  "status": "blocked_environment",
+  "native_tool_error_source": "Primary agent reports direct CUA tool error; coder did not call CUA.",
+  "native_tool_error": "The Mac is locked and automatic unlock could not unlock it. Ask the user to unlock the Mac manually before continuing.",
+  "probe_facts": [
+    "Window remains visible and not minimized, but not OS-focused; no focused WebContents from start through native focus request.",
+    "Main activePane changes after native-focus event, while OS-focused window remains false.",
+    "app.focus({steal:true}) and window.show() do not acquire OS focus while the Mac is locked.",
+    "No product focus logic or test assertion modified."
+  ],
+  "owned_process": {
+    "pid": 50142,
+    "profile": "/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-e2e-uWQAYu",
+    "shutdown": "SIGTERM only after exact executable/profile identity check; ps confirms no process remains.",
+    "wrapper_error": "After process exit, launchApp app.close wrapper accessed disposed Playwright dispatcher and threw. The probe process was already confirmed exited; this is diagnostic teardown, not product cleanup evidence."
+  },
+  "remaining": "Native focus and actual OS IME/drag require user to unlock Mac and subsequent native/full Electron verification."
+}

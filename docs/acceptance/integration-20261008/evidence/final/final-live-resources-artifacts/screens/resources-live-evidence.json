@@ -1,0 +1,72 @@
+{
+  "evidenceKind": "real-network-and-existing-sandbox-agent",
+  "verified": true,
+  "phase": "remove",
+  "navigation": {
+    "requestedUrl": "https://example.com/",
+    "page": {
+      "webContentsId": 2,
+      "documentGeneration": 2,
+      "url": "https://example.com/",
+      "title": "Example Domain",
+      "partition": "preview-taskflow-demo-fa97276f-6b6b-47ab-8ff7-355e7edd5c35"
+    },
+    "loading": false,
+    "loadError": null,
+    "blockedNavigation": null
+  },
+  "publicCapture": {
+    "publicResourcesError": null,
+    "collectionRevision": 2,
+    "resourceCount": 0,
+    "buttonPresent": false,
+    "buttonDisabled": null,
+    "pendingStatusAvailableInMain": false
+  },
+  "publicResource": {
+    "requestedUrl": "https://example.com/",
+    "url": "https://example.com/",
+    "title": "Example Domain",
+    "text": "This domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it for testing and monitoring purposes.",
+    "capturedAt": "2026-10-08T14:13:21.576Z",
+    "sourceSha256": "25ddf2c883e0d1958ea971d279a7e4f0fd446724ee3db7db19dadabd4a62e484",
+    "contentSha256": "0a080719be9fbb82a86a45b80dc8c2a430fbe17dc93d23758debac092864d00f",
+    "truncated": false,
+    "page": {
+      "webContentsId": 2,
+      "documentGeneration": 2,
+      "url": "https://example.com/",
+      "title": "Example Domain",
+      "partition": "preview-taskflow-demo-fa97276f-6b6b-47ab-8ff7-355e7edd5c35"
+    },
+    "extractionVersion": "html-text-v1",
+    "spaceId": "taskflow-demo",
+    "resourceId": "20bc7a86-a4b0-4c09-a209-c57c634fd449",
+    "version": 1
+  },
+  "conversation": {
+    "conversationId": "session-daac179c-7099-48ec-b55a-fbd465330351",
+    "generation": "1a5d4945-a7b8-4b75-b721-2639c538324c",
+    "state": "idle",
+    "cleanupPending": false,
+    "errorPresent": false,
+    "mcpExecutions": [
+      {
+        "id": "item_3",
+        "turnId": "8a251a6d-2419-466e-9c12-37f151953c98",
+        "command": "mcp:wsl_space.list_resources {}",
+        "output": "{\"status\":\"completed\",\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"untrusted\\\": true, \\\"data\\\": {\\\"spaceId\\\": \\\"taskflow-demo\\\", \\\"collectionRevision\\\": 1, \\\"resources\\\": [{\\\"resourceId\\\": \\\"20bc7a86-a4b0-4c09-a209-c57c634fd449\\\", \\\"version\\\": 1, \\\"url\\\": \\\"https://example.com/\\\", \\\"title\\\": \\\"Example Domain\\\", \\\"contentSha256\\\": \\\"0a080719be9fbb82a86a45b80dc8c2a430fbe17dc93d23758debac092864d00f\\\", \\\"truncated\\\": false}]}}\"}],\"structured_content\":{\"untrusted\":true,\"data\":{\"spaceId\":\"taskflow-demo\",\"collectionRevision\":1,\"resources\":[{\"resourceId\":\"20bc7a86-a4b0-4c09-a209-c57c634fd449\",\"version\":1,\"url\":\"https://example.com/\",\"title\":\"Example Domain\",\"contentSha256\":\"0a080719be9fbb82a86a45b80dc8c2a430fbe17dc93d23758debac092864d00f\",\"truncated\":false}]}}},\"error\":null}",
+        "exitCode": 0,
+        "truncated": false
+      },
+      {
+        "id": "item_4",
+        "turnId": "8a251a6d-2419-466e-9c12-37f151953c98",
+        "command": "mcp:wsl_space.read_resource {\"resourceId\":\"20bc7a86-a4b0-4c09-a209-c57c634fd449\",\"version\":1}",
+        "output": "{\"status\":\"completed\",\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"untrusted\\\": true, \\\"data\\\": {\\\"requestedUrl\\\": \\\"https://example.com/\\\", \\\"url\\\": \\\"https://example.com/\\\", \\\"title\\\": \\\"Example Domain\\\", \\\"text\\\": \\\"This domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it for testing and monitoring purposes.\\\", \\\"capturedAt\\\": \\\"2026-10-08T14:13:21.576Z\\\", \\\"sourceSha256\\\": \\\"25ddf2c883e0d1958ea971d279a7e4f0fd446724ee3db7db19dadabd4a62e484\\\", \\\"contentSha256\\\": \\\"0a080719be9fbb82a86a45b80dc8c2a430fbe17dc93d23758debac092864d00f\\\", \\\"truncated\\\": false, \\\"page\\\": {\\\"webContentsId\\\": 2, \\\"documentGeneration\\\": 2, \\\"url\\\": \\\"https://example.com/\\\", \\\"title\\\": \\\"Example Domain\\\", \\\"partition\\\": \\\"preview-taskflow-demo-fa97276f-6b6b-47ab-8ff7-355e7edd5c35\\\"}, \\\"extractionVersion\\\": \\\"html-text-v1\\\", \\\"spaceId\\\": \\\"taskflow-demo\\\", \\\"resourceId\\\": \\\"20bc7a86-a4b0-4c09-a209-c57c634fd449\\\", \\\"version\\\": 1}}\"}],\"structured_content\":{\"untrusted\":true,\"data\":{\"requestedUrl\":\"https://example.com/\",\"url\":\"https://example.com/\",\"title\":\"Example Domain\",\"text\":\"This domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it for testing and monitoring purposes.\",\"capturedAt\":\"2026-10-08T14:13:21.576Z\",\"sourceSha256\":\"25ddf2c883e0d1958ea971d279a7e4f0fd446724ee3db7db19dadabd4a62e484\",\"contentSha256\":\"0a080719be9fbb82a86a45b80dc8c2a430fbe17dc93d23758debac092864d00f\",\"truncated\":false,\"page\":{\"webContentsId\":2,\"documentGeneration\":2,\"url\":\"https://example.com/\",\"title\":\"Example Domain\",\"partition\":\"preview-taskflow-demo-fa97276f-6b6b-47ab-8ff7-355e7edd5c35\"},\"extractionVersion\":\"html-text-v1\",\"spaceId\":\"taskflow-demo\",\"resourceId\":\"20bc7a86-a4b0-4c09-a209-c57c634fd449\",\"version\":1}}},\"error\":null}",
+        "exitCode": 0,
+        "truncated": false
+      }
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/shell/TitleBar.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/shell/TitleBar.tsx
+index cb3ba9d..9de9dcb 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/shell/TitleBar.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/shell/TitleBar.tsx
+@@ -1,12 +1,13 @@
+ import { Icon, type IconName } from '../components/Icon';
+ import { useStore } from '../lib/store';
+-import { environmentStore } from '../state/execution';
++import { chatStore } from '../state/chat';
+ import { previewStore } from '../state/preview';
+ import { shellActions, shellStore, type BrowserTab } from '../state/shell';
+ import { ROUTE_TITLES } from './routes';
+ 
+ const BROWSER_TABS: ReadonlyArray<{ tab: BrowserTab; label: string; icon: IconName }> = [
+   { tab: 'preview', label: '', icon: 'globe' },
++  { tab: 'terminal', label: '终端', icon: 'terminal' },
+   { tab: 'log', label: '运行日志', icon: 'terminal' },
+   { tab: 'diff', label: '源码 diff', icon: 'diff' },
+   { tab: 'report', label: '验收报告', icon: 'doc' },
+@@ -23,6 +24,27 @@ function BrowserTabs() {
+           type="button"
+           role="tab"
+           aria-selected={active === tab}
++          id={`space-tab-${tab}`}
++          aria-controls={`space-panel-${tab}`}
++          tabIndex={active === tab ? 0 : -1}
++          onKeyDown={(event) => {
++            const index = BROWSER_TABS.findIndex((item) => item.tab === tab);
++            const next =
++              event.key === 'ArrowRight'
++                ? (index + 1) % BROWSER_TABS.length
++                : event.key === 'ArrowLeft'
++                  ? (index + BROWSER_TABS.length - 1) % BROWSER_TABS.length
++                  : event.key === 'Home'
++                    ? 0
++                    : event.key === 'End'
++                      ? BROWSER_TABS.length - 1
++                      : null;
++            if (next === null) return;
++            event.preventDefault();
++            const target = BROWSER_TABS[next]!.tab;
++            shellActions.setBrowserTab(target);
++            document.getElementById(`space-tab-${target}`)?.focus();
++          }}
+           className="tab"
+           onClick={() => shellActions.setBrowserTab(tab)}
+           title={tab === 'preview' ? pageTitle : label}
+@@ -48,7 +70,7 @@ export function TitleBar() {
+   const route = useStore(shellStore, (s) => s.route);
+   const rightOpen = useStore(shellStore, (s) => s.rightPanel.open);
+   const scope = useStore(shellStore, (s) => s.activeScope);
+-  const harness = useStore(environmentStore, (e) => e.execution?.harness ?? null);
++  const chat = useStore(chatStore, (state) => state.status);
+ 
+   return (
+     <header className="titlebar">
+@@ -78,7 +100,7 @@ export function TitleBar() {
+           title="查看连接与 Harness 状态"
+         >
+           <span className="shape shape-dashed" aria-hidden="true" />
+-          {harness ? `${harness.name} · ${harness.state === 'verified' ? '已验证' : '尚未接入/验证'}` : '读取执行状态…'}
++          {chat ? `Codex CLI · ${chat.available ? '对话已连接' : '对话不可用'}` : '读取对话状态…'}
+         </button>
+         <button
+           type="button"

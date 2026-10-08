@@ -1,0 +1,55 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/packages/protocol/src/ipc.ts b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/ipc.ts
+index bfb1353..2e57aed 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/packages/protocol/src/ipc.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/ipc.ts
+@@ -1,5 +1,13 @@
++import {
++  ResourceCollectionSchema,
++  ResourceListRequestSchema,
++  ResourceCaptureRequestSchema,
++  ResourceRemoveRequestSchema,
++} from './resources';
+ import { z } from 'zod';
++import { TerminalOpenSchema, TerminalWriteSchema, TerminalResizeSchema, TerminalTargetSchema, TerminalSnapshotSchema } from './terminal';
+ import { AppInfoSchema, ShellCommandSchema } from './app';
++import { ChatConversationSchema, ChatSendSchema, ChatStatusSchema, ChatTargetSchema } from './chat';
+ import { ExecutionStatusSchema } from './execution';
+ import {
+   PageCaptureSchema,
+@@ -17,6 +25,9 @@ const NoResult = z.void();
+  * main 在边界用 request schema 校验参数，校验失败直接抛错。
+  */
+ export const invokeChannels = {
++  'resources:list': { request: ResourceListRequestSchema, response: ResourceCollectionSchema },
++  'resources:capture': { request: ResourceCaptureRequestSchema, response: ResourceCollectionSchema },
++  'resources:remove': { request: ResourceRemoveRequestSchema, response: ResourceCollectionSchema },
+   'preview:get-state': { request: NoArgs, response: PreviewStateSchema },
+   'preview:set-layout': { request: PreviewLayoutSchema, response: NoResult },
+   'preview:freeze': { request: NoArgs, response: PreviewFreezeResultSchema },
+@@ -29,6 +40,16 @@ export const invokeChannels = {
+   'preview:cancel-pick': { request: NoArgs, response: NoResult },
+   'preview:reattach-cdp': { request: NoArgs, response: NoResult },
+   'app:get-info': { request: NoArgs, response: AppInfoSchema },
++  'chat:get-status': { request: NoArgs, response: ChatStatusSchema },
++  'chat:get': { request: ChatTargetSchema, response: ChatConversationSchema },
++  'chat:send': { request: ChatSendSchema, response: ChatConversationSchema },
++  'chat:cancel': { request: ChatTargetSchema, response: ChatConversationSchema },
++  'chat:reset': { request: ChatTargetSchema, response: ChatConversationSchema },
++  'terminal:get': { request: NoArgs, response: TerminalSnapshotSchema },
++  'terminal:open': { request: TerminalOpenSchema, response: TerminalSnapshotSchema },
++  'terminal:write': { request: TerminalWriteSchema, response: NoResult },
++  'terminal:resize': { request: TerminalResizeSchema, response: NoResult },
++  'terminal:close': { request: TerminalTargetSchema, response: TerminalSnapshotSchema },
+   'execution:get-status': { request: NoArgs, response: ExecutionStatusSchema },
+ } as const;
+ 
+@@ -38,6 +59,9 @@ export type InvokeResponse<C extends InvokeChannel> = z.output<(typeof invokeCha
+ 
+ /** main → renderer 的事件通道。 */
+ export const eventChannels = {
++  'terminal:state': TerminalSnapshotSchema,
++  'chat:status': ChatStatusSchema,
++  'chat:conversation': ChatConversationSchema,
+   'preview:state': PreviewStateSchema,
+   'preview:captured': PageCaptureSchema,
+   'shell:command': ShellCommandSchema,

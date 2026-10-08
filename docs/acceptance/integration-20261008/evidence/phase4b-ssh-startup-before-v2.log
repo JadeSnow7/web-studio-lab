@@ -1,0 +1,50 @@
+
+ RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+
+ ❯ apps/service/src/environment-resources.test.ts (6 tests | 1 failed) 51ms
+   × reports failed SSH connection before shell acquisition as confirmed no process, bound to the Main instance 3ms
+ ❯ apps/desktop/src/main/workbench/application.test.ts (24 tests | 1 failed) 1423ms
+   × preserves current-instance service proof that terminal startup failed before creating a process 1066ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/environment-resources.test.ts > reports failed SSH connection before shell acquisition as confirmed no process, bound to the Main instance
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…}, …(1) ]
+
+Number of calls: 0
+
+ ❯ apps/service/src/environment-resources.test.ts:107:18
+    105|     await resources.register(binding);
+    106|     await expect(resources.openTerminal(binding, 80, 24)).rejects.toTh…
+    107|     expect(emit).toHaveBeenCalledWith(expect.objectContaining({ state:…
+       |                  ^
+    108|     expect(() => resources.terminal(binding)).toThrow('not open');
+    109|     await resources.shutdown();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/main/workbench/application.test.ts > preserves current-instance service proof that terminal startup failed before creating a process
+AssertionError: expected { seq: 1, sessionId: null, …(6) } to match object { state: 'failed', …(2) }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "cleanupPending": false,
++   "cleanupPending": true,
+    "error": "host pin rejected",
+    "state": "failed",
+  }
+
+ ❯ apps/desktop/src/main/workbench/application.test.ts:1025:150
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 28 passed (30)
+   Start at  19:56:31
+   Duration  1.63s (tests 82%, transform 11%, import 6%)
+

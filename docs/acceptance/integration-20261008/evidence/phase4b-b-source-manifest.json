@@ -1,0 +1,417 @@
+{
+  "head": "965ebcd12bc97ccc669dd90cf6009c9446e93d2d",
+  "scope": "Phase4b-B owned product SSH/SFTP/agent/real-PTY loopback, F28 startup lifecycle and test synchronization; no external SSH, model live or packaged run",
+  "sources": [
+    {
+      "path": "apps/desktop/src/main/workbench/application.ts",
+      "sha256": "396ccb75a8a0aaf395b0699ab8e94529785943d19528e86919ead55b99b7dc5a"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.test.ts",
+      "sha256": "9fbcc27abf076cc9400472a6e4dcb18a612d71bb422b3468cc21c800b3a22ab4"
+    },
+    {
+      "path": "apps/service/src/environment-resources.ts",
+      "sha256": "d90a3fb47aeb81f8794c9382fbfab2fff76f60ba2e034df8c630cd269b15de61"
+    },
+    {
+      "path": "apps/service/src/environment-resources.test.ts",
+      "sha256": "f2cf2042109f737fd7a36c297df232e1529b8fe04f814a5298b2b6a03b266974"
+    },
+    {
+      "path": "apps/service/src/observation-mcp.test.ts",
+      "sha256": "2fe618929236b3b9b8dbcc123817916ef1af8ea0cdfeaa620d64c223cf1d1c86"
+    },
+    {
+      "path": "e2e/helpers.ts",
+      "sha256": "2a23bda60d699e5cc7cdd014448a7811d27341690d5efb937e995ad23124626b"
+    },
+    {
+      "path": "e2e/fixtures/ssh-loopback.ts",
+      "sha256": "54ee349c910a817317d9f371ed253b814aac06f7ec012d3cde3a939b56f69d27"
+    },
+    {
+      "path": "e2e/ssh-product.spec.ts",
+      "sha256": "8446c65ad0142020736cd62f56e52649e28fafeead4499448adb0d04ed1f5574"
+    }
+  ],
+  "receipts": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-build.json",
+      "sha256": "84616bd878dc2e7b8e5384f3293e1abcce20c58ffa3298064fa5df8e992134a4",
+      "argv": [
+        "pnpm",
+        "build"
+      ],
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a973a5737ddbd3dcc158337e4327af8e641b1c4caabaa0705c082a65f8483b0d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "result": "passed"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-diff.json",
+      "sha256": "8dd871cb18fe7e796bc2e9fc30689bd02786efecd4275a27375675ae16f13c08",
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a973a5737ddbd3dcc158337e4327af8e641b1c4caabaa0705c082a65f8483b0d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "result": "passed"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-format.json",
+      "sha256": "a2c66838da1bfe0175383e440c59f894cbc40edba3e70b7bfe858b0ca6ed0dfe",
+      "argv": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--check",
+        "e2e/helpers.ts",
+        "e2e/fixtures/ssh-loopback.ts",
+        "e2e/ssh-product.spec.ts",
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/service/src/environment-resources.ts",
+        "apps/service/src/environment-resources.test.ts",
+        "apps/service/src/observation-mcp.test.ts"
+      ],
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a973a5737ddbd3dcc158337e4327af8e641b1c4caabaa0705c082a65f8483b0d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "result": "passed"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-lint.json",
+      "sha256": "d7815f4d6d05e97f24a38920df8e84be55736b97a5577da55a1b7401bcb0cb10",
+      "argv": [
+        "pnpm",
+        "exec",
+        "eslint",
+        "e2e/helpers.ts",
+        "e2e/fixtures/ssh-loopback.ts",
+        "e2e/ssh-product.spec.ts",
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/service/src/environment-resources.ts",
+        "apps/service/src/environment-resources.test.ts",
+        "apps/service/src/observation-mcp.test.ts"
+      ],
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a973a5737ddbd3dcc158337e4327af8e641b1c4caabaa0705c082a65f8483b0d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "result": "passed"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-mcp.json",
+      "sha256": "11190c04549764e45b6ec1630b72ffc9ae3116d7e63a28aff3927cc10ec9e6b7",
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/service/src/observation-mcp.test.ts"
+      ],
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a973a5737ddbd3dcc158337e4327af8e641b1c4caabaa0705c082a65f8483b0d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "result": "passed"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-ssh-product.json",
+      "sha256": "7a62e894598163354a3139956da6316ea65ec75305becb905719ccc05f9c8721",
+      "argv": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "e2e/ssh-product.spec.ts"
+      ],
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a973a5737ddbd3dcc158337e4327af8e641b1c4caabaa0705c082a65f8483b0d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "result": "passed"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-type.json",
+      "sha256": "5ddb69c1f2cff6bae696343ec33e19dd46dfff2a23329a6f269ccbbe74ca18d9",
+      "argv": [
+        "pnpm",
+        "typecheck"
+      ],
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a973a5737ddbd3dcc158337e4327af8e641b1c4caabaa0705c082a65f8483b0d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "result": "passed"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-unit.json",
+      "sha256": "2a332d1aa432d09ac5daab7734e9621016fb2da439ca4f5a1fe4bcfd8d58357a",
+      "argv": [
+        "pnpm",
+        "test"
+      ],
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a973a5737ddbd3dcc158337e4327af8e641b1c4caabaa0705c082a65f8483b0d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "result": "passed"
+    }
+  ],
+  "validation": {
+    "full_unit": "416 passed / 8 live skipped",
+    "observation_mcp": "7 passed",
+    "product_ssh": "2 passed; actual Electron/Main/service/SSH_AUTH_SOCK, signed authentication, SFTP and Python PTY",
+    "static": "typecheck, build, changed-file lint/format and diff passed"
+  },
+  "evidence": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-build.json",
+      "sha256": "3cb2dac1ec1277bd46c6beee7b0232989f5cddd4ea9ed3be3bb97bda89e494ef"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-format.json",
+      "sha256": "9d46204140b5d7c174f45964affeeeb2343388948c8ae2988e3f476fbe216730"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-lint.json",
+      "sha256": "0a04f51b5a0cfc0de4abc409b90119a67cefbcd4e84141e32245f581251ff9e3"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-type.json",
+      "sha256": "7e74ba5c19dcc8aab0472c0e43365ecc83b37a82f4b4bd8f421bda6f7b87277e"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-unit.json",
+      "sha256": "852fd15cad1fd9fd2240e5ade8eb8d375bb42c0653c269a5c676936370ab2c4d"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v2-build.json",
+      "sha256": "7e1080162aa735cf05b7ff2b58edd182de0a769e2e30ade946bd7a5c5f016b0b"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v2-format.json",
+      "sha256": "7ad19ee6dcac2aef254868e3af332c397d8511739669993cbdff74c325cb854f"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v2-lint.json",
+      "sha256": "579337148beca06a257a1602e2bdc57c8beefa735312311807f4c5d1d1b3b20c"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v2-ssh-product.json",
+      "sha256": "f96cc15572bdd100190aec69cdda501c6b2b46d10e63c097122a9d44fd160206"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v2-type.json",
+      "sha256": "220420904e872b6970776587fb13f0fcfab90546588d90a5eab6fbe2a0a0f891"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v2-unit.json",
+      "sha256": "2d73b8be09f7acd5a9dd690d0a0cdab907616e592dc8b9ba6b5b530a471c5e7c"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v3-build.json",
+      "sha256": "4b72c04f95b6bd1b07cd03c222456a7e8be79c1f1392e74997f87c3ac918d12e"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v3-format.json",
+      "sha256": "640261d6dcf86ef7f6b4554c6325d68bb1bb1258b34c39f803dcdd4f9d7355b3"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v3-lint.json",
+      "sha256": "f2da33588d3aca268845f55e45bde1ab26c28ec5b8ba26780a4047518206466f"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v3-ssh-product.json",
+      "sha256": "f7a2ae4af00d15682dad295e8886792b729b36a0bfb6b5ea41023e6821861112"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v3-type.json",
+      "sha256": "e05435e07340d30ac3cc802082d2b675012af507d25558dc2915b9f3ef02cdaf"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v3-unit.json",
+      "sha256": "17ff7a2fa50035ae57e21cfaf754b24df98c16a249b289ddf888136af49f4694"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-build.json",
+      "sha256": "84616bd878dc2e7b8e5384f3293e1abcce20c58ffa3298064fa5df8e992134a4"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-diff.json",
+      "sha256": "8dd871cb18fe7e796bc2e9fc30689bd02786efecd4275a27375675ae16f13c08"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-format.json",
+      "sha256": "a2c66838da1bfe0175383e440c59f894cbc40edba3e70b7bfe858b0ca6ed0dfe"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-lint.json",
+      "sha256": "d7815f4d6d05e97f24a38920df8e84be55736b97a5577da55a1b7401bcb0cb10"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-mcp.json",
+      "sha256": "11190c04549764e45b6ec1630b72ffc9ae3116d7e63a28aff3927cc10ec9e6b7"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-ssh-product.json",
+      "sha256": "7a62e894598163354a3139956da6316ea65ec75305becb905719ccc05f9c8721"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-type.json",
+      "sha256": "5ddb69c1f2cff6bae696343ec33e19dd46dfff2a23329a6f269ccbbe74ca18d9"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-final-v4-unit.json",
+      "sha256": "2a332d1aa432d09ac5daab7734e9621016fb2da439ca4f5a1fe4bcfd8d58357a"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v3-ssh-artifacts/.last-run.json",
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v3-ssh-artifacts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/attachments/owned-ssh-evidence-ebe381c04aed9690f61195506514573a542d8c65.json",
+      "sha256": "9b11fd16fa202847516a11761607fe73c49568a5f584f4970f677bb093288aaa"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v3-ssh-artifacts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/attachments/unknown-close-boundary-4f332a99fbd81990caf8f886d082629ea4e5b0b3.json",
+      "sha256": "ba1461db63c4e4da1c7e366036f3a8a4e838d7299032a01d9766e712676a5ce7"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v3-ssh-artifacts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/owned-ssh-evidence.json",
+      "sha256": "9b11fd16fa202847516a11761607fe73c49568a5f584f4970f677bb093288aaa"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v3-ssh-artifacts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/unknown-close-boundary.json",
+      "sha256": "ba1461db63c4e4da1c7e366036f3a8a4e838d7299032a01d9766e712676a5ce7"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v3-ssh-artifacts/ssh-product-产品错误host-pin在认证前拒绝，不启动PTY/attachments/owned-ssh-evidence-291be0dc39fac68344a41b0c6db9dceab4512651.json",
+      "sha256": "e19c77841ac97039799ef71467490f2bdd3e9ba0eaa24a6cceb5dd094c5265e3"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v3-ssh-artifacts/ssh-product-产品错误host-pin在认证前拒绝，不启动PTY/owned-ssh-evidence.json",
+      "sha256": "e19c77841ac97039799ef71467490f2bdd3e9ba0eaa24a6cceb5dd094c5265e3"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v4-ssh-artifacts/.last-run.json",
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v4-ssh-artifacts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/attachments/main-observation-records-6ef6875943af26a98f3cc148205fce7e573e70dc.json",
+      "sha256": "5c53d37b6fda1da3702f066bca15f95bbc396a203e9841d7a7d25a230d3286e6"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v4-ssh-artifacts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/attachments/owned-ssh-evidence-ebe381c04aed9690f61195506514573a542d8c65.json",
+      "sha256": "31b63817382e668e03466e64da7331e76811b901cca27e16cecd022382268d62"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v4-ssh-artifacts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/attachments/unknown-close-boundary-4f332a99fbd81990caf8f886d082629ea4e5b0b3.json",
+      "sha256": "28d09c0073aeac7c177c8ed835739607fc2eb24b40a314e5add057d2ba17f13c"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v4-ssh-artifacts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/main-observation-records.json",
+      "sha256": "5c53d37b6fda1da3702f066bca15f95bbc396a203e9841d7a7d25a230d3286e6"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v4-ssh-artifacts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/owned-ssh-evidence.json",
+      "sha256": "31b63817382e668e03466e64da7331e76811b901cca27e16cecd022382268d62"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v4-ssh-artifacts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/unknown-close-boundary.json",
+      "sha256": "28d09c0073aeac7c177c8ed835739607fc2eb24b40a314e5add057d2ba17f13c"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v4-ssh-artifacts/ssh-product-产品错误host-pin在认证前拒绝，不启动PTY/attachments/owned-ssh-evidence-291be0dc39fac68344a41b0c6db9dceab4512651.json",
+      "sha256": "885cce324527da12e4a1d2d1dd21792404c16bbc2ba83686b0ee4fe8040bbf5f"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-b-v4-ssh-artifacts/ssh-product-产品错误host-pin在认证前拒绝，不启动PTY/owned-ssh-evidence.json",
+      "sha256": "885cce324527da12e4a1d2d1dd21792404c16bbc2ba83686b0ee4fe8040bbf5f"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-build-first.log",
+      "sha256": "a487ede17876a22a9a8af8ac131c5f0b453533c39294036fff4ba44dc7ccfd52"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-build-second.log",
+      "sha256": "894398ab37ad05edb6a75431e8015bc2bcf378035844cdce80225975c4c26457"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-fifth-cleanup.json",
+      "sha256": "70b5c8a549dd2efad33d8078af5d54bf874b190c0f4c2e758ec22be6135500da"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-fifth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md",
+      "sha256": "c2429add582541bb1c50d0a3d6c6783e238179d066a98cc9ea7098d8ee01af05"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-fourth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md",
+      "sha256": "66894b78bc052ff0e7a504f8276bb5798fefc18b692163f7c3c920597c41c013"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-product-fifth.log",
+      "sha256": "5f4fc642e4e2161e75c0f2971a21e631fe7b94b6cc0987c310943a5eebbb1ba1"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-product-first.log",
+      "sha256": "9a22d78e23529d13c8e5484a3c1bb544798245c84efdab526196628b4d458bea"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-product-fourth.log",
+      "sha256": "47ff5bb4913dca33dc00732b7a2a63ddc074063dea3769360b42a71613811f8b"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-product-second.log",
+      "sha256": "1dc1f7b3643a9eeea954b220b31f6289357421c1a9362f9e55fd3b00340e3b95"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-product-seventh.log",
+      "sha256": "aaadae7ed42ff466991fe5a5dbe77d3261d1b60b77fd675d57b4e6f7b60b5c85"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-product-sixth.log",
+      "sha256": "d44ba066b2d4fe32c6986a68f2bf7aedcd4de84d9a2dd8b4b376763a1c65e634"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-product-third.log",
+      "sha256": "742e2ecd1fb2184684b6bdf9ff06ce4de639da37d58e055ad19dd6cdb9d4332a"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-second-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md",
+      "sha256": "ae7880f816d6ed9fe149c91fea6782607b646eb57990d5895d30fa40746745ec"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-second-partial-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md",
+      "sha256": "ae7880f816d6ed9fe149c91fea6782607b646eb57990d5895d30fa40746745ec"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-sixth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md",
+      "sha256": "adea6b5b34ce15f04c0f57e20234e538144b4931e7685ac1e0b070eeb49dd0da"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-startup-after.log",
+      "sha256": "e0c17e06414d02cdeff06cf50422fcf65579408c014b39258627487c31774286"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-startup-before-v2.log",
+      "sha256": "c752c88931e22d8b6ae4228d6fc27bc6435fea51719f9db264ec34b6b3125cf5"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-startup-before.log",
+      "sha256": "19c9fea060c1f3b252d87e49b157d99dde3fc83c5d1b38ad721d2f14f8713408"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-startup-final-local-v2.log",
+      "sha256": "dcccf98570415149bd8ed3a1f72eadc7b846ed621ccb4f9485c8ba9033833655"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-startup-final-local.log",
+      "sha256": "5e5bc564438860fd8a93ba64bea0cc9fbd00d339a1fa23355f35c3a309b6835e"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-third-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md",
+      "sha256": "413cddba441175da6f039617c99888e3ddfbb050693f4ec704e797489762e1e8"
+    }
+  ],
+  "behavior": [
+    "Service emits same-instance failed/cleanupPending=false only before acquiring a terminal adapter; Main preserves current-instance failure proof, ignoring old bindings and retaining unknown without proof.",
+    "Failed terminal with unknown cleanup explicitly rejects reconnect; running/starting/closing remain idempotent.",
+    "Fixture strictly verifies trusted public key and signature; private keys and auth socket stay temporary and are never archived.",
+    "Final owned profiles, keys, server, agent and PTY helpers are cleaned; helper bootstrap removed after app termination.",
+    "Expected disconnect leaves product cleanupPending=true; test fixture separately confirms both owned PTYs exited and force-exits only its Electron. This is not normal product shutdown acceptance."
+  ],
+  "limitations": [
+    "Mac remains locked; no native-focus, real drag or OS IME acceptance. Chinese PTY output is generated by ASCII POSIX octal printf through the actual terminal UI; Playwright direct Chinese typing and old bash Unicode escape failed in early fixtures.",
+    "First product failure log preserved but its original context/body-only attachment was not persisted before Playwright cleared outputs. Subsequent available contexts are archived; v3/v4 JSON attachments are explicitly on disk.",
+    "Initial service/Main before run had a transient Main proof assertion; corrected before-v2 waits launch completion and records two real failures.",
+    "First formal type/lint failures and v2 Playwright collection failure are preserved; v3 full-unit MCP test synchronization failure is preserved. Only v4 receipts are final.",
+    "Early fifth run timed out during deliberately refused unknown-cleanup window close and worker teardown; exact owned PID inspection/termination and leftover directory cleanup are in phase4b-ssh-fifth-cleanup.json. No normal shutdown pass is claimed for this path.",
+    "External production SSH hosts, packaged Electron and actual real-model observation live are not run in this package."
+  ]
+}

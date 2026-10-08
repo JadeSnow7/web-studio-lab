@@ -1,0 +1,46 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/service/src/local-terminal.test.ts",
+    "apps/service/src/local-terminal-detached.test.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T08:44:07.314605Z",
+  "ended_at": "2026-10-08T08:44:10.786890Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/local-terminal.test.ts (4 tests | 1 failed) 3006ms\n   ❯ local terminal lifecycle (3)\n     × bounds cleanup when foreground process ignores hangup 2623ms\n\n Test Files  1 failed | 1 passed (2)\n      Tests  1 failed | 4 passed (5)\n   Start at  16:44:07\n   Duration  3.15s (tests 97%, transform 1%, import 1%)\n\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/local-terminal.test.ts > local terminal lifecycle > bounds cleanup when foreground process ignores hangup\nError: local PTY helper exited without cleanup confirmation\n ❯ LocalTerminal.close apps/service/src/local-terminal.ts:139:45\n    137|       });\n    138|     });\n    139|     if (this.snapshot.cleanupPending) throw new Error(this.snapshot.er…\n       |                                             ^\n    140|     return this.get();\n    141|   }\n ❯ apps/service/src/local-terminal.test.ts:48:5\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvc2VydmljZS9zcmMvbG9jYWwtdGVybWluYWwudGVzdC50cyAoNCB0ZXN0cyB8IDEgZmFpbGVkKSAzMDA2bXMKICAg4p2vIGxvY2FsIHRlcm1pbmFsIGxpZmVjeWNsZSAoMykKICAgICDDlyBib3VuZHMgY2xlYW51cCB3aGVuIGZvcmVncm91bmQgcHJvY2VzcyBpZ25vcmVzIGhhbmd1cCAyNjIzbXMKCiBUZXN0IEZpbGVzICAxIGZhaWxlZCB8IDEgcGFzc2VkICgyKQogICAgICBUZXN0cyAgMSBmYWlsZWQgfCA0IHBhc3NlZCAoNSkKICAgU3RhcnQgYXQgIDE2OjQ0OjA3CiAgIER1cmF0aW9uICAzLjE1cyAodGVzdHMgOTclLCB0cmFuc2Zvcm0gMSUsIGltcG9ydCAxJSkKCg==",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL2xvY2FsLXRlcm1pbmFsLnRlc3QudHMgPiBsb2NhbCB0ZXJtaW5hbCBsaWZlY3ljbGUgPiBib3VuZHMgY2xlYW51cCB3aGVuIGZvcmVncm91bmQgcHJvY2VzcyBpZ25vcmVzIGhhbmd1cApFcnJvcjogbG9jYWwgUFRZIGhlbHBlciBleGl0ZWQgd2l0aG91dCBjbGVhbnVwIGNvbmZpcm1hdGlvbgog4p2vIExvY2FsVGVybWluYWwuY2xvc2UgYXBwcy9zZXJ2aWNlL3NyYy9sb2NhbC10ZXJtaW5hbC50czoxMzk6NDUKICAgIDEzN3wgICAgICAgfSk7CiAgICAxMzh8ICAgICB9KTsKICAgIDEzOXwgICAgIGlmICh0aGlzLnNuYXBzaG90LmNsZWFudXBQZW5kaW5nKSB0aHJvdyBuZXcgRXJyb3IodGhpcy5zbmFwc2hvdC5lcuKApgogICAgICAgfCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIF4KICAgIDE0MHwgICAgIHJldHVybiB0aGlzLmdldCgpOwogICAgMTQxfCAgIH0KIOKdryBhcHBzL3NlcnZpY2Uvc3JjL2xvY2FsLXRlcm1pbmFsLnRlc3QudHM6NDg6NQoK4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6vWzEvMV3ijq8KCg==",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:ec6ca8a5b9f300f911c4927c20cd31c4fc1bfb03b3e39be62468b0e9d1bb2249:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:ec6ca8a5b9f300f911c4927c20cd31c4fc1bfb03b3e39be62468b0e9d1bb2249:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:ec6ca8a5b9f300f911c4927c20cd31c4fc1bfb03b3e39be62468b0e9d1bb2249:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

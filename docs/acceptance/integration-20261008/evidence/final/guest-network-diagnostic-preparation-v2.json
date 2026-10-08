@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "hostSyntaxValid": true,
+  "guestSyntaxValid": true,
+  "preparedOnly": true,
+  "networkRequests": 0,
+  "sandboxCommands": 0,
+  "script": "/private/tmp/wsl-guest-network-diagnostic-v2.mjs",
+  "scriptSha256": "3f263091201898be2b00e696325c9407691829520523b4e1305f022634b2dad7",
+  "sourceSha256": "6a30a638b48a85e890466e0acbb5359f1030b072847ed8edb2ab281c27bc357c",
+  "approvedSandboxIdentity": {
+    "name": "wsl-sbx-smoke-20261006",
+    "agent": "codex",
+    "mounts": 0,
+    "state": [
+      "running",
+      "stopped"
+    ],
+    "imageDigest": "sha256:8b4cd0a46c8b600bc6b6a64af23c03d4c2807fbfc61f47568092a93fb9dc88b0"
+  },
+  "execution": "Existing stopped sandbox may start through ordinary sbx exec; no creation/reset/keepalive.",
+  "privacy": "No headers/proxy authentication/request body/raw stderr emitted; v1 script and evidence retained."
+}

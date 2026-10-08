@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "pnpm",
+    "test"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T08:21:43.040174Z",
+  "ended_at": "2026-10-08T08:21:47.155547Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n> web-studio-lab@ test /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n> vitest run\n\n\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/initialization-migration.test.ts (1 test | 1 failed) 229ms\n   ❯ R6 service boundary initialization (1)\n     × answers local read/status/register requests while sbx initialization remains pending 228ms\n\n Test Files  1 failed | 50 passed | 4 skipped (55)\n      Tests  1 failed | 353 passed | 8 skipped (362)\n   Start at  16:21:43\n   Duration  3.30s (tests 73%, import 15%, transform 11%, worker 1%)\n\n    Isolate  55 workers spawned · ~116ms startup each (spawn + environment, per file)\n             at least ~591ms faster with isolate: false — reuses workers across files instead of one per file\n\n ELIFECYCLE  Test failed. See above for more details.\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/initialization-migration.test.ts > R6 service boundary initialization > answers local read/status/register requests while sbx initialization remains pending\nAssertionError: expected [ Array(4) ] to deeply equal [ Array(5) ]\n\n- Expected\n+ Received\n\n  [\n    \"get\",\n    \"register\",\n    \"resources\",\n    \"status\",\n-   \"terminal\",\n  ]\n\n ❯ vi.waitFor.timeout apps/service/src/initialization-migration.test.ts:78:11\n     76|             .map(([message]) => message.id)\n     77|             .sort(),\n     78|         ).toEqual(['get', 'register', 'resources', 'status', 'terminal…\n       |           ^\n     79|       { timeout: 100 },\n     80|     );\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "Cj4gd2ViLXN0dWRpby1sYWJAIHRlc3QgL1VzZXJzL2h1YW9kb25nLy5jb2RleC93b3JrdHJlZXMvYmY2NC93ZWItc3R1ZGlvLWxhYgo+IHZpdGVzdCBydW4KCgogUlVOICB2NS4wLjMgL1VzZXJzL2h1YW9kb25nLy5jb2RleC93b3JrdHJlZXMvYmY2NC93ZWItc3R1ZGlvLWxhYgoKIOKdryBhcHBzL3NlcnZpY2Uvc3JjL2luaXRpYWxpemF0aW9uLW1pZ3JhdGlvbi50ZXN0LnRzICgxIHRlc3QgfCAxIGZhaWxlZCkgMjI5bXMKICAg4p2vIFI2IHNlcnZpY2UgYm91bmRhcnkgaW5pdGlhbGl6YXRpb24gKDEpCiAgICAgw5cgYW5zd2VycyBsb2NhbCByZWFkL3N0YXR1cy9yZWdpc3RlciByZXF1ZXN0cyB3aGlsZSBzYnggaW5pdGlhbGl6YXRpb24gcmVtYWlucyBwZW5kaW5nIDIyOG1zCgogVGVzdCBGaWxlcyAgMSBmYWlsZWQgfCA1MCBwYXNzZWQgfCA0IHNraXBwZWQgKDU1KQogICAgICBUZXN0cyAgMSBmYWlsZWQgfCAzNTMgcGFzc2VkIHwgOCBza2lwcGVkICgzNjIpCiAgIFN0YXJ0IGF0ICAxNjoyMTo0MwogICBEdXJhdGlvbiAgMy4zMHMgKHRlc3RzIDczJSwgaW1wb3J0IDE1JSwgdHJhbnNmb3JtIDExJSwgd29ya2VyIDElKQoKICAgIElzb2xhdGUgIDU1IHdvcmtlcnMgc3Bhd25lZCDCtyB+MTE2bXMgc3RhcnR1cCBlYWNoIChzcGF3biArIGVudmlyb25tZW50LCBwZXIgZmlsZSkKICAgICAgICAgICAgIGF0IGxlYXN0IH41OTFtcyBmYXN0ZXIgd2l0aCBpc29sYXRlOiBmYWxzZSDigJQgcmV1c2VzIHdvcmtlcnMgYWNyb3NzIGZpbGVzIGluc3RlYWQgb2Ygb25lIHBlciBmaWxlCgrigIlFTElGRUNZQ0xF4oCJIFRlc3QgZmFpbGVkLiBTZWUgYWJvdmUgZm9yIG1vcmUgZGV0YWlscy4K",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL2luaXRpYWxpemF0aW9uLW1pZ3JhdGlvbi50ZXN0LnRzID4gUjYgc2VydmljZSBib3VuZGFyeSBpbml0aWFsaXphdGlvbiA+IGFuc3dlcnMgbG9jYWwgcmVhZC9zdGF0dXMvcmVnaXN0ZXIgcmVxdWVzdHMgd2hpbGUgc2J4IGluaXRpYWxpemF0aW9uIHJlbWFpbnMgcGVuZGluZwpBc3NlcnRpb25FcnJvcjogZXhwZWN0ZWQgWyBBcnJheSg0KSBdIHRvIGRlZXBseSBlcXVhbCBbIEFycmF5KDUpIF0KCi0gRXhwZWN0ZWQKKyBSZWNlaXZlZAoKICBbCiAgICAiZ2V0IiwKICAgICJyZWdpc3RlciIsCiAgICAicmVzb3VyY2VzIiwKICAgICJzdGF0dXMiLAotICAgInRlcm1pbmFsIiwKICBdCgog4p2vIHZpLndhaXRGb3IudGltZW91dCBhcHBzL3NlcnZpY2Uvc3JjL2luaXRpYWxpemF0aW9uLW1pZ3JhdGlvbi50ZXN0LnRzOjc4OjExCiAgICAgNzZ8ICAgICAgICAgICAgIC5tYXAoKFttZXNzYWdlXSkgPT4gbWVzc2FnZS5pZCkKICAgICA3N3wgICAgICAgICAgICAgLnNvcnQoKSwKICAgICA3OHwgICAgICAgICApLnRvRXF1YWwoWydnZXQnLCAncmVnaXN0ZXInLCAncmVzb3VyY2VzJywgJ3N0YXR1cycsICd0ZXJtaW5hbOKApgogICAgICAgfCAgICAgICAgICAgXgogICAgIDc5fCAgICAgICB7IHRpbWVvdXQ6IDEwMCB9LAogICAgIDgwfCAgICAgKTsKCuKOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr1sxLzFd4o6vCgo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c68a037a587eab3f54d65d44a4bf237fe48cc661e281959fef501d81f65bf702:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c68a037a587eab3f54d65d44a4bf237fe48cc661e281959fef501d81f65bf702:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c68a037a587eab3f54d65d44a4bf237fe48cc661e281959fef501d81f65bf702:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

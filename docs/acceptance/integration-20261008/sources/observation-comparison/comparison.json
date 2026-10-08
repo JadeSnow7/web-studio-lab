@@ -1,0 +1,252 @@
+[
+  {
+    "path": "README.md",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/desktop/src/main/chat-service.test.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__desktop__src__main__chat-service.test.ts.patch"
+  },
+  {
+    "path": "apps/desktop/src/main/chat-service.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__desktop__src__main__chat-service.ts.patch"
+  },
+  {
+    "path": "apps/desktop/src/main/ipc-resources.test.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__desktop__src__main__ipc-resources.test.ts.patch"
+  },
+  {
+    "path": "apps/desktop/src/main/ipc.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__desktop__src__main__ipc.ts.patch"
+  },
+  {
+    "path": "apps/desktop/src/main/preview/controller.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/desktop/src/preload/index.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__desktop__src__preload__index.ts.patch"
+  },
+  {
+    "path": "apps/desktop/src/renderer/src/main.tsx",
+    "status": "changed_in_delivery",
+    "diff": "apps__desktop__src__renderer__src__main.tsx.patch"
+  },
+  {
+    "path": "apps/desktop/src/renderer/src/shell/ChatMessages.tsx",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/desktop/src/renderer/src/state/chat.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__desktop__src__renderer__src__state__chat.ts.patch"
+  },
+  {
+    "path": "apps/desktop/src/renderer/src/state/terminal.test.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/desktop/src/renderer/src/state/terminal.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/desktop/src/renderer/src/workbench/TerminalPanel.tsx",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/package.json",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/codex-chat.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/guest-helper.py",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/index.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__service__src__index.ts.patch"
+  },
+  {
+    "path": "apps/service/src/raw.d.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/resource-chat.test.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/resource-dispatch.test.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/resource_mcp.py",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/sbx.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/terminal.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/vite.config.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "e2e/workbench.spec.ts",
+    "status": "changed_in_delivery",
+    "diff": "e2e__workbench.spec.ts.patch"
+  },
+  {
+    "path": "packages/protocol/src/bridge.ts",
+    "status": "changed_in_delivery",
+    "diff": "packages__protocol__src__bridge.ts.patch"
+  },
+  {
+    "path": "packages/protocol/src/chat.ts",
+    "status": "changed_in_delivery",
+    "diff": "packages__protocol__src__chat.ts.patch"
+  },
+  {
+    "path": "packages/protocol/src/index.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "packages/protocol/src/ipc.ts",
+    "status": "changed_in_delivery",
+    "diff": "packages__protocol__src__ipc.ts.patch"
+  },
+  {
+    "path": "packages/protocol/src/terminal.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "pnpm-lock.yaml",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "premium-audit.json",
+    "status": "not_in_key_snapshot"
+  },
+  {
+    "path": "apps/desktop/src/main/preview/observation.test.ts",
+    "status": "delivery_only"
+  },
+  {
+    "path": "apps/desktop/src/main/preview/observation.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__desktop__src__main__preview__observation.ts.patch"
+  },
+  {
+    "path": "apps/desktop/src/renderer/src/shell/ObservationPanel.tsx",
+    "status": "changed_in_delivery",
+    "diff": "apps__desktop__src__renderer__src__shell__ObservationPanel.tsx.patch"
+  },
+  {
+    "path": "apps/desktop/src/renderer/src/state/observation-hints.test.ts",
+    "status": "delivery_only"
+  },
+  {
+    "path": "apps/desktop/src/renderer/src/state/observation-hints.ts",
+    "status": "delivery_only"
+  },
+  {
+    "path": "apps/service/src/local-file-watch.test.ts",
+    "status": "delivery_only"
+  },
+  {
+    "path": "apps/service/src/local-file-watch.ts",
+    "status": "delivery_only"
+  },
+  {
+    "path": "apps/service/src/local-terminal.py",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/local-terminal.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/observation-files.test.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__service__src__observation-files.test.ts.patch"
+  },
+  {
+    "path": "apps/service/src/observation-files.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__service__src__observation-files.ts.patch"
+  },
+  {
+    "path": "apps/service/src/observation-mcp.test.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__service__src__observation-mcp.test.ts.patch"
+  },
+  {
+    "path": "apps/service/src/observation-router.test.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/observation-router.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/observation-ssh.test.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/observation-ssh.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/observation-terminal.test.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__service__src__observation-terminal.test.ts.patch"
+  },
+  {
+    "path": "apps/service/src/observation-terminal.ts",
+    "status": "changed_in_delivery",
+    "diff": "apps__service__src__observation-terminal.ts.patch"
+  },
+  {
+    "path": "apps/service/src/ssh-terminal.test.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/ssh-terminal.ts",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/terminal-bash-integration.sh",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "apps/service/src/terminal-zsh-integration.sh",
+    "status": "exact_duplicate"
+  },
+  {
+    "path": "docs/architecture/unified-observation.md",
+    "status": "changed_in_delivery",
+    "diff": "docs__architecture__unified-observation.md.patch"
+  },
+  {
+    "path": "e2e/observation.spec.ts",
+    "status": "changed_in_delivery",
+    "diff": "e2e__observation.spec.ts.patch"
+  },
+  {
+    "path": "packages/protocol/src/observation.ts",
+    "status": "changed_in_delivery",
+    "diff": "packages__protocol__src__observation.ts.patch"
+  }
+]

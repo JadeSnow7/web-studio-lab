@@ -1,0 +1,26 @@
+{
+  "script": "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+  "sha256": "9b9dc4d27b7c285a25d40484269ca34d7475a819b9f4aed6bbdfd1471d7c39d4",
+  "runs": [
+    {
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-2.json",
+      "exitCode": 0,
+      "stdout": ""
+    },
+    {
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-3.json",
+      "exitCode": 0,
+      "stdout": ""
+    },
+    {
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-4.json",
+      "exitCode": 0,
+      "stdout": ""
+    },
+    {
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-5.json",
+      "exitCode": 0,
+      "stdout": ""
+    }
+  ]
+}

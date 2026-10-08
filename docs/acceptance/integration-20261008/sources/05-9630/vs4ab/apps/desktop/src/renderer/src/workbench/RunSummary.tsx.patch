@@ -1,0 +1,21 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/workbench/RunSummary.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/workbench/RunSummary.tsx
+index aafd65d..afeb8ac 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/workbench/RunSummary.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/workbench/RunSummary.tsx
+@@ -60,6 +60,7 @@ function ReviewControls({ record, readOnly }: { record: RunRecord; readOnly: boo
+       </p>
+       {asking ? (
+         <form
++          noValidate
+           className="stack-8"
+           onSubmit={(event) => {
+             event.preventDefault();
+@@ -73,7 +74,7 @@ function ReviewControls({ record, readOnly }: { record: RunRecord; readOnly: boo
+         >
+           <label className="field">
+             <span className="field-label">需要修改的原因</span>
+-            <textarea rows={2} value={note} onChange={(event) => setNote(event.target.value)} />
++            <textarea className="resize-none" rows={2} value={note} onChange={(event) => setNote(event.target.value)} />
+           </label>
+           <div className="row gap-8">
+             <button type="submit" className="btn btn-primary" disabled={note.trim() === ''}>

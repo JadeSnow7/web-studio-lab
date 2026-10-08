@@ -1,0 +1,49 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/bridge.ts b/private/tmp/wsl-integration-sources/00-primary/packages/protocol/src/bridge.ts
+index 60b7c6e..a68055b 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/bridge.ts
++++ b/private/tmp/wsl-integration-sources/00-primary/packages/protocol/src/bridge.ts
+@@ -1,7 +1,6 @@
+-import type { WorkbenchCommand, WorkbenchEvent, WorkbenchResult, WorkbenchSnapshot } from './workspace';
+-import type { ChatConversation, ChatSlot, ChatStatus } from './chat';
+ import type { AppInfo, ShellCommand } from './app';
+ import type { ExecutionStatus } from './execution';
++import type { PageCapture, PreviewFreezeResult, PreviewLayout, PreviewState } from './preview';
+ 
+ export type Unsubscribe = () => void;
+ 
+@@ -10,20 +9,21 @@ export type Unsubscribe = () => void;
+  * 每个方法对应 ipc.ts 中的一个通道；不暴露 ipcRenderer 本身。
+  */
+ export interface StudioApi {
+-  workbench: {
+-    getSnapshot(): Promise<WorkbenchSnapshot>;
+-    reload(): Promise<WorkbenchSnapshot>;
+-    command(command: WorkbenchCommand): Promise<WorkbenchResult>;
+-    onEvent(listener: (event: WorkbenchEvent) => void): Unsubscribe;
+-  };
+-  chat: {
+-    getStatus(): Promise<ChatStatus>;
+-    get(conversationId: ChatSlot): Promise<ChatConversation>;
+-    send(conversationId: ChatSlot, text: string): Promise<ChatConversation>;
+-    cancel(conversationId: ChatSlot): Promise<ChatConversation>;
+-    reset(conversationId: ChatSlot): Promise<ChatConversation>;
+-    onStatus(listener: (status: ChatStatus) => void): Unsubscribe;
+-    onConversation(listener: (conversation: ChatConversation) => void): Unsubscribe;
++  preview: {
++    getState(): Promise<PreviewState>;
++    setLayout(layout: PreviewLayout): Promise<void>;
++    /** 截取当前页面后隐藏原生视图，供浮层遮挡期间显示静态快照。 */
++    freeze(): Promise<PreviewFreezeResult>;
++    navigate(url: string): Promise<void>;
++    reload(): Promise<void>;
++    goBack(): Promise<void>;
++    goForward(): Promise<void>;
++    focus(): Promise<void>;
++    startPick(): Promise<void>;
++    cancelPick(): Promise<void>;
++    reattachCdp(): Promise<void>;
++    onState(listener: (state: PreviewState) => void): Unsubscribe;
++    onCaptured(listener: (capture: PageCapture) => void): Unsubscribe;
+   };
+   app: {
+     getInfo(): Promise<AppInfo>;

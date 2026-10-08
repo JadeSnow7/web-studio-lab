@@ -1,0 +1,73 @@
+
+Running 6 tests using 1 worker
+
+(node:47923) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/workbench.spec.ts:23:1 › 启动：窗口、安全边界与 Browser 区真实加载 (179ms)
+  ✓  2 e2e/workbench.spec.ts:55:1 › 点选：明确目标后采集摘要、截图与页面身份，先采集后确认不会崩溃 (692ms)
+  ✓  3 e2e/workbench.spec.ts:76:1 › 任务确认：中文目标生成权威不可变版本，重复点击不生成双版本 (61ms)
+CAPTURE_DEBUG {"request":{"requestId":"16731ccf-bdf1-450c-bbf4-185dd0137751","resourceId":"5fe79b8e-30aa-46b0-a6e5-c2dedbd9c68a","state":"failed","error":"Browser 区页面当前不可见，不能开始选择"},"resources":[{"id":"5fe79b8e-30aa-46b0-a6e5-c2dedbd9c68a","picking":false,"error":null},{"id":"c16a6a1f-dc80-499b-92a3-4f5009e358c9"},{"id":"2f373af6-5b53-4dd3-949a-875359880c2a"}]}
+  ✘  4 e2e/workbench.spec.ts:96:1 › 导航：页面跳转后旧现场失效，历史版本仍保留原目标 (5.6s)
+(node:47969) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+DEVTOOLS_DEBUG {"appInstanceId":"c012a8c3-5b99-485f-9d81-10e220719020","storageError":null,"activeWorkspaceId":"taskflow-demo","seq":31,"workspaces":[{"workspaceId":"taskflow-demo","name":"TaskFlow","revision":2,"tabs":[{"tabId":"4a3f5498-27a0-45cc-bd95-cd82412288fc","title":"TaskFlow 预览","pinned":false,"group":null,"targetRef":{"kind":"web","resourceId":"f70bda42-472f-470a-9657-1c9ba803b2d1"}},{"tabId":"26b29596-24d7-4d59-a95c-b4091b46f118","title":"开发终端","pinned":false,"group":null,"targetRef":{"kind":"terminal","resourceId":"55db0300-ff99-4cdf-8049-05a291b7f507"}},{"tabId":"28834d3f-e16d-46ad-beec-c149db6386ff","title":"Agent 会话","pinned":false,"group":null,"targetRef":{"kind":"session","resourceId":"8d1735fa-260f-4aad-936c-8bb20f51a3a8"}},{"tabId":"8469e086-231b-4029-83e2-e2bcf089f24d","title":"第二网页742","pinned":false,"group":null,"targetRef":{"kind":"web","resourceId":"863e8735-bda6-4b8f-9bc2-4b7458998d92"}}],"resources":[{"resourceId":"f70bda42-472f-470a-9657-1c9ba803b2d1","kind":"web","title":"TaskFlow 预览","url":"wsl-demo://taskflow/index.html","instanceId":"c4d9e4f1-3cfc-4c48-9ee5-b645963a8586","generation":1,"preview":{"page":{"webContentsId":2,"documentGeneration":2,"url":"wsl-demo://taskflow/index.html","title":"任务 · TaskFlow 演示","partition":"preview-taskflow-demo-c4d9e4f1-3cfc-4c48-9ee5-b645963a8586"},"loading":false,"canGoBack":false,"canGoForward":false,"picking":false,"cdp":{"state":"idle"},"consoleIssueCount":4,"loadError":null,"blockedNavigation":null,"pickError":null},"terminal":null,"unavailableReason":null},{"resourceId":"55db0300-ff99-4cdf-8049-05a291b7f507","kind":"terminal","title":"开发终端","url":null,"instanceId":null,"generation":0,"preview":null,"terminal":null,"unavailableReason":null},{"resourceId":"8d1735fa-260f-4aad-936c-8bb20f51a3a8","kind":"session","title":"Agent 会话","url":null,"instanceId":null,"generation":0,"preview":null,"terminal":null,"unavailableReason":null},{"resourceId":"863e8735-bda6-4b8f-9bc2-4b7458998d92","kind":"web","title":"第二网页742","url":"wsl-demo://taskflow/members.html","instanceId":"91ac315a-cd18-4dbc-bf95-6b8bc76a12e9","generation":1,"preview":{"page":{"webContentsId":3,"documentGeneration":2,"url":"wsl-demo://taskflow/members.html","title":"成员 · TaskFlow 演示","partition":"preview-taskflow-demo-91ac315a-cd18-4dbc-bf95-6b8bc76a12e9"},"loading":false,"canGoBack":false,"canGoForward":false,"picking":false,"cdp":{"state":"idle"},"consoleIssueCount":2,"loadError":null,"blockedNavigation":null,"pickError":null},"terminal":null,"unavailableReason":null}],"layout":{"kind":"split","direction":"horizontal","ratio":0.5,"first":{"kind":"pane","paneId":"61359e9a-d1df-46bf-b924-8d1e43297892","tabId":"4a3f5498-27a0-45cc-bd95-cd82412288fc"},"second":{"kind":"pane","paneId":"5a623fbe-b020-4713-bc26-40debb487d32","tabId":"8469e086-231b-4029-83e2-e2bcf089f24d"}},"activePaneId":"61359e9a-d1df-46bf-b924-8d1e43297892","sessions":[{"sessionId":"session-81d62326-db9a-4780-9cbc-a5126104c1ec","resourceId":"8d1735fa-260f-4aad-936c-8bb20f51a3a8","title":"Agent 会话","draft":"","conversation":null,"historyRestored":false,"context":null,"captureRequest":null,"contextTarget":null,"taskTargetRef":null,"taskAcceptance":[],"taskAllowedScopes":[],"contextApplicability":"unknown","taskVersions":[]}],"runs":[],"publicResources":{"spaceId":"taskflow-demo","revision":0,"resources":[]},"publicResourcesError":null,"theme":"system"}],"notificationReadReceipts":[],"notifications":[]}
+DEVTOOLS_WCS [
+  { id: 2, opened: false, tool: undefined },
+  { id: 3, opened: false, tool: undefined }
+]
+  ✘  5 e2e/workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 (6.4s)
+(node:48018) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+RENDERER Error: WSL_STARTUP_NEGATIVE_CONTROL
+    at <anonymous>:1:26
+  ✓  6 e2e/workspace-migration.spec.ts:203:1 › E2E 异常门槛负控：启动阶段异常必须失败 (570ms)
+
+
+  1) e2e/workbench.spec.ts:96:1 › 导航：页面跳转后旧现场失效，历史版本仍保留原目标 ─────────────────────────────────────────
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      106 |   await expect
+      107 |     .poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.resources.find((r) => r.kind === 'web')!.preview!.picking)
+    > 108 |     .toBe(true);
+          |      ^
+      109 |   await previewClick(app, await previewElementCenter(app, '[data-testid="edit-task"]'));
+      110 |   await expect(session()).toContainText('现场适用性：有效');
+      111 | });
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/workbench.spec.ts:108:6
+
+    Error Context: test-results/e2e/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md
+
+    Error Context: test-results/e2e/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md
+
+  2) e2e/workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 ─────────────────────
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      192 |     await expect
+      193 |       .poll(() => app.evaluate(({ webContents }, id) => webContents.fromId(id)!.isDevToolsOpened(), web.preview!.page.webContentsId))
+    > 194 |       .toBe(true);
+          |        ^
+      195 |     expect(
+      196 |       await app.evaluate(({ webContents }, id) => webContents.fromId(id)!.isDevToolsOpened(), secondResource.preview!.page.webContentsId),
+      197 |     ).toBe(false);
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/workspace-migration.spec.ts:194:8
+
+    Error Context: test-results/e2e/workspace-migration-R3-双网页原生focus事件决定地址与刷新目标，布局更新保持焦点/error-context.md
+
+  2 failed
+    e2e/workbench.spec.ts:96:1 › 导航：页面跳转后旧现场失效，历史版本仍保留原目标 ──────────────────────────────────────────
+    e2e/workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 ──────────────────────
+  4 passed (15.7s)

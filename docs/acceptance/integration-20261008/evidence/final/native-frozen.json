@@ -1,0 +1,17 @@
+{
+  "tool": "cua.getState({emit:false})",
+  "at": "2026-10-08T13:55:24.223Z",
+  "apps": [],
+  "errors": [
+    "Native apps: Error: The Mac is locked and automatic unlock could not unlock it. Ask the user to unlock the Mac manually before continuing."
+  ],
+  "result": "undetermined",
+  "not_run": [
+    "native focus",
+    "physical drag and drop",
+    "Chinese IME candidate window",
+    "OS composited occlusion and click-through"
+  ],
+  "user_unlock_question": "Already requested asynchronously; no answer received; no duplicate prompt",
+  "privacy": "Unrelated browser inventory not archived"
+}

@@ -1,0 +1,78 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/terminal.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/terminal.ts
+index d485d59..f2cf0a8 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/terminal.ts
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/terminal.ts
+@@ -1,4 +1,5 @@
+ import { randomUUID } from 'node:crypto';
++import { TerminalObservation } from './observation-terminal';
+ import type { TerminalSnapshot } from '@wsl/protocol';
+ import type { SbxConnection, GuestProcess } from './sbx';
+ 
+@@ -10,9 +11,11 @@ export class Terminal {
+     cwd: null,
+     state: 'idle',
+     output: '',
++    outputOffset: 0,
+     cleanupPending: false,
+     error: null,
+   };
++  observation: TerminalObservation | null = null;
+   private active: GuestProcess | null = null;
+   private closing = false;
+   constructor(
+@@ -39,12 +42,37 @@ export class Terminal {
+       this.publish();
+       throw new Error(status.reason ?? 'sbx 不可用');
+     }
+-    this.snapshot = { ...this.get(), sessionId: randomUUID(), state: 'starting', output: '', cleanupPending: true, error: null };
++    this.snapshot = {
++      ...this.get(),
++      sessionId: randomUUID(),
++      state: 'starting',
++      output: '',
++      outputOffset: 0,
++      cleanupPending: true,
++      error: null,
++    };
++    this.observation?.dispose();
++    this.observation = new TerminalObservation(
++      {
++        workspaceId: 'taskflow-demo',
++        environmentId: `sandbox:${status.sandbox}`,
++        resourceId: this.snapshot.sessionId!,
++        kind: 'terminal',
++      },
++      this.snapshot.sessionId!,
++      cols,
++      rows,
++    );
+     this.publish();
+     this.active = this.connection.start({ type: 'start', mode: 'terminal', cols, rows }, (frame) => {
+       if (frame.type === 'ready' && this.snapshot.state === 'starting') this.snapshot.state = 'running';
+       if (frame.type === 'cleanup') this.snapshot.cleanupPending = !frame.ok;
+-      if (frame.type === 'output') this.snapshot.output = (this.snapshot.output + frame.data).slice(-262144);
++      if (frame.type === 'output') {
++        this.observation?.append(frame.data);
++        const combined = this.snapshot.output + frame.data;
++        this.snapshot.output = combined.slice(-262144);
++        this.snapshot.outputOffset = (this.snapshot.outputOffset ?? 0) + combined.length - this.snapshot.output.length;
++      }
+       if (frame.type === 'error') {
+         this.snapshot.error = frame.error;
+         this.snapshot.state = 'failed';
+@@ -54,6 +82,7 @@ export class Terminal {
+     const active = this.active;
+     void active.done.then((outcome) => {
+       if (this.active !== active) return;
++      this.observation?.close();
+       this.snapshot.cleanupPending = !outcome.confirmed;
+       if (outcome.confirmed) this.active = null;
+       const wasClosing = this.snapshot.state === 'closing';
+@@ -73,6 +102,7 @@ export class Terminal {
+   }
+   resize(sessionId: string, cols: number, rows: number): void {
+     this.target(sessionId).write({ type: 'resize', cols, rows });
++    this.observation?.resize(cols, rows);
+   }
+   async close(sessionId: string): Promise<TerminalSnapshot> {
+     if (this.snapshot.sessionId !== sessionId) throw new Error('终端会话身份已过期');

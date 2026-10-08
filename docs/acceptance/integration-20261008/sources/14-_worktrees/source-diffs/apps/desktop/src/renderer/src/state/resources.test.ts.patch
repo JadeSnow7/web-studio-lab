@@ -1,0 +1,87 @@
+diff --git a/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/resources.test.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/resources.test.ts
+new file mode 100644
+index 0000000..a782092
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/resources.test.ts
+@@ -0,0 +1,81 @@
++import { describe, expect, it, vi } from 'vitest';
++import type { PageIdentity, ResourceCollection, StudioApi } from '@wsl/protocol';
++import { createResourcesController } from './resources';
++
++const page: PageIdentity = {
++  webContentsId: 7,
++  documentGeneration: 1,
++  url: 'https://example.com/',
++  title: 'Example Domain',
++  partition: 'persist:wsl-preview',
++};
++const empty = (spaceId: string, revision = 0): ResourceCollection => ({ spaceId, revision, resources: [] });
++function deferred<T>() {
++  let resolve!: (value: T) => void;
++  let reject!: (reason: Error) => void;
++  const promise = new Promise<T>((yes, no) => {
++    resolve = yes;
++    reject = no;
++  });
++  return { promise, resolve, reject };
++}
++function setup(overrides: Partial<StudioApi['resources']> = {}) {
++  const api: StudioApi['resources'] = {
++    list: vi.fn(async (spaceId) => empty(spaceId)),
++    capture: vi.fn(async (spaceId) => empty(spaceId, 1)),
++    remove: vi.fn(async (spaceId) => empty(spaceId, 2)),
++    ...overrides,
++  };
++  return { api, ...createResourcesController(api) };
++}
++
++describe('空间资源界面状态', () => {
++  it('迟到列表不能覆盖较新的保存结果', async () => {
++    const late = deferred<ResourceCollection>();
++    const { actions, store } = setup({ list: () => late.promise });
++    const listing = actions.load('taskflow-demo');
++    await actions.capture('taskflow-demo', page);
++    late.resolve(empty('taskflow-demo'));
++    await listing;
++    expect(store.get().collections['taskflow-demo']?.revision).toBe(1);
++  });
++  it('同空间重复点击只提交一次，保存绑定点击时的页面身份', async () => {
++    const save = deferred<ResourceCollection>();
++    const { api, actions, store } = setup({ capture: vi.fn(() => save.promise) });
++    const first = actions.capture('taskflow-demo', page);
++    await actions.capture('taskflow-demo', page);
++    expect(api.capture).toHaveBeenCalledTimes(1);
++    expect(api.capture).toHaveBeenCalledWith('taskflow-demo', page, undefined);
++    expect(store.get().pending['taskflow-demo']).toBe(true);
++    save.resolve(empty('taskflow-demo', 1));
++    expect(await first).toBe(true);
++    expect(store.get().pending['taskflow-demo']).toBe(false);
++  });
++  it('空间数据分别保存，切换作用域不会重命名已挂载资源', async () => {
++    const { actions, store } = setup();
++    await actions.load('space-a');
++    await actions.capture('space-b', page);
++    expect(store.get().collections['space-a']).toEqual(empty('space-a'));
++    expect(store.get().collections['space-b']).toEqual(empty('space-b', 1));
++  });
++  it('失败保留列表并展示错误，重试成功清除错误', async () => {
++    const { api, actions, store } = setup();
++    await actions.load('taskflow-demo');
++    vi.mocked(api.remove).mockRejectedValueOnce(new Error('资源任务运行中，请先停止回复'));
++    expect(await actions.remove('taskflow-demo', 'resource-id')).toBe(false);
++    expect(store.get().collections['taskflow-demo']).toEqual(empty('taskflow-demo'));
++    expect(store.get().errors['taskflow-demo']).toContain('请先停止回复');
++    expect(await actions.remove('taskflow-demo', 'resource-id')).toBe(true);
++    expect(store.get().errors['taskflow-demo']).toBeNull();
++    expect(store.get().pending['taskflow-demo']).toBe(false);
++  });
++  it('仅移除 Electron 资源 IPC 包装，保留实际可操作错误', async () => {
++    const { actions, store } = setup({
++      capture: vi.fn(async () => {
++        throw new Error("Error invoking remote method 'resources:capture': Error: 页面已变化，请等待加载完成后重试");
++      }),
++    });
++    expect(await actions.capture('taskflow-demo', page)).toBe(false);
++    expect(store.get().errors['taskflow-demo']).toBe('页面已变化，请等待加载完成后重试');
++  });
++});

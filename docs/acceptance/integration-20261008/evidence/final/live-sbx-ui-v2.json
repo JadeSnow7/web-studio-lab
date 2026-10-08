@@ -1,0 +1,47 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "e2e/sbx.spec.ts",
+    "--grep",
+    "live"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T13:23:35.552510Z",
+  "ended_at": "2026-10-08T13:24:28.226106Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\nRunning 1 test using 1 worker\n\nLIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-e2e-bGy4sE ELECTRON_PID 89903\n  ✓  1 e2e/sbx.spec.ts:159:1 › live：应用终端与 Codex 共享 guest 文件并确认交互与清理 (52.0s)\n\n  1 passed (52.3s)\n",
+  "stderr": "(node:89902) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\nELECTRON_STDERR (node:89903) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `Electron --trace-warnings ...` to show where the warning was created)\n\nELECTRON_STDERR Debugger ending on ws://127.0.0.1:59491/a29f9257-7e20-44a8-b3a9-ecfeda85aee4\nFor help, see: https://nodejs.org/learn/getting-started/debugging\n\n",
+  "stdout_base64": "ClJ1bm5pbmcgMSB0ZXN0IHVzaW5nIDEgd29ya2VyCgpMSVZFX1BST0ZJTEUgL3Zhci9mb2xkZXJzLzg3L2d5aHgxM2hzNDUzNTFqN3Z3a2RycjRzcjAwMDBnbi9UL3dzbC1lMmUtYkd5NHNFIEVMRUNUUk9OX1BJRCA4OTkwMwogIOKckyAgMSBlMmUvc2J4LnNwZWMudHM6MTU5OjEg4oC6IGxpdmXvvJrlupTnlKjnu4jnq6/kuI4gQ29kZXgg5YWx5LqrIGd1ZXN0IOaWh+S7tuW5tuehruiupOS6pOS6kuS4jua4heeQhiAoNTIuMHMpCgogIDEgcGFzc2VkICg1Mi4zcykK",
+  "stderr_base64": "KG5vZGU6ODk5MDIpIFdhcm5pbmc6IFRoZSAnTk9fQ09MT1InIGVudiBpcyBpZ25vcmVkIGR1ZSB0byB0aGUgJ0ZPUkNFX0NPTE9SJyBlbnYgYmVpbmcgc2V0LgooVXNlIGBub2RlIC0tdHJhY2Utd2FybmluZ3MgLi4uYCB0byBzaG93IHdoZXJlIHRoZSB3YXJuaW5nIHdhcyBjcmVhdGVkKQpFTEVDVFJPTl9TVERFUlIgKG5vZGU6ODk5MDMpIFdhcm5pbmc6IFRoZSAnTk9fQ09MT1InIGVudiBpcyBpZ25vcmVkIGR1ZSB0byB0aGUgJ0ZPUkNFX0NPTE9SJyBlbnYgYmVpbmcgc2V0LgooVXNlIGBFbGVjdHJvbiAtLXRyYWNlLXdhcm5pbmdzIC4uLmAgdG8gc2hvdyB3aGVyZSB0aGUgd2FybmluZyB3YXMgY3JlYXRlZCkKCkVMRUNUUk9OX1NUREVSUiBEZWJ1Z2dlciBlbmRpbmcgb24gd3M6Ly8xMjcuMC4wLjE6NTk0OTEvYTI5ZjkyNTctN2UyMC00NGE4LWIzYTktZWNmZWRhODVhZWU0CkZvciBoZWxwLCBzZWU6IGh0dHBzOi8vbm9kZWpzLm9yZy9sZWFybi9nZXR0aW5nLXN0YXJ0ZWQvZGVidWdnaW5nCgo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:8337fb9aef04ebbe1530248c5d11823bf43bf5457fa95ca97c5581644fdacb54:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:8337fb9aef04ebbe1530248c5d11823bf43bf5457fa95ca97c5581644fdacb54:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:8337fb9aef04ebbe1530248c5d11823bf43bf5457fa95ca97c5581644fdacb54:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

@@ -1,0 +1,261 @@
+diff --git a/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/main/preview/observation.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/main/preview/observation.ts
+new file mode 100644
+index 0000000..1db6bd3
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/main/preview/observation.ts
+@@ -0,0 +1,255 @@
++import { createHash, randomUUID } from 'node:crypto';
++import type { WebContents } from 'electron';
++import { z } from 'zod';
++import type { Observation, ObservationResult, ResourceIdentity } from '@wsl/protocol';
++
++const Query = z
++  .object({
++    ref: z.string().optional(),
++    text: z.string().max(200).optional(),
++    role: z.string().max(80).optional(),
++    limit: z.number().int().min(1).max(100).default(30),
++  })
++  .strict();
++const Limit = z.object({ limit: z.number().int().min(1).max(500).default(200) }).strict();
++const Shot = z
++  .object({
++    x: z.number().int().nonnegative().optional(),
++    y: z.number().int().nonnegative().optional(),
++    width: z.number().int().min(1).max(4096).optional(),
++    height: z.number().int().min(1).max(4096).optional(),
++  })
++  .strict();
++type AXNode = {
++  nodeId: string;
++  ignored?: boolean;
++  backendDOMNodeId?: number;
++  frameId?: string;
++  role?: { value?: string };
++  name?: { value?: string };
++  value?: { value?: unknown };
++  properties?: { name: string; value: { value?: unknown } }[];
++};
++/** One provider per actual WebContents. Never reopens the URL or mutates its page. */
++export class BrowserObservation {
++  private generation = randomUUID();
++  private epoch = 0;
++  private refs = new Map<string, { backend: number; epoch: number; frame?: string }>();
++  private events: { sequence: number; capturedAt: string; type: string; data: unknown }[] = [];
++  private sequence = 0;
++  private readonly startedAt = new Date().toISOString();
++  private networkStartedAt: string | null = null;
++  constructor(private readonly wc: WebContents) {
++    const invalidate = () => {
++      this.epoch++;
++      this.refs.clear();
++    };
++    wc.on('did-start-navigation', (event) => {
++      invalidate();
++      this.event('navigation', { url: event.url, isMainFrame: event.isMainFrame });
++    });
++    wc.on('destroyed', invalidate);
++    wc.debugger.on('detach', (_event, reason) => {
++      invalidate();
++      this.generation = randomUUID();
++      this.networkStartedAt = null;
++      this.event('detach', { reason });
++    });
++    wc.on('console-message', (event) => {
++      if (event.level === 'error' || event.level === 'warning')
++        this.event('console', { level: event.level, message: event.message.slice(0, 4000) });
++    });
++    wc.debugger.on('message', (_event, method, params) => {
++      if (method === 'Page.frameDetached' || method === 'Page.frameNavigated') invalidate();
++      if (method === 'Runtime.exceptionThrown' || method === 'Network.loadingFailed') this.event(method, params);
++      if (method === 'Network.responseReceived') {
++        const response = params.response as { url?: string; status?: number };
++        this.event('response', { url: response.url, status: response.status });
++      }
++    });
++  }
++  private event(type: string, data: unknown) {
++    const encoded = JSON.stringify(data);
++    if (encoded.length > 4000) data = { truncated: true, text: encoded.slice(0, 4000) };
++    this.events.push({ sequence: ++this.sequence, capturedAt: new Date().toISOString(), type, data });
++    if (this.events.length > 500) this.events.shift();
++  }
++  private resource(workspaceId: string): ResourceIdentity {
++    return { workspaceId, environmentId: 'local', resourceId: `webcontents:${this.wc.id}`, kind: 'browser' };
++  }
++  source(workspaceId: string) {
++    return {
++      resource: this.resource(workspaceId),
++      generation: this.generation,
++      capabilities: ['snapshot', 'query', 'screenshot', 'read_events'],
++      status: this.wc.isDestroyed() ? 'closed' : 'available',
++      tabId: 'preview',
++      target: { webContentsId: this.wc.id },
++    };
++  }
++  private result(
++    workspaceId: string,
++    source: string,
++    data: Record<string, unknown>,
++    reasons: string[] = [],
++    snapshotId = randomUUID(),
++  ): Observation {
++    const body = JSON.stringify(data);
++    return {
++      resource: this.resource(workspaceId),
++      generation: this.generation,
++      revision: { value: createHash('sha256').update(body).digest('hex'), strength: 'content-hash' },
++      snapshotId,
++      capturedAt: new Date().toISOString(),
++      source,
++      representation: source === 'screenshot' ? 'image/png' : 'json',
++      coverage: { status: reasons.length ? 'partial' : 'complete', reasons },
++      data,
++    };
++  }
++  private async attach() {
++    if (!this.wc.debugger.isAttached()) this.wc.debugger.attach('1.3');
++    if (!this.networkStartedAt) this.networkStartedAt = new Date().toISOString();
++    await Promise.all(
++      ['Page.enable', 'Runtime.enable', 'Network.enable', 'Accessibility.enable'].map((method) => this.wc.debugger.sendCommand(method)),
++    );
++  }
++  async observe(tool: string, args: Record<string, unknown>, workspaceId: string): Promise<ObservationResult> {
++    let timer: ReturnType<typeof setTimeout> | undefined;
++    try {
++      return await Promise.race([
++        this.read(tool, args, workspaceId),
++        new Promise<ObservationResult>((resolve) => {
++          timer = setTimeout(() => resolve({ error: 'timeout', message: 'Browser observation exceeded 5 seconds' }), 5000);
++        }),
++      ]);
++    } catch (error) {
++      return {
++        error: error instanceof z.ZodError ? 'invalid_request' : 'unavailable',
++        message: error instanceof Error ? error.message : String(error),
++      };
++    } finally {
++      if (timer) clearTimeout(timer);
++    }
++  }
++  private async read(tool: string, args: Record<string, unknown>, workspaceId: string): Promise<ObservationResult> {
++    if (this.wc.isDestroyed()) return { error: 'not_found', message: 'Browser target closed' };
++    await this.attach();
++    const epoch = this.epoch;
++    if (tool === 'browser.read_events') {
++      const { limit } = Limit.parse(args);
++      return this.result(
++        workspaceId,
++        'runtime-events',
++        {
++          events: this.events.slice(-Math.min(limit, 25)),
++          requestedLimit: limit,
++          resultLimit: 25,
++          collectionStartedAt: this.startedAt,
++          networkCollectionStartedAt: this.networkStartedAt,
++          networkCoverage: 'since most recent CDP attachment; detach intervals are gaps',
++          oldestSequence: this.events[0]?.sequence,
++        },
++        ['Bounded event history; events before observation attachment are unavailable'],
++      );
++    }
++    if (tool === 'browser.screenshot') {
++      const clip = Shot.parse(args);
++      const hasClip = clip.width !== undefined && clip.height !== undefined;
++      if (Object.keys(clip).length && !hasClip) return { error: 'invalid_request', message: 'Region requires width and height' };
++      const image = await this.wc.capturePage(
++        hasClip ? { x: clip.x ?? 0, y: clip.y ?? 0, width: clip.width!, height: clip.height! } : undefined,
++      );
++      if (epoch !== this.epoch) return { error: 'unstable', message: 'Navigation occurred during capture' };
++      const size = image.getSize();
++      if (size.width * size.height > 16777216 || image.toPNG().length > 700000)
++        return { error: 'unavailable', message: 'Image exceeds pixel budget' };
++      return this.result(workspaceId, 'screenshot', {
++        target: this.wc.id,
++        ...size,
++        dataUrl: image.toDataURL(),
++        region: hasClip ? clip : 'viewport',
++      });
++    }
++    if (tool === 'browser.query' && typeof args.ref === 'string') {
++      const query = Query.parse(args);
++      const ref = this.refs.get(query.ref!);
++      if (!ref || ref.epoch !== epoch) return { error: 'stale_ref', message: 'Element reference expired; take a new snapshot' };
++      const [semantic, dom, box] = await Promise.all([
++        this.wc.debugger.sendCommand('Accessibility.getPartialAXTree', { backendNodeId: ref.backend, fetchRelatives: false }),
++        this.wc.debugger.sendCommand('DOM.describeNode', { backendNodeId: ref.backend, depth: 0 }),
++        this.wc.debugger.sendCommand('DOM.getBoxModel', { backendNodeId: ref.backend }).catch(() => null),
++      ]);
++      if (epoch !== this.epoch) return { error: 'stale_ref', message: 'Document changed during query' };
++      const node = semantic.nodes?.[0] as AXNode | undefined;
++      const attrs = dom.node?.attributes as string[] | undefined;
++      const attributes: Record<string, string> = {};
++      for (let i = 0; i < (attrs?.length ?? 0); i += 2)
++        if (['type', 'role', 'aria-label', 'name'].includes(attrs![i]!)) attributes[attrs![i]!] = attrs![i + 1]!.slice(0, 1000);
++      const secret = attributes.type === 'password' || node?.properties?.some((p) => p.name === 'protected' && p.value.value === true);
++      return this.result(
++        workspaceId,
++        'dom-element',
++        {
++          ref: query.ref,
++          frameId: ref.frame,
++          role: node?.role?.value,
++          name: node?.name?.value?.slice(0, 2000),
++          value: secret ? '[redacted]' : String(node?.value?.value ?? '').slice(0, 8000),
++          attributes,
++          box: box?.model ?? null,
++        },
++        ['Native CDP DOM and accessibility values only; password values redacted'],
++      );
++    }
++    const query = tool === 'browser.query' ? Query.parse(args) : null;
++    const limit = query?.limit ?? Limit.parse(args).limit;
++    const [{ nodes }, frames] = await Promise.all([
++      this.wc.debugger.sendCommand('Accessibility.getFullAXTree') as Promise<{ nodes: AXNode[] }>,
++      this.wc.debugger.sendCommand('Page.getFrameTree'),
++    ]);
++    const snapshotId = randomUUID();
++    const rows = nodes
++      .filter((n) => !n.ignored)
++      .filter((n) => (!query?.text || String(n.name?.value ?? '').includes(query.text)) && (!query?.role || n.role?.value === query.role));
++    const elements = rows.slice(0, Math.min(limit, 100)).map((n) => {
++      const ref = `${this.wc.id}:${epoch}:${snapshotId}:${n.nodeId}`;
++      if (n.backendDOMNodeId) this.refs.set(ref, { backend: n.backendDOMNodeId, epoch, frame: n.frameId });
++      const password = n.properties?.some((p) => p.name === 'protected' && p.value.value === true);
++      return {
++        ref: n.backendDOMNodeId ? ref : undefined,
++        frameId: n.frameId,
++        role: n.role?.value,
++        name: n.name?.value?.slice(0, 1000),
++        value: password ? '[redacted]' : typeof n.value?.value === 'string' ? n.value.value.slice(0, 1000) : n.value?.value,
++        states: n.properties?.filter((p) => ['checked', 'disabled', 'expanded', 'focused', 'selected', 'required'].includes(p.name)),
++      };
++    });
++    if (this.refs.size > 2000) {
++      const keep = [...this.refs.entries()].slice(-1000);
++      this.refs = new Map(keep);
++    }
++    if (epoch !== this.epoch) return { error: 'unstable', message: 'Navigation occurred during semantic capture' };
++    return this.result(
++      workspaceId,
++      'accessibility',
++      {
++        tabId: 'preview',
++        target: { webContentsId: this.wc.id },
++        documentGeneration: epoch,
++        url: this.wc.getURL(),
++        title: this.wc.getTitle(),
++        loading: this.wc.isLoading(),
++        frames: frames.frameTree,
++        elements,
++      },
++      [
++        ...(rows.length > Math.min(limit, 100) ? ['result_limit'] : []),
++        'Main target accessibility tree only; cross-origin child targets may be absent',
++        'Canvas pixels require screenshot; virtualized content includes rendered items only',
++        'Closed shadow roots may omit semantics',
++      ],
++      snapshotId,
++    );
++  }
++}

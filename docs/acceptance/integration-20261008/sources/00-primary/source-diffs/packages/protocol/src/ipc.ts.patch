@@ -1,0 +1,61 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/ipc.ts b/private/tmp/wsl-integration-sources/00-primary/packages/protocol/src/ipc.ts
+index 24a5ec7..bfb1353 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/ipc.ts
++++ b/private/tmp/wsl-integration-sources/00-primary/packages/protocol/src/ipc.ts
+@@ -1,25 +1,34 @@
+-import { WorkbenchCommandSchema, WorkbenchEventSchema, WorkbenchResultSchema, WorkbenchSnapshotSchema } from './workspace';
+ import { z } from 'zod';
+ import { AppInfoSchema, ShellCommandSchema } from './app';
+-import { ChatConversationSchema, ChatSendSchema, ChatStatusSchema, ChatTargetSchema } from './chat';
+ import { ExecutionStatusSchema } from './execution';
++import {
++  PageCaptureSchema,
++  PreviewFreezeResultSchema,
++  PreviewLayoutSchema,
++  PreviewNavigateRequestSchema,
++  PreviewStateSchema,
++} from './preview';
+ 
+ const NoArgs = z.undefined();
++const NoResult = z.void();
+ 
+ /**
+  * renderer → main 的请求通道。每个通道声明参数与返回值 schema；
+  * main 在边界用 request schema 校验参数，校验失败直接抛错。
+  */
+ export const invokeChannels = {
+-  'workbench:reload': { request: NoArgs, response: WorkbenchSnapshotSchema },
+-  'workbench:get-snapshot': { request: NoArgs, response: WorkbenchSnapshotSchema },
+-  'workbench:command': { request: WorkbenchCommandSchema, response: WorkbenchResultSchema },
++  'preview:get-state': { request: NoArgs, response: PreviewStateSchema },
++  'preview:set-layout': { request: PreviewLayoutSchema, response: NoResult },
++  'preview:freeze': { request: NoArgs, response: PreviewFreezeResultSchema },
++  'preview:navigate': { request: PreviewNavigateRequestSchema, response: NoResult },
++  'preview:reload': { request: NoArgs, response: NoResult },
++  'preview:go-back': { request: NoArgs, response: NoResult },
++  'preview:go-forward': { request: NoArgs, response: NoResult },
++  'preview:focus': { request: NoArgs, response: NoResult },
++  'preview:start-pick': { request: NoArgs, response: NoResult },
++  'preview:cancel-pick': { request: NoArgs, response: NoResult },
++  'preview:reattach-cdp': { request: NoArgs, response: NoResult },
+   'app:get-info': { request: NoArgs, response: AppInfoSchema },
+-  'chat:get-status': { request: NoArgs, response: ChatStatusSchema },
+-  'chat:get': { request: ChatTargetSchema, response: ChatConversationSchema },
+-  'chat:send': { request: ChatSendSchema, response: ChatConversationSchema },
+-  'chat:cancel': { request: ChatTargetSchema, response: ChatConversationSchema },
+-  'chat:reset': { request: ChatTargetSchema, response: ChatConversationSchema },
+   'execution:get-status': { request: NoArgs, response: ExecutionStatusSchema },
+ } as const;
+ 
+@@ -29,9 +38,8 @@ export type InvokeResponse<C extends InvokeChannel> = z.output<(typeof invokeCha
+ 
+ /** main → renderer 的事件通道。 */
+ export const eventChannels = {
+-  'workbench:event': WorkbenchEventSchema,
+-  'chat:status': ChatStatusSchema,
+-  'chat:conversation': ChatConversationSchema,
++  'preview:state': PreviewStateSchema,
++  'preview:captured': PageCaptureSchema,
+   'shell:command': ShellCommandSchema,
+ } as const;
+ 

@@ -1,0 +1,30 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/service/src/observation-terminal.test.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-terminal.test.ts
+index 06dad27..20e7cfb 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/service/src/observation-terminal.test.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-terminal.test.ts
+@@ -86,4 +86,25 @@ describe('terminal observation', () => {
+       expect(states.slice(states.indexOf('closing'))).not.toContain('running');
+     }
+   }, 15000);
++  it.each(['999', '256', '-1', '1x', '01', '0;extra'])('rejects invalid command exit marker %s as unknown', async (exit) => {
++    const terminal = observer();
++    terminal.append('\x1b]777;wsl;start;ZmFsc2U=;L3RtcA==\x07');
++    terminal.append(`\x1b]777;wsl;end;${exit}\x07`);
++    terminal.append('\x1b]777;wsl;end;0\x07');
++    expect((await terminal.readCommand()).data).toMatchObject({ commands: [{ status: 'unknown', exitCode: null, endedAt: null }] });
++    terminal.dispose();
++  });
++  it.each(['%%%=', 'ZmFsc2U', 'Zh==', '/w==', 'AA=='])('rejects noncanonical base64 or invalid UTF-8 %s', async (value) => {
++    const terminal = observer();
++    terminal.append(`\x1b]777;wsl;start;${value};L3RtcA==\x07\x1b]777;wsl;end;0\x07`);
++    expect((await terminal.readCommand()).data).toMatchObject({ commands: [], integration: 'not_observed' });
++    terminal.dispose();
++  });
++  it('invalid cwd invalidates the previous command instead of assigning a later exit to it', async () => {
++    const terminal = observer();
++    terminal.append('\x1b]777;wsl;start;ZmFsc2U=;L3RtcA==\x07');
++    terminal.append('\x1b]777;wsl;start_full;dHJ1ZQ==;/w==\x07\x1b]777;wsl;end;0\x07');
++    expect((await terminal.readCommand()).data).toMatchObject({ commands: [{ command: 'false', status: 'unknown', exitCode: null }] });
++    terminal.dispose();
++  });
+ });

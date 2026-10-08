@@ -1,0 +1,94 @@
+{
+  "protocolVersion": 1,
+  "ok": false,
+  "error": {
+    "code": "NETWORK_FAILED",
+    "message": "固定目标网页访问失败 [navigation]"
+  },
+  "cleanup": {
+    "browserClosed": true
+  },
+  "evidence": {
+    "guest": {
+      "platform": "linux",
+      "architecture": "arm64",
+      "uid": 1000,
+      "nodeVersion": "v24.21.0"
+    },
+    "launch": {
+      "chromiumSandbox": true,
+      "debuggingPipe": true,
+      "noSandboxFlag": false,
+      "browserPid": 229,
+      "browserVersion": "153.0.8010.12",
+      "executable": "/home/agent/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome",
+      "elf": true
+    },
+    "sandbox": {
+      "diagnostic": {
+        "namespaceSandbox": true,
+        "pidNamespaces": true,
+        "seccompBpf": true
+      },
+      "browser": {
+        "pid": 229,
+        "seccomp": 0,
+        "seccompFilters": 0,
+        "noNewPrivs": 0,
+        "pidNamespace": "pid:[4026532345]",
+        "userNamespace": "user:[4026531837]"
+      },
+      "renderers": [
+        {
+          "pid": 344,
+          "seccomp": 2,
+          "seccompFilters": 1,
+          "noNewPrivs": 1,
+          "pidNamespace": "pid:[4026532484]",
+          "userNamespace": "user:[4026532482]"
+        },
+        {
+          "pid": 333,
+          "seccomp": 2,
+          "seccompFilters": 1,
+          "noNewPrivs": 1,
+          "pidNamespace": "pid:[4026532485]",
+          "userNamespace": "user:[4026532482]"
+        },
+        {
+          "pid": 309,
+          "seccomp": 2,
+          "seccompFilters": 1,
+          "noNewPrivs": 1,
+          "pidNamespace": "pid:[4026532483]",
+          "userNamespace": "user:[4026532482]"
+        },
+        {
+          "pid": 303,
+          "seccomp": 2,
+          "seccompFilters": 1,
+          "noNewPrivs": 1,
+          "pidNamespace": "pid:[4026532415]",
+          "userNamespace": "user:[4026532482]"
+        }
+      ]
+    }
+  },
+  "network": {
+    "totalRequests": 1,
+    "blocked": [
+      {
+        "origin": "https://docs.docker.com",
+        "path": "/",
+        "reason": "response-error-Failed"
+      }
+    ],
+    "failed": [
+      {
+        "origin": "https://docs.docker.com",
+        "path": "/",
+        "reason": "net::ERR_BLOCKED_BY_CLIENT"
+      }
+    ]
+  }
+}

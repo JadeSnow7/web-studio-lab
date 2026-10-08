@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/service/src/local-terminal.test.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T08:49:41.579558Z",
+  "ended_at": "2026-10-08T08:49:44.733532Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/local-terminal.test.ts (5 tests | 1 failed) 2498ms\n   × rejects oversized UTF-8 Chinese input without closing the PTY and still runs the next command 162ms\n\n Test Files  1 failed (1)\n      Tests  1 failed | 4 passed (5)\n   Start at  16:49:41\n   Duration  2.69s (tests 96%, import 2%, transform 2%)\n\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/local-terminal.test.ts > rejects oversized UTF-8 Chinese input without closing the PTY and still runs the next command\nAssertionError: expected undefined to be an instance of Error\n ❯ apps/service/src/local-terminal.test.ts:126:22\n    124|   }\n    125|   const shutdown = await Promise.allSettled([terminal.shutdown()]);\n    126|   expect(writeError).toBeInstanceOf(Error);\n       |                      ^\n    127|   expect((writeError as Error).message).toBe('input too large');\n    128|   expect(shutdown[0]?.status).toBe('fulfilled');\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvc2VydmljZS9zcmMvbG9jYWwtdGVybWluYWwudGVzdC50cyAoNSB0ZXN0cyB8IDEgZmFpbGVkKSAyNDk4bXMKICAgw5cgcmVqZWN0cyBvdmVyc2l6ZWQgVVRGLTggQ2hpbmVzZSBpbnB1dCB3aXRob3V0IGNsb3NpbmcgdGhlIFBUWSBhbmQgc3RpbGwgcnVucyB0aGUgbmV4dCBjb21tYW5kIDE2Mm1zCgogVGVzdCBGaWxlcyAgMSBmYWlsZWQgKDEpCiAgICAgIFRlc3RzICAxIGZhaWxlZCB8IDQgcGFzc2VkICg1KQogICBTdGFydCBhdCAgMTY6NDk6NDEKICAgRHVyYXRpb24gIDIuNjlzICh0ZXN0cyA5NiUsIGltcG9ydCAyJSwgdHJhbnNmb3JtIDIlKQoK",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL2xvY2FsLXRlcm1pbmFsLnRlc3QudHMgPiByZWplY3RzIG92ZXJzaXplZCBVVEYtOCBDaGluZXNlIGlucHV0IHdpdGhvdXQgY2xvc2luZyB0aGUgUFRZIGFuZCBzdGlsbCBydW5zIHRoZSBuZXh0IGNvbW1hbmQKQXNzZXJ0aW9uRXJyb3I6IGV4cGVjdGVkIHVuZGVmaW5lZCB0byBiZSBhbiBpbnN0YW5jZSBvZiBFcnJvcgog4p2vIGFwcHMvc2VydmljZS9zcmMvbG9jYWwtdGVybWluYWwudGVzdC50czoxMjY6MjIKICAgIDEyNHwgICB9CiAgICAxMjV8ICAgY29uc3Qgc2h1dGRvd24gPSBhd2FpdCBQcm9taXNlLmFsbFNldHRsZWQoW3Rlcm1pbmFsLnNodXRkb3duKCldKTsKICAgIDEyNnwgICBleHBlY3Qod3JpdGVFcnJvcikudG9CZUluc3RhbmNlT2YoRXJyb3IpOwogICAgICAgfCAgICAgICAgICAgICAgICAgICAgICBeCiAgICAxMjd8ICAgZXhwZWN0KCh3cml0ZUVycm9yIGFzIEVycm9yKS5tZXNzYWdlKS50b0JlKCdpbnB1dCB0b28gbGFyZ2UnKTsKICAgIDEyOHwgICBleHBlY3Qoc2h1dGRvd25bMF0/LnN0YXR1cykudG9CZSgnZnVsZmlsbGVkJyk7Cgrijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq9bMS8xXeKOrwoK",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:49e8b01c54e956a2cf8fae89d7730ec9ce345afa4f1e0a5e7cfd129d731fb007:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:49e8b01c54e956a2cf8fae89d7730ec9ce345afa4f1e0a5e7cfd129d731fb007:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:49e8b01c54e956a2cf8fae89d7730ec9ce345afa4f1e0a5e7cfd129d731fb007:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

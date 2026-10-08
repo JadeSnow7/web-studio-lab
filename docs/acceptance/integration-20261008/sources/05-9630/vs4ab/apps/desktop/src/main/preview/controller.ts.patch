@@ -1,0 +1,178 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/main/preview/controller.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/preview/controller.ts
+index 6ee5564..d7d5b78 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/main/preview/controller.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/preview/controller.ts
+@@ -5,6 +5,7 @@ import type {
+   PageCapture,
+   PageConsoleEntry,
+   PageIdentity,
++  PageResourceSnapshot,
+   PreviewFreezeResult,
+   PreviewLayout,
+   PreviewState,
+@@ -12,6 +13,8 @@ import type {
+ import { readElementSummary } from './element-summary';
+ import { clampToViewport } from './geometry';
+ import { isAllowedPreviewUrl } from './navigation-policy';
++import { parsePublicUrl, type PublicDocument } from './public-document';
++import { PublicDocumentProtocol } from './public-protocol';
+ 
+ const CONSOLE_ISSUE_LIMIT = 20;
+ const CDP_PROTOCOL_VERSION = '1.3';
+@@ -47,6 +50,10 @@ export class PreviewController {
+   private pickError: string | null = null;
+   private visible = false;
+   private disposed = false;
++  private navigationEpoch = 0;
++  private brokerFailureEpoch: number | null = null;
++  private publicDocument: { document: PublicDocument; epoch: number } | null = null;
++  private readonly publicProtocol: PublicDocumentProtocol;
+ 
+   constructor(
+     private readonly window: BrowserWindow,
+@@ -65,6 +72,19 @@ export class PreviewController {
+     this.view.setVisible(false);
+     this.view.setBackgroundColor('#FFFFFF');
+     window.contentView.addChildView(this.view);
++    this.publicProtocol = new PublicDocumentProtocol(this.webContents.session, {
++      allowedOrigins: options.allowedOrigins,
++      webContentsId: this.webContents.id,
++      epoch: () => this.navigationEpoch,
++      onDocument: (document, epoch) => {
++        this.publicDocument = { document, epoch };
++      },
++      onError: (error, url) => {
++        this.brokerFailureEpoch = this.navigationEpoch;
++        this.loadError = { code: -1, description: error.message, url };
++        this.emitState();
++      },
++    });
+     this.attachListeners();
+   }
+ 
+@@ -75,6 +95,12 @@ export class PreviewController {
+   private attachListeners(): void {
+     const wc = this.webContents;
+     wc.setWindowOpenHandler(() => ({ action: 'deny' }));
++    wc.on('will-frame-navigate', (event) => {
++      if (!event.isMainFrame) event.preventDefault();
++    });
++    wc.on('did-start-navigation', (event) => {
++      if (event.isMainFrame && !event.isSameDocument) this.beginNavigation();
++    });
+     wc.on('will-navigate', (event) => this.guardNavigation(event.url, () => event.preventDefault()));
+     wc.on('will-redirect', (event) => this.guardNavigation(event.url, () => event.preventDefault()));
+     wc.on('did-start-loading', () => this.emitState());
+@@ -87,7 +113,11 @@ export class PreviewController {
+     wc.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
+       // -3（ERR_ABORTED）是被拦截或被新导航取代，单独由 blockedNavigation 说明。
+       if (!isMainFrame || code === -3) return;
+-      this.loadError = { code, description, url };
++      // Chromium 将协议失败归为 ERR_FAILED；保留同次、同地址 broker 给出的具体原因。
++      if (this.brokerFailureEpoch !== this.navigationEpoch || this.loadError?.url !== url) {
++        this.brokerFailureEpoch = null;
++        this.loadError = { code, description, url };
++      }
+       this.emitState();
+     });
+     wc.on('render-process-gone', (_event, details) => {
+@@ -121,16 +151,35 @@ export class PreviewController {
+   }
+ 
+   private guardNavigation(url: string, prevent: () => void): void {
+-    if (isAllowedPreviewUrl(url, this.options.allowedOrigins)) return;
++    if (this.isAllowedNavigation(url)) return;
+     prevent();
+     this.blockedNavigation = url;
+     this.emitState();
+   }
+ 
++  private isAllowedNavigation(url: string): boolean {
++    if (isAllowedPreviewUrl(url, this.options.allowedOrigins)) return true;
++    try {
++      parsePublicUrl(url);
++      return true;
++    } catch {
++      return false;
++    }
++  }
++
++  private beginNavigation(): void {
++    this.navigationEpoch += 1;
++    this.brokerFailureEpoch = null;
++    this.publicDocument = null;
++    this.publicProtocol.invalidate();
++    this.loadError = null;
++  }
++
+   private onDocumentChanged(): void {
+     // 新文档：旧现场与旧元素引用全部失效，错误计数重新开始。
+     this.documentGeneration += 1;
+     this.consoleIssues = [];
++    this.brokerFailureEpoch = null;
+     this.loadError = null;
+     this.blockedNavigation = null;
+     if (this.picking) {
+@@ -199,24 +248,51 @@ export class PreviewController {
+   }
+ 
+   async navigate(url: string): Promise<void> {
+-    if (!isAllowedPreviewUrl(url, this.options.allowedOrigins)) {
+-      throw new Error(`不允许打开该地址。本版本 Browser 区只加载演示页面（${this.options.allowedOrigins.join('、')}）`);
++    if (!this.isAllowedNavigation(url)) {
++      throw new Error('仅允许演示页面和无凭据的公网 HTTPS 443 文档');
+     }
+-    await this.webContents.loadURL(url);
++    this.beginNavigation();
++    const target = isAllowedPreviewUrl(url, this.options.allowedOrigins) ? url : parsePublicUrl(url).href;
++    await this.webContents.loadURL(target);
+   }
+ 
+   reload(): void {
++    this.beginNavigation();
+     this.webContents.reload();
+   }
+ 
+   goBack(): void {
++    this.beginNavigation();
+     this.webContents.navigationHistory.goBack();
+   }
+ 
+   goForward(): void {
++    this.beginNavigation();
+     this.webContents.navigationHistory.goForward();
+   }
+ 
++  async captureResource(expectedPage: PageIdentity): Promise<PageResourceSnapshot> {
++    const epoch = this.navigationEpoch;
++    const page = this.pageIdentity();
++    const current = this.publicDocument;
++    if (this.disposed || this.webContents.isLoading() || this.loadError || !current || current.epoch !== epoch) {
++      throw new Error('请等待公开文档成功加载后再加入空间；历史页面请先重新加载');
++    }
++    if (
++      expectedPage.webContentsId !== page.webContentsId ||
++      expectedPage.documentGeneration !== page.documentGeneration ||
++      expectedPage.url !== page.url ||
++      expectedPage.title !== page.title ||
++      expectedPage.partition !== page.partition ||
++      current.document.url !== page.url ||
++      current.document.title !== page.title
++    ) {
++      throw new Error('页面已经变化，请确认当前文档后重试');
++    }
++    // 固定模板不运行网页脚本；快照来自实际显示的同一份已校验响应。
++    return { page, ...current.document };
++  }
++
+   focus(): void {
+     this.webContents.focus();
+   }
+@@ -320,6 +396,7 @@ export class PreviewController {
+   dispose(): void {
+     if (this.disposed) return;
+     this.disposed = true;
++    this.publicProtocol.dispose();
+     if (this.webContents.debugger.isAttached()) this.webContents.debugger.detach();
+     this.window.contentView.removeChildView(this.view);
+     this.webContents.close();

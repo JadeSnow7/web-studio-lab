@@ -1,0 +1,11 @@
+{
+  "evidenceKind": "real-codex-guest-mcp-main-browser-local-file-sandbox-pty",
+  "guestDir": "/home/agent/workspace/wsl-observation-de49173d-5655-4f2e-acd8-0bc55b550730",
+  "phase": "resources",
+  "ownedRoot": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-observation-live-3lZQX7",
+  "electronPid": 93378,
+  "failure": {
+    "message": "\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7mrunn\u001b[27ming\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mstart\u001b[27ming\"\u001b[39m\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate",
+    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7mrunn\u001b[27ming\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mstart\u001b[27ming\"\u001b[39m\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate\n    at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/observation-live.spec.ts:124:8"
+  }
+}

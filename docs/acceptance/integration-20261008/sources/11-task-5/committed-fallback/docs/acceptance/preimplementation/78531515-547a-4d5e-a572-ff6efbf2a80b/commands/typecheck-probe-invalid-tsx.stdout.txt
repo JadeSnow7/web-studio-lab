@@ -1,0 +1,5 @@
+
+> web-studio-lab-baseline@0.0.0 typecheck
+> node node_modules/typescript/lib/tsc.js --noEmit
+
+src/probe.tsx(1,14): error TS2322: Type 'Element' is not assignable to type 'number'.

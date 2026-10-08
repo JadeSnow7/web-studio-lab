@@ -1,0 +1,185 @@
+{
+  "count": 36,
+  "files": [
+    {
+      "path": "results/.last-run.json",
+      "bytes": 45,
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    {
+      "path": "results/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/attachments/main-observation-records-6ef6875943af26a98f3cc148205fce7e573e70dc.json",
+      "bytes": 122217,
+      "sha256": "a6a1c1c1eda782a53f0e934333ae24636c149602fba5120180f0be05e546b3fb"
+    },
+    {
+      "path": "results/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/attachments/owned-ssh-evidence-ebe381c04aed9690f61195506514573a542d8c65.json",
+      "bytes": 313,
+      "sha256": "7f9288492c31d3181cfdb0f174ce7b6ee5e5f74e5a0fcea1edf3f458593c16a5"
+    },
+    {
+      "path": "results/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/attachments/unknown-close-boundary-4f332a99fbd81990caf8f886d082629ea4e5b0b3.json",
+      "bytes": 236,
+      "sha256": "3f96692cd4198d59540baf015207288e6796920255fa3bf6584f8a3c208fbf95"
+    },
+    {
+      "path": "results/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/main-observation-records.json",
+      "bytes": 122217,
+      "sha256": "a6a1c1c1eda782a53f0e934333ae24636c149602fba5120180f0be05e546b3fb"
+    },
+    {
+      "path": "results/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/owned-ssh-evidence.json",
+      "bytes": 313,
+      "sha256": "7f9288492c31d3181cfdb0f174ce7b6ee5e5f74e5a0fcea1edf3f458593c16a5"
+    },
+    {
+      "path": "results/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/unknown-close-boundary.json",
+      "bytes": 236,
+      "sha256": "3f96692cd4198d59540baf015207288e6796920255fa3bf6584f8a3c208fbf95"
+    },
+    {
+      "path": "results/ssh-product-产品错误host-pin在认证前拒绝，不启动PTY/attachments/owned-ssh-evidence-291be0dc39fac68344a41b0c6db9dceab4512651.json",
+      "bytes": 269,
+      "sha256": "68cbec1f247a60cd5965b16572f63f1f7fe6f5f9bfe97c29b0a1aa6f39aa4c2d"
+    },
+    {
+      "path": "results/ssh-product-产品错误host-pin在认证前拒绝，不启动PTY/owned-ssh-evidence.json",
+      "bytes": 269,
+      "sha256": "68cbec1f247a60cd5965b16572f63f1f7fe6f5f9bfe97c29b0a1aa6f39aa4c2d"
+    },
+    {
+      "path": "screens/chat-fixture.png",
+      "bytes": 178356,
+      "sha256": "ba8bc8dfe6029772c7b2c7580f0ccc7fc022cbf88611100e32de2bec070548d9"
+    },
+    {
+      "path": "screens/public-document-controlled-evidence.json",
+      "bytes": 1494,
+      "sha256": "9a29e0ea01fd0e1e3a60510e787b8b7ca54fd17f2a29f045f86d62396274ceb1"
+    },
+    {
+      "path": "screens/public-document-controlled-redirect-saved.png",
+      "bytes": 150756,
+      "sha256": "1ed0fd1c1a2c8decc973580b437ce4d42786c4cd6491eb8da7697c6bcd982f1c"
+    },
+    {
+      "path": "screens/public-document-controlled-redirect-saved.preview.png",
+      "bytes": 62469,
+      "sha256": "46a3a8beba3c5a89555ee2c93c40a8f16acf077bb782b48cd91ab1062b8a4ae0"
+    },
+    {
+      "path": "screens/remake-floating-panels.png",
+      "bytes": 92947,
+      "sha256": "e2b008da8891ce25fb39857d88003ad814458510df8dd95c79d7fe9fbc9cb9f8"
+    },
+    {
+      "path": "screens/remake-floating-panels.preview.png",
+      "bytes": 78651,
+      "sha256": "c2df818db67638cfdafb82f37f8c77952628c5a08ed078b308356678e94985fb"
+    },
+    {
+      "path": "screens/remake-six-sections.png",
+      "bytes": 148910,
+      "sha256": "5c14f95343546de9f94b315e4ada4cabdbd951d4418a9670269e5844c5debbb4"
+    },
+    {
+      "path": "screens/remake-six-sections.preview.png",
+      "bytes": 76104,
+      "sha256": "80f09f009ba55ebf5511acac32d78103f1b610029e2f3ac5be6ae783462021ec"
+    },
+    {
+      "path": "screens/remake-terminal-dark.png",
+      "bytes": 126475,
+      "sha256": "06872c297ef28a3c8fb740c582d1897c8280ebeca411f3784aeefc96eddfeeed"
+    },
+    {
+      "path": "screens/remake-terminal-light.png",
+      "bytes": 127325,
+      "sha256": "80a1e477904109ed0d55c305eef1069e9f3bb31cc6d439525e6fffc11455582b"
+    },
+    {
+      "path": "screens/remake-terminal-warm.png",
+      "bytes": 126766,
+      "sha256": "cedcf69a1c31305cea33d55d67279164a6ddda9cf1b88e971129f01520ae90af"
+    },
+    {
+      "path": "screens/resources-fixture-narrow.png",
+      "bytes": 173927,
+      "sha256": "b037aa441fcfbd3fbeaa6831454898ca94680c1d685a49e716de21134f5af5ab"
+    },
+    {
+      "path": "screens/sbx-terminal-fixture-narrow.png",
+      "bytes": 93222,
+      "sha256": "52ebce26e1ec4d5fc7f0f4870ba2a8e044e067b81d1891d8861cc816ca937c52"
+    },
+    {
+      "path": "screens/workbench-context-before-confirm.png",
+      "bytes": 390956,
+      "sha256": "d168f74c012152f80045715cb0537aaca2ab01655b376f4390d66766c0cc9d5b"
+    },
+    {
+      "path": "screens/workbench-context-before-confirm.preview.png",
+      "bytes": 68823,
+      "sha256": "2bf918c7b65e1860d67ba7fc6d720b45cf93fbfec43a2bce04e515b38a3fc951"
+    },
+    {
+      "path": "screens/workbench-start.png",
+      "bytes": 149652,
+      "sha256": "2c8157bc6d0fe9c5984049b51a30691ad4a6ed09d79a68c9eafa9adb91207601"
+    },
+    {
+      "path": "screens/workbench-start.preview.png",
+      "bytes": 76104,
+      "sha256": "80f09f009ba55ebf5511acac32d78103f1b610029e2f3ac5be6ae783462021ec"
+    },
+    {
+      "path": "screens/workspace-narrow.renderer.png",
+      "bytes": 74410,
+      "sha256": "d3560efbb0e424ed52360f7c92261fe30a66c6b14a57283e41538b1987db36bb"
+    },
+    {
+      "path": "screens/workspace-narrow.window.png",
+      "bytes": 74410,
+      "sha256": "d3560efbb0e424ed52360f7c92261fe30a66c6b14a57283e41538b1987db36bb"
+    },
+    {
+      "path": "screens/workspace-switcher.renderer.png",
+      "bytes": 280406,
+      "sha256": "c69d7fd44fa27aa16eeac92dc746e3538d2e19ab0288ec65b380f511cb8c38b5"
+    },
+    {
+      "path": "screens/workspace-switcher.window.png",
+      "bytes": 280406,
+      "sha256": "c69d7fd44fa27aa16eeac92dc746e3538d2e19ab0288ec65b380f511cb8c38b5"
+    },
+    {
+      "path": "screens/workspace-three-panes-dark.renderer.png",
+      "bytes": 267996,
+      "sha256": "ac3788e44d4a45258da57650e967d8e795982f87eedb314f127b3461d7aaf007"
+    },
+    {
+      "path": "screens/workspace-three-panes-dark.window.png",
+      "bytes": 267996,
+      "sha256": "ac3788e44d4a45258da57650e967d8e795982f87eedb314f127b3461d7aaf007"
+    },
+    {
+      "path": "screens/workspace-three-panes-light.renderer.png",
+      "bytes": 267669,
+      "sha256": "a7ed4f109bdd99059a448d47fa3497773a607364513e1e3e833dbf7f3ac4e922"
+    },
+    {
+      "path": "screens/workspace-three-panes-light.window.png",
+      "bytes": 267669,
+      "sha256": "a7ed4f109bdd99059a448d47fa3497773a607364513e1e3e833dbf7f3ac4e922"
+    },
+    {
+      "path": "screens/workspace-three-panes-warm.renderer.png",
+      "bytes": 267197,
+      "sha256": "ee7b35011576244a53a82ab7879be19af892c232834434201582af34912f3b04"
+    },
+    {
+      "path": "screens/workspace-three-panes-warm.window.png",
+      "bytes": 267197,
+      "sha256": "ee7b35011576244a53a82ab7879be19af892c232834434201582af34912f3b04"
+    }
+  ]
+}

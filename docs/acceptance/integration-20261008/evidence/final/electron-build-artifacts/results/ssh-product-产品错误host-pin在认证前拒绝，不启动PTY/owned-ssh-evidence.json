@@ -1,0 +1,13 @@
+{
+  "nonce": "SSH_8ce3c0b8-e923-4ab7-b1d5-ae0dd220a7a2",
+  "connections": 2,
+  "authentications": 0,
+  "signedAuthentications": 0,
+  "ptysStarted": 0,
+  "ptysCleaned": 0,
+  "resize": [],
+  "transportErrors": [
+    "KEY_EXCHANGE_FAILED",
+    "KEY_EXCHANGE_FAILED"
+  ]
+}

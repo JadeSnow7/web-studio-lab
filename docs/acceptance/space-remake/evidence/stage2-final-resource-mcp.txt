@@ -1,0 +1,11 @@
+COMMAND: pnpm exec vitest run apps/service/src/resource-mcp.test.ts
+SOURCE SHA256: 5cda427d21fd6e33463fe6273ad24369e018ef18ca5188b0768e56a9d823e306
+
+ RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  13:41:26
+   Duration  124ms (tests 72%, transform 19%, import 7%, worker 3%)
+

@@ -1,0 +1,62 @@
+[
+  {
+    "tree": "14-_worktrees",
+    "copied_files": 177,
+    "mismatches": []
+  },
+  {
+    "tree": "03-89a8",
+    "copied_files": 1,
+    "mismatches": []
+  },
+  {
+    "tree": "06-b8ac",
+    "copied_files": 2,
+    "mismatches": []
+  },
+  {
+    "tree": "01-1799",
+    "copied_files": 2,
+    "mismatches": []
+  },
+  {
+    "tree": "10-fd9f",
+    "copied_files": 1,
+    "mismatches": []
+  },
+  {
+    "tree": "02-7ba6",
+    "copied_files": 83,
+    "mismatches": []
+  },
+  {
+    "tree": "05-9630",
+    "copied_files": 115,
+    "mismatches": []
+  },
+  {
+    "tree": "08-eb15",
+    "copied_files": 171,
+    "mismatches": []
+  },
+  {
+    "tree": "07-bf64",
+    "copied_files": 179,
+    "mismatches": []
+  },
+  {
+    "tree": "00-primary",
+    "copied_files": 83,
+    "mismatches": []
+  },
+  {
+    "tree": "09-f0c5",
+    "copied_files": 1,
+    "mismatches": []
+  },
+  {
+    "tree": "04-95ba",
+    "copied_files": 7,
+    "mismatches": []
+  }
+]

@@ -1,0 +1,28 @@
+{
+  "source": "e2e/resources-live.spec.ts",
+  "sourceSha256": "1f391987e947951bc9471d6580a4629070d944fc1b234c87c26200685bc530e4",
+  "originalFailure": "frozen-live-resources.json: initial Main conversation legitimately null, preparation poll dereferenced messages.",
+  "change": "Only preparation poll handles null as 0 user messages and uses existing guest-helper startup budget 30000ms. Later reads and all resource/MCP assertions remain strict after readiness.",
+  "checks": {
+    "type": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/resources-live-initialization-type.json",
+      "exitCode": 0,
+      "revisionStable": true,
+      "sha256": "04cf77173616be5c926c49e2487ee25aee0f83e2d29c8734f656bbc49b18cf95"
+    },
+    "lint": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/resources-live-initialization-lint.json",
+      "exitCode": 0,
+      "revisionStable": true,
+      "sha256": "3c399ec68ca64947966e618731de7f57bc9b2bac8bd5f6abf1e3537135bb4031"
+    },
+    "format": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/resources-live-initialization-format.json",
+      "exitCode": 0,
+      "revisionStable": true,
+      "sha256": "c50a36511411805e0159c911d8e06422f18967674e816c9997a8c6ef2f259415"
+    }
+  },
+  "diffCheckExitCode": 0,
+  "liveExecuted": false
+}

@@ -1,0 +1,308 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/preview/controller.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/preview/controller.ts
+index b304691..d7d5b78 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/preview/controller.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/preview/controller.ts
+@@ -1,5 +1,5 @@
+ import { randomUUID } from 'node:crypto';
+-import { WebContentsView, BrowserWindow } from 'electron';
++import { WebContentsView, type BrowserWindow } from 'electron';
+ import type {
+   CdpState,
+   PageCapture,
+@@ -32,9 +32,7 @@ export interface PreviewControllerOptions {
+   homeUrl: string;
+   allowedOrigins: readonly string[];
+   onState(state: PreviewState): void;
+-  onCaptured(capture: PageCapture, requestId: string): void;
+-  onCaptureError?(error: Error, requestId: string, kind: 'failed' | 'cancelled'): void;
+-  onFocused?(): void;
++  onCaptured(capture: PageCapture): void;
+ }
+ 
+ /**
+@@ -46,14 +44,11 @@ export class PreviewController {
+   private documentGeneration = 0;
+   private consoleIssues: PageConsoleEntry[] = [];
+   private picking = false;
+-  private pickEpoch = 0;
+-  private activePick: { requestId: string; documentGeneration: number; navigationEpoch: number } | null = null;
+   private cdp: CdpState = { state: 'idle' };
+   private loadError: PreviewState['loadError'] = null;
+   private blockedNavigation: string | null = null;
+   private pickError: string | null = null;
+   private visible = false;
+-  private devToolsWindow: BrowserWindow | null = null;
+   private disposed = false;
+   private navigationEpoch = 0;
+   private brokerFailureEpoch: number | null = null;
+@@ -74,39 +69,23 @@ export class PreviewController {
+         spellcheck: false,
+       },
+     });
+-    let protocol: PublicDocumentProtocol | null = null;
+-    try {
+-      this.view.setVisible(false);
+-      this.view.setBackgroundColor('#FFFFFF');
+-      window.contentView.addChildView(this.view);
+-      protocol = new PublicDocumentProtocol(this.webContents.session, {
+-        allowedOrigins: options.allowedOrigins,
+-        webContentsId: this.webContents.id,
+-        devToolsWebContentsId: () => this.devToolsWindow?.webContents.id,
+-        epoch: () => this.navigationEpoch,
+-        onDocument: (document, epoch) => {
+-          this.publicDocument = { document, epoch };
+-        },
+-        onError: (error, url) => {
+-          this.brokerFailureEpoch = this.navigationEpoch;
+-          this.loadError = { code: -1, description: error.message, url };
+-          this.emitState();
+-        },
+-      });
+-      this.publicProtocol = protocol;
+-      this.attachListeners();
+-    } catch (error) {
+-      try {
+-        protocol?.dispose();
+-      } finally {
+-        try {
+-          window.contentView.removeChildView(this.view);
+-        } finally {
+-          this.webContents.close();
+-        }
+-      }
+-      throw error;
+-    }
++    this.view.setVisible(false);
++    this.view.setBackgroundColor('#FFFFFF');
++    window.contentView.addChildView(this.view);
++    this.publicProtocol = new PublicDocumentProtocol(this.webContents.session, {
++      allowedOrigins: options.allowedOrigins,
++      webContentsId: this.webContents.id,
++      epoch: () => this.navigationEpoch,
++      onDocument: (document, epoch) => {
++        this.publicDocument = { document, epoch };
++      },
++      onError: (error, url) => {
++        this.brokerFailureEpoch = this.navigationEpoch;
++        this.loadError = { code: -1, description: error.message, url };
++        this.emitState();
++      },
++    });
++    this.attachListeners();
+   }
+ 
+   private get webContents() {
+@@ -115,9 +94,6 @@ export class PreviewController {
+ 
+   private attachListeners(): void {
+     const wc = this.webContents;
+-    wc.on('focus', () => {
+-      if (!this.disposed && this.visible) this.options.onFocused?.();
+-    });
+     wc.setWindowOpenHandler(() => ({ action: 'deny' }));
+     wc.on('will-frame-navigate', (event) => {
+       if (!event.isMainFrame) event.preventDefault();
+@@ -146,7 +122,7 @@ export class PreviewController {
+     });
+     wc.on('render-process-gone', (_event, details) => {
+       this.loadError = { code: details.exitCode, description: `页面进程退出：${details.reason}`, url: wc.getURL() };
+-      this.invalidatePick('页面进程已退出');
++      this.picking = false;
+       this.emitState();
+     });
+     wc.on('console-message', (event) => {
+@@ -163,7 +139,7 @@ export class PreviewController {
+     });
+     wc.debugger.on('detach', (_event, reason) => {
+       this.cdp = { state: 'detached', reason };
+-      this.invalidatePick('页面调试连接已断开');
++      this.picking = false;
+       this.emitState();
+     });
+     wc.debugger.on('message', (_event, method, params) => {
+@@ -192,7 +168,6 @@ export class PreviewController {
+   }
+ 
+   private beginNavigation(): void {
+-    this.invalidatePick('页面已导航，点选已取消，请重新开始选择');
+     this.navigationEpoch += 1;
+     this.brokerFailureEpoch = null;
+     this.publicDocument = null;
+@@ -202,7 +177,6 @@ export class PreviewController {
+ 
+   private onDocumentChanged(): void {
+     // 新文档：旧现场与旧元素引用全部失效，错误计数重新开始。
+-    this.invalidatePick('页面已导航，点选已取消，请重新开始选择');
+     this.documentGeneration += 1;
+     this.consoleIssues = [];
+     this.brokerFailureEpoch = null;
+@@ -218,11 +192,6 @@ export class PreviewController {
+   }
+ 
+   load(): void {
+-    if (!this.isAllowedNavigation(this.options.homeUrl)) {
+-      this.loadError = { code: -1, description: '仅允许演示页面和无凭据的公网 HTTPS 443 文档', url: this.options.homeUrl };
+-      this.emitState();
+-      return;
+-    }
+     this.webContents.loadURL(this.options.homeUrl).catch((error: unknown) => {
+       // 失败细节已由 did-fail-load 记录；这里只补上没有对应事件的情况。
+       if (this.loadError === null) {
+@@ -347,58 +316,36 @@ export class PreviewController {
+     this.emitState();
+   }
+ 
+-  async startPick(requestId: string): Promise<void> {
+-    if (!this.visible || this.disposed) throw new Error('Browser 区页面当前不可见，不能开始选择');
+-    const request = { requestId, documentGeneration: this.documentGeneration, navigationEpoch: this.navigationEpoch };
+-    this.pickEpoch++;
+-    this.activePick = request;
+-    this.picking = false;
++  async startPick(): Promise<void> {
++    if (!this.visible) throw new Error('Browser 区页面当前不可见，不能开始选择');
+     try {
+       await this.ensureCdp();
+-      if (this.activePick !== request) return;
+       await this.send('Overlay.setInspectMode', { mode: 'searchForNode', highlightConfig: PICK_HIGHLIGHT });
+     } catch (error) {
+-      if (this.activePick !== request) return;
+-      this.activePick = null;
+       this.pickError = `无法开始选择：${error instanceof Error ? error.message : String(error)}`;
+-      this.options.onCaptureError?.(error instanceof Error ? error : new Error(String(error)), requestId, 'failed');
+       this.emitState();
+       throw error;
+     }
+-    if (this.activePick !== request) return;
+     this.picking = true;
+     this.pickError = null;
+     this.webContents.focus();
+     this.emitState();
+   }
+ 
+-  private invalidatePick(reason: string): void {
+-    const request = this.activePick;
+-    this.pickEpoch++;
+-    this.activePick = null;
+-    const wasPicking = this.picking;
++  async cancelPick(): Promise<void> {
++    if (!this.picking) return;
+     this.picking = false;
+-    if (request) this.options.onCaptureError?.(new Error(reason), request.requestId, 'cancelled');
+-    if (wasPicking) void this.exitInspectMode();
+-  }
+-  async cancelPick(requestId?: string): Promise<void> {
+-    if (requestId && this.activePick?.requestId !== requestId) return;
+-    const wasPicking = this.picking;
+-    this.invalidatePick('页面采集已取消');
+     this.emitState();
+-    if (!wasPicking) await this.exitInspectMode();
++    await this.exitInspectMode();
+   }
+ 
+   /** 退出 CDP 选择模式并清除高亮。失败时如实登记，因为页面可能仍在拦截点击。 */
+-  private async exitInspectMode(request?: typeof this.activePick): Promise<void> {
++  private async exitInspectMode(): Promise<void> {
+     if (!this.webContents.debugger.isAttached()) return;
+-    const epoch = this.pickEpoch;
+     try {
+       await this.send('Overlay.setInspectMode', { mode: 'none', highlightConfig: PICK_HIGHLIGHT });
+-      if (epoch !== this.pickEpoch || this.disposed) return;
+       await this.send('Overlay.hideHighlight');
+     } catch (error) {
+-      if (epoch !== this.pickEpoch || this.disposed || (request && this.activePick !== request)) return;
+       this.pickError = `无法退出选择模式，页面点击可能仍被拦截：${error instanceof Error ? error.message : String(error)}`;
+       this.emitState();
+     }
+@@ -410,76 +357,45 @@ export class PreviewController {
+       await this.exitInspectMode();
+       return;
+     }
+-    const request = this.activePick;
+-    if (!request) throw new Error('选择流程缺少请求身份');
++    const generation = this.documentGeneration;
+     this.picking = false;
+     this.emitState();
+     try {
+-      await this.exitInspectMode(request);
+-      if (this.activePick !== request || this.disposed) return;
++      await this.exitInspectMode();
+       const element = await readElementSummary((method, params) => this.send(method, params), backendNodeId);
+       const viewport = await this.webContents.capturePage();
+       const size = this.view.getBounds();
+       const clip = element.rect ? clampToViewport(element.rect, size) : null;
+       const elementImage = clip ? await this.webContents.capturePage(clip) : null;
+-      if (
+-        this.activePick !== request ||
+-        this.disposed ||
+-        request.documentGeneration !== this.documentGeneration ||
+-        request.navigationEpoch !== this.navigationEpoch
+-      )
+-        return;
+-      this.activePick = null;
++      if (generation !== this.documentGeneration) {
++        throw new Error('采集过程中页面发生了导航，本次采集作废');
++      }
+       this.pickError = null;
+-      this.options.onCaptured(
+-        {
+-          captureId: randomUUID(),
+-          capturedAt: new Date().toISOString(),
+-          page: this.pageIdentity(),
+-          element,
+-          screenshot: {
+-            viewport: viewport.toDataURL(),
+-            element: elementImage && !elementImage.isEmpty() ? elementImage.toDataURL() : null,
+-          },
+-          consoleIssues: [...this.consoleIssues],
++      this.options.onCaptured({
++        captureId: randomUUID(),
++        capturedAt: new Date().toISOString(),
++        page: this.pageIdentity(),
++        element,
++        screenshot: {
++          viewport: viewport.toDataURL(),
++          element: elementImage && !elementImage.isEmpty() ? elementImage.toDataURL() : null,
+         },
+-        request.requestId,
+-      );
++        consoleIssues: [...this.consoleIssues],
++      });
+     } catch (error) {
+-      if (this.activePick !== request || this.disposed) return;
+-      this.activePick = null;
+-      this.options.onCaptureError?.(error instanceof Error ? error : new Error(String(error)), request.requestId, 'failed');
+       this.pickError = `采集失败：${error instanceof Error ? error.message : String(error)}`;
+     }
+     this.emitState();
+   }
+ 
+   openDevTools(): void {
+-    if (!this.devToolsWindow) {
+-      // Establish owner identity before the frontend's first request; Electron's builtin owner getter is populated after frontend load.
+-      const tools = new BrowserWindow({
+-        width: 900,
+-        height: 700,
+-        show: false,
+-        webPreferences: { partition: this.options.partition, sandbox: true, contextIsolation: true, nodeIntegration: false },
+-      });
+-      this.devToolsWindow = tools;
+-      tools.on('closed', () => {
+-        this.devToolsWindow = null;
+-      });
+-      this.webContents.setDevToolsWebContents(tools.webContents);
+-      this.webContents.openDevTools({ mode: 'detach' });
+-    }
+-    this.devToolsWindow.show();
+-    this.devToolsWindow.focus();
++    this.webContents.openDevTools({ mode: 'detach' });
+   }
+ 
+   /** 窗口关闭时显式释放页面：断开 CDP，关闭 webContents。 */
+   dispose(): void {
+     if (this.disposed) return;
+-    this.invalidatePick('网页实例已销毁');
+     this.disposed = true;
+-    this.devToolsWindow?.destroy();
+     this.publicProtocol.dispose();
+     if (this.webContents.debugger.isAttached()) this.webContents.debugger.detach();
+     this.window.contentView.removeChildView(this.view);

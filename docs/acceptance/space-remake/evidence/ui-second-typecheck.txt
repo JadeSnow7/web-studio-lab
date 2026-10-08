@@ -1,0 +1,18 @@
+
+> web-studio-lab@ typecheck /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> pnpm -r typecheck && tsc -p tsconfig.e2e.json && pnpm typecheck:baseline
+
+Scope: 3 of 4 workspace projects
+packages/protocol typecheck$ tsc -p tsconfig.json
+packages/protocol typecheck: Done
+apps/service typecheck$ tsc -p tsconfig.json
+apps/desktop typecheck$ tsc -p tsconfig.node.json && tsc -p tsconfig.web.json
+apps/service typecheck: src/resource-store.test.ts(104,12): error TS7053: Element implicitly has an 'any' type because expression of type '"resources:list"' can't be used to index type '{ readonly 'workbench:reload': { readonly request: ZodUndefined; readonly response: ZodObject<{ appInstanceId: ZodString; storageError: ZodNullable<ZodString>; ... 4 more ...; notifications: ZodDefault<...>; }, $strip>; }; ... 8 more ...; readonly 'execution:get-status': { ...; }; }'.
+apps/service typecheck:   Property 'resources:list' does not exist on type '{ readonly 'workbench:reload': { readonly request: ZodUndefined; readonly response: ZodObject<{ appInstanceId: ZodString; storageError: ZodNullable<ZodString>; ... 4 more ...; notifications: ZodDefault<...>; }, $strip>; }; ... 8 more ...; readonly 'execution:get-status': { ...; }; }'.
+apps/service typecheck: src/resource-store.test.ts(105,12): error TS7053: Element implicitly has an 'any' type because expression of type '"resources:remove"' can't be used to index type '{ readonly 'workbench:reload': { readonly request: ZodUndefined; readonly response: ZodObject<{ appInstanceId: ZodString; storageError: ZodNullable<ZodString>; ... 4 more ...; notifications: ZodDefault<...>; }, $strip>; }; ... 8 more ...; readonly 'execution:get-status': { ...; }; }'.
+apps/service typecheck:   Property 'resources:remove' does not exist on type '{ readonly 'workbench:reload': { readonly request: ZodUndefined; readonly response: ZodObject<{ appInstanceId: ZodString; storageError: ZodNullable<ZodString>; ... 4 more ...; notifications: ZodDefault<...>; }, $strip>; }; ... 8 more ...; readonly 'execution:get-status': { ...; }; }'.
+apps/service typecheck: Failed
+/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @wsl/service@0.1.0 typecheck: `tsc -p tsconfig.json`
+Exit status 2
+ ELIFECYCLE  Command failed with exit code 2.

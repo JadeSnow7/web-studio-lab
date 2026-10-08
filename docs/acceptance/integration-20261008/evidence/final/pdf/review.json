@@ -1,0 +1,166 @@
+{
+  "reviewed_at": "2026-10-08T12:11:15.038348+00:00",
+  "scope": "Current submission manuscript and exporter only; not product acceptance or publication",
+  "pdf": "output/submission/integration-final-draft.pdf",
+  "pdf_sha256": "0439fa701ed8b432da3e1614b556d851fecdc877d5a3ba0d48393f6e7eb507e0",
+  "page_count": 9,
+  "heading_pages": {
+    "E12": 8,
+    "E13": 8,
+    "E01": 5,
+    "E02": 6,
+    "E03": 6,
+    "E04": 6,
+    "E05": 6,
+    "E06": 6,
+    "E07": 7,
+    "E08": 7,
+    "E09": 7,
+    "E10": 7,
+    "E11": 8,
+    "E14": 9
+  },
+  "index_links": [
+    {
+      "source_page": 1,
+      "target_page": 5,
+      "index": "E01"
+    },
+    {
+      "source_page": 1,
+      "target_page": 9,
+      "index": "E14"
+    },
+    {
+      "source_page": 1,
+      "target_page": 8,
+      "index": "E13"
+    },
+    {
+      "source_page": 1,
+      "target_page": 9,
+      "index": "E14"
+    },
+    {
+      "source_page": 1,
+      "target_page": 9,
+      "index": "E14"
+    },
+    {
+      "source_page": 2,
+      "target_page": 6,
+      "index": "E02"
+    },
+    {
+      "source_page": 2,
+      "target_page": 6,
+      "index": "E05"
+    },
+    {
+      "source_page": 2,
+      "target_page": 6,
+      "index": "E06"
+    },
+    {
+      "source_page": 2,
+      "target_page": 7,
+      "index": "E07"
+    },
+    {
+      "source_page": 2,
+      "target_page": 9,
+      "index": "E14"
+    },
+    {
+      "source_page": 2,
+      "target_page": 7,
+      "index": "E09"
+    },
+    {
+      "source_page": 2,
+      "target_page": 7,
+      "index": "E10"
+    },
+    {
+      "source_page": 2,
+      "target_page": 8,
+      "index": "E12"
+    },
+    {
+      "source_page": 2,
+      "target_page": 9,
+      "index": "E14"
+    },
+    {
+      "source_page": 3,
+      "target_page": 8,
+      "index": "E13"
+    }
+  ],
+  "file_uri_count": 46,
+  "all_file_targets_exist": true,
+  "external_uri_count": 26,
+  "embedded_fonts": [
+    [
+      "/AAAAAA+STHeitiTC-Light-0",
+      true
+    ],
+    [
+      "/AAAAAB+STHeitiTC-Light-0",
+      true
+    ],
+    [
+      "/AAAAAC+STHeitiTC-Light-0",
+      true
+    ]
+  ],
+  "visual_result": "passed: root visually inspected every page 1-9; readable Chinese, SHA and local link labels; repeated table header across pages 7/8, no clipping or overlap, draft/date footer; new final validation link visible on page 9",
+  "render_command": [
+    "pdftoppm",
+    "-scale-to",
+    "1500",
+    "-png",
+    "output/submission/integration-final-draft.pdf",
+    "docs/acceptance/integration-20261008/evidence/final/pdf/page"
+  ],
+  "render_exit_code": 0,
+  "rendered_pages": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/pdf/page-1.png",
+      "sha256": "11b418016f62763e8df2647c8ab9e6f315d48b0c48a4ed8c88d80e4c441f2bca"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/pdf/page-2.png",
+      "sha256": "c2bca189317b60ccee081b4c1c74703dec471c4f6f6a3f3ad7b91754e09d1f36"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/pdf/page-3.png",
+      "sha256": "b82fee74ee56ffcca829cbadd31c591fb8d64985b22a53086ba6eab95b13f903"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/pdf/page-4.png",
+      "sha256": "68d74fd8868daf2e428702827803efadf283f255a0cf487dec55e3107a38e870"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/pdf/page-5.png",
+      "sha256": "6d9afbe1f7f0ea14a37f5b7723652c2dbb56881cdae8883ca5e9db22763cae68"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/pdf/page-6.png",
+      "sha256": "83a13e7dba68e0195432498d43c37aec33bc2aeed0a4367d2bdd49e5c21b93f1"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/pdf/page-7.png",
+      "sha256": "11e3899c9a8171b71b2831f5b149a1bf97ee82c7c0d6a585c47d77778e7b7cba"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/pdf/page-8.png",
+      "sha256": "3f7fc9ce790bccf06cb5b0e2aabb22d9f1e6f496d7134a05c8a9402c273f1b55"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/pdf/page-9.png",
+      "sha256": "7d8c28a82ac78c11def0f66c58186624d925b6644638c8dc6d14afbbfe4d3b92"
+    }
+  ],
+  "source_receipt": "export.json"
+}

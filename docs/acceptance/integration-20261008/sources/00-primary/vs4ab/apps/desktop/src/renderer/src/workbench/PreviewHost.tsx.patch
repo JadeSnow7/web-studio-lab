@@ -1,0 +1,13 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/workbench/PreviewHost.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/workbench/PreviewHost.tsx
+index 3ba740b..3052633 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/workbench/PreviewHost.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/workbench/PreviewHost.tsx
+@@ -52,7 +52,7 @@ export function PreviewHost({ active, occluded }: { active: boolean; occluded: b
+   }, [active, occluded]);
+ 
+   return (
+-    <div ref={hostRef} className="preview-host" data-native={showNative ? 'visible' : 'hidden'}>
++    <div ref={hostRef} hidden={!active} className="preview-host" data-native={showNative ? 'visible' : 'hidden'}>
+       {active && occluded ? (
+         frozen ? (
+           <img className="preview-frozen" src={frozen} alt="页面静态快照（浮层打开期间）" />

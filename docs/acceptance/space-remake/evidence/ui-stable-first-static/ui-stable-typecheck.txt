@@ -1,0 +1,19 @@
+COMMAND: pnpm typecheck
+SOURCE SHA256: 063d6a4c8f77d2cd3a126e1a26dd982459c96df0cded79af66d9fc4108cc9721
+
+> web-studio-lab@ typecheck /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> pnpm -r typecheck && tsc -p tsconfig.e2e.json && pnpm typecheck:baseline
+
+Scope: 3 of 4 workspace projects
+packages/protocol typecheck$ tsc -p tsconfig.json
+packages/protocol typecheck: Done
+apps/service typecheck$ tsc -p tsconfig.json
+apps/desktop typecheck$ tsc -p tsconfig.node.json && tsc -p tsconfig.web.json
+apps/service typecheck: Done
+apps/desktop typecheck: src/main/preview/controller-migration.test.ts(192,66): error TS18048: 'tools' is possibly 'undefined'.
+apps/desktop typecheck: src/main/preview/controller-migration.test.ts(197,12): error TS18048: 'tools' is possibly 'undefined'.
+apps/desktop typecheck: Failed
+/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @wsl/desktop@0.1.0 typecheck: `tsc -p tsconfig.node.json && tsc -p tsconfig.web.json`
+Exit status 2
+ ELIFECYCLE  Command failed with exit code 2.

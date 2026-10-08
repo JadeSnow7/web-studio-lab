@@ -1,0 +1,54 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/e2e/helpers.ts b/private/tmp/wsl-integration-sources/08-eb15/e2e/helpers.ts
+index 4131122..f7c617d 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/e2e/helpers.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/e2e/helpers.ts
+@@ -86,17 +86,11 @@ require(${JSON.stringify(path.join(desktopDir, 'out/main/index.js'))});
+     console.error('RENDERER', error.stack ?? error.message);
+   });
+   const originalClose = app.close.bind(app);
+-  let closed = false;
+   app.close = async () => {
+-    if (closed) return;
+-    closed = true;
+-    const running = app.process().exitCode === null;
+     const early =
+-      target === 'build' && running
+-        ? await app.evaluate(() => (globalThis as unknown as { __wslRendererErrors: string[] }).__wslRendererErrors)
+-        : [];
++      target === 'build' ? await app.evaluate(() => (globalThis as unknown as { __wslRendererErrors: string[] }).__wslRendererErrors) : [];
+     rendererErrors.push(...early.filter((message) => !rendererErrors.some((error) => error.includes(message))));
+-    if (running) await originalClose();
++    await originalClose();
+     assert.deepEqual(rendererErrors, [], 'Workbench renderer exceptions/errors fail every E2E');
+   };
+   try {
+@@ -195,24 +189,10 @@ export async function terminalSnapshot(page: Page) {
+ }
+ export async function workshopNavigate(page: Page, label: string) {
+   const navigation = page.getByRole('navigation', { name: 'Workshop 导航' });
+-  if (!(await navigation.isVisible())) await page.getByRole('button', { name: '展开 Workshop', exact: true }).click();
++  if (!(await navigation.isVisible())) {
++    const button = page.getByRole('button', { name: '工作坊', exact: true });
++    if (!(await button.isVisible())) await page.getByRole('button', { name: '展开空间标签', exact: true }).click();
++    await button.click();
++  }
+   await navigation.getByRole('button', { name: label, exact: true }).click();
+ }
+-
+-export async function resourceCollection(page: Page) {
+-  const snapshot = await workspaceSnapshot(page);
+-  const collection = snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)?.publicResources;
+-  if (!collection) throw new Error('public resource collection unavailable');
+-  return collection;
+-}
+-
+-export async function setWorkspaceTheme(page: Page, theme: string) {
+-  await workshopNavigate(page, '设置');
+-  await page.getByLabel(/^空间主题 · /).selectOption(theme);
+-  await expectTheme(page, theme);
+-  await workshopNavigate(page, '空间');
+-}
+-async function expectTheme(page: Page, theme: string) {
+-  const snapshot = await workspaceSnapshot(page);
+-  assert.equal(snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)?.theme, theme);
+-}

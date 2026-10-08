@@ -1,0 +1,37 @@
+
+Running 1 test using 1 worker
+
+(node:39279) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/space-remake.spec.ts:189:1 › SR10/11：窄窗展开后放宽再缩窄不会留下无屏障浮层 (6.6s)
+
+
+  1) e2e/space-remake.spec.ts:189:1 › SR10/11：窄窗展开后放宽再缩窄不会留下无屏障浮层 ──────────────────────────────────
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('complementary', { name: 'Workshop（临时展开）' })
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('complementary', { name: 'Workshop（临时展开）' }) with timeout 5000ms
+      - waiting for getByRole('complementary', { name: 'Workshop（临时展开）' })
+        14 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      196 |   await expect(tabs()).toBeVisible();await expect.poll(nativeVisible).toBe(true);
+      197 |   await setWindowSize(app,1024,720);
+    > 198 |   await expect(page.getByRole('complementary',{name:'Workshop（临时展开）'})).toHaveCount(0);
+          |                                                                         ^
+      199 |   await expect.poll(nativeVisible).toBe(true);
+      200 |   await notifications().click();await expect.poll(nativeVisible).toBe(false);
+      201 |   await setWindowSize(app,1440,900);await expect.poll(nativeVisible).toBe(true);
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/space-remake.spec.ts:198:73
+
+    Error Context: test-results/e2e/space-remake-SR10-11：窄窗展开后放宽再缩窄不会留下无屏障浮层/error-context.md
+
+  1 failed
+    e2e/space-remake.spec.ts:189:1 › SR10/11：窄窗展开后放宽再缩窄不会留下无屏障浮层 ───────────────────────────────────

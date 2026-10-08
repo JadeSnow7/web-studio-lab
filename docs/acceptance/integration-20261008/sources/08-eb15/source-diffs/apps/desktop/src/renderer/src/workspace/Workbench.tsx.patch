@@ -1,0 +1,481 @@
+diff --git a/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/workspace/Workbench.tsx b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/workspace/Workbench.tsx
+new file mode 100644
+index 0000000..0f29cb1
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/workspace/Workbench.tsx
+@@ -0,0 +1,475 @@
++import { useEffect, useRef, useState, useCallback } from 'react';
++import type { WorkbenchTab, WorkspaceSnapshot } from '@wsl/protocol';
++import { Icon } from '../components/Icon';
++import { useStore } from '../lib/store';
++import { useViewportWidth } from '../lib/viewport';
++import { command, initializeWorkspace, switchWorkspace, workspaceCommand, workspaceStore } from '../state/workspace';
++import { WorkspaceContent } from './Panes';
++import { SpaceSwitcher } from './SpaceSwitcher';
++import { GlobalWorkshop } from './GlobalWorkshop';
++import { shellActions, shellStore, routeLabels } from '../state/shell';
++import { ModalLayer, ErrorToasts } from '../shell/Overlays';
++import { Notifications } from './Notifications';
++import { panes } from '../state/workspace';
++import { Sidebar } from './Sidebar';
++
++export function Workbench() {
++  const globalRoute = useStore(shellStore, (s) => s.route);
++  const state = useStore(workspaceStore, (s) => s),
++    width = useViewportWidth(),
++    narrow = width < 1080;
++  const workspace = state.snapshot?.workspaces.find((w) => w.workspaceId === state.selectedId);
++  const theme = workspace?.theme;
++  const [switcher, setSwitcher] = useState(false),
++    [peek, setPeek] = useState(false),
++    [focus, setFocus] = useState(false),
++    [overlay, setOverlay] = useState(false),
++    [notifications, setNotifications] = useState(false);
++  const [editor, setEditor] = useState<{ kind: 'workspace' | 'rename-workspace' | 'tab' | 'rename-tab' | 'group'; tabId?: string } | null>(
++      null,
++    ),
++    [name, setName] = useState(''),
++    [kind, setKind] = useState<WorkbenchTab['targetRef']['kind']>('web');
++  const [editorPending, setEditorPending] = useState(false);
++  const editorSubmitting = useRef(false);
++  const [tabMenu, setTabMenu] = useState<string | null>(null);
++  const navigation = globalRoute === 'space' ? 'space' : 'workshop';
++  const setNavigation = (value: 'space' | 'workshop') => shellActions.navigate(value === 'space' ? 'space' : 'home');
++  const notificationButton = useRef<HTMLButtonElement>(null);
++  const switchButton = useRef<HTMLButtonElement>(null),
++    editDialog = useRef<HTMLDialogElement>(null);
++  useEffect(() => {
++    void initializeWorkspace();
++  }, []);
++  useEffect(() => {
++    if (!theme) return;
++    const media = window.matchMedia('(prefers-color-scheme: dark)');
++    const update = () => {
++      document.documentElement.dataset['theme'] = theme === 'system' ? (media.matches ? 'dark' : 'light') : theme;
++    };
++    update();
++    media.addEventListener('change', update);
++    return () => media.removeEventListener('change', update);
++  }, [theme]);
++  useEffect(() => {
++    document.title = `${routeLabels[globalRoute]} · ${workspace?.name ?? '加载空间'} · Web Studio Lab`;
++  }, [workspace?.name, globalRoute]);
++  const conceal = useCallback(
++    async (open: boolean) => {
++      if (open && workspace) await workspaceCommand(workspace.workspaceId, { type: 'hideBrowsers' });
++      setOverlay(open);
++    },
++    [workspace],
++  );
++  const openSwitcher = async () => {
++    await conceal(true);
++    setSwitcher(true);
++  };
++  const closeSwitcher = () => {
++    setSwitcher(false);
++    setOverlay(false);
++    switchButton.current?.focus();
++  };
++  const notificationPending = useRef(false);
++  const toggleNotifications = useCallback(async () => {
++    if (notificationPending.current) return;
++    notificationPending.current = true;
++    try {
++      if (!notifications) await conceal(true);
++      else {
++        setOverlay(false);
++        notificationButton.current?.focus();
++      }
++      setNotifications(!notifications);
++    } finally {
++      notificationPending.current = false;
++    }
++  }, [notifications, conceal]);
++  useEffect(() => {
++    if (!notifications) return;
++    const escape = (event: KeyboardEvent) => {
++      if (event.key === 'Escape') {
++        event.preventDefault();
++        void toggleNotifications();
++      }
++    };
++    window.addEventListener('keydown', escape);
++    return () => window.removeEventListener('keydown', escape);
++  }, [notifications, toggleNotifications]);
++  const sidebar = (workspace?.sidebarMode === 'pinned' && !narrow && !focus) || peek;
++  const toggleSidebar = useCallback(() => {
++    if (!workspace) return;
++    if (narrow || workspace.sidebarMode === 'overlay') {
++      void conceal(!peek).then(() => setPeek(!peek));
++    } else void command({ type: 'setPreferences', sidebarMode: workspace.sidebarMode === 'hidden' ? 'pinned' : 'hidden' });
++  }, [workspace, narrow, peek, conceal]);
++  useEffect(
++    () =>
++      window.studio.shell.onCommand((c) => {
++        if (c === 'toggle-workshop') toggleSidebar();
++        if (c === 'focus-address') {
++          void window.studio.workbench
++            .getSnapshot()
++            .then((snapshot) => {
++              const active = snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId);
++              const pane = active && panes(active.layout).find((p) => p.paneId === active.activePaneId);
++              const tab = active?.tabs.find((t) => t.tabId === pane?.tabId);
++              if (tab?.targetRef.kind === 'web') document.getElementById(`address-${tab.targetRef.resourceId}`)?.focus();
++            })
++            .catch((error: unknown) =>
++              workspaceStore.set((s) => ({ ...s, error: error instanceof Error ? error.message : String(error) })),
++            );
++        }
++        if (c === 'toggle-right-panel') void toggleNotifications();
++        if (c === 'toggle-focus-mode') setFocus((f) => !f);
++      }),
++    [toggleSidebar, toggleNotifications],
++  );
++  const showEditor = async (value: NonNullable<typeof editor>, initial = '') => {
++    await conceal(true);
++    setName(initial);
++    setEditor(value);
++    editDialog.current?.showModal();
++  };
++  const closeEditor = () => {
++    editDialog.current?.close();
++    setEditor(null);
++    setOverlay(false);
++  };
++  const submitEditor = async () => {
++    if (!workspace || !editor || !name.trim() || editorSubmitting.current) return;
++    editorSubmitting.current = true;
++    setEditorPending(true);
++    try {
++      let result;
++      if (editor.kind === 'workspace') {
++        const workspaceId = crypto.randomUUID();
++        result = await workspaceCommand(workspaceId, { type: 'createWorkspace', name: name.trim() });
++        if (result?.ok) await switchWorkspace(workspaceId);
++      } else if (editor.kind === 'rename-workspace') result = await command({ type: 'renameWorkspace', name: name.trim() });
++      else if (editor.kind === 'tab') result = await command({ type: 'createTab', kind, title: name.trim() });
++      else if (editor.kind === 'rename-tab') result = await command({ type: 'updateTab', tabId: editor.tabId!, title: name.trim() });
++      else result = await command({ type: 'updateTab', tabId: editor.tabId!, group: name.trim() });
++      if (result?.ok) closeEditor();
++    } finally {
++      editorSubmitting.current = false;
++      setEditorPending(false);
++    }
++  };
++  const items = workspace?.tabs ?? [];
++  const reorder = (tabId: string, delta: number) => {
++    const ids = items.map((t) => t.tabId),
++      i = ids.indexOf(tabId),
++      j = i + delta;
++    if (j < 0 || j >= ids.length) return;
++    [ids[i], ids[j]] = [ids[j]!, ids[i]!];
++    void command({ type: 'reorderTabs', tabIds: ids });
++  };
++  const openTabMenu = async (tabId: string) => {
++    await conceal(true);
++    setTabMenu(tabId);
++  };
++  const dismissMenu = () => {
++    setTabMenu(null);
++    setOverlay(false);
++  };
++  return (
++    <div className={`app workspace-app ${sidebar ? 'has-sidebar' : ''}`}>
++      <header className="titlebar workspace-titlebar">
++        <div className="traffic-space" aria-hidden="true" />
++        <button
++          ref={switchButton}
++          type="button"
++          className="space-switch-button no-drag"
++          aria-label="切换空间"
++          disabled={!workspace}
++          aria-expanded={switcher}
++          onClick={() => void openSwitcher()}
++        >
++          <span className="space-symbol">▦</span>
++          <strong>{workspace?.name ?? '加载空间…'}</strong>
++          <span>⌄</span>
++        </button>
++        <button
++          type="button"
++          className="icon-btn no-drag"
++          disabled={!workspace}
++          aria-label={sidebar ? '收起空间标签' : '展开空间标签'}
++          onClick={toggleSidebar}
++        >
++          <Icon name="sidebar" />
++        </button>
++        <span className="workspace-title-caption">{focus ? '专注模式' : narrow ? '窄窗 · 其余窗格保持运行' : '空间工作台'}</span>
++        <div className="titlebar-right no-drag">
++          <button
++            type="button"
++            className="btn"
++            ref={notificationButton}
++            aria-label={`通知 · ${state.snapshot?.notifications.filter((n) => !n.readAt).length ?? 0} 条未读`}
++            aria-expanded={notifications}
++            onClick={() => void toggleNotifications()}
++          >
++            通知 · {state.snapshot?.notifications.filter((n) => !n.readAt).length ?? 0}
++          </button>
++          <label>
++            <span className="sr-only">工作台主题</span>
++            <select
++              aria-label="工作台主题"
++              value={workspace?.theme ?? 'system'}
++              onChange={(e) => void command({ type: 'setPreferences', theme: e.target.value as WorkspaceSnapshot['theme'] })}
++            >
++              <option value="light">白</option>
++              <option value="dark">暗</option>
++              <option value="warm">暖</option>
++              <option value="system">跟随系统</option>
++            </select>
++          </label>
++          {focus ? (
++            <button type="button" className="btn" onClick={() => setFocus(false)}>
++              恢复布局
++            </button>
++          ) : null}
++        </div>
++      </header>
++      <div className="workspace-body">
++        {sidebar ? (
++          <Sidebar
++            workspace={workspace}
++            workspaces={state.snapshot?.workspaces ?? []}
++            peek={peek}
++            navigation={navigation}
++            setNavigation={setNavigation}
++            onCreateTab={() => void showEditor({ kind: 'tab' })}
++            onSwitcher={() => void openSwitcher()}
++            onTabMenu={(tabId) => void openTabMenu(tabId)}
++            onClosePeek={() => {
++              setPeek(false);
++              setOverlay(false);
++            }}
++          />
++        ) : (
++          <button
++            type="button"
++            className="sidebar-edge"
++            aria-label="临时展开空间标签"
++            onClick={() => {
++              void conceal(true).then(() => setPeek(true));
++            }}
++          />
++        )}
++        <main className="workspace-main">
++          <GlobalWorkshop visible={navigation === 'workshop'} onCreateWorkspace={() => void showEditor({ kind: 'workspace' })} />
++          {!state.snapshot && state.error ? (
++            <button type="button" className="btn" onClick={() => void initializeWorkspace(true)}>
++              重新加载空间
++            </button>
++          ) : null}
++          {state.snapshot?.workspaces.map((w) => (
++            <WorkspaceContent
++              key={w.workspaceId}
++              workspace={w}
++              active={navigation === 'space' && w.workspaceId === state.selectedId}
++              occluded={overlay || peek || notifications}
++              focus={focus}
++              narrow={narrow}
++              onFocus={() => setFocus((f) => !f)}
++              onOverlay={conceal}
++            />
++          ))}
++          {!state.snapshot ? (
++            <p className="workspace-empty" role="status">
++              正在加载空间工作现场…
++            </p>
++          ) : null}
++        </main>
++      </div>
++      {notifications ? (
++        <Notifications
++          onOpen={(sessionId) => {
++            setNotifications(false);
++            setOverlay(false);
++            requestAnimationFrame(() => document.getElementById(`session-heading-${sessionId}`)?.focus());
++          }}
++        />
++      ) : null}
++      <ModalLayer />
++      <ErrorToasts />
++      {state.snapshot?.storageError ? (
++        <p role="alert" className="workspace-error">
++          持久化失败：{state.snapshot.storageError}。当前状态仅保留在内存中。
++        </p>
++      ) : null}
++      {state.error ? (
++        <div role="alert" className="workspace-error">
++          <span>{state.error}</span>
++          <button
++            type="button"
++            className="icon-btn"
++            aria-label="关闭错误提示"
++            onClick={() => workspaceStore.set((s) => ({ ...s, error: null }))}
++          >
++            ×
++          </button>
++        </div>
++      ) : null}
++      <SpaceSwitcher
++        open={switcher}
++        workspaces={state.snapshot?.workspaces ?? []}
++        selectedId={state.selectedId}
++        onClose={closeSwitcher}
++        onExpand={() => {
++          if (workspace) void command({ type: 'setPreferences', sidebarMode: 'pinned' });
++          if (narrow) {
++            void conceal(true).then(() => setPeek(true));
++          }
++        }}
++        onCreate={() => void showEditor({ kind: 'workspace' })}
++        onManage={() => void showEditor({ kind: 'rename-workspace' }, workspace?.name ?? '')}
++      />
++      <dialog
++        ref={editDialog}
++        className="workspace-editor"
++        aria-label={editor?.kind === 'workspace' ? '新建空间' : editor?.kind === 'tab' ? '新建标签' : '编辑名称'}
++        onCancel={closeEditor}
++      >
++        <form
++          noValidate
++          onSubmit={(e) => {
++            e.preventDefault();
++            void submitEditor();
++          }}
++        >
++          <h2>{editor?.kind === 'workspace' ? '新建空间' : editor?.kind === 'tab' ? '新建标签' : '编辑名称'}</h2>
++          {editor?.kind === 'tab' ? (
++            <label className="field">
++              内容类型
++              <select value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
++                <option value="web">网页 / Web App</option>
++                <option value="terminal">终端</option>
++                <option value="session">Agent 会话</option>
++                <option value="ssh">SSH（适配器未接入）</option>
++                <option value="file">文件（编辑器未接入）</option>
++              </select>
++            </label>
++          ) : null}
++          <label className="field">
++            名称
++            <input autoFocus value={name} maxLength={200} onChange={(e) => setName(e.target.value)} />
++          </label>
++          <div className="row gap-8">
++            <button type="button" className="btn" disabled={editorPending} onClick={closeEditor}>
++              取消
++            </button>
++            <button type="submit" className="btn btn-primary" disabled={!name.trim() || editorPending}>
++              保存
++            </button>
++          </div>
++        </form>
++      </dialog>
++      {tabMenu ? (
++        <div
++          className="tab-context-menu"
++          role="menu"
++          aria-label="标签操作"
++          onKeyDown={(e) => {
++            if (e.key === 'Escape') dismissMenu();
++          }}
++        >
++          {(() => {
++            const tab = items.find((t) => t.tabId === tabMenu)!;
++            return (
++              <>
++                <button
++                  type="button"
++                  role="menuitem"
++                  onClick={() => {
++                    void command({ type: 'updateTab', tabId: tab.tabId, pinned: !tab.pinned });
++                    dismissMenu();
++                  }}
++                >
++                  {tab.pinned ? '取消固定' : '固定标签'}
++                </button>
++                <button
++                  type="button"
++                  role="menuitem"
++                  onClick={() => {
++                    dismissMenu();
++                    void showEditor({ kind: 'rename-tab', tabId: tab.tabId }, tab.title);
++                  }}
++                >
++                  重命名
++                </button>
++                <button
++                  type="button"
++                  role="menuitem"
++                  onClick={() => {
++                    dismissMenu();
++                    void showEditor({ kind: 'group', tabId: tab.tabId }, tab.group ?? '');
++                  }}
++                >
++                  设置分组
++                </button>
++                <button
++                  type="button"
++                  role="menuitem"
++                  onClick={() => {
++                    void command({ type: 'updateTab', tabId: tab.tabId, group: null });
++                    dismissMenu();
++                  }}
++                >
++                  移出分组
++                </button>
++                <button
++                  type="button"
++                  role="menuitem"
++                  onClick={() => {
++                    reorder(tab.tabId, -1);
++                    dismissMenu();
++                  }}
++                >
++                  向上移动
++                </button>
++                <button
++                  type="button"
++                  role="menuitem"
++                  onClick={() => {
++                    reorder(tab.tabId, 1);
++                    dismissMenu();
++                  }}
++                >
++                  向下移动
++                </button>
++                {(['horizontal', 'vertical'] as const).map((direction) => (
++                  <button
++                    type="button"
++                    role="menuitem"
++                    key={direction}
++                    onClick={() => {
++                      void command({ type: 'splitPane', paneId: workspace!.activePaneId, direction, tabId: tab.tabId });
++                      dismissMenu();
++                    }}
++                  >
++                    在{direction === 'horizontal' ? '右侧' : '下方'}打开
++                  </button>
++                ))}
++                <button
++                  type="button"
++                  role="menuitem"
++                  onClick={() => {
++                    void command({ type: 'closeTab', tabId: tab.tabId });
++                    dismissMenu();
++                  }}
++                >
++                  关闭标签（保留后台执行）
++                </button>
++                <button type="button" role="menuitem" onClick={dismissMenu}>
++                  关闭菜单
++                </button>
++              </>
++            );
++          })()}
++        </div>
++      ) : null}
++    </div>
++  );
++}

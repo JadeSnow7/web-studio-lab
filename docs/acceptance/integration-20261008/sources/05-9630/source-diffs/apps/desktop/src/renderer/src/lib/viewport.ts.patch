@@ -1,0 +1,13 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/lib/viewport.ts b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/lib/viewport.ts
+index da4409a..9976264 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/lib/viewport.ts
++++ b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/lib/viewport.ts
+@@ -1,5 +1,8 @@
+ import { useSyncExternalStore } from 'react';
+ 
++/** 窗口较窄时只保留一个持续侧面板，右侧通信栏改为覆盖层。 */
++export const NARROW_BREAKPOINT = 1200;
++
+ function subscribe(listener: () => void) {
+   window.addEventListener('resize', listener);
+   return () => window.removeEventListener('resize', listener);

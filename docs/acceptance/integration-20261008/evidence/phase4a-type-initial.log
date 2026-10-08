@@ -1,0 +1,14 @@
+
+> web-studio-lab@ typecheck /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> pnpm -r typecheck && tsc -p tsconfig.e2e.json && pnpm typecheck:baseline
+
+Scope: 3 of 4 workspace projects
+packages/protocol typecheck$ tsc -p tsconfig.json
+packages/protocol typecheck: Done
+apps/service typecheck$ tsc -p tsconfig.json
+apps/desktop typecheck$ tsc -p tsconfig.node.json && tsc -p tsconfig.web.json
+apps/service typecheck: Done
+apps/desktop typecheck: Done
+e2e/sbx.spec.ts(236,107): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+ ELIFECYCLE  Command failed with exit code 2.

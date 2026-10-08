@@ -1,0 +1,50 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/menu.ts b/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/main/menu.ts
+index dcfc6a5..8eb5d66 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/menu.ts
++++ b/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/main/menu.ts
+@@ -1,15 +1,13 @@
+ import { app, Menu, type BrowserWindow, type MenuItemConstructorOptions } from 'electron';
+ import type { ShellCommand } from '@wsl/protocol';
+ import { sendToRenderer } from './ipc';
++import type { PreviewController } from './preview/controller';
+ 
+ /**
+  * 应用菜单承担全局快捷键：焦点在 Browser 区页面时，按键不会到达工作台 renderer，
+  * 菜单加速键仍然生效。编辑菜单提供系统复制、粘贴与输入法相关的标准行为。
+  */
+-export function installAppMenu(
+-  window: BrowserWindow,
+-  preview: { reload(): void | Promise<void>; openDevTools(): void | Promise<void> },
+-): void {
++export function installAppMenu(window: BrowserWindow, preview: PreviewController): void {
+   const command = (name: ShellCommand) => () => {
+     if (window.isDestroyed()) return;
+     window.webContents.focus();
+@@ -36,24 +34,11 @@ export function installAppMenu(
+       label: '显示',
+       submenu: [
+         { label: '显示或隐藏 Workshop', accelerator: 'CmdOrCtrl+B', click: command('toggle-workshop') },
+-        { label: '显示或隐藏通知', accelerator: 'CmdOrCtrl+Alt+B', click: command('toggle-right-panel') },
+-        { label: '专注模式', accelerator: 'CmdOrCtrl+Shift+F', click: command('toggle-focus-mode') },
++        { label: '显示或隐藏通信栏', accelerator: 'CmdOrCtrl+Alt+B', click: command('toggle-right-panel') },
+         { label: '编辑地址', accelerator: 'CmdOrCtrl+L', click: command('focus-address') },
+         { type: 'separator' },
+-        {
+-          label: '重新加载 Browser 区页面',
+-          accelerator: 'CmdOrCtrl+R',
+-          click: () => {
+-            void Promise.resolve(preview.reload()).catch((error) => console.error('网页重新加载失败', error));
+-          },
+-        },
+-        {
+-          label: '打开 Browser 区页面 DevTools',
+-          accelerator: 'CmdOrCtrl+Alt+I',
+-          click: () => {
+-            void Promise.resolve(preview.openDevTools()).catch((error) => console.error('网页 DevTools 操作失败', error));
+-          },
+-        },
++        { label: '重新加载 Browser 区页面', accelerator: 'CmdOrCtrl+R', click: () => preview.reload() },
++        { label: '打开 Browser 区页面 DevTools', accelerator: 'CmdOrCtrl+Alt+I', click: () => preview.openDevTools() },
+         { label: '打开工作台 DevTools', click: () => window.webContents.openDevTools({ mode: 'detach' }) },
+         { type: 'separator' },
+         { role: 'togglefullscreen', label: '进入全屏幕' },

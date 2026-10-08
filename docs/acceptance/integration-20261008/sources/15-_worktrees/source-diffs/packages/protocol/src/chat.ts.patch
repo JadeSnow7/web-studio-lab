@@ -1,0 +1,33 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/chat.ts b/private/tmp/wsl-integration-sources/15-_worktrees/packages/protocol/src/chat.ts
+index 9ec2dfe..5edd018 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/chat.ts
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/packages/protocol/src/chat.ts
+@@ -41,18 +41,11 @@ export const ChatSendSchema = z.object({ conversationId: ChatSlotSchema, text: z
+ export const ChatTargetSchema = z.object({ conversationId: ChatSlotSchema });
+ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
+   z.object({ id: z.string(), method: z.literal('status') }),
+-  z
+-    .object({
+-      id: z.string(),
+-      method: z.literal('register'),
+-      payload: z.object({ conversationId: ChatSlotSchema, workspaceId: z.string().min(1) }),
+-    })
+-    .strict(),
+   z.object({ id: z.string(), method: z.literal('get'), payload: ChatTargetSchema }),
+   z.object({ id: z.string(), method: z.literal('send'), payload: ChatSendSchema }),
+   z.object({ id: z.string(), method: z.literal('cancel'), payload: ChatTargetSchema }),
+   z.object({ id: z.string(), method: z.literal('reset'), payload: ChatTargetSchema }),
+-  z.object({ id: z.string(), method: z.literal('terminal.get'), resourceId: z.string().min(1) }),
++  z.object({ id: z.string(), method: z.literal('terminal.get') }),
+   z.object({ id: z.string(), method: z.literal('terminal.open'), payload: TerminalOpenSchema }),
+   z.object({ id: z.string(), method: z.literal('terminal.write'), payload: TerminalWriteSchema }),
+   z.object({ id: z.string(), method: z.literal('terminal.resize'), payload: TerminalResizeSchema }),
+@@ -65,7 +58,7 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
+ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
+   z.object({ type: z.literal('initialized'), status: ChatStatusSchema, cleanupPending: z.boolean() }),
+   z.object({ type: z.literal('event'), conversation: ChatConversationSchema }),
+-  z.object({ type: z.literal('terminal-event'), terminal: TerminalSnapshotSchema, resourceId: z.string().min(1) }),
++  z.object({ type: z.literal('terminal-event'), terminal: TerminalSnapshotSchema }),
+   z.object({
+     type: z.literal('response'),
+     id: z.string(),

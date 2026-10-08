@@ -1,0 +1,12 @@
+{
+  "failed_attempt": "live-resources.json (5-second wait ended before 20-second product budget)",
+  "rerun": "live-resources-v2.json passed",
+  "artifact": "live-resources-v2-artifacts/screens/resources-live-evidence.json",
+  "reviewed": [
+    "Actual https://example.com page identity matches saved resource",
+    "Actual MCP list_resources/read_resource events share same turn and resource/version/hash; exit0/nontruncated",
+    "Conversation idle, no error, cleanupPending false",
+    "Removal leaves collection revision2 and resource count0"
+  ],
+  "limit": "Separate guest-browser docs.docker.com path remains failed; this pass does not replace it."
+}

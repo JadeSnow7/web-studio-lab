@@ -1,0 +1,21 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/index.ts b/private/tmp/wsl-integration-sources/00-primary/packages/protocol/src/index.ts
+index af2babd..1939d11 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/index.ts
++++ b/private/tmp/wsl-integration-sources/00-primary/packages/protocol/src/index.ts
+@@ -1,16 +1,7 @@
+ export * from './app';
+-export * from './chat';
+ export * from './execution';
+ export * from './ipc';
+ export * from './preview';
+ export * from './run';
+ export * from './task';
+ export * from './bridge';
+-
+-export * from './terminal';
+-
+-export * from './resources';
+-
+-export * from './guest-browser';
+-
+-export * from './workspace';

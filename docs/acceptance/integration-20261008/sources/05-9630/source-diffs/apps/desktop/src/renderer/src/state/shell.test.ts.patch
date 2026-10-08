@@ -1,0 +1,41 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/shell.test.ts b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/state/shell.test.ts
+index 9c425a6..89a1796 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/shell.test.ts
++++ b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/state/shell.test.ts
+@@ -1,9 +1,5 @@
+ import { describe, expect, it } from 'vitest';
+-import { initialShell, navigate } from './shell';
+-import { panelMode, pinPanel as setPinned, togglePanel, type PanelState as WorkshopState } from './panels';
+-const workshopMode = (panel: WorkshopState) => panelMode(panel, false);
+-const toggleWorkshop = (panel: WorkshopState) => togglePanel(panel, false);
+-const setPeek = (panel: WorkshopState, peek: boolean) => (workshopMode(panel) === 'docked' ? panel : { ...panel, peek });
++import { initialShell, navigate, setPeek, setPinned, toggleWorkshop, workshopMode, type WorkshopState } from './shell';
+ 
+ const docked: WorkshopState = { pinned: true, hidden: false, peek: false };
+ 
+@@ -32,13 +28,17 @@ describe('Workshop 显示状态', () => {
+   });
+ });
+ 
+-describe('全局路由与个人输入隔离', () => {
+-  it('六个全局路由互相直接可达，导航不改变空间业务或侧栏偏好', () => {
+-    for (const route of ['home', 'space', 'resources', 'conversations', 'tasks', 'settings'] as const) {
+-      const next = navigate(initialShell, route);
+-      expect(next.route).toBe(route);
+-      expect(next.workshop).toEqual(initialShell.workshop);
+-      expect(next.rightPanel).toEqual(initialShell.rightPanel);
+-    }
++describe('路由与作用域', () => {
++  it('进入首页切到个人作用域，管理页保持当前作用域，回到空间恢复空间作用域', () => {
++    const home = navigate(initialShell, 'home');
++    expect(home.activeScope).toEqual({ kind: 'personal' });
++    const tasks = navigate(home, 'tasks');
++    expect(tasks.activeScope).toEqual({ kind: 'personal' });
++    const space = navigate(tasks, 'space');
++    expect(space.activeScope.kind).toBe('space');
++  });
++  it('导航时收起临时展开的 Workshop', () => {
++    const peeking = { ...initialShell, workshop: { pinned: false, hidden: false, peek: true } };
++    expect(navigate(peeking, 'home').workshop.peek).toBe(false);
+   });
+ });

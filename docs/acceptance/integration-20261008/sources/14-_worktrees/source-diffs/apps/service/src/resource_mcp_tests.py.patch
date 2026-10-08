@@ -1,0 +1,34 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/resource_mcp_tests.py b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/resource_mcp_tests.py
+index 6fd9e89..940d143 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/resource_mcp_tests.py
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/resource_mcp_tests.py
+@@ -44,29 +44,6 @@ class ResourceMcpTests(unittest.TestCase):
+         self.assertEqual([tool["name"] for tool in tools], ["list_resources", "read_resource"])
+         self.assertTrue(all(tool["annotations"]["readOnlyHint"] and not tool["annotations"]["destructiveHint"] for tool in tools))
+ 
+-    def test_dynamic_host_registered_conversation_bundle(self):
+-        # The helper invokes this same validator before creating the per-turn sealed descriptor.
+-        bundle = fixture_bundle()
+-        bundle["conversationId"] = "session-7189a675-2a3d-4ede-b5b5-d615c486aa28"
+-        mcp.validate_bundle(bundle)
+-        listed = mcp.dispatch(bundle, "tools/call", {"name": "list_resources", "arguments": {}})["structuredContent"]["data"]
+-        self.assertEqual(listed["spaceId"], "taskflow-demo")
+-        self.assertEqual(len(listed["resources"]), 1)
+-        other = copy.deepcopy(bundle)
+-        other.update(spaceId=None, collectionRevision=0, resources=[])
+-        mcp.validate_bundle(other)
+-        self.assertEqual(mcp.dispatch(other, "tools/call", {"name": "list_resources", "arguments": {}})["structuredContent"]["data"]["resources"], [])
+-        for mutate in [lambda b: b.update(conversationId="session-../file"), lambda b: b.update(conversationId="session-"),
+-                       lambda b: b.update(conversationId="session-" + "a" * 194), lambda b: b.update(conversationId="unknown"),
+-                       lambda b: b.update(spaceId="other-space"), lambda b: b.update(conversationId="conv-personal-default")]:
+-            invalid = copy.deepcopy(bundle)
+-            mutate(invalid)
+-            with self.subTest(bundle=invalid), self.assertRaises(ValueError):
+-                mcp.validate_bundle(invalid)
+-        other["collectionRevision"] = 1
+-        with self.assertRaises(ValueError):
+-            mcp.validate_bundle(other)
+-
+     def test_observed_codex_metadata_envelope_grants_no_capability(self):
+         bundle = fixture_bundle()
+         # Actual Codex 0.160.0 failure shape: tools/list params is an object with only _meta.

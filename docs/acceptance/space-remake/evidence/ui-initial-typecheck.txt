@@ -1,0 +1,16 @@
+
+> web-studio-lab@ typecheck /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> pnpm -r typecheck && tsc -p tsconfig.e2e.json && pnpm typecheck:baseline
+
+Scope: 3 of 4 workspace projects
+packages/protocol typecheck$ tsc -p tsconfig.json
+packages/protocol typecheck: Done
+apps/desktop typecheck$ tsc -p tsconfig.node.json && tsc -p tsconfig.web.json
+apps/service typecheck$ tsc -p tsconfig.json
+apps/service typecheck: Done
+apps/desktop typecheck: src/renderer/src/state/workspace.test.ts(16,3): error TS2353: Object literal may only specify known properties, and 'sidebarMode' does not exist in type '{ workspaceId: string; name: string; revision: number; tabs: { tabId: string; title: string; pinned: boolean; group: string | null; targetRef: { kind: "file" | "terminal" | "web" | "session" | "ssh"; resourceId: string; }; }[]; ... 7 more ...; theme: "light" | ... 2 more ... | "system"; }'.
+apps/desktop typecheck: Failed
+/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @wsl/desktop@0.1.0 typecheck: `tsc -p tsconfig.node.json && tsc -p tsconfig.web.json`
+Exit status 2
+ ELIFECYCLE  Command failed with exit code 2.

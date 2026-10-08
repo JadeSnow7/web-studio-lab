@@ -1,0 +1,1635 @@
+{
+  "baseline": "9e1df45d9ea42a9bf5df76a1babf451e5cafc530",
+  "note": "Static coverage scopes and assertion index; does not constitute test execution or acceptance. Core implementation bodies owned by root review. Phase1+ new source changes require supplementary review.",
+  "files": [
+    {
+      "path": "apps/desktop/electron-builder.yml",
+      "category": "toolchain",
+      "sha256": "7841df7ed916111dc87cef8364f66e2042c3523f33de3f8eee340bd22984ec0f",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/package.json",
+      "category": "toolchain",
+      "sha256": "41d28de2321c8855f05b37f64f4efa59be013ef3559f16fb2ce870f0e5abf397",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.test.ts",
+      "category": "tests",
+      "sha256": "08993e27671dd01801e58d61b2430e8825eff28e7e829aeafbb1c1e091bbb18a",
+      "scope": "断言与触发条件审核：send ACK 后服务退出仍推送不可用与会话失败; 终端活动期间服务退出必须发布未知清理失败并拒绝伪成功关闭; 模型失败但cleanup已有确认时服务退出不阻止关闭; terminal open ACK本身是权威快照，服务退出不得遗漏未清理会话",
+      "case_count": 11,
+      "assertion_calls": 35,
+      "cases": [
+        "send ACK 后服务退出仍推送不可用与会话失败",
+        "终端活动期间服务退出必须发布未知清理失败并拒绝伪成功关闭",
+        "模型失败但cleanup已有确认时服务退出不阻止关闭",
+        "terminal open ACK本身是权威快照，服务退出不得遗漏未清理会话",
+        "未ACK的send已有新快照确认清理，不保留错误的启动未知占用",
+        "初始化回执尚未到达时service退出不能推断guest probe已清理",
+        "无sbx配置已初始化且无远端probe，服务退出后允许关闭",
+        "成功shutdown ACK后才终止local utility，并等待exit完成关闭",
+        "ACK前utility退出即便code0也不降级未确认清理或自动kill",
+        "shutdown 清理失败在重复关闭时仍显式拒绝，不等待未发生的 exit",
+        "坏消息拒绝等待请求并通知界面，不抛出未捕获的主进程错误"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/ipc-guard.test.ts",
+      "category": "tests",
+      "sha256": "6da49034cc222facee9e5cbf06398564a4ac0efd5f2fa6ce9bc07bfe6a446ff5",
+      "scope": "断言与触发条件审核：开发模式只信任 dev server origin; 打包后只信任 renderer/index.html 本身; 接受主窗口顶层工作台页面; 拒绝 Browser 区视图、子 frame 与未知来源",
+      "case_count": 4,
+      "assertion_calls": 10,
+      "cases": [
+        "开发模式只信任 dev server origin",
+        "打包后只信任 renderer/index.html 本身",
+        "接受主窗口顶层工作台页面",
+        "拒绝 Browser 区视图、子 frame 与未知来源"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/ipc-resources.test.ts",
+      "category": "tests",
+      "sha256": "1115cf4359fd7d6f499b938613bcc80d758fd73e9da49104f37f6e27fa8898e5",
+      "scope": "断言与触发条件审核：accepts only stable resource identity; renderer cannot inject captured content; rejects a preview webContents even when it knows a valid command; does not turn navigation capture failure into a successful save; rejects the retired space-chat slot and dynamic slots on every legacy chat command",
+      "case_count": 4,
+      "assertion_calls": 9,
+      "cases": [
+        "accepts only stable resource identity; renderer cannot inject captured content",
+        "rejects a preview webContents even when it knows a valid command",
+        "does not turn navigation capture failure into a successful save",
+        "rejects the retired space-chat slot and dynamic slots on every legacy chat command"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller-construction.test.ts",
+      "category": "tests",
+      "sha256": "55cbc2d41327340cc30a86eedad968fccbf054f1b38562470df5cc0a8a6d103f",
+      "scope": "断言与触发条件审核：",
+      "case_count": 0,
+      "assertion_calls": 8,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller-migration.test.ts",
+      "category": "tests",
+      "sha256": "6dd0b303bea7b098b62f4cd7b3332c0cc96eaead8cd58b0cd67f3944946bf25e",
+      "scope": "断言与触发条件审核：closed; message; forwards native focus without layout updates manufacturing focus; focus",
+      "case_count": 9,
+      "assertion_calls": 22,
+      "cases": [
+        "closed",
+        "message",
+        "forwards native focus without layout updates manufacturing focus",
+        "focus",
+        "ignores an old screenshot success after a replacement request and preserves new pick state",
+        "ignores an old screenshot failure after replacement without clearing or failing the new pick",
+        "did-start-navigation",
+        "does not report an old cancellation exit failure on a newer pick",
+        "establishes a dedicated DevTools identity before loading and disposes it with the preview"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller-resource.test.ts",
+      "category": "tests",
+      "sha256": "501b5f56eec207546030624a6645e6ae58a97afd75ac72623208265f5b3d5236",
+      "scope": "断言与触发条件审核：did-start-navigation; did-navigate; 公开页面保持无 preload 的 sandbox 与隔离，不扩大窗口或子框架权限; will-frame-navigate",
+      "case_count": 21,
+      "assertion_calls": 21,
+      "cases": [
+        "did-start-navigation",
+        "did-navigate",
+        "公开页面保持无 preload 的 sandbox 与隔离，不扩大窗口或子框架权限",
+        "will-frame-navigate",
+        "公开地址栏 fragment 规范化后再导航，标题空白与浏览器一致",
+        "did-navigate",
+        "只能捕获当前已成功显示的公开文档；同 URL 新文档也使旧身份失效",
+        "https://example.com/",
+        "https://example.com/",
+        "导航开始但 URL 与文档代次尚未改变时，不能保存旧正文",
+        "https://example.com/",
+        "did-start-navigation",
+        "保留同次 broker 的失败原因，原生其他地址或新导航失败仍更新",
+        "did-start-navigation",
+        "did-fail-load",
+        "did-fail-load",
+        "did-start-navigation",
+        "did-fail-load",
+        "加载失败、演示页面、标题不匹配和被销毁文档均不能挂载",
+        "https://example.com/",
+        "did-fail-load"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/preview/preview-pure.test.ts",
+      "category": "tests",
+      "sha256": "7e2465f16387a54f6f9c4d7a721e462731c2839ac30293d726b625f0f2504acd",
+      "scope": "断言与触发条件审核：按 scheme + host 比较自定义协议; 拒绝其他 host、其他协议与无效地址; 端口不同视为不同来源; 映射到目录内文件，目录请求补 index.html",
+      "case_count": 8,
+      "assertion_calls": 20,
+      "cases": [
+        "按 scheme + host 比较自定义协议",
+        "拒绝其他 host、其他协议与无效地址",
+        "端口不同视为不同来源",
+        "映射到目录内文件，目录请求补 index.html",
+        "拒绝越界路径与其他 host",
+        "border quad 换算外接矩形",
+        "截图区域裁剪到视口内，完全在外时为 null",
+        "属性数组转成映射"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/preview/public-document.test.ts",
+      "category": "tests",
+      "sha256": "4f8ccd83d87c6caf0ff15e993d11e94297a6cac82ec530734c04b17052e77ae7",
+      "scope": "断言与触发条件审核：仅 HTTPS 默认端口且没有用户凭据; 拒绝私网、保留网、IPv4 映射及转换网段; DNS 的所有地址都必须是公网，连接固定到已校验的 IP; 解析与请求受同一取消期限约束",
+      "case_count": 10,
+      "assertion_calls": 35,
+      "cases": [
+        "仅 HTTPS 默认端口且没有用户凭据",
+        "拒绝私网、保留网、IPv4 映射及转换网段",
+        "DNS 的所有地址都必须是公网，连接固定到已校验的 IP",
+        "解析与请求受同一取消期限约束",
+        "每次重定向重新校验，不连接私网跳转",
+        "保留实际最终 URL，限制跳转并拒绝 HTTP/编码/MIME/大小失败",
+        "可靠解析实体和恶意 HTML；原脚本、属性、预连接、表单和隐藏内容不进入输出",
+        "正文按 UTF-8 字节截断，保留完整字符并显式声明",
+        "大量兄弟节点仍然受控提取，不超过函数参数限制",
+        "非法 UTF-8 与非 UTF-8 HTML 声明明确失败"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/preview/public-protocol.test.ts",
+      "category": "tests",
+      "sha256": "7a8bcbf9ca8ebf311d048aa41db77b8c8119962f94c5c809efe283aff0d73712",
+      "scope": "断言与触发条件审核：源页面和子资源不能绕过 GET 主框架 broker，另一个 webContents 也不能复用; allows only the owning DevTools bundled GET frontend, never another view or remote resource; 跳转先通知浏览器最终 URL，只有最终 URL 响应才能成为可捕获文档; 导航中的晚到响应不能恢复旧文档",
+      "case_count": 5,
+      "assertion_calls": 21,
+      "cases": [
+        "源页面和子资源不能绕过 GET 主框架 broker，另一个 webContents 也不能复用",
+        "allows only the owning DevTools bundled GET frontend, never another view or remote resource",
+        "跳转先通知浏览器最终 URL，只有最终 URL 响应才能成为可捕获文档",
+        "导航中的晚到响应不能恢复旧文档",
+        "加载失败是网络失败并显示原因；不返回伪造正文，销毁后停止协议"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/preview/public-request.test.ts",
+      "category": "tests",
+      "sha256": "17cb215145d0676bee23d9652e3a3945e3e100eb2ff3b0d6e5115ae375e23d3d",
+      "scope": "断言与触发条件审核：保留 URL 主机和默认 TLS 校验，单 IP lookup 不触发地址族重选，忽略浏览器凭据; data; end",
+      "case_count": 3,
+      "assertion_calls": 13,
+      "cases": [
+        "保留 URL 主机和默认 TLS 校验，单 IP lookup 不触发地址族重选，忽略浏览器凭据",
+        "data",
+        "end"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/window-close.test.ts",
+      "category": "tests",
+      "sha256": "778e35c65eeb73ca0d07c605049a0afacb16ad337c260090ce10c30d2d7bdb21",
+      "scope": "断言与触发条件审核：closes after confirmed guest cleanup even when workbench initialization failed; keeps the window open when guest cleanup remains unconfirmed",
+      "case_count": 2,
+      "assertion_calls": 10,
+      "cases": [
+        "closes after confirmed guest cleanup even when workbench initialization failed",
+        "keeps the window open when guest cleanup remains unconfirmed"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.test.ts",
+      "category": "tests",
+      "sha256": "a2bc59e335c691f629d93c7f2392433453c267e0e7d2fdc3d1d28ac26e33a297",
+      "scope": "断言与触发条件审核：restores business records from old snapshots while discarding per-space sidebar preferences; rejects stale draft revision and does not overwrite newer text; does not expose or later persist a failed metadata mutation; deduplicates runtime side effects and rejects changed payloads",
+      "case_count": 23,
+      "assertion_calls": 79,
+      "cases": [
+        "restores business records from old snapshots while discarding per-space sidebar preferences",
+        "rejects stale draft revision and does not overwrite newer text",
+        "does not expose or later persist a failed metadata mutation",
+        "deduplicates runtime side effects and rejects changed payloads",
+        "isolates resources from a different workspace",
+        "keeps execution ownership after space switch and tab closure; rejects old generation",
+        "keeps verifier unavailable and rejects review of a failed run",
+        "validates deep persisted layout invariants",
+        "restores drafts/history but never replays a runner or terminal",
+        "rejects a previous browser instance even when its document generation matches",
+        "validates a new browser URL before adding a tab or creating a native view",
+        "persists cancellation before cleanup while navigation, drafts and runtime events keep flowing",
+        "does not start cancellation when persisting its request fails",
+        "rejects nested cross-workspace restore references without modifying the file",
+        "rejects stale restored context without creating a browser and accepts the next registered instance event",
+        "restores unconfirmed criteria drafts and freezes them into independent task versions",
+        "reads this upgrade's earlier session records with empty criteria drafts",
+        "publishes closing while terminal cleanup is deferred and rejects its stale instance reply",
+        "does not stop a terminal when persisting closing fails",
+        "shows unconfirmed cleanup failure and refuses to create a replacement process",
+        "does not hide native views if workspace navigation cannot be saved",
+        "persists most recently used space order without changing tab order",
+        "same-space session location retains native visibility; cross-space location hides old native views"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/host-migration.test.ts",
+      "category": "tests",
+      "sha256": "caf93c563cbc15b8a8aaf1467976d53324de8ca682ef2c3c871dc0998bf3584a",
+      "scope": "断言与触发条件审核：resolves menu reload/devtools from active pane instead of the last layout; forwards focus with immutable workspace/resource/instance/generation ownership; disposes and removes a controller if initial loading throws, then permits retry; binds capture to the native page at operation start and saves only that returned snapshot",
+      "case_count": 5,
+      "assertion_calls": 13,
+      "cases": [
+        "resolves menu reload/devtools from active pane instead of the last layout",
+        "forwards focus with immutable workspace/resource/instance/generation ownership",
+        "disposes and removes a controller if initial loading throws, then permits retry",
+        "binds capture to the native page at operation start and saves only that returned snapshot",
+        "does not save when the native controller rejects the page identity after navigation"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/layout.test.ts",
+      "category": "tests",
+      "sha256": "601a0d3b4c7e51f328187e7afc299345450f9365ead290e2fb628c6c02049ad4",
+      "scope": "断言与触发条件审核：focuses an already visible tab without duplicating it; closing a pane removes only that view; closing a tab leaves an empty pane; rejects a fifth pane and duplicate visible tabs",
+      "case_count": 3,
+      "assertion_calls": 6,
+      "cases": [
+        "focuses an already visible tab without duplicating it",
+        "closing a pane removes only that view; closing a tab leaves an empty pane",
+        "rejects a fifth pane and duplicate visible tabs"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/migration-followup.test.ts",
+      "category": "tests",
+      "sha256": "07613928c74a7d42f61ed8aca6cb19b2a730396c689f59439b32779fcc972471",
+      "scope": "断言与触发条件审核：R6 reload returns local snapshot while public resource refresh stays pending; R3 reloads the just-focused native browser without an intervening snapshot drain",
+      "case_count": 2,
+      "assertion_calls": 4,
+      "cases": [
+        "R6 reload returns local snapshot while public resource refresh stays pending",
+        "R3 reloads the just-focused native browser without an intervening snapshot drain"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/migration-regressions.test.ts",
+      "category": "tests",
+      "sha256": "d7f66e932191a198cf8777b385dee2508f6ba21944661d96dc67e55ff3c9619b",
+      "scope": "断言与触发条件审核：R5 does not publish a failed browser instance and retries the next command; R6 permits local history when external session registration is unavailable; R6 coalesces explicit initialization retry after a repository failure; R4 carries request identity through pick and refuses replaced capture callbacks",
+      "case_count": 6,
+      "assertion_calls": 18,
+      "cases": [
+        "R5 does not publish a failed browser instance and retries the next command",
+        "R6 permits local history when external session registration is unavailable",
+        "R6 coalesces explicit initialization retry after a repository failure",
+        "R4 carries request identity through pick and refuses replaced capture callbacks",
+        "R1 saves each run conversation independently across subsequent runs and restart",
+        "R1 exposes separate locate and read receipt commands at the IPC boundary"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+      "category": "tests",
+      "sha256": "01290cf6aba377d675afcdaaf660eb1a671d1b2fd398df7a67b72940f1dc7cc0",
+      "scope": "断言与触发条件审核：deduplicates a pending command retry without another capture or collection mutation; preserves the previous collection on failure, shows the cause, and clears it after explicit retry; does not inherit, rename or operate on TaskFlow public resources in another workspace",
+      "case_count": 3,
+      "assertion_calls": 18,
+      "cases": [
+        "deduplicates a pending command retry without another capture or collection mutation",
+        "preserves the previous collection on failure, shows the cause, and clears it after explicit retry",
+        "does not inherit, rename or operate on TaskFlow public resources in another workspace"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/recovery-facts.test.ts",
+      "category": "tests",
+      "sha256": "7e0f20ce231c2dcf960057e31703be67eb2716681019270f5c43584c853ee8dc",
+      "scope": "断言与触发条件审核：persists interrupted run and cancelled capture once, preserving fact time and receipt across two read-only restarts; exposes a recovery save failure while preserving original bytes and avoiding initialization or execution replay",
+      "case_count": 2,
+      "assertion_calls": 15,
+      "cases": [
+        "persists interrupted run and cancelled capture once, preserving fact time and receipt across two read-only restarts",
+        "exposes a recovery save failure while preserving original bytes and avoiding initialization or execution replay"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/repository.test.ts",
+      "category": "tests",
+      "sha256": "a205232ddee396fcabbde8fa4c62a3477ea1e47c4741c66a32ac0a80bd9efb9e",
+      "scope": "断言与触发条件审核：rejects corrupt and future schema without overwriting original bytes; treats only a missing file as new workspace",
+      "case_count": 2,
+      "assertion_calls": 3,
+      "cases": [
+        "rejects corrupt and future schema without overwriting original bytes",
+        "treats only a missing file as new workspace"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/run-notification-migration.test.ts",
+      "category": "tests",
+      "sha256": "17c070aaf8787a862359f71e68b42bf73c89f9ffff3db20bbc55d29e39bb7222",
+      "scope": "断言与触发条件审核：extracts only the current turn from cumulative same-generation messages and tools; keeps viewing, reading, validation and review separate and persists only notification receipts; rejects a mismatched session/run locator without changing the active space; rejects structurally valid logs owned by a different session and leaves the file intact",
+      "case_count": 4,
+      "assertion_calls": 22,
+      "cases": [
+        "extracts only the current turn from cumulative same-generation messages and tools",
+        "keeps viewing, reading, validation and review separate and persists only notification receipts",
+        "rejects a mismatched session/run locator without changing the active space",
+        "rejects structurally valid logs owned by a different session and leaves the file intact"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/runtime-outcomes.test.ts",
+      "category": "tests",
+      "sha256": "81b69c435cdb5259124667269e654e46970fcc74bcf9f2d2aaebffb62cbdb9e9",
+      "scope": "断言与触发条件审核：reports pending until screenshot completion and publishes completion for exactly that request; keeps an old failure/cancellation from changing the replacement request outcome; preserves confirmed terminal output and cleanup on failure, rejecting duplicate and old sequence updates",
+      "case_count": 3,
+      "assertion_calls": 7,
+      "cases": [
+        "reports pending until screenshot completion and publishes completion for exactly that request",
+        "keeps an old failure/cancellation from changing the replacement request outcome",
+        "preserves confirmed terminal output and cleanup on failure, rejecting duplicate and old sequence updates"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/renderer/index.html",
+      "category": "implementations",
+      "sha256": "ebfc6571b1a6392618dcf472b1fe8723b189668920aeb46512bf154427420ab7",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/App.tsx",
+      "category": "implementations",
+      "sha256": "2721549452278afbc7a8ab5e47db9075c56efb39c52c68f283077efd1939219a",
+      "scope": "六页mount生命周期、系统主题、native occlusion集合、菜单事件与地址目标",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/components/Badges.tsx",
+      "category": "implementations",
+      "sha256": "a3e823e99b0c966e09b84f10e892e58296f394ace0ee0d1a9d08ed60f43fabc2",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/components/Icon.tsx",
+      "category": "implementations",
+      "sha256": "2902bbf018624e324119561defc0ae1bca394ecd438a0e6ada9853290aa1934c",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/demo/runScenarios.test.ts",
+      "category": "tests",
+      "sha256": "308e6075e51d724520501005334911c772abecfc565f57bfc2ea70c627469f80",
+      "scope": "断言与触发条件审核：全部符合协议，且都标记为 demo; 每个演示入口都有对应记录; 工具故障记为无法判断，不出现业务失败的检查结果; 取消中的记录仍有未退出进程；已取消的记录全部退出",
+      "case_count": 5,
+      "assertion_calls": 11,
+      "cases": [
+        "全部符合协议，且都标记为 demo",
+        "每个演示入口都有对应记录",
+        "工具故障记为无法判断，不出现业务失败的检查结果",
+        "取消中的记录仍有未退出进程；已取消的记录全部退出",
+        "无模型复验不记录模型，也不需要审阅"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/demo/runScenarios.ts",
+      "category": "implementations",
+      "sha256": "73a2ec49026d1cb9f9f5e430973fb8481bcf03c312a6692f82b4a6d4f5a501e8",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/demo/sampleData.ts",
+      "category": "implementations",
+      "sha256": "ab6fb44b2573d3b72bfe2bc57ad3419578092a9811b31636976ca55fbc585a32",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/env.d.ts",
+      "category": "implementations",
+      "sha256": "2282dbcf21d3103170cf12e03c42db9f8bf859b32c3543b95b5e39e6b13f7d8f",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/lib/store.ts",
+      "category": "implementations",
+      "sha256": "9fc9a777c54c492c7d528099160c8ce090acf6dfa6d749d1541a4a457ef74066",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/lib/time.ts",
+      "category": "implementations",
+      "sha256": "2fbe5d3f9f1fdbd8787211cc4fa63fc022822c1509775184922e6a177125adb4",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/lib/viewport.ts",
+      "category": "implementations",
+      "sha256": "c00e62c37b6bf32e4fb5b7d2bdc1a5e02f87fbac62188218914a7d0d23758389",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/main.tsx",
+      "category": "implementations",
+      "sha256": "c2aaa4f03efc98e827bd09d17b8fede51a42906983b3793898c0477761472f25",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/ConversationsPage.tsx",
+      "category": "implementations",
+      "sha256": "919f375b2342ad77ab86855bafa7b5ef20bb7b18d02ee48914ef717b71ab23d4",
+      "scope": "独立个人chat/draft与演示contacts范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/HomePage.tsx",
+      "category": "implementations",
+      "sha256": "6967492e05a6d145ebf773110036a9dd6c1636314b4797df6f0ab57efbe1fbd9",
+      "scope": "个人输入与Main空间卡片、新空间editor来源",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+      "category": "implementations",
+      "sha256": "cf4d6032f7be85312e3170c9ea46ff3a839c5a63d5744bcd6a355f8624799690",
+      "scope": "Main集合投影、显式page匹配、removeConfirm失败保留、个人隔离",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/SettingsPage.tsx",
+      "category": "implementations",
+      "sha256": "096fa34e8bf8b86ef2c271d3b0ea5423cb042b3a282f8b7eadb77d7b9d16a68a",
+      "scope": "空间主题唯一入口、CLI环境事实与能力unknown",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/SpacePage.tsx",
+      "category": "implementations",
+      "sha256": "faa02e7b52e781488d7dc7ff9200cf911d445a25705e733bee61ecf59866f648",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/TasksPage.tsx",
+      "category": "implementations",
+      "sha256": "ef1077948c1254cf2a949b4c2d66974c22e81469c02c92d27dc2415cbfaa7118",
+      "scope": "全空间只读历史及原会话定位、demo独立",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/ChatMessages.tsx",
+      "category": "implementations",
+      "sha256": "8fe2668ea8b7a1534da1bb8a213cd998af04a6893b158be9cfa7cc4a7b1000ba",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/Composer.tsx",
+      "category": "implementations",
+      "sha256": "1b5bf7dfee111ba09d6c1d9db1d983ddbf678ce3f3c4cf009253fa8237525961",
+      "scope": "个人接收方、IME Enter与pending、发送后focus",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/Overlays.tsx",
+      "category": "implementations",
+      "sha256": "4496e9d20862340b521fa2f2d3e653bd07fe8f7d0c31bf0de347cd5a19401d83",
+      "scope": "dialog初始/回收focus、确认失败可见与busy禁止cancel",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/RightPanel.tsx",
+      "category": "implementations",
+      "sha256": "eb8e9788a95206bb94bbe415c845fbcfce3bca00d5bf35ff5d844838d09aed68",
+      "scope": "未读数、pin显隐、Esc top-source及打开通知的focus",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/TitleBar.tsx",
+      "category": "implementations",
+      "sha256": "9de3d0257d470cfd63aec4cc6e52f3e37745cbf09ac1955ef7d39a73da2753b6",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/Workshop.tsx",
+      "category": "implementations",
+      "sha256": "27ea27a338da7fa9f5d10170f8909b76bb0e8f4eb61533dccb324a6900d242aa",
+      "scope": "全局rail与空间标签组、hover160/300ms、focus内保留、取消timer",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/routes.ts",
+      "category": "implementations",
+      "sha256": "e7fa38e027a6cbce0f0fb6f6a1036fe35237d37aa473f07cb9a16edbfcbccf79",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/capture.test.ts",
+      "category": "tests",
+      "sha256": "4f322828b14d8abc8eec016d3959403b3030b069afd8b4fe46954fbc73c725fa",
+      "scope": "断言与触发条件审核：opens the target before capture, and after screenshot completion locates the frozen owner; replacement creates a new request ID and cancellation identifies only that request; failed target opening releases ownership and never starts picking; failed capture receipt releases completion subscription",
+      "case_count": 6,
+      "assertion_calls": 14,
+      "cases": [
+        "opens the target before capture, and after screenshot completion locates the frozen owner",
+        "replacement creates a new request ID and cancellation identifies only that request",
+        "failed target opening releases ownership and never starts picking",
+        "failed capture receipt releases completion subscription",
+        "same-URL navigation invalidates the UI completion route",
+        "a different page replacing the same receiver releases the old subscription and request"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/capture.ts",
+      "category": "implementations",
+      "sha256": "9a021d6e45dd8db964ced3acd2d4629bb8c393998f46d6fcc39a6ce632166157",
+      "scope": "采集请求identity替换/取消、receipt完成route、unsubscribe",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/chat.test.ts",
+      "category": "tests",
+      "sha256": "360fc5e89e2156bd62fab9dc0d0355d76855887c7c1b8c31c901c39e7dfd674c",
+      "scope": "断言与触发条件审核：旧查询与 reset 前的迟到事件不能覆盖新会话; 个人与空间消息互不迁移",
+      "case_count": 2,
+      "assertion_calls": 4,
+      "cases": [
+        "旧查询与 reset 前的迟到事件不能覆盖新会话",
+        "个人与空间消息互不迁移"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/chat.ts",
+      "category": "implementations",
+      "sha256": "dfbd69e1ee09c0fad72258cdcdefa76f1870658567dbe27eda1ed0057d7b46b4",
+      "scope": "个人chat seq/pending错误、reset晚到消息及scope",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/drafts.test.ts",
+      "category": "tests",
+      "sha256": "3cf03b2b292e197199499c01185a28952a4a84b89f19f5559f060caa7d5ee6ea",
+      "scope": "断言与触发条件审核：全局输入保持个人作用域，不沿用后台空间; 个人会话目录不包含空间可写入口; 首页输入只指向个人会话; 不同会话的草稿互不替换",
+      "case_count": 5,
+      "assertion_calls": 7,
+      "cases": [
+        "全局输入保持个人作用域，不沿用后台空间",
+        "个人会话目录不包含空间可写入口",
+        "首页输入只指向个人会话",
+        "不同会话的草稿互不替换",
+        "内容不变时返回同一对象"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/drafts.ts",
+      "category": "implementations",
+      "sha256": "70ac0a0a42bf320ec09becb85a89e1ce2cdb4725e7082e2cd3a86f835876e40b",
+      "scope": "personal-only reception与分会话草稿",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/errors.ts",
+      "category": "implementations",
+      "sha256": "1367e2a74d80e41858138e9b828dc4653ef921fa15a22f3a2b6e4fd15907f8fe",
+      "scope": "有界可见错误、transport invoke-prefix净化",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/execution.ts",
+      "category": "implementations",
+      "sha256": "2f4b12a63b1486878db922da3849f99e108454fc716da64cebfac3e62a0099a3",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/location.ts",
+      "category": "implementations",
+      "sha256": "012370b22b44eca54fbba2a8bce18f7713fdc287c48c4cade9d53260319ed3a4",
+      "scope": "原workspace/session/version/run身份和导航token",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/occlusion.test.ts",
+      "category": "tests",
+      "sha256": "89404233e339e82668e977321f2f33e022186318b7d3868739f57ea0b2f29bda",
+      "scope": "断言与触发条件审核：blocks layout while waiting, publishes only after confirmed hide, keeps other sources active; does not expose a failed or cancelled opening and does not clear another source",
+      "case_count": 2,
+      "assertion_calls": 11,
+      "cases": [
+        "blocks layout while waiting, publishes only after confirmed hide, keeps other sources active",
+        "does not expose a failed or cancelled opening and does not clear another source"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/occlusion.ts",
+      "category": "implementations",
+      "sha256": "2b5527977ed1a2e79d9345e41b345924dc13b2ce40c059fbb6ef1e3d4caedba9",
+      "scope": "pending即block、await hide ACK、token取消与多源top",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/panels.test.ts",
+      "category": "tests",
+      "sha256": "0a54ea2bac30b7537ae71099afa7623d3d7f42ae80ee5c9a0a697171ec1c6c5c",
+      "scope": "断言与触发条件审核：starts with a docked left panel and collapsed notification, restores only pin preferences; opening does not pin, closing preserves pin, unpinning collapses, narrow projection preserves preference",
+      "case_count": 2,
+      "assertion_calls": 12,
+      "cases": [
+        "starts with a docked left panel and collapsed notification, restores only pin preferences",
+        "opening does not pin, closing preserves pin, unpinning collapses, narrow projection preserves preference"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/panels.ts",
+      "category": "implementations",
+      "sha256": "d8333c930d806f6466645d708de486c6a95b2e724e04986bf16decc5751bcea4",
+      "scope": "pinned/hidden/peek pure projection与仅pin restore",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/shell.test.ts",
+      "category": "tests",
+      "sha256": "bf62e44d973558b75b7db3f428e0c4270e8a01b3d4901fcf8f133daabe1e21ae",
+      "scope": "断言与触发条件审核：⌘B 只切换显隐，不改变固定; 未固定时 ⌘B 打开或关闭临时覆盖层; 悬停展开不影响已固定的布局; 在覆盖层里固定后进入布局",
+      "case_count": 5,
+      "assertion_calls": 12,
+      "cases": [
+        "⌘B 只切换显隐，不改变固定",
+        "未固定时 ⌘B 打开或关闭临时覆盖层",
+        "悬停展开不影响已固定的布局",
+        "在覆盖层里固定后进入布局",
+        "六个全局路由互相直接可达，导航不改变空间业务或侧栏偏好"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/shell.ts",
+      "category": "implementations",
+      "sha256": "d051e0671bc13294fd6f636a7f3ab45ea4bfe6ff1e4acaa16cc82de71c8dc856",
+      "scope": "pin独立持久化、close显隐、pending取消、focus独立",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/space-ui.ts",
+      "category": "implementations",
+      "sha256": "ce0681b06e416b82cbc7cd03aff5807a1ad32a3900b2e2b67c09c3bae524c1ad",
+      "scope": "switcher/menu/editor barrier交接与trigger恢复",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/ui.ts",
+      "category": "implementations",
+      "sha256": "11f1a1179ea109acbb643b5b40814b518ef5b6f8d611a369b195c7f32c1b379d",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workspace.test.ts",
+      "category": "tests",
+      "sha256": "d850c0e6e18f8cd82714eeedebc352fd2feb2c10aca759c4f9a3a207c7d5e443",
+      "scope": "断言与触发条件审核：资源业务错误仅消费Main投影，失败保留集合，成功重试清Main错误; 资源成功不能清除并发无关命令的错误，即使文案相同; 定位不被旧草稿队列延迟，随后切空间不会被迟到定位覆盖; 初始权威快照恢复所选空间，旧seq及旧epoch事件不能覆盖",
+      "case_count": 7,
+      "assertion_calls": 22,
+      "cases": [
+        "资源业务错误仅消费Main投影，失败保留集合，成功重试清Main错误",
+        "资源成功不能清除并发无关命令的错误，即使文案相同",
+        "定位不被旧草稿队列延迟，随后切空间不会被迟到定位覆盖",
+        "初始权威快照恢复所选空间，旧seq及旧epoch事件不能覆盖",
+        "按空间串行元数据，第二保存使用第一保存返回的修订",
+        "运行布局成功不会擦除业务失败",
+        "A→B→C时B迟到响应不会改变观看C或覆盖更新快照"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workspace.ts",
+      "category": "implementations",
+      "sha256": "477d2fa1db9d4b319233713d60ba873750f99e19e58d6ac7525680b0dcc1c33f",
+      "scope": "seq/epoch投影、按workspace metadata queue、navigation token、blocked browserLayout",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/styles/app.css",
+      "category": "implementations",
+      "sha256": "7033807a6a1409bbbdc3d49869b5880b9997e0149e1e04d8f7127a767520649d",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workbench/RunViews.tsx",
+      "category": "implementations",
+      "sha256": "2c5375ade909fa2b1fec14648cadf9ff5f6eb771e268496303dd8569c480de1e",
+      "scope": "historicaldemo原始data仅显示；报告状态不映射真实Main结果",
+      "case_count": 1,
+      "assertion_calls": 0,
+      "cases": [
+        "\\n"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Browser.tsx",
+      "category": "implementations",
+      "sha256": "6ba369f49f5f21addfca38b06748d9a2537434c34e6ebf3ce79aae95b3eed804",
+      "scope": "实际host geometry同步、显式会话采集、native show/hide与公开快照入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Notifications.tsx",
+      "category": "implementations",
+      "sha256": "77c3bdca74e2a5b77eb4e73802e19229ee1152fcee96366869ad35b028279e9a",
+      "scope": "通知原空间/session/taskVersion/run定位，markRead与执行审阅独立",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Panes.tsx",
+      "category": "implementations",
+      "sha256": "3cf992c9a6779e7c835f58ec958375c1eba6405d32bf9745f2de25ea5b9dc74a",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/RunDetails.tsx",
+      "category": "implementations",
+      "sha256": "e15540830bd38e86ba4dd7b92dff43772f1c1fe4642199ad29f893efa03fb455",
+      "scope": "真实run消息/evidence缺口明确，不伪造diff/检查通过",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Session.tsx",
+      "category": "implementations",
+      "sha256": "775f2687424c28146a2df611a118349da224c63608248aa7a1d894a71f54b076",
+      "scope": "草稿串行保存、不可变任务确认、run/history/version选择、采集与检查审阅",
+      "case_count": 2,
+      "assertion_calls": 0,
+      "cases": [
+        "\\n",
+        "\\n"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Sidebar.tsx",
+      "category": "implementations",
+      "sha256": "6571da65ed19241918ec3178fec64aa6abec66d5ad87354acd202e7dcb0c76e2",
+      "scope": "固定/正常标签排序、拖拽、键盘导航、关闭资源重开",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/SpaceSwitcher.tsx",
+      "category": "implementations",
+      "sha256": "c0da59b899b87d47305cc6d293bd8506dc0e9b5acaeae9954b05f41d09aa022d",
+      "scope": "混合搜索、结果按workspace/tab身份定位、modal和focus",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+      "category": "implementations",
+      "sha256": "66a9720bb4909f387069bfd810856dee0587fdf837c475ceed23c4e149ac90f0",
+      "scope": "实例绑定input/resize、output reset、主题与focus恢复；输出淘汰复位将在观察适配时复核",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/icons.ts",
+      "category": "implementations",
+      "sha256": "6718c3f6f7bed1f5ec2228a10640a7e64f58c9aa92f8ababdd2326bc9412e77a",
+      "scope": "presentation primitives、React/Node boundary、引用与状态使用，未发现独立业务写入口",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/tsconfig.node.json",
+      "category": "toolchain",
+      "sha256": "c9af611604e6f0bf31eda4413b0946f38cd32cfe8c4d06475b05f71f7cd7db24",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/tsconfig.web.json",
+      "category": "toolchain",
+      "sha256": "33095ddf246dff51dd177101a0d8bc18f1b5e2812645b478c28d2d690f2a0e93",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/service/package.json",
+      "category": "toolchain",
+      "sha256": "483bcc7dbb3beec1bc2eb0e7aa2503989c1614d68e8b4f33b535e6411b48e3f8",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/service/src/codex-chat.test.ts",
+      "category": "tests",
+      "sha256": "fd1ef988d24456d1f6f3df2450476c8cbf9bf43dec571d5e7dbd432d74055bbc",
+      "scope": "断言与触发条件审核：校验已知事件，不把未知事件当成完成; 显式无效路径不回退到已安装 CLI; 同会话恢复身份，个人与空间隔离，reset 清除上下文; shutdown 同步关闭接收入口，清理立即发送的请求",
+      "case_count": 6,
+      "assertion_calls": 35,
+      "cases": [
+        "校验已知事件，不把未知事件当成完成",
+        "显式无效路径不回退到已安装 CLI",
+        "同会话恢复身份，个人与空间隔离，reset 清除上下文",
+        "shutdown 同步关闭接收入口，清理立即发送的请求",
+        "发送后立即 reset 不会启动旧轮次或污染新会话",
+        "拒绝重复发送，取消等待进程 close，迟到消息不污染 reset"
+      ]
+    },
+    {
+      "path": "apps/service/src/guest-browser-bridge.test.ts",
+      "category": "tests",
+      "sha256": "7d5d3a00fd5bdf808eb669ed8ecf286d03476d42f97e9a62c942c6b4ad5d642e",
+      "scope": "断言与触发条件审核：requires explicit startup authorization and refuses mounts or another sandbox; rejects arbitrary URLs, sandbox names and command parameters; rejects body, identity, screenshot and sandbox-proof substitutions; rejects unknown result fields and accepts a bounded explicit dependency failure",
+      "case_count": 5,
+      "assertion_calls": 14,
+      "cases": [
+        "requires explicit startup authorization and refuses mounts or another sandbox",
+        "rejects arbitrary URLs, sandbox names and command parameters",
+        "rejects body, identity, screenshot and sandbox-proof substitutions",
+        "rejects unknown result fields and accepts a bounded explicit dependency failure",
+        "preserves exact guest provenance and binds an independent artifact to the stored version"
+      ]
+    },
+    {
+      "path": "apps/service/src/guest-browser.live.test.ts",
+      "category": "tests",
+      "sha256": "8b1f3a67c2fd796caa260a6d51c3b36aecb7c6ba0122601fc9a5e52511125995",
+      "scope": "断言与触发条件审核：采集真实 DOM/PNG、保存空间资源并经 guest stdio MCP 精确读取",
+      "case_count": 1,
+      "assertion_calls": 9,
+      "cases": [
+        "采集真实 DOM/PNG、保存空间资源并经 guest stdio MCP 精确读取"
+      ]
+    },
+    {
+      "path": "apps/service/src/guest-browser.test.ts",
+      "category": "tests",
+      "sha256": "a6d7106a4da490b75bd62dded4269f2d5140cd67d29c0a4c8dbb2fba8796804b",
+      "scope": "断言与触发条件审核：只接受固定操作、URL、sandbox 与 UUID，拒绝任意参数; 拒绝跨域、凭据、其它协议/端口、POST、子框架、redirect 与后续导航; 错误摘要不包含 URL 用户信息、query 或 fragment; UTF-8 正文上限不切断码点，截断标记准确",
+      "case_count": 31,
+      "assertion_calls": 92,
+      "cases": [
+        "只接受固定操作、URL、sandbox 与 UUID，拒绝任意参数",
+        "拒绝跨域、凭据、其它协议/端口、POST、子框架、redirect 与后续导航",
+        "错误摘要不包含 URL 用户信息、query 或 fragment",
+        "UTF-8 正文上限不切断码点，截断标记准确",
+        "同时要求真实参数、ELF、诊断与更强 renderer 进程限制",
+        "外层容器自身的 Seccomp=2 不能冒充 Chromium renderer sandbox",
+        "诊断中的 No 或局部启用不能变成通过",
+        "识别实际 Chromium 153 诊断表的 Namespace 层级，TSYNC 行保持独立",
+        "清理不把权限错误当成退出，也不触碰 PID 复用后的进程",
+        "清理无法重新核验身份时不发送信号，并报告清理未确认",
+        "清理会等待 Browser.close；无所属残留才确认关闭",
+        "所有 3xx 包括子资源只 failRequest，绝不调用 continue 发出下一跳",
+        "上游错误仍拒绝响应，仅记录 CDP 枚举而不回显任意错误文本",
+        "通过响应仍叠加固定 CSP 且保留原 CSP，不支持命令则失败而不降级",
+        "响应 stage、frame、GET、来源和 redirect ID 再次校验",
+        "同 URL reload 不能重新绑定 source request 或接受新 loader",
+        "没有主响应 gate 回执或响应绑定不同 loader 时不允许输出成功",
+        "截图前后 observer 被替换、DOM 改后恢复正文、标题或正文变化都失败",
+        "进程树发现仅依赖 stat，namespace 权限不会令所属进程消失",
+        "stat 无法读取必须报告发现失败，不能伪造空所属集合",
+        "\\n",
+        "多帧或代码参数在模块加载/启动浏览器之前失败，仅返回单个脱敏 JSON",
+        "node -e 入口同样执行严格单帧协议",
+        "输入前断线返回失败并退出，不把 EOF 当作已完成采集",
+        "等待 tentative 或缺少非 loopback 地址，只允许完成确认的地址表",
+        "DAD 失败、缺字段及畸形字段均不能当作已就绪",
+        "地址确认结束且稳定满 200ms 后才返回",
+        "就绪期间地址变化会重新计算稳定窗口",
+        "持续 tentative 只等待固定 5s 上限，不继续启动浏览器",
+        "无法读取就绪证据时失败，不将权限错误当作空地址表",
+        "外层取消会立即终止等待，不再重试读取"
+      ]
+    },
+    {
+      "path": "apps/service/src/initialization-migration.test.ts",
+      "category": "tests",
+      "sha256": "cdd2e734aa6a3c89ae543540c58829adccbd9599ec17650e64121c5aebf1083b",
+      "scope": "断言与触发条件审核：answers local read/status/register requests while sbx initialization remains pending",
+      "case_count": 1,
+      "assertion_calls": 1,
+      "cases": [
+        "answers local read/status/register requests while sbx initialization remains pending"
+      ]
+    },
+    {
+      "path": "apps/service/src/resource-agent.live.test.ts",
+      "category": "tests",
+      "sha256": "6e0515b0bd41e004e3bd1016658ad5b28f34afa245cf45ab693e785815ff83a1",
+      "scope": "断言与触发条件审核：真正调用 list_resources/read_resource，读取未放入 prompt 的 nonce 并确认清理;  ",
+      "case_count": 2,
+      "assertion_calls": 19,
+      "cases": [
+        "真正调用 list_resources/read_resource，读取未放入 prompt 的 nonce 并确认清理",
+        " "
+      ]
+    },
+    {
+      "path": "apps/service/src/resource-chat.test.ts",
+      "category": "tests",
+      "sha256": "18678731a33a9af49518b4530e8c60dbb5cc342bc4917afb94c48ff290df160a",
+      "scope": "断言与触发条件审核：binds only the fixed space to an immutable per-turn bundle; binds a host-registered dynamic session to TaskFlow resources and freezes its workspace; another registered workspace has no TaskFlow capability; personal conversation receives an empty capability without listing a space",
+      "case_count": 12,
+      "assertion_calls": 33,
+      "cases": [
+        "binds only the fixed space to an immutable per-turn bundle",
+        "binds a host-registered dynamic session to TaskFlow resources and freezes its workspace",
+        "another registered workspace has no TaskFlow capability",
+        "personal conversation receives an empty capability without listing a space",
+        "blocks active resource mutation and resets CLI context after mutation",
+        "unknown cleanup in another slot blocks a new resource turn",
+        "reserves the slot while reading resources and prevents a late start after reset",
+        "shutdown during resource capture never starts a late guest",
+        "keeps a readable identity receipt for large real MCP results",
+        "total MCP evidence limit remains valid JSON with explicit omission",
+        "mixed tiny and large MCP records cannot exceed the aggregate limit",
+        "preserves structured MCP result as evidence instead of dropping it"
+      ]
+    },
+    {
+      "path": "apps/service/src/resource-dispatch.test.ts",
+      "category": "tests",
+      "sha256": "e19db9b331af6af2a36382718b5a161f0a4689e7122b85956cb251f7e8f5304b",
+      "scope": "断言与触发条件审核：持久化完成及失效旧上下文后才允许启动下一轮，随后 cancel 仍按请求顺序到达; 保存失败回传错误，不失效旧上下文，后续合法请求仍能执行; 活动轮次拒绝变更，幂等保存不切断上下文",
+      "case_count": 3,
+      "assertion_calls": 13,
+      "cases": [
+        "持久化完成及失效旧上下文后才允许启动下一轮，随后 cancel 仍按请求顺序到达",
+        "保存失败回传错误，不失效旧上下文，后续合法请求仍能执行",
+        "活动轮次拒绝变更，幂等保存不切断上下文"
+      ]
+    },
+    {
+      "path": "apps/service/src/resource-mcp.live.test.ts",
+      "category": "tests",
+      "sha256": "bac0948c1a9a98a3bb333a735c99cac64c19161c533071c4508d2bb9639a2225",
+      "scope": "断言与触发条件审核：非法 start frame 在启动子进程前返回明确 error 与 cleanup; \\n",
+      "case_count": 2,
+      "assertion_calls": 7,
+      "cases": [
+        "非法 start frame 在启动子进程前返回明确 error 与 cleanup",
+        "\\n"
+      ]
+    },
+    {
+      "path": "apps/service/src/resource-mcp.test.ts",
+      "category": "tests",
+      "sha256": "6483e0ad7784a13d727e8cbecfebbbe4817a0d9a5d771bc60a416438353b6b1b",
+      "scope": "断言与触发条件审核：rejects cross-space, stale versions, paths, writes and malformed bundles",
+      "case_count": 1,
+      "assertion_calls": 2,
+      "cases": [
+        "rejects cross-space, stale versions, paths, writes and malformed bundles"
+      ]
+    },
+    {
+      "path": "apps/service/src/resource-store.test.ts",
+      "category": "tests",
+      "sha256": "067ec10a671f6040475ff896dd5b5fad6e4d42936434610257ec7716450e73ae",
+      "scope": "断言与触发条件审核：持久化真实快照；同 URL 内容重复幂等，正文变化递增版本; 资源身份随空间隔离，删除后不可读，其他空间不变; 显式更新只接受同 URL 的已有身份; 拒绝路径空间、摘要伪造、导航身份错绑与 UTF-8 超量正文",
+      "case_count": 13,
+      "assertion_calls": 47,
+      "cases": [
+        "持久化真实快照；同 URL 内容重复幂等，正文变化递增版本",
+        "资源身份随空间隔离，删除后不可读，其他空间不变",
+        "显式更新只接受同 URL 的已有身份",
+        "拒绝路径空间、摘要伪造、导航身份错绑与 UTF-8 超量正文",
+        "并发保存串行提交，不丢记录；空间最多 16 条",
+        "整集合 JSON 有界，失败保留此前提交",
+        "损坏持久记录明确失败，不能静默当空列表",
+        "renderer 只能申报稳定资源身份；不能伪造正文、未知字段或其他空间",
+        "快照拒绝危险 scheme，bundle 校验资源所属空间及字节上限",
+        "每个接受的接近上限集合都容纳最长合法轮次身份，不先保存后变得不可读取",
+        "an exact retry is idempotent even when JSON key order changes, and persists provenance",
+        "crossing host and guest capture sources never returns stale provenance",
+        "rejects a forged guest text digest without replacing the prior capture"
+      ]
+    },
+    {
+      "path": "apps/service/src/sbx-contract.test.ts",
+      "category": "tests",
+      "sha256": "344255b65834e9c5d2ae1088a78dd31afb0d036fc7662f4d14d180dc14fb9df2",
+      "scope": "断言与触发条件审核：聊天状态保留选定 sandbox 与 guest cwd; 终端 open / 输入 / resize / close 和状态事件均有 schema",
+      "case_count": 2,
+      "assertion_calls": 8,
+      "cases": [
+        "聊天状态保留选定 sandbox 与 guest cwd",
+        "终端 open / 输入 / resize / close 和状态事件均有 schema"
+      ]
+    },
+    {
+      "path": "apps/service/src/sbx.live.test.ts",
+      "category": "tests",
+      "sha256": "2d0d9ada8f81590964f853e466db71ccba445633154986af2667a2b78daaf2f5",
+      "scope": "断言与触发条件审核：PTY尺寸、持久cwd、CtrlC保留shell、close清理后台job; 非TTY cancel与控制stdin EOF均确认清理所属后台job",
+      "case_count": 2,
+      "assertion_calls": 23,
+      "cases": [
+        "PTY尺寸、持久cwd、CtrlC保留shell、close清理后台job",
+        "非TTY cancel与控制stdin EOF均确认清理所属后台job"
+      ]
+    },
+    {
+      "path": "apps/service/src/sbx.test.ts",
+      "category": "tests",
+      "sha256": "bd2881c9cec0e574e3b59f3275a65af54012d64183bf5e84c5ea807c79e9fbd0",
+      "scope": "断言与触发条件审核：拒绝挂载host的目标而不调用Codex; 仅接受与目标sandbox匹配的启动说明; initialize probe未确认清理时保持登记并拒绝shutdown; 失败版本probe已有清理确认时允许正常shutdown",
+      "case_count": 8,
+      "assertion_calls": 38,
+      "cases": [
+        "拒绝挂载host的目标而不调用Codex",
+        "仅接受与目标sandbox匹配的启动说明",
+        "initialize probe未确认清理时保持登记并拒绝shutdown",
+        "失败版本probe已有清理确认时允许正常shutdown",
+        "正常PTY输入与resize转发且关闭须确认，旧session不得操作新终端",
+        "清理失败阻止terminal重新open并保留失败状态",
+        "terminal 清理未知阻止同 sandbox 的新资源对话",
+        "非致命MCP警告可见、去重，工具输出有界且显式标截断"
+      ]
+    },
+    {
+      "path": "apps/service/tsconfig.json",
+      "category": "toolchain",
+      "sha256": "596c754cf51463a030b75194ebd91e3079acd17e19d3245294e309a65837b479",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "e2e/chat.spec.ts",
+      "category": "tests",
+      "sha256": "4916b23138ebe34286c35d3c76841eca120e2e152f344a4ff731f6d6f3598460",
+      "scope": "断言与触发条件审核：fixture：续聊、新对话隔离、共享消息、IME、重复提交和取消; fixture：非零退出、坏 JSON、缺完成事件显示失败并可继续; CLI 不存在时明确不可用并保留草稿; live：中文对话、上下文续聊、新会话隔离",
+      "case_count": 4,
+      "assertion_calls": 37,
+      "cases": [
+        "fixture：续聊、新对话隔离、共享消息、IME、重复提交和取消",
+        "fixture：非零退出、坏 JSON、缺完成事件显示失败并可继续",
+        "CLI 不存在时明确不可用并保留草稿",
+        "live：中文对话、上下文续聊、新会话隔离"
+      ]
+    },
+    {
+      "path": "e2e/public-document.spec.ts",
+      "category": "tests",
+      "sha256": "50eb95113a204032c24023cac49a40f357d8af04f53a7c2ab6756ac9862fe25b",
+      "scope": "断言与触发条件审核：controlled-network fixture：真实 Electron 协议跳转、显示、绑定与空间持久化; error; data; end",
+      "case_count": 4,
+      "assertion_calls": 15,
+      "cases": [
+        "controlled-network fixture：真实 Electron 协议跳转、显示、绑定与空间持久化",
+        "error",
+        "data",
+        "end"
+      ]
+    },
+    {
+      "path": "e2e/resources-live.spec.ts",
+      "category": "tests",
+      "sha256": "219278725b6589b4ba78dc12bd42acb3ffae37f720f1915bbba9a53fb32d4ae7",
+      "scope": "断言与触发条件审核：live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过只读 MCP 枚举和读取",
+      "case_count": 1,
+      "assertion_calls": 35,
+      "cases": [
+        "live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过只读 MCP 枚举和读取"
+      ]
+    },
+    {
+      "path": "e2e/resources.spec.ts",
+      "category": "tests",
+      "sha256": "5c4bded5af26f39f7f17af71128c7e9497941fbebe45b01c6d81f62c13ff7d08",
+      "scope": "断言与触发条件审核：fixture UI：公开快照保存、重复、更新、失败恢复、移除确认、个人隔离与窄窗键盘",
+      "case_count": 1,
+      "assertion_calls": 23,
+      "cases": [
+        "fixture UI：公开快照保存、重复、更新、失败恢复、移除确认、个人隔离与窄窗键盘"
+      ]
+    },
+    {
+      "path": "e2e/sbx.spec.ts",
+      "category": "tests",
+      "sha256": "0a21440ebef120fe7665b021fd25a433c5208ac844532f2467bd9fff6308eb1f",
+      "scope": "断言与触发条件审核：PTY 文本：规范化控制字符后只匹配完整输出行; sbx：空间提供独立终端标签，切换时隐藏原生预览; sbx：对话显示执行来源，连接失败不允许发送; 空间会话：执行器不可用时保留草稿并记录失败运行",
+      "case_count": 8,
+      "assertion_calls": 56,
+      "cases": [
+        "PTY 文本：规范化控制字符后只匹配完整输出行",
+        "sbx：空间提供独立终端标签，切换时隐藏原生预览",
+        "sbx：对话显示执行来源，连接失败不允许发送",
+        "空间会话：执行器不可用时保留草稿并记录失败运行",
+        "fixture：终端持久 cwd、Ctrl-C、resize、切标签保留与确认关闭",
+        "fixture：活动终端直接关闭应用需确认 Electron 进程退出",
+        "live：应用终端与 Codex 共享 guest 文件并确认交互与清理",
+        "\\n"
+      ]
+    },
+    {
+      "path": "e2e/space-remake.spec.ts",
+      "category": "tests",
+      "sha256": "b925efb0122fb857bc0a286c4e5fad827041a02204d11b227768c491d864058d",
+      "scope": "断言与触发条件审核：SR01/02/07/09：六个入口、空间专属标签、设置主题、草稿与原实例保持; SR03/04/06/10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点; SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页; SR05/11：独立固定偏好、窄窗投影不改分割树、重启只恢复pin",
+      "case_count": 7,
+      "assertion_calls": 76,
+      "cases": [
+        "SR01/02/07/09：六个入口、空间专属标签、设置主题、草稿与原实例保持",
+        "SR03/04/06/10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点",
+        "SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页",
+        "SR05/11：独立固定偏好、窄窗投影不改分割树、重启只恢复pin",
+        "SR01/09：首页新建对话框取消回原入口，主题同步实际终端与系统",
+        "SR10/11：窄窗展开后放宽再缩窄不会留下无屏障浮层",
+        "SR03：边缘悬停延迟展开，面板内焦点阻止自动收起，焦点离开后恢复原生网页"
+      ]
+    },
+    {
+      "path": "e2e/workbench.spec.ts",
+      "category": "tests",
+      "sha256": "a89b99e337f6a47014175b0ec2db9a30e9b185a9db6f0069822c6401d0458e06",
+      "scope": "断言与触发条件审核：启动：窗口、安全边界与 Browser 区真实加载; 点选：明确目标后采集摘要、截图与页面身份，先采集后确认不会崩溃; 任务确认：中文目标生成权威不可变版本，重复点击不生成双版本; 导航：页面跳转后旧现场失效，历史版本仍保留原目标",
+      "case_count": 10,
+      "assertion_calls": 60,
+      "cases": [
+        "启动：窗口、安全边界与 Browser 区真实加载",
+        "点选：明确目标后采集摘要、截图与页面身份，先采集后确认不会崩溃",
+        "任务确认：中文目标生成权威不可变版本，重复点击不生成双版本",
+        "导航：页面跳转后旧现场失效，历史版本仍保留原目标",
+        "选择模式中导航：退出选择模式，之后页面点击正常生效",
+        "运行、检查、审阅分别记录；没有独立检查器不会显示通过",
+        "导航与草稿：个人作用域不沿用空间输入，回空间恢复草稿",
+        "侧栏：隐藏和临时展开使网页让位，按钮路径可固定恢复",
+        "菜单快捷键：应用菜单⌘B与⌘L仍走明确导航路径",
+        "窄窗口：活动窗格保留原生bounds，扩大恢复多窗格"
+      ]
+    },
+    {
+      "path": "e2e/workspace-debug.spec.ts",
+      "category": "tests",
+      "sha256": "3e6c8cc8e1d128681fd5b02572ae9d65e16f5ce5da291d46da731d706bc24322",
+      "scope": "断言与触发条件审核：工作台启动：窄preload接口与真实导航控件",
+      "case_count": 1,
+      "assertion_calls": 3,
+      "cases": [
+        "工作台启动：窄preload接口与真实导航控件"
+      ]
+    },
+    {
+      "path": "e2e/workspace-migration.spec.ts",
+      "category": "tests",
+      "sha256": "84587353a8881d4c166d5238f7290ad7f4c319661cd2c223a667cb55dcc33f57",
+      "scope": "断言与触发条件审核：R1 可见导航进入真实任务历史，查看日志/diff/报告不执行; R2 通信栏菜单控制通知，独立专注入口控制布局; R1 通知定位后台同一运行，打开与已读分离且重启保持回执; R7 首页空间卡片由当前快照生成，按稳定身份切换",
+      "case_count": 8,
+      "assertion_calls": 35,
+      "cases": [
+        "R1 可见导航进入真实任务历史，查看日志/diff/报告不执行",
+        "R2 通信栏菜单控制通知，独立专注入口控制布局",
+        "R1 通知定位后台同一运行，打开与已读分离且重启保持回执",
+        "R7 首页空间卡片由当前快照生成，按稳定身份切换",
+        "R4 单窗格窄窗从网页关联会话并采集",
+        "R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点",
+        "E2E 异常门槛负控：启动阶段异常必须失败",
+        "E2E 异常门槛负控：运行期异常必须失败"
+      ]
+    },
+    {
+      "path": "e2e/workspace-runtime.spec.ts",
+      "category": "tests",
+      "sha256": "180cd1686abaa2a866d3d8addcfc282a3be71709ead70024e8a09cfd5b15e6aa",
+      "scope": "断言与触发条件审核：A06 / A07 fixture执行中关闭标签后重新打开仍是同一运行，重复发送不启动两次; live：真实PTY与单Agent执行跨空间保持归属，检查和审阅独立; A11 重启恢复布局与草稿和历史，运行不重放，明确旧模型上下文未恢复",
+      "case_count": 3,
+      "assertion_calls": 38,
+      "cases": [
+        "A06 / A07 fixture执行中关闭标签后重新打开仍是同一运行，重复发送不启动两次",
+        "live：真实PTY与单Agent执行跨空间保持归属，检查和审阅独立",
+        "A11 重启恢复布局与草稿和历史，运行不重放，明确旧模型上下文未恢复"
+      ]
+    },
+    {
+      "path": "e2e/workspace-upgrade.spec.ts",
+      "category": "tests",
+      "sha256": "969945c25a73ff39e5e385535a2c094b5899491aee5380003cf1415f2a1bc08a",
+      "scope": "断言与触发条件审核：A01 / A12 空间切换器独立于侧栏，浮层使原生网页让位并恢复焦点; A03 / A04 / A05 统一标签与四窗格不重复创建网页实例，关闭窗格保留标签; A12 键盘、主题、窄窗和专注模式恢复原布局; A02 / A11 真实UI新建空间与会话，草稿隔离，搜索定位与无结果不切换",
+      "case_count": 5,
+      "assertion_calls": 38,
+      "cases": [
+        "A01 / A12 空间切换器独立于侧栏，浮层使原生网页让位并恢复焦点",
+        "A03 / A04 / A05 统一标签与四窗格不重复创建网页实例，关闭窗格保留标签",
+        "A12 键盘、主题、窄窗和专注模式恢复原布局",
+        "A02 / A11 真实UI新建空间与会话，草稿隔离，搜索定位与无结果不切换",
+        "A12 三窗格活动PTY关闭切换器后不抢走触发器焦点"
+      ]
+    },
+    {
+      "path": "e2e/workspace-visual.spec.ts",
+      "category": "tests",
+      "sha256": "252077d3d13496889de1d65bbd13270d24853017a6c8c30455e397d330786974",
+      "scope": "断言与触发条件审核：A12 三窗格、切换器、暗暖主题与窄窗真实窗口截图",
+      "case_count": 1,
+      "assertion_calls": 4,
+      "cases": [
+        "A12 三窗格、切换器、暗暖主题与窄窗真实窗口截图"
+      ]
+    },
+    {
+      "path": "package.json",
+      "category": "toolchain",
+      "sha256": "3213aedb95e2f13871a1527c3823500e7fe080b6fe286c9a0fecf5b2e30da5f2",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "packages/protocol/package.json",
+      "category": "toolchain",
+      "sha256": "b01cf9be222fcd7d710d91270c9f2fbb56e3d4d946bd2fa314e1ef5d94788e0e",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "packages/protocol/src/protocol.test.ts",
+      "category": "tests",
+      "sha256": "069c3389db2cf3d6bd1cba3680d927b0f9c51a5b9492131b826a60ce5850a957",
+      "scope": "断言与触发条件审核：接受完整的任务版本; 预算不能超过计划默认值（3 次 attempt、15 分钟）; 没有验收条件或允许范围时拒绝; 接受结果必须绑定任务版本与源码快照",
+      "case_count": 9,
+      "assertion_calls": 15,
+      "cases": [
+        "接受完整的任务版本",
+        "预算不能超过计划默认值（3 次 attempt、15 分钟）",
+        "没有验收条件或允许范围时拒绝",
+        "接受结果必须绑定任务版本与源码快照",
+        "要求修改必须写明原因",
+        "布局参数必须是非负整数",
+        "无参数通道拒绝多余参数",
+        "导航地址长度受限",
+        "取消中不是终态，无法判断是终态"
+      ]
+    },
+    {
+      "path": "packages/protocol/src/resources.test.ts",
+      "category": "tests",
+      "sha256": "40dfd4209de94acab52d187635725970d5d4caa4e2bfcd20bc755ae0b48934a6",
+      "scope": "断言与触发条件审核：keeps host records unchanged and preserves guest identity in resources and bundles; rejects crossed host/guest variants and every unrecognized field; rejects malformed capture provenance, stale page binding and unsafe URL forms; accepts the registered TaskFlow capability and an empty capability for another space",
+      "case_count": 5,
+      "assertion_calls": 12,
+      "cases": [
+        "keeps host records unchanged and preserves guest identity in resources and bundles",
+        "rejects crossed host/guest variants and every unrecognized field",
+        "rejects malformed capture provenance, stale page binding and unsafe URL forms",
+        "accepts the registered TaskFlow capability and an empty capability for another space",
+        "keeps personal/fixed-space ownership and dynamic identity restrictions aligned with guest validation"
+      ]
+    },
+    {
+      "path": "packages/protocol/src/workspace-preferences.test.ts",
+      "category": "tests",
+      "sha256": "5e15040e5f2028a488620f83772fce97408908262e6d77102bbacb6126889d5b",
+      "scope": "断言与触发条件审核：accepts the workspace theme and rejects the retired sidebar write interface",
+      "case_count": 1,
+      "assertion_calls": 2,
+      "cases": [
+        "accepts the workspace theme and rejects the retired sidebar write interface"
+      ]
+    },
+    {
+      "path": "packages/protocol/tsconfig.json",
+      "category": "toolchain",
+      "sha256": "fe2fcfc11ee3613141a6d6f53f0a0e81ce4f4c11dd21e63dfe39ad6f00ca2f80",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "category": "toolchain",
+      "sha256": "651395435c34d32c22db36223641e7e126985bf68b1033d181aa6c09c6194a57",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "scripts/check-docs.mjs",
+      "category": "toolchain",
+      "sha256": "034d21f7f7c01272d25e2ec7f807b502c1f5fdc1f332821f53232f0242318c71",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 3,
+      "assertion_calls": 0,
+      "cases": [
+        "\\n",
+        "\\n",
+        "\\n"
+      ]
+    },
+    {
+      "path": "scripts/sbx-prepare-guest.sh",
+      "category": "toolchain",
+      "sha256": "db994fa0995a13de36c0f1fbb72d24f7fda2d6a5725e7ad7c20f33f8b082930c",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "scripts/sbx-read-smoke.py",
+      "category": "toolchain",
+      "sha256": "26c95deaa9d3230dc61e4244551dc75c7fe93e5502a627ac35d683f1f7e8fa11",
+      "scope": "执行入口/环境门槛、产物路径、具名配置与离线/live范围",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "apps/desktop/electron.vite.config.ts",
+      "category": "toolchain",
+      "sha256": "9ce9bfe237b1b6724ae4179332cca8b0678d91e51bbece5b40cb74fd06003a7d",
+      "scope": "冻结版本的构建/类型/单元或Electron执行入口、产物范围、live门槛与源码依赖边界",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "vitest.config.ts",
+      "category": "toolchain",
+      "sha256": "c1c33443453fd2726a9095962d4bc4d532a44293159e7a5c507d5cc25b8d07a6",
+      "scope": "冻结版本的构建/类型/单元或Electron执行入口、产物范围、live门槛与源码依赖边界",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "playwright.config.ts",
+      "category": "toolchain",
+      "sha256": "7fed99c0109093f0fd454ebb30c2ea8af83faa5738f70ce2f1cde770d34f38d4",
+      "scope": "冻结版本的构建/类型/单元或Electron执行入口、产物范围、live门槛与源码依赖边界",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "eslint.config.js",
+      "category": "toolchain",
+      "sha256": "59a3b557593466ffa4025fe3fd5bda732c3339c12328edbae680c114086d6d8c",
+      "scope": "冻结版本的构建/类型/单元或Electron执行入口、产物范围、live门槛与源码依赖边界",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "tsconfig.json",
+      "category": "toolchain",
+      "sha256": "4a7a58e5cdf40cf08aee0aa74b4a60693c73232b4df58a7fad075788325c426a",
+      "scope": "冻结版本的构建/类型/单元或Electron执行入口、产物范围、live门槛与源码依赖边界",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "tsconfig.e2e.json",
+      "category": "toolchain",
+      "sha256": "337a61e5b0e010defffa8be7542dcce4ca86b9287ebbb12caae5a32e7d60ac83",
+      "scope": "冻结版本的构建/类型/单元或Electron执行入口、产物范围、live门槛与源码依赖边界",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "category": "toolchain",
+      "sha256": "996c06053b6c327a083c732c7fe1aa69d17850f95f4baba34b2eed05615f84e2",
+      "scope": "冻结版本的构建/类型/单元或Electron执行入口、产物范围、live门槛与源码依赖边界",
+      "case_count": 0,
+      "assertion_calls": 0,
+      "cases": []
+    },
+    {
+      "path": "tests/vertical-slice/contracts.ts",
+      "category": "toolchain",
+      "sha256": "4f4e47294f2e2650db775a78674a85099e3a7da34e020045b945b63f58193e00",
+      "scope": "固定任务字面合同/不可变允许路径、产品事件与identity原始日志严格schema",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    },
+    {
+      "path": "tests/vertical-slice/run.ts",
+      "category": "toolchain",
+      "sha256": "f335a3439e293372ab645810398644a1d211cec314c53982ee69a9316b5fdde4",
+      "scope": "runDir与before/after镜像、B01-B05固定门槛、超时/cleanup及失败证据出口",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    },
+    {
+      "path": "tests/vertical-slice/cdp.ts",
+      "category": "toolchain",
+      "sha256": "08f7eb8bb48cb0f4cb344f25246e2f733df0019c06bd8a34611f8547ece85da0",
+      "scope": "loopback discovery/about:blank target、先订阅load再navigate、request/response/exception与截图PNG",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    },
+    {
+      "path": "tests/vertical-slice/evidence.ts",
+      "category": "toolchain",
+      "sha256": "271914a26af7ee8bb753dab93274c21ea8c3e7ef669d18532fb5c33a1351ee9f",
+      "scope": "artifact SHA/完整性、生命周期顺序、日志身份、B05分支重评B04；独立B03/B04门槛P2已复现",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    },
+    {
+      "path": "tests/vertical-slice/postcondition.ts",
+      "category": "toolchain",
+      "sha256": "20920d99eb9280ec6fd62a025eea6489ff893a863095cb977d4a52f4e3d5627c",
+      "scope": "URL/runId/readyState/唯一可见精确greeting/exception独立判定",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    },
+    {
+      "path": "tests/vertical-slice/selftest.test.ts",
+      "category": "tests",
+      "sha256": "c63075c2b9edccaf4b79c9d8ea7aa1d2aaae9829a169cf39051e05be039e02bd",
+      "scope": "合成失败负控/混合run/hash/篡改/缺artifact、CDP readiness真实算法；不运行产品",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    },
+    {
+      "path": "apps/service/src/resource_mcp_tests.py",
+      "category": "tests",
+      "sha256": "a38a252065c7f42bbc7b7e6eeb995a2cb0b778c107740b9e76fd730f7e56cf5d",
+      "scope": "exact finite read-only tools、metadata无权限、guest variant/version/digest、Linux-only sealed memfd真实stdio",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    },
+    {
+      "path": "demo/README.md",
+      "category": "docs",
+      "sha256": "5efbdb87720a85ca1ba057b4ca847e113fd1a4ec321325893f6bb7e3d26f142a",
+      "scope": "静态演示与实际TaskFlow/C2/C3/母模板和业务验收边界",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    },
+    {
+      "path": "demo/taskflow/app.js",
+      "category": "implementations",
+      "sha256": "54e7ca232151c6e44fabc6a7bcd75fc10ee534c51006ebe027a9c3f6be6d04a9",
+      "scope": "固定task内插渲染与故意deadline/C2按钮演示，不接API",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    },
+    {
+      "path": "fixtures/vertical-slice/page/src/App.tsx",
+      "category": "implementations",
+      "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630",
+      "scope": "固定唯一greeting初态与唯一允许改动路径",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    },
+    {
+      "path": "fixtures/vertical-slice/page/src/main.tsx",
+      "category": "implementations",
+      "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36",
+      "scope": "React root装配固定页面",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    },
+    {
+      "path": "fixtures/vertical-slice/page/index.html",
+      "category": "implementations",
+      "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f",
+      "scope": "固定root/module入口",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    },
+    {
+      "path": "fixtures/vertical-slice/page/package.json",
+      "category": "toolchain",
+      "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc",
+      "scope": "固定loopback Vite启动，无产品adapter",
+      "cases": [],
+      "case_count": 0,
+      "assertion_calls": 0
+    }
+  ]
+}

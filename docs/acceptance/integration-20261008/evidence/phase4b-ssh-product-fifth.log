@@ -1,0 +1,25 @@
+
+Running 2 tests using 1 worker
+
+(node:63087) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/ssh-product.spec.ts:20:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 (3.0m)
+Worker teardown timeout of 90000ms exceeded.
+
+Failed worker ran 1 test:
+e2e/ssh-product.spec.ts:20:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止
+(node:63681) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 e2e/ssh-product.spec.ts:135:1 › 产品错误host pin在认证前拒绝，不启动PTY (1.2s)
+
+
+  1) e2e/ssh-product.spec.ts:20:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 ────────────────
+
+    Test timeout of 180000ms exceeded.
+
+    Error Context: test-results/e2e/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md
+
+  1 failed
+    e2e/ssh-product.spec.ts:20:1 › 产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例观察/重开/停止 ─────────────────
+  1 passed (4.5m)
+  1 error was not a part of any test, see above for details

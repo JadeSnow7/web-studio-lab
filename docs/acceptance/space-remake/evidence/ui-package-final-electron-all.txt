@@ -1,0 +1,61 @@
+
+Running 49 tests using 1 worker
+
+(node:57783) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/chat.spec.ts:21:1 › fixture：续聊、新对话隔离、共享消息、IME、重复提交和取消 (2.1s)
+  ✓   2 e2e/chat.spec.ts:66:1 › fixture：非零退出、坏 JSON、缺完成事件显示失败并可继续 (1.3s)
+  ✓   3 e2e/chat.spec.ts:81:1 › CLI 不存在时明确不可用并保留草稿 (820ms)
+  -   4 e2e/chat.spec.ts:91:1 › live：中文对话、上下文续聊、新会话隔离
+  ✓   5 e2e/public-document.spec.ts:17:1 › controlled-network fixture：真实 Electron 协议跳转、显示、绑定与空间持久化 (1.3s)
+  -   6 e2e/resources-live.spec.ts:34:1 › live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过只读 MCP 枚举和读取
+  ✓   7 e2e/resources.spec.ts:116:1 › fixture UI：公开快照保存、重复、更新、失败恢复、移除确认、个人隔离与窄窗键盘 (1.9s)
+  ✓   8 e2e/sbx.spec.ts:30:1 › PTY 文本：规范化控制字符后只匹配完整输出行 (1ms)
+  ✓   9 e2e/sbx.spec.ts:40:1 › sbx：空间提供独立终端标签，切换时隐藏原生预览 (968ms)
+  ✓  10 e2e/sbx.spec.ts:54:1 › sbx：对话显示执行来源，连接失败不允许发送 (803ms)
+  ✓  11 e2e/sbx.spec.ts:66:1 › 空间会话：执行器不可用时保留草稿并记录失败运行 (821ms)
+  ✓  12 e2e/sbx.spec.ts:77:1 › fixture：终端持久 cwd、Ctrl-C、resize、切标签保留与确认关闭 (1.4s)
+  ✓  13 e2e/sbx.spec.ts:115:1 › fixture：活动终端直接关闭应用需确认 Electron 进程退出 (1.1s)
+  -  14 e2e/sbx.spec.ts:157:1 › live：应用终端与 Codex 共享 guest 文件并确认交互与清理
+  ✓  15 e2e/space-remake.spec.ts:21:1 › SR01/02/07/09：六个入口、空间专属标签、设置主题、草稿与原实例保持 (1.4s)
+  ✓  16 e2e/space-remake.spec.ts:49:1 › SR03/04/06/10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点 (1.0s)
+  ✓  17 e2e/space-remake.spec.ts:76:1 › SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页 (1.4s)
+  ✓  18 e2e/space-remake.spec.ts:113:1 › SR05/11：独立固定偏好、窄窗投影不改分割树、重启只恢复pin (1.9s)
+  ✓  19 e2e/space-remake.spec.ts:147:1 › SR01/09：首页新建对话框取消回原入口，主题同步实际终端与系统 (1.7s)
+  ✓  20 e2e/space-remake.spec.ts:206:1 › SR10/11：窄窗展开后放宽再缩窄不会留下无屏障浮层 (1.3s)
+  ✓  21 e2e/space-remake.spec.ts:232:1 › SR03：边缘悬停延迟展开，面板内焦点阻止自动收起，焦点离开后恢复原生网页 (2.3s)
+  ✓  22 e2e/workbench.spec.ts:23:1 › 启动：窗口、安全边界与 Browser 区真实加载 (183ms)
+  ✓  23 e2e/workbench.spec.ts:55:1 › 点选：明确目标后采集摘要、截图与页面身份，先采集后确认不会崩溃 (636ms)
+  ✓  24 e2e/workbench.spec.ts:76:1 › 任务确认：中文目标生成权威不可变版本，重复点击不生成双版本 (75ms)
+  ✓  25 e2e/workbench.spec.ts:96:1 › 导航：页面跳转后旧现场失效，历史版本仍保留原目标 (600ms)
+  ✓  26 e2e/workbench.spec.ts:111:1 › 选择模式中导航：退出选择模式，之后页面点击正常生效 (511ms)
+  ✓  27 e2e/workbench.spec.ts:125:1 › 运行、检查、审阅分别记录；没有独立检查器不会显示通过 (267ms)
+  ✓  28 e2e/workbench.spec.ts:147:1 › 导航与草稿：个人作用域不沿用空间输入，回空间恢复草稿 (66ms)
+  ✓  29 e2e/workbench.spec.ts:159:1 › 侧栏：隐藏和临时展开使网页让位，按钮路径可固定恢复 (163ms)
+  ✓  30 e2e/workbench.spec.ts:175:1 › 菜单快捷键：应用菜单⌘B与⌘L仍走明确导航路径 (32ms)
+  ✓  31 e2e/workbench.spec.ts:198:1 › 窄窗口：活动窗格保留原生bounds，扩大恢复多窗格 (134ms)
+  ✓  32 e2e/workspace-debug.spec.ts:3:1 › 工作台启动：窄preload接口与真实导航控件 (670ms)
+  ✓  33 e2e/workspace-migration.spec.ts:23:1 › R1 可见导航进入真实任务历史，查看日志/diff/报告不执行 (1.2s)
+  ✓  34 e2e/workspace-migration.spec.ts:47:1 › R2 通信栏菜单控制通知，独立专注入口控制布局 (875ms)
+  ✓  35 e2e/workspace-migration.spec.ts:65:1 › R1 通知定位后台同一运行，打开与已读分离且重启保持回执 (1.8s)
+  ✓  36 e2e/workspace-migration.spec.ts:100:1 › R7 首页空间卡片由当前快照生成，按稳定身份切换 (936ms)
+  ✓  37 e2e/workspace-migration.spec.ts:125:1 › R4 单窗格窄窗从网页关联会话并采集 (1.2s)
+  ✓  38 e2e/workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 (2.2s)
+RENDERER Error: WSL_STARTUP_NEGATIVE_CONTROL
+    at <anonymous>:1:26
+  ✓  39 e2e/workspace-migration.spec.ts:248:1 › E2E 异常门槛负控：启动阶段异常必须失败 (692ms)
+RENDERER Error: WSL_LATE_NEGATIVE_CONTROL
+    at eval (eval at evaluate (:311:30), <anonymous>:3:13)
+  ✓  40 e2e/workspace-migration.spec.ts:253:1 › E2E 异常门槛负控：运行期异常必须失败 (643ms)
+  ✓  41 e2e/workspace-runtime.spec.ts:26:1 › A06 / A07 fixture执行中关闭标签后重新打开仍是同一运行，重复发送不启动两次 (1.1s)
+  -  42 e2e/workspace-runtime.spec.ts:59:1 › live：真实PTY与单Agent执行跨空间保持归属，检查和审阅独立
+  ✓  43 e2e/workspace-runtime.spec.ts:126:1 › A11 重启恢复布局与草稿和历史，运行不重放，明确旧模型上下文未恢复 (1.8s)
+  ✓  44 e2e/workspace-upgrade.spec.ts:5:1 › A01 / A12 空间切换器独立于侧栏，浮层使原生网页让位并恢复焦点 (830ms)
+  ✓  45 e2e/workspace-upgrade.spec.ts:27:1 › A03 / A04 / A05 统一标签与四窗格不重复创建网页实例，关闭窗格保留标签 (981ms)
+  ✓  46 e2e/workspace-upgrade.spec.ts:51:1 › A12 键盘、主题、窄窗和专注模式恢复原布局 (1.1s)
+  ✓  47 e2e/workspace-upgrade.spec.ts:75:1 › A02 / A11 真实UI新建空间与会话，草稿隔离，搜索定位与无结果不切换 (1.2s)
+  ✓  48 e2e/workspace-upgrade.spec.ts:122:1 › A12 三窗格活动PTY关闭切换器后不抢走触发器焦点 (1.2s)
+  ✓  49 e2e/workspace-visual.spec.ts:13:1 › A12 三窗格、切换器、暗暖主题与窄窗真实窗口截图 (2.3s)
+
+  4 skipped
+  45 passed (48.3s)

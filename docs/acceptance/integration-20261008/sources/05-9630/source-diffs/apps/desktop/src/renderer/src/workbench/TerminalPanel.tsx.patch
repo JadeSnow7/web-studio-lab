@@ -1,0 +1,140 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/workbench/TerminalPanel.tsx b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/workbench/TerminalPanel.tsx
+new file mode 100644
+index 0000000..3db20ce
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/workbench/TerminalPanel.tsx
+@@ -0,0 +1,134 @@
++import { useEffect, useRef } from 'react';
++import { Terminal } from '@xterm/xterm';
++import { FitAddon } from '@xterm/addon-fit';
++import { useStore } from '../lib/store';
++import { terminalActions, terminalStore } from '../state/terminal';
++import '@xterm/xterm/css/xterm.css';
++
++const LABELS = {
++  idle: '尚未连接',
++  starting: '正在连接…',
++  running: '已连接',
++  closing: '正在关闭并确认远端退出…',
++  closed: '已关闭，远端进程已退出',
++  failed: '连接失败',
++};
++
++/** 保持挂载：切页或标签仅改变可见性，不结束 guest shell，也不重播输入。 */
++export function TerminalPanel({ active, visible }: { active: boolean; visible: boolean }) {
++  const snapshot = useStore(terminalStore, (state) => state.snapshot);
++  const pending = useStore(terminalStore, (state) => state.pending);
++  const error = useStore(terminalStore, (state) => state.error);
++  const host = useRef<HTMLDivElement>(null);
++  const terminal = useRef<Terminal | null>(null);
++  const fit = useRef<FitAddon | null>(null);
++  const rendered = useRef({ sessionId: null as string | null, output: '' });
++  useEffect(() => {
++    const element = host.current!;
++    const css = getComputedStyle(document.documentElement);
++    const term = new Terminal({
++      fontFamily: css.getPropertyValue('--mono').trim(),
++      fontSize: 13,
++      cursorBlink: true,
++      screenReaderMode: true,
++      scrollback: 5000,
++      theme: {
++        background: css.getPropertyValue('--content').trim(),
++        foreground: css.getPropertyValue('--text').trim(),
++        cursor: css.getPropertyValue('--accent').trim(),
++        selectionBackground: css.getPropertyValue('--accent-soft').trim(),
++      },
++    });
++    const addon = new FitAddon();
++    term.loadAddon(addon);
++    term.open(element);
++    term.textarea?.setAttribute('aria-label', '沙箱终端输入');
++    terminal.current = term;
++    fit.current = addon;
++    const input = term.onData((data) => {
++      const current = terminalStore.get();
++      if (current.snapshot?.state === 'running' && current.snapshot.sessionId && !current.pending)
++        void terminalActions.write(current.snapshot.sessionId, data);
++    });
++    const resize = term.onResize(({ cols, rows }) => {
++      const current = terminalStore.get().snapshot;
++      if (current?.state === 'running' && current.sessionId) void terminalActions.resize(current.sessionId, cols, rows);
++    });
++    const observer = new ResizeObserver(() => {
++      if (element.clientWidth && element.clientHeight) addon.fit();
++    });
++    observer.observe(element);
++    return () => {
++      observer.disconnect();
++      input.dispose();
++      resize.dispose();
++      term.dispose();
++      terminal.current = null;
++      fit.current = null;
++      rendered.current = { sessionId: null, output: '' };
++    };
++  }, []);
++  useEffect(() => {
++    if (active) {
++      fit.current?.fit();
++      terminal.current?.focus();
++    }
++  }, [active, snapshot?.state]);
++  useEffect(() => {
++    if (!snapshot || !terminal.current) return;
++    const previous = rendered.current;
++    if (previous.sessionId !== snapshot.sessionId || !snapshot.output.startsWith(previous.output)) {
++      terminal.current.reset();
++      terminal.current.write(snapshot.output);
++    } else terminal.current.write(snapshot.output.slice(previous.output.length));
++    rendered.current = { sessionId: snapshot.sessionId, output: snapshot.output };
++    terminal.current.options.disableStdin = snapshot.state !== 'running' || pending;
++  }, [snapshot, pending]);
++  const running = snapshot?.state === 'running';
++  const busy = pending || snapshot?.state === 'starting' || snapshot?.state === 'closing';
++  return (
++    <section className="terminal-panel" aria-label="沙箱终端" hidden={!visible}>
++      <div className="terminal-toolbar row space-between gap-8">
++        <div className="stack-8 terminal-origin">
++          <span className="small" aria-label="终端执行环境">
++            sbx · {snapshot?.sandbox ?? '未选择沙箱'} · {snapshot?.cwd ?? '工作目录未读取'}
++          </span>
++          <span className="muted small" role="status">
++            {snapshot ? LABELS[snapshot.state] : '正在读取终端状态…'}
++          </span>
++        </div>
++        <div className="row gap-8">
++          <button
++            type="button"
++            className="btn"
++            disabled={!running || busy}
++            onClick={() => void terminalActions.write(snapshot!.sessionId!, '\u0003')}
++          >
++            中断（Ctrl-C）
++          </button>
++          {running || snapshot?.state === 'closing' ? (
++            <button type="button" className="btn" disabled={busy} onClick={() => void terminalActions.close(snapshot!.sessionId!)}>
++              关闭终端
++            </button>
++          ) : (
++            <button
++              type="button"
++              className="btn"
++              disabled={busy || !snapshot?.sandbox}
++              onClick={() => void terminalActions.open(terminal.current?.cols ?? 80, terminal.current?.rows ?? 24)}
++            >
++              连接终端
++            </button>
++          )}
++        </div>
++      </div>
++      {error || snapshot?.error ? (
++        <p role="alert" className="text-bad terminal-error">
++          {error ?? snapshot?.error}
++        </p>
++      ) : null}
++      <div className="terminal-surface" ref={host} />
++      <p className="muted small terminal-hint">交互 shell · 输出最多保留 256 Ki 字符 · 关闭会结束此 shell 及其子进程</p>
++    </section>
++  );
++}

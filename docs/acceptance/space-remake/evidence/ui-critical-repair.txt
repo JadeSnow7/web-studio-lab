@@ -1,0 +1,24 @@
+
+Running 9 tests using 1 worker
+
+(node:52105) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/space-remake.spec.ts:76:1 › SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页 (2.1s)
+  ✓  2 e2e/space-remake.spec.ts:147:1 › SR01/09：首页新建对话框取消回原入口，主题同步实际终端与系统 (1.9s)
+  ✓  3 e2e/space-remake.spec.ts:232:1 › SR03：边缘悬停延迟展开，面板内焦点阻止自动收起，焦点离开后恢复原生网页 (2.2s)
+  ✓  4 e2e/workbench.spec.ts:23:1 › 启动：窗口、安全边界与 Browser 区真实加载 (248ms)
+  ✓  5 e2e/workbench.spec.ts:55:1 › 点选：明确目标后采集摘要、截图与页面身份，先采集后确认不会崩溃 (655ms)
+  ✓  6 e2e/workbench.spec.ts:76:1 › 任务确认：中文目标生成权威不可变版本，重复点击不生成双版本 (76ms)
+CAPTURE_DEBUG {"request":{"requestId":"2229847e-0b11-4a43-8515-ad121b4263d9","resourceId":"a79e66ae-2400-4f27-a31a-038cff2d65cd","state":"pending","error":null},"resources":[{"id":"a79e66ae-2400-4f27-a31a-038cff2d65cd","picking":true,"error":null},{"id":"a3272d3f-312e-4121-aa50-3984912330a1"},{"id":"62373b5b-94ae-44ea-aa92-41b74b5dad0b"}]}
+  ✓  7 e2e/workbench.spec.ts:96:1 › 导航：页面跳转后旧现场失效，历史版本仍保留原目标 (841ms)
+DEVTOOLS_DEBUG {"appInstanceId":"90af8d14-1bfd-4a32-9f5f-23b74f7cc3c9","storageError":null,"activeWorkspaceId":"taskflow-demo","seq":27,"workspaces":[{"workspaceId":"taskflow-demo","name":"TaskFlow","revision":2,"tabs":[{"tabId":"1e7b8781-26ac-4f54-87cc-c197a89edd97","title":"TaskFlow 预览","pinned":false,"group":null,"targetRef":{"kind":"web","resourceId":"5eedb650-6c8f-4f95-8359-010b6ea127f3"}},{"tabId":"40ecae5f-080b-4d41-8f1d-de6620b31308","title":"开发终端","pinned":false,"group":null,"targetRef":{"kind":"terminal","resourceId":"8f29a935-8bd1-4a91-80d1-93d9b7c0f816"}},{"tabId":"1e98207e-ba4a-47f2-af84-43b6651aaa4a","title":"Agent 会话","pinned":false,"group":null,"targetRef":{"kind":"session","resourceId":"9f1ac6c8-baf7-4c50-b24b-8a762535773b"}},{"tabId":"59351ed3-d3d5-450c-aae3-d0f1d2c9b659","title":"第二网页742","pinned":false,"group":null,"targetRef":{"kind":"web","resourceId":"9b237022-91f1-46d4-a953-7be712f3b523"}}],"resources":[{"resourceId":"5eedb650-6c8f-4f95-8359-010b6ea127f3","kind":"web","title":"TaskFlow 预览","url":"wsl-demo://taskflow/index.html","instanceId":"15f69f9f-f0df-43e5-9cd8-3a8098108f94","generation":1,"preview":{"page":{"webContentsId":2,"documentGeneration":2,"url":"wsl-demo://taskflow/index.html","title":"任务 · TaskFlow 演示","partition":"preview-taskflow-demo-15f69f9f-f0df-43e5-9cd8-3a8098108f94"},"loading":false,"canGoBack":false,"canGoForward":false,"picking":false,"cdp":{"state":"idle"},"consoleIssueCount":4,"loadError":null,"blockedNavigation":null,"pickError":null},"terminal":null,"unavailableReason":null},{"resourceId":"8f29a935-8bd1-4a91-80d1-93d9b7c0f816","kind":"terminal","title":"开发终端","url":null,"instanceId":null,"generation":0,"preview":null,"terminal":null,"unavailableReason":null},{"resourceId":"9f1ac6c8-baf7-4c50-b24b-8a762535773b","kind":"session","title":"Agent 会话","url":null,"instanceId":null,"generation":0,"preview":null,"terminal":null,"unavailableReason":null},{"resourceId":"9b237022-91f1-46d4-a953-7be712f3b523","kind":"web","title":"第二网页742","url":"wsl-demo://taskflow/members.html","instanceId":"4e72599f-92f5-4754-aeb3-1626c3b5868f","generation":1,"preview":{"page":{"webContentsId":3,"documentGeneration":2,"url":"wsl-demo://taskflow/members.html","title":"成员 · TaskFlow 演示","partition":"preview-taskflow-demo-4e72599f-92f5-4754-aeb3-1626c3b5868f"},"loading":false,"canGoBack":false,"canGoForward":false,"picking":false,"cdp":{"state":"idle"},"consoleIssueCount":1,"loadError":null,"blockedNavigation":null,"pickError":null},"terminal":null,"unavailableReason":null}],"layout":{"kind":"split","direction":"horizontal","ratio":0.5,"first":{"kind":"pane","paneId":"bfc23adc-685a-4665-afec-b1c3a1ea5534","tabId":"1e7b8781-26ac-4f54-87cc-c197a89edd97"},"second":{"kind":"pane","paneId":"2feae7c7-cea6-4e46-89c6-298c68fd030a","tabId":"59351ed3-d3d5-450c-aae3-d0f1d2c9b659"}},"activePaneId":"bfc23adc-685a-4665-afec-b1c3a1ea5534","sessions":[{"sessionId":"session-9cadfd68-463f-4891-a31a-9cb0c582cf6e","resourceId":"9f1ac6c8-baf7-4c50-b24b-8a762535773b","title":"Agent 会话","draft":"","conversation":null,"historyRestored":false,"context":null,"captureRequest":null,"contextTarget":null,"taskTargetRef":null,"taskAcceptance":[],"taskAllowedScopes":[],"contextApplicability":"unknown","taskVersions":[]}],"runs":[],"publicResources":{"spaceId":"taskflow-demo","revision":0,"resources":[]},"publicResourcesError":null,"theme":"system"}],"notificationReadReceipts":[],"notifications":[]}
+DEVTOOLS_WCS [
+  { id: 2, opened: false, tool: undefined },
+  { id: 3, opened: false, tool: undefined }
+]
+  ✓  8 e2e/workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 (1.3s)
+RENDERER Error: WSL_STARTUP_NEGATIVE_CONTROL
+    at <anonymous>:1:26
+  ✓  9 e2e/workspace-migration.spec.ts:204:1 › E2E 异常门槛负控：启动阶段异常必须失败 (526ms)
+
+  9 passed (11.0s)

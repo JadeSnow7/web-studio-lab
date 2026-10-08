@@ -1,0 +1,13 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/e2e/workbench.spec.ts b/private/tmp/wsl-integration-sources/12-_worktrees/e2e/workbench.spec.ts
+index 6a343d0..b434ba8 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/e2e/workbench.spec.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/e2e/workbench.spec.ts
+@@ -30,7 +30,7 @@ test('启动：窗口、安全边界与 Browser 区真实加载', async () => {
+   expect(rendererCaps).toEqual({
+     require: 'undefined',
+     process: 'undefined',
+-    studio: ['chat', 'terminal', 'preview', 'app', 'execution', 'shell'],
++    studio: ['resources', 'chat', 'terminal', 'preview', 'app', 'execution', 'shell'],
+   });
+ 
+   const info = await previewInfo(app);

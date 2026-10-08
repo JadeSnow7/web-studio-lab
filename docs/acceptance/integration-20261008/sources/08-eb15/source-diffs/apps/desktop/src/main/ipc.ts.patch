@@ -1,0 +1,25 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/ipc.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/ipc.ts
+index f356019..5c2d75c 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/ipc.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/ipc.ts
+@@ -51,6 +51,8 @@ export function registerIpc({ window, trusted, chat, workbench }: IpcDeps): () =
+       if (!workbench) throw new Error('工作台服务不可用');
+       return workbench.command(command);
+     },
++    'resources:list': ({ spaceId }) => chat.resourcesList(spaceId),
++    'resources:remove': ({ spaceId, resourceId }) => chat.resourcesRemove(spaceId, resourceId),
+     'app:get-info': () => ({
+       appVersion: app.getVersion(),
+       electron: process.versions.electron,
+@@ -77,6 +79,11 @@ export function registerIpc({ window, trusted, chat, workbench }: IpcDeps): () =
+       assertLegacySession(conversationId);
+       return chat.reset(conversationId);
+     },
++    'terminal:get': () => chat.terminalGet(),
++    'terminal:open': ({ cols, rows }) => chat.terminalOpen(cols, rows),
++    'terminal:write': ({ sessionId, data }) => chat.terminalWrite(sessionId, data),
++    'terminal:resize': ({ sessionId, cols, rows }) => chat.terminalResize(sessionId, cols, rows),
++    'terminal:close': ({ sessionId }) => chat.terminalClose(sessionId),
+     'execution:get-status': () => getExecutionStatus(),
+   };
+ 

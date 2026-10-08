@@ -1,0 +1,11 @@
+{
+  "receipt": "live-sbx-ui-v2.json",
+  "checks": {
+    "assistant_exact_nonce": true,
+    "actual_tool_read_nonce": true,
+    "conversation_idle": true,
+    "terminal_closed": true,
+    "process_cleanup_confirmed": true
+  },
+  "scope": "Real sandbox PTY and real Codex read same owned UUID file; host canary absent; narrow tab keepalive; terminal/app close and owned directory removal exercised by passing test"
+}

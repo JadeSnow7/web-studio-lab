@@ -1,0 +1,23 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/pages/SpacePage.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/pages/SpacePage.tsx
+index 56334c4..716ce45 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/pages/SpacePage.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/pages/SpacePage.tsx
+@@ -1,6 +1,7 @@
+ import { useStore } from '../lib/store';
+ import { findRun, runsStore } from '../state/runs';
+ import { shellStore } from '../state/shell';
++import { TerminalPanel } from '../workbench/TerminalPanel';
+ import { BrowserToolbar } from '../workbench/BrowserToolbar';
+ import { PreviewHost } from '../workbench/PreviewHost';
+ import { DiffView, LogView, ReportView } from '../workbench/RunViews';
+@@ -12,8 +13,9 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
+   return (
+     <div className="browser">
+       {tab === 'preview' ? <BrowserToolbar /> : null}
+-      <div className="browser-body">
++      <div className="browser-body" role="tabpanel" id={`space-panel-${tab}`} aria-labelledby={`space-tab-${tab}`}>
+         <PreviewHost active={active && tab === 'preview'} occluded={occluded} />
++        <TerminalPanel active={active && tab === 'terminal' && !occluded} visible={tab === 'terminal'} />
+         {tab === 'log' ? <LogView record={record} /> : null}
+         {tab === 'diff' ? <DiffView record={record} /> : null}
+         {tab === 'report' ? <ReportView record={record} /> : null}

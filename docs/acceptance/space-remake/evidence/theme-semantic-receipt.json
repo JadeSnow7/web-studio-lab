@@ -1,0 +1,14 @@
+{
+  "currentSourceManifest": "theme-semantic-source-manifest.json",
+  "currentSourceSha256": "7eff9b2af337ee5ef0604b2b55c8b118712bedf1be8e997139fecd4b9bbfa246",
+  "supersedesDeliveryManifest": "delivery-source-manifest.json",
+  "semanticChanges": [
+    "apps/desktop/src/renderer/src/styles/app.css"
+  ],
+  "beforeScreenshot": "docs/acceptance/space-remake/evidence/native-window/05-settings-dark.png",
+  "beforeScreenshotSha256": "b648b6082b93408209fc45ebbb26662c7264b22a4253743a31db574bb039fe34",
+  "validation": "build,typecheck,scoped lint,format pass; space-remake and workspace-visual 8 Electron passed; actual Settings 12 contrast samples all >=4.5",
+  "priorFullRegression": "ui-package-final-commands.json preserves historical 45 Electron /295 unit results; not rerun for CSS-only change",
+  "screenshots": "theme-semantic-screens/ are renderer/native-capture artifacts; system window acceptance remains parent CUA",
+  "macOSCandidateWindow": "not validated by programmatic composition/keyboard tests"
+}

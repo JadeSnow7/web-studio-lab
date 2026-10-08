@@ -1,0 +1,71 @@
+{
+  "specSha256": "3e40395fcfb0f0d4830df5efa4c346f95af4ef07edf68fb04b4d7dd2b77d9373",
+  "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+  "scenarios": [
+    {
+      "id": "SR01",
+      "condition": "首页、空间、资源、会话、任务及底部设置保持独立全局按钮；取消空间标签/工作坊二级导航",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    },
+    {
+      "id": "SR02",
+      "condition": "升级切换器、垂直标签和最多四窗格只属于空间页；没有重复顶部水平标签",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    },
+    {
+      "id": "SR03",
+      "condition": "全局按钮列与空间标签作为整组左栏浮动或固定；焦点在内时不自动关闭",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    },
+    {
+      "id": "SR04",
+      "condition": "右边缘未读气泡打开只读通知；仅图钉使通知进入固定布局；取消固定收起",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    },
+    {
+      "id": "SR05",
+      "condition": "左右 pinned 独立保存在本设备；首次左栏固定、右栏未固定并收起；hidden/peek 不持久化",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    },
+    {
+      "id": "SR06",
+      "condition": "关闭仅影响显隐；Esc 关闭浮层恢复焦点；左右快捷键与专注模式独立",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    },
+    {
+      "id": "SR07",
+      "condition": "搜索不切空间，点击结果才定位；已显示标签聚焦；关闭标签可重开原资源；后台实例、草稿与布局保持",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    },
+    {
+      "id": "SR08",
+      "condition": "通知准确定位 workspace/session/run，打开与已读、执行、接受互不推导；联系人在会话页",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    },
+    {
+      "id": "SR09",
+      "condition": "主题只在设置页，标明当前空间，白/暗/暖/系统按空间保存，终端同步共享颜色",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    },
+    {
+      "id": "SR10",
+      "condition": "浮层先等待原生隐藏再可点；多个浮层最后一个关闭才恢复；固定栏只重测布局，触发器不被原生网页覆盖",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    },
+    {
+      "id": "SR11",
+      "condition": "小于1080px时临时使用窄窗投影，固定偏好和分割树不丢失，放宽恢复",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    },
+    {
+      "id": "SR12",
+      "condition": "现场、任务确认、运行历史、日志、diff、报告有可见访问路径；缺证据不填造成功记录",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    },
+    {
+      "id": "SR13",
+      "condition": "新旧空间状态不并存，Main 单点拥有工作台事实；VS001和来源工作树内容未被修改",
+      "beforeImplementation": "baseline_recorded; new behavior not yet implemented"
+    }
+  ]
+}

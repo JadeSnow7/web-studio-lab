@@ -1,0 +1,28 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/workbench/TaskSection.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/workbench/TaskSection.tsx
+index a8b5116..40effe6 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/workbench/TaskSection.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/workbench/TaskSection.tsx
+@@ -78,6 +78,7 @@ export function TaskSection() {
+         </>
+       ) : (
+         <form
++          noValidate
+           className="task-form"
+           onSubmit={(event) => {
+             event.preventDefault();
+@@ -105,6 +106,7 @@ export function TaskSection() {
+           <label className="field">
+             <span className="field-label">修改目标</span>
+             <textarea
++              className="resize-none"
+               rows={3}
+               value={form.goal}
+               onChange={(event) => workbenchActions.updateForm((f) => ({ ...f, goal: event.target.value }))}
+@@ -133,6 +135,7 @@ export function TaskSection() {
+           <label className="field">
+             <span className="field-label">验收条件（每行一条）</span>
+             <textarea
++              className="resize-none"
+               rows={4}
+               value={form.acceptanceText}
+               onChange={(event) => workbenchActions.updateForm((f) => ({ ...f, acceptanceText: event.target.value }))}

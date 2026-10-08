@@ -1,0 +1,88 @@
+diff --git a/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/state/workbench.test.ts b/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/state/workbench.test.ts
+new file mode 100644
+index 0000000..b7d7cae
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/state/workbench.test.ts
+@@ -0,0 +1,82 @@
++import { describe, expect, it } from 'vitest';
++import type { PageCapture, PageIdentity } from '@wsl/protocol';
++import {
++  captureFreshness,
++  confirmBlockers,
++  confirmTask,
++  formFromCase,
++  initialWorkbench,
++  startEditing,
++  toggleScope,
++  type WorkbenchState,
++} from './workbench';
++
++const page: PageIdentity = {
++  webContentsId: 2,
++  documentGeneration: 1,
++  url: 'wsl-demo://taskflow/index.html',
++  title: '任务',
++  partition: 'preview-demo',
++};
++const capture: PageCapture = {
++  captureId: 'cap-1',
++  capturedAt: '2026-10-06T05:00:00.000Z',
++  page,
++  element: {
++    tagName: 'td',
++    id: null,
++    classes: [],
++    role: null,
++    ariaLabel: null,
++    testId: 'due-1',
++    text: '未设置',
++    selector: 'td',
++    rect: { x: 0, y: 0, width: 10, height: 10 },
++  },
++  screenshot: { viewport: 'data:image/png;base64,AA', element: null },
++  consoleIssues: [],
++};
++const now = new Date('2026-10-06T05:01:00.000Z');
++const withCapture: WorkbenchState = { ...initialWorkbench, capture };
++
++describe('现场有效性', () => {
++  it('同一 webContents 同一文档代次才有效', () => {
++    expect(captureFreshness(null, page)).toBe('none');
++    expect(captureFreshness(capture, page)).toBe('fresh');
++    expect(captureFreshness(capture, { ...page, documentGeneration: 2 })).toBe('stale');
++    expect(captureFreshness(capture, { ...page, webContentsId: 3 })).toBe('stale');
++  });
++});
++
++describe('任务确认与版本', () => {
++  it('没有现场或现场失效时不能确认', () => {
++    expect(confirmBlockers(initialWorkbench, page)).toContain('还没有采集页面现场');
++    expect(confirmBlockers(withCapture, { ...page, documentGeneration: 2 })).toContain('页面已导航，旧现场失效，需要重新采集');
++    expect(() => confirmTask(withCapture, { ...page, documentGeneration: 2 }, now)).toThrow();
++  });
++  it('缺少目标、范围或验收时不能确认', () => {
++    const empty = { ...withCapture, form: { ...withCapture.form, goal: ' ', allowedScopes: [], acceptanceText: '\n' } };
++    expect(confirmBlockers(empty, page)).toEqual(['请填写修改目标', '至少允许一个修改范围', '至少填写一条验收条件']);
++  });
++  it('预设使用计划默认预算：3 次 attempt、15 分钟', () => {
++    expect(formFromCase('c2').budget).toEqual({ maxAttempts: 3, timeLimitMinutes: 15 });
++    expect(formFromCase('c1').goal).toContain('priority');
++    expect(formFromCase('c3').goal).toContain('dueDate');
++  });
++  it('确认后生成不可变 v1，并引用现场的页面身份', () => {
++    const next = confirmTask(withCapture, page, now);
++    expect(next.versions).toHaveLength(1);
++    expect(next.versions[0]?.version).toBe(1);
++    expect(next.versions[0]?.capture.page).toEqual(page);
++    expect(next.editing).toBe(false);
++  });
++  it('修改后确认生成 v2，旧版本保留；内容不变时不生成新版本', () => {
++    const v1 = confirmTask(withCapture, page, now);
++    const editing = startEditing(v1);
++    expect(confirmBlockers(editing, page)).toContain('内容与当前版本相同，无需生成新版本');
++    const changed = { ...editing, form: toggleScope(editing.form, 'api') };
++    const v2 = confirmTask(changed, page, now);
++    expect(v2.versions.map((v) => v.version)).toEqual([1, 2]);
++    expect(v2.versions[0]).toBe(v1.versions[0]);
++  });
++});

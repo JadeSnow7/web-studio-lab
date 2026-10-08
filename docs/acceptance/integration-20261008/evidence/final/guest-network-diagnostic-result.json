@@ -1,0 +1,171 @@
+{
+  "sourceSha256": "6a30a638b48a85e890466e0acbb5359f1030b072847ed8edb2ab281c27bc357c",
+  "request": {
+    "operation": "capture",
+    "url": "https://docs.docker.com/",
+    "sandboxName": "wsl-sbx-smoke-20261006",
+    "captureId": "9d76bd5a-9cab-49e8-b11c-c3dcef71539e"
+  },
+  "events": [
+    {
+      "sequence": 1,
+      "monotonicMs": 374.014042,
+      "event": "launch-policy",
+      "chromiumSandbox": true,
+      "configuredGateway": true
+    },
+    {
+      "sequence": 2,
+      "monotonicMs": 777.72575,
+      "event": "context-policy",
+      "ignoreHTTPSErrors": false
+    },
+    {
+      "sequence": 3,
+      "monotonicMs": 991.635959,
+      "event": "Fetch.requestPaused",
+      "session": 1,
+      "requestId": "interception-job-1.0",
+      "networkId": "D464F6AC3E1F33E1CB76D9E5D09D29A8",
+      "resourceType": "Document",
+      "responseStatusCode": null,
+      "responseErrorReason": "Failed",
+      "origin": "https://docs.docker.com",
+      "fixedTarget": true
+    },
+    {
+      "sequence": 4,
+      "monotonicMs": 991.724709,
+      "event": "Fetch.failRequest-before-send",
+      "session": 1,
+      "requestId": "interception-job-1.0",
+      "errorReason": "BlockedByClient"
+    },
+    {
+      "sequence": 5,
+      "monotonicMs": 996.651251,
+      "event": "Network.loadingFailed",
+      "session": 1,
+      "requestId": "D464F6AC3E1F33E1CB76D9E5D09D29A8",
+      "resourceType": "Document",
+      "errorText": "net::ERR_BLOCKED_BY_CLIENT",
+      "canceled": false,
+      "blockedReason": "inspector"
+    },
+    {
+      "sequence": 6,
+      "monotonicMs": 999.573251,
+      "event": "Network.loadingFailed",
+      "session": 1,
+      "requestId": "D464F6AC3E1F33E1CB76D9E5D09D29A8",
+      "resourceType": "Document",
+      "errorText": "net::ERR_ABORTED",
+      "canceled": true,
+      "blockedReason": null
+    }
+  ],
+  "omittedEvents": 0,
+  "runtimeBudgetMs": 45000,
+  "result": {
+    "ok": false,
+    "error": {
+      "code": "NETWORK_FAILED",
+      "message": "固定目标网页访问失败 [navigation]"
+    },
+    "cleanup": {
+      "browserClosed": true
+    },
+    "evidence": {
+      "guest": {
+        "platform": "linux",
+        "architecture": "arm64",
+        "uid": 1000,
+        "nodeVersion": "v24.21.0"
+      },
+      "launch": {
+        "chromiumSandbox": true,
+        "debuggingPipe": true,
+        "noSandboxFlag": false,
+        "browserPid": 230,
+        "browserVersion": "153.0.8010.12",
+        "executable": "/home/agent/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome",
+        "elf": true
+      },
+      "sandbox": {
+        "diagnostic": {
+          "namespaceSandbox": true,
+          "pidNamespaces": true,
+          "seccompBpf": true
+        },
+        "browser": {
+          "pid": 230,
+          "seccomp": 0,
+          "seccompFilters": 0,
+          "noNewPrivs": 0,
+          "pidNamespace": "pid:[4026532345]",
+          "userNamespace": "user:[4026531837]"
+        },
+        "renderers": [
+          {
+            "pid": 345,
+            "seccomp": 2,
+            "seccompFilters": 1,
+            "noNewPrivs": 1,
+            "pidNamespace": "pid:[4026532486]",
+            "userNamespace": "user:[4026532482]"
+          },
+          {
+            "pid": 335,
+            "seccomp": 2,
+            "seccompFilters": 1,
+            "noNewPrivs": 1,
+            "pidNamespace": "pid:[4026532485]",
+            "userNamespace": "user:[4026532482]"
+          },
+          {
+            "pid": 313,
+            "seccomp": 2,
+            "seccompFilters": 1,
+            "noNewPrivs": 1,
+            "pidNamespace": "pid:[4026532483]",
+            "userNamespace": "user:[4026532482]"
+          },
+          {
+            "pid": 304,
+            "seccomp": 2,
+            "seccompFilters": 1,
+            "noNewPrivs": 1,
+            "pidNamespace": "pid:[4026532415]",
+            "userNamespace": "user:[4026532482]"
+          }
+        ]
+      }
+    },
+    "network": {
+      "totalRequests": 1,
+      "blocked": [
+        {
+          "origin": "https://docs.docker.com",
+          "path": "/",
+          "reason": "response-error-Failed"
+        }
+      ],
+      "failed": [
+        {
+          "origin": "https://docs.docker.com",
+          "path": "/",
+          "reason": "net::ERR_BLOCKED_BY_CLIENT"
+        }
+      ]
+    },
+    "screenshotMetadata": null
+  },
+  "sandboxIdentity": {
+    "name": "wsl-sbx-smoke-20261006",
+    "agent": "codex",
+    "stateBeforeExec": "stopped",
+    "imageDigest": "sha256:8b4cd0a46c8b600bc6b6a64af23c03d4c2807fbfc61f47568092a93fb9dc88b0",
+    "runtimeMounts": 0
+  },
+  "existingStoppedSandboxMayStart": true
+}

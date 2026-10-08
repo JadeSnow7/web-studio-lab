@@ -1,0 +1,20 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/workspace.ts b/private/tmp/wsl-integration-sources/08-eb15/packages/protocol/src/workspace.ts
+index 053beac..e6c3a1a 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/workspace.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/packages/protocol/src/workspace.ts
+@@ -117,6 +117,7 @@ export const WorkspaceSnapshotSchema = z.object({
+   publicResources: ResourceCollectionSchema.nullable(),
+   publicResourcesError: z.string().nullable().default(null),
+   theme: z.enum(['light', 'dark', 'warm', 'system']),
++  sidebarMode: z.enum(['pinned', 'overlay', 'hidden']),
+ });
+ export type WorkspaceSnapshot = z.infer<typeof WorkspaceSnapshotSchema>;
+ export const WorkbenchNotificationSchema = z.object({
+@@ -170,6 +171,7 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
+   command('setRatio', { paneId: Id, ratio: z.number().min(0.1).max(0.9) }),
+   command('setPreferences', {
+     theme: WorkspaceSnapshotSchema.shape.theme.optional(),
++    sidebarMode: WorkspaceSnapshotSchema.shape.sidebarMode.optional(),
+   }),
+   command('saveDraft', { sessionId: Id, draft: z.string().max(32000) }),
+   command('saveTaskCriteria', {

@@ -1,0 +1,68 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/chat-service.test.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/main/chat-service.test.ts
+index 438350b..6124e2a 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/chat-service.test.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/main/chat-service.test.ts
+@@ -73,7 +73,6 @@ describe('对话服务宿主故障', () => {
+     );
+     mock.callbacks.get('message')?.({
+       type: 'terminal-event',
+-      resourceId: 'terminal-resource',
+       terminal: {
+         seq: 1,
+         sessionId: 'pty',
+@@ -101,7 +100,6 @@ describe('对话服务宿主故障', () => {
+         ? { type: 'event', conversation: failed }
+         : {
+             type: 'terminal-event',
+-            resourceId: 'terminal-resource',
+             terminal: {
+               seq: 1,
+               sessionId: 'pty',
+@@ -134,7 +132,7 @@ describe('对话服务宿主故障', () => {
+       () => undefined,
+       () => undefined,
+     );
+-    const request = method === 'send' ? service.send('conv-personal-default', 'hello') : service.terminalOpen(80, 24, 'terminal-resource');
++    const request = method === 'send' ? service.send('conv-personal-default', 'hello') : service.terminalOpen(80, 24);
+     const rejection = expect(request).rejects.toThrow('退出');
+     mock.callbacks.get('exit')?.(1);
+     await rejection;
+@@ -145,7 +143,7 @@ describe('对话服务宿主故障', () => {
+       () => undefined,
+       () => undefined,
+     );
+-    const opening = service.terminalOpen(80, 24, 'terminal-resource');
++    const opening = service.terminalOpen(80, 24);
+     const request = mock.postMessage.mock.calls[0]?.[0];
+     mock.callbacks.get('message')?.({
+       type: 'response',
+@@ -270,3 +268,29 @@ describe('对话服务宿主故障', () => {
+     expect(mock.kill).toHaveBeenCalledOnce();
+   });
+ });
++
++it('forwards typed observation invalidation events without treating them as request responses', () => {
++  const service = new ChatService(
++    () => undefined,
++    () => undefined,
++  );
++  const listener = vi.fn();
++  service.setInvalidationListener(listener);
++  const hint = {
++    workspaceId: 'taskflow-demo',
++    environmentId: 'local',
++    resourceId: 'files:local',
++    generation: 'g',
++    watchGeneration: 1,
++    sequence: 1,
++    capturedAt: '2026-10-07T10:00:00.000Z',
++    change: 'change',
++    coverage: { scope: 'observed-directories', recursive: false, lossy: true },
++  };
++  mock.callbacks.get('message')?.({ type: 'observation-invalidation', hint });
++  expect(listener).toHaveBeenCalledWith(hint);
++  expect(mock.kill).not.toHaveBeenCalled();
++  service.setInvalidationListener(null);
++  mock.callbacks.get('message')?.({ type: 'observation-invalidation', hint: { ...hint, sequence: 2 } });
++  expect(listener).toHaveBeenCalledTimes(1);
++});

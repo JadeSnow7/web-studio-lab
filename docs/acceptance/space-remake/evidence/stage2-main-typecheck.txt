@@ -1,0 +1,7 @@
+COMMAND: pnpm --filter @wsl/desktop exec tsc -p tsconfig.node.json
+SOURCE SHA256: ecf29f1411930c55daad329e1a7f3f09b2c4283cc9bdd102c9456275d28e3a2d
+src/main/workbench/application.test.ts(61,40): error TS2353: Object literal may only specify known properties, and 'sessionId' does not exist in type 'Omit<{ type: "createWorkspace"; commandId: string; workspaceId: string; name: string; expectedRevision?: number | undefined; } | { type: "renameWorkspace"; commandId: string; workspaceId: string; name: string; expectedRevision?: number | undefined; } | ... 32 more ... | { ...; }, "workspaceId" | "commandId">'.
+src/main/workbench/application.test.ts(62,45): error TS2353: Object literal may only specify known properties, and 'theme' does not exist in type 'Omit<{ type: "createWorkspace"; commandId: string; workspaceId: string; name: string; expectedRevision?: number | undefined; } | { type: "renameWorkspace"; commandId: string; workspaceId: string; name: string; expectedRevision?: number | undefined; } | ... 32 more ... | { ...; }, "workspaceId" | "commandId">'.
+undefined
+/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 2: tsc -p tsconfig.node.json

@@ -1,0 +1,38 @@
+  it('real local PTY: failed command preserves shell, zsh hooks report code, close settles', async () => {
+    const terminal = new LocalTerminal(process.cwd(), 'test', () => undefined);
+    const opened = await terminal.open(80, 24);
+    try {
+      await expect.poll(() => terminal.get().state).toBe('running');
+      terminal.write(opened.sessionId!, 'false\n');
+      await expect.poll(async () => JSON.stringify((await terminal.observation!.readCommand()).data)).toContain('"exitCode":1');
+      expect(terminal.get().state).toBe('running');
+      terminal.write(opened.sessionId!, "printf 'LOCAL_PTY_OK\\n'\n");
+      await expect.poll(() => terminal.get().output).toContain('LOCAL_PTY_OK');
+    } finally {
+      await terminal.close(opened.sessionId!);
+    }
+    expect(terminal.get().state).toBe('closed');
+  }, 15000);
+  it('bounds cleanup when foreground process ignores hangup', async () => {
+    const terminal = new LocalTerminal(process.cwd(), 'test', () => undefined);
+    const opened = await terminal.open(80, 24);
+    await expect.poll(() => terminal.get().state).toBe('running');
+    terminal.write(opened.sessionId!, "trap '' HUP; sleep 60\n");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const started = Date.now();
+    await terminal.close(opened.sessionId!);
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(terminal.get().cleanupPending).toBe(false);
+  }, 10000);
+  it('consumes immediate close queued alongside start without losing the frame', async () => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const states: string[] = [];
+      const terminal = new LocalTerminal(process.cwd(), 'test', (snapshot) => states.push(snapshot.state));
+      const opened = await terminal.open(80, 24);
+      expect(opened.state).toBe('starting');
+      await terminal.close(opened.sessionId!);
+      expect(terminal.get().state).toBe('closed');
+      expect(terminal.get().cleanupPending).toBe(false);
+      expect(states.slice(states.indexOf('closing'))).not.toContain('running');
+    }
+  }, 15000);

@@ -1,0 +1,17 @@
+{
+  "ownedCandidatePid": 86313,
+  "basis": "Runtime negative-control packaged Electron warning PID in original receipt",
+  "command": [
+    "ps",
+    "-p",
+    "86313",
+    "-o",
+    "pid=,ppid=,lstart=,comm="
+  ],
+  "authorizedResult": {
+    "exit_code": 1,
+    "stdout": ""
+  },
+  "conclusion": "PID absent at inspection; no signals sent",
+  "restrictedAttempt": "ps denied by sandbox; authorized read-only retry succeeded"
+}

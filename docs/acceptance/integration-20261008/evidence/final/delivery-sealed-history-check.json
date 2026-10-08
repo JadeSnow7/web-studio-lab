@@ -1,0 +1,16 @@
+{
+  "baseline": "9e1df45d9ea42a9bf5df76a1babf451e5cafc530",
+  "checked_paths": [
+    "tests/vertical-slice/cdp.ts",
+    "tests/vertical-slice/postcondition.ts",
+    "tests/vertical-slice/run.ts",
+    "tests/vertical-slice/contracts.ts",
+    "docs/acceptance/preimplementation"
+  ],
+  "changed_paths": [],
+  "allowed_new_verifier": [
+    "tests/vertical-slice/evidence.ts",
+    "tests/vertical-slice/selftest.test.ts"
+  ],
+  "method_sha256": "89637e2a6aeacc9d4c0ea384e1aedb5f375ef27f47658cd7e502da4afd171aa1"
+}

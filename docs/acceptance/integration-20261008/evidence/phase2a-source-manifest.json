@@ -1,0 +1,116 @@
+{
+  "base": "331c47f751ff4600a61fab0dc4699459499fe75e",
+  "phase": "2a",
+  "files": [
+    {
+      "path": "apps/desktop/src/main/chat-service.ts",
+      "sha256": "4aeb454c1f2691f56a74fbf0928ab62ba093e02b30b0fdf9df06525d771eb65b",
+      "bytes": 12175
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.test.ts",
+      "sha256": "878bcca7192b47debdccfe4d29fe71ad6320604f594832f567b222fe321fc7cb",
+      "bytes": 10997
+    },
+    {
+      "path": "apps/service/src/index.ts",
+      "sha256": "2ff48fc7e33febf6d584b826e29dc72844b9f40bbf6888cdc30199c7131da16f",
+      "bytes": 6492
+    },
+    {
+      "path": "apps/service/src/raw.d.ts",
+      "sha256": "cee5b168c3329774d1577ce19e1b4765c141a58f66e1a3085bf501146a606d97",
+      "bytes": 240
+    },
+    {
+      "path": "apps/service/src/sbx.test.ts",
+      "sha256": "d66a2563ab20f41363377042c4bba2693eee12cfb78402ba2d5d792d74f25e13",
+      "bytes": 6668
+    },
+    {
+      "path": "apps/service/src/terminal.ts",
+      "sha256": "05891031abc4742a19e751ad7768513a4ad5a1bd7e7ae96e197752a61791c7d3",
+      "bytes": 4310
+    },
+    {
+      "path": "apps/service/src/environment-resources.ts",
+      "sha256": "36920ff7aef7b783ddd7b970f8ea5441aa542bf7248dd9066c75a866d3b0ea67",
+      "bytes": 14906
+    },
+    {
+      "path": "apps/service/src/environment-resources.test.ts",
+      "sha256": "441b9f89332c971ec3c23df960deed21aa7862a7f472be0a9ce5f24b8e4f8c44",
+      "bytes": 5042
+    },
+    {
+      "path": "apps/service/src/local-terminal.py",
+      "sha256": "f4c63006649bb4165987087693b3a039a6647bc6fa6b9ba6645b946ae15741b0",
+      "bytes": 5781
+    },
+    {
+      "path": "apps/service/src/local-terminal.ts",
+      "sha256": "f2f2997b8990b91759c33cf6b7d0d282540dfa91dba59fbee497b464bb3389e0",
+      "bytes": 5937
+    },
+    {
+      "path": "apps/service/src/local-terminal.test.ts",
+      "sha256": "bd61ef838a4cc02a94ed53535eefb6496329659b55fd4968f56710990280af08",
+      "bytes": 3601
+    },
+    {
+      "path": "apps/service/src/ssh-terminal.ts",
+      "sha256": "dda576819497f8525cc52ddf79bd111615a375d6285304fede86c4efe32fcf49",
+      "bytes": 4867
+    },
+    {
+      "path": "apps/service/src/ssh-terminal.test.ts",
+      "sha256": "f3b006063854c1e2dd0db77a40f90855c907868539dcaf3c4f74cb47835d1bfe",
+      "bytes": 4089
+    },
+    {
+      "path": "apps/service/src/terminal-bash-integration.sh",
+      "sha256": "a25375ac103d77b99ce31efdc9ed893cf3bac76c544dac478fdeba1655c70ac9",
+      "bytes": 702
+    },
+    {
+      "path": "apps/service/src/terminal-zsh-integration.sh",
+      "sha256": "ce7b5f7359d7d606f784e6166601e391324c4db73757fd5d7ce488334c22b991",
+      "bytes": 448
+    },
+    {
+      "path": "apps/service/src/initialization-migration.test.ts",
+      "sha256": "d028b0eaf568220b4e4e7dc566db1550d70bf7e857bb9fe50fd10f96c14cc2ef",
+      "bytes": 3544
+    },
+    {
+      "path": "apps/service/src/observation-files.ts",
+      "sha256": "621db743d9ee9df8d5eb96a6b920dba161da1ef9e38328dd573e0d311a0355fc",
+      "bytes": 24973
+    },
+    {
+      "path": "apps/service/src/observation-files.test.ts",
+      "sha256": "e52ff37a0160e7b2236ef67091cce2d899ab212914081aee870bf5e6d4888d9e",
+      "bytes": 10627
+    },
+    {
+      "path": "packages/protocol/src/environments.ts",
+      "sha256": "8279755f230bcc7dee19710ecf3339d5a7c71e2e14c8a8af4b2cff85d07fa088",
+      "bytes": 848
+    },
+    {
+      "path": "packages/protocol/src/chat.ts",
+      "sha256": "eddb22237d7d8444513f5449cc66d68305d706f54e6addde5f588669e7d6e0a1",
+      "bytes": 5329
+    },
+    {
+      "path": "packages/protocol/src/index.ts",
+      "sha256": "af6c42e5fbd6c06615e70c0dc0d93deb4776ca5ac93fbb3e789a2bb16d162ecf",
+      "bytes": 387
+    },
+    {
+      "path": "packages/protocol/src/terminal.ts",
+      "sha256": "5281e3fa8229571351bac4301a53eee0881d0bf1721ea5d691950f1ec0bc93c5",
+      "bytes": 1058
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/resources.ts b/private/tmp/wsl-integration-sources/15-_worktrees/packages/protocol/src/resources.ts
+index 55e9179..cdd6011 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/resources.ts
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/packages/protocol/src/resources.ts
+@@ -131,20 +131,11 @@ export const ResourceBundleSchema = z
+   .strict()
+   .refine(
+     (bundle) =>
+-      bundle.spaceId === null
+-        ? bundle.resources.length === 0 && bundle.collectionRevision === 0
++      bundle.conversationId === 'conv-personal-default'
++        ? bundle.spaceId === null && bundle.resources.length === 0 && bundle.collectionRevision === 0
+         : bundle.spaceId === RESOURCE_SPACE_ID && bundle.resources.every((resource) => resource.spaceId === bundle.spaceId),
+     '会话与资源空间不一致',
+   )
+-  .refine(
+-    (bundle) =>
+-      bundle.conversationId === 'conv-personal-default'
+-        ? bundle.spaceId === null
+-        : bundle.conversationId === 'conv-space-taskflow-demo-impl'
+-          ? bundle.spaceId === RESOURCE_SPACE_ID
+-          : true,
+-    '固定会话的资源授权不匹配',
+-  )
+   .refine((bundle) => new Set(bundle.resources.map((resource) => resource.resourceId)).size === bundle.resources.length, '资源身份重复')
+   .refine((bundle) => utf8ByteLength(JSON.stringify(bundle)) <= MAX_RESOURCE_BUNDLE_BYTES, '资源包超过 JSON 字节限制');
+ export const ResourceListRequestSchema = z.object({ spaceId: z.literal(RESOURCE_SPACE_ID) }).strict();

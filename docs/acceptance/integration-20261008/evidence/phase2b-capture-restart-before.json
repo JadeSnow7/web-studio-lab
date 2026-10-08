@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/desktop/src/main/workbench/observation-application.test.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T09:44:01.339673Z",
+  "ended_at": "2026-10-08T09:44:03.385248Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/desktop/src/main/workbench/observation-application.test.ts (11 tests | 1 failed) 1501ms\n   ❯ Main observation ownership and lifecycle (11)\n     × rejects a captured task after restart even when native numeric identities are reused 11ms\n\n Test Files  1 failed (1)\n      Tests  1 failed | 10 passed (11)\n   Start at  17:44:01\n   Duration  1.71s (tests 91%, transform 6%, import 3%)\n\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/desktop/src/main/workbench/observation-application.test.ts > Main observation ownership and lifecycle > rejects a captured task after restart even when native numeric identities are reused\nAssertionError: expected true to be false // Object.is equality\n\n- Expected\n+ Received\n\n- false\n+ true\n\n ❯ apps/desktop/src/main/workbench/observation-application.test.ts:154:25\n    152|       const restored=new WorkbenchApplication(repository,runtime,vi.fn…\n    153|       const result=await restored.command({type:'startRun',workspaceId…\n    154|       expect(result.ok).toBe(false);if(!result.ok)expect(result.error.…\n       |                         ^\n    155|     } finally {await rm(root,{recursive:true,force:true});}\n    156|   });\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvZGVza3RvcC9zcmMvbWFpbi93b3JrYmVuY2gvb2JzZXJ2YXRpb24tYXBwbGljYXRpb24udGVzdC50cyAoMTEgdGVzdHMgfCAxIGZhaWxlZCkgMTUwMW1zCiAgIOKdryBNYWluIG9ic2VydmF0aW9uIG93bmVyc2hpcCBhbmQgbGlmZWN5Y2xlICgxMSkKICAgICDDlyByZWplY3RzIGEgY2FwdHVyZWQgdGFzayBhZnRlciByZXN0YXJ0IGV2ZW4gd2hlbiBuYXRpdmUgbnVtZXJpYyBpZGVudGl0aWVzIGFyZSByZXVzZWQgMTFtcwoKIFRlc3QgRmlsZXMgIDEgZmFpbGVkICgxKQogICAgICBUZXN0cyAgMSBmYWlsZWQgfCAxMCBwYXNzZWQgKDExKQogICBTdGFydCBhdCAgMTc6NDQ6MDEKICAgRHVyYXRpb24gIDEuNzFzICh0ZXN0cyA5MSUsIHRyYW5zZm9ybSA2JSwgaW1wb3J0IDMlKQoK",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL2Rlc2t0b3Avc3JjL21haW4vd29ya2JlbmNoL29ic2VydmF0aW9uLWFwcGxpY2F0aW9uLnRlc3QudHMgPiBNYWluIG9ic2VydmF0aW9uIG93bmVyc2hpcCBhbmQgbGlmZWN5Y2xlID4gcmVqZWN0cyBhIGNhcHR1cmVkIHRhc2sgYWZ0ZXIgcmVzdGFydCBldmVuIHdoZW4gbmF0aXZlIG51bWVyaWMgaWRlbnRpdGllcyBhcmUgcmV1c2VkCkFzc2VydGlvbkVycm9yOiBleHBlY3RlZCB0cnVlIHRvIGJlIGZhbHNlIC8vIE9iamVjdC5pcyBlcXVhbGl0eQoKLSBFeHBlY3RlZAorIFJlY2VpdmVkCgotIGZhbHNlCisgdHJ1ZQoKIOKdryBhcHBzL2Rlc2t0b3Avc3JjL21haW4vd29ya2JlbmNoL29ic2VydmF0aW9uLWFwcGxpY2F0aW9uLnRlc3QudHM6MTU0OjI1CiAgICAxNTJ8ICAgICAgIGNvbnN0IHJlc3RvcmVkPW5ldyBXb3JrYmVuY2hBcHBsaWNhdGlvbihyZXBvc2l0b3J5LHJ1bnRpbWUsdmkuZm7igKYKICAgIDE1M3wgICAgICAgY29uc3QgcmVzdWx0PWF3YWl0IHJlc3RvcmVkLmNvbW1hbmQoe3R5cGU6J3N0YXJ0UnVuJyx3b3Jrc3BhY2VJZOKApgogICAgMTU0fCAgICAgICBleHBlY3QocmVzdWx0Lm9rKS50b0JlKGZhbHNlKTtpZighcmVzdWx0Lm9rKWV4cGVjdChyZXN1bHQuZXJyb3Iu4oCmCiAgICAgICB8ICAgICAgICAgICAgICAgICAgICAgICAgIF4KICAgIDE1NXwgICAgIH0gZmluYWxseSB7YXdhaXQgcm0ocm9vdCx7cmVjdXJzaXZlOnRydWUsZm9yY2U6dHJ1ZX0pO30KICAgIDE1NnwgICB9KTsKCuKOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr1sxLzFd4o6vCgo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c90288de62ac3ea9881bfbea845393f5945b6562bc9729f1f7f5fd0086bc4b6a:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c90288de62ac3ea9881bfbea845393f5945b6562bc9729f1f7f5fd0086bc4b6a:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c90288de62ac3ea9881bfbea845393f5945b6562bc9729f1f7f5fd0086bc4b6a:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

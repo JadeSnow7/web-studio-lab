@@ -1,0 +1,38 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/SettingsPage.tsx b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
+index d6a379e..1320044 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
+@@ -10,6 +10,7 @@ export function SettingsPage() {
+   const env = useStore(environmentStore, (e) => e);
+   const state = useStore(workspaceStore, (s) => s);
+   const workspace = state.snapshot?.workspaces.find((w) => w.workspaceId === state.selectedId);
++  const pinned = workspace?.sidebarMode === 'pinned';
+   const chat = useStore(chatStore, (state) => state.status);
+ 
+   return (
+@@ -31,9 +32,8 @@ export function SettingsPage() {
+ 
+         <h2 id="settings-appearance">外观与窗口</h2>
+         <label className="field">
+-          空间主题 · {workspace?.name ?? '加载空间…'}
++          空间主题
+           <select
+-            disabled={!workspace}
+             value={workspace?.theme ?? 'system'}
+             onChange={(e) => void command({ type: 'setPreferences', theme: e.target.value as 'light' | 'dark' | 'warm' | 'system' })}
+           >
+@@ -43,6 +43,14 @@ export function SettingsPage() {
+             <option value="system">跟随系统</option>
+           </select>
+         </label>
++        <label className="check">
++          <input
++            type="checkbox"
++            checked={pinned}
++            onChange={(e) => void command({ type: 'setPreferences', sidebarMode: e.target.checked ? 'pinned' : 'overlay' })}
++          />
++          固定显示空间标签（快捷键⌘B控制显隐）
++        </label>
+         <h2 id="settings-harness">连接与 Harness</h2>
+         <Notice tone="warn">{env.execution?.reason ?? '正在读取执行服务状态…'}</Notice>
+         <dl className="kv">

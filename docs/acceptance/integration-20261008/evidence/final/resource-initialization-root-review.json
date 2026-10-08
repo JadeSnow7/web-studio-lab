@@ -1,0 +1,7 @@
+{
+  "file": "e2e/resources-live.spec.ts",
+  "sha256": "1f391987e947951bc9471d6580a4629070d944fc1b234c87c26200685bc530e4",
+  "review": "Only initial preparation poll treats legitimate nullable conversation as not ready and waits same 30s startup budget. All subsequent message count/state and exact resource MCP assertions retained.",
+  "failure": "frozen-live-resources.json",
+  "evidence": "resources-live-initialization-note.json"
+}

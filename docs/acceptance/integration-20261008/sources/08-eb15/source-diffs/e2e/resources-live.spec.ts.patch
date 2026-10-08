@@ -1,0 +1,30 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/e2e/resources-live.spec.ts b/private/tmp/wsl-integration-sources/08-eb15/e2e/resources-live.spec.ts
+index e19daa4..517e58d 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/e2e/resources-live.spec.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/e2e/resources-live.spec.ts
+@@ -3,7 +3,6 @@ import { mkdir, writeFile } from 'node:fs/promises';
+ import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
+ import type { ChatConversation, SpaceResource, StudioApi } from '../packages/protocol/src';
+ import { launchApp, previewInfo, screensDir, setWindowSize, windowShots, workspaceSnapshot, workshopNavigate } from './helpers';
+-import { resourceCollection } from './helpers';
+ 
+ let app: ElectronApplication;
+ let page: Page;
+@@ -55,7 +54,7 @@ test('live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过
+     await expect(capture).toBeEnabled();
+     await capture.click();
+     await expect(capture).toBeEnabled();
+-    const collection = await resourceCollection(page);
++    const collection = await page.evaluate(() => (window as unknown as { studio: StudioApi }).studio.resources.list('taskflow-demo'));
+     expect(collection.resources).toHaveLength(1);
+     resource = collection.resources[0]!;
+     expect(resource.url).toBe('https://example.com/');
+@@ -131,7 +130,7 @@ test('live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过
+     await detail.getByRole('button', { name: '移除资源' }).click();
+     await page.getByRole('dialog', { name: '从空间移除网页' }).getByRole('button', { name: '移除网页', exact: true }).click();
+     await expect(page.getByRole('region', { name: '空间网页资源' })).toContainText('当前空间还没有网页资源');
+-    const empty = await resourceCollection(page);
++    const empty = await page.evaluate(() => (window as unknown as { studio: StudioApi }).studio.resources.list('taskflow-demo'));
+     expect(empty.resources).toEqual([]);
+     expect(empty.revision).toBeGreaterThan(collection.revision);
+   } finally {

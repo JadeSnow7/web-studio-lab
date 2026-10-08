@@ -1,0 +1,177 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/shell/RightPanel.tsx b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/shell/RightPanel.tsx
+index a38527d..03434c4 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/shell/RightPanel.tsx
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/shell/RightPanel.tsx
+@@ -1,69 +1,110 @@
+-import { useEffect, useRef } from 'react';
+-import { useStore } from '../lib/store';
+-import { occlusion } from '../state/occlusion';
++import { ChatMessages } from './ChatMessages';
++import { Composer } from './Composer';
++import { DemoBadge, Notice } from '../components/Badges';
+ import { Icon } from '../components/Icon';
+-import { shellActions, shellStore } from '../state/shell';
+-import { workspaceStore } from '../state/workspace';
+-import { Notifications } from '../workspace/Notifications';
+-export function RightPanel({ mode }: { mode: 'docked' | 'overlay' | 'collapsed' }) {
+-  const pinned = useStore(shellStore, (s) => s.rightPanel.pinned);
+-  const unread = useStore(workspaceStore, (s) => s.snapshot?.notifications.filter((n) => !n.readAt).length ?? 0);
+-  const trigger = useRef<HTMLButtonElement>(null);
+-  useEffect(() => {
+-    if (mode !== 'overlay') return;
+-    const escape = (event: KeyboardEvent) => {
+-      if (!event.defaultPrevented && event.key === 'Escape' && occlusion.top() === 'right' && !document.querySelector('dialog[open]')) {
+-        event.preventDefault();
+-        shellActions.closePanel('right');
+-        trigger.current?.focus();
+-      }
+-    };
+-    window.addEventListener('keydown', escape);
+-    return () => window.removeEventListener('keydown', escape);
+-  }, [mode]);
++import { DEMO_CONTACTS, DEMO_FEED } from '../demo/sampleData';
++import { useStore } from '../lib/store';
++import { spacePanelTarget } from '../state/drafts';
++import { shellActions, shellStore, type RightTab } from '../state/shell';
++
++const TABS: ReadonlyArray<{ tab: RightTab; label: string }> = [
++  { tab: 'space', label: '空间' },
++  { tab: 'contacts', label: '联系人' },
++  { tab: 'feed', label: '动态' },
++];
++
++export function sendBlockedReasonFor(reason: string | null | undefined): string {
++  return reason ?? '执行服务状态未知';
++}
++
++function SpaceTab() {
++  const scope = useStore(shellStore, (s) => s.activeScope);
++  const target = spacePanelTarget(scope);
++  if (target.kind === 'none') {
++    return (
++      <div className="panel-empty">
++        <Icon name="space" size={24} />
++        <strong>{target.reason}</strong>
++        <p>首页处于个人作用域，后台的空间不会被当成发送目标；在空间里未发出的草稿仍然保留。</p>
++        <button type="button" className="btn" onClick={() => shellActions.navigate('space')}>
++          继续 TaskFlow 演示空间
++        </button>
++      </div>
++    );
++  }
+   return (
+     <>
+-      <div className="notification-edge">
+-        <button
+-          id="right-panel-trigger"
+-          ref={trigger}
+-          type="button"
+-          className="edge-handle notification-trigger"
+-          aria-label={`通知 · ${unread} 条未读`}
+-          aria-expanded={mode !== 'collapsed'}
+-          onClick={() => void shellActions.toggleRightPanel()}
+-        >
+-          <Icon name="chat" size={17} />
+-          <span>{unread}</span>
+-        </button>
++      <div className="panel-sub">
++        <strong>
++          {target.conversation.scopeLabel} · {target.conversation.title}
++        </strong>
++        <span className="muted">Codex CLI · 对话</span>
++      </div>
++      <ChatMessages conversationId={target.conversation.id} />
++      <div className="panel-foot">
++        <Composer target={target} sendBlockedReason={null} placeholder="补充要求…" harnessLabel="Codex CLI" />
+       </div>
+-      {mode !== 'collapsed' ? (
+-        <aside className={`right-panel ${mode === 'overlay' ? 'right-panel-overlay' : ''}`} aria-label="通知栏">
+-          <header className="row space-between panel-controls">
+-            <strong>通知</strong>
+-            <div className="row">
+-              <button
+-                type="button"
+-                className="icon-btn"
+-                aria-label={pinned ? '取消固定通知' : '固定通知'}
+-                aria-pressed={pinned}
+-                onClick={() => void shellActions.setPinned(!pinned, 'right')}
+-              >
+-                <Icon name="pin" size={17} />
+-              </button>
+-              <button type="button" className="icon-btn" aria-label="收起通知栏" onClick={() => shellActions.closePanel('right')}>
+-                <Icon name="close" size={17} />
+-              </button>
+-            </div>
+-          </header>
+-          <Notifications
+-            onOpen={(sessionId) => {
+-              shellActions.closePanel('right');
+-              requestAnimationFrame(() => document.getElementById(`session-heading-${sessionId}`)?.focus());
+-            }}
+-          />
+-        </aside>
+-      ) : null}
+     </>
+   );
+ }
++
++function ContactsTab() {
++  return (
++    <div className="panel-scroll">
++      <Notice>人际消息不在本轮范围：联系人与群聊只展示演示条目，不能发送。收件人与当前空间无关。</Notice>
++      <ul className="plain-list">
++        {DEMO_CONTACTS.map((c) => (
++          <li key={c.id} className="contact-row">
++            <span className={`avatar avatar-${c.kind}`}>{c.initial}</span>
++            <span className="contact-main">
++              <strong>{c.name}</strong>
++              <span className="muted">{c.preview}</span>
++            </span>
++            <span className="muted small">{c.time}</span>
++          </li>
++        ))}
++      </ul>
++      <DemoBadge />
++    </div>
++  );
++}
++
++function FeedTab() {
++  return (
++    <div className="panel-scroll">
++      <ul className="plain-list">
++        {DEMO_FEED.map((f) => (
++          <li key={f.id} className="feed-item">
++            <span className="muted small">{f.meta}</span>
++            <strong>{f.title}</strong>
++            <span className="muted">{f.note}</span>
++          </li>
++        ))}
++      </ul>
++      <p className="muted small">动态是只读视图，这里没有输入框。</p>
++    </div>
++  );
++}
++
++export function RightPanel({ overlay }: { overlay: boolean }) {
++  const tab = useStore(shellStore, (s) => s.rightPanel.tab);
++  return (
++    <aside className={overlay ? 'right-panel right-panel-overlay' : 'right-panel'} aria-label="通信栏">
++      <div className="panel-head">
++        <div className="segmented" role="tablist" aria-label="通信分区">
++          {TABS.map((t) => (
++            <button key={t.tab} type="button" role="tab" aria-selected={tab === t.tab} onClick={() => shellActions.openRightPanel(t.tab)}>
++              {t.label}
++            </button>
++          ))}
++        </div>
++        {overlay ? (
++          <button type="button" className="icon-btn" aria-label="收起通信栏" onClick={shellActions.toggleRightPanel}>
++            <Icon name="close" size={15} />
++          </button>
++        ) : null}
++      </div>
++      {tab === 'space' ? <SpaceTab /> : tab === 'contacts' ? <ContactsTab /> : <FeedTab />}
++    </aside>
++  );
++}

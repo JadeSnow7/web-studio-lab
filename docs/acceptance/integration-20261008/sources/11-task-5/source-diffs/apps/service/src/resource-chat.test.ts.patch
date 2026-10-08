@@ -1,0 +1,116 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/resource-chat.test.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/resource-chat.test.ts
+index d6dcd04..870e763 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/resource-chat.test.ts
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/resource-chat.test.ts
+@@ -10,10 +10,12 @@ function fixture() {
+   const done = new Promise<{ confirmed: boolean; error: string | null; exitCode: number }>((r) => {
+     resolve = r;
+   });
++  const write = vi.fn();
+   const start = vi.fn((_: GuestStart, emit: typeof frame) => {
+     frame = emit;
+     return {
+       done,
++      write,
+       close: async () => {
+         resolve({ confirmed: true, error: null, exitCode: 0 });
+         return done;
+@@ -32,6 +34,8 @@ function fixture() {
+     chat,
+     start,
+     resources,
++    write,
++    frame: (value: GuestFrame) => frame(value),
+     emit(event: unknown) {
+       frame({ type: 'output', stream: 'stdout', data: JSON.stringify(event) + '\n' });
+     },
+@@ -64,32 +68,6 @@ describe('space resources per-turn capability', () => {
+     f.finish();
+     await f.chat.shutdown();
+   });
+-  it('binds a host-registered dynamic session to TaskFlow resources and freezes its workspace', async () => {
+-    const f = fixture();
+-    const id = 'session-dynamic';
+-    await expect(f.chat.send(id, 'unregistered')).rejects.toThrow('宿主注册');
+-    f.chat.register(id, 'taskflow-demo');
+-    expect(() => f.chat.register(id, 'other')).toThrow('归属已冻结');
+-    await f.chat.send(id, 'read');
+-    expect(f.start.mock.calls[0]?.[0]).toMatchObject({
+-      resourceBundle: { conversationId: id, spaceId: 'taskflow-demo', collectionRevision: 4 },
+-    });
+-    expect(() => f.chat.assertResourceMutationAllowed('taskflow-demo')).toThrow();
+-    f.finish();
+-    await vi.waitFor(() => expect(f.chat.get(id).state).toBe('idle'));
+-    f.chat.invalidateResources('taskflow-demo');
+-    expect(f.chat.get(id).threadId).toBeNull();
+-    await f.chat.shutdown();
+-  });
+-  it('another registered workspace has no TaskFlow capability', async () => {
+-    const f = fixture();
+-    f.chat.register('session-other', 'other');
+-    await f.chat.send('session-other', 'hello');
+-    expect(f.resources.list).not.toHaveBeenCalled();
+-    expect(f.start.mock.calls[0]?.[0]).toMatchObject({ resourceBundle: { spaceId: null, resources: [] } });
+-    f.finish();
+-    await f.chat.shutdown();
+-  });
+   it('personal conversation receives an empty capability without listing a space', async () => {
+     const f = fixture();
+     await f.chat.send(personal, 'hello');
+@@ -263,3 +241,56 @@ describe('space resources per-turn capability', () => {
+     });
+   });
+ });
++
++describe('live observation dispatch (protocol harness, no model)', () => {
++  it('drops observation results after cancellation without returning them to the model', async () => {
++    const f = fixture();
++    let resolve!: (value: { error: 'not_found'; message: string }) => void;
++    f.chat.setObservationReader(
++      () =>
++        new Promise((r) => {
++          resolve = r;
++        }),
++    );
++    await f.chat.send(space, 'read');
++    f.frame({ type: 'observation-call', id: 'late', tool: 'files.read', args: { path: 'x' } });
++    await f.chat.cancel(space);
++    resolve({ error: 'not_found', message: 'late observation' });
++    await new Promise((r) => setTimeout(r, 0));
++    expect(f.write).not.toHaveBeenCalled();
++    await f.chat.shutdown();
++  });
++
++  it('binds workspace on host and returns the real reader result into guest transport', async () => {
++    const f = fixture();
++    const reader = vi.fn(async () => ({ error: 'not_found' as const, message: 'actual provider result' }));
++    f.chat.setObservationReader(reader);
++    await f.chat.send(space, 'read current page');
++    expect(f.start.mock.calls[0]?.[0]).toMatchObject({ observation: true });
++    f.frame({ type: 'observation-call', id: 'call-1', tool: 'files.read', args: { path: 'missing.txt' } });
++    await vi.waitFor(() =>
++      expect(f.write).toHaveBeenCalledWith({
++        type: 'observation-result',
++        id: 'call-1',
++        result: { error: 'not_found', message: 'actual provider result' },
++      }),
++    );
++    expect(reader).toHaveBeenCalledWith({ workspaceId: 'taskflow-demo', tool: 'files.read', args: { path: 'missing.txt' } });
++    f.finish();
++    await f.chat.shutdown();
++  });
++  it('rejects personal scope and arbitrary execution tools without dispatching a provider', async () => {
++    const f = fixture();
++    const reader = vi.fn();
++    f.chat.setObservationReader(reader);
++    await f.chat.send(personal, 'read');
++    expect(f.start.mock.calls[0]?.[0]).toMatchObject({ observation: false });
++    f.frame({ type: 'observation-call', id: 'call-2', tool: 'browser.evaluate', args: { code: 'bad' } });
++    await vi.waitFor(() =>
++      expect(f.write).toHaveBeenCalledWith(expect.objectContaining({ result: expect.objectContaining({ error: 'unauthorized' }) })),
++    );
++    expect(reader).not.toHaveBeenCalled();
++    f.finish();
++    await f.chat.shutdown();
++  });
++});

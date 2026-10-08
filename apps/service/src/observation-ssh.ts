@@ -1,0 +1,267 @@
+import { randomUUID } from 'node:crypto';
+import { StringDecoder } from 'node:string_decoder';
+import { Client } from 'ssh2';
+import type { ClientChannel, SFTPWrapper, FileEntryWithStats, Stats } from 'ssh2';
+import { FileObservationError } from './observation-files';
+import type { FileTransport } from './observation-files';
+
+export interface SshObservationConfig {
+  host: string;
+  port?: number;
+  username: string;
+  /** SHA256 hex pin obtained through a trusted channel; unknown keys never auto-accepted. */
+  hostKeySha256: string;
+  agent?: string;
+  privateKey?: Buffer;
+}
+export interface SshShell {
+  sessionId: string;
+  connectionId: string;
+  write(data: string): void;
+  resize(cols: number, rows: number): void;
+  close(): void;
+}
+export class SshObservationConnection {
+  readonly connectionId = randomUUID();
+  private connected = false;
+  private epoch = randomUUID();
+  private readonly client = new Client();
+  private sftpEpoch = randomUUID();
+  private sftp: SFTPWrapper | undefined;
+  private readonly channels = new Set<ClientChannel>();
+  private constructor() {
+    this.client.on('error', () => this.invalidate());
+    this.client.on('close', () => this.invalidate());
+    this.client.on('end', () => this.invalidate());
+  }
+  get generation() {
+    return this.epoch;
+  }
+  get available() {
+    return this.connected;
+  }
+  private invalidate() {
+    this.connected = false;
+    this.epoch = randomUUID();
+    this.sftp = undefined;
+    this.sftpEpoch = randomUUID();
+  }
+  static async connect(config: SshObservationConfig) {
+    if (!/^[a-f0-9]{64}$/i.test(config.hostKeySha256) || !config.host || !config.username || (!config.agent && !config.privateKey))
+      throw new FileObservationError('unauthorized', 'SSH requires a trusted SHA256 host pin and configured authentication');
+    const connection = new SshObservationConnection();
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => fail(), 10000);
+      const fail = () => {
+        clearTimeout(timer);
+        connection.client.destroy();
+        reject(new FileObservationError('unavailable', 'SSH connection failed (verify host pin, authentication and reachability)'));
+      };
+      connection.client.once('error', fail);
+      connection.client.once('close', fail);
+      connection.client.once('end', fail);
+      connection.client.once('ready', () => {
+        clearTimeout(timer);
+        connection.client.removeListener('error', fail);
+        connection.client.removeListener('close', fail);
+        connection.client.removeListener('end', fail);
+        connection.connected = true;
+        resolve();
+      });
+      connection.client.connect({
+        host: config.host,
+        port: config.port ?? 22,
+        username: config.username,
+        agent: config.agent,
+        privateKey: config.privateKey,
+        hostHash: 'sha256',
+        hostVerifier: (key: string) => key.toLowerCase() === config.hostKeySha256.toLowerCase(),
+        readyTimeout: 10000,
+        keepaliveInterval: 15000,
+        keepaliveCountMax: 2,
+      });
+    });
+    return connection;
+  }
+  private assertConnected() {
+    if (!this.connected) throw new FileObservationError('unavailable', 'SSH connection closed; shell process recovery is unknown');
+  }
+  private async request<T>(
+    operation: (callback: (error: Error | undefined | null, value: T) => void) => void,
+    deadline = Date.now() + 5000,
+  ): Promise<T> {
+    this.assertConnected();
+    const epoch = this.epoch;
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(
+        () => {
+          this.close();
+          reject(new FileObservationError('unavailable', 'SSH operation exceeded 5 seconds; connection closed'));
+        },
+        Math.max(1, deadline - Date.now()),
+      );
+      operation((error, value) => {
+        clearTimeout(timer);
+        if (error)
+          reject(
+            new FileObservationError(
+              'code' in error && error.code === 2 ? 'not_found' : 'code' in error && error.code === 3 ? 'unauthorized' : 'unavailable',
+              'SSH/SFTP operation failed',
+            ),
+          );
+        else if (epoch !== this.epoch || !this.connected)
+          reject(new FileObservationError('unavailable', 'SSH connection changed during operation'));
+        else resolve(value);
+      });
+    });
+  }
+  async openShell(
+    size: { cols: number; rows: number },
+    handlers: { output(data: string): void; closed(result: { exitCode: number | null; disconnected: boolean }): void },
+  ): Promise<SshShell> {
+    const cols = Math.min(500, Math.max(2, size.cols));
+    const rows = Math.min(200, Math.max(2, size.rows));
+    const channel = await this.request<ClientChannel>((callback) => this.client.shell({ term: 'xterm-256color', cols, rows }, callback));
+    this.channels.add(channel);
+    const sessionId = randomUUID();
+    const decoder = new StringDecoder('utf8');
+    let exitCode: number | null = null;
+    channel.on('data', (bytes: Buffer) => handlers.output(decoder.write(bytes)));
+    // An SSH PTY carries a single output stream. This exit is the shell's, not a command result.
+    channel.on('exit', (code: number | undefined) => {
+      exitCode = typeof code === 'number' ? code : null;
+    });
+    channel.once('close', () => {
+      const tail = decoder.end();
+      if (tail) handlers.output(tail);
+      this.channels.delete(channel);
+      handlers.closed({ exitCode, disconnected: !this.connected });
+    });
+    return {
+      sessionId,
+      connectionId: this.connectionId,
+      write: (data) => {
+        this.assertConnected();
+        if (Buffer.byteLength(data) > 65536) throw new FileObservationError('unsupported', 'Terminal input exceeds budget');
+        channel.write(data);
+      },
+      resize: (newCols, newRows) => {
+        this.assertConnected();
+        channel.setWindow(Math.min(200, Math.max(2, newRows)), Math.min(500, Math.max(2, newCols)), 0, 0);
+      },
+      close: () => channel.close(),
+    };
+  }
+  async fileTransport(): Promise<FileTransport> {
+    if (!this.sftp) {
+      const channel = await this.request<SFTPWrapper>((callback) => this.client.sftp(callback));
+      this.sftp = channel;
+      this.sftpEpoch = randomUUID();
+      const clear = () => {
+        if (this.sftp === channel) {
+          this.sftp = undefined;
+          this.sftpEpoch = randomUUID();
+        }
+      };
+      channel.once('close', clear);
+      channel.once('end', clear);
+      channel.on('error', clear);
+    }
+    const sftp = this.sftp;
+    const generation = () => `${this.generation}:${this.sftpEpoch}`;
+    const available = () => this.available && this.sftp === sftp;
+    return {
+      remote: true,
+      get available() {
+        return available();
+      },
+      get generation() {
+        return generation();
+      },
+      realpath: (file, deadline) => {
+        if (!available()) throw new FileObservationError('unavailable', 'SFTP channel closed');
+        return this.request<string>((callback) => sftp.realpath(file, callback), deadline);
+      },
+      list: async (file, limit, deadline = Date.now() + 5000) => {
+        // Read directory batches rather than unbounded readdir(path).
+        const handle = await this.request<Buffer>((callback) => sftp.opendir(file, callback), deadline);
+        const entries: { name: string; kind: string }[] = [];
+        let truncated = false;
+        try {
+          while (entries.length <= limit) {
+            if (Date.now() >= deadline) {
+              this.close();
+              throw new FileObservationError('unavailable', 'SFTP listing exceeded total time budget');
+            }
+            const batch = await this.request<false | FileEntryWithStats[]>(
+              (callback) =>
+                sftp.readdir(handle, (error, entries) =>
+                  callback(error && 'code' in error && error.code === 1 ? null : error, error ? false : entries),
+                ),
+              deadline,
+            );
+            if (!batch || batch.length === 0) break;
+            for (const item of batch) {
+              if (item.filename === '.' || item.filename === '..') continue;
+              if (entries.length >= limit) {
+                truncated = true;
+                break;
+              }
+              entries.push({
+                name: item.filename,
+                kind: item.attrs.isDirectory()
+                  ? 'directory'
+                  : item.attrs.isSymbolicLink()
+                    ? 'symlink'
+                    : item.attrs.isFile()
+                      ? 'file'
+                      : 'other',
+              });
+            }
+            if (truncated) break;
+          }
+        } finally {
+          if (this.connected) await this.request<void>((callback) => sftp.close(handle, (error) => callback(error, undefined)), deadline);
+        }
+        return { entries, truncated };
+      },
+      read: async (file, maxBytes, deadline = Date.now() + 5000) => {
+        const handle = await this.request<Buffer>((callback) => sftp.open(file, 'r', callback), deadline);
+        try {
+          const before = await this.request<Stats>((callback) => sftp.fstat(handle, callback), deadline);
+          if (!before.isFile() || before.size > maxBytes)
+            throw new FileObservationError('unsupported', 'SFTP resource is not a regular file within 8 MiB budget');
+          const buffer = Buffer.alloc(Math.min(maxBytes + 1, before.size + 1));
+          let offset = 0;
+          while (offset < buffer.length) {
+            if (Date.now() >= deadline) {
+              this.close();
+              throw new FileObservationError('unavailable', 'SFTP read exceeded total time budget');
+            }
+            const count = await this.request<number>(
+              (callback) =>
+                sftp.read(handle, buffer, offset, Math.min(32768, buffer.length - offset), offset, (error, bytesRead) =>
+                  callback(error, bytesRead),
+                ),
+              deadline,
+            );
+            if (count === 0) break;
+            offset += count;
+          }
+          const after = await this.request<Stats>((callback) => sftp.fstat(handle, callback), deadline);
+          if (offset > maxBytes || before.size !== after.size || before.mtime !== after.mtime)
+            throw new FileObservationError('stale_cursor', 'Remote file changed during capture');
+          return buffer.subarray(0, offset);
+        } finally {
+          if (this.connected) await this.request<void>((callback) => sftp.close(handle, (error) => callback(error, undefined)), deadline);
+        }
+      },
+    };
+  }
+  close() {
+    for (const channel of this.channels) channel.close();
+    this.channels.clear();
+    this.client.end();
+    this.invalidate();
+  }
+}

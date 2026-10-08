@@ -1,0 +1,28 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/resource-store.test.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/service/src/resource-store.test.ts
+index 728543d..f35d10d 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/resource-store.test.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/service/src/resource-store.test.ts
+@@ -5,8 +5,6 @@ import path from 'node:path';
+ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+ import {
+   invokeChannels,
+-  ResourceListRequestSchema,
+-  ResourceRemoveRequestSchema,
+   PageResourceSnapshotSchema,
+   ResourceBundleSchema,
+   ResourceCollectionSchema,
+@@ -103,10 +101,10 @@ describe('资源输入边界', () => {
+     const request = { type: 'capturePublicResource', commandId: 'capture', workspaceId: 'taskflow-demo', resourceId: 'web-resource' };
+     expect(invokeChannels['workbench:command'].request.safeParse(request).success).toBe(true);
+     expect(invokeChannels['workbench:command'].request.safeParse({ ...request, text: 'forged' }).success).toBe(false);
+-    expect('resources:list' in invokeChannels).toBe(false);
+-    expect('resources:remove' in invokeChannels).toBe(false);
+-    expect(ResourceListRequestSchema.safeParse({ spaceId: 'second-space' }).success).toBe(false);
+-    expect(ResourceRemoveRequestSchema.safeParse({ spaceId: 'taskflow-demo', resourceId: '../../file' }).success).toBe(false);
++    expect(invokeChannels['resources:list'].request.safeParse({ spaceId: 'second-space' }).success).toBe(false);
++    expect(invokeChannels['resources:remove'].request.safeParse({ spaceId: 'taskflow-demo', resourceId: '../../file' }).success).toBe(
++      false,
++    );
+   });
+   it('快照拒绝危险 scheme，bundle 校验资源所属空间及字节上限', () => {
+     expect(PageResourceSnapshotSchema.safeParse(snapshot('local', 'file:///etc/passwd')).success).toBe(false);

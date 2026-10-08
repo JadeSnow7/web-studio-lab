@@ -1,0 +1,46 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/drafts.ts b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/state/drafts.ts
+index 2d68407..6ffa65b 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/drafts.ts
++++ b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/state/drafts.ts
+@@ -1,9 +1,14 @@
+ import { createStore } from '../lib/store';
+-type Scope = { kind: 'personal' };
++import { DEMO_SPACE } from '../domain/space';
++import type { Scope } from './shell';
+ 
+ /** 首页默认 Agent 的个人会话。它不读取任何空间，也不会向空间发送。 */
+ export const PERSONAL_CONVERSATION_ID = 'conv-personal-default';
+ 
++export function spaceConversationId(spaceId: string): string {
++  return `conv-space-${spaceId}-impl`;
++}
++
+ export interface ConversationInfo {
+   id: string;
+   title: string;
+@@ -18,11 +23,25 @@ export const CONVERSATIONS: Record<string, ConversationInfo> = {
+     scope: { kind: 'personal' },
+     scopeLabel: '个人 · 默认 Agent',
+   },
++  [spaceConversationId(DEMO_SPACE.id)]: {
++    id: spaceConversationId(DEMO_SPACE.id),
++    title: '实现会话',
++    scope: { kind: 'space', spaceId: DEMO_SPACE.id },
++    scopeLabel: DEMO_SPACE.name,
++  },
+ };
+ 
+ /** 输入框的接收目标。none 表示当前没有可发送的目标，界面显示原因。 */
+ export type ComposerTarget = { kind: 'conversation'; conversation: ConversationInfo } | { kind: 'none'; reason: string };
+ 
++/** 右栏“空间”分区的目标只由当前作用域决定：个人作用域下不能沿用后台空间。 */
++export function spacePanelTarget(scope: Scope): ComposerTarget {
++  if (scope.kind === 'personal') return { kind: 'none', reason: '选择空间后对话' };
++  const conversation = CONVERSATIONS[spaceConversationId(scope.spaceId)];
++  if (!conversation) return { kind: 'none', reason: '这个空间还没有会话' };
++  return { kind: 'conversation', conversation };
++}
++
+ export function homeTarget(): ComposerTarget {
+   return { kind: 'conversation', conversation: CONVERSATIONS[PERSONAL_CONVERSATION_ID] as ConversationInfo };
+ }

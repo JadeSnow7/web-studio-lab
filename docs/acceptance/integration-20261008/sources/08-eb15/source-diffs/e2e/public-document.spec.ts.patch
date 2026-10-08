@@ -1,0 +1,45 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/e2e/public-document.spec.ts b/private/tmp/wsl-integration-sources/08-eb15/e2e/public-document.spec.ts
+index 26d205c..9ab9623 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/e2e/public-document.spec.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/e2e/public-document.spec.ts
+@@ -1,8 +1,8 @@
+ import path from 'node:path';
+ import { mkdir, writeFile } from 'node:fs/promises';
+ import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
++import type { StudioApi } from '../packages/protocol/src';
+ import { launchApp, previewInfo, screensDir, setWindowSize, windowShots, browserState } from './helpers';
+-import { resourceCollection } from './helpers';
+ 
+ interface NetworkFixture {
+   requests: { url: string; family: number | undefined; headers: unknown }[];
+@@ -89,7 +89,7 @@ test('controlled-network fixture：真实 Electron 协议跳转、显示、绑
+   const before = await browserState(page);
+   await capture.click();
+   await expect(capture).toBeEnabled();
+-  const collection = await resourceCollection(page);
++  const collection = await page.evaluate(() => (window as unknown as { studio: StudioApi }).studio.resources.list('taskflow-demo'));
+   expect(collection.resources).toHaveLength(1);
+   const resource = collection.resources[0]!;
+   expect(resource).toMatchObject({
+@@ -102,7 +102,9 @@ test('controlled-network fixture：真实 Electron 协议跳转、显示、绑
+   });
+   await capture.click();
+   await expect(capture).toBeEnabled();
+-  expect(await resourceCollection(page)).toEqual(collection);
++  expect(await page.evaluate(() => (window as unknown as { studio: StudioApi }).studio.resources.list('taskflow-demo'))).toEqual(
++    collection,
++  );
+   await windowShots(app, page, 'public-document-controlled-redirect-saved');
+ 
+   await address.fill('https://example.com/missing');
+@@ -123,7 +125,9 @@ test('controlled-network fixture：真实 Electron 协议跳转、显示、绑
+     return result.ok ? 'unexpected success' : 'rejected';
+   });
+   expect(staleCapture).toBe('rejected');
+-  expect(await resourceCollection(page)).toEqual(collection);
++  expect(await page.evaluate(() => (window as unknown as { studio: StudioApi }).studio.resources.list('taskflow-demo'))).toEqual(
++    collection,
++  );
+   const network = await app.evaluate(() => (globalThis as FixtureGlobal).publicNetworkFixture);
+   expect(network.requests.map((request) => request.url)).toEqual([
+     'https://example.com/start',

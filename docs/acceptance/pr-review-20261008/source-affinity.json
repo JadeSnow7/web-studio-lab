@@ -1,0 +1,594 @@
+{
+  "notes": [
+    "Full baseline Electron ran before production fixes; only two newly added test files changed during that run.",
+    "Full post-fix Electron: 56 passed, 1 failed, 5 existing live skips. Sole failure was post-SIGKILL Playwright handle cleanup; all production bytes match final source.",
+    "Focused post-fix SSH/resources/workspace-upgrade: 9 passed, 1 invalid initial IPC fixture failure.",
+    "Corrected resource-event fixture: 1 passed; separate targeted result, not a replacement full-suite claim.",
+    "Later changes were only helper owned-process lifetime, lint-safe test signature, initial event fixture, and capability-message test assertion. No production byte changes after build-final."
+  ],
+  "receipts": [
+    {
+      "receipt": "a12-controlled-before-fix.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "build-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "build.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "changed-format-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts"
+      ]
+    },
+    {
+      "receipt": "changed-lint-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts"
+      ]
+    },
+    {
+      "receipt": "diff-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "docs-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "docs.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "electron-after-fixes.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "electron-before-fixes.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts"
+      ],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "electron-final-focused.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/resources.spec.ts"
+      ]
+    },
+    {
+      "receipt": "fixes-format-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts"
+      ]
+    },
+    {
+      "receipt": "fixes-lint-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts"
+      ]
+    },
+    {
+      "receipt": "format-active-final-v2.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/resources.spec.ts"
+      ]
+    },
+    {
+      "receipt": "format-active-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "format-full-final-v2.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/resources.spec.ts"
+      ]
+    },
+    {
+      "receipt": "format-full-final.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "format-full.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "lint-active-final-v2.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/resources.spec.ts"
+      ]
+    },
+    {
+      "receipt": "lint-active-final.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "lint-full-final-v2.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/resources.spec.ts"
+      ]
+    },
+    {
+      "receipt": "lint-full-final.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "lint-full.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "main-public-resource-retry.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "message-test-format-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts"
+      ]
+    },
+    {
+      "receipt": "observation-message-final-v2.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts"
+      ]
+    },
+    {
+      "receipt": "observation-message-final-v3.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": []
+    },
+    {
+      "receipt": "observation-message-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts"
+      ]
+    },
+    {
+      "receipt": "premium-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "premium-static.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "regression-after-fixes.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "regression-before-fixes.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "resource-event-fixture-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts"
+      ]
+    },
+    {
+      "receipt": "resources-refresh-before-fix.json",
+      "exitCode": 1,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "typecheck-after-fixes.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "typecheck-final-v2.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/resources.spec.ts"
+      ]
+    },
+    {
+      "receipt": "typecheck-final-v3.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts"
+      ]
+    },
+    {
+      "receipt": "typecheck-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "typecheck.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "unit-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "unit.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "vs001-final.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": true,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    },
+    {
+      "receipt": "vs001-selftest.json",
+      "exitCode": 0,
+      "runtimeProductionChangedDuringRun": [],
+      "allSourceChangedDuringRun": [],
+      "currentProductionByteMatch": false,
+      "currentSourceChangedSinceRun": [
+        "apps/desktop/src/main/workbench/application.test.ts",
+        "apps/desktop/src/main/workbench/application.ts",
+        "apps/desktop/src/main/workbench/observation-application.test.ts",
+        "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+        "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+        "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+        "e2e/helpers.ts",
+        "e2e/resources.spec.ts",
+        "e2e/workspace-upgrade.spec.ts"
+      ]
+    }
+  ]
+}

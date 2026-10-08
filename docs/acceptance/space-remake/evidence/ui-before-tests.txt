@@ -1,0 +1,36 @@
+
+ RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+
+ ❯ apps/desktop/src/renderer/src/state/panels.test.ts (0 test)
+ ❯ apps/desktop/src/renderer/src/state/occlusion.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/renderer/src/state/occlusion.test.ts [ apps/desktop/src/renderer/src/state/occlusion.test.ts ]
+Error: Cannot find module './occlusion' imported from /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/src/renderer/src/state/occlusion.test.ts
+ ❯ apps/desktop/src/renderer/src/state/occlusion.test.ts:2:1
+      1| import { describe, expect, it, vi } from 'vitest';
+      2| import { createOcclusion } from './occlusion';
+       | ^
+      3| describe('native overlay barrier', () => {
+      4|   it('blocks layout while waiting, publishes only after confirmed hide…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/renderer/src/state/panels.test.ts [ apps/desktop/src/renderer/src/state/panels.test.ts ]
+Error: Cannot find module './panels' imported from /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/src/renderer/src/state/panels.test.ts
+ ❯ apps/desktop/src/renderer/src/state/panels.test.ts:2:1
+      1| import { describe, expect, it } from 'vitest';
+      2| import { panelMode, togglePanel, pinPanel, closePanel, restorePanels, …
+       | ^
+      3| describe('shared left and notification panel contract', () => {
+      4|   it('starts with a docked left panel and collapsed notification, rest…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  no tests
+   Start at  13:43:55
+   Duration  93ms (worker 97%, environment 3%)
+

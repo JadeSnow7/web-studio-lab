@@ -1,0 +1,29 @@
+{
+  "source_manifest": "phase4b-b-source-manifest.json",
+  "source_hashes_checked": 8,
+  "receipt_hashes_checked": 8,
+  "evidence_hashes_checked": 62,
+  "formal_revision_count": 1,
+  "review": "Main/service F28 and old-binding/unknown proof, strict agent signatures, real PTY stdout-drain boundary, SFTP per-request continuation and denials, same-instance session observation, explicit unknown cleanup force-quit reviewed against source and raw attachments",
+  "staged_files_before_this_record": 91,
+  "staged_bytes_match_worktree": true,
+  "credential_pattern_scan": "no matches",
+  "cached_check": {
+    "argv": [
+      "git",
+      "diff",
+      "--cached",
+      "--check"
+    ],
+    "exit_code": 2,
+    "stdout": "docs/acceptance/integration-20261008/evidence/phase4b-ssh-fourth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:39: trailing whitespace.\n+  5   | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-fourth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:53: trailing whitespace.\n+  19  | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-fourth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:169: trailing whitespace.\n+  134 | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-product-sixth.log:33: trailing whitespace.\n+    [pid=64492][err] \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-second-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:31: trailing whitespace.\n+  5   | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-second-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:45: trailing whitespace.\n+  19  | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-second-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:161: trailing whitespace.\n+  134 | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-second-partial-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:31: trailing whitespace.\n+  5   | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-second-partial-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:45: trailing whitespace.\n+  19  | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-second-partial-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:161: trailing whitespace.\n+  134 | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-sixth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:27: trailing whitespace.\n+[pid=64492][err] \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-sixth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:85: trailing whitespace.\n+  88  | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-sixth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:155: trailing whitespace.\n+  157 | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-sixth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:159: trailing whitespace.\n+  161 | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-sixth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:173: trailing whitespace.\n+  175 | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-sixth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:180: trailing whitespace.\n+  182 | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-sixth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:189: trailing whitespace.\n+  191 | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-sixth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:200: trailing whitespace.\n+  202 | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-sixth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:212: trailing whitespace.\n+  214 | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-sixth-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:221: trailing whitespace.\n+  223 | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-startup-after.log:9: new blank line at EOF.\ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-startup-before-v2.log:50: new blank line at EOF.\ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-startup-before.log:29: new blank line at EOF.\ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-startup-final-local-v2.log:9: new blank line at EOF.\ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-startup-final-local.log:9: new blank line at EOF.\ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-third-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:39: trailing whitespace.\n+  5   | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-third-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:53: trailing whitespace.\n+  19  | \ndocs/acceptance/integration-20261008/evidence/phase4b-ssh-third-contexts/ssh-product-产品SSH-AUTH-SOCK认证、SFTP范围-续读-搜索与真实PTY同实例观察-重开-停止/error-context.md:169: trailing whitespace.\n+  134 | \n",
+    "classification": "only original failure contexts and raw logs; retained unchanged"
+  },
+  "full_unit": "416 pass / 8 live skipped",
+  "product_ssh": "2 passed",
+  "limitations": [
+    "Mac locked; native focus/drag/IME not accepted",
+    "No packaged or live model in this phase",
+    "Disconnected remote cleanup remains unknown; controlled test force-quit is not normal shutdown"
+  ]
+}

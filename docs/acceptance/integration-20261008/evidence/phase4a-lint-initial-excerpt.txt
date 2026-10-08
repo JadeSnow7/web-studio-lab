@@ -1,0 +1,5 @@
+Provenance: exact tool-output excerpt from initial scoped ESLint; not a full raw receipt.
+/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/sbx.spec.ts
+  284:26  error  Unsafe usage of ThrowStatement  no-unsafe-finally
+
+1 problem (1 error, 0 warnings)

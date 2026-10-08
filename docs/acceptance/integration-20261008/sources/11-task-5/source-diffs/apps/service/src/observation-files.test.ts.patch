@@ -1,0 +1,101 @@
+diff --git a/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/observation-files.test.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/observation-files.test.ts
+new file mode 100644
+index 0000000..af38605
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/observation-files.test.ts
+@@ -0,0 +1,95 @@
++import { mkdtemp, rm, writeFile, symlink, mkdir, rename, realpath } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import path from 'node:path';
++import { afterEach, describe, expect, it, vi } from 'vitest';
++import { FileObservationProvider, LocalFileTransport } from './observation-files';
++const roots: string[] = [];
++const providers: { close(): Promise<void> }[] = [];
++async function setup(environmentId = 'local') {
++  const root = await mkdtemp(path.join(tmpdir(), 'observation-files-'));
++  roots.push(root);
++  const files = new FileObservationProvider({ workspaceId: 'w', environmentId, root });
++  providers.push(files);
++  return { root, files };
++}
++afterEach(async () => {
++  await Promise.all(providers.splice(0).map((provider) => provider.close()));
++  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
++});
++describe('real local file observations', () => {
++  it('pins root descriptor and refuses ancestor replacement after authorization', async () => {
++    const { root } = await setup();
++    const outside = await setup();
++    await mkdir(path.join(root, 'parent'));
++    await writeFile(path.join(root, 'parent', 'file'), 'inside');
++    await writeFile(path.join(outside.root, 'file'), 'SECRET-OUTSIDE');
++    const transport = new LocalFileTransport(root);
++    providers.push(transport);
++    const authorized = await transport.realpath(path.join(root, 'parent', 'file'));
++    await rename(path.join(root, 'parent'), path.join(root, 'old-parent'));
++    await symlink(outside.root, path.join(root, 'parent'));
++    await expect(transport.read(authorized, 1024)).rejects.toMatchObject({ code: 'unauthorized' });
++    const canonical = await realpath(root);
++    await expect(transport.list(path.join(canonical, 'parent'), 100)).rejects.toMatchObject({ code: 'unauthorized' });
++  });
++  it('keeps UTF-8 whole across bounded continuation and rejects changed versions', async () => {
++    const { root, files } = await setup();
++    await writeFile(path.join(root, 'text'), 'A中文😀tail');
++    const first = await files.read({ path: 'text', maxBytes: 5 });
++    expect(first.data).toMatchObject({ text: 'A中', hashScope: 'whole_file' });
++    const second = await files.read({ path: 'text', cursor: first.nextCursor, maxBytes: 5 });
++    expect(second.data).toMatchObject({ text: '文' });
++    await writeFile(path.join(root, 'text'), 'B中文😀tail');
++    await expect(files.read({ path: 'text', cursor: first.nextCursor })).rejects.toMatchObject({ code: 'stale_cursor' });
++  });
++  it('rejects traversal, symlinks outside root and credential reads', async () => {
++    const { root, files } = await setup();
++    const other = await setup();
++    await writeFile(path.join(other.root, 'secret'), 'private');
++    await symlink(other.root, path.join(root, 'escape'));
++    await expect(files.read({ path: '../secret' })).rejects.toMatchObject({ code: 'unauthorized' });
++    await expect(files.read({ path: 'escape/secret' })).rejects.toMatchObject({ code: 'unauthorized' });
++    await expect(files.read({ path: '.env.local' })).rejects.toMatchObject({ code: 'unauthorized' });
++  });
++  it('keeps editor dirty source distinct from disk and cursor bound to environment', async () => {
++    const { root, files } = await setup();
++    await writeFile(path.join(root, 'file'), 'disk contents');
++    files.setEditor('file', { text: 'unsaved contents', version: 7, dirty: true });
++    expect((await files.read({ path: 'file', source: 'editor' })).data).toMatchObject({
++      text: 'unsaved contents',
++      documentVersion: 7,
++      dirty: true,
++    });
++    const disk = await files.read({ path: 'file', maxBytes: 4 });
++    expect(disk.data).toMatchObject({ text: 'disk' });
++    expect((await files.read({ path: 'file', source: 'editor' })).resource).toEqual(disk.resource);
++    const remoteIdentity = new FileObservationProvider({ workspaceId: 'w', environmentId: 'ssh:test', root });
++    providers.push(remoteIdentity);
++    await expect(remoteIdentity.read({ path: 'file', cursor: disk.nextCursor })).rejects.toMatchObject({ code: 'stale_cursor' });
++    await expect(files.read({ path: 'file', source: 'editor', cursor: disk.nextCursor })).rejects.toMatchObject({ code: 'stale_cursor' });
++    files.closeEditor('file');
++    await expect(files.read({ path: 'file', source: 'editor' })).rejects.toMatchObject({ code: 'unsupported' });
++  });
++  it('skips a symlink entry without dropping subsequent real files from search', async () => {
++    const { root, files } = await setup();
++    await writeFile(path.join(root, 'needle.txt'), 'later needle');
++    await symlink('needle.txt', path.join(root, 'first-link'));
++    const original = files.transport.list.bind(files.transport);
++    vi.spyOn(files.transport, 'list').mockImplementation(async (...args) => {
++      const result = await original(...args);
++      return { ...result, entries: result.entries.sort((a, b) => Number(b.kind === 'symlink') - Number(a.kind === 'symlink')) };
++    });
++    expect((await files.search({ query: 'later needle' })).data.matches).toEqual(
++      expect.arrayContaining([expect.objectContaining({ path: 'needle.txt' })]),
++    );
++  });
++  it('recognizes binary content and bounds list and rg search', async () => {
++    const { root, files } = await setup();
++    await writeFile(path.join(root, 'a.txt'), 'needle\nneedle\n');
++    await writeFile(path.join(root, 'b'), Buffer.from([0, 1, 2]));
++    await expect(files.read({ path: 'b' })).rejects.toMatchObject({ code: 'unsupported' });
++    expect((await files.list({ limit: 1 })).coverage.reasons).toContain('entry_budget');
++    const result = await files.search({ query: 'needle', limit: 1 });
++    expect(result.data).toMatchObject({ policy: { engine: 'rg', followSymlinks: false } });
++  });
++});

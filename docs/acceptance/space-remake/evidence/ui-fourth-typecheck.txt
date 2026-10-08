@@ -1,0 +1,16 @@
+
+> web-studio-lab@ typecheck /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> pnpm -r typecheck && tsc -p tsconfig.e2e.json && pnpm typecheck:baseline
+
+Scope: 3 of 4 workspace projects
+packages/protocol typecheck$ tsc -p tsconfig.json
+packages/protocol typecheck: Done
+apps/desktop typecheck$ tsc -p tsconfig.node.json && tsc -p tsconfig.web.json
+apps/service typecheck$ tsc -p tsconfig.json
+apps/service typecheck: Done
+apps/desktop typecheck: Done
+e2e/resources-live.spec.ts(139,39): error TS2304: Cannot find name 'StudioApi'.
+e2e/resources-live.spec.ts(141,16): error TS7006: Parameter 's' implicitly has an 'any' type.
+e2e/resources-live.spec.ts(141,41): error TS7006: Parameter 'w' implicitly has an 'any' type.
+e2e/resources-live.spec.ts(141,99): error TS7006: Parameter 'r' implicitly has an 'any' type.
+ ELIFECYCLE  Command failed with exit code 2.

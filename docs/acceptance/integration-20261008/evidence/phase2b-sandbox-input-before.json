@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/service/src/sbx.test.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T09:40:00.048386Z",
+  "ended_at": "2026-10-08T09:40:02.081261Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/sbx.test.ts (13 tests | 1 failed) 1141ms\n   ❯ guest helper 宿主边界 (13)\n     × rejects oversized Chinese input at service and workbench boundaries while preserving the same PTY 90ms\n\n Test Files  1 failed (1)\n      Tests  1 failed | 12 passed (13)\n   Start at  17:40:00\n   Duration  1.46s (tests 83%, import 9%, transform 8%)\n\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/sbx.test.ts > guest helper 宿主边界 > rejects oversized Chinese input at service and workbench boundaries while preserving the same PTY\nError: 终端未运行\n ❯ Terminal.target apps/service/src/terminal.ts:88:66\n     86|   private target(sessionId: string): GuestProcess {\n     87|     if (this.snapshot.sessionId !== sessionId) throw new Error('终端会话身份…\n     88|     if (!this.active || this.snapshot.state !== 'running') throw new E…\n       |                                                                  ^\n     89|     return this.active;\n     90|   }\n ❯ Terminal.write apps/service/src/terminal.ts:92:10\n ❯ apps/service/src/sbx.test.ts:157:16\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvc2VydmljZS9zcmMvc2J4LnRlc3QudHMgKDEzIHRlc3RzIHwgMSBmYWlsZWQpIDExNDFtcwogICDina8gZ3Vlc3QgaGVscGVyIOWuv+S4u+i+ueeVjCAoMTMpCiAgICAgw5cgcmVqZWN0cyBvdmVyc2l6ZWQgQ2hpbmVzZSBpbnB1dCBhdCBzZXJ2aWNlIGFuZCB3b3JrYmVuY2ggYm91bmRhcmllcyB3aGlsZSBwcmVzZXJ2aW5nIHRoZSBzYW1lIFBUWSA5MG1zCgogVGVzdCBGaWxlcyAgMSBmYWlsZWQgKDEpCiAgICAgIFRlc3RzICAxIGZhaWxlZCB8IDEyIHBhc3NlZCAoMTMpCiAgIFN0YXJ0IGF0ICAxNzo0MDowMAogICBEdXJhdGlvbiAgMS40NnMgKHRlc3RzIDgzJSwgaW1wb3J0IDklLCB0cmFuc2Zvcm0gOCUpCgo=",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL3NieC50ZXN0LnRzID4gZ3Vlc3QgaGVscGVyIOWuv+S4u+i+ueeVjCA+IHJlamVjdHMgb3ZlcnNpemVkIENoaW5lc2UgaW5wdXQgYXQgc2VydmljZSBhbmQgd29ya2JlbmNoIGJvdW5kYXJpZXMgd2hpbGUgcHJlc2VydmluZyB0aGUgc2FtZSBQVFkKRXJyb3I6IOe7iOerr+acqui/kOihjAog4p2vIFRlcm1pbmFsLnRhcmdldCBhcHBzL3NlcnZpY2Uvc3JjL3Rlcm1pbmFsLnRzOjg4OjY2CiAgICAgODZ8ICAgcHJpdmF0ZSB0YXJnZXQoc2Vzc2lvbklkOiBzdHJpbmcpOiBHdWVzdFByb2Nlc3MgewogICAgIDg3fCAgICAgaWYgKHRoaXMuc25hcHNob3Quc2Vzc2lvbklkICE9PSBzZXNzaW9uSWQpIHRocm93IG5ldyBFcnJvcign57uI56uv5Lya6K+d6Lqr5Lu94oCmCiAgICAgODh8ICAgICBpZiAoIXRoaXMuYWN0aXZlIHx8IHRoaXMuc25hcHNob3Quc3RhdGUgIT09ICdydW5uaW5nJykgdGhyb3cgbmV3IEXigKYKICAgICAgIHwgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBeCiAgICAgODl8ICAgICByZXR1cm4gdGhpcy5hY3RpdmU7CiAgICAgOTB8ICAgfQog4p2vIFRlcm1pbmFsLndyaXRlIGFwcHMvc2VydmljZS9zcmMvdGVybWluYWwudHM6OTI6MTAKIOKdryBhcHBzL3NlcnZpY2Uvc3JjL3NieC50ZXN0LnRzOjE1NzoxNgoK4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6vWzEvMV3ijq8KCg==",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:cb2dfcb59397ebee2683ce05cb5fcc38b1f0f3094e99be8e60691c521e1e3b14:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:cb2dfcb59397ebee2683ce05cb5fcc38b1f0f3094e99be8e60691c521e1e3b14:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:cb2dfcb59397ebee2683ce05cb5fcc38b1f0f3094e99be8e60691c521e1e3b14:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

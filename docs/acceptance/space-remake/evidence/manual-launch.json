@@ -1,0 +1,8 @@
+{
+  "profile": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-remake-manual-20261008-8czzrhxf",
+  "command": "WSL_SBX_BIN=/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/fixtures/sbx.mjs WSL_SBX_NAME=fixture-sandbox WSL_CODEX_BIN=/missing/host-codex-must-not-run /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop --user-data-dir=/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-remake-manual-20261008-8czzrhxf",
+  "appBundle": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/node_modules/electron/dist/Electron.app",
+  "buildMain": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js",
+  "offline": true,
+  "state": "not_started"
+}

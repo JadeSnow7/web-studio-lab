@@ -1,0 +1,36 @@
+{
+  "source": "/Users/huaodong/.codex/worktrees/f0c5/web-studio-lab",
+  "state": {
+    "head": "c0edaf65424bda56bf7c7bb93492910d6d9ae27e",
+    "status": "",
+    "branch": null
+  },
+  "entries": [
+    {
+      "path": ".gitignore",
+      "kind": "file",
+      "size": 385,
+      "sha256": "e45e7a7e2da297434ccb80804c31b7b367ce19b7cbb1c34d0c44f68e8eefffe0"
+    },
+    {
+      "path": "LICENSE",
+      "kind": "file",
+      "size": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "README.md",
+      "kind": "file",
+      "size": 4814,
+      "sha256": "d4f18e7a9cbb0cbdce444f9cf3aaff558542445f56a03d7bf9ab346721f3340f"
+    },
+    {
+      "path": "docs/plans/2026-10-os2026-task-plan.md",
+      "kind": "file",
+      "size": 42618,
+      "sha256": "5077cee9ff6502715a60cc0a62d7993c0490ab0b528237338ad06e8dc4082e81"
+    }
+  ],
+  "stable": true,
+  "attempt": 1
+}

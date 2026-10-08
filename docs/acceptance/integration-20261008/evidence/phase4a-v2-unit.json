@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "pnpm",
+    "test"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T11:24:46.921821Z",
+  "ended_at": "2026-10-08T11:24:53.678095Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n> web-studio-lab@ test /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n> vitest run\n\n\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/observation-files.test.ts (13 tests | 1 failed) 1137ms\n   × uses the explicit resource and instance for source, read and watch, then closes once 142ms\n\n Test Files  1 failed | 59 passed | 4 skipped (64)\n      Tests  1 failed | 405 passed | 8 skipped (414)\n   Start at  19:24:47\n   Duration  6.11s (tests 77%, import 15%, transform 8%, worker 1%)\n\n    Isolate  64 workers spawned · ~105ms startup each (spawn + environment, per file)\n             at least ~639ms faster with isolate: false — reuses workers across files instead of one per file\n\n ELIFECYCLE  Test failed. See above for more details.\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/observation-files.test.ts > uses the explicit resource and instance for source, read and watch, then closes once\nAssertionError: expected [ { watchGeneration: 1, …(11) }, …(2) ] to deeply equal [ ObjectContaining{…} ]\n\n- Expected\n+ Received\n\n@@ -15,6 +15,42 @@\n      \"resourceId\": \"stable-file\",\n      \"sequence\": 1,\n      \"watchGeneration\": 1,\n      \"workspaceId\": \"other-workspace\",\n    },\n+   {\n+     \"capturedAt\": \"2026-10-08T11:24:49.669Z\",\n+     \"change\": \"rename\",\n+     \"coverage\": {\n+       \"lossy\": true,\n+       \"recursive\": false,\n+       \"scope\": \"observed-directories\",\n+     },\n+     \"environmentId\": \"local\",\n+     \"generation\": \"0bf4677e-2225-4faa-8b14-1a95d6766cd9\",\n+     \"instanceGeneration\": 3,\n+     \"instanceId\": \"file-instance\",\n+     \"kind\": \"file\",\n+     \"resourceId\": \"stable-file\",\n+     \"sequence\": 2,\n+     \"watchGeneration\": 1,\n+     \"workspaceId\": \"other-workspace\",\n+   },\n+   {\n+     \"capturedAt\": \"2026-10-08T11:24:49.724Z\",\n+     \"change\": \"closed\",\n+     \"coverage\": {\n+       \"lossy\": true,\n+       \"recursive\": false,\n+       \"scope\": \"observed-directories\",\n+     },\n+     \"environmentId\": \"local\",\n+     \"generation\": \"0bf4677e-2225-4faa-8b14-1a95d6766cd9\",\n+     \"instanceGeneration\": 3,\n+     \"instanceId\": \"file-instance\",\n+     \"kind\": \"file\",\n+     \"resourceId\": \"stable-file\",\n+     \"sequence\": 3,\n+     \"watchGeneration\": 1,\n+     \"workspaceId\": \"other-workspace\",\n+   },\n  ]\n\n ❯ apps/service/src/observation-files.test.ts:173:17\n    171|   await files.close();\n    172|   await files.close();\n    173|   expect(hints).toEqual([expect.objectContaining(resource)]);\n       |                 ^\n    174|   await expect(files.read({ path: 'x' })).rejects.toMatchObject({ code…\n    175| });\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "Cj4gd2ViLXN0dWRpby1sYWJAIHRlc3QgL1VzZXJzL2h1YW9kb25nLy5jb2RleC93b3JrdHJlZXMvYmY2NC93ZWItc3R1ZGlvLWxhYgo+IHZpdGVzdCBydW4KCgogUlVOICB2NS4wLjMgL1VzZXJzL2h1YW9kb25nLy5jb2RleC93b3JrdHJlZXMvYmY2NC93ZWItc3R1ZGlvLWxhYgoKIOKdryBhcHBzL3NlcnZpY2Uvc3JjL29ic2VydmF0aW9uLWZpbGVzLnRlc3QudHMgKDEzIHRlc3RzIHwgMSBmYWlsZWQpIDExMzdtcwogICDDlyB1c2VzIHRoZSBleHBsaWNpdCByZXNvdXJjZSBhbmQgaW5zdGFuY2UgZm9yIHNvdXJjZSwgcmVhZCBhbmQgd2F0Y2gsIHRoZW4gY2xvc2VzIG9uY2UgMTQybXMKCiBUZXN0IEZpbGVzICAxIGZhaWxlZCB8IDU5IHBhc3NlZCB8IDQgc2tpcHBlZCAoNjQpCiAgICAgIFRlc3RzICAxIGZhaWxlZCB8IDQwNSBwYXNzZWQgfCA4IHNraXBwZWQgKDQxNCkKICAgU3RhcnQgYXQgIDE5OjI0OjQ3CiAgIER1cmF0aW9uICA2LjExcyAodGVzdHMgNzclLCBpbXBvcnQgMTUlLCB0cmFuc2Zvcm0gOCUsIHdvcmtlciAxJSkKCiAgICBJc29sYXRlICA2NCB3b3JrZXJzIHNwYXduZWQgwrcgfjEwNW1zIHN0YXJ0dXAgZWFjaCAoc3Bhd24gKyBlbnZpcm9ubWVudCwgcGVyIGZpbGUpCiAgICAgICAgICAgICBhdCBsZWFzdCB+NjM5bXMgZmFzdGVyIHdpdGggaXNvbGF0ZTogZmFsc2Ug4oCUIHJldXNlcyB3b3JrZXJzIGFjcm9zcyBmaWxlcyBpbnN0ZWFkIG9mIG9uZSBwZXIgZmlsZQoK4oCJRUxJRkVDWUNMReKAiSBUZXN0IGZhaWxlZC4gU2VlIGFib3ZlIGZvciBtb3JlIGRldGFpbHMuCg==",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL29ic2VydmF0aW9uLWZpbGVzLnRlc3QudHMgPiB1c2VzIHRoZSBleHBsaWNpdCByZXNvdXJjZSBhbmQgaW5zdGFuY2UgZm9yIHNvdXJjZSwgcmVhZCBhbmQgd2F0Y2gsIHRoZW4gY2xvc2VzIG9uY2UKQXNzZXJ0aW9uRXJyb3I6IGV4cGVjdGVkIFsgeyB3YXRjaEdlbmVyYXRpb246IDEsIOKApigxMSkgfSwg4oCmKDIpIF0gdG8gZGVlcGx5IGVxdWFsIFsgT2JqZWN0Q29udGFpbmluZ3vigKZ9IF0KCi0gRXhwZWN0ZWQKKyBSZWNlaXZlZAoKQEAgLTE1LDYgKzE1LDQyIEBACiAgICAgICJyZXNvdXJjZUlkIjogInN0YWJsZS1maWxlIiwKICAgICAgInNlcXVlbmNlIjogMSwKICAgICAgIndhdGNoR2VuZXJhdGlvbiI6IDEsCiAgICAgICJ3b3Jrc3BhY2VJZCI6ICJvdGhlci13b3Jrc3BhY2UiLAogICAgfSwKKyAgIHsKKyAgICAgImNhcHR1cmVkQXQiOiAiMjAyNi0xMC0wOFQxMToyNDo0OS42NjlaIiwKKyAgICAgImNoYW5nZSI6ICJyZW5hbWUiLAorICAgICAiY292ZXJhZ2UiOiB7CisgICAgICAgImxvc3N5IjogdHJ1ZSwKKyAgICAgICAicmVjdXJzaXZlIjogZmFsc2UsCisgICAgICAgInNjb3BlIjogIm9ic2VydmVkLWRpcmVjdG9yaWVzIiwKKyAgICAgfSwKKyAgICAgImVudmlyb25tZW50SWQiOiAibG9jYWwiLAorICAgICAiZ2VuZXJhdGlvbiI6ICIwYmY0Njc3ZS0yMjI1LTRmYWEtOGIxNC0xYTk1ZDY3NjZjZDkiLAorICAgICAiaW5zdGFuY2VHZW5lcmF0aW9uIjogMywKKyAgICAgImluc3RhbmNlSWQiOiAiZmlsZS1pbnN0YW5jZSIsCisgICAgICJraW5kIjogImZpbGUiLAorICAgICAicmVzb3VyY2VJZCI6ICJzdGFibGUtZmlsZSIsCisgICAgICJzZXF1ZW5jZSI6IDIsCisgICAgICJ3YXRjaEdlbmVyYXRpb24iOiAxLAorICAgICAid29ya3NwYWNlSWQiOiAib3RoZXItd29ya3NwYWNlIiwKKyAgIH0sCisgICB7CisgICAgICJjYXB0dXJlZEF0IjogIjIwMjYtMTAtMDhUMTE6MjQ6NDkuNzI0WiIsCisgICAgICJjaGFuZ2UiOiAiY2xvc2VkIiwKKyAgICAgImNvdmVyYWdlIjogeworICAgICAgICJsb3NzeSI6IHRydWUsCisgICAgICAgInJlY3Vyc2l2ZSI6IGZhbHNlLAorICAgICAgICJzY29wZSI6ICJvYnNlcnZlZC1kaXJlY3RvcmllcyIsCisgICAgIH0sCisgICAgICJlbnZpcm9ubWVudElkIjogImxvY2FsIiwKKyAgICAgImdlbmVyYXRpb24iOiAiMGJmNDY3N2UtMjIyNS00ZmFhLThiMTQtMWE5NWQ2NzY2Y2Q5IiwKKyAgICAgImluc3RhbmNlR2VuZXJhdGlvbiI6IDMsCisgICAgICJpbnN0YW5jZUlkIjogImZpbGUtaW5zdGFuY2UiLAorICAgICAia2luZCI6ICJmaWxlIiwKKyAgICAgInJlc291cmNlSWQiOiAic3RhYmxlLWZpbGUiLAorICAgICAic2VxdWVuY2UiOiAzLAorICAgICAid2F0Y2hHZW5lcmF0aW9uIjogMSwKKyAgICAgIndvcmtzcGFjZUlkIjogIm90aGVyLXdvcmtzcGFjZSIsCisgICB9LAogIF0KCiDina8gYXBwcy9zZXJ2aWNlL3NyYy9vYnNlcnZhdGlvbi1maWxlcy50ZXN0LnRzOjE3MzoxNwogICAgMTcxfCAgIGF3YWl0IGZpbGVzLmNsb3NlKCk7CiAgICAxNzJ8ICAgYXdhaXQgZmlsZXMuY2xvc2UoKTsKICAgIDE3M3wgICBleHBlY3QoaGludHMpLnRvRXF1YWwoW2V4cGVjdC5vYmplY3RDb250YWluaW5nKHJlc291cmNlKV0pOwogICAgICAgfCAgICAgICAgICAgICAgICAgXgogICAgMTc0fCAgIGF3YWl0IGV4cGVjdChmaWxlcy5yZWFkKHsgcGF0aDogJ3gnIH0pKS5yZWplY3RzLnRvTWF0Y2hPYmplY3QoeyBjb2Rl4oCmCiAgICAxNzV8IH0pOwoK4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6v4o6vWzEvMV3ijq8KCg==",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:7ee92eed65284b4b2d06be2f392d71fd9461e3dd7897f3fffec80fb9f43d676f:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:7ee92eed65284b4b2d06be2f392d71fd9461e3dd7897f3fffec80fb9f43d676f:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:7ee92eed65284b4b2d06be2f392d71fd9461e3dd7897f3fffec80fb9f43d676f:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

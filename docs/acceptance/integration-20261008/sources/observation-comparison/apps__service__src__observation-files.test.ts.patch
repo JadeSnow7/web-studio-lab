@@ -1,0 +1,43 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/service/src/observation-files.test.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-files.test.ts
+index af38605..9d6fa88 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/service/src/observation-files.test.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-files.test.ts
+@@ -93,3 +93,38 @@ describe('real local file observations', () => {
+     expect(result.data).toMatchObject({ policy: { engine: 'rg', followSymlinks: false } });
+   });
+ });
++
++it.each(['read', 'list', 'search'] as const)('refuses an in-flight %s result after resource generation changes', async (operation) => {
++  let release!: () => void;
++  let started!: () => void;
++  const gate = new Promise<void>((resolve) => {
++    release = resolve;
++  });
++  const entered = new Promise<void>((resolve) => {
++    started = resolve;
++  });
++  const transport = {
++    generation: 'old',
++    remote: true,
++    available: true,
++    realpath: async (file: string) => file,
++    read: async () => {
++      started();
++      await gate;
++      return Buffer.from('old contents');
++    },
++    list: async () => {
++      started();
++      await gate;
++      return { entries: [], truncated: false };
++    },
++  };
++  const provider = new FileObservationProvider({ workspaceId: 'w', environmentId: 'remote', root: '/root', transport });
++  const pending =
++    operation === 'read' ? provider.read({ path: 'x' }) : operation === 'list' ? provider.list() : provider.search({ query: 'x' });
++  await entered;
++  transport.generation = 'new';
++  transport.available = false;
++  release();
++  await expect(pending).rejects.toMatchObject({ code: 'unavailable' });
++});

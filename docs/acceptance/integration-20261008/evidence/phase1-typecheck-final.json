@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "pnpm",
+    "typecheck"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T07:56:00.831708Z",
+  "ended_at": "2026-10-08T07:56:02.881210Z",
+  "exit_code": 2,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n> web-studio-lab@ typecheck /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n> pnpm -r typecheck && tsc -p tsconfig.e2e.json && pnpm typecheck:baseline\n\nScope: 3 of 4 workspace projects\npackages/protocol typecheck$ tsc -p tsconfig.json\npackages/protocol typecheck: Done\napps/service typecheck$ tsc -p tsconfig.json\napps/desktop typecheck$ tsc -p tsconfig.node.json && tsc -p tsconfig.web.json\napps/service typecheck: Done\napps/desktop typecheck: src/main/preview/observation.ts(103,55): error TS2345: Argument of type '(event: { url: string; isMainFrame: boolean; }) => void' is not assignable to parameter of type '(event: { preventDefault: () => void; readonly defaultPrevented: boolean; }, zoomDirection: \"out\" | \"in\") => void'.\napps/desktop typecheck:   Types of parameters 'event' and 'event' are incompatible.\napps/desktop typecheck:     Type '{ preventDefault: () => void; readonly defaultPrevented: boolean; }' is missing the following properties from type '{ url: string; isMainFrame: boolean; }': url, isMainFrame\napps/desktop typecheck: src/main/preview/observation.ts(105,50): error TS2345: Argument of type '(event: { level: string; message: string; }) => void' is not assignable to parameter of type '(event: { preventDefault: () => void; readonly defaultPrevented: boolean; }, zoomDirection: \"out\" | \"in\") => void'.\napps/desktop typecheck:   Types of parameters 'event' and 'event' are incompatible.\napps/desktop typecheck:     Type '{ preventDefault: () => void; readonly defaultPrevented: boolean; }' is missing the following properties from type '{ level: string; message: string; }': level, message\napps/desktop typecheck: Failed\n/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop:\n ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @wsl/desktop@0.1.0 typecheck: `tsc -p tsconfig.node.json && tsc -p tsconfig.web.json`\nExit status 2\n ELIFECYCLE  Command failed with exit code 2.\n",
+  "stderr": "",
+  "stdout_base64": "Cj4gd2ViLXN0dWRpby1sYWJAIHR5cGVjaGVjayAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCj4gcG5wbSAtciB0eXBlY2hlY2sgJiYgdHNjIC1wIHRzY29uZmlnLmUyZS5qc29uICYmIHBucG0gdHlwZWNoZWNrOmJhc2VsaW5lCgpTY29wZTogMyBvZiA0IHdvcmtzcGFjZSBwcm9qZWN0cwpwYWNrYWdlcy9wcm90b2NvbCB0eXBlY2hlY2skIHRzYyAtcCB0c2NvbmZpZy5qc29uCnBhY2thZ2VzL3Byb3RvY29sIHR5cGVjaGVjazogRG9uZQphcHBzL3NlcnZpY2UgdHlwZWNoZWNrJCB0c2MgLXAgdHNjb25maWcuanNvbgphcHBzL2Rlc2t0b3AgdHlwZWNoZWNrJCB0c2MgLXAgdHNjb25maWcubm9kZS5qc29uICYmIHRzYyAtcCB0c2NvbmZpZy53ZWIuanNvbgphcHBzL3NlcnZpY2UgdHlwZWNoZWNrOiBEb25lCmFwcHMvZGVza3RvcCB0eXBlY2hlY2s6IHNyYy9tYWluL3ByZXZpZXcvb2JzZXJ2YXRpb24udHMoMTAzLDU1KTogZXJyb3IgVFMyMzQ1OiBBcmd1bWVudCBvZiB0eXBlICcoZXZlbnQ6IHsgdXJsOiBzdHJpbmc7IGlzTWFpbkZyYW1lOiBib29sZWFuOyB9KSA9PiB2b2lkJyBpcyBub3QgYXNzaWduYWJsZSB0byBwYXJhbWV0ZXIgb2YgdHlwZSAnKGV2ZW50OiB7IHByZXZlbnREZWZhdWx0OiAoKSA9PiB2b2lkOyByZWFkb25seSBkZWZhdWx0UHJldmVudGVkOiBib29sZWFuOyB9LCB6b29tRGlyZWN0aW9uOiAib3V0IiB8ICJpbiIpID0+IHZvaWQnLgphcHBzL2Rlc2t0b3AgdHlwZWNoZWNrOiAgIFR5cGVzIG9mIHBhcmFtZXRlcnMgJ2V2ZW50JyBhbmQgJ2V2ZW50JyBhcmUgaW5jb21wYXRpYmxlLgphcHBzL2Rlc2t0b3AgdHlwZWNoZWNrOiAgICAgVHlwZSAneyBwcmV2ZW50RGVmYXVsdDogKCkgPT4gdm9pZDsgcmVhZG9ubHkgZGVmYXVsdFByZXZlbnRlZDogYm9vbGVhbjsgfScgaXMgbWlzc2luZyB0aGUgZm9sbG93aW5nIHByb3BlcnRpZXMgZnJvbSB0eXBlICd7IHVybDogc3RyaW5nOyBpc01haW5GcmFtZTogYm9vbGVhbjsgfSc6IHVybCwgaXNNYWluRnJhbWUKYXBwcy9kZXNrdG9wIHR5cGVjaGVjazogc3JjL21haW4vcHJldmlldy9vYnNlcnZhdGlvbi50cygxMDUsNTApOiBlcnJvciBUUzIzNDU6IEFyZ3VtZW50IG9mIHR5cGUgJyhldmVudDogeyBsZXZlbDogc3RyaW5nOyBtZXNzYWdlOiBzdHJpbmc7IH0pID0+IHZvaWQnIGlzIG5vdCBhc3NpZ25hYmxlIHRvIHBhcmFtZXRlciBvZiB0eXBlICcoZXZlbnQ6IHsgcHJldmVudERlZmF1bHQ6ICgpID0+IHZvaWQ7IHJlYWRvbmx5IGRlZmF1bHRQcmV2ZW50ZWQ6IGJvb2xlYW47IH0sIHpvb21EaXJlY3Rpb246ICJvdXQiIHwgImluIikgPT4gdm9pZCcuCmFwcHMvZGVza3RvcCB0eXBlY2hlY2s6ICAgVHlwZXMgb2YgcGFyYW1ldGVycyAnZXZlbnQnIGFuZCAnZXZlbnQnIGFyZSBpbmNvbXBhdGlibGUuCmFwcHMvZGVza3RvcCB0eXBlY2hlY2s6ICAgICBUeXBlICd7IHByZXZlbnREZWZhdWx0OiAoKSA9PiB2b2lkOyByZWFkb25seSBkZWZhdWx0UHJldmVudGVkOiBib29sZWFuOyB9JyBpcyBtaXNzaW5nIHRoZSBmb2xsb3dpbmcgcHJvcGVydGllcyBmcm9tIHR5cGUgJ3sgbGV2ZWw6IHN0cmluZzsgbWVzc2FnZTogc3RyaW5nOyB9JzogbGV2ZWwsIG1lc3NhZ2UKYXBwcy9kZXNrdG9wIHR5cGVjaGVjazogRmFpbGVkCi9Vc2Vycy9odWFvZG9uZy8uY29kZXgvd29ya3RyZWVzL2JmNjQvd2ViLXN0dWRpby1sYWIvYXBwcy9kZXNrdG9wOgrigIlFUlJfUE5QTV9SRUNVUlNJVkVfUlVOX0ZJUlNUX0ZBSUzigIkgQHdzbC9kZXNrdG9wQDAuMS4wIHR5cGVjaGVjazogYHRzYyAtcCB0c2NvbmZpZy5ub2RlLmpzb24gJiYgdHNjIC1wIHRzY29uZmlnLndlYi5qc29uYApFeGl0IHN0YXR1cyAyCuKAiUVMSUZFQ1lDTEXigIkgQ29tbWFuZCBmYWlsZWQgd2l0aCBleGl0IGNvZGUgMi4K",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:b722267a1632790c69465a5a61152001173f6de396381f88868e72e68e5cdd3a:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:b722267a1632790c69465a5a61152001173f6de396381f88868e72e68e5cdd3a:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:b722267a1632790c69465a5a61152001173f6de396381f88868e72e68e5cdd3a:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

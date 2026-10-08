@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "pnpm",
+    "baseline"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T12:52:24.916744Z",
+  "ended_at": "2026-10-08T12:52:25.438264Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n> web-studio-lab@ baseline /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n> tsx tests/vertical-slice/run.ts\n\nrun: /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/records/vertical-slice/c5bc8fef-9759-484e-bb91-e3721b9932f0\n1..5\nnot ok B01 - failed / target_missing / performed=false\nnot ok B02 - failed / target_missing / performed=false\nnot ok B03 - failed / target_missing / performed=false\nnot ok B04 - failed / target_missing / performed=false\nnot ok B05 - failed / target_missing / performed=false\n ELIFECYCLE  Command failed with exit code 1.\n",
+  "stderr": "(node:80765) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n",
+  "stdout_base64": "Cj4gd2ViLXN0dWRpby1sYWJAIGJhc2VsaW5lIC9Vc2Vycy9odWFvZG9uZy8uY29kZXgvd29ya3RyZWVzL2JmNjQvd2ViLXN0dWRpby1sYWIKPiB0c3ggdGVzdHMvdmVydGljYWwtc2xpY2UvcnVuLnRzCgpydW46IC9Vc2Vycy9odWFvZG9uZy8uY29kZXgvd29ya3RyZWVzL2JmNjQvd2ViLXN0dWRpby1sYWIvcmVjb3Jkcy92ZXJ0aWNhbC1zbGljZS9jNWJjOGZlZi05NzU5LTQ4NGUtYmI5MS1lMzcyMWI5OTMyZjAKMS4uNQpub3Qgb2sgQjAxIC0gZmFpbGVkIC8gdGFyZ2V0X21pc3NpbmcgLyBwZXJmb3JtZWQ9ZmFsc2UKbm90IG9rIEIwMiAtIGZhaWxlZCAvIHRhcmdldF9taXNzaW5nIC8gcGVyZm9ybWVkPWZhbHNlCm5vdCBvayBCMDMgLSBmYWlsZWQgLyB0YXJnZXRfbWlzc2luZyAvIHBlcmZvcm1lZD1mYWxzZQpub3Qgb2sgQjA0IC0gZmFpbGVkIC8gdGFyZ2V0X21pc3NpbmcgLyBwZXJmb3JtZWQ9ZmFsc2UKbm90IG9rIEIwNSAtIGZhaWxlZCAvIHRhcmdldF9taXNzaW5nIC8gcGVyZm9ybWVkPWZhbHNlCuKAiUVMSUZFQ1lDTEXigIkgQ29tbWFuZCBmYWlsZWQgd2l0aCBleGl0IGNvZGUgMS4K",
+  "stderr_base64": "KG5vZGU6ODA3NjUpIFtERVAwMjA1XSBEZXByZWNhdGlvbldhcm5pbmc6IGBtb2R1bGUucmVnaXN0ZXIoKWAgaXMgZGVwcmVjYXRlZC4gVXNlIGBtb2R1bGUucmVnaXN0ZXJIb29rcygpYCBpbnN0ZWFkLgooVXNlIGBub2RlIC0tdHJhY2UtZGVwcmVjYXRpb24gLi4uYCB0byBzaG93IHdoZXJlIHRoZSB3YXJuaW5nIHdhcyBjcmVhdGVkKQo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:9732859c9c7d41bbcd5323750a2f2686f94043d3c7e233684cc04b7d94f9adc8:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:9732859c9c7d41bbcd5323750a2f2686f94043d3c7e233684cc04b7d94f9adc8:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:9732859c9c7d41bbcd5323750a2f2686f94043d3c7e233684cc04b7d94f9adc8:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

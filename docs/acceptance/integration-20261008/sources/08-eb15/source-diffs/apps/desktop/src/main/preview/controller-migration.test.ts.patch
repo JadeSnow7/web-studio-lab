@@ -1,0 +1,63 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/preview/controller-migration.test.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/preview/controller-migration.test.ts
+index 139faea..0f0cc89 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/preview/controller-migration.test.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/preview/controller-migration.test.ts
+@@ -2,11 +2,7 @@ import { EventEmitter } from 'node:events';
+ import type { BrowserWindow } from 'electron';
+ import type { PageCapture } from '@wsl/protocol';
+ import { beforeEach, describe, expect, it, vi } from 'vitest';
+-const mocks = vi.hoisted(() => ({
+-  views: [] as unknown[],
+-  tools: [] as Array<{ webContents: { id: number }; destroy: ReturnType<typeof vi.fn> }>,
+-  screenshot: vi.fn(),
+-}));
++const mocks = vi.hoisted(() => ({ views: [] as unknown[], screenshot: vi.fn() }));
+ vi.mock('./element-summary', () => ({
+   readElementSummary: vi.fn(async () => ({
+     tagName: 'BUTTON',
+@@ -21,16 +17,6 @@ vi.mock('./element-summary', () => ({
+   })),
+ }));
+ vi.mock('electron', () => ({
+-  BrowserWindow: class extends EventEmitter {
+-    webContents = { id: 99 };
+-    show = vi.fn();
+-    focus = vi.fn();
+-    destroy = vi.fn(() => this.emit('closed'));
+-    constructor() {
+-      super();
+-      mocks.tools.push(this);
+-    }
+-  },
+   WebContentsView: class {
+     webContents = Object.assign(new EventEmitter(), {
+       id: 42,
+@@ -49,8 +35,6 @@ vi.mock('electron', () => ({
+       focus: vi.fn(),
+       capturePage: mocks.screenshot,
+       close: vi.fn(),
+-      setDevToolsWebContents: vi.fn(),
+-      openDevTools: vi.fn(),
+     });
+     constructor() {
+       mocks.views.push(this);
+@@ -181,19 +165,4 @@ describe('R4 deferred inspect exit ownership', () => {
+     expect(controller.getState().pickError).toBeNull();
+     expect(controller.getState().picking).toBe(true);
+   });
+-  it('establishes a dedicated DevTools identity before loading and disposes it with the preview', () => {
+-    const { controller, view } = setup();
+-    const contents = view.webContents as typeof view.webContents & {
+-      setDevToolsWebContents: ReturnType<typeof vi.fn>;
+-      openDevTools: ReturnType<typeof vi.fn>;
+-    };
+-    controller.openDevTools();
+-    const tools = mocks.tools.at(-1)!;
+-    expect(contents.setDevToolsWebContents).toHaveBeenCalledWith(tools.webContents);
+-    expect(contents.setDevToolsWebContents.mock.invocationCallOrder[0]).toBeLessThan(contents.openDevTools.mock.invocationCallOrder[0]!);
+-    controller.openDevTools();
+-    expect(contents.openDevTools).toHaveBeenCalledOnce();
+-    controller.dispose();
+-    expect(tools.destroy).toHaveBeenCalledOnce();
+-  });
+ });

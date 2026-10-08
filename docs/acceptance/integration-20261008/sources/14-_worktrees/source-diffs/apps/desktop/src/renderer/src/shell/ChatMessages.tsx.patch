@@ -1,0 +1,17 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/shell/ChatMessages.tsx b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/shell/ChatMessages.tsx
+index 8537a17..eb8b734 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/shell/ChatMessages.tsx
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/shell/ChatMessages.tsx
+@@ -1,3 +1,4 @@
++import { ObservationPanel } from './ObservationPanel';
+ import { useEffect, useRef } from 'react';
+ import { useStore } from '../lib/store';
+ import { chatActions, chatStore } from '../state/chat';
+@@ -16,6 +17,7 @@ export function ChatMessages({ conversationId }: { conversationId: string }) {
+   const busy = conversation?.state === 'running' || conversation?.state === 'cancelling';
+   return (
+     <>
++      {conversationId === 'conv-space-taskflow-demo-impl' ? <ObservationPanel /> : null}
+       <div className="row space-between">
+         <span className="muted small" aria-label="对话执行环境">
+           sbx · {status?.sandbox ?? '未选择沙箱'} · {status?.cwd ?? '工作目录未读取'} · Codex CLI ·{' '}

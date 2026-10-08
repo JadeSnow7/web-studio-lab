@@ -1,0 +1,26 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/e2e/workbench.spec.ts b/private/tmp/wsl-integration-sources/12-_worktrees/e2e/workbench.spec.ts
+index 2761b75..b434ba8 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/e2e/workbench.spec.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/e2e/workbench.spec.ts
+@@ -27,7 +27,11 @@ test('启动：窗口、安全边界与 Browser 区真实加载', async () => {
+     process: typeof (window as unknown as { process?: unknown }).process,
+     studio: Object.keys((window as unknown as { studio: object }).studio),
+   }));
+-  expect(rendererCaps).toEqual({ require: 'undefined', process: 'undefined', studio: ['preview', 'app', 'execution', 'shell'] });
++  expect(rendererCaps).toEqual({
++    require: 'undefined',
++    process: 'undefined',
++    studio: ['resources', 'chat', 'terminal', 'preview', 'app', 'execution', 'shell'],
++  });
+ 
+   const info = await previewInfo(app);
+   expect(info.url).toBe('wsl-demo://taskflow/index.html');
+@@ -135,7 +139,7 @@ test('Tab 与演示状态：日志 / diff / 报告切换，审阅只作用于演
+   await workshop().getByRole('option', { name: '成功待审阅' }).click();
+   await expect(page.getByRole('log', { name: '运行事件' })).toContainText('run.finished');
+   await page.getByRole('tab', { name: '源码 diff' }).click();
+-  await expect(page.getByLabel('源码 diff')).toContainText("priority: text('priority'");
++  await expect(page.getByRole('tabpanel', { name: '源码 diff' }).locator('pre.diff')).toContainText("priority: text('priority'");
+   await page.getByRole('tab', { name: '验收报告' }).click();
+   await expect(page.getByRole('heading', { name: '固定验收报告' })).toBeVisible();
+   await expect(page.locator('.view-banner')).toContainText('不是真实运行结果');

@@ -1,0 +1,28 @@
+{
+  "source": {
+    "path": "e2e/resources-live.spec.ts",
+    "sha256": "2647afa0ea2eb24b2355208e37db7768173cdb63bd607d3fcb91f53714a5f8cb"
+  },
+  "beforeReceipt": "docs/acceptance/integration-20261008/evidence/final/live-resources.json",
+  "finding": "Five-second UI wait ended before the existing 20000ms public-document request deadline; capture success/failure was not determined by that failure.",
+  "change": "Only post-click enabled wait set to30000ms; original navigation/resource/MCP assertions unchanged.",
+  "evidence": "Finally records actual workspace.publicResourcesError, collection revision/count and raw button present/disabled; existing preview loading/loadError remains. Main has no authoritative public-resource pending field; no fabricated pending value.",
+  "execution": "Offline type/lint/format/diff only; no network/model/sandbox/GUI run.",
+  "receipts": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/public-resource-live-wait-type.json",
+      "sha256": "6bd6f02c7eb2c3ff0e68da03820db3f651cc4d9ede1c18977760b01994dfc922",
+      "revisionStable": true
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/public-resource-live-wait-lint.json",
+      "sha256": "6a125128f19e0917a1091148bcb792fccebf4728bf85e3d94e4cf7f07f94b752",
+      "revisionStable": true
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/public-resource-live-wait-format.json",
+      "sha256": "19138855619a898ee8bbc7933b4293368ccf49c239a0b4fb207598d982daf438",
+      "revisionStable": true
+    }
+  ]
+}

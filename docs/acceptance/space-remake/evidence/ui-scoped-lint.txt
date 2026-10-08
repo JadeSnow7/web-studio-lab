@@ -1,0 +1,25 @@
+
+/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/src/renderer/src/App.tsx
+  42:6  warning  React Hook useEffect has a missing dependency: 'workspace'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/src/renderer/src/workspace/Panes.tsx
+  58:7  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/src/renderer/src/workspace/Panes.tsx:58:7
+  56 |   useEffect(() => {
+  57 |     if (!active && menu) {
+> 58 |       setMenu(null);
+     |       ^^^^^^^ Avoid calling setState() directly within an effect
+  59 |       void onOverlay(false);
+  60 |     }
+  61 |     if (!menu) return;  react-hooks/set-state-in-effect
+  71:6  warning  React Hook useEffect has missing dependencies: 'closeMenu' and 'onOverlay'. Either include them or remove the dependency array. If 'onOverlay' changes too often, find the parent component that defines it and wrap that definition in useCallback                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+
+✖ 3 problems (1 error, 2 warnings)
+

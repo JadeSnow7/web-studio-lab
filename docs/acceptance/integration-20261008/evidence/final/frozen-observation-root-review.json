@@ -1,0 +1,17 @@
+{
+  "receipt": "frozen-live-observation.json",
+  "artifact": "frozen-live-observation-artifacts/results/observation-live-live：真实Codex统一观察三来源，运行中换空间仍保持原冻结归属/observation-live-evidence.json",
+  "verified": true,
+  "runId": "6ae5635f-c1bf-4931-a271-b1abcad47b29",
+  "full_evidence_same_as_tool_result_or_exact_bounded_metadata": true,
+  "four_requested_mcp_tools_only": true,
+  "workspace_switch_while_same_run_running": true,
+  "model_contains_all_three_actual_markers": true,
+  "other_workspace_unmodified": true,
+  "process_cleanup_confirmed": true,
+  "application_exited": true,
+  "cleanup_errors": [],
+  "limits": [
+    "Uses real model in existing sandbox, actual Electron WebContents, authorized host file and same sandbox PTY. Does not test successful guest-browser capture or OS focus."
+  ]
+}

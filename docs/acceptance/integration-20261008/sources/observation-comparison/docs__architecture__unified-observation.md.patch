@@ -1,0 +1,98 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/docs/architecture/unified-observation.md b/private/tmp/wsl-integration-sources/14-_worktrees/docs/architecture/unified-observation.md
+index 26048ec..238c326 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/docs/architecture/unified-observation.md
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/docs/architecture/unified-observation.md
+@@ -18,10 +18,49 @@
+ 
+ 需要既有 Node/pnpm、Python 3、rg，sandbox 对话另需已配置的 sbx 与 Codex 登录。新增依赖锁定为 `@xterm/headless@6.0.0`、`ssh2@1.17.0`、`@types/ssh2@1.15.5`。本次安装使用 `--ignore-scripts`；不触发 Electron 或 SSH 可选原生模块安装。SSH 使用官方 JavaScript fallback；headless 包的 `module` 指向不存在文件，因此 service Vite 显式选择包内 `lib-headless/xterm-headless.js`。
+ 
+-```sh
+-pnpm install --frozen-lockfile --ignore-scripts
+-WSL_OBSERVATION_ROOT=/absolute/approved/project WSL_SBX_NAME=your-existing-sandbox pnpm dev
+-```
++### 安装覆盖与可复现边界
++
++**当前仍没有从空白机器部署全部能力的统一安装器。** 本次新增 Provider 和依赖锁定，没有补齐先前安装审查中的所有部署缺口。`pnpm install --frozen-lockfile --ignore-scripts` 只安装锁文件中的 JavaScript/TypeScript 包；它既不保证 Electron 二进制就绪，也不安装 Node、pnpm、Python、rg、sbx、guest Chromium 或登录凭据。
++
++| 层次                                 | 现有覆盖                                                                             | 干净环境仍需准备                                                                            |
++| ------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
++| host Node / pnpm / Python 3 / rg     | 前置工具检查与使用，不由本项目安装                                                   | 按[开发依赖说明](../development/dependencies.md)准备；pnpm 固定 10.34.6，Node 24 为目标版本 |
++| host JS 包 / xterm / headless / ssh2 | pnpm 锁文件可复现安装                                                                | 可访问批准的包源或完整离线缓存                                                              |
++| Electron 44.5.1 二进制               | 包内安装器可显式运行；本次验证复用已准备二进制                                       | 平台对应可执行文件，不能仅以 node_modules 或 install 命令成功判断                           |
++| sbx 与 sandbox 创建、权限、认证      | 复用已安装 CLI 和已授权环境                                                          | 用户准备真实 sandbox、网络策略和 Codex 登录；脚本不自动复制认证                             |
++| guest Node / pnpm / Codex            | `scripts/sbx-prepare-guest.sh` 可在已经创建的 Linux ARM64 guest 内安装并检查固定版本 | guest、sudo、网络及相关下载权限；不是 host 安装器，不应在 macOS 执行                        |
++| guest Playwright / Chromium / 系统包 | 仍未纳入上述 guest 准备脚本                                                          | 历史验证用 Chromium 153 / Playwright 1.63 及系统包是单独准备的；干净 guest 不能据此推定可用 |
++| SSH 服务、host-key pin、agent 身份   | 读取可信配置并执行严格连接检查                                                       | 用户已授权的远端服务、可信指纹、现有 ssh-agent 和远端授权目录                               |
++
++当前本地 Browser 使用 Electron 自带 Chromium；不依赖 guest Chromium。缺少 guest 浏览器不会阻止本地 Browser / Terminal / File 的只读工具；sandbox 对话和 sandbox 终端仍要求各自前置条件。不要把本地观察成功当成 guest 浏览器已完整部署。
++
++1. 安装锁定的项目包，禁用隐式生命周期安装：
++
++   ```sh
++   pnpm install --frozen-lockfile --ignore-scripts
++   ```
++
++2. 显式检查 Electron 是否已准备。下面只读取包元数据、`path.txt` 并检查目标可执行文件，不加载 `require('electron')`，因此不会触发包入口的隐式安装：
++
++   ```sh
++   pnpm --filter @wsl/desktop exec node -e "const fs=require('node:fs'),p=require('node:path');const root=p.dirname(require.resolve('electron/package.json'));const executable=p.join(root,'dist',fs.readFileSync(p.join(root,'path.txt'),'utf8').trim());fs.accessSync(executable,fs.constants.X_OK);console.log(executable)"
++   ```
++
++   如果检查失败，需要明确准备 Electron 二进制后再启动。可在确认网络和磁盘写入范围后显式运行锁定 Electron 包自带的安装器；这是安装操作，会按当前平台下载或复用缓存，并写入该工作树的 Electron 包及用户缓存：
++
++   ```sh
++   pnpm --filter @wsl/desktop exec node node_modules/electron/install.js
++   ```
++
++   安装器默认使用官方 Electron 发行源；现有镜像配置会影响下载来源。完成后重新执行上面的就绪检查。不要用首次 `pnpm dev` 意外触发下载来代替安装验收。本次开发并未执行这条二进制安装命令，真实 Electron 验收指定了先前已准备的可执行文件。
++
++3. 准备相应运行环境并启动：
++
++   ```sh
++   WSL_OBSERVATION_ROOT=/absolute/approved/project WSL_SBX_NAME=your-existing-sandbox pnpm dev
++   ```
++
++干净 host / guest 的全栈安装实验尚未执行，离线缓存不完整时不保证安装成功。本次只确认了锁定包安装、已准备运行环境中的构建和分层验收；没有新增自动修改网络、创建身份、登录、启用 SSH 服务或修复系统依赖的脚本。
+ 
+ `WSL_OBSERVATION_ROOT` 是后台授予的本地目录范围，未设置时本地文件和本地终端不可用；不会默认授权 home。当前产品只有固定 `taskflow-demo` 空间。终端页选择“本地 / 沙箱 / SSH”，先关闭当前终端再切环境。显示的终端和 AI 工具指向同一 session。普通终端里手动输入 ssh 不授予远程 File Provider 权限。
+ 
+@@ -56,14 +95,14 @@ Browser 元素 ref 绑定目标、frame、文档代次、语义 snapshot。导
+ ## 读取预算与真实覆盖
+ 
+ - Browser 默认至多 100 个 AX 元素；固定原生 CDP DOM/AX 查询，不接受任意 JavaScript、evaluate 或 CDP 命令。无点击、刷新、滚动行为。iframe/OOPIF、closed shadow、Canvas 和虚拟化覆盖缺口明确返回；当前公开 URL 视图仍是原项目的净化文档，不是原网站登录浏览器。
+-- 截图只对当前 viewport/显式区域，PNG 大小受限。默认文本模型收到证据和尺寸，不收到图片字节，也不被宣称完成视觉理解。管理员确认当前模型支持图片后可设置 `WSL_MODEL_SUPPORTS_IMAGES=1`：PNG/JPEG 经签名、尺寸及总计 512 KiB（最多 4 张）校验进入 MCP image 内容块；不会自动选择/更换模型或验证模型能力。本轮图片传输协议已测，实际视觉模型理解未验证。
++- 截图只对当前 viewport/显式区域，PNG 大小受限。默认文本模型收到证据和尺寸，不收到图片字节，也不被宣称完成视觉理解。管理员确认当前模型支持图片后可设置 `WSL_MODEL_SUPPORTS_IMAGES=1`：PNG/JPEG 经类型签名及总计 512 KiB（最多 4 张）字节预算校验进入 MCP image 内容块；PNG 另校验宽高与像素预算，JPEG 不解析尺寸；不会自动选择/更换模型或验证模型能力。本轮图片传输协议已测，实际视觉模型理解未验证。
+ - Browser 事件只覆盖实际监听区间；Network 从最近 CDP 启用时间开始，detach 期间是缺口；500 条有界历史。
+ - PTY 保留 256 KiB 原始输出，headless scrollback 5000 行；parser 积压超限明确 gap。UI 是唯一终端 query responder。屏幕最新区域与用户 viewport 分别读取；outputOffset 防止 UI 缓冲淘汰时误重置。
+ - shell hook 元数据是进程可伪造的数据，不是授权依据。bash 第一 simple command 及 foreground prompt 状态有来源说明；后台归属 unknown。SSH 未安装 shell hooks 时命令结果 unknown。PTY 退出不作为每条命令的退出码。
+ - 文件快照最多 8 MiB，单次文本至多 64 KiB，UTF-8 续读不切坏多字节字符；巨文件与未支持编码/格式明确 unsupported。图片验证签名，仅在小预算内提供字节；PDF/Office 没有解析器，不作为文本传入模型。
+ - 本地搜索经安全目录遍历采样，再以 rg 处理采集的文本，不允许模型控制命令。最多 100 文件、每文件 64 KiB、5 秒；隐藏与凭据路径排除，不应用 gitignore；结果提供实际策略，零匹配不代表整个项目不存在。
+ - 现有产品没有真实编辑器文档模型。`source: editor` 明确 unsupported；Provider 的 setEditor 是未来文档模型的适配点，单测注入不代表已完成编辑器 UI 联调。构建使用版本未知。
+-- 首版按需重读，文件每次 hash 校验；不缓存未经重新校验的内容。Browser/terminal 事件与序号提示变化；尚无文件 watch UI 推送、完整 DOM 增量、长期索引。
++- 首版按需重读，文件每次 hash 校验；不缓存未经重新校验的内容。Browser/terminal 事件与序号提示变化；本地文件增加有界失效提示（下文），仍无完整 DOM 增量或长期索引。
+ 
+ ## 验证与复现
+ 
+@@ -78,3 +117,22 @@ WSL_E2E_ELECTRON=/path/to/already-installed/Electron \
+ 真实 local PTY 测试需要读取所属进程状态及清理权限，真实 SSH 测试只在 127.0.0.1 临时端口运行隔离 ssh2 server，不启用系统 Remote Login。固定 fixture、独立 socket/工具调度、真实 Electron、真实模型必须分别报告。新增 E2E 覆盖同页未提交表单、导航引用失效、多 WebContents 不串读、覆盖缺口、文件续读和 UI 读取入口。
+ 
+ 实际模型验证使用已授权的 sandbox 登录，向空间会话提出页面与本地文件/终端问题；查看工程详情的 MCP 调用与固定 Observation evidence。不能只根据模型复述或编译通过认定真实读取。最终执行结果与未验证项见本次交付报告。
++
++## 本地文件变化提示
++
++`LocalFileWatch` 随 File Provider 管理：只监听授权根及实际 read/list/search 使用的目录，最多 32 个非递归 watcher。事件先按目录合并，再以 60ms 批次进行有界状态核对；不广播文件路径、内容或凭据，不自动重新读取，也不触发模型。`workspace.list_sources` 的 `watch` 返回实际目录数、上限、状态；每个文件结果 `data.watch.watched` 表明对应目录是否进入当前覆盖。达到上限、平台失败或未观察的目录不是已覆盖；SFTP 明确 `supported:false`。
++
++事件携带 workspace/environment/root resource、资源 generation、watchGeneration、递增 sequence、时间及非递归/可能丢失的 coverage。文件修改、重命名、删除均使现有结果显示更新提示；平台可能将修改或删除报告为 rename，分类不是审计事实。缺失 filename 使用 unknown，合并会丢失中间状态，因此它不是事件日志或内容 revision。只有显式重新读取才获得新 hash 和不可变证据；聊天只在用户下一次发送时携带最多一条提示。
++
++根 inode 替换使原 Provider 不可用并改变 generation，不静默重新授权新目录；重新启动工作区才建立新实例。已观察子目录替换后，下次读取核对 inode 并重建该目录 watcher，递增 watchGeneration。关闭 Provider 清理 watcher/待发事件/根 fd。没有全项目递归 watch 保证，未读取目录和丢失事件仍依靠按需内容 hash 校验。
++
++本机已准备环境可使用以下显式入口（不会通过 Electron 包入口隐式下载）：
++
++```sh
++export PATH="/Users/huaodong/.npm/_npx/168ca33e231eaaf0/node_modules/.bin:$PATH"
++export ELECTRON_OVERRIDE_DIST_PATH="/Users/huaodong/workspace/_worktrees/lab-integration-20261007/node_modules/.pnpm/electron@44.5.1/node_modules/electron/dist"
++export WSL_OBSERVATION_ROOT="/your/authorized/workspace"
++pnpm dev
++```
++
++Electron 覆盖目录应实际含 `Electron.app/Contents/MacOS/Electron`，按本机现有包布局核对；路径是本机复现示例，不是跨机器安装配置。

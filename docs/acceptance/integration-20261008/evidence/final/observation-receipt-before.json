@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/service/src/resource-chat.test.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T13:45:42.312532Z",
+  "ended_at": "2026-10-08T13:45:43.051272Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/resource-chat.test.ts (13 tests | 1 failed) 177ms\n   ❯ space resources per-turn capability (13)\n     × retains complete observation provenance when terminal output exceeds the MCP record budget 4ms\n\n Test Files  1 failed (1)\n      Tests  1 failed | 12 passed (13)\n   Start at  21:45:42\n   Duration  378ms (tests 57%, transform 25%, import 17%, worker 1%)\n\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/resource-chat.test.ts > space resources per-turn capability > retains complete observation provenance when terminal output exceeds the MCP record budget\nAssertionError: expected { status: 'completed', …(3) } to deeply equal { status: 'completed', …(3) }\n\n- Expected\n+ Received\n\n  {\n-   \"receipt\": {\n-     \"capturedAt\": \"2026-10-08T12:00:00.000Z\",\n-     \"coverage\": {\n-       \"range\": {\n-         \"end\": 32745,\n-         \"start\": 0,\n-       },\n-       \"status\": \"complete\",\n-     },\n-     \"evidenceRef\": \"observation-42.json\",\n-     \"generation\": \"pty-3\",\n-     \"representation\": \"terminal-output\",\n-     \"resource\": {\n-       \"environmentId\": \"sandbox\",\n-       \"instanceGeneration\": 3,\n-       \"instanceId\": \"instance-1\",\n-       \"kind\": \"terminal\",\n-       \"resourceId\": \"term-1\",\n-       \"workspaceId\": \"taskflow-demo\",\n-     },\n-     \"revision\": {\n-       \"strength\": \"sequence\",\n-       \"value\": \"42\",\n-     },\n-     \"snapshotId\": \"00000000-0000-4000-8000-000000000042\",\n-     \"source\": \"pty\",\n-   },\n+   \"receipt\": {},\n    \"status\": \"completed\",\n    \"truncated\": true,\n    \"untrusted\": true,\n  }\n\n ❯ apps/service/src/resource-chat.test.ts:218:39\n    216|     expect(record.truncated).toBe(true);\n    217|     expect(record.output.length).toBeLessThanOrEqual(16000);\n    218|     expect(JSON.parse(record.output)).toEqual({ status: 'completed', t…\n       |                                       ^\n    219|   });\n    220|   it('total MCP evidence limit remains valid JSON with explicit omissi…\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvc2VydmljZS9zcmMvcmVzb3VyY2UtY2hhdC50ZXN0LnRzICgxMyB0ZXN0cyB8IDEgZmFpbGVkKSAxNzdtcwogICDina8gc3BhY2UgcmVzb3VyY2VzIHBlci10dXJuIGNhcGFiaWxpdHkgKDEzKQogICAgIMOXIHJldGFpbnMgY29tcGxldGUgb2JzZXJ2YXRpb24gcHJvdmVuYW5jZSB3aGVuIHRlcm1pbmFsIG91dHB1dCBleGNlZWRzIHRoZSBNQ1AgcmVjb3JkIGJ1ZGdldCA0bXMKCiBUZXN0IEZpbGVzICAxIGZhaWxlZCAoMSkKICAgICAgVGVzdHMgIDEgZmFpbGVkIHwgMTIgcGFzc2VkICgxMykKICAgU3RhcnQgYXQgIDIxOjQ1OjQyCiAgIER1cmF0aW9uICAzNzhtcyAodGVzdHMgNTclLCB0cmFuc2Zvcm0gMjUlLCBpbXBvcnQgMTclLCB3b3JrZXIgMSUpCgo=",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL3Jlc291cmNlLWNoYXQudGVzdC50cyA+IHNwYWNlIHJlc291cmNlcyBwZXItdHVybiBjYXBhYmlsaXR5ID4gcmV0YWlucyBjb21wbGV0ZSBvYnNlcnZhdGlvbiBwcm92ZW5hbmNlIHdoZW4gdGVybWluYWwgb3V0cHV0IGV4Y2VlZHMgdGhlIE1DUCByZWNvcmQgYnVkZ2V0CkFzc2VydGlvbkVycm9yOiBleHBlY3RlZCB7IHN0YXR1czogJ2NvbXBsZXRlZCcsIOKApigzKSB9IHRvIGRlZXBseSBlcXVhbCB7IHN0YXR1czogJ2NvbXBsZXRlZCcsIOKApigzKSB9CgotIEV4cGVjdGVkCisgUmVjZWl2ZWQKCiAgewotICAgInJlY2VpcHQiOiB7Ci0gICAgICJjYXB0dXJlZEF0IjogIjIwMjYtMTAtMDhUMTI6MDA6MDAuMDAwWiIsCi0gICAgICJjb3ZlcmFnZSI6IHsKLSAgICAgICAicmFuZ2UiOiB7Ci0gICAgICAgICAiZW5kIjogMzI3NDUsCi0gICAgICAgICAic3RhcnQiOiAwLAotICAgICAgIH0sCi0gICAgICAgInN0YXR1cyI6ICJjb21wbGV0ZSIsCi0gICAgIH0sCi0gICAgICJldmlkZW5jZVJlZiI6ICJvYnNlcnZhdGlvbi00Mi5qc29uIiwKLSAgICAgImdlbmVyYXRpb24iOiAicHR5LTMiLAotICAgICAicmVwcmVzZW50YXRpb24iOiAidGVybWluYWwtb3V0cHV0IiwKLSAgICAgInJlc291cmNlIjogewotICAgICAgICJlbnZpcm9ubWVudElkIjogInNhbmRib3giLAotICAgICAgICJpbnN0YW5jZUdlbmVyYXRpb24iOiAzLAotICAgICAgICJpbnN0YW5jZUlkIjogImluc3RhbmNlLTEiLAotICAgICAgICJraW5kIjogInRlcm1pbmFsIiwKLSAgICAgICAicmVzb3VyY2VJZCI6ICJ0ZXJtLTEiLAotICAgICAgICJ3b3Jrc3BhY2VJZCI6ICJ0YXNrZmxvdy1kZW1vIiwKLSAgICAgfSwKLSAgICAgInJldmlzaW9uIjogewotICAgICAgICJzdHJlbmd0aCI6ICJzZXF1ZW5jZSIsCi0gICAgICAgInZhbHVlIjogIjQyIiwKLSAgICAgfSwKLSAgICAgInNuYXBzaG90SWQiOiAiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDQyIiwKLSAgICAgInNvdXJjZSI6ICJwdHkiLAotICAgfSwKKyAgICJyZWNlaXB0Ijoge30sCiAgICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgICAidHJ1bmNhdGVkIjogdHJ1ZSwKICAgICJ1bnRydXN0ZWQiOiB0cnVlLAogIH0KCiDina8gYXBwcy9zZXJ2aWNlL3NyYy9yZXNvdXJjZS1jaGF0LnRlc3QudHM6MjE4OjM5CiAgICAyMTZ8ICAgICBleHBlY3QocmVjb3JkLnRydW5jYXRlZCkudG9CZSh0cnVlKTsKICAgIDIxN3wgICAgIGV4cGVjdChyZWNvcmQub3V0cHV0Lmxlbmd0aCkudG9CZUxlc3NUaGFuT3JFcXVhbCgxNjAwMCk7CiAgICAyMTh8ICAgICBleHBlY3QoSlNPTi5wYXJzZShyZWNvcmQub3V0cHV0KSkudG9FcXVhbCh7IHN0YXR1czogJ2NvbXBsZXRlZCcsIHTigKYKICAgICAgIHwgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBeCiAgICAyMTl8ICAgfSk7CiAgICAyMjB8ICAgaXQoJ3RvdGFsIE1DUCBldmlkZW5jZSBsaW1pdCByZW1haW5zIHZhbGlkIEpTT04gd2l0aCBleHBsaWNpdCBvbWlzc2nigKYKCuKOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr1sxLzFd4o6vCgo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:bb47f18fa8a4dddfd18130a6c8a0959e235989a99e105041eae3c10cd7e2d390:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:bb47f18fa8a4dddfd18130a6c8a0959e235989a99e105041eae3c10cd7e2d390:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:bb47f18fa8a4dddfd18130a6c8a0959e235989a99e105041eae3c10cd7e2d390:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

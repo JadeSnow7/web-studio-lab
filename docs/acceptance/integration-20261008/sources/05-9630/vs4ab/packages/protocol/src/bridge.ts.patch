@@ -1,0 +1,22 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/packages/protocol/src/bridge.ts b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/bridge.ts
+index ec79acf..edfa44b 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/packages/protocol/src/bridge.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/bridge.ts
+@@ -1,3 +1,5 @@
++import type { ResourceCollection } from './resources';
++import type { PageIdentity } from './preview';
+ import type { TerminalSnapshot } from './terminal';
+ import type { ChatConversation, ChatSlot, ChatStatus } from './chat';
+ import type { AppInfo, ShellCommand } from './app';
+@@ -11,6 +13,11 @@ export type Unsubscribe = () => void;
+  * 每个方法对应 ipc.ts 中的一个通道；不暴露 ipcRenderer 本身。
+  */
+ export interface StudioApi {
++  resources: {
++    list(spaceId: string): Promise<ResourceCollection>;
++    capture(spaceId: string, expectedPage: PageIdentity, resourceId?: string): Promise<ResourceCollection>;
++    remove(spaceId: string, resourceId: string): Promise<ResourceCollection>;
++  };
+   chat: {
+     getStatus(): Promise<ChatStatus>;
+     get(conversationId: ChatSlot): Promise<ChatConversation>;

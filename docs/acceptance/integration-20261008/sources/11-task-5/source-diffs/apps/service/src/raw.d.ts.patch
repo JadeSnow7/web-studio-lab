@@ -1,0 +1,13 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/raw.d.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/raw.d.ts
+index 483e330..2fe44bd 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/raw.d.ts
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/raw.d.ts
+@@ -7,3 +7,8 @@ declare module '*.cjs?raw' {
+   const source: string;
+   export default source;
+ }
++
++declare module '*.sh?raw' {
++  const content: string;
++  export default content;
++}

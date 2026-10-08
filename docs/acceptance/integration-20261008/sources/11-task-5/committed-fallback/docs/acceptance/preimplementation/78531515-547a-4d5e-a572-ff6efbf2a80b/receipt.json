@@ -1,0 +1,118 @@
+{
+  "runId": "78531515-547a-4d5e-a572-ff6efbf2a80b",
+  "taskSha256": "d3e338da7ff71fa7b69dbe778f9e50d1ea904079f359aaf8f3025b5c08180dcf",
+  "baselineSha256": "e6e980c11e0ac84baf26c52b5724a9a6706e3de480494aba549293425a2ab928",
+  "productBase": "536f0a1948e522a09310aa20784ec512476dc7be",
+  "methodRevisionBase": "81efecd5c27c94e853db40db206603f1affe5bdc",
+  "supersedes": "d1c9bc9e-4092-4697-83cf-d52d334b7686",
+  "manifestPath": "run/manifest.json",
+  "manifestSha256": "1aa8af00d1f6028b60286e3912f44218f781ae286fed0253b14df59ca8cce5c8",
+  "commandEvidence": [
+    {
+      "path": "commands/baseline.json",
+      "size": 128,
+      "sha256": "5ecffb4c49752c0bcee95e0ed245fd672d7e86c1614fd3b3f6aa9da9a22a42e2"
+    },
+    {
+      "path": "commands/baseline.stderr.txt",
+      "size": 191,
+      "sha256": "638fe3e467d58be677160f7815b86f90d1721ed2592a3b6fd20f2e8d0c1afa2f"
+    },
+    {
+      "path": "commands/baseline.stdout.txt",
+      "size": 489,
+      "sha256": "8635ad2b8610a72fbe8ce53060bfeee19029f873051227ac4fd25f03a7f9ce14"
+    },
+    {
+      "path": "commands/regression-before-fix.json",
+      "size": 137,
+      "sha256": "11f6d969daf5793c0323a738f1228f4c95b8c19fc2269fe4eec5bc74b47e778a"
+    },
+    {
+      "path": "commands/regression-before-fix.stderr.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "commands/regression-before-fix.stdout.txt",
+      "size": 2337,
+      "sha256": "fdad25b012acfa417ff4f3e3c4058e191599bfd7e4fe7923e73a0f9807a217b1"
+    },
+    {
+      "path": "commands/selftest.json",
+      "size": 137,
+      "sha256": "3e1fc318e8e9bdfdb162916e87e1212281bf0c98ffa79e65c9006a4b4113ac7c"
+    },
+    {
+      "path": "commands/selftest.stderr.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "commands/selftest.stdout.txt",
+      "size": 1183,
+      "sha256": "5aa9555ccd52592e48f923b1214295ad0ac490b39ccaa51fc8740b9cc291b68f"
+    },
+    {
+      "path": "commands/typecheck-probe-invalid-adapter.json",
+      "size": 129,
+      "sha256": "589df5712e51545352b48ab4b2a37eb030f501f66bfd05ffa4fb811d253302ea"
+    },
+    {
+      "path": "commands/typecheck-probe-invalid-adapter.stderr.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "commands/typecheck-probe-invalid-adapter.stdout.txt",
+      "size": 364,
+      "sha256": "078d258afdcba186522beb9f16c964d338bdb878274f37c81f848672a17b2b98"
+    },
+    {
+      "path": "commands/typecheck-probe-invalid-tsx.json",
+      "size": 129,
+      "sha256": "f5e5aa4a621f4c4ed3776e7b9bb0263ab813b1b2639a29e861a2cbb283e8dbba"
+    },
+    {
+      "path": "commands/typecheck-probe-invalid-tsx.stderr.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "commands/typecheck-probe-invalid-tsx.stdout.txt",
+      "size": 181,
+      "sha256": "1e63c244dab29d10eed2969c876b8a36a14480654073587397fde44b7f6cd752"
+    },
+    {
+      "path": "commands/typecheck-probe-valid.json",
+      "size": 129,
+      "sha256": "c7792c4c5a6a185216dda98cacf47dfd054a3587d0b9d1db64ae6889097a95b6"
+    },
+    {
+      "path": "commands/typecheck-probe-valid.stderr.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "commands/typecheck-probe-valid.stdout.txt",
+      "size": 95,
+      "sha256": "bbeaa029972876d145fcba85a48a91b61c75d0e93b21a3e43a3ca9a26dcb6dc4"
+    },
+    {
+      "path": "commands/typecheck.json",
+      "size": 129,
+      "sha256": "48acbe10108275bfde5df0f50d7435833acff0f741d8c87c91b233f14aae728c"
+    },
+    {
+      "path": "commands/typecheck.stderr.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "commands/typecheck.stdout.txt",
+      "size": 95,
+      "sha256": "bbeaa029972876d145fcba85a48a91b61c75d0e93b21a3e43a3ca9a26dcb6dc4"
+    }
+  ],
+  "interpretation": "New method baseline after PR #1 P2 fixes. Typecheck and 8 synthetic self-tests pass; five product checks fail with target_missing/performed=false, exit 1. No Agent, Electron, CDP observation or screenshot performed. Historical receipt remains unchanged."
+}

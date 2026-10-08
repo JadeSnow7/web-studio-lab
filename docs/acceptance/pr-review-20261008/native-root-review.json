@@ -1,0 +1,50 @@
+{
+  "capturedAt": "2026-10-08T15:11:17.921779+00:00",
+  "method": "Primary-thread CUA tool observations; excerpts transcribed from tool outputs, not synthetic DOM events",
+  "window": "PR Review 20261008 · isolated fixture",
+  "pid": 20050,
+  "profile": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-e2e-mXNQrP",
+  "results": [
+    {
+      "action": "activate terminal and click connect",
+      "observed": "已连接; focused 终端输入",
+      "status": "passed"
+    },
+    {
+      "action": "open space switcher",
+      "observed": "focused 搜索空间或标签",
+      "status": "passed"
+    },
+    {
+      "action": "native Escape",
+      "observed": "focused 切换空间 button after dismissal",
+      "status": "passed"
+    },
+    {
+      "action": "open Resources and click refresh",
+      "observed": "共 0 条 · 集合版本 0; no visible error; refresh button focused",
+      "status": "passed",
+      "limit": "Empty fixture does not establish recovery from actual backend fault; separate E2E fault test does"
+    },
+    {
+      "action": "return to Space",
+      "observed": "same visible fixture terminal still connected",
+      "status": "passed",
+      "limit": "Visual continuity only; instance identity asserted separately in E2E"
+    },
+    {
+      "action": "click close terminal",
+      "observed": "已关闭，所属进程已确认退出",
+      "status": "passed"
+    }
+  ],
+  "notRun": [
+    "native IME candidate composition",
+    "native drag and reorder",
+    "native controlled late-ready race",
+    "system compositor click-through"
+  ],
+  "modelOrRealSandboxUsed": false,
+  "cleanupReceipt": "native-cleanup.json",
+  "productAcceptance": "undetermined"
+}

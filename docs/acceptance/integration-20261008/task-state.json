@@ -1,0 +1,778 @@
+{
+  "schema_version": "1.3",
+  "spec": {
+    "version": "INTEGRATION-1",
+    "authority": "docs/acceptance/integration-20261008/SPEC.md",
+    "source_ids": ["SRC-001"],
+    "goal_ref": "discovery.expected_outcome",
+    "scope_ref": "discovery.scope",
+    "constraints": ["Main state authority; other worktrees readonly; preserve VS001 and historical evidence"],
+    "exceptions": ["Environment or manual input limitations remain undetermined"],
+    "conditions": [
+      {
+        "id": "INT-ALL",
+        "metric_ids": ["MET-001"],
+        "deliverables": ["docs/acceptance/integration-20261008/task-summary.md"]
+      }
+    ],
+    "contracts": ["docs/acceptance/integration-20261008/SPEC.md"],
+    "open_items": []
+  },
+  "task": {
+    "id": "INTEGRATION-20261008",
+    "title": "本地提交与跨分支整合",
+    "mode": "new",
+    "status": "implemented",
+    "source_ids": ["SRC-001"]
+  },
+  "discovery": {
+    "status": "ready",
+    "expected_outcome": "Integrate existing observation and environment capabilities, preserve six-section shell, review and verify all code",
+    "scope": "Current bf64 product, related branches and dirty candidates, local commits only",
+    "user": "Web Studio 本地开发者",
+    "scenario": "将空间重制成果与跨工作树既有能力整合到同一产品",
+    "problem": "并行分支的能力、状态权威与历史证据尚未统一审查和接线",
+    "acceptable_result": "按 INTEGRATION-1 完成实现与全量验证；环境缺口明确记录，不伪造通过"
+  },
+  "sources": [
+    {
+      "id": "SRC-001",
+      "kind": "user_requirement",
+      "reference": "conversation:2026-10-08-approved-integration-plan",
+      "summary": "PLEASE IMPLEMENT THIS PLAN: 本地提交、全量审查与跨分支整合; includes existing local/SSH/file providers, real model and sandbox live; no push/merge/release",
+      "adoption": "accepted"
+    }
+  ],
+  "main_tasks": [
+    {
+      "id": "MT-001",
+      "source_ids": ["SRC-001"],
+      "goal": "Approved integration specification",
+      "scope": ["INT-01 through INT-12"],
+      "non_goals": ["mother template", "independent verifier", "business API expansion"],
+      "dependencies": [],
+      "assumptions": [],
+      "status": "implemented",
+      "metric_ids": ["MET-001"],
+      "implementation_task_ids": ["IT-001", "IT-002", "IT-003", "IT-004", "IT-005", "IT-006"]
+    }
+  ],
+  "metrics": [
+    {
+      "id": "MET-001",
+      "main_task_id": "MT-001",
+      "kind": "mandatory_gate",
+      "name": "Approved specification verified against final source",
+      "baseline": "9e1df45 independent commands and source inventory",
+      "target": "INT-01 through INT-12 verified or explicit unavailable evidence recorded",
+      "method": "Review source diffs and raw command/window evidence per SPEC",
+      "environment_data": "bf64, macOS, existing sandbox, loopback SSH",
+      "evidence_ids": [
+        "EVD-001",
+        "EVD-002",
+        "EVD-003",
+        "EVD-004",
+        "EVD-005",
+        "EVD-006",
+        "EVD-007",
+        "EVD-008",
+        "EVD-009",
+        "EVD-010",
+        "EVD-011",
+        "EVD-012",
+        "EVD-013",
+        "EVD-014",
+        "EVD-015",
+        "EVD-016",
+        "EVD-017",
+        "EVD-018",
+        "EVD-019",
+        "EVD-020",
+        "EVD-021",
+        "EVD-022",
+        "EVD-023",
+        "EVD-024"
+      ],
+      "status": "undetermined",
+      "verification": "execution"
+    }
+  ],
+  "implementation_tasks": [
+    {
+      "id": "IT-001",
+      "main_task_id": "MT-001",
+      "source_ids": ["SRC-001"],
+      "scope": "协议与观察 Provider",
+      "file_scope": [
+        "packages/protocol",
+        "apps/service/src/observation-files.ts",
+        "apps/service/src/observation-terminal.ts",
+        "apps/service/src/observation-ssh.ts",
+        "apps/desktop/src/main/preview/observation.ts"
+      ],
+      "interface_constraints": ["Main 唯一事实源；六页布局；历史证据和其他树只读"],
+      "dependencies": [],
+      "acceptance": ["MET-001"],
+      "support_reason": "",
+      "evidence_ids": [
+        "EVD-001",
+        "EVD-002",
+        "EVD-003",
+        "EVD-004",
+        "EVD-005",
+        "EVD-006",
+        "EVD-007",
+        "EVD-008",
+        "EVD-009",
+        "EVD-010",
+        "EVD-011",
+        "EVD-012",
+        "EVD-013",
+        "EVD-014",
+        "EVD-015",
+        "EVD-016",
+        "EVD-017",
+        "EVD-018",
+        "EVD-019",
+        "EVD-020",
+        "EVD-021",
+        "EVD-022",
+        "EVD-023",
+        "EVD-024"
+      ],
+      "owner": "coder",
+      "status": "implemented"
+    },
+    {
+      "id": "IT-002",
+      "main_task_id": "MT-001",
+      "source_ids": ["SRC-001"],
+      "scope": "本地与 SSH 服务资源和进程生命周期",
+      "file_scope": ["apps/service", "apps/desktop/src/main/chat-service.ts", "packages/protocol"],
+      "interface_constraints": ["Main 唯一事实源；六页布局；历史证据和其他树只读"],
+      "dependencies": ["IT-001"],
+      "acceptance": ["MET-001"],
+      "support_reason": "",
+      "evidence_ids": [
+        "EVD-001",
+        "EVD-002",
+        "EVD-003",
+        "EVD-004",
+        "EVD-005",
+        "EVD-006",
+        "EVD-007",
+        "EVD-008",
+        "EVD-009",
+        "EVD-010",
+        "EVD-011",
+        "EVD-012",
+        "EVD-013",
+        "EVD-014",
+        "EVD-015",
+        "EVD-016",
+        "EVD-017",
+        "EVD-018",
+        "EVD-019",
+        "EVD-020",
+        "EVD-021",
+        "EVD-022",
+        "EVD-023",
+        "EVD-024"
+      ],
+      "owner": "coder",
+      "status": "implemented"
+    },
+    {
+      "id": "IT-003",
+      "main_task_id": "MT-001",
+      "source_ids": ["SRC-001"],
+      "scope": "Main、持久化、IPC 与冻结的 MCP 观察通道",
+      "file_scope": ["apps/desktop/src/main", "apps/desktop/src/preload", "apps/service", "packages/protocol"],
+      "interface_constraints": ["Main 唯一事实源；六页布局；历史证据和其他树只读"],
+      "dependencies": ["IT-002"],
+      "acceptance": ["MET-001"],
+      "support_reason": "",
+      "evidence_ids": [
+        "EVD-001",
+        "EVD-002",
+        "EVD-003",
+        "EVD-004",
+        "EVD-005",
+        "EVD-006",
+        "EVD-007",
+        "EVD-008",
+        "EVD-009",
+        "EVD-010",
+        "EVD-011",
+        "EVD-012",
+        "EVD-013",
+        "EVD-014",
+        "EVD-015",
+        "EVD-016",
+        "EVD-017",
+        "EVD-018",
+        "EVD-019",
+        "EVD-020",
+        "EVD-021",
+        "EVD-022",
+        "EVD-023",
+        "EVD-024"
+      ],
+      "owner": "coder",
+      "status": "implemented"
+    },
+    {
+      "id": "IT-004",
+      "main_task_id": "MT-001",
+      "source_ids": ["SRC-001"],
+      "scope": "空间界面和既有回归问题修复",
+      "file_scope": ["apps/desktop/src/renderer", "e2e", "premium-ui.json"],
+      "interface_constraints": ["Main 唯一事实源；六页布局；历史证据和其他树只读"],
+      "dependencies": ["IT-003"],
+      "acceptance": ["MET-001"],
+      "support_reason": "",
+      "evidence_ids": [
+        "EVD-001",
+        "EVD-002",
+        "EVD-003",
+        "EVD-004",
+        "EVD-005",
+        "EVD-006",
+        "EVD-007",
+        "EVD-008",
+        "EVD-009",
+        "EVD-010",
+        "EVD-011",
+        "EVD-012",
+        "EVD-013",
+        "EVD-014",
+        "EVD-015",
+        "EVD-016",
+        "EVD-017",
+        "EVD-018",
+        "EVD-019",
+        "EVD-020",
+        "EVD-021",
+        "EVD-022",
+        "EVD-023",
+        "EVD-024"
+      ],
+      "owner": "coder",
+      "status": "implemented"
+    },
+    {
+      "id": "IT-005",
+      "main_task_id": "MT-001",
+      "source_ids": ["SRC-001"],
+      "scope": "验证工具、live 隔离及文档导出适配",
+      "file_scope": ["tests/vertical-slice", "apps/service", "e2e", "docs/submission/export_pdf.py", "eslint.config.js"],
+      "interface_constraints": ["Main 唯一事实源；六页布局；历史证据和其他树只读"],
+      "dependencies": ["IT-004"],
+      "acceptance": ["MET-001"],
+      "support_reason": "",
+      "evidence_ids": [
+        "EVD-001",
+        "EVD-002",
+        "EVD-003",
+        "EVD-004",
+        "EVD-005",
+        "EVD-006",
+        "EVD-007",
+        "EVD-008",
+        "EVD-009",
+        "EVD-010",
+        "EVD-011",
+        "EVD-012",
+        "EVD-013",
+        "EVD-014",
+        "EVD-015",
+        "EVD-016",
+        "EVD-017",
+        "EVD-018",
+        "EVD-019",
+        "EVD-020",
+        "EVD-021",
+        "EVD-022",
+        "EVD-023",
+        "EVD-024"
+      ],
+      "owner": "coder",
+      "status": "implemented"
+    },
+    {
+      "id": "IT-006",
+      "main_task_id": "MT-001",
+      "source_ids": ["SRC-001"],
+      "scope": "来源审查、当前文档、最终验证与交付",
+      "file_scope": ["docs", "README.md", "CONTRIBUTING.md", "DESIGN.md", "UX-CONTRACT.md"],
+      "interface_constraints": ["Main 唯一事实源；六页布局；历史证据和其他树只读"],
+      "dependencies": [],
+      "acceptance": ["MET-001"],
+      "support_reason": "",
+      "evidence_ids": [
+        "EVD-001",
+        "EVD-002",
+        "EVD-003",
+        "EVD-004",
+        "EVD-005",
+        "EVD-006",
+        "EVD-007",
+        "EVD-008",
+        "EVD-009",
+        "EVD-010",
+        "EVD-011",
+        "EVD-012",
+        "EVD-013",
+        "EVD-014",
+        "EVD-015",
+        "EVD-016",
+        "EVD-017",
+        "EVD-018",
+        "EVD-019",
+        "EVD-020",
+        "EVD-021",
+        "EVD-022",
+        "EVD-023",
+        "EVD-024"
+      ],
+      "owner": "root",
+      "status": "implemented"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "EVD-001",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-unit.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:14:14.799034Z",
+      "sha256": "e474a827a6791865959214060f89c54b8655d71a48179928f43c90164e56ebf0"
+    },
+    {
+      "id": "EVD-002",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-type.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:14:17.584578Z",
+      "sha256": "e3c1b92ad15f948b1dad3f9c1536113c23cee18d48e8c993ded638100ad016d8"
+    },
+    {
+      "id": "EVD-003",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-docs.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:14:03.951488Z",
+      "sha256": "adc3f951d1b4466284987a9af6b00523b7a56d6f045ae447173a74c13fa59fd0"
+    },
+    {
+      "id": "EVD-004",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-boundaries.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:14:13.646331Z",
+      "sha256": "baea67e5bcf8909b6a04a3cff7c62ec449156d254470a7e0baac92a85529ad94"
+    },
+    {
+      "id": "EVD-005",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-lint-active.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:14:14.781207Z",
+      "sha256": "e3373e2602bc344c12aac2f9188acf0591461b994811e7b6440afca831b7c904"
+    },
+    {
+      "id": "EVD-006",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-format-active.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:14:12.721299Z",
+      "sha256": "ba5be97cf61e23f784e51b251d5a99be3f66f18fb770346a8b2b2b06dfc00a58"
+    },
+    {
+      "id": "EVD-007",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-build.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:15:22.784304Z",
+      "sha256": "c158681020f1bf628f9976157382f84cb9f410e6b83dfb2e26bcc230ca4703df"
+    },
+    {
+      "id": "EVD-008",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-exporter-test.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:15:20.957693Z",
+      "sha256": "ddcfbbfa36518d70ca31208d88755aca85ba1873a87ad2f2ad92b347070a4577"
+    },
+    {
+      "id": "EVD-009",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-vs001-selftest.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:15:24.725631Z",
+      "sha256": "1e1a4c0b2cf5d6f427805b3a8077488698bd7a41a37e58fad642992e8650b0f3"
+    },
+    {
+      "id": "EVD-010",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-vs001-baseline.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "failed",
+      "observed_at": "2026-10-08T14:15:21.189427Z",
+      "sha256": "db9f8e75ccf752daa8ad215472ada0d37c8fc0409d34b899cf5ee5278b4d03be"
+    },
+    {
+      "id": "EVD-011",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-premium-static.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:15:18.918353Z",
+      "sha256": "7f244015d57023e4db38d26951fa9359fa4d61af3fa0eb558dcabdcd7ff9ab22"
+    },
+    {
+      "id": "EVD-012",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-electron-build.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:17:45.714504Z",
+      "sha256": "f785e2c0c96b9dd91e74a77fd6109f29f9cc83423958efac74e93f34f7f8db92"
+    },
+    {
+      "id": "EVD-013",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-electron-packaged.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:18:47.917033Z",
+      "sha256": "78f461f36d6d27793ee03510acc699d426617b6f5a05b44cce93c43c380f9f09"
+    },
+    {
+      "id": "EVD-014",
+      "path": "docs/acceptance/integration-20261008/evidence/final/frozen-package.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "stale",
+      "result": "passed",
+      "observed_at": "2026-10-08T13:59:10.856795Z",
+      "sha256": "cf1d72286e232446187172614ed774228d236d940023400da9815efd52d892a6",
+      "stale_reason": "Whole-tree fingerprint differs by the later resource live readiness test only; retained as scoped execution evidence, not relabeled current."
+    },
+    {
+      "id": "EVD-015",
+      "path": "docs/acceptance/integration-20261008/evidence/final/frozen-live-service-sbx.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "stale",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:01:32.447723Z",
+      "sha256": "bf4eeeac18cdd799a4016cfff14db442cf2ddfcb308483ecad4633d70a804b84",
+      "stale_reason": "Whole-tree fingerprint differs by the later resource live readiness test only; retained as scoped execution evidence, not relabeled current."
+    },
+    {
+      "id": "EVD-016",
+      "path": "docs/acceptance/integration-20261008/evidence/final/frozen-live-mcp-agent.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "stale",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:05:13.648543Z",
+      "sha256": "f6fb3e2ccd9e520f1781ed7754987a54580f6c20ba4bd9b65cde3b2fa2c35740",
+      "stale_reason": "Whole-tree fingerprint differs by the later resource live readiness test only; retained as scoped execution evidence, not relabeled current."
+    },
+    {
+      "id": "EVD-017",
+      "path": "docs/acceptance/integration-20261008/evidence/final/frozen-live-chat.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "stale",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:08:56.633806Z",
+      "sha256": "77651920579defb60d91b901df1047b27e1c4f72fabc8c6454d067e6909f2baf",
+      "stale_reason": "Whole-tree fingerprint differs by the later resource live readiness test only; retained as scoped execution evidence, not relabeled current."
+    },
+    {
+      "id": "EVD-018",
+      "path": "docs/acceptance/integration-20261008/evidence/final/final-live-resources.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:14:08.579303Z",
+      "sha256": "fe3448b9633ca97d4835f3f0b860913fa8db2fa85be3218ae96376505141a19f"
+    },
+    {
+      "id": "EVD-019",
+      "path": "docs/acceptance/integration-20261008/evidence/final/frozen-live-sbx-ui.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "stale",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:09:54.950258Z",
+      "sha256": "c55a71863341001a65544887dba71bc4ec20ca4f4d38799bee54d443fe00c879",
+      "stale_reason": "Whole-tree fingerprint differs by the later resource live readiness test only; retained as scoped execution evidence, not relabeled current."
+    },
+    {
+      "id": "EVD-020",
+      "path": "docs/acceptance/integration-20261008/evidence/final/frozen-live-workspace.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "stale",
+      "result": "passed",
+      "observed_at": "2026-10-08T14:10:23.359871Z",
+      "sha256": "84a6e2269a7b67b285cb0b0b1505f215fb2b5e506fae62b8334e3bf266681649",
+      "stale_reason": "Whole-tree fingerprint differs by the later resource live readiness test only; retained as scoped execution evidence, not relabeled current."
+    },
+    {
+      "id": "EVD-021",
+      "path": "docs/acceptance/integration-20261008/evidence/final/frozen-live-observation.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "stale",
+      "result": "passed",
+      "observed_at": "2026-10-08T13:58:15.647496Z",
+      "sha256": "3ea0e8076b9c72d1ea3ea14f11556811e5e01d78e71271f135152b0b34751604",
+      "stale_reason": "Whole-tree fingerprint differs by the later resource live readiness test only; retained as scoped execution evidence, not relabeled current."
+    },
+    {
+      "id": "EVD-022",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-live-guest-browser.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "failed",
+      "observed_at": "2026-10-08T14:15:44.637206Z",
+      "sha256": "f464931a4700a5bca15bf10d3dd17b6c3b748d7dc4aef5e9fe02bd0531f81152"
+    },
+    {
+      "id": "EVD-023",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-lint-full.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "failed",
+      "observed_at": "2026-10-08T14:25:16.235499Z",
+      "sha256": "f16727f0079877b6cdf899ebdcb4932bc10325099290d2fd099bb97bee8e85f1"
+    },
+    {
+      "id": "EVD-024",
+      "path": "docs/acceptance/integration-20261008/evidence/final/delivery-format-full.json",
+      "kind": "execution",
+      "supports": ["MET-001"],
+      "status": "current",
+      "result": "failed",
+      "observed_at": "2026-10-08T14:25:23.127480Z",
+      "sha256": "856a78cfa5e0912795723d35cf35e67f6d4977c1137bd73ce12fd01d4c376804"
+    }
+  ],
+  "changes": [],
+  "overall_acceptance": {
+    "metric_ids": ["MET-001"],
+    "evidence_ids": [
+      "EVD-001",
+      "EVD-002",
+      "EVD-003",
+      "EVD-004",
+      "EVD-005",
+      "EVD-006",
+      "EVD-007",
+      "EVD-008",
+      "EVD-009",
+      "EVD-010",
+      "EVD-011",
+      "EVD-012",
+      "EVD-013",
+      "EVD-014",
+      "EVD-015",
+      "EVD-016",
+      "EVD-017",
+      "EVD-018",
+      "EVD-019",
+      "EVD-020",
+      "EVD-021",
+      "EVD-022",
+      "EVD-023",
+      "EVD-024"
+    ],
+    "status": "undetermined"
+  },
+  "baseline": {
+    "git_ref": "9e1df45d9ea42a9bf5df76a1babf451e5cafc530",
+    "worktree_status": "clean",
+    "ownership": "root documentation and review; unique coder source/tests; sources explorer records",
+    "foreign_paths": ["premium-audit.json"],
+    "prepared_at": "2026-10-08T07:44:06.458460+00:00"
+  },
+  "binding": {
+    "receipt_paths": []
+  },
+  "authorization": {
+    "commit": {
+      "status": "authorized",
+      "source_id": "SRC-001",
+      "scope": ["local"]
+    },
+    "push": {
+      "status": "not_authorized",
+      "source_id": "SRC-001",
+      "scope": []
+    },
+    "merge": {
+      "status": "not_authorized",
+      "source_id": "SRC-001",
+      "scope": []
+    },
+    "deploy": {
+      "status": "not_authorized",
+      "source_id": "SRC-001",
+      "scope": []
+    },
+    "live": {
+      "status": "authorized",
+      "source_id": "SRC-001",
+      "scope": []
+    }
+  },
+  "delivery": {
+    "local_validation": "failed",
+    "remote_ci": "not_started",
+    "remote_ci_revision": null
+  },
+  "actions": [
+    {
+      "id": "ACT-001",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "9e1df45d9ea42a9bf5df76a1babf451e5cafc530",
+      "status": "completed",
+      "receipt": "9e1df45d9ea42a9bf5df76a1babf451e5cafc530",
+      "idempotency_key": "checkpoint-9e1df45"
+    },
+    {
+      "id": "ACT-002",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "331c47f751ff4600a61fab0dc4699459499fe75e",
+      "status": "completed",
+      "receipt": "331c47f751ff4600a61fab0dc4699459499fe75e",
+      "idempotency_key": "checkpoint-331c47f"
+    },
+    {
+      "id": "ACT-003",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "fc71b55b82227ed93b1994e7ff8a14ababe837da",
+      "status": "completed",
+      "receipt": "fc71b55b82227ed93b1994e7ff8a14ababe837da",
+      "idempotency_key": "checkpoint-fc71b55"
+    },
+    {
+      "id": "ACT-004",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "c97b673e789f87edf9c81a9ee79fdcd42f27125e",
+      "status": "completed",
+      "receipt": "c97b673e789f87edf9c81a9ee79fdcd42f27125e",
+      "idempotency_key": "checkpoint-c97b673"
+    },
+    {
+      "id": "ACT-005",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "d9beb8ac0164e6a56d0b5f1e451e42d716fa77fd",
+      "status": "completed",
+      "receipt": "d9beb8ac0164e6a56d0b5f1e451e42d716fa77fd",
+      "idempotency_key": "checkpoint-d9beb8a"
+    },
+    {
+      "id": "ACT-006",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "612cde07896215cd456a8ee27fbfe03338c7f137",
+      "status": "completed",
+      "receipt": "612cde07896215cd456a8ee27fbfe03338c7f137",
+      "idempotency_key": "checkpoint-612cde0"
+    },
+    {
+      "id": "ACT-007",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "46cab72d4bef6d713e49e1d4e324313f9064836d",
+      "status": "completed",
+      "receipt": "46cab72d4bef6d713e49e1d4e324313f9064836d",
+      "idempotency_key": "phase4a-46cab72"
+    },
+    {
+      "id": "ACT-008",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "965ebcd12bc97ccc669dd90cf6009c9446e93d2d",
+      "status": "completed",
+      "receipt": "965ebcd12bc97ccc669dd90cf6009c9446e93d2d",
+      "idempotency_key": "phase4b-a-965ebcd"
+    },
+    {
+      "id": "ACT-009",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "247247b78a2aae96fde49cd7b37e264642cbea0c",
+      "status": "completed",
+      "receipt": "247247b78a2aae96fde49cd7b37e264642cbea0c",
+      "idempotency_key": "phase4b-b-247247b"
+    },
+    {
+      "id": "ACT-010",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "5d9542e1cfc1f213b1150b0d1a6561e00509cb4f",
+      "status": "completed",
+      "receipt": "5d9542e1cfc1f213b1150b0d1a6561e00509cb4f",
+      "idempotency_key": "phase4b-c-5d9542e"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-001",
+      "summary": "Implementation and source integration delivered; final acceptance undetermined. Current and stale whole-tree evidence are distinguished; scoped reuse justified by unchanged production/scenario bytes. Native binding, guest network, source unreadability, preserved full-tree checks and fixed VS001 gaps remain explicit."
+    }
+  ],
+  "hypotheses": [],
+  "recovery_strategy": {
+    "trigger": "阶段复验失败或整合造成可复现回归",
+    "steps": ["保存失败原文和当前源码指纹", "在当前工作树追加修复并复跑同一场景及受影响回归", "不改写已提交基准、封存证据或其他工作树"],
+    "owner": "root review; unique coder implementation"
+  }
+}

@@ -1,0 +1,42 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/ui.ts b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/state/ui.ts
+index ab74d8c..9f5f0b4 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/ui.ts
++++ b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/state/ui.ts
+@@ -1,28 +1,17 @@
+-import { occlusion } from './occlusion';
+ import { createStore } from '../lib/store';
+ 
+-export interface ConfirmModal {
+-  kind: 'confirm';
+-  title: string;
+-  description: string;
+-  confirmLabel: string;
+-  onConfirm: () => Promise<boolean>;
+-}
+-export type Modal = { kind: 'image'; title: string; src: string } | ConfirmModal | null;
++export type Modal = { kind: 'image'; title: string; src: string } | null;
+ 
+ export interface UiState {
+   modal: Modal;
++  /** ⌘L 时递增，地址栏据此获取焦点。 */
++  addressFocusTick: number;
+ }
+-export const uiStore = createStore<UiState>({ modal: null });
++
++export const uiStore = createStore<UiState>({ modal: null, addressFocusTick: 0 });
++
+ export const uiActions = {
+-  async openImage(title: string, src: string) {
+-    if (await occlusion.open('modal')) uiStore.set((s) => ({ ...s, modal: { kind: 'image', title, src } }));
+-  },
+-  async openConfirm(confirmation: Omit<ConfirmModal, 'kind'>) {
+-    if (await occlusion.open('modal')) uiStore.set((s) => ({ ...s, modal: { ...confirmation, kind: 'confirm' } }));
+-  },
+-  closeModal() {
+-    uiStore.set((s) => ({ ...s, modal: null }));
+-    occlusion.close('modal');
+-  },
++  openImage: (title: string, src: string) => uiStore.set((s) => ({ ...s, modal: { kind: 'image', title, src } })),
++  closeModal: () => uiStore.set((s) => (s.modal === null ? s : { ...s, modal: null })),
++  requestAddressFocus: () => uiStore.set((s) => ({ ...s, addressFocusTick: s.addressFocusTick + 1 })),
+ };

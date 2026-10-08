@@ -1,0 +1,157 @@
+diff --git a/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/state/workbench.ts b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/state/workbench.ts
+new file mode 100644
+index 0000000..2ac1eb9
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/state/workbench.ts
+@@ -0,0 +1,151 @@
++import {
++  DEFAULT_BUDGET,
++  TaskVersionSchema,
++  type AllowedScope,
++  type Budget,
++  type CaseId,
++  type PageCapture,
++  type PageIdentity,
++  type TaskVersion,
++} from '@wsl/protocol';
++import { CASE_PRESETS } from '../domain/cases';
++import { createStore } from '../lib/store';
++
++export interface TaskForm {
++  caseId: CaseId;
++  goal: string;
++  allowedScopes: AllowedScope[];
++  /** 每行一条验收条件。 */
++  acceptanceText: string;
++  budget: Budget;
++}
++
++export interface WorkbenchState {
++  taskId: string;
++  capture: PageCapture | null;
++  form: TaskForm;
++  /** 已确认的任务版本，按版本号递增；确认后不可修改。 */
++  versions: readonly TaskVersion[];
++  /** 已有版本时，是否正在编辑下一版本。 */
++  editing: boolean;
++}
++
++export function formFromCase(caseId: CaseId): TaskForm {
++  const preset = CASE_PRESETS[caseId];
++  return {
++    caseId,
++    goal: preset.goal,
++    allowedScopes: [...preset.allowedScopes],
++    acceptanceText: preset.acceptance.join('\n'),
++    budget: { ...DEFAULT_BUDGET },
++  };
++}
++
++export const initialWorkbench: WorkbenchState = {
++  taskId: 'task-taskflow-demo-1',
++  capture: null,
++  form: formFromCase('c1'),
++  versions: [],
++  editing: true,
++};
++
++export type CaptureFreshness = 'none' | 'fresh' | 'stale';
++
++/** 现场只在同一 webContents 的同一文档代次内有效；导航后必须重新采集。 */
++export function captureFreshness(capture: PageCapture | null, page: PageIdentity | null): CaptureFreshness {
++  if (capture === null) return 'none';
++  if (page === null) return 'stale';
++  const same = capture.page.webContentsId === page.webContentsId && capture.page.documentGeneration === page.documentGeneration;
++  return same ? 'fresh' : 'stale';
++}
++
++export function acceptanceLines(text: string): string[] {
++  return text
++    .split('\n')
++    .map((line) => line.trim())
++    .filter((line) => line.length > 0);
++}
++
++/** 返回阻止确认的原因；为空时可以确认。 */
++export function confirmBlockers(state: WorkbenchState, page: PageIdentity | null): string[] {
++  const blockers: string[] = [];
++  const freshness = captureFreshness(state.capture, page);
++  if (freshness === 'none') blockers.push('还没有采集页面现场');
++  if (freshness === 'stale') blockers.push('页面已导航，旧现场失效，需要重新采集');
++  if (state.form.goal.trim() === '') blockers.push('请填写修改目标');
++  if (state.form.allowedScopes.length === 0) blockers.push('至少允许一个修改范围');
++  if (acceptanceLines(state.form.acceptanceText).length === 0) blockers.push('至少填写一条验收条件');
++  const latest = state.versions.at(-1);
++  if (latest && !formDiffersFrom(state.form, state.capture, latest)) blockers.push('内容与当前版本相同，无需生成新版本');
++  return blockers;
++}
++
++function formDiffersFrom(form: TaskForm, capture: PageCapture | null, version: TaskVersion): boolean {
++  return (
++    form.caseId !== version.caseId ||
++    form.goal.trim() !== version.goal ||
++    form.allowedScopes.join(',') !== version.allowedScopes.join(',') ||
++    acceptanceLines(form.acceptanceText).join('\n') !== version.acceptance.join('\n') ||
++    form.budget.maxAttempts !== version.budget.maxAttempts ||
++    form.budget.timeLimitMinutes !== version.budget.timeLimitMinutes ||
++    capture?.captureId !== version.capture.captureId
++  );
++}
++
++/** 确认任务：固定这一轮输入，生成新的不可变版本。调用方须先确认 confirmBlockers 为空。 */
++export function confirmTask(state: WorkbenchState, page: PageIdentity | null, now: Date): WorkbenchState {
++  const blockers = confirmBlockers(state, page);
++  if (blockers.length > 0) throw new Error(`不能确认任务：${blockers.join('；')}`);
++  const capture = state.capture as PageCapture;
++  const version = TaskVersionSchema.parse({
++    taskId: state.taskId,
++    version: (state.versions.at(-1)?.version ?? 0) + 1,
++    confirmedAt: now.toISOString(),
++    caseId: state.form.caseId,
++    goal: state.form.goal.trim(),
++    allowedScopes: state.form.allowedScopes,
++    acceptance: acceptanceLines(state.form.acceptanceText),
++    budget: state.form.budget,
++    capture: {
++      captureId: capture.captureId,
++      capturedAt: capture.capturedAt,
++      page: capture.page,
++      elementSelector: capture.element.selector,
++      elementText: capture.element.text,
++    },
++  });
++  return { ...state, versions: [...state.versions, version], editing: false };
++}
++
++/** 从最新版本开始编辑下一版本，表单预填当前版本内容。 */
++export function startEditing(state: WorkbenchState): WorkbenchState {
++  const latest = state.versions.at(-1);
++  if (!latest) return { ...state, editing: true };
++  return {
++    ...state,
++    editing: true,
++    form: {
++      caseId: latest.caseId,
++      goal: latest.goal,
++      allowedScopes: [...latest.allowedScopes],
++      acceptanceText: latest.acceptance.join('\n'),
++      budget: { ...latest.budget },
++    },
++  };
++}
++
++export function toggleScope(form: TaskForm, scope: AllowedScope): TaskForm {
++  const has = form.allowedScopes.includes(scope);
++  return { ...form, allowedScopes: has ? form.allowedScopes.filter((s) => s !== scope) : [...form.allowedScopes, scope] };
++}
++
++export const workbenchStore = createStore<WorkbenchState>(initialWorkbench);
++
++export const workbenchActions = {
++  setCapture: (capture: PageCapture) => workbenchStore.set((s) => ({ ...s, capture })),
++  updateForm: (update: (form: TaskForm) => TaskForm) => workbenchStore.set((s) => ({ ...s, form: update(s.form) })),
++  applyCase: (caseId: CaseId) => workbenchStore.set((s) => ({ ...s, form: formFromCase(caseId) })),
++  confirm: (page: PageIdentity | null) => workbenchStore.set((s) => confirmTask(s, page, new Date())),
++  startEditing: () => workbenchStore.set(startEditing),
++  cancelEditing: () => workbenchStore.set((s) => (s.versions.length > 0 ? { ...s, editing: false } : s)),
++};

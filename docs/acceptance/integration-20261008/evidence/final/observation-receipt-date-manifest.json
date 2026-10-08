@@ -1,0 +1,41 @@
+{
+  "finding": "F29 timestamp budget follow-up",
+  "sources": {
+    "apps/service/src/codex-chat.ts": "ab9cb2ed871d058808ad0944f441c792cf0281fc4c308b7e38f0178a33021a4a",
+    "apps/service/src/resource-chat.test.ts": "1eee79babc84e206847f2d8280055d4a79fc4113652e846690a536e677ca723b",
+    "e2e/observation-live.spec.ts": "e0b76a4cb4f39c2597f0c8b5ed0be660ce1858c4e5f6753b2ccaff2b4522dfd7"
+  },
+  "receipts": {
+    "before": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-date-before.json",
+      "sha256": "89543b6818f35d9ead35b0230ddf1e3f951ebba9436fdcb692d60caaa970a50a",
+      "exitCode": 1,
+      "revisionStable": true,
+      "stdout": null
+    },
+    "tests": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-date-tests.json",
+      "sha256": "ae0d710203299c0396b5856c2c7d4ccd3bb8e6160b749b00717bb8b0f3fc5391",
+      "exitCode": 0,
+      "revisionStable": true,
+      "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n\n Test Files  3 passed (3)\n      Tests  36 passed (36)\n   Start at  21:49:40\n   Duration  1.54s (tests 81%, transform 11%, import 8%)\n\n"
+    },
+    "lint": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-date-lint.json",
+      "sha256": "7cbf0ee665afaa75f5a9f7496eba10878c2c270dfdaa5cf83bbebf2b6b9a043e",
+      "exitCode": 0,
+      "revisionStable": true,
+      "stdout": null
+    },
+    "format": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-date-format.json",
+      "sha256": "507ace5564090e272ffc2fee9b3e2336bbaa34782a08cf20c4cb75470d45faeb",
+      "exitCode": 0,
+      "revisionStable": true,
+      "stdout": null
+    }
+  },
+  "change": "Only oversized metadata fallback omits capturedAt/startedAt explicitly; normal receipt remains complete. Valid 20000-digit fractional capturedAt and startedAt independently tested with retained core identity and output <=16000.",
+  "liveExecuted": false,
+  "diffCheckExitCode": 0
+}

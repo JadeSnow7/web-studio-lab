@@ -1,0 +1,19 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/packages/protocol/src/index.ts b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/index.ts
+index 1939d11..93ac992 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/packages/protocol/src/index.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/index.ts
+@@ -1,7 +1,14 @@
+ export * from './app';
++export * from './chat';
+ export * from './execution';
+ export * from './ipc';
+ export * from './preview';
+ export * from './run';
+ export * from './task';
+ export * from './bridge';
++
++export * from './terminal';
++
++export * from './resources';
++
++export * from './guest-browser';

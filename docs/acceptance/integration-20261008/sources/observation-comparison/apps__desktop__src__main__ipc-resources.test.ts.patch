@@ -1,0 +1,13 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/desktop/src/main/ipc-resources.test.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/main/ipc-resources.test.ts
+index 44e543b..6d2945d 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/desktop/src/main/ipc-resources.test.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/main/ipc-resources.test.ts
+@@ -36,7 +36,7 @@ beforeEach(() => {
+   registerIpc({
+     window: { isDestroyed: () => false, webContents },
+     preview: { captureResource: capture },
+-    chat: { resourcesSave: save, setObservationReader: vi.fn() },
++    chat: { resourcesSave: save, setObservationReader: vi.fn(), setInvalidationListener: vi.fn() },
+     trusted: { kind: 'file', url: frame.url },
+   } as unknown as IpcDeps);
+ });

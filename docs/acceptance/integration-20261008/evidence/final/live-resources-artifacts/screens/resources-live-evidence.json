@@ -1,0 +1,20 @@
+{
+  "evidenceKind": "real-network-and-existing-sandbox-agent",
+  "verified": false,
+  "phase": "capture",
+  "navigation": {
+    "requestedUrl": "https://example.com/",
+    "page": {
+      "webContentsId": 2,
+      "documentGeneration": 2,
+      "url": "https://example.com/",
+      "title": "Example Domain",
+      "partition": "preview-taskflow-demo-0ffcdb1d-7669-4002-9643-4d3c62c94d01"
+    },
+    "loading": false,
+    "loadError": null,
+    "blockedNavigation": null
+  },
+  "publicResource": null,
+  "conversation": null
+}
