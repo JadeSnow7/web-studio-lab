@@ -1,0 +1,34 @@
+{
+  "source": {
+    "path": "e2e/sbx.spec.ts",
+    "sha256": "aecac88f14f805aba4018983c33046f35ba2eb0b43bb427850711b16e2438038"
+  },
+  "originalFailure": "docs/acceptance/integration-20261008/evidence/final/live-sbx-ui.json",
+  "confirmedTestMismatch": "Before connection current Terminal shows environmentId only; sandbox/cwd are populated only by connected TerminalSnapshot.",
+  "change": "Wait connect enabled, connect, poll actual running, then retain concrete sandbox/cwd identity assertions and add actual Main resource environmentId=sandbox.",
+  "sourceReviewedSecondMismatch": "At1024<1080 Workshop panel is collapsed; direct vertical tab button clicks are not reachable. Live test opens actual Workshop handle before each tab selection; peek closes after selection. This second mismatch was source-confirmed, not separately live reproduced.",
+  "remainingReview": [
+    "Six-page helper workshopNavigate opens collapsed rail and navigate closes peek.",
+    "Return to space preserves active terminal; close and state/cleanup assertions remain.",
+    "Wide-to-narrow resize retains stty dimension change and same PTY; no old second-pane visibility assumption.",
+    "Nonce/canary/pwd/CtrlC/process-exit/model tool/content and owned app/UUID guestDir cleanup assertions are unchanged."
+  ],
+  "execution": "Offline type/lint/format/diff only. No live/model/network/sandbox/GUI invoked.",
+  "receipts": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/sbx-live-ui-contract-type.json",
+      "sha256": "d8b4a81dfa1ef48e2af6e0b175d91b2525ade46c75945d0502b8a4d9b753f905",
+      "revisionStable": true
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/sbx-live-ui-contract-lint.json",
+      "sha256": "1fee229b42ba8128402b4a6add31f792d7a45cb56605eaa6fbc23700d432ad66",
+      "revisionStable": true
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/sbx-live-ui-contract-format.json",
+      "sha256": "1e2bd911c6eb1ec19132fe643ffebe5d86985e4255c5ecffddd18ff710283811",
+      "revisionStable": true
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-08T14:29:36.858095+00:00",
+  "first_attempt": "delivery-record-validation.json",
+  "reason": "Finalization mistakenly added final-index.json to normative binding.receipt_paths after execution. This changed the Spec digest although source and contracts were unchanged.",
+  "correction": "Restored exactly the frozen pre-execution binding declarations from HEAD. Evidence entries still bind all24 original receipts; final-index remains linked by final README. No raw receipt or revision token was rewritten.",
+  "frozen_spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "product_source_unchanged": true
+}

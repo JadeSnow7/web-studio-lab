@@ -1,0 +1,19 @@
+{
+  "id": "F29-boundary-review",
+  "reason": "Output bounding must hold for every accepted Observation metadata string, not only data/coverage",
+  "probe": {
+    "argv": [
+      "node",
+      "--input-type=module",
+      "-e",
+      "import {z} from 'zod'; console.log(z.string().datetime().safeParse('2026-10-08T13:43:38.'+'1'.repeat(20000)+'Z').success)"
+    ],
+    "observed_stdout": "true",
+    "finding": "Valid timestamps can exceed the tool record budget"
+  },
+  "decision": "In oversized metadata fallback omit timestamps explicitly; preserve schema length-bounded resource/generation/snapshot/source/evidence fields. Normal metadata remains complete.",
+  "related": [
+    "observation-receipt-date-before.json",
+    "observation-receipt-date-manifest.json"
+  ]
+}

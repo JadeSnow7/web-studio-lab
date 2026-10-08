@@ -1,0 +1,310 @@
+{
+  "marker": "53bfcea0-4dec-4386-bf89-7fccaa9b4385",
+  "rendererErrors": [],
+  "snapshot": {
+    "appInstanceId": "b6cc611d-9af4-432a-be99-fa226968b82c",
+    "storageError": null,
+    "activeWorkspaceId": "taskflow-demo",
+    "seq": 125,
+    "workspaces": [
+      {
+        "workspaceId": "taskflow-demo",
+        "name": "TaskFlow",
+        "revision": 16,
+        "tabs": [
+          {
+            "tabId": "d14d076a-bff9-4c7b-ac4b-5138b1731c08",
+            "title": "TaskFlow 预览",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "web",
+              "resourceId": "83157483-beee-4aaa-85e9-e017cffdc289"
+            }
+          },
+          {
+            "tabId": "15d91489-c13d-4d48-8997-d59f211e418b",
+            "title": "开发终端",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "terminal",
+              "resourceId": "4cea4e30-18e8-4db0-9c12-c78e0a3df020"
+            }
+          },
+          {
+            "tabId": "9587fcd5-f62e-421a-a7be-9b3552d87834",
+            "title": "Agent 会话",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "session",
+              "resourceId": "e9dd099c-f8e7-40b0-9f50-157183b2edd0"
+            }
+          }
+        ],
+        "resources": [
+          {
+            "resourceId": "83157483-beee-4aaa-85e9-e017cffdc289",
+            "environmentId": "local",
+            "kind": "web",
+            "title": "TaskFlow 预览",
+            "url": "wsl-demo://taskflow/index.html",
+            "instanceId": "d397d4e6-bbf6-4695-9568-7558335cd83f",
+            "generation": 1,
+            "preview": {
+              "page": {
+                "webContentsId": 2,
+                "documentGeneration": 1,
+                "url": "wsl-demo://taskflow/index.html",
+                "title": "任务 · TaskFlow 演示",
+                "partition": "preview-taskflow-demo-d397d4e6-bbf6-4695-9568-7558335cd83f"
+              },
+              "loading": false,
+              "canGoBack": false,
+              "canGoForward": false,
+              "picking": false,
+              "cdp": {
+                "state": "idle"
+              },
+              "consoleIssueCount": 4,
+              "loadError": null,
+              "blockedNavigation": null,
+              "pickError": null
+            },
+            "terminal": null,
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "4cea4e30-18e8-4db0-9c12-c78e0a3df020",
+            "environmentId": "sandbox",
+            "kind": "terminal",
+            "title": "开发终端",
+            "url": null,
+            "instanceId": "60b79274-dde1-4c7a-a378-b29bbb87f5d9",
+            "generation": 1,
+            "preview": null,
+            "terminal": {
+              "seq": 82,
+              "sessionId": "e2201911-049c-4a22-be6f-32960a9788d0",
+              "sandbox": "wsl-sbx-smoke-20261006",
+              "cwd": "/home/agent/workspace",
+              "state": "closed",
+              "output": "\u001b[?2004hagent@wsl-sbx-smoke-20261006:~/workspace$ printf 'WSL_RUNTIME_NONCE=%s\\n' '53bfcea0-4dec-4386-bf89-7fccaa9b4385'\r\n\u001b[?2004l\r\u001b]777;wsl;start;cHJpbnRmICdXU0xfUlVOVElNRV9OT05DRT0lc1xuJyAnNTNiZmNlYTAtNGRlYy00Mzg2LWJmODktN2ZjY2FhOWI0Mzg1Jw==;L2hvbWUvYWdlbnQvd29ya3NwYWNl\u0007WSL_RUNTIME_NONCE=53bfcea0-4dec-4386-bf89-7fccaa9b4385\r\n\u001b]777;wsl;end;0\u0007\u001b[?2004hagent@wsl-sbx-smoke-20261006:~/workspace$ \r\u001b[K\ragent@wsl-sbx-smoke-20261006:~/workspace$ \r\u001b[K\ragent@wsl-sbx-smoke-20261006:~/workspace$ ",
+              "outputOffset": 0,
+              "cleanupPending": false,
+              "error": null
+            },
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "e9dd099c-f8e7-40b0-9f50-157183b2edd0",
+            "environmentId": null,
+            "kind": "session",
+            "title": "Agent 会话",
+            "url": null,
+            "instanceId": null,
+            "generation": 0,
+            "preview": null,
+            "terminal": null,
+            "unavailableReason": null
+          }
+        ],
+        "layout": {
+          "kind": "pane",
+          "paneId": "5c79f731-0fd5-4267-a15f-24c463870414",
+          "tabId": "15d91489-c13d-4d48-8997-d59f211e418b"
+        },
+        "activePaneId": "5c79f731-0fd5-4267-a15f-24c463870414",
+        "sessions": [
+          {
+            "sessionId": "session-78378410-0891-4e00-a3cd-0ba3b62c416a",
+            "resourceId": "e9dd099c-f8e7-40b0-9f50-157183b2edd0",
+            "title": "Agent 会话",
+            "draft": "请只回复校验词 53bfcea0-4dec-4386-bf89-7fccaa9b4385。不要运行工具，不要读取、修改或创建任何文件。",
+            "conversation": {
+              "conversationId": "session-78378410-0891-4e00-a3cd-0ba3b62c416a",
+              "generation": "77ad0ecc-a640-43c7-963e-d790016cbe22",
+              "seq": 11,
+              "threadId": "01a11bd9-becd-7520-9cb7-b81f56af6352",
+              "turnId": "fcb83751-7d29-464b-9831-d4b5291d11f4",
+              "state": "idle",
+              "messages": [
+                {
+                  "id": "fcb83751-7d29-464b-9831-d4b5291d11f4",
+                  "role": "user",
+                  "text": "任务版本 64095d32-c7c0-46c0-bfe0-d9c346b3bfd9\n空间 taskflow-demo\n目标 null\n上下文 未附加\n允许范围 \n验收条件 \n\n请只回复校验词 53bfcea0-4dec-4386-bf89-7fccaa9b4385。不要运行工具，不要读取、修改或创建任何文件。"
+                },
+                {
+                  "id": "fcb83751-7d29-464b-9831-d4b5291d11f4:item_2",
+                  "role": "assistant",
+                  "text": "53bfcea0-4dec-4386-bf89-7fccaa9b4385"
+                }
+              ],
+              "toolExecutions": [],
+              "warnings": [
+                "Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored."
+              ],
+              "cleanupPending": false,
+              "error": null
+            },
+            "historyRestored": false,
+            "observations": [],
+            "context": null,
+            "captureRequest": null,
+            "contextTarget": null,
+            "taskTargetRef": null,
+            "taskAcceptance": [],
+            "taskAllowedScopes": [],
+            "contextApplicability": "unknown",
+            "taskVersions": [
+              {
+                "taskVersionId": "64095d32-c7c0-46c0-bfe0-d9c346b3bfd9",
+                "version": 1,
+                "workspaceId": "taskflow-demo",
+                "sessionId": "session-78378410-0891-4e00-a3cd-0ba3b62c416a",
+                "goal": "请只回复校验词 53bfcea0-4dec-4386-bf89-7fccaa9b4385。不要运行工具，不要读取、修改或创建任何文件。",
+                "targetRef": null,
+                "capture": null,
+                "captureBinding": null,
+                "confirmedAt": "2026-10-08T14:10:11.846Z",
+                "acceptance": [],
+                "allowedScopes": []
+              }
+            ]
+          }
+        ],
+        "runs": [
+          {
+            "runId": "e4676375-c961-44d6-9a0f-f5a01d98a018",
+            "workspaceId": "taskflow-demo",
+            "sessionId": "session-78378410-0891-4e00-a3cd-0ba3b62c416a",
+            "taskVersionId": "64095d32-c7c0-46c0-bfe0-d9c346b3bfd9",
+            "targetRef": null,
+            "state": "completed",
+            "startedAt": "2026-10-08T14:10:11.880Z",
+            "endedAt": "2026-10-08T14:10:20.244Z",
+            "error": null,
+            "candidateId": "62de3d24-34b7-4db7-be36-9eed34519f88",
+            "validation": {
+              "state": "blocked",
+              "applicability": "unknown",
+              "reason": "独立检查适配器尚未接入；Agent 文本不能作为检查结果"
+            },
+            "conversation": {
+              "conversationId": "session-78378410-0891-4e00-a3cd-0ba3b62c416a",
+              "generation": "77ad0ecc-a640-43c7-963e-d790016cbe22",
+              "seq": 11,
+              "threadId": "01a11bd9-becd-7520-9cb7-b81f56af6352",
+              "turnId": "fcb83751-7d29-464b-9831-d4b5291d11f4",
+              "state": "idle",
+              "messages": [
+                {
+                  "id": "fcb83751-7d29-464b-9831-d4b5291d11f4",
+                  "role": "user",
+                  "text": "任务版本 64095d32-c7c0-46c0-bfe0-d9c346b3bfd9\n空间 taskflow-demo\n目标 null\n上下文 未附加\n允许范围 \n验收条件 \n\n请只回复校验词 53bfcea0-4dec-4386-bf89-7fccaa9b4385。不要运行工具，不要读取、修改或创建任何文件。"
+                },
+                {
+                  "id": "fcb83751-7d29-464b-9831-d4b5291d11f4:item_2",
+                  "role": "assistant",
+                  "text": "53bfcea0-4dec-4386-bf89-7fccaa9b4385"
+                }
+              ],
+              "toolExecutions": [],
+              "warnings": [
+                "Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored."
+              ],
+              "cleanupPending": false,
+              "error": null
+            },
+            "executionBinding": {
+              "generation": "77ad0ecc-a640-43c7-963e-d790016cbe22",
+              "turnId": "fcb83751-7d29-464b-9831-d4b5291d11f4"
+            },
+            "review": null
+          }
+        ],
+        "publicResources": {
+          "spaceId": "taskflow-demo",
+          "revision": 0,
+          "resources": []
+        },
+        "publicResourcesError": null,
+        "fileHints": [],
+        "observations": [],
+        "theme": "system"
+      },
+      {
+        "workspaceId": "791b8e8c-cf4a-44b7-82ee-fcdc80ef6a56",
+        "name": "运行归属验证",
+        "revision": 3,
+        "tabs": [],
+        "resources": [],
+        "layout": {
+          "kind": "pane",
+          "paneId": "5d4619a5-aa8e-436c-98a9-f74449adc0c1",
+          "tabId": null
+        },
+        "activePaneId": "5d4619a5-aa8e-436c-98a9-f74449adc0c1",
+        "sessions": [],
+        "runs": [],
+        "publicResources": null,
+        "publicResourcesError": null,
+        "fileHints": [],
+        "observations": [],
+        "theme": "system"
+      }
+    ],
+    "environments": [
+      {
+        "environmentId": "local",
+        "kind": "local",
+        "label": "本设备",
+        "state": "configured",
+        "reason": "未配置 WSL_OBSERVATION_ROOT；本地文件和终端不可用",
+        "capabilities": {
+          "files": false,
+          "terminal": false,
+          "browser": true
+        }
+      },
+      {
+        "environmentId": "sandbox",
+        "kind": "sandbox",
+        "label": "wsl-sbx-smoke-20261006",
+        "state": "configured",
+        "reason": null,
+        "capabilities": {
+          "files": false,
+          "terminal": true,
+          "browser": false
+        }
+      },
+      {
+        "environmentId": "ssh",
+        "kind": "ssh",
+        "label": "SSH",
+        "state": "unavailable",
+        "reason": "未配置可信 SSH 环境",
+        "capabilities": {
+          "files": false,
+          "terminal": false,
+          "browser": false
+        }
+      }
+    ],
+    "notificationReadReceipts": [],
+    "notifications": [
+      {
+        "notificationId": "taskflow-demo:e4676375-c961-44d6-9a0f-f5a01d98a018:completed",
+        "workspaceId": "taskflow-demo",
+        "sessionId": "session-78378410-0891-4e00-a3cd-0ba3b62c416a",
+        "taskVersionId": "64095d32-c7c0-46c0-bfe0-d9c346b3bfd9",
+        "runId": "e4676375-c961-44d6-9a0f-f5a01d98a018",
+        "kind": "completed",
+        "occurredAt": "2026-10-08T14:10:20.244Z",
+        "readAt": null
+      }
+    ]
+  }
+}

@@ -170,11 +170,39 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
   try {
     ({ app, page } = await launchApp({ live: true }));
     liveApp = app;
-    await page.getByRole('button', { name: '开发终端', exact: true }).click();
+    async function selectTab(name: string) {
+      const tabs = page.getByRole('navigation', { name: '空间标签' });
+      if (!(await tabs.isVisible())) await page.getByRole('button', { name: '展开 Workshop', exact: true }).click();
+      await tabs.getByRole('button', { name, exact: true }).click();
+    }
+    await selectTab('开发终端');
     const panel = page.getByRole('region', { name: '资源终端' });
-    await expect(panel).toContainText('wsl-sbx-smoke-20261006', { timeout: 30000 });
-    await panel.getByRole('button', { name: '连接终端', exact: true }).click();
-    await expect(panel).toContainText('已连接', { timeout: 30000 });
+    const connect = panel.getByRole('button', { name: '连接终端', exact: true });
+    await expect(connect).toBeEnabled({ timeout: 30000 });
+    await connect.click();
+    await expect
+      .poll(
+        async () => {
+          const snapshot = await workspaceSnapshot(page);
+          return snapshot.workspaces
+            .find((workspace) => workspace.workspaceId === snapshot.activeWorkspaceId)!
+            .resources.find((resource) => resource.kind === 'terminal')!.terminal?.state;
+        },
+        { timeout: 30000 },
+      )
+      .toBe('running');
+    await expect(panel).toContainText('已连接');
+    await expect(panel).toContainText('wsl-sbx-smoke-20261006');
+    await expect(panel).toContainText('/home/agent/workspace');
+    const connected = await terminalSnapshot(page);
+    expect(connected.sandbox).toBe('wsl-sbx-smoke-20261006');
+    expect(connected.cwd).toBe('/home/agent/workspace');
+    const connectedSnapshot = await workspaceSnapshot(page);
+    expect(
+      connectedSnapshot.workspaces
+        .find((workspace) => workspace.workspaceId === connectedSnapshot.activeWorkspaceId)!
+        .resources.find((resource) => resource.kind === 'terminal')!.environmentId,
+    ).toBe('sandbox');
     const input = panel.getByLabel('终端输入');
     async function command(text: string) {
       await input.focus();
@@ -213,8 +241,8 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
     await expect.poll(output).toMatch(/^INTERRUPT_OK$/m);
     await command(`if kill -0 ${foregroundPid} 2>/dev/null; then echo FG_STILL_RUNNING; else echo FG_EXITED; fi`);
     await expect.poll(output).toMatch(/^FG_EXITED$/m);
-    await page.getByRole('button', { name: 'TaskFlow 预览', exact: true }).click();
-    await page.getByRole('button', { name: '开发终端', exact: true }).click();
+    await selectTab('TaskFlow 预览');
+    await selectTab('开发终端');
     expect(await output()).toContain(nonce);
     await windowShots(app, page, 'sbx-terminal-live-narrow');
     await workshopNavigate(page, '首页');

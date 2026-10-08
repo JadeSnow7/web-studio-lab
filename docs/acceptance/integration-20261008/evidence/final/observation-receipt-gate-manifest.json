@@ -1,0 +1,37 @@
+{
+  "finding": "F29 final serialization hard gate",
+  "sources": {
+    "apps/service/src/codex-chat.ts": "95987bc1a6ce2f58abffbf3afce97daa0a508ae268d5101c399cf68d0e83e345",
+    "apps/service/src/resource-chat.test.ts": "65fb149a5fe2ff4d2d9600efdc7d220573c390136f45b1e2e87e7efe2c0fe31a",
+    "e2e/observation-live.spec.ts": "e0b76a4cb4f39c2597f0c8b5ed0be660ce1858c4e5f6753b2ccaff2b4522dfd7"
+  },
+  "receipts": {
+    "before": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-gate-before.json",
+      "sha256": "038f0b3f5a1e1635c94435f0d160b5499a84ab188afe71d5c2f00af5676334df",
+      "exitCode": 1,
+      "revisionStable": true
+    },
+    "tests": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-gate-tests.json",
+      "sha256": "1257eaf3fd5037eb0805661b131a75a5f5a20e9e8f21590356b38ae1756a377d",
+      "exitCode": 1,
+      "revisionStable": true
+    },
+    "lint": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-gate-lint.json",
+      "sha256": "87e34c5271bdee5265e5994513f669a6bc6ef9b1ac79ec994eace938ec62c786",
+      "exitCode": 0,
+      "revisionStable": true
+    },
+    "format": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-gate-format.json",
+      "sha256": "20a59429b126af8180d9df392029e5d0608a0fa2ea0128d9b44fe0045bd12ef7",
+      "exitCode": 0,
+      "revisionStable": true
+    }
+  },
+  "behavior": "Every summary output is checked after JSON serialization against existing 16000 limit. Overflow emits fixed receiptUnavailable without uncontrolled status. Normal identity paths unchanged.",
+  "liveExecuted": false,
+  "diffCheckExitCode": 0
+}

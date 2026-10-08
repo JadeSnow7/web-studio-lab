@@ -1,0 +1,28 @@
+{
+  "source_manifest": "frozen-source-manifest.json",
+  "build_receipt": "frozen-package.json",
+  "unsigned": true,
+  "publish": "never",
+  "files": [
+    {
+      "path": "apps/desktop/release/Web Studio Lab-0.1.0-arm64-mac.zip",
+      "bytes": 128621474,
+      "sha256": "d4257dba417bb11ba30d6de06d3084931d8ad14973f1592c93e6bed284399d23"
+    },
+    {
+      "path": "apps/desktop/release/Web Studio Lab-0.1.0-arm64-mac.zip.blockmap",
+      "bytes": 137485,
+      "sha256": "12aa19817da033c35b2bee976021c496a2602224b3074e5258781d20dcf3f092"
+    },
+    {
+      "path": "apps/desktop/release/Web Studio Lab-0.1.0-arm64.dmg",
+      "bytes": 128506656,
+      "sha256": "88e53d7f44c545144c9a176170ce8659ebafc6b0b2b6fbf9e4265b57967bf45b"
+    },
+    {
+      "path": "apps/desktop/release/builder-debug.yml",
+      "bytes": 842,
+      "sha256": "888fd6a4756b47965c5842588b25940baf8e6c084cb843c3c9c52ee7b9f59461"
+    }
+  ]
+}

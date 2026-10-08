@@ -1,0 +1,26 @@
+{
+  "hostSyntaxValid": true,
+  "guestSyntaxValid": true,
+  "preparedOnly": true,
+  "networkRequests": 0,
+  "sandboxCommands": 0,
+  "script": "/private/tmp/wsl-guest-network-diagnostic.mjs",
+  "scriptSha256": "2f37c7ecd3a70bfa5f4d7998702d3fcbf34f004b0504f9566a4db03bddbff33a",
+  "sourceSha256": "6a30a638b48a85e890466e0acbb5359f1030b072847ed8edb2ab281c27bc357c",
+  "observedFields": [
+    "monotonicMs",
+    "event",
+    "session",
+    "requestId",
+    "networkId",
+    "resourceType",
+    "origin-without-query-or-userinfo",
+    "fixedTarget",
+    "responseStatusCode",
+    "responseErrorReason-enum",
+    "net::ERR-enum",
+    "canceled",
+    "blockedReason"
+  ],
+  "limits": "Not yet executed; observer does not bypass protection and a final BlockedByClient may follow an earlier underlying error. No headers/proxy credentials/request body logged."
+}

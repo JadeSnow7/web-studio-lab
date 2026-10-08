@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+import { execFile, type ChildProcess } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -22,7 +22,14 @@ async function switchSpace(page: Page, name: string) {
 }
 function payload(tool: ChatConversation['toolExecutions'][number]) {
   expect(tool.exitCode).toBe(0);
-  expect(tool.truncated).toBe(false);
+  if (tool.truncated) {
+    const summary = JSON.parse(tool.output);
+    expect(summary.status).toBe('completed');
+    expect(summary.truncated).toBe(true);
+    expect(summary.untrusted).toBe(true);
+    expect(summary.metadataOmitted).toBeUndefined();
+    return { receipt: summary.receipt };
+  }
   const envelope = JSON.parse(tool.output) as {
     status: string;
     error: unknown;
@@ -50,6 +57,7 @@ test('live：真实Codex统一观察三来源，运行中换空间仍保持原�
   await writeFile(path.join(root, 'nonce.txt'), fileNonce + '\n');
   const guestDir = `/home/agent/workspace/wsl-observation-${randomUUID()}`;
   let app: Awaited<ReturnType<typeof launchApp>>['app'] | undefined;
+  let electronProcess: ChildProcess | undefined;
   let originalFailure: unknown;
   const cleanupErrors: unknown[] = [];
   let guestCreated = false;
@@ -61,14 +69,25 @@ test('live：真实Codex统一观察三来源，运行中换空间仍保持原�
   try {
     const launched = await launchApp({ live: true, observationRoot: root, userData: path.join(owned, 'profile') });
     app = launched.app;
+    electronProcess = app.process();
     page = launched.page;
     await workshopNavigate(page, '空间');
     const initial = await workspaceSnapshot(page);
     ownerId = initial.activeWorkspaceId;
     const ownerName = initial.workspaces.find((w) => w.workspaceId === ownerId)!.name;
+    phase = 'prepare-isolation';
     const otherId = randomUUID();
     const otherName = `观察隔离-${randomUUID().slice(0, 8)}`;
     await command(page, { type: 'createWorkspace', workspaceId: otherId, commandId: randomUUID(), name: otherName });
+    await command(page, {
+      type: 'createTab',
+      workspaceId: otherId,
+      commandId: randomUUID(),
+      kind: 'web',
+      title: '隔离网页',
+      environmentId: 'local',
+      url: 'wsl-demo://taskflow/index.html',
+    });
     await expect
       .poll(async () => {
         const preview = (await workspaceSnapshot(page!)).workspaces
@@ -108,6 +127,7 @@ test('live：真实Codex统一观察三来源，运行中换空间仍保持原�
         async () =>
           (await workspaceSnapshot(page!)).workspaces.find((w) => w.workspaceId === ownerId)!.resources.find((r) => r.kind === 'terminal')!
             .terminal?.state,
+        { timeout: 30000 },
       )
       .toBe('running');
     const input = panel.getByLabel('终端输入');
@@ -158,10 +178,13 @@ test('live：真实Codex统一观察三来源，运行中换空间仍保持原�
     await sessionPanel.getByRole('button', { name: '开始运行', exact: true }).click();
     phase = 'switch-during-bound-run';
     await expect
-      .poll(async () => {
-        const run = (await owner()).runs.at(-1);
-        return run?.state === 'running' && !!run.executionBinding?.turnId;
-      })
+      .poll(
+        async () => {
+          const run = (await owner()).runs.at(-1);
+          return run?.state === 'running' && !!run.executionBinding?.turnId;
+        },
+        { timeout: 30000 },
+      )
       .toBe(true);
     const bound = (await owner()).runs.at(-1)!;
     expect(bound.state).toBe('running');
@@ -226,7 +249,13 @@ test('live：真实Codex统一观察三来源，运行中换空间仍保持原�
       expect(record.state).toBe('completed');
       expect(record.request).toMatchObject({ workspaceId: ownerId, sessionId: run.sessionId, runId: run.runId });
       expect(record.evidenceRef).toBeTruthy();
-      expect(result).toEqual(record.result);
+      if ('receipt' in result) {
+        if (!record.result || !('resource' in record.result)) throw new Error(`Missing Main observation: ${name}`);
+        const { data: _data, ...metadata } = record.result;
+        expect(result.receipt).toEqual(metadata);
+        expect(result.receipt.evidenceRef).toBe(record.evidenceRef);
+      } else expect(result).toEqual(record.result);
+      const original = WorkspaceObservationResultSchema.parse(record.result);
       if (resource) {
         expect(record.request.target).toEqual({
           workspaceId: ownerId,
@@ -236,19 +265,19 @@ test('live：真实Codex统一观察三来源，运行中换空间仍保持原�
           instanceId: resource.instanceId,
           instanceGeneration: resource.generation,
         });
-        if (!('resource' in result)) throw new Error(`Missing observation identity: ${name}`);
-        expect(result.resource).toEqual(record.request.target);
-        expect(result.generation).toBeTruthy();
-        expect(JSON.stringify(result.data)).toContain(nonce!);
-        expect(JSON.stringify(result)).not.toContain(interference);
-        if (action === 'files.read') expect(result.source).toBe('disk');
-        if (action === 'terminal.read_output') expect(result.data['sessionId']).toBe(terminal.terminal!.sessionId);
-        if (action === 'browser.snapshot') expect(result.data['target']).toEqual({ webContentsId: browser.preview!.page!.webContentsId });
+        if (!('resource' in original)) throw new Error(`Missing observation identity: ${name}`);
+        expect(original.resource).toEqual(record.request.target);
+        expect(original.generation).toBeTruthy();
+        expect(JSON.stringify(original.data)).toContain(nonce!);
+        expect(JSON.stringify(original)).not.toContain(interference);
+        if (action === 'files.read') expect(original.source).toBe('disk');
+        if (action === 'terminal.read_output') expect(original.data['sessionId']).toBe(terminal.terminal!.sessionId);
+        if (action === 'browser.snapshot') expect(original.data['target']).toEqual({ webContentsId: browser.preview!.page!.webContentsId });
       } else {
         expect(record.request.target).toBeNull();
-        if (!('kind' in result)) throw new Error('Expected source registry');
-        expect(result.workspaceId).toBe(ownerId);
-        expect(result.sources.every((source) => source.resource.workspaceId === ownerId)).toBe(true);
+        if (!('kind' in original)) throw new Error('Expected source registry');
+        expect(original.workspaceId).toBe(ownerId);
+        expect(original.sources.every((source) => source.resource.workspaceId === ownerId)).toBe(true);
       }
     }
     const final = await workspaceSnapshot(page);
@@ -267,6 +296,23 @@ test('live：真实Codex统一观察三来源，运行中换空间仍保持原�
   } catch (error) {
     originalFailure = error;
   } finally {
+    evidence['phase'] = phase;
+    evidence['ownedRoot'] = owned;
+    evidence['electronPid'] = electronProcess?.pid ?? null;
+    evidence['failure'] =
+      originalFailure instanceof Error ? { message: originalFailure.message, stack: originalFailure.stack } : (originalFailure ?? null);
+    async function recordEvidence(name: string) {
+      try {
+        const output = info.outputPath(`${name}.json`);
+        await writeFile(output, JSON.stringify(evidence, null, 2) + '\n');
+        await info.attach(name, { path: output, contentType: 'application/json' });
+        return true;
+      } catch (error) {
+        cleanupErrors.push(error);
+        return false;
+      }
+    }
+    await recordEvidence('observation-live-before-cleanup');
     if (app && page && ownerId) {
       try {
         const snapshot = await workspaceSnapshot(page);
@@ -301,6 +347,8 @@ test('live：真实Codex统一观察三来源，运行中换空间仍保持原�
       } catch (error) {
         cleanupErrors.push(error);
       }
+    }
+    if (app) {
       try {
         await app.close();
       } catch (error) {
@@ -319,16 +367,24 @@ test('live：真实Codex统一观察三来源，运行中换空间仍保持原�
         cleanupErrors.push(error);
       }
     }
-    evidence['phase'] = phase;
     evidence['processCleanupConfirmed'] = processCleanupConfirmed;
-    evidence['failure'] = originalFailure instanceof Error ? originalFailure.message : (originalFailure ?? null);
-    evidence['cleanupErrors'] = cleanupErrors.map((error) => (error instanceof Error ? error.message : String(error)));
-    const applicationExited = !app || app.process().exitCode !== null || app.process().signalCode !== null;
+    const applicationExited = !!electronProcess && (electronProcess.exitCode !== null || electronProcess.signalCode !== null);
     evidence['applicationExited'] = applicationExited;
-    const output = info.outputPath('observation-live-evidence.json');
-    await writeFile(output, JSON.stringify(evidence, null, 2) + '\n');
-    await info.attach('observation-live-evidence', { path: output, contentType: 'application/json' });
-    if (applicationExited) await rm(owned, { recursive: true, force: true });
+    evidence['cleanupErrors'] = cleanupErrors.map((error) =>
+      error instanceof Error ? { message: error.message, stack: error.stack } : String(error),
+    );
+    const evidenceSaved = await recordEvidence('observation-live-evidence');
+    if (applicationExited && evidenceSaved && (!guestCreated || processCleanupConfirmed)) {
+      try {
+        await rm(owned, { recursive: true, force: true });
+      } catch (error) {
+        cleanupErrors.push(error);
+        evidence['cleanupErrors'] = cleanupErrors.map((error) =>
+          error instanceof Error ? { message: error.message, stack: error.stack } : String(error),
+        );
+        await recordEvidence('observation-live-evidence');
+      }
+    }
   }
   if (cleanupErrors.length)
     throw new AggregateError(

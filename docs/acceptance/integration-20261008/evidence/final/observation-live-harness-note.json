@@ -1,0 +1,53 @@
+{
+  "recordedAt": "2026-10-08T13:41:43.832298+00:00",
+  "scope": [
+    "e2e/observation-live.spec.ts"
+  ],
+  "sourceSha256": "9d2de8a273486eb312250b3c23420d87bb0db2b4da5c1cd39de524a1bfc645c0",
+  "originalReceipt": "docs/acceptance/integration-20261008/evidence/final/live-observation.json",
+  "originalFailure": "Cleanup app.process() after disposed dispatcher masked original error; original live receipt does not prove MCP execution failed.",
+  "readOnlyProfile": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-observation-live-E4SiXQ/profile/workbench.json",
+  "profileFacts": {
+    "isolationResources": 0,
+    "taskflowRuns": 0,
+    "taskflowObservations": 0,
+    "terminalInstanceEstablished": false,
+    "authenticationFilesRead": false,
+    "profileModifiedOrDeleted": false
+  },
+  "changes": [
+    "Explicit createTab supplies actual isolated Browser resource because createWorkspace is empty.",
+    "Cache ChildProcess immediately after launch; never access disposed Electron dispatcher for exit status.",
+    "Persist phase/original error before cleanup; close app independently of ownerId; aggregate evidence and cleanup errors with original cause.",
+    "Preserve owned profile when evidence write fails or guest cleanup is unconfirmed."
+  ],
+  "checks": {
+    "type": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-live-harness-type.json",
+      "sha256": "ccd830bb1e573a3037c30b9babf3300c8ab6f9ae56a66d5c8775a4a5fcf4815c",
+      "status": null,
+      "exit_code": 0
+    },
+    "lint": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-live-harness-lint.json",
+      "sha256": "0bf4b4aa4b8c7510c7f51e97b2088a94c67178f841fa5be206c23ac99f6d7109",
+      "status": null,
+      "exit_code": 0
+    },
+    "format": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-live-harness-format.json",
+      "sha256": "f96ad2b4509a137f00c02c61a3cfc495dae33ebdbe409f584f7db97d008bd42e",
+      "status": null,
+      "exit_code": 0
+    },
+    "collect": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-live-harness-collect.json",
+      "sha256": "8934c76c46338d5f8f6a7eabbf05230f8f270b4f3e984765342b275e3e91bda9",
+      "status": null,
+      "exit_code": 0
+    }
+  },
+  "diffCheckExitCode": 0,
+  "liveExecuted": false,
+  "remaining": "Root will serially rerun actual live; all MCP/nonce/isolation/confirmed-cleanup assertions retained."
+}

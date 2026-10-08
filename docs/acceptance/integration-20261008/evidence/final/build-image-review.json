@@ -1,0 +1,19 @@
+{
+  "reviewed": [
+    "electron-build-artifacts/screens/remake-six-sections.png",
+    "electron-build-artifacts/screens/remake-floating-panels.png",
+    "electron-build-artifacts/screens/workspace-three-panes-warm.renderer.png"
+  ],
+  "observed": [
+    "six direct global navigation entries",
+    "space vertical tabs and top switcher",
+    "right notification bubble",
+    "warm theme consistent across split panes and terminal"
+  ],
+  "limits": [
+    "These are renderer/WebContents captures, not OS composited screenshot",
+    "Native browser blank in renderer capture is not missing page proof; separate preview captures exist",
+    "floating-panels named capture shows collapsed trigger, not open bubble acceptance",
+    "Native focus, pointer occlusion, physical drag and IME candidate window remain undetermined"
+  ]
+}

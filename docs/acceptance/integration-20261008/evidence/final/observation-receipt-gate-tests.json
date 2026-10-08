@@ -1,0 +1,47 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/service/src/resource-chat.test.ts",
+    "apps/service/src/observation-mcp.test.ts",
+    "apps/service/src/sbx.test.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T13:54:43.273249Z",
+  "ended_at": "2026-10-08T13:54:45.267251Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/resource-chat.test.ts (20 tests | 1 failed) 191ms\n   ❯ space resources per-turn capability (20)\n     × bounds unbounded protocol workspace fields in receipts 4ms\n\n Test Files  1 failed | 2 passed (3)\n      Tests  1 failed | 39 passed (40)\n   Start at  21:54:43\n   Duration  1.55s (tests 80%, transform 11%, import 8%)\n\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/resource-chat.test.ts > space resources per-turn capability > bounds unbounded protocol workspace fields in receipts\nAssertionError: expected { status: 'completed', …(3) } to deeply equal { truncated: true, …(1) }\n\n- Expected\n+ Received\n\n  {\n-   \"receiptUnavailable\": \"MCP metadata exceeded the record limit\",\n+   \"receipt\": {},\n+   \"status\": \"completed\",\n    \"truncated\": true,\n+   \"untrusted\": true,\n  }\n\n ❯ apps/service/src/resource-chat.test.ts:322:39\n    320|     await f.chat.shutdown();\n    321|     expect(record.output.length).toBeLessThanOrEqual(16000);\n    322|     expect(JSON.parse(record.output)).toEqual({ truncated: true, recei…\n       |                                       ^\n    323|   });\n    324|   it('total MCP evidence limit remains valid JSON with explicit omissi…\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvc2VydmljZS9zcmMvcmVzb3VyY2UtY2hhdC50ZXN0LnRzICgyMCB0ZXN0cyB8IDEgZmFpbGVkKSAxOTFtcwogICDina8gc3BhY2UgcmVzb3VyY2VzIHBlci10dXJuIGNhcGFiaWxpdHkgKDIwKQogICAgIMOXIGJvdW5kcyB1bmJvdW5kZWQgcHJvdG9jb2wgd29ya3NwYWNlIGZpZWxkcyBpbiByZWNlaXB0cyA0bXMKCiBUZXN0IEZpbGVzICAxIGZhaWxlZCB8IDIgcGFzc2VkICgzKQogICAgICBUZXN0cyAgMSBmYWlsZWQgfCAzOSBwYXNzZWQgKDQwKQogICBTdGFydCBhdCAgMjE6NTQ6NDMKICAgRHVyYXRpb24gIDEuNTVzICh0ZXN0cyA4MCUsIHRyYW5zZm9ybSAxMSUsIGltcG9ydCA4JSkKCg==",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL3Jlc291cmNlLWNoYXQudGVzdC50cyA+IHNwYWNlIHJlc291cmNlcyBwZXItdHVybiBjYXBhYmlsaXR5ID4gYm91bmRzIHVuYm91bmRlZCBwcm90b2NvbCB3b3Jrc3BhY2UgZmllbGRzIGluIHJlY2VpcHRzCkFzc2VydGlvbkVycm9yOiBleHBlY3RlZCB7IHN0YXR1czogJ2NvbXBsZXRlZCcsIOKApigzKSB9IHRvIGRlZXBseSBlcXVhbCB7IHRydW5jYXRlZDogdHJ1ZSwg4oCmKDEpIH0KCi0gRXhwZWN0ZWQKKyBSZWNlaXZlZAoKICB7Ci0gICAicmVjZWlwdFVuYXZhaWxhYmxlIjogIk1DUCBtZXRhZGF0YSBleGNlZWRlZCB0aGUgcmVjb3JkIGxpbWl0IiwKKyAgICJyZWNlaXB0Ijoge30sCisgICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgICAidHJ1bmNhdGVkIjogdHJ1ZSwKKyAgICJ1bnRydXN0ZWQiOiB0cnVlLAogIH0KCiDina8gYXBwcy9zZXJ2aWNlL3NyYy9yZXNvdXJjZS1jaGF0LnRlc3QudHM6MzIyOjM5CiAgICAzMjB8ICAgICBhd2FpdCBmLmNoYXQuc2h1dGRvd24oKTsKICAgIDMyMXwgICAgIGV4cGVjdChyZWNvcmQub3V0cHV0Lmxlbmd0aCkudG9CZUxlc3NUaGFuT3JFcXVhbCgxNjAwMCk7CiAgICAzMjJ8ICAgICBleHBlY3QoSlNPTi5wYXJzZShyZWNvcmQub3V0cHV0KSkudG9FcXVhbCh7IHRydW5jYXRlZDogdHJ1ZSwgcmVjZWnigKYKICAgICAgIHwgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBeCiAgICAzMjN8ICAgfSk7CiAgICAzMjR8ICAgaXQoJ3RvdGFsIE1DUCBldmlkZW5jZSBsaW1pdCByZW1haW5zIHZhbGlkIEpTT04gd2l0aCBleHBsaWNpdCBvbWlzc2nigKYKCuKOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr1sxLzFd4o6vCgo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:b555071043fe9529f22859849711331fc4b85c01393d5d9f61132f530e2ab9aa:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:b555071043fe9529f22859849711331fc4b85c01393d5d9f61132f530e2ab9aa:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:b555071043fe9529f22859849711331fc4b85c01393d5d9f61132f530e2ab9aa:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

@@ -1,0 +1,8 @@
+{
+  "path": "e2e/observation-live.spec.ts",
+  "sha256": "087cdf15ac56886123573b0b0337e1c560fcb22268af7ec52c53e2a8315d6cbf",
+  "parent_review": "observation-live-root-review.json",
+  "delta": "Only two startup polls now allow 30000ms; service sbx.ts startup timer is 30000ms, existing e2e/sbx.spec.ts uses same readiness deadline. Status, frozen binding, nonce and cleanup assertions remain.",
+  "failure": "live-observation-v2.json: starting after default5000ms; final artifact confirms processCleanupConfirmed/applicationExited true, cleanupErrors empty.",
+  "live_receipt": "live-observation-v3.json"
+}

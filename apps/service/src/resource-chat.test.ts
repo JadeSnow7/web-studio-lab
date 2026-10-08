@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ObservationSourcesSchema } from '@wsl/protocol';
 import { CodexChat, parseCodexLine } from './codex-chat';
 import type { GuestFrame, GuestStart, SbxConnection } from './sbx';
 
@@ -194,6 +195,135 @@ describe('space resources per-turn capability', () => {
     });
     f.finish();
     await f.chat.shutdown();
+  });
+  it.each(['none', 'range', 'timestamp', 'started'] as const)(
+    'retains observation provenance with oversized metadata=%s',
+    async (oversized) => {
+      const f = fixture();
+      await f.chat.send(space, 'read');
+      const metadata = {
+        resource: {
+          workspaceId: 'taskflow-demo',
+          environmentId: 'sandbox',
+          resourceId: 'term-1',
+          kind: 'terminal',
+          instanceId: 'instance-1',
+          instanceGeneration: 3,
+        },
+        generation: 'pty-3',
+        revision: { value: '42', strength: 'sequence' },
+        snapshotId: '00000000-0000-4000-8000-000000000042',
+        startedAt: oversized === 'started' ? '2026-10-08T12:00:00.' + '1'.repeat(20000) + 'Z' : '2026-10-08T12:00:00.000Z',
+        source: 'pty',
+        representation: 'terminal-output',
+        capturedAt: oversized === 'timestamp' ? '2026-10-08T12:00:00.' + '1'.repeat(20000) + 'Z' : '2026-10-08T12:00:00.000Z',
+        coverage: { status: 'complete', range: { start: 0, end: 32745, detail: oversized === 'range' ? '中'.repeat(20000) : '' } },
+        evidenceRef: 'observation-42.json',
+      };
+      f.emit({
+        type: 'item.completed',
+        item: {
+          id: 'observation-large',
+          type: 'mcp_tool_call',
+          server: 'wsl_space',
+          tool: 'terminal_read_output',
+          arguments: { resourceId: 'term-1' },
+          status: 'completed',
+          error: null,
+          result: { structuredContent: { untrusted: true, data: { ...metadata, data: { output: '中'.repeat(20000) } } } },
+        },
+      });
+      const record = f.chat.get(space).toolExecutions[0]!;
+      f.finish();
+      await f.chat.shutdown();
+      expect(record.truncated).toBe(true);
+      expect(record.output.length).toBeLessThanOrEqual(16000);
+      const { revision: _revision, coverage: _coverage, capturedAt: _capturedAt, startedAt: _startedAt, ...identity } = metadata;
+      expect(JSON.parse(record.output)).toEqual(
+        oversized !== 'none'
+          ? {
+              status: 'completed',
+              truncated: true,
+              untrusted: true,
+              receipt: { ...identity, coverage: { status: 'complete' } },
+              metadataOmitted: ['revision', 'coverage.range', 'coverage.reasons', 'nextCursor', 'capturedAt', 'startedAt'],
+            }
+          : { status: 'completed', truncated: true, untrusted: true, receipt: metadata },
+      );
+    },
+  );
+  it.each(['sources', 'error'] as const)('keeps bounded protocol %s receipts', async (kind) => {
+    const f = fixture();
+    await f.chat.send(space, 'read');
+    const sources = Array.from({ length: 500 }, (_, i) => ({
+      resource: { workspaceId: 'taskflow-demo', environmentId: null, resourceId: `file-${i}`, kind: 'file' },
+      instance: null,
+      title: '文件',
+      capabilities: [],
+      state: 'unavailable',
+      reason: '未绑定',
+    }));
+    const data =
+      kind === 'sources'
+        ? { kind, workspaceId: 'taskflow-demo', sources }
+        : { error: 'unavailable', message: '中'.repeat(20000), details: { reason: '大'.repeat(20000) } };
+    f.emit({
+      type: 'item.completed',
+      item: {
+        id: 'large-protocol',
+        type: 'mcp_tool_call',
+        server: 'wsl_space',
+        tool: 'workspace_list_sources',
+        status: 'completed',
+        error: null,
+        result: { structuredContent: { untrusted: true, data } },
+      },
+    });
+    const record = f.chat.get(space).toolExecutions[0]!;
+    f.finish();
+    await f.chat.shutdown();
+    expect(record.truncated).toBe(true);
+    expect(record.output.length).toBeLessThanOrEqual(16000);
+    const summary = JSON.parse(record.output);
+    if (kind === 'sources') {
+      expect(summary.receipt).toMatchObject({ kind, workspaceId: 'taskflow-demo', sourceCount: 500 });
+      expect(summary.receipt.sources.length).toBeGreaterThan(0);
+      expect(summary.receipt.sources).toEqual(
+        sources.slice(0, summary.receipt.sources.length).map(({ resource, instance }) => ({ resource, instance })),
+      );
+      expect(summary.receipt.sourcesOmitted).toBe(500 - summary.receipt.sources.length);
+      expect(summary.receipt.snapshotId).toBeUndefined();
+    } else
+      expect(summary.receipt).toEqual({ error: 'unavailable', message: '中'.repeat(2000), messageOmitted: true, detailsOmitted: true });
+  });
+  it.each(['workspace', 'status'] as const)('bounds unbounded protocol %s fields in receipts', async (field) => {
+    const f = fixture();
+    await f.chat.send(space, 'read');
+    f.emit({
+      type: 'item.completed',
+      item: {
+        id: 'unbounded',
+        type: 'mcp_tool_call',
+        server: 'wsl_space',
+        tool: 'workspace_list_sources',
+        status: field === 'status' ? 's'.repeat(20000) : 'completed',
+        error: null,
+        result: {
+          structuredContent: {
+            untrusted: true,
+            data: { kind: 'sources', workspaceId: field === 'workspace' ? 'w'.repeat(20000) : 'taskflow-demo', sources: [] },
+          },
+        },
+      },
+    });
+    const record = f.chat.get(space).toolExecutions[0]!;
+    f.finish();
+    await f.chat.shutdown();
+    expect(record.output.length).toBeLessThanOrEqual(16000);
+    if (field === 'workspace') {
+      expect(ObservationSourcesSchema.safeParse({ kind: 'sources', workspaceId: 'w'.repeat(20000), sources: [] }).success).toBe(false);
+      expect(JSON.parse(record.output)).toEqual({ status: 'completed', truncated: true, untrusted: true, receipt: {} });
+    } else expect(JSON.parse(record.output)).toEqual({ truncated: true, receiptUnavailable: 'MCP metadata exceeded the record limit' });
   });
   it('total MCP evidence limit remains valid JSON with explicit omission', async () => {
     const f = fixture();

@@ -1,0 +1,13 @@
+{
+  "before": "live-sbx-ui.json failed before connection; no sandbox file or model task created",
+  "reviewed_sources": [
+    "e2e/sbx.spec.ts"
+  ],
+  "after_design": [
+    "Await actual environment capability then connect and await Main running state",
+    "Verify actual sandbox/cwd/resource environment after runtime identity exists",
+    "Use real left bubble/navigation in 1024px narrow layout for both hidden-tab switches",
+    "All nonce/canary/model output/tool event/PTY/cleanup assertions retained"
+  ],
+  "not_claimed": "The narrow mismatch was found by source inspection, not previously executed failure."
+}

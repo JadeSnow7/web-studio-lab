@@ -1,0 +1,74 @@
+{
+  "at": "2026-10-08T14:27:32.262049+00:00",
+  "reviewer": "root",
+  "artifacts": [
+    {
+      "path": "final-live-resources-artifacts/screens/resources-live-evidence.json",
+      "sha256": "ae8d9b056da4dee949898b6ee34609658229bb790f306c81fc01cae252105434"
+    },
+    {
+      "path": "frozen-live-sbx-ui-artifacts/screens/sbx-live-owned-cleanup.json",
+      "sha256": "7e4b9ad52421b6e785c244ba30feac72f89b623541028553536fcf6aceafce42"
+    },
+    {
+      "path": "frozen-live-sbx-ui-artifacts/screens/sbx-live-terminal.json",
+      "sha256": "0401a668b35ac652f67ec5654eaa33cf4053b03c17924a3da3f0c9ec40f06f8a"
+    },
+    {
+      "path": "frozen-live-sbx-ui-artifacts/screens/sbx-live-conversation.json",
+      "sha256": "71efa1db3c73b5e68fcb6f0ee87ce7b73387a097e8a1317bf9041ca99e0396d6"
+    },
+    {
+      "path": "frozen-live-workspace-artifacts/screens/workspace-live4-evidence.json",
+      "sha256": "e5035ef7c5203bd5f719d6d9baeaa0c7f8cf8c31d281bbf81a74564bee0ab433"
+    },
+    {
+      "path": "delivery-guest-browser-artifacts/capture-c62b58df-f3b3-42ac-a75d-cfcae530be8e/capture-result.json",
+      "sha256": "0ddbc00fe73aa8afc1e86441ae755017b2dc6ff96d38d1f977d7191db4c90d4b"
+    },
+    {
+      "path": "observation-receipt-gate-manifest-v2.json",
+      "sha256": "9e138f14b2394937d87c17d8b23bc780fd285c450a04ccf80bedd0991519b446"
+    }
+  ],
+  "public_resource": {
+    "verified": true,
+    "actual_network": "https://example.com/",
+    "same_full_MCP_read_as_Main_resource": true,
+    "list_identity_and_hash_match": true,
+    "removed": true,
+    "conversation_cleanup_pending": false
+  },
+  "sandbox_ui": {
+    "real_model_unknown_nonce": true,
+    "terminal_closed": true,
+    "process_cleanup_confirmed": true,
+    "conversation_cleanup_pending": false,
+    "host_canary_absent": true,
+    "guestDirectoryMayExist": true,
+    "directory_cleanup_limit": "This flag records that creation was attempted, not a post-cleanup existence scan. Process cleanup is confirmed; no independent final filesystem scan was performed in this review."
+  },
+  "workspace": {
+    "run_workspace_session_generation_turn_match": true,
+    "other_workspace_no_runs": true,
+    "model_nonce": true,
+    "cleanup_pending": false,
+    "review": null,
+    "validation": "blocked",
+    "notification_read_at": null
+  },
+  "guest_browser": {
+    "success": false,
+    "error": "NETWORK_FAILED",
+    "browser_closed": true,
+    "chromium_sandbox": true
+  },
+  "F29": {
+    "final_source_sha_matches_gate_v2": true,
+    "historical_review_note": "F29-final-root-review.json describes the then-pending C live. Superseded for live outcome by frozen-observation-root-review.json; earlier bytes kept intact."
+  },
+  "limits": [
+    "Replay checks above inspect recorded artifacts and do not rerun live or assert OS drag/IME/compositing.",
+    "Test source and raw stdout capture intermediate switching/cleanup assertions not retained in the final snapshot."
+  ]
+}

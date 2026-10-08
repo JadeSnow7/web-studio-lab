@@ -13,10 +13,11 @@
 | `46cab72` | VS001复核门槛、guest帧预算、参赛稿导出  |
 | `965ebcd` | 原生网页导航竞态                        |
 | `247247b` | SSH启动重试、真实agent/SFTP/PTY产品回归 |
+| `5d9542e` | 三来源 live 测试与文件授权撤销回归      |
 
 后续最终验证或修复提交继续追加，不改写基准；全部提交和最终源码 SHA 见最终验收记录。未推送、合并main、发布或提交参赛材料。
 
-[目标与验收](SPEC.md)、[阶段审查](review.md)、[验收条件](acceptance-matrix.md)、[来源裁决](integration-disposition.md)提供完整范围。其他工作树只读：15树实际文件完整冻结，第16树49个dirty候选稳定；324个非脏旧文件实际字节未确认，不从这些未知字节迁入。基准169个执行源码已读，新增文件按各阶段manifest复评。
+[目标与验收](SPEC.md)、[阶段审查](review.md)、[验收条件](acceptance-matrix.md)、[来源裁决](integration-disposition.md)提供完整范围。其他工作树只读：15树实际文件完整冻结，第16树49个dirty候选稳定；324个非脏旧文件实际字节未确认，不从这些未知字节迁入。当前执行代码覆盖清单共205条路径，逐项关联基准、阶段差异及补充正文审查；26个原索引缺失文件已补读。样式、HTML、配置和导出工具另有清单。测试后续更新由最终差异复核补充，详见最终验收记录。
 
 SSH 工作包 [Phase4b-B清单](evidence/phase4b-b-source-manifest.json) 对应416项单元通过、8项live跳过和两个实际SSH产品场景通过；断线未知状态下的受控强退不算正常shutdown通过。[根线程原始证据复核](evidence/phase4b-b-root-review.json)保留早期测试/采证问题及界限。导航修复另有23项定向测试及五轮真实Electron探针；VS001为12项合成自检，产品adapter仍缺失。
 

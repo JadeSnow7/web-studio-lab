@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { stripVTControlCharacters } from 'node:util';
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { describe, expect, it } from 'vitest';
@@ -30,16 +32,26 @@ async function assertGone(connection: SbxConnection, pid: number) {
   expect(output.trim()).toBe('GONE');
 }
 describe.skipIf(!live)('真实 sbx guest 生命周期（不调模型）', () => {
+  // initialize, close and three independent assertGone probes each start a real sbx helper serially.
   it('PTY尺寸、持久cwd、CtrlC保留shell、close清理后台job', async () => {
     const connection = new SbxConnection();
     expect((await connection.initialize()).available).toBe(true);
     let text = '';
+    let ready = false;
     const child = connection.start({ type: 'start', mode: 'terminal', cols: 90, rows: 31 }, (frame) => {
-      if (frame.type === 'ready') console.log('PTY guest session pid', frame.pid);
+      if (frame.type === 'ready') {
+        ready = true;
+        console.log('PTY guest session pid', frame.pid);
+      }
       if (frame.type === 'output') text += frame.data;
     });
     try {
-      await expect.poll(() => text, { timeout: 30000 }).toContain('bash');
+      await expect.poll(() => ready, { timeout: 30000 }).toBe(true);
+      const readyMarker = `WSL_PTY_READY_${randomUUID()}`;
+      child.write({ type: 'input', data: `printf '${readyMarker}\\n'\r` });
+      await expect
+        .poll(() => stripVTControlCharacters(text).replace(/\r/g, ''), { timeout: 30000 })
+        .toMatch(new RegExp(`^${readyMarker}$`, 'm'));
       child.write({ type: 'input', data: 'stty size; cd /tmp; pwd; sleep 60 & printf \'BG_PID:%s\\n\' "$!"\r' });
       await expect.poll(() => text).toMatch(/BG_PID:\d+/);
       const pid = Number(text.match(/BG_PID:(\d+)/)![1]);
@@ -73,7 +85,7 @@ describe.skipIf(!live)('真实 sbx guest 生命周期（不调模型）', () => 
     } finally {
       await child.close();
     }
-  }, 60000);
+  }, 120000);
   it('非TTY cancel与控制stdin EOF均确认清理所属后台job', async () => {
     const connection = new SbxConnection();
     expect((await connection.initialize()).available).toBe(true);

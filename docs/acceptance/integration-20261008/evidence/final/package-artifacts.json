@@ -1,0 +1,27 @@
+{
+  "source_head": "5d9542e1cfc1f213b1150b0d1a6561e00509cb4f",
+  "unsigned": true,
+  "publish": "never",
+  "files": [
+    {
+      "path": "apps/desktop/release/Web Studio Lab-0.1.0-arm64-mac.zip",
+      "bytes": 128620965,
+      "sha256": "cd4876c5c7d1463536468ac81b13ee5813e0e5e2cee8971f3b3691b430b524e0"
+    },
+    {
+      "path": "apps/desktop/release/Web Studio Lab-0.1.0-arm64-mac.zip.blockmap",
+      "bytes": 137489,
+      "sha256": "1e9be8a632bd9339be9f406f94ca5d5c9a1cb150dfc04bb6091d4a6624e59050"
+    },
+    {
+      "path": "apps/desktop/release/Web Studio Lab-0.1.0-arm64.dmg",
+      "bytes": 128508719,
+      "sha256": "ecb32e86cf06d7b616ecfad55edef1caf21a4b92053cbd6cd418c8cae4af8da6"
+    },
+    {
+      "path": "apps/desktop/release/builder-debug.yml",
+      "bytes": 842,
+      "sha256": "888fd6a4756b47965c5842588b25940baf8e6c084cb843c3c9c52ee7b9f59461"
+    }
+  ]
+}

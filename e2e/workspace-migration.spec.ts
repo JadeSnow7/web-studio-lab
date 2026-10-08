@@ -1,5 +1,5 @@
 import { expect, test, type ElectronApplication } from '@playwright/test';
-import { launchApp, setWindowSize, workspaceSnapshot, workshopNavigate } from './helpers';
+import { launchApp, setWindowSize, workspaceSnapshot, workshopNavigate, target } from './helpers';
 
 const fixture = new URL('./fixtures/sbx.mjs', import.meta.url).pathname;
 
@@ -245,20 +245,19 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
   }
 });
 
-test('E2E 异常门槛负控：启动阶段异常必须失败', async () => {
+test('E2E 异常门槛负控：build启动前注入异常必须失败', async () => {
+  test.skip(target !== 'build', 'not_run：启动前异常依赖build bootstrap注入；packaged未注入，不证明packaged启动门槛');
   const { app } = await launchApp({ startupError: 'WSL_STARTUP_NEGATIVE_CONTROL' });
   await expect(app.close()).rejects.toThrow('Workbench renderer exceptions/errors');
 });
 
 test('E2E 异常门槛负控：运行期异常必须失败', async () => {
-  const { app, page } = await launchApp();
+  const { app, page, rendererErrors } = await launchApp();
   await page.evaluate(() => {
     setTimeout(() => {
       throw new Error('WSL_LATE_NEGATIVE_CONTROL');
     }, 0);
   });
-  await expect
-    .poll(async () => app.evaluate(() => (globalThis as unknown as { __wslRendererErrors: string[] }).__wslRendererErrors.length))
-    .toBeGreaterThan(0);
+  await expect.poll(() => rendererErrors.some((error) => error.includes('WSL_LATE_NEGATIVE_CONTROL'))).toBe(true);
   await expect(app.close()).rejects.toThrow('Workbench renderer exceptions/errors');
 });

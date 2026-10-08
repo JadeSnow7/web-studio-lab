@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "pnpm",
+    "baseline:selftest"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T13:40:36.986909Z",
+  "ended_at": "2026-10-08T13:40:38.762245Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n> web-studio-lab@ baseline:selftest /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n> tsx --test tests/vertical-slice/selftest.test.ts\n\n(node:94202) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n✔ synthetic: strict task and event contracts reject relaxed goals and extra pass claims (1.563791ms)\n✔ synthetic: postcondition rejects initial/wrong/hidden/duplicate/mixed-run/exception observations (0.471708ms)\n✔ synthetic: mixed run/hash, sequence, lifecycle, logs and nonzero exit are rejected (0.76625ms)\n✔ synthetic: diff detects add/delete and paths/CDP URLs cannot escape boundaries (0.410542ms)\n✔ synthetic: manifest refuses content tampering, missing evidence and mixed-run events (25.149791ms)\n✔ synthetic: complete empty DOM returns immediately and B03 rejects it (26.153709ms)\n✔ synthetic: navigation waits for complete state and the expected URL (207.242ms)\n✔ synthetic: complete single-match DOM returns on the first evaluation (1.155833ms)\n✔ synthetic: B03 partial success needs its own identity, observation and raw evaluation (8.96225ms)\n✔ synthetic: B04 partial success must match independently re-evaluated postcondition (4.13675ms)\n✔ synthetic: no passed check may claim it was not performed; target_missing remains valid (3.340334ms)\n✔ synthetic: identity key order is irrelevant but changed identity fields are rejected (2.033166ms)\nℹ tests 12\nℹ suites 0\nℹ pass 12\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 665.6965\n",
+  "stderr": "",
+  "stdout_base64": "Cj4gd2ViLXN0dWRpby1sYWJAIGJhc2VsaW5lOnNlbGZ0ZXN0IC9Vc2Vycy9odWFvZG9uZy8uY29kZXgvd29ya3RyZWVzL2JmNjQvd2ViLXN0dWRpby1sYWIKPiB0c3ggLS10ZXN0IHRlc3RzL3ZlcnRpY2FsLXNsaWNlL3NlbGZ0ZXN0LnRlc3QudHMKCihub2RlOjk0MjAyKSBbREVQMDIwNV0gRGVwcmVjYXRpb25XYXJuaW5nOiBgbW9kdWxlLnJlZ2lzdGVyKClgIGlzIGRlcHJlY2F0ZWQuIFVzZSBgbW9kdWxlLnJlZ2lzdGVySG9va3MoKWAgaW5zdGVhZC4KKFVzZSBgbm9kZSAtLXRyYWNlLWRlcHJlY2F0aW9uIC4uLmAgdG8gc2hvdyB3aGVyZSB0aGUgd2FybmluZyB3YXMgY3JlYXRlZCkK4pyUIHN5bnRoZXRpYzogc3RyaWN0IHRhc2sgYW5kIGV2ZW50IGNvbnRyYWN0cyByZWplY3QgcmVsYXhlZCBnb2FscyBhbmQgZXh0cmEgcGFzcyBjbGFpbXMgKDEuNTYzNzkxbXMpCuKclCBzeW50aGV0aWM6IHBvc3Rjb25kaXRpb24gcmVqZWN0cyBpbml0aWFsL3dyb25nL2hpZGRlbi9kdXBsaWNhdGUvbWl4ZWQtcnVuL2V4Y2VwdGlvbiBvYnNlcnZhdGlvbnMgKDAuNDcxNzA4bXMpCuKclCBzeW50aGV0aWM6IG1peGVkIHJ1bi9oYXNoLCBzZXF1ZW5jZSwgbGlmZWN5Y2xlLCBsb2dzIGFuZCBub256ZXJvIGV4aXQgYXJlIHJlamVjdGVkICgwLjc2NjI1bXMpCuKclCBzeW50aGV0aWM6IGRpZmYgZGV0ZWN0cyBhZGQvZGVsZXRlIGFuZCBwYXRocy9DRFAgVVJMcyBjYW5ub3QgZXNjYXBlIGJvdW5kYXJpZXMgKDAuNDEwNTQybXMpCuKclCBzeW50aGV0aWM6IG1hbmlmZXN0IHJlZnVzZXMgY29udGVudCB0YW1wZXJpbmcsIG1pc3NpbmcgZXZpZGVuY2UgYW5kIG1peGVkLXJ1biBldmVudHMgKDI1LjE0OTc5MW1zKQrinJQgc3ludGhldGljOiBjb21wbGV0ZSBlbXB0eSBET00gcmV0dXJucyBpbW1lZGlhdGVseSBhbmQgQjAzIHJlamVjdHMgaXQgKDI2LjE1MzcwOW1zKQrinJQgc3ludGhldGljOiBuYXZpZ2F0aW9uIHdhaXRzIGZvciBjb21wbGV0ZSBzdGF0ZSBhbmQgdGhlIGV4cGVjdGVkIFVSTCAoMjA3LjI0Mm1zKQrinJQgc3ludGhldGljOiBjb21wbGV0ZSBzaW5nbGUtbWF0Y2ggRE9NIHJldHVybnMgb24gdGhlIGZpcnN0IGV2YWx1YXRpb24gKDEuMTU1ODMzbXMpCuKclCBzeW50aGV0aWM6IEIwMyBwYXJ0aWFsIHN1Y2Nlc3MgbmVlZHMgaXRzIG93biBpZGVudGl0eSwgb2JzZXJ2YXRpb24gYW5kIHJhdyBldmFsdWF0aW9uICg4Ljk2MjI1bXMpCuKclCBzeW50aGV0aWM6IEIwNCBwYXJ0aWFsIHN1Y2Nlc3MgbXVzdCBtYXRjaCBpbmRlcGVuZGVudGx5IHJlLWV2YWx1YXRlZCBwb3N0Y29uZGl0aW9uICg0LjEzNjc1bXMpCuKclCBzeW50aGV0aWM6IG5vIHBhc3NlZCBjaGVjayBtYXkgY2xhaW0gaXQgd2FzIG5vdCBwZXJmb3JtZWQ7IHRhcmdldF9taXNzaW5nIHJlbWFpbnMgdmFsaWQgKDMuMzQwMzM0bXMpCuKclCBzeW50aGV0aWM6IGlkZW50aXR5IGtleSBvcmRlciBpcyBpcnJlbGV2YW50IGJ1dCBjaGFuZ2VkIGlkZW50aXR5IGZpZWxkcyBhcmUgcmVqZWN0ZWQgKDIuMDMzMTY2bXMpCuKEuSB0ZXN0cyAxMgrihLkgc3VpdGVzIDAK4oS5IHBhc3MgMTIK4oS5IGZhaWwgMArihLkgY2FuY2VsbGVkIDAK4oS5IHNraXBwZWQgMArihLkgdG9kbyAwCuKEuSBkdXJhdGlvbl9tcyA2NjUuNjk2NQo=",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c3ea94f92e60bb064b00fa9c7650de5283875db45525d2a68644a735c75d79b4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c3ea94f92e60bb064b00fa9c7650de5283875db45525d2a68644a735c75d79b4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c3ea94f92e60bb064b00fa9c7650de5283875db45525d2a68644a735c75d79b4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

@@ -1,0 +1,22 @@
+{
+  "rootReviewedC": "phase4b-c-root-review.json",
+  "additionalNonExecutionEntries": [
+    "apps/desktop/src/renderer/src/styles/app.css",
+    "apps/desktop/src/renderer/index.html",
+    "apps/desktop/electron-builder.yml",
+    "docs/submission/export_pdf.py",
+    "docs/submission/export_pdf_test.py",
+    "eslint.config.js",
+    "playwright.config.ts",
+    "vitest.config.ts",
+    "package.json",
+    "pnpm-lock.yaml"
+  ],
+  "basis": [
+    "../../sources/review-renderer.md",
+    "../../sources/renderer-test-toolchain-coverage.json",
+    "../phase3-final-source-manifest-v3.json",
+    "../phase4a-final-source-manifest.json"
+  ],
+  "limit": "Source review mapping, not a claim of executed acceptance. Baseline global claims and individual review evidence remain distinguished."
+}

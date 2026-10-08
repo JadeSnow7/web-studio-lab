@@ -54,7 +54,7 @@ test('live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过
     const capture = page.getByRole('button', { name: '加入空间', exact: true });
     await expect(capture).toBeEnabled();
     await capture.click();
-    await expect(capture).toBeEnabled();
+    await expect(capture).toBeEnabled({ timeout: 30000 });
     const collection = await resourceCollection(page);
     expect(collection.resources).toHaveLength(1);
     resource = collection.resources[0]!;
@@ -82,7 +82,9 @@ test('live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过
     await conversation.getByRole('button', { name: '发送', exact: true }).click();
     const readConversation = async () =>
       (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')!.sessions[0]!.conversation!;
-    await expect.poll(async () => (await readConversation()).messages.filter((message) => message.role === 'user').length).toBe(1);
+    await expect
+      .poll(async () => (await readConversation())?.messages.filter((message) => message.role === 'user').length ?? 0, { timeout: 30000 })
+      .toBe(1);
     await expect
       .poll(
         async () => {
@@ -135,6 +137,10 @@ test('live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过
     expect(empty.resources).toEqual([]);
     expect(empty.revision).toBeGreaterThan(collection.revision);
   } finally {
+    const captureWorkspace = (await workspaceSnapshot(page)).workspaces.find((workspace) => workspace.workspaceId === 'taskflow-demo')!;
+    const captureButton = page.getByRole('button', { name: '加入空间', exact: true });
+    const captureButtonPresent = (await captureButton.count()) > 0;
+    const captureButtonDisabled = captureButtonPresent ? await captureButton.isDisabled() : null;
     const preview = await page.evaluate(() =>
       (window as unknown as { studio: StudioApi }).studio.workbench
         .getSnapshot()
@@ -156,6 +162,15 @@ test('live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过
             loading: preview.loading,
             loadError: preview.loadError,
             blockedNavigation: preview.blockedNavigation,
+          },
+          publicCapture: {
+            publicResourcesError: captureWorkspace.publicResourcesError,
+            collectionRevision: captureWorkspace.publicResources?.revision ?? null,
+            resourceCount: captureWorkspace.publicResources?.resources.length ?? null,
+            buttonPresent: captureButtonPresent,
+            buttonDisabled: captureButtonDisabled,
+            // Main has no public-capture pending field; disabled is raw UI evidence, not proof of pending alone.
+            pendingStatusAvailableInMain: false,
           },
           publicResource: resource ?? null,
           conversation: current

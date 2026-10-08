@@ -1,0 +1,6 @@
+{
+  "owned_root": "/private/tmp/wsl-native-session-N02ABU",
+  "removed": true,
+  "basis": "session-cleanup.json confirmed owned application exitCode0 and no errors; before-close snapshot saved",
+  "no_other_processes_or_profiles_touched": true
+}

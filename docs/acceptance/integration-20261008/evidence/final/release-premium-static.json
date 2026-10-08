@@ -1,0 +1,47 @@
+{
+  "argv": [
+    "python3",
+    "/Users/huaodong/.codex/plugins/cache/openai-curated-remote/frontend-design-premium/1.4.0/skills/frontend-design-premium/scripts/audit_project.py",
+    ".",
+    "--mode",
+    "strict",
+    "--output",
+    "docs/acceptance/integration-20261008/evidence/final/release-premium-results.json"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T13:40:32.130948Z",
+  "ended_at": "2026-10-08T13:40:32.311824Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "{\n  \"findings\": [],\n  \"mode\": \"strict\",\n  \"projectRoot\": \"/Users/huaodong/.codex/worktrees/bf64/web-studio-lab\",\n  \"schemaVersion\": 1,\n  \"summary\": {\n    \"errors\": 0,\n    \"total\": 0,\n    \"unresolved\": 0,\n    \"violations\": 0,\n    \"warnings\": 0\n  }\n}\n",
+  "stderr": "",
+  "stdout_base64": "ewogICJmaW5kaW5ncyI6IFtdLAogICJtb2RlIjogInN0cmljdCIsCiAgInByb2plY3RSb290IjogIi9Vc2Vycy9odWFvZG9uZy8uY29kZXgvd29ya3RyZWVzL2JmNjQvd2ViLXN0dWRpby1sYWIiLAogICJzY2hlbWFWZXJzaW9uIjogMSwKICAic3VtbWFyeSI6IHsKICAgICJlcnJvcnMiOiAwLAogICAgInRvdGFsIjogMCwKICAgICJ1bnJlc29sdmVkIjogMCwKICAgICJ2aW9sYXRpb25zIjogMCwKICAgICJ3YXJuaW5ncyI6IDAKICB9Cn0K",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c3ea94f92e60bb064b00fa9c7650de5283875db45525d2a68644a735c75d79b4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c3ea94f92e60bb064b00fa9c7650de5283875db45525d2a68644a735c75d79b4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c3ea94f92e60bb064b00fa9c7650de5283875db45525d2a68644a735c75d79b4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

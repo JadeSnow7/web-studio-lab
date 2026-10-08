@@ -1,0 +1,31 @@
+{
+  "reviewer": "root",
+  "images": [
+    {
+      "path": "frozen-electron-packaged-artifacts/screens/remake-six-sections.png",
+      "sha256": "a9bc4bd9c6d36f57ea57dd28f7e08895371f717ca0e7a0d970f097c6133ad12c"
+    },
+    {
+      "path": "frozen-electron-packaged-artifacts/screens/remake-six-sections.preview.png",
+      "sha256": "80f09f009ba55ebf5511acac32d78103f1b610029e2f3ac5be6ae783462021ec"
+    },
+    {
+      "path": "frozen-electron-packaged-artifacts/screens/remake-floating-panels.png",
+      "sha256": "e2b008da8891ce25fb39857d88003ad814458510df8dd95c79d7fe9fbc9cb9f8"
+    },
+    {
+      "path": "frozen-electron-packaged-artifacts/screens/workspace-three-panes-warm.window.png",
+      "sha256": "ee7b35011576244a53a82ab7879be19af892c232834434201582af34912f3b04"
+    }
+  ],
+  "observed": [
+    "Six global sections remain; space tabs vertical, top only space switcher",
+    "Floating edge triggers visible without fixed left rail",
+    "Warm theme shares rounded borders, terminal and session panes",
+    "Separate actual preview PNG contains loaded TaskFlow table"
+  ],
+  "limits": [
+    "Renderer/BrowserWindow screenshots omit native WebContentsView pixels in the central rectangle; separate preview capture verifies content only. These images do not prove OS-level compositing/click-through or physical IME.",
+    "Previous dark/light/narrow screenshots and automated state checks remain indexed; latest source does not change CSS or renderer behavior."
+  ]
+}

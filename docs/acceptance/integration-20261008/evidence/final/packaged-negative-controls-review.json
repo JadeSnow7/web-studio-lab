@@ -1,0 +1,18 @@
+{
+  "before": "electron-packaged.json 51 passed /3 failed /6 skipped",
+  "product_failure": "R3 OS focus remains undetermined under lock",
+  "harness_failures": [
+    "StartupError is injected only by build bootstrap; packaged launch bypasses bootstrap",
+    "Runtime negative control incorrectly accessed build-only global"
+  ],
+  "reviewed_change": [
+    "Runtime must observe actual rendererErrors entry and close must reject in both targets",
+    "Startup negative control retains build assertion; packaged explicitly not_run with coverage gap, no success claim"
+  ],
+  "source": "e2e/workspace-migration.spec.ts",
+  "sha256": "a24dd495d87ff711df528570db055e4e93c14d6d7ae8391e97f79cc30b58140e",
+  "limits": [
+    "No pre-entry fault injection coverage for packaged application",
+    "Original packaged failures and artifacts retained"
+  ]
+}

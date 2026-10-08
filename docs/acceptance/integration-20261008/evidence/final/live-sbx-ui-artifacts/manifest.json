@@ -1,0 +1,20 @@
+{
+  "count": 3,
+  "files": [
+    {
+      "path": "results/.last-run.json",
+      "bytes": 96,
+      "sha256": "252d61818fc1c411e2bc814899e27708a759644ed87f63c1701b9aeb645a9606"
+    },
+    {
+      "path": "results/sbx-live：应用终端与-Codex-共享-guest-文件并确认交互与清理/error-context.md",
+      "bytes": 15830,
+      "sha256": "eeafe12fa19ffe37c2a168e5259f9ca8f3e1101d1891a510b48ee5eb2cbbf256"
+    },
+    {
+      "path": "screens/sbx-live-owned-cleanup.json",
+      "bytes": 155,
+      "sha256": "b26e578f32dbb9d4ae83f28a0200840ce56734fe9aef17381b6e59fffb6fd105"
+    }
+  ]
+}

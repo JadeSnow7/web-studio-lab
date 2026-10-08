@@ -24,7 +24,8 @@ with tempfile.TemporaryDirectory(prefix='wsl-owned-detached-test-') as tmp:
     try:
         send(dict(shell='/bin/bash', cwd=tmp, cols=80, rows=24, rc=base64.b64encode(b'PS1=""\n').decode()))
         assert json.loads(p.stdout.readline())['type'] == 'ready'
-        code = "import os,time,signal; p=os.fork(); os._exit(0) if p else None; os.setsid(); signal.signal(signal.SIGHUP,signal.SIG_IGN); open(" + repr(path) + ",'w').write(str(os.getpid())); time.sleep(60)"
+        # Publish only the complete PID: exists() must not expose the writer's empty file.
+        code = "import os,time,signal; p=os.fork(); os._exit(0) if p else None; os.setsid(); signal.signal(signal.SIGHUP,signal.SIG_IGN); f=open(" + repr(path + '.tmp') + ",'w'); f.write(str(os.getpid())); f.close(); os.replace(" + repr(path + '.tmp') + "," + repr(path) + "); time.sleep(60)"
         send(dict(type='input', data='/usr/bin/python3 -c ' + shlex.quote(code) + '\n'))
         deadline = time.monotonic() + 5
         while not os.path.exists(path) and time.monotonic() < deadline:

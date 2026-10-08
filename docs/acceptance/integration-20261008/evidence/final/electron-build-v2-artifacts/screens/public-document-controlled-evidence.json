@@ -1,0 +1,41 @@
+{
+  "evidenceKind": "controlled-network-fixture-real-electron-protocol-and-store",
+  "realPublicNetworkVerified": false,
+  "modelInvoked": false,
+  "previewDocument": {
+    "title": "Controlled Public Fixture",
+    "text": "CONTROLLED NETWORK FIXTURE\n\nCaptured body matches the displayed document.",
+    "studio": "undefined",
+    "require": "undefined",
+    "process": "undefined",
+    "executed": "undefined",
+    "active": 0
+  },
+  "resource": {
+    "requestedUrl": "https://example.com/start",
+    "url": "https://docs.docker.com/guide",
+    "title": "Controlled Public Fixture",
+    "text": "CONTROLLED NETWORK FIXTURE\n\nCaptured body matches the displayed document.",
+    "capturedAt": "2026-10-08T12:52:57.870Z",
+    "sourceSha256": "902b7fbd49ce2ee9c8de7b17c413ee919a168b32d9f54a737e90c9bb3c772092",
+    "contentSha256": "18a94d3d7a5cd793fc3581ceddc4e637d91c563aa5f648938925a697334e4faf",
+    "truncated": false,
+    "page": {
+      "webContentsId": 2,
+      "documentGeneration": 2,
+      "url": "https://docs.docker.com/guide",
+      "title": "Controlled Public Fixture",
+      "partition": "preview-taskflow-demo-9bc18cd7-1b9c-42c4-b82d-dd71e34dd75f"
+    },
+    "extractionVersion": "html-text-v1",
+    "spaceId": "taskflow-demo",
+    "resourceId": "762436af-12c7-42f7-8707-5c1556f9d430",
+    "version": 1
+  },
+  "requestUrls": [
+    "https://example.com/start",
+    "https://docs.docker.com/guide",
+    "https://example.com/missing"
+  ],
+  "failedNavigationCapture": "rejected"
+}

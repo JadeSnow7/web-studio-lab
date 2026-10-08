@@ -1,0 +1,46 @@
+{
+  "at": "2026-10-08T13:36:46.483429+00:00",
+  "reviewer": "root with readonly final_review",
+  "base": "5d9542e1cfc1f213b1150b0d1a6561e00509cb4f",
+  "files": [
+    {
+      "path": "apps/service/src/local-terminal-detached.test.ts",
+      "sha256": "8baefab57bef820794eb694d80fc0a9f62dd85660a20a0ec1dd44bb15d346d48",
+      "judgment": "Atomic PID publish closes fixture race; retains birth/marker/exit and detached process assertions."
+    },
+    {
+      "path": "apps/service/src/sbx.live.test.ts",
+      "sha256": "12f925ce05655d21b9caa0b2eb4627606e254455252057ff92034751b3faa2f4",
+      "judgment": "Ready ACK plus unique complete output line replaces shell prompt assumption; all cleanup checks retained."
+    },
+    {
+      "path": "e2e/resources-live.spec.ts",
+      "sha256": "2647afa0ea2eb24b2355208e37db7768173cdb63bd607d3fcb91f53714a5f8cb",
+      "judgment": "Wait covers real capture deadline; failures expose public resource status, no automatic retry."
+    },
+    {
+      "path": "e2e/sbx.spec.ts",
+      "sha256": "53dcac18f93f2747458494faaef9ef9e347161c16b63a8c2ca407d5c5ef3faf6",
+      "judgment": "Explicit configured environment and running state, narrow sidebar navigation; real model, nonce and cleanup retained."
+    },
+    {
+      "path": "e2e/workspace-migration.spec.ts",
+      "sha256": "a24dd495d87ff711df528570db055e4e93c14d6d7ae8391e97f79cc30b58140e",
+      "judgment": "Runtime negative control observes actual renderer errors; packaged bootstrap-only startup injection is explicitly not_run."
+    },
+    {
+      "path": "e2e/workspace-runtime.spec.ts",
+      "sha256": "27b65eeb98ee8557e1e2df298d882bfdf98a7e38d3b1375188c12d99310b454a",
+      "judgment": "Current close wording plus cleanupPending=false."
+    },
+    {
+      "path": "eslint.config.js",
+      "sha256": "7f722ea44d7746a92345a55001e31340919f507973a82799a165f33ad4da1e06",
+      "judgment": "Explicit repository tsconfigRootDir applies to current files; no ignores or rules removed."
+    }
+  ],
+  "limits": [
+    "Source review is not executed acceptance. Packaged startup fault injection remains not_run.",
+    "Old source-coverage.json SHA values are preserved as historical records; these rows supersede six changed tests and add config review."
+  ]
+}

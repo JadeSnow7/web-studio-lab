@@ -52,7 +52,7 @@ UI 使用系统中文字体；命令、路径、shell 输出使用 `--mono`。�
 
 ## Components
 
-复用 `.btn`、`.row`、`.muted`、共享 Icon 和 app-owned dialog。左右容器使用相同的固定/浮层状态规则。终端开关、忙态、关闭后的远端清理确认和错误见 `UX-CONTRACT.md`；chat 工具详情用原生 details 按需展开。全局滚动条由 app.css 控制，保留 forced-colors 系统选择。
+复用 `.btn`、`.row`、`.muted`、共享 Icon 和 app-owned dialog。左右容器使用相同的固定/浮层状态规则。终端开关、忙态、关闭后的所属进程清理确认和错误见 `UX-CONTRACT.md`；chat 工具详情用原生 details 按需展开。全局滚动条由 app.css 控制，保留 forced-colors 系统选择。
 
 ## Do's and Don'ts
 

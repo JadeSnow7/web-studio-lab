@@ -1,0 +1,15 @@
+{
+  "receipt": "live-workspace.json",
+  "artifact": "live-workspace-artifacts/screens/workspace-live4-evidence.json",
+  "verified": [
+    "one live scenario passed with stable source revision",
+    "run/session/taskVersion owner, generation and turnId match",
+    "other workspace has no run or session",
+    "assistant echoes unknown runtime nonce without tools",
+    "sandbox terminal closed and cleanupPending=false; conversation idle and cleanupPending=false",
+    "independent verification blocked, review null, notification unread"
+  ],
+  "limits": [
+    "Product cleanup receipts, not an independent process census."
+  ]
+}

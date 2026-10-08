@@ -1,0 +1,11 @@
+{
+  "package_receipt": "frozen-package.json",
+  "package_manifest": "frozen-package-artifacts.json",
+  "frozen_source": "frozen-source-manifest.json",
+  "final_source": "delivery-source-manifest.json",
+  "changed_paths": [
+    "e2e/resources-live.spec.ts"
+  ],
+  "product_bytes_unchanged": true,
+  "statement": "Last readiness test edit is excluded from the shipped product. Final complete build and both Electron targets are rerun after that edit; the unsigned package contains the exact final runtime source."
+}

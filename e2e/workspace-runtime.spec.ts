@@ -110,8 +110,10 @@ test('live：真实PTY与单Agent执行跨空间保持归属，检查和审阅�
     await expect(session).toContainText('审阅：尚未审阅');
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '开发终端', exact: true }).click();
     await terminal.getByRole('button', { name: '关闭终端', exact: true }).click();
-    await expect(terminal).toContainText('已关闭，远端进程已退出', { timeout: 30000 });
-    expect((await terminalSnapshot(page)).state).toBe('closed');
+    await expect(terminal).toContainText('已关闭，所属进程已确认退出', { timeout: 30000 });
+    const stoppedTerminal = await terminalSnapshot(page);
+    expect(stoppedTerminal.state).toBe('closed');
+    expect(stoppedTerminal.cleanupPending).toBe(false);
     expect(rendererErrors, '真实工作台执行期间不能出现 renderer 异常').toEqual([]);
   } finally {
     await mkdir(screensDir, { recursive: true });

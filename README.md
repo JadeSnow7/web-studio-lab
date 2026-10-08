@@ -64,7 +64,7 @@ pnpm test:e2e
 
 空间垂直标签中的“开发终端”提供显式连接入口，打开交互shell，支持持续 cwd/环境、Ctrl-C、窗口尺寸变化与关闭。切换标签保留 shell；关闭终端或取消对话须确认所属远端进程退出。应用不会停止整个 sandbox，sandbox 内安装与文件由 sbx 保留。Browser 可加载演示页面和受控公开 HTTPS 只读文档，尚未转发 guest 服务端口。
 
-普通 `pnpm test:e2e` 使用缺失配置或确定性 sbx fixture，不调用真实模型。显式真实检查需要本机已准备好的 sandbox、有效 OAuth、网络和原生窗口权限：
+普通 `pnpm test:e2e` 使用缺失配置或确定性 sbx fixture，不调用真实模型。显式真实检查需要本机已准备好的 sandbox、有效的既有 sandbox 认证、网络和原生窗口权限：
 
 ```bash
 pnpm build

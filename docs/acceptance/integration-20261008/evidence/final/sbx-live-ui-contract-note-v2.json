@@ -1,0 +1,25 @@
+{
+  "source": {
+    "path": "e2e/sbx.spec.ts",
+    "sha256": "53dcac18f93f2747458494faaef9ef9e347161c16b63a8c2ca407d5c5ef3faf6"
+  },
+  "change": "Only running poll uses active workspace terminal resource terminal?.state during legal pre-initialization; strict terminalSnapshot retained after running. No catches/defaults introduced.",
+  "receipts": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/sbx-live-ui-contract-type-v2.json",
+      "sha256": "6684e3b24d59b6ce4060ddc5366ae6ce0188acd119afbce071a2097d3c92ffa4",
+      "revisionStable": true
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/sbx-live-ui-contract-lint-v2.json",
+      "sha256": "fbff2d68aef386218ff4416f235d56fc6bab244e5bb1a3bdca204b02fee07354",
+      "revisionStable": true
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/sbx-live-ui-contract-format-v2.json",
+      "sha256": "5c64cd9224bc6786c1ec0fd327cb5b61d5a0491125f08b6e20944750c8d07d64",
+      "revisionStable": true
+    }
+  ],
+  "execution": "Offline only, no live. Previous receipts/note remain historical."
+}

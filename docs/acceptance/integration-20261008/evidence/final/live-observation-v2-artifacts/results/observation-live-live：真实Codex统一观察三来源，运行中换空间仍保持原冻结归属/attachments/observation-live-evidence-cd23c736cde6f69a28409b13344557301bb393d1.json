@@ -1,0 +1,714 @@
+{
+  "evidenceKind": "real-codex-guest-mcp-main-browser-local-file-sandbox-pty",
+  "guestDir": "/home/agent/workspace/wsl-observation-de49173d-5655-4f2e-acd8-0bc55b550730",
+  "phase": "resources",
+  "ownedRoot": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-observation-live-3lZQX7",
+  "electronPid": 93378,
+  "failure": {
+    "message": "\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7mrunn\u001b[27ming\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mstart\u001b[27ming\"\u001b[39m\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate",
+    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7mrunn\u001b[27ming\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mstart\u001b[27ming\"\u001b[39m\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate\n    at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/observation-live.spec.ts:124:8"
+  },
+  "cleanupBefore": {
+    "appInstanceId": "25c28c75-e514-4252-9199-b7ffd23f1ad1",
+    "storageError": null,
+    "activeWorkspaceId": "taskflow-demo",
+    "seq": 31,
+    "workspaces": [
+      {
+        "workspaceId": "taskflow-demo",
+        "name": "TaskFlow",
+        "revision": 4,
+        "tabs": [
+          {
+            "tabId": "5bf8eef7-a327-4f15-888d-f754a32d9c33",
+            "title": "TaskFlow 预览",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "web",
+              "resourceId": "0c2a7c23-a4e6-4f23-b592-0776ee19ab73"
+            }
+          },
+          {
+            "tabId": "5dbabf64-de04-4fe7-af49-4649fa4b864b",
+            "title": "开发终端",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "terminal",
+              "resourceId": "fa980e50-5ac6-452d-8ec3-b363113a5950"
+            }
+          },
+          {
+            "tabId": "5fcd6352-6878-4256-9076-1f76f66d8b08",
+            "title": "Agent 会话",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "session",
+              "resourceId": "dccbba45-6dba-4809-b0b9-53001f8e7d1a"
+            }
+          },
+          {
+            "tabId": "ad5a902b-b1ac-4c3c-9e78-0f1a90791d61",
+            "title": "Live授权文件",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "file",
+              "resourceId": "12a3275d-8b17-4329-8fed-d65257db2492"
+            }
+          }
+        ],
+        "resources": [
+          {
+            "resourceId": "0c2a7c23-a4e6-4f23-b592-0776ee19ab73",
+            "environmentId": "local",
+            "kind": "web",
+            "title": "TaskFlow 预览",
+            "url": "wsl-demo://taskflow/index.html",
+            "instanceId": "2e25e092-2793-4d2f-bcea-d51b1d644c46",
+            "generation": 1,
+            "preview": {
+              "page": {
+                "webContentsId": 2,
+                "documentGeneration": 1,
+                "url": "wsl-demo://taskflow/index.html",
+                "title": "任务 · TaskFlow 演示",
+                "partition": "preview-taskflow-demo-2e25e092-2793-4d2f-bcea-d51b1d644c46"
+              },
+              "loading": false,
+              "canGoBack": false,
+              "canGoForward": false,
+              "picking": false,
+              "cdp": {
+                "state": "idle"
+              },
+              "consoleIssueCount": 4,
+              "loadError": null,
+              "blockedNavigation": null,
+              "pickError": null
+            },
+            "terminal": null,
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "fa980e50-5ac6-452d-8ec3-b363113a5950",
+            "environmentId": "sandbox",
+            "kind": "terminal",
+            "title": "开发终端",
+            "url": null,
+            "instanceId": "212af2b3-6723-43bf-9426-c41327694986",
+            "generation": 1,
+            "preview": null,
+            "terminal": {
+              "seq": 1,
+              "sessionId": "a7bf83c0-e8dc-4d6d-b6b2-30b7419bff84",
+              "sandbox": "wsl-sbx-smoke-20261006",
+              "cwd": "/home/agent/workspace",
+              "state": "starting",
+              "output": "",
+              "outputOffset": 0,
+              "cleanupPending": true,
+              "error": null
+            },
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "dccbba45-6dba-4809-b0b9-53001f8e7d1a",
+            "environmentId": null,
+            "kind": "session",
+            "title": "Agent 会话",
+            "url": null,
+            "instanceId": null,
+            "generation": 0,
+            "preview": null,
+            "terminal": null,
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "12a3275d-8b17-4329-8fed-d65257db2492",
+            "environmentId": "local",
+            "kind": "file",
+            "title": "Live授权文件",
+            "url": null,
+            "instanceId": "de981176-6648-4a74-b615-038bd24e1f43",
+            "generation": 1,
+            "preview": null,
+            "terminal": null,
+            "unavailableReason": null
+          }
+        ],
+        "layout": {
+          "kind": "pane",
+          "paneId": "1115309a-f319-4d0a-8ae9-5e2d07f61116",
+          "tabId": "5dbabf64-de04-4fe7-af49-4649fa4b864b"
+        },
+        "activePaneId": "1115309a-f319-4d0a-8ae9-5e2d07f61116",
+        "sessions": [
+          {
+            "sessionId": "session-5f45534f-8af5-4b6f-9ae0-5a8647a5bbe2",
+            "resourceId": "dccbba45-6dba-4809-b0b9-53001f8e7d1a",
+            "title": "Agent 会话",
+            "draft": "",
+            "conversation": null,
+            "historyRestored": false,
+            "observations": [],
+            "context": null,
+            "captureRequest": null,
+            "contextTarget": null,
+            "taskTargetRef": null,
+            "taskAcceptance": [],
+            "taskAllowedScopes": [],
+            "contextApplicability": "unknown",
+            "taskVersions": []
+          }
+        ],
+        "runs": [],
+        "publicResources": {
+          "spaceId": "taskflow-demo",
+          "revision": 0,
+          "resources": []
+        },
+        "publicResourcesError": null,
+        "fileHints": [],
+        "observations": [
+          {
+            "request": {
+              "requestId": "cc47f659-fa54-4d91-87b0-fec2000ca732",
+              "workspaceId": "taskflow-demo",
+              "sessionId": null,
+              "runId": null,
+              "target": {
+                "workspaceId": "taskflow-demo",
+                "environmentId": "local",
+                "resourceId": "12a3275d-8b17-4329-8fed-d65257db2492",
+                "kind": "file",
+                "instanceId": "de981176-6648-4a74-b615-038bd24e1f43",
+                "instanceGeneration": 1
+              },
+              "tool": "files.read",
+              "args": {
+                "path": "nonce.txt"
+              }
+            },
+            "state": "completed",
+            "startedAt": "2026-10-08T13:40:15.593Z",
+            "endedAt": "2026-10-08T13:40:15.631Z",
+            "result": {
+              "resource": {
+                "workspaceId": "taskflow-demo",
+                "environmentId": "local",
+                "resourceId": "12a3275d-8b17-4329-8fed-d65257db2492",
+                "kind": "file",
+                "instanceId": "de981176-6648-4a74-b615-038bd24e1f43",
+                "instanceGeneration": 1
+              },
+              "generation": "15adb8d3-16b8-4ccb-a0c2-c1d9626c15b4",
+              "revision": {
+                "value": "0f62ba35f4aae8c97546d8ec0830f45be3c73ad94e4190ec53910c850b8075bf",
+                "strength": "content-hash"
+              },
+              "snapshotId": "66c06bff-6bb1-45d0-8197-d32b953690e0",
+              "capturedAt": "2026-10-08T13:40:15.629Z",
+              "source": "disk",
+              "representation": "json",
+              "coverage": {
+                "status": "complete",
+                "range": {
+                  "startByte": 0,
+                  "endByteExclusive": 46,
+                  "startLine": 1,
+                  "endLine": 2
+                },
+                "reasons": []
+              },
+              "data": {
+                "path": "nonce.txt",
+                "text": "OBS_FILE=3c556838-27fc-43bd-a881-577bb1e00070\n",
+                "encoding": "utf-8",
+                "totalBytes": 46,
+                "contentSha256": "0f62ba35f4aae8c97546d8ec0830f45be3c73ad94e4190ec53910c850b8075bf",
+                "hashScope": "whole_file",
+                "captureConsistency": "best_effort_size_time_checks; concurrent in-place writes are not atomic",
+                "fragmentSha256": "0f62ba35f4aae8c97546d8ec0830f45be3c73ad94e4190ec53910c850b8075bf",
+                "buildContentVersion": "unknown",
+                "watch": {
+                  "supported": true,
+                  "state": "watching",
+                  "watchGeneration": 1,
+                  "watchedDirectories": 1,
+                  "maxDirectories": 32,
+                  "scope": "observed-directories",
+                  "recursive": false,
+                  "lossy": true,
+                  "coverage": "partial",
+                  "watched": true
+                }
+              },
+              "evidenceRef": "observations/3536a218-37f0-47ea-b8ca-eb25d3058ec0.json"
+            },
+            "evidenceRef": "observations/3536a218-37f0-47ea-b8ca-eb25d3058ec0.json"
+          }
+        ],
+        "theme": "system"
+      },
+      {
+        "workspaceId": "a4af6a3f-d35f-4789-a50b-6f255b95a199",
+        "name": "观察隔离-c04a5fd2",
+        "revision": 2,
+        "tabs": [
+          {
+            "tabId": "8d6c2e5b-c6c9-4bb6-8560-53e99bf1cf64",
+            "title": "隔离网页",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "web",
+              "resourceId": "2cb78f5b-3f5f-4c7a-8413-dad75756b244"
+            }
+          }
+        ],
+        "resources": [
+          {
+            "resourceId": "2cb78f5b-3f5f-4c7a-8413-dad75756b244",
+            "environmentId": "local",
+            "kind": "web",
+            "title": "隔离网页",
+            "url": "wsl-demo://taskflow/index.html",
+            "instanceId": "5521c2b3-fbf6-4824-9fe4-cbca735559ad",
+            "generation": 1,
+            "preview": {
+              "page": {
+                "webContentsId": 3,
+                "documentGeneration": 1,
+                "url": "wsl-demo://taskflow/index.html",
+                "title": "观察隔离",
+                "partition": "preview-a4af6a3f-d35f-4789-a50b-6f255b95a199-5521c2b3-fbf6-4824-9fe4-cbca735559ad"
+              },
+              "loading": false,
+              "canGoBack": false,
+              "canGoForward": false,
+              "picking": false,
+              "cdp": {
+                "state": "idle"
+              },
+              "consoleIssueCount": 4,
+              "loadError": null,
+              "blockedNavigation": null,
+              "pickError": null
+            },
+            "terminal": null,
+            "unavailableReason": null
+          }
+        ],
+        "layout": {
+          "kind": "pane",
+          "paneId": "7cb109f8-4ed7-459e-8e1c-4e70927f16e7",
+          "tabId": "8d6c2e5b-c6c9-4bb6-8560-53e99bf1cf64"
+        },
+        "activePaneId": "7cb109f8-4ed7-459e-8e1c-4e70927f16e7",
+        "sessions": [],
+        "runs": [],
+        "publicResources": null,
+        "publicResourcesError": null,
+        "fileHints": [],
+        "observations": [],
+        "theme": "system"
+      }
+    ],
+    "environments": [
+      {
+        "environmentId": "local",
+        "kind": "local",
+        "label": "本设备",
+        "state": "configured",
+        "reason": null,
+        "capabilities": {
+          "files": true,
+          "terminal": true,
+          "browser": true
+        }
+      },
+      {
+        "environmentId": "sandbox",
+        "kind": "sandbox",
+        "label": "wsl-sbx-smoke-20261006",
+        "state": "configured",
+        "reason": null,
+        "capabilities": {
+          "files": false,
+          "terminal": true,
+          "browser": false
+        }
+      },
+      {
+        "environmentId": "ssh",
+        "kind": "ssh",
+        "label": "SSH",
+        "state": "unavailable",
+        "reason": "未配置可信 SSH 环境",
+        "capabilities": {
+          "files": false,
+          "terminal": false,
+          "browser": false
+        }
+      }
+    ],
+    "notificationReadReceipts": [],
+    "notifications": []
+  },
+  "cleanupAfter": {
+    "appInstanceId": "25c28c75-e514-4252-9199-b7ffd23f1ad1",
+    "storageError": null,
+    "activeWorkspaceId": "taskflow-demo",
+    "seq": 38,
+    "workspaces": [
+      {
+        "workspaceId": "taskflow-demo",
+        "name": "TaskFlow",
+        "revision": 5,
+        "tabs": [
+          {
+            "tabId": "5bf8eef7-a327-4f15-888d-f754a32d9c33",
+            "title": "TaskFlow 预览",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "web",
+              "resourceId": "0c2a7c23-a4e6-4f23-b592-0776ee19ab73"
+            }
+          },
+          {
+            "tabId": "5dbabf64-de04-4fe7-af49-4649fa4b864b",
+            "title": "开发终端",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "terminal",
+              "resourceId": "fa980e50-5ac6-452d-8ec3-b363113a5950"
+            }
+          },
+          {
+            "tabId": "5fcd6352-6878-4256-9076-1f76f66d8b08",
+            "title": "Agent 会话",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "session",
+              "resourceId": "dccbba45-6dba-4809-b0b9-53001f8e7d1a"
+            }
+          },
+          {
+            "tabId": "ad5a902b-b1ac-4c3c-9e78-0f1a90791d61",
+            "title": "Live授权文件",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "file",
+              "resourceId": "12a3275d-8b17-4329-8fed-d65257db2492"
+            }
+          }
+        ],
+        "resources": [
+          {
+            "resourceId": "0c2a7c23-a4e6-4f23-b592-0776ee19ab73",
+            "environmentId": "local",
+            "kind": "web",
+            "title": "TaskFlow 预览",
+            "url": "wsl-demo://taskflow/index.html",
+            "instanceId": "2e25e092-2793-4d2f-bcea-d51b1d644c46",
+            "generation": 1,
+            "preview": {
+              "page": {
+                "webContentsId": 2,
+                "documentGeneration": 1,
+                "url": "wsl-demo://taskflow/index.html",
+                "title": "任务 · TaskFlow 演示",
+                "partition": "preview-taskflow-demo-2e25e092-2793-4d2f-bcea-d51b1d644c46"
+              },
+              "loading": false,
+              "canGoBack": false,
+              "canGoForward": false,
+              "picking": false,
+              "cdp": {
+                "state": "idle"
+              },
+              "consoleIssueCount": 4,
+              "loadError": null,
+              "blockedNavigation": null,
+              "pickError": null
+            },
+            "terminal": null,
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "fa980e50-5ac6-452d-8ec3-b363113a5950",
+            "environmentId": "sandbox",
+            "kind": "terminal",
+            "title": "开发终端",
+            "url": null,
+            "instanceId": "212af2b3-6723-43bf-9426-c41327694986",
+            "generation": 1,
+            "preview": null,
+            "terminal": {
+              "seq": 6,
+              "sessionId": "a7bf83c0-e8dc-4d6d-b6b2-30b7419bff84",
+              "sandbox": "wsl-sbx-smoke-20261006",
+              "cwd": "/home/agent/workspace",
+              "state": "closed",
+              "output": "",
+              "outputOffset": 0,
+              "cleanupPending": false,
+              "error": null
+            },
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "dccbba45-6dba-4809-b0b9-53001f8e7d1a",
+            "environmentId": null,
+            "kind": "session",
+            "title": "Agent 会话",
+            "url": null,
+            "instanceId": null,
+            "generation": 0,
+            "preview": null,
+            "terminal": null,
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "12a3275d-8b17-4329-8fed-d65257db2492",
+            "environmentId": "local",
+            "kind": "file",
+            "title": "Live授权文件",
+            "url": null,
+            "instanceId": "de981176-6648-4a74-b615-038bd24e1f43",
+            "generation": 1,
+            "preview": null,
+            "terminal": null,
+            "unavailableReason": null
+          }
+        ],
+        "layout": {
+          "kind": "pane",
+          "paneId": "1115309a-f319-4d0a-8ae9-5e2d07f61116",
+          "tabId": "5dbabf64-de04-4fe7-af49-4649fa4b864b"
+        },
+        "activePaneId": "1115309a-f319-4d0a-8ae9-5e2d07f61116",
+        "sessions": [
+          {
+            "sessionId": "session-5f45534f-8af5-4b6f-9ae0-5a8647a5bbe2",
+            "resourceId": "dccbba45-6dba-4809-b0b9-53001f8e7d1a",
+            "title": "Agent 会话",
+            "draft": "",
+            "conversation": null,
+            "historyRestored": false,
+            "observations": [],
+            "context": null,
+            "captureRequest": null,
+            "contextTarget": null,
+            "taskTargetRef": null,
+            "taskAcceptance": [],
+            "taskAllowedScopes": [],
+            "contextApplicability": "unknown",
+            "taskVersions": []
+          }
+        ],
+        "runs": [],
+        "publicResources": {
+          "spaceId": "taskflow-demo",
+          "revision": 0,
+          "resources": []
+        },
+        "publicResourcesError": null,
+        "fileHints": [],
+        "observations": [
+          {
+            "request": {
+              "requestId": "cc47f659-fa54-4d91-87b0-fec2000ca732",
+              "workspaceId": "taskflow-demo",
+              "sessionId": null,
+              "runId": null,
+              "target": {
+                "workspaceId": "taskflow-demo",
+                "environmentId": "local",
+                "resourceId": "12a3275d-8b17-4329-8fed-d65257db2492",
+                "kind": "file",
+                "instanceId": "de981176-6648-4a74-b615-038bd24e1f43",
+                "instanceGeneration": 1
+              },
+              "tool": "files.read",
+              "args": {
+                "path": "nonce.txt"
+              }
+            },
+            "state": "completed",
+            "startedAt": "2026-10-08T13:40:15.593Z",
+            "endedAt": "2026-10-08T13:40:15.631Z",
+            "result": {
+              "resource": {
+                "workspaceId": "taskflow-demo",
+                "environmentId": "local",
+                "resourceId": "12a3275d-8b17-4329-8fed-d65257db2492",
+                "kind": "file",
+                "instanceId": "de981176-6648-4a74-b615-038bd24e1f43",
+                "instanceGeneration": 1
+              },
+              "generation": "15adb8d3-16b8-4ccb-a0c2-c1d9626c15b4",
+              "revision": {
+                "value": "0f62ba35f4aae8c97546d8ec0830f45be3c73ad94e4190ec53910c850b8075bf",
+                "strength": "content-hash"
+              },
+              "snapshotId": "66c06bff-6bb1-45d0-8197-d32b953690e0",
+              "capturedAt": "2026-10-08T13:40:15.629Z",
+              "source": "disk",
+              "representation": "json",
+              "coverage": {
+                "status": "complete",
+                "range": {
+                  "startByte": 0,
+                  "endByteExclusive": 46,
+                  "startLine": 1,
+                  "endLine": 2
+                },
+                "reasons": []
+              },
+              "data": {
+                "path": "nonce.txt",
+                "text": "OBS_FILE=3c556838-27fc-43bd-a881-577bb1e00070\n",
+                "encoding": "utf-8",
+                "totalBytes": 46,
+                "contentSha256": "0f62ba35f4aae8c97546d8ec0830f45be3c73ad94e4190ec53910c850b8075bf",
+                "hashScope": "whole_file",
+                "captureConsistency": "best_effort_size_time_checks; concurrent in-place writes are not atomic",
+                "fragmentSha256": "0f62ba35f4aae8c97546d8ec0830f45be3c73ad94e4190ec53910c850b8075bf",
+                "buildContentVersion": "unknown",
+                "watch": {
+                  "supported": true,
+                  "state": "watching",
+                  "watchGeneration": 1,
+                  "watchedDirectories": 1,
+                  "maxDirectories": 32,
+                  "scope": "observed-directories",
+                  "recursive": false,
+                  "lossy": true,
+                  "coverage": "partial",
+                  "watched": true
+                }
+              },
+              "evidenceRef": "observations/3536a218-37f0-47ea-b8ca-eb25d3058ec0.json"
+            },
+            "evidenceRef": "observations/3536a218-37f0-47ea-b8ca-eb25d3058ec0.json"
+          }
+        ],
+        "theme": "system"
+      },
+      {
+        "workspaceId": "a4af6a3f-d35f-4789-a50b-6f255b95a199",
+        "name": "观察隔离-c04a5fd2",
+        "revision": 2,
+        "tabs": [
+          {
+            "tabId": "8d6c2e5b-c6c9-4bb6-8560-53e99bf1cf64",
+            "title": "隔离网页",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "web",
+              "resourceId": "2cb78f5b-3f5f-4c7a-8413-dad75756b244"
+            }
+          }
+        ],
+        "resources": [
+          {
+            "resourceId": "2cb78f5b-3f5f-4c7a-8413-dad75756b244",
+            "environmentId": "local",
+            "kind": "web",
+            "title": "隔离网页",
+            "url": "wsl-demo://taskflow/index.html",
+            "instanceId": "5521c2b3-fbf6-4824-9fe4-cbca735559ad",
+            "generation": 1,
+            "preview": {
+              "page": {
+                "webContentsId": 3,
+                "documentGeneration": 1,
+                "url": "wsl-demo://taskflow/index.html",
+                "title": "观察隔离",
+                "partition": "preview-a4af6a3f-d35f-4789-a50b-6f255b95a199-5521c2b3-fbf6-4824-9fe4-cbca735559ad"
+              },
+              "loading": false,
+              "canGoBack": false,
+              "canGoForward": false,
+              "picking": false,
+              "cdp": {
+                "state": "idle"
+              },
+              "consoleIssueCount": 4,
+              "loadError": null,
+              "blockedNavigation": null,
+              "pickError": null
+            },
+            "terminal": null,
+            "unavailableReason": null
+          }
+        ],
+        "layout": {
+          "kind": "pane",
+          "paneId": "7cb109f8-4ed7-459e-8e1c-4e70927f16e7",
+          "tabId": "8d6c2e5b-c6c9-4bb6-8560-53e99bf1cf64"
+        },
+        "activePaneId": "7cb109f8-4ed7-459e-8e1c-4e70927f16e7",
+        "sessions": [],
+        "runs": [],
+        "publicResources": null,
+        "publicResourcesError": null,
+        "fileHints": [],
+        "observations": [],
+        "theme": "system"
+      }
+    ],
+    "environments": [
+      {
+        "environmentId": "local",
+        "kind": "local",
+        "label": "本设备",
+        "state": "configured",
+        "reason": null,
+        "capabilities": {
+          "files": true,
+          "terminal": true,
+          "browser": true
+        }
+      },
+      {
+        "environmentId": "sandbox",
+        "kind": "sandbox",
+        "label": "wsl-sbx-smoke-20261006",
+        "state": "configured",
+        "reason": null,
+        "capabilities": {
+          "files": false,
+          "terminal": true,
+          "browser": false
+        }
+      },
+      {
+        "environmentId": "ssh",
+        "kind": "ssh",
+        "label": "SSH",
+        "state": "unavailable",
+        "reason": "未配置可信 SSH 环境",
+        "capabilities": {
+          "files": false,
+          "terminal": false,
+          "browser": false
+        }
+      }
+    ],
+    "notificationReadReceipts": [],
+    "notifications": []
+  },
+  "processCleanupConfirmed": true,
+  "applicationExited": true,
+  "cleanupErrors": []
+}

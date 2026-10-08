@@ -1,0 +1,13 @@
+{
+  "original": "live-guest-browser.json",
+  "diagnostic": "guest-network-diagnostic-result.json",
+  "https_probe": "guest-https-diagnostic.json",
+  "observed": [
+    "Same source runCapture with unchanged Chromium/route/certificate policy",
+    "Fetch.requestPaused responseErrorReason Failed precedes our Fetch.failRequest BlockedByClient",
+    "Both attempts confirm owned browserClosed true; real renderer seccomp/namespaces recorded",
+    "Separate fixed-target HTTPS GET with certificate validation and no redirects/body returned HTTP403"
+  ],
+  "conclusion": "Guest browser live failed; HTTP access path is denied. Cannot attribute 403 specifically to origin versus gateway without broader diagnostics; no network-policy changes made. No product logic defect established by these records.",
+  "acceptance": "undetermined for successful DOM/PNG/MCP guest browser path"
+}

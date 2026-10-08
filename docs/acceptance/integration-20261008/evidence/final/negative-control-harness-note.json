@@ -1,0 +1,39 @@
+{
+  "scope": "Only e2e/workspace-migration.spec.ts; no production/helper hook",
+  "originalFailureReceipt": "docs/acceptance/integration-20261008/evidence/final/electron-packaged.json",
+  "originalResult": "51 passed / 3 failed / 6 skipped; two harness-dependent negative controls plus locked OS focus scene",
+  "runtimeNegativeControl": "Uses returned rendererErrors collected from actual pageerror, waits for specific WSL_LATE_NEGATIVE_CONTROL; close must reject on both targets. No __wslRendererErrors dependency.",
+  "startupNegativeControl": "Existing startup injection occurs before entry only in build bootstrap. Test explicitly build harness; packaged not_run because no injection occurred. Original build assertion remains.",
+  "acceptanceLimit": "Packaged startup exception gate has not been verified. This scope does not add pre-entry debugger or production hook.",
+  "execution": "Only type/lint/format/collect, no GUI/live/network run. Parent will run runtime negative control serially.",
+  "source": {
+    "path": "e2e/workspace-migration.spec.ts",
+    "sha256": "a24dd495d87ff711df528570db055e4e93c14d6d7ae8391e97f79cc30b58140e"
+  },
+  "receipts": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/negative-control-harness-type.json",
+      "sha256": "e31c33f9a4246a7c7b016b2a79da2ccd44f477a0af66316a8d3c5b0bc8e705ae",
+      "revisionStable": true,
+      "stdout": ""
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/negative-control-harness-lint.json",
+      "sha256": "4783bd118d62efe194113c3e1b8bbc54f654b7b12e67ea427b16f0b287f7284b",
+      "revisionStable": true,
+      "stdout": ""
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/negative-control-harness-format.json",
+      "sha256": "018caa6f332958d7f8e4e32231648b2a3810af170f51c713b1e34e6a499448d4",
+      "revisionStable": true,
+      "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/negative-control-harness-collect.json",
+      "sha256": "1f3b1dc8219a2b5db00bd1f3e37e25be61edfe4460531ff1ad45aa9fff7f189e",
+      "revisionStable": true,
+      "stdout": "Listing tests:\n  workspace-migration.spec.ts:23:1 › R1 可见导航进入真实任务历史，查看日志/diff/报告不执行\n  workspace-migration.spec.ts:47:1 › R2 通信栏菜单控制通知，独立专注入口控制布局\n  workspace-migration.spec.ts:65:1 › R1 通知定位后台同一运行，打开与已读分离且重启保持回执\n  workspace-migration.spec.ts:100:1 › R7 首页空间卡片由当前快照生成，按稳定身份切换\n  workspace-migration.spec.ts:125:1 › R4 单窗格窄窗从网页关联会话并采集\n  workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点\n  workspace-migration.spec.ts:248:1 › E2E 异常门槛负控：build启动前注入异常必须失败\n  workspace-migration.spec.ts:254:1 › E2E 异常门槛负控：运行期异常必须失败\nTotal: 8 tests in 1 file\n"
+    }
+  ]
+}

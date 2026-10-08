@@ -1,0 +1,20 @@
+{
+  "count": 3,
+  "files": [
+    {
+      "path": "results/.last-run.json",
+      "bytes": 96,
+      "sha256": "ec61dbd909c7e0231e9f1b0c6a534d3e1af995ff23820f1fbe1a7b6f0a9c5d7f"
+    },
+    {
+      "path": "results/resources-live-live：真实公开网页-e3314-andbox-Codex-通过只读-MCP-枚举和读取/error-context.md",
+      "bytes": 10276,
+      "sha256": "0b09b2e173f573c557d0f2ce18b7b3061081e8dcd3dd49b159a780f3854a948d"
+    },
+    {
+      "path": "screens/resources-live-evidence.json",
+      "bytes": 526,
+      "sha256": "0a917405cf4d042169cc18f58cd4eb14e35546aa567a625e8cc70a46aaf48e04"
+    }
+  ]
+}

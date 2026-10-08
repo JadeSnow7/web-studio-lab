@@ -1,0 +1,46 @@
+{
+  "finding": "Test PID publication race, not evidence of product cleanup failure",
+  "beforeReceipt": "docs/acceptance/integration-20261008/evidence/final/unit-v3.json",
+  "beforeResult": "417 passed / 1 failed / 8 skipped; ValueError converting empty PID string before child/identity assignment",
+  "cause": "Child open(path,w) makes empty file visible before write completes; parent checks only exists().",
+  "patch": "Publish PID using same-directory temporary file, explicit close, then os.replace. Existing five-second deadline, exact marker/birth checks and all cleanup assertions unchanged. Production local-terminal.py unchanged.",
+  "failureCleanupBoundary": "On the original pre-PID failure, test finally could kill only its owned helper because child identity was not yet acquired; it did not prove immediate detached cleanup. No success claim made for that failure.",
+  "processCheck": {
+    "inspection": "Read-only PID, PPID, startup time, executable name; no environment or full argv read, no signals sent.",
+    "originalFailureStartedAt": "2026-10-08 20:57:28 Asia/Shanghai",
+    "firstCheck": "20:59:33 only inspection Python was present; no Python from original failure time.",
+    "afterFocusedCheck": "21:01:42 no bash or Python from original failure time/focused run time. Two other Homebrew Python processes started at21:01:41, after focused test completed; ownership was not attributed and they were not touched. Inspection Python excluded.",
+    "focusedProductEvidence": "Unchanged assertion requires helper exit code0, cleanup=[true], and original detached birth identity absent; focused run passes."
+  },
+  "source": {
+    "path": "apps/service/src/local-terminal-detached.test.ts",
+    "sha256": "8baefab57bef820794eb694d80fc0a9f62dd85660a20a0ec1dd44bb15d346d48"
+  },
+  "receipts": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/detached-pid-publication-after.json",
+      "sha256": "e9ba701405632ecf0b89eea2d9b6e7dca17188105b65d3f1e242563f00ce3e7a",
+      "exitCode": 0,
+      "revisionStable": true,
+      "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n\n Test Files  1 passed (1)\n      Tests  2 passed (2)\n   Start at  21:01:02\n   Duration  1.16s (tests 97%, transform 2%, import 1%)\n\n"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/detached-pid-publication-lint.json",
+      "sha256": "b7964341956a56ee8d311d4210f2364b82134ae650228bd426f14e270975c92e",
+      "exitCode": 0,
+      "revisionStable": true,
+      "stdout": ""
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/final/detached-pid-publication-format.json",
+      "sha256": "4e1397e6d0b3603820274eb546d3dc6511474dee408f20209b6b95fc64f6321b",
+      "exitCode": 0,
+      "revisionStable": true,
+      "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n"
+    }
+  ],
+  "limits": [
+    "No full unit or live run in this patch; root will run final suite serially.",
+    "Historical failure moment was not sampled; current absence does not retroactively prove original immediate cleanup."
+  ]
+}

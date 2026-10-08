@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-08T14:13:14.977163+00:00",
+  "tool": "cua.getApp(full packaged app path)",
+  "result": "undetermined",
+  "error": "The Mac is locked and automatic unlock could not unlock it. Ask the user to unlock the Mac manually before continuing.",
+  "preceding_inventory": {
+    "at": "2026-10-08T14:01:31.673Z",
+    "native_app_inventory_available": true
+  },
+  "observation": "Native inventory briefly became available; actual owned-window binding failed again. No physical drag, click-through or Chinese IME input executed. Automated build and packaged focus tests passed independently.",
+  "owned_session": "native/session-cleanup.json",
+  "harness_sha256": "d1bdd411749e22d5739d0e2707ad4abed65ec421a36e121acce569b7d2fd2c07",
+  "user_prompt": "Earlier manual unlock request remains unanswered; no duplicate request."
+}

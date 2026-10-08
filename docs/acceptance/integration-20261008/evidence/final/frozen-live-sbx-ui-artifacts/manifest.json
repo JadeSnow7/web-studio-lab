@@ -1,0 +1,40 @@
+{
+  "count": 7,
+  "files": [
+    {
+      "path": "results/.last-run.json",
+      "bytes": 45,
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    {
+      "path": "screens/sbx-chat-live-read.png",
+      "bytes": 215193,
+      "sha256": "60777de72238d434dd1795b4cdad0f180ea5146b4c6a017344a8783d689a9f13"
+    },
+    {
+      "path": "screens/sbx-live-conversation.json",
+      "bytes": 1469,
+      "sha256": "71efa1db3c73b5e68fcb6f0ee87ce7b73387a097e8a1317bf9041ca99e0396d6"
+    },
+    {
+      "path": "screens/sbx-live-owned-cleanup.json",
+      "bytes": 188,
+      "sha256": "7e4b9ad52421b6e785c244ba30feac72f89b623541028553536fcf6aceafce42"
+    },
+    {
+      "path": "screens/sbx-live-terminal.json",
+      "bytes": 4473,
+      "sha256": "0401a668b35ac652f67ec5654eaa33cf4053b03c17924a3da3f0c9ec40f06f8a"
+    },
+    {
+      "path": "screens/sbx-terminal-live-narrow.png",
+      "bytes": 482347,
+      "sha256": "a8cc0973c03a8c67c6442c1998a41c3bcb5c1cffa5ee2ba84906239f8b17aa70"
+    },
+    {
+      "path": "screens/sbx-terminal-live-wide.png",
+      "bytes": 392477,
+      "sha256": "b426901c78784736191aa4353243f8079ad35eb5ec824ab8b47aef01c3a5be7e"
+    }
+  ]
+}

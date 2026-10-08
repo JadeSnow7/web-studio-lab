@@ -1,0 +1,20 @@
+{
+  "count": 3,
+  "files": [
+    {
+      "path": "results/.last-run.json",
+      "bytes": 45,
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    {
+      "path": "screens/chat-live-multiturn.png",
+      "bytes": 251968,
+      "sha256": "92ed8234aeffbaff3b7a72cdbb874edc1560ccc914ae38640805b560c00847a2"
+    },
+    {
+      "path": "screens/chat-live-new.png",
+      "bytes": 259904,
+      "sha256": "cb8e7812e0e5bedfb3c7e37b15fa0b3d9b88daf56eaaae71d87791fec8a54712"
+    }
+  ]
+}

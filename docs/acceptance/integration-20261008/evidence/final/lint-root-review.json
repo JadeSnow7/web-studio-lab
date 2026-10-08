@@ -1,0 +1,9 @@
+{
+  "path": "eslint.config.js",
+  "sha256": "7f722ea44d7746a92345a55001e31340919f507973a82799a165f33ad4da1e06",
+  "change": "Explicit tsconfigRootDir at root ESLint configuration; no ignores or rules changed",
+  "before": "lint-full.json 403 parsing errors blocked active source",
+  "after": "lint-full-tsconfig-root-v2.json 205 issues:126 sealed-config parsing limitations,78 sealed archive/probe rules,1 fixed VS001 prefer-const",
+  "active_result": "lint-active.json passed for apps/packages/e2e/scripts/configs",
+  "decision": "Keep original archive configs and diagnostics. Do not claim full-tree lint passed."
+}

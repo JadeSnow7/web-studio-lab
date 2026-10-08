@@ -1,0 +1,37 @@
+{
+  "finding": "F29 union receipt completion",
+  "sources": {
+    "apps/service/src/codex-chat.ts": "4a80591f90e6001efd647db391978919ce02ec559cb9dc764c505e96012984a3",
+    "apps/service/src/resource-chat.test.ts": "790b2100aebae07ddd9ee35ab54d33297780378e5e222d32ea875ec74f84c0ea",
+    "e2e/observation-live.spec.ts": "e0b76a4cb4f39c2597f0c8b5ed0be660ce1858c4e5f6753b2ccaff2b4522dfd7"
+  },
+  "receipts": {
+    "before": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-union-before.json",
+      "sha256": "4a2d20fe1b87c8b9c6768019575ee6d66d22a6f1b166b6ba14fbeb43cbd9ce13",
+      "exitCode": 1,
+      "revisionStable": true
+    },
+    "tests": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-union-tests.json",
+      "sha256": "8ae791a84d08f816f44e473d59518734984f888bf5d14c5e5da438aa30ca0795",
+      "exitCode": 0,
+      "revisionStable": true
+    },
+    "lint": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-union-lint.json",
+      "sha256": "f08bfae5f514db5187d740541a0137765181d2ac6dfeab0ed5467828ca407a47",
+      "exitCode": 0,
+      "revisionStable": true
+    },
+    "format": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-union-format.json",
+      "sha256": "6f57eca7c5153b6b053d7045afd1c5520e182394ec88027afc0fbd2551801f01",
+      "exitCode": 0,
+      "revisionStable": true
+    }
+  },
+  "behavior": "Sources schema-valid receipts retain kind/workspaceId/count and ordered resource+instance identities fitting 16000, with exact omitted count; no invented snapshot/evidence. Error schema-valid receipts retain error code and 2000-character message, explicit message/details omission. Unknown MCP and legacy public receipts unchanged.",
+  "liveExecuted": false,
+  "diffCheckExitCode": 0
+}

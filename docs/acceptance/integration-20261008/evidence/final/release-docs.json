@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "node",
+    "scripts/check-docs.mjs"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T13:40:32.125582Z",
+  "ended_at": "2026-10-08T13:40:32.181671Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "Documentation check passed (18 normative files; local link targets and trailing whitespace). Anchors and external URLs are not checked.\n",
+  "stderr": "",
+  "stdout_base64": "RG9jdW1lbnRhdGlvbiBjaGVjayBwYXNzZWQgKDE4IG5vcm1hdGl2ZSBmaWxlczsgbG9jYWwgbGluayB0YXJnZXRzIGFuZCB0cmFpbGluZyB3aGl0ZXNwYWNlKS4gQW5jaG9ycyBhbmQgZXh0ZXJuYWwgVVJMcyBhcmUgbm90IGNoZWNrZWQuCg==",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c3ea94f92e60bb064b00fa9c7650de5283875db45525d2a68644a735c75d79b4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c3ea94f92e60bb064b00fa9c7650de5283875db45525d2a68644a735c75d79b4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:c3ea94f92e60bb064b00fa9c7650de5283875db45525d2a68644a735c75d79b4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

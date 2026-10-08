@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-08T14:13:14.844Z",
+  "identity": {
+    "pid": 4137,
+    "profile": "/private/tmp/wsl-native-session-N02ABU/profile",
+    "executablePath": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/release/mac-arm64/Web Studio Lab.app/Contents/MacOS/Web Studio Lab",
+    "appPath": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/release/mac-arm64/Web Studio Lab.app",
+    "live": false
+  },
+  "reason": "stdin-close",
+  "applicationExited": true,
+  "exitCode": 0,
+  "signalCode": null,
+  "rendererErrors": [],
+  "errors": [],
+  "profileRetained": true
+}

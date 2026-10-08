@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "runId": "9bdbfe7e-52a7-4bff-8b72-0ae2cbc5f6d2",
+  "taskSha256": "c1c8c4d4f627f2faa0623a4b307114318afc77447a51aa5ac1d83c4024636b28",
+  "baselineSha256": "94536a5749212a9526ef89c53a3c4b8e39b8f06a2f69d996eff46d0369e3e332",
+  "startedAt": "2026-10-08T13:40:38.304Z",
+  "endedAt": "2026-10-08T13:40:38.451Z",
+  "stage": "target_missing",
+  "identity": null,
+  "cleanupErrors": [],
+  "checks": [
+    {
+      "id": "B01",
+      "status": "failed",
+      "performed": false,
+      "code": "target_missing",
+      "detail": "src/vertical-slice/adapter.ts does not exist"
+    },
+    {
+      "id": "B02",
+      "status": "failed",
+      "performed": false,
+      "code": "target_missing",
+      "detail": "src/vertical-slice/adapter.ts does not exist"
+    },
+    {
+      "id": "B03",
+      "status": "failed",
+      "performed": false,
+      "code": "target_missing",
+      "detail": "src/vertical-slice/adapter.ts does not exist"
+    },
+    {
+      "id": "B04",
+      "status": "failed",
+      "performed": false,
+      "code": "target_missing",
+      "detail": "src/vertical-slice/adapter.ts does not exist"
+    },
+    {
+      "id": "B05",
+      "status": "failed",
+      "performed": false,
+      "code": "target_missing",
+      "detail": "src/vertical-slice/adapter.ts does not exist"
+    }
+  ]
+}

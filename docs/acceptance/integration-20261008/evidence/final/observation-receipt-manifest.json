@@ -1,0 +1,50 @@
+{
+  "finding": "F29",
+  "sources": {
+    "apps/service/src/codex-chat.ts": "194ee95488d3b91d5155673e8999595db72973ca8d4f385cd7f8884dcd719761",
+    "apps/service/src/resource-chat.test.ts": "61935f6334d4061ad2c1a2f414bcd265963815f4810a9c6032a58a987eb10bb1",
+    "e2e/observation-live.spec.ts": "e0b76a4cb4f39c2597f0c8b5ed0be660ce1858c4e5f6753b2ccaff2b4522dfd7"
+  },
+  "receipts": {
+    "before": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-before.json",
+      "sha256": "1a3a4875d325a52cdc4816cfa27b6be3272480c6629a5d709da90ea2db558a2a",
+      "exitCode": 1,
+      "result": "failed",
+      "revisionStable": true
+    },
+    "tests": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-tests.json",
+      "sha256": "133e41848277c98c6c82a7c3d1f9a108f9612902f20b70180a843750d8146c17",
+      "exitCode": 0,
+      "result": "passed",
+      "revisionStable": true
+    },
+    "type": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-type.json",
+      "sha256": "810cae861792861c91477e3dad10604d80be3b568dc90cc431317128b6d96bcb",
+      "exitCode": 0,
+      "result": "passed",
+      "revisionStable": true
+    },
+    "lint": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-lint.json",
+      "sha256": "54d7c06861a6f7029c57dd5f3db8fccac8c90a34059e72761e1880c983d7026e",
+      "exitCode": 0,
+      "result": "passed",
+      "revisionStable": true
+    },
+    "format": {
+      "path": "docs/acceptance/integration-20261008/evidence/final/observation-receipt-format.json",
+      "sha256": "75e2f15297af5d2856e3e65a513244ec940db2fa6e8ff351de4fa6a2f84a88ac",
+      "exitCode": 0,
+      "result": "passed",
+      "revisionStable": true
+    }
+  },
+  "behavior": "Schema-valid observation truncation preserves all metadata excluding data. Oversized metadata retains bounded core identity with explicit omitted revision/coverage details/cursor. Old public receipts and both 16000/131072 output budgets unchanged.",
+  "liveHarness": "Truncated observation receipt must exactly match Main result minus data and evidenceRef must equal Main record. Nontruncated remains full equality. Nonces and source identities checked against original Main result, model text, frozen run and space isolation.",
+  "tests": "34 passed across resource-chat/observation-mcp/sbx; full typecheck, scoped lint/format and diff-check passed.",
+  "liveExecuted": false,
+  "remaining": "Actual same live scenario rerun by root; final full build/package/regressions pending."
+}
