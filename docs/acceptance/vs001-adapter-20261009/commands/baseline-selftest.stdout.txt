@@ -1,0 +1,20 @@
+✔ synthetic: strict task and event contracts reject relaxed goals and extra pass claims (3.861444ms)
+✔ synthetic: postcondition rejects initial/wrong/hidden/duplicate/mixed-run/exception observations (1.280615ms)
+✔ synthetic: mixed run/hash, sequence, lifecycle, logs and nonzero exit are rejected (2.900132ms)
+✔ synthetic: diff detects add/delete and paths/CDP URLs cannot escape boundaries (0.977557ms)
+✔ synthetic: manifest refuses content tampering, missing evidence and mixed-run events (5.928717ms)
+✔ synthetic: complete empty DOM returns immediately and B03 rejects it (3.951961ms)
+✔ synthetic: navigation waits for complete state and the expected URL (205.076814ms)
+✔ synthetic: complete single-match DOM returns on the first evaluation (1.579246ms)
+✔ synthetic: B03 partial success needs its own identity, observation and raw evaluation (8.295954ms)
+✔ synthetic: B04 partial success must match independently re-evaluated postcondition (7.268061ms)
+✔ synthetic: no passed check may claim it was not performed; target_missing remains valid (4.115638ms)
+✔ synthetic: identity key order is irrelevant but changed identity fields are rejected (1.491173ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 609.102268

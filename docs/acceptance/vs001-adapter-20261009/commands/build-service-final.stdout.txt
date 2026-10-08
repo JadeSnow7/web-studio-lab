@@ -1,0 +1,10 @@
+
+> web-studio-lab@ build:service /workspace/scratch/7fe460de7b83/web-studio-lab
+> pnpm --filter @wsl/desktop exec vite build --config ../service/vite.config.ts
+
+vite v7.3.6 building ssr environment for production...
+transforming...
+✓ 187 modules transformed.
+rendering chunks...
+../service/out/index.cjs  1,372.38 kB
+✓ built in 4.40s

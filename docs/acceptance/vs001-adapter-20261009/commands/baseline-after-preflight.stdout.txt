@@ -1,0 +1,7 @@
+run: /workspace/scratch/7fe460de7b83/web-studio-lab/records/vertical-slice/a29c205a-7ec1-41df-98cd-f7c6ba32fafb
+1..5
+not ok B01 - failed / product_failure / performed=true
+not ok B02 - undetermined / not_reached / performed=false
+not ok B03 - undetermined / not_reached / performed=false
+not ok B04 - undetermined / not_reached / performed=false
+not ok B05 - undetermined / not_reached / performed=false

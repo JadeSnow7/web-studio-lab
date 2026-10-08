@@ -1,0 +1,32 @@
+
+> web-studio-lab@ test /workspace/scratch/7fe460de7b83/web-studio-lab
+> vitest run
+
+
+ RUN  v5.0.3 /workspace/scratch/7fe460de7b83/web-studio-lab
+
+ ❯ apps/service/src/local-terminal-detached.test.ts (2 tests | 2 failed) 112ms
+   × cleans an inherited owned child after fork, reparenting and setsid without claiming an OS sandbox 70ms
+   × never signals a reused birth identity or an unreadable owned marker 41ms
+ ❯ apps/service/src/resource-mcp.test.ts (1 test | 1 failed) 95ms
+   ❯ finite resource MCP boundary (1)
+     × rejects cross-space, stale versions, paths, writes and malformed bundles 93ms
+ ❯ apps/service/src/observation-socket.test.ts (1 test | 1 failed) 137ms
+   × uses a real Unix socket for bounded observation calls and releases its own client/server paths 136ms
+ ❯ apps/service/src/local-terminal.test.ts (5 tests | 5 failed) 4092ms
+   ❯ local terminal lifecycle (3)
+     × real local PTY: failed command preserves shell, zsh hooks report code, close settles 1023ms
+     × bounds cleanup when foreground process ignores hangup 1021ms
+     × consumes immediate close queued alongside start without losing the frame 38ms
+   × local PTY observation retains the Main identity instead of using the shell session as resource 1003ms
+   × rejects oversized UTF-8 Chinese input without closing the PTY and still runs the next command 1005ms
+
+ Test Files  4 failed | 59 passed | 4 skipped (67)
+      Tests  9 failed | 446 passed | 10 skipped (465)
+   Start at  04:33:41
+   Duration  11.91s (tests 76%, import 14%, transform 10%, worker 1%)
+
+    Isolate  67 workers spawned · ~190ms startup each (spawn + environment, per file)
+             at least ~1.63s faster with isolate: false — reuses workers across files instead of one per file
+
+ ELIFECYCLE  Test failed. See above for more details.

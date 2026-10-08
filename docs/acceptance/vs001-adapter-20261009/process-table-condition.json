@@ -1,0 +1,8 @@
+{
+  "pid": 6,
+  "getppid": 5,
+  "getsid": 1,
+  "procPpid": 6914,
+  "procSid": 6910,
+  "faithful": false
+}

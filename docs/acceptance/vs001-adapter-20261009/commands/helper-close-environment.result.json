@@ -1,0 +1,39 @@
+{
+  "kind": "actual-helper-component-probe",
+  "modelCalled": false,
+  "electronStarted": false,
+  "helperSha256": "98f129f2f44dcef7e9f29ad4555c16216484e4738cfcc13ea02858cab01a7007",
+  "helperExitCode": 0,
+  "frames": [
+    {
+      "type": "ready",
+      "pid": 9
+    },
+    {
+      "type": "output",
+      "stream": "stdout",
+      "data": "BG_PID:10\nBODY_READY\n"
+    },
+    {
+      "type": "error",
+      "error": "guest output drain not confirmed"
+    },
+    {
+      "type": "cleanup",
+      "ok": false,
+      "error": "guest output drain not confirmed"
+    }
+  ],
+  "knownOwnedPidsReleased": [
+    {
+      "pid": 9,
+      "signal": "SIGKILL"
+    },
+    {
+      "pid": 10,
+      "signal": "SIGKILL"
+    }
+  ],
+  "classification": "blocked_by_unfaithful_proc",
+  "productChecks": "not_run"
+}

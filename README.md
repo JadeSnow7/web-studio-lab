@@ -18,7 +18,7 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 | 对话与终端   | sbx内Codex和Linux PTY；个人会话独立，空间会话由Main工作台管理                    |
 | 任务与通知   | 持久任务版本、运行历史、日志、终态通知与阅读回执；执行、检查和人工接受分别记录   |
 | 恢复         | 恢复元数据、草稿、布局和历史，不自动重放执行或重新连接PTY                        |
-| 完整业务闭环 | 母模板、priority业务API、独立检查器、真实diff/报告产物及VS001产品adapter仍未实现 |
+| 完整业务闭环 | 母模板、priority业务API、独立检查器及任务页真实diff/报告仍未实现；VS001 adapter 已接入，真实五项待复验 |
 | 统一观察     | Browser、文件、终端与 SSH 已接 Main、MCP 和空间界面；完整验证进行中              |
 
 ## 环境
@@ -123,7 +123,7 @@ xattr -dr com.apple.quarantine "/Applications/Web Studio Lab.app"
 
 [Agent 入口](AGENTS.md)、[架构基线](docs/ARCHITECTURE.md)与[开发规范](CONTRIBUTING.md)说明职责和协作要求；[当前运行时](docs/architecture/current-runtime.md)区分真实实现、目标约束与缺口。目标架构的取舍见 [ADR-0001](docs/architecture/adr/0001-modular-monolith.md)。
 
-main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical-slice`、固定 fixture 和实现前失败证据全部保留，包括 PR1 的观察值拒绝和源码类型检查修复。验收基准已有，不代表产品 adapter 或比赛闭环已完成；真实模型调用须另行明确启用。整合后的运行入口以本树 `package.json` 为准。
+main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical-slice`、固定 fixture 和实现前失败证据全部保留，包括 PR1 的观察值拒绝和源码类型检查修复。`src/vertical-slice/adapter.ts` 已接入现有 sbx/Codex、Vite 和 Electron Browser；实现及运行条件见 [VS001 接入记录](docs/acceptance/vs001-adapter-20261009/README.md)。真实五项尚未通过，不能据此认定比赛闭环完成；需显式配置已有 sandbox 与实际模型后运行原验收。整合后的运行入口以本树 `package.json` 为准。
 
 ## 来源与继承边界
 

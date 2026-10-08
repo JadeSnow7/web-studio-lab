@@ -1,0 +1,538 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-08T19:38:32.434Z",
+  "baseCommit": "3e631a9e387190da5a2241945bbf7e14edbd5707",
+  "sources": [
+    {
+      "path": "src/vertical-slice/adapter.ts",
+      "sha256": "8052f18ee9507ec2c9735cf153f77d3e1e872d97f828991bd4b130f2e8f71cbe"
+    },
+    {
+      "path": "apps/service/src/vertical-slice/adapter.ts",
+      "sha256": "c7890c7b02bfd41f26b8c61c49c9b80cd4be5d7ade0ac6196e0d728f1bc155c9"
+    },
+    {
+      "path": "apps/service/src/vertical-slice/adapter.test.ts",
+      "sha256": "14e42591a6699e9c2f0f54b1575f35af0b5a9b07a967bf6caaa24bf64904ff69"
+    },
+    {
+      "path": "apps/desktop/src/main/vertical-slice.ts",
+      "sha256": "5174c89b574a7e9418d8cdda118b735b5b05e619ba6a2e3c5247e621ffff761d"
+    },
+    {
+      "path": "apps/service/src/guest-workspace.test.ts",
+      "sha256": "b51503e2555a71a314f110939bf52817a7f60fe5ed8c516f1c5dc65eb54402e6"
+    },
+    {
+      "path": "apps/service/src/sbx.ts",
+      "sha256": "6691dfd996d9dc89652e2de9879b413f60d2029937854198679e4c1dbaefcfe8"
+    },
+    {
+      "path": "apps/service/src/guest-helper.py",
+      "sha256": "d77dae764d1b677e1866368d483cde396a3363464823a4de7642d0a8009a3f8b"
+    }
+  ],
+  "checks": [
+    {
+      "name": "typecheck-final",
+      "command": "npx --yes pnpm@10.34.6 typecheck",
+      "exitCode": 0
+    },
+    {
+      "name": "build",
+      "command": "npx --yes pnpm@10.34.6 build (before final guest owner change; unchanged desktop output)",
+      "exitCode": 0
+    },
+    {
+      "name": "build-service-final",
+      "command": "npx --yes pnpm@10.34.6 build:service (after final guest owner change)",
+      "exitCode": 0
+    },
+    {
+      "name": "test-all",
+      "command": "npx --yes pnpm@10.34.6 test",
+      "exitCode": 1
+    },
+    {
+      "name": "test-adapter",
+      "command": "node_modules/.bin/vitest run apps/service/src/vertical-slice/adapter.test.ts apps/service/src/guest-workspace.test.ts apps/service/src/sbx.test.ts apps/service/src/codex-chat.test.ts apps/service/src/sbx-contract.test.ts --reporter=verbose",
+      "exitCode": 0
+    },
+    {
+      "name": "baseline-selftest-final",
+      "command": "npx --yes pnpm@10.34.6 baseline:selftest",
+      "exitCode": 1
+    },
+    {
+      "name": "baseline-selftest-node",
+      "command": "node --import tsx --test tests/vertical-slice/selftest.test.ts",
+      "exitCode": 0
+    },
+    {
+      "name": "baseline-after-preflight",
+      "command": "node --import tsx tests/vertical-slice/run.ts",
+      "exitCode": 2
+    },
+    {
+      "name": "lint-changed",
+      "command": "node_modules/.bin/eslint (six changed TS files)",
+      "exitCode": 0
+    },
+    {
+      "name": "format-changed",
+      "command": "node_modules/.bin/prettier --check (six changed TS files)",
+      "exitCode": 0
+    },
+    {
+      "name": "lint-all",
+      "command": "node_modules/.bin/eslint .",
+      "exitCode": 1
+    },
+    {
+      "name": "format-all",
+      "command": "node_modules/.bin/prettier --check . (earlier recorded scan, before all final receipts were added)",
+      "exitCode": 1
+    },
+    {
+      "name": "python-syntax",
+      "command": "Python compile() on apps/service/src/guest-helper.py without generating a cache",
+      "exitCode": 0
+    },
+    {
+      "name": "frozen-scope",
+      "command": "git diff --exit-code -- docs/acceptance/VS001.md tests/vertical-slice fixtures/vertical-slice package.json package-lock.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json",
+      "exitCode": 0
+    }
+  ],
+  "componentTests": {
+    "passed": 52,
+    "skipped": 2,
+    "failed": 0,
+    "total": 54
+  },
+  "allTests": {
+    "passed": 446,
+    "failed": 9,
+    "skipped": 10,
+    "total": 465
+  },
+  "selftest": {
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0
+  },
+  "liveVS001": {
+    "B01": "not_run",
+    "B02": "not_run",
+    "B03": "not_run",
+    "B04": "not_run",
+    "B05": "not_run",
+    "reason": "No genuine sbx/Codex model, Electron binary, display or required system permissions"
+  },
+  "baselineSha256": "94536a5749212a9526ef89c53a3c4b8e39b8f06a2f69d996eff46d0369e3e332",
+  "manifests": [
+    {
+      "name": "before-run",
+      "runId": "f051323e-5b2f-43f8-b8e1-47a9654a4654",
+      "manifestSha256": "a77806f84965f06d564f606318a703d7ecc52523225c257a89473eef2147cbfe",
+      "baselineSha256": "94536a5749212a9526ef89c53a3c4b8e39b8f06a2f69d996eff46d0369e3e332",
+      "artifactCount": 19,
+      "verified": true
+    },
+    {
+      "name": "after-preflight-run",
+      "runId": "a29c205a-7ec1-41df-98cd-f7c6ba32fafb",
+      "manifestSha256": "3a69dd8384ff55ed0f0f2009104dacd0a3882c22d4850850aaea59b6bf50cf8e",
+      "baselineSha256": "94536a5749212a9526ef89c53a3c4b8e39b8f06a2f69d996eff46d0369e3e332",
+      "artifactCount": 20,
+      "verified": true
+    }
+  ],
+  "afterPreflight": {
+    "runId": "a29c205a-7ec1-41df-98cd-f7c6ba32fafb",
+    "stage": "B01",
+    "exitCode": 2,
+    "modelCalled": false,
+    "electronStarted": false,
+    "cdpCalled": false,
+    "checks": [
+      {
+        "id": "B01",
+        "status": "failed",
+        "performed": true,
+        "code": "product_failure"
+      },
+      {
+        "id": "B02",
+        "status": "undetermined",
+        "performed": false,
+        "code": "not_reached"
+      },
+      {
+        "id": "B03",
+        "status": "undetermined",
+        "performed": false,
+        "code": "not_reached"
+      },
+      {
+        "id": "B04",
+        "status": "undetermined",
+        "performed": false,
+        "code": "not_reached"
+      },
+      {
+        "id": "B05",
+        "status": "undetermined",
+        "performed": false,
+        "code": "not_reached"
+      }
+    ],
+    "cleanupErrors": []
+  },
+  "preflightBuildDirectoryRemoved": true,
+  "commandArtifacts": [
+    {
+      "path": "commands/baseline-after-preflight.exit.txt",
+      "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+      "size": 2
+    },
+    {
+      "path": "commands/baseline-after-preflight.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/baseline-after-preflight.stdout.txt",
+      "sha256": "78dac8196c0cd8b79129084d9cbe3e49e9ae68fb1c7c0430ce720c8968316de9",
+      "size": 404
+    },
+    {
+      "path": "commands/baseline-before.exit.txt",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "size": 2
+    },
+    {
+      "path": "commands/baseline-before.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/baseline-before.stdout.txt",
+      "sha256": "81d8af842f0c794c3dfbd3a327a653536d82b9eb0a73e5f3d1990f520301c003",
+      "size": 392
+    },
+    {
+      "path": "commands/baseline-selftest-final.exit.txt",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "size": 2
+    },
+    {
+      "path": "commands/baseline-selftest-final.stderr.txt",
+      "sha256": "24f8b7216eac95d61b52b1f4f9df20763b78f0ea03f0b826cb6f5c01f3ee5b65",
+      "size": 988
+    },
+    {
+      "path": "commands/baseline-selftest-final.stdout.txt",
+      "sha256": "d7f0c5cff8c9b9973481f7f5cad9954c22774fd1d2d631b708be24a4e0c9e902",
+      "size": 186
+    },
+    {
+      "path": "commands/baseline-selftest-node.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/baseline-selftest-node.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/baseline-selftest-node.stdout.txt",
+      "sha256": "c90706de6c0eb086457fdd11f720d1e017a6875a6e5a7f497b222912432e3a94",
+      "size": 1297
+    },
+    {
+      "path": "commands/baseline-selftest.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/baseline-selftest.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/baseline-selftest.stdout.txt",
+      "sha256": "596d6b864a91a92f0ca538ca2ce57d86ed237c5c5463cd192d4fd3cbd27169e5",
+      "size": 1301
+    },
+    {
+      "path": "commands/build-service-final.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/build-service-final.stderr.txt",
+      "sha256": "cca2f93111c5437874e986f6e486ecd5ab34f901a78e6a044ceacb637d7449ad",
+      "size": 1160
+    },
+    {
+      "path": "commands/build-service-final.stdout.txt",
+      "sha256": "ce4a161de5d7de0b7921fd668c507943cd1837c7971f39bb63659011a5e2820d",
+      "size": 338
+    },
+    {
+      "path": "commands/build.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/build.stderr.txt",
+      "sha256": "4e4a6ffe2fd059445002447ed4671e17aae85d7151695b97e447779eb524c408",
+      "size": 4343
+    },
+    {
+      "path": "commands/build.stdout.txt",
+      "sha256": "6948494daada7e3f7256d888c4c698495672088fdcd1feb95ea867fa68b660fd",
+      "size": 1234
+    },
+    {
+      "path": "commands/docs.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/docs.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/docs.stdout.txt",
+      "sha256": "4257e047e16cd1722907001489b38aec118593cf8bfbbafaed251d9397982edc",
+      "size": 136
+    },
+    {
+      "path": "commands/format-all.exit.txt",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "size": 2
+    },
+    {
+      "path": "commands/format-all.stderr.txt",
+      "sha256": "e0e999bd708da6af76112198a30e5fe33ac8a393b8d87c1139f0d6b6e303573f",
+      "size": 83192
+    },
+    {
+      "path": "commands/format-all.stdout.txt",
+      "sha256": "ebe82dad128d5e5d8936334ceac09492f3c60bd9e0b4a16cc7fd7075513b33de",
+      "size": 23
+    },
+    {
+      "path": "commands/format-changed.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/format-changed.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/format-changed.stdout.txt",
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "size": 66
+    },
+    {
+      "path": "commands/frozen-scope.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/frozen-scope.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/frozen-scope.stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/helper-close-environment.result.json",
+      "sha256": "cb0c85c251c23de743bf50372efba93b9da4ec1d5b881ab64779e52258ce99c3",
+      "size": 797
+    },
+    {
+      "path": "commands/helper-close-environment.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/helper-close-environment.stdout.txt",
+      "sha256": "009b2bb35c44b674e31c6bffdfc04495c942f186fe20df5ba62001caeba1fc36",
+      "size": 307
+    },
+    {
+      "path": "commands/install.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/install.stderr.txt",
+      "sha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f",
+      "size": 99
+    },
+    {
+      "path": "commands/install.stdout.txt",
+      "sha256": "85051aa01a63c78d2d792daf297581dd5b849f51bee79ee5f8aa31bb0c306c2c",
+      "size": 137
+    },
+    {
+      "path": "commands/lint-all.exit.txt",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "size": 2
+    },
+    {
+      "path": "commands/lint-all.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/lint-all.stdout.txt",
+      "sha256": "843540d4dacb14d58e751f435dba9caca1f2f30d6e3c0d33d3270425c6da0515",
+      "size": 93913
+    },
+    {
+      "path": "commands/lint-changed.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/lint-changed.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/lint-changed.stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/python-syntax.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/python-syntax.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/python-syntax.stdout.txt",
+      "sha256": "c3350171d65827deb227c37e9b193f2ad3b35fdcdb49fd17691202afded2e3cc",
+      "size": 30
+    },
+    {
+      "path": "commands/test-adapter.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/test-adapter.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "commands/test-adapter.stdout.txt",
+      "sha256": "7a36a87c0ea8804524e588b6ee37518f4a22a54676ed4cd154b9194bfa4608b2",
+      "size": 9612
+    },
+    {
+      "path": "commands/test-all.exit.txt",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "size": 2
+    },
+    {
+      "path": "commands/test-all.stderr.txt",
+      "sha256": "cab1125dc71435b501ad7a8171b442bcced75117f394d886e0be2e22f6a2bc4c",
+      "size": 37238
+    },
+    {
+      "path": "commands/test-all.stdout.txt",
+      "sha256": "7c0eda0cbc62e6ef0919c40826d9cfa8647728b1bcfeb5abaee243c12e292224",
+      "size": 1828
+    },
+    {
+      "path": "commands/typecheck-final.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/typecheck-final.stderr.txt",
+      "sha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f",
+      "size": 99
+    },
+    {
+      "path": "commands/typecheck-final.stdout.txt",
+      "sha256": "88be45a654550b209728dddc6e4b7e1faafa8faab1deac1eae49a078dbb1eef1",
+      "size": 613
+    },
+    {
+      "path": "commands/typecheck.exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size": 2
+    },
+    {
+      "path": "commands/typecheck.stderr.txt",
+      "sha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f",
+      "size": 99
+    },
+    {
+      "path": "commands/typecheck.stdout.txt",
+      "sha256": "73f8763eb142bc81bbdd9922861b5830fe169a72742a113a9c74cc63724ad7f3",
+      "size": 613
+    }
+  ],
+  "diffChecks": {
+    "sourceOnly": {
+      "command": "git diff --cached --check -- (seven changed source/test paths)",
+      "exitCode": 0
+    },
+    "allStaged": {
+      "command": "git diff --cached --check",
+      "exitCode": 2,
+      "reason": "Only preserved raw command outputs have whitespace warnings",
+      "diagnostics": [
+        {
+          "path": "commands/lint-all.stdout.txt",
+          "line": 1128,
+          "message": "new blank line at EOF"
+        },
+        {
+          "path": "commands/test-adapter.stdout.txt",
+          "line": 66,
+          "message": "new blank line at EOF"
+        },
+        {
+          "path": "commands/test-all.stderr.txt",
+          "line": 330,
+          "message": "trailing whitespace in original command error"
+        },
+        {
+          "path": "commands/test-all.stderr.txt",
+          "line": 789,
+          "message": "new blank line at EOF"
+        },
+        {
+          "path": "commands/typecheck-final.stdout.txt",
+          "line": 15,
+          "message": "new blank line at EOF"
+        },
+        {
+          "path": "commands/typecheck.stdout.txt",
+          "line": 15,
+          "message": "new blank line at EOF"
+        }
+      ]
+    }
+  }
+}
