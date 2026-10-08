@@ -1,0 +1,38 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/chat-service.test.ts b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/main/chat-service.test.ts
+index 438350b..e4086ea 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/chat-service.test.ts
++++ b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/main/chat-service.test.ts
+@@ -73,7 +73,6 @@ describe('对话服务宿主故障', () => {
+     );
+     mock.callbacks.get('message')?.({
+       type: 'terminal-event',
+-      resourceId: 'terminal-resource',
+       terminal: {
+         seq: 1,
+         sessionId: 'pty',
+@@ -101,7 +100,6 @@ describe('对话服务宿主故障', () => {
+         ? { type: 'event', conversation: failed }
+         : {
+             type: 'terminal-event',
+-            resourceId: 'terminal-resource',
+             terminal: {
+               seq: 1,
+               sessionId: 'pty',
+@@ -134,7 +132,7 @@ describe('对话服务宿主故障', () => {
+       () => undefined,
+       () => undefined,
+     );
+-    const request = method === 'send' ? service.send('conv-personal-default', 'hello') : service.terminalOpen(80, 24, 'terminal-resource');
++    const request = method === 'send' ? service.send('conv-personal-default', 'hello') : service.terminalOpen(80, 24);
+     const rejection = expect(request).rejects.toThrow('退出');
+     mock.callbacks.get('exit')?.(1);
+     await rejection;
+@@ -145,7 +143,7 @@ describe('对话服务宿主故障', () => {
+       () => undefined,
+       () => undefined,
+     );
+-    const opening = service.terminalOpen(80, 24, 'terminal-resource');
++    const opening = service.terminalOpen(80, 24);
+     const request = mock.postMessage.mock.calls[0]?.[0];
+     mock.callbacks.get('message')?.({
+       type: 'response',

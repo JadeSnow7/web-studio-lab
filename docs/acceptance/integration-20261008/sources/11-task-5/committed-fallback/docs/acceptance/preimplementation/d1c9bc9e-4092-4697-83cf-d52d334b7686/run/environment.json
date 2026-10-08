@@ -1,0 +1,84 @@
+{
+  "runId": "d1c9bc9e-4092-4697-83cf-d52d334b7686",
+  "taskSha256": "01c0eed7114a567d7dbcc1264e1547a5ca33252fa7898dd3eb536e0aee782a16",
+  "baseline": {
+    "sha256": "92ac18313e5a30a5d72570c138f27ac41d6727d80a74f7bcff085cb67f318f6a",
+    "files": [
+      {
+        "path": "docs/acceptance/VS001.md",
+        "sha256": "6fadef2edeb1c7667464dcae582bf06d01258d3d1ab50a252bf94303fbcc4c9e"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/index.html",
+        "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/package.json",
+        "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/src/App.tsx",
+        "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/src/main.tsx",
+        "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "f9494aa9639637b438929aee8061429ea123879607d5ad63319f7a8e5eb9cd37"
+      },
+      {
+        "path": "package.json",
+        "sha256": "3cbd0373c13cd47dde064c1a1a60d3db5a9f804a57fea8c4f0f709de343d68d6"
+      },
+      {
+        "path": "tests/vertical-slice/cdp.ts",
+        "sha256": "4a56276b0f8620ee25d9a573d84761b7ebfff60a877f967e738d8e63c5a0a6d1"
+      },
+      {
+        "path": "tests/vertical-slice/contracts.ts",
+        "sha256": "4f4e47294f2e2650db775a78674a85099e3a7da34e020045b945b63f58193e00"
+      },
+      {
+        "path": "tests/vertical-slice/evidence.ts",
+        "sha256": "271914a26af7ee8bb753dab93274c21ea8c3e7ef669d18532fb5c33a1351ee9f"
+      },
+      {
+        "path": "tests/vertical-slice/postcondition.ts",
+        "sha256": "20920d99eb9280ec6fd62a025eea6489ff893a863095cb977d4a52f4e3d5627c"
+      },
+      {
+        "path": "tests/vertical-slice/run.ts",
+        "sha256": "f335a3439e293372ab645810398644a1d211cec314c53982ee69a9316b5fdde4"
+      },
+      {
+        "path": "tests/vertical-slice/selftest.test.ts",
+        "sha256": "3041113ddd6be49ccef2d5fa13a8c8d9f4e2523558ef48ed04697aede64602f1"
+      },
+      {
+        "path": "tsconfig.json",
+        "sha256": "f05995dc3d05e245a34074a156e08d4458559a17c9fcab5c5f9d519ff20322f6"
+      }
+    ]
+  },
+  "startedAt": "2026-10-06T07:29:53.788Z",
+  "node": "v26.5.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "gitHead": "536f0a1948e522a09310aa20784ec512476dc7be",
+  "gitStatus": "M  README.md\nA  docs/acceptance/README.md\nAM docs/acceptance/VS001.md\nA  fixtures/vertical-slice/page/index.html\nA  fixtures/vertical-slice/page/package.json\nA  fixtures/vertical-slice/page/src/App.tsx\nA  fixtures/vertical-slice/page/src/main.tsx\nA  package-lock.json\nA  package.json\nA  tests/vertical-slice/cdp.ts\nAM tests/vertical-slice/contracts.ts\nA  tests/vertical-slice/evidence.ts\nA  tests/vertical-slice/postcondition.ts\nAM tests/vertical-slice/run.ts\nAM tests/vertical-slice/selftest.test.ts\nA  tsconfig.json\n",
+  "adapterPath": "src/vertical-slice/adapter.ts",
+  "adapterSha256": null,
+  "workspaceGeneratedDirectoriesIgnored": [
+    "node_modules",
+    "dist",
+    ".vite"
+  ],
+  "workspaceEvidence": "before/ and after/ mirror every non-generated file; work/ is excluded from the artifact inventory",
+  "timeouts": {
+    "totalMs": 120000,
+    "cdpRequestMs": 10000,
+    "cleanupMs": 10000
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "runId": "18576513-9c9c-4788-a32a-56e46f04f025",
+  "runTaskVersion": "1ae8fc02-77ed-487f-af97-77d77e4ea4e9",
+  "selectedTaskVersion": "555d67dd-3bfd-4579-af70-c06fab3fd1ef",
+  "body": "Agent 会话\n对话\n任务\n上下文\n检查\n日志\ndiff\n报告\n\n运行 18576513-9c9c-4788-a32a-56e46f04f025\n\n任务与版本\n任务版本\n最新版本\nv1 · review-v1\nv2 · review-v2\n修改目标\n允许修改范围（每行一条）\n验收条件（每行一条）\n附加目标（明确选择）\n无页面目标\nTaskFlow 预览\n开发终端\n采集目标元素确认任务（生成新版本）\n任务 v2\n\nreview-v2\n\n修改范围：未指定（不增加写入权限）\n\n已确认 2026/10/8 15:55:18 · 目标 未附加\n\n开始运行\n\n执行：completed · 原空间归属保持不变\n\n发送到 · TaskFlow / Agent 会话 / Codex CLI\nEnter 发送 · Shift+Enter 换行 · 草稿按会话保存\n发送",
+  "oldRunRemainsVisible": true,
+  "newGoalVisible": true
+}

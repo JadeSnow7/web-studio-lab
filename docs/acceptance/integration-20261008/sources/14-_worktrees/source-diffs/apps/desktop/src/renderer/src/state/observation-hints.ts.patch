@@ -1,0 +1,56 @@
+diff --git a/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/observation-hints.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/observation-hints.ts
+new file mode 100644
+index 0000000..be1ed9b
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/observation-hints.ts
+@@ -0,0 +1,50 @@
++import { FileInvalidationHintSchema, type FileInvalidationHint, type ObservationResult } from '@wsl/protocol';
++import { createStore } from '../lib/store';
++
++export interface ObservationHintState {
++  latest: FileInvalidationHint | null;
++  retiredGenerations: string[];
++}
++export const observationHintsStore = createStore<ObservationHintState>({ latest: null, retiredGenerations: [] });
++
++/** Only the configured local workspace root is observed. A hint is not a file revision. */
++export function projectInvalidation(state: ObservationHintState, hint: FileInvalidationHint): ObservationHintState {
++  if (hint.workspaceId !== 'taskflow-demo' || hint.environmentId !== 'local' || hint.resourceId !== 'files:local') return state;
++  const old = state.latest;
++  if (state.retiredGenerations.includes(hint.generation)) return state;
++  if (old) {
++    if (hint.generation === old.generation) {
++      if (hint.watchGeneration < old.watchGeneration || (hint.watchGeneration === old.watchGeneration && hint.sequence <= old.sequence))
++        return state;
++    } else {
++      if (Date.parse(hint.capturedAt) < Date.parse(old.capturedAt)) return state;
++      if (hint.change !== 'root_replaced' && old.change !== 'closed' && old.change !== 'root_replaced') return state;
++    }
++  }
++  return {
++    latest: hint,
++    retiredGenerations:
++      old && old.generation !== hint.generation ? [...state.retiredGenerations, old.generation].slice(-8) : state.retiredGenerations,
++  };
++}
++export function relevantInvalidation(result: ObservationResult | null, hint: FileInvalidationHint | null): FileInvalidationHint | null {
++  if (
++    !result ||
++    'error' in result ||
++    !hint ||
++    result.resource.kind !== 'file' ||
++    result.resource.environmentId !== 'local' ||
++    result.resource.workspaceId !== hint.workspaceId ||
++    !['disk', 'disk-search'].includes(result.source)
++  )
++    return null;
++  if (Date.parse(hint.capturedAt) < Date.parse(result.startedAt ?? result.capturedAt)) return null;
++  if (hint.generation !== result.generation && hint.change !== 'root_replaced' && hint.change !== 'closed') return null;
++  return hint;
++}
++export function initializeObservationHints() {
++  return window.studio.observation.onInvalidated((raw) => {
++    const hint = FileInvalidationHintSchema.parse(raw);
++    observationHintsStore.set((state) => projectInvalidation(state, hint));
++  });
++}

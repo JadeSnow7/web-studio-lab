@@ -1,0 +1,30 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/preload/index.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/preload/index.ts
+index 02d22fe..0357371 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/preload/index.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/preload/index.ts
+@@ -1,5 +1,11 @@
+ import { contextBridge, ipcRenderer } from 'electron';
+-import { eventChannels, invokeChannels } from '@wsl/protocol';
++import {
++  eventChannels,
++  invokeChannels,
++  ResourceListRequestSchema,
++  ResourceCaptureRequestSchema,
++  ResourceRemoveRequestSchema,
++} from '@wsl/protocol';
+ import type { EventChannel, EventPayload, InvokeChannel, InvokeRequest, InvokeResponse, StudioApi } from '@wsl/protocol';
+ 
+ // preload 只把具名方法交给工作台页面，不暴露 ipcRenderer 本身。
+@@ -19,6 +25,12 @@ function subscribe<C extends EventChannel>(channel: C, listener: (payload: Event
+ }
+ 
+ const studio: StudioApi = {
++  resources: {
++    list: (spaceId) => invoke('resources:list', ResourceListRequestSchema.parse({ spaceId })),
++    capture: (spaceId, expectedPage, resourceId) =>
++      invoke('resources:capture', ResourceCaptureRequestSchema.parse({ spaceId, expectedPage, resourceId })),
++    remove: (spaceId, resourceId) => invoke('resources:remove', ResourceRemoveRequestSchema.parse({ spaceId, resourceId })),
++  },
+   chat: {
+     getStatus: () => invoke('chat:get-status'),
+     get: (conversationId) => invoke('chat:get', { conversationId }),

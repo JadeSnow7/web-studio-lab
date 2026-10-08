@@ -1,0 +1,49 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/chat.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/state/chat.ts
+index 4ed601d..1a65896 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/chat.ts
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/state/chat.ts
+@@ -1,3 +1,6 @@
++import { terminalStore } from './terminal';
++import { shellStore } from './shell';
++import { previewStore } from './preview';
+ import { ChatSlotSchema, type ChatConversation, type ChatStatus } from '@wsl/protocol';
+ import { createStore } from '../lib/store';
+ import { draftActions, draftsStore, CONVERSATIONS } from './drafts';
+@@ -41,7 +44,25 @@ async function act(id: string, action: () => Promise<ChatConversation>): Promise
+ export const chatActions = {
+   async send(id: string, text: string) {
+     if (chatBlockedReason(id)) return false;
+-    const accepted = await act(id, () => window.studio.chat.send(ChatSlotSchema.parse(id), text));
++    const tab = shellStore.get().browserTab;
++    const terminal = terminalStore.get();
++    const page = previewStore.get();
++    const context =
++      id === 'conv-space-taskflow-demo-impl'
++        ? {
++            focusedTab: tab,
++            resourceId:
++              tab === 'terminal'
++                ? (terminal.snapshot?.sessionId ?? null)
++                : tab === 'preview' && page
++                  ? `webcontents:${page.page.webContentsId}`
++                  : null,
++            selection: tab === 'terminal' ? terminal.selection?.slice(0, 4000) : undefined,
++            errorSummary: (tab === 'terminal' ? terminal.error : page?.loadError?.description)?.slice(0, 1000),
++            capturedAt: new Date().toISOString(),
++          }
++        : undefined;
++    const accepted = await act(id, () => window.studio.chat.send(ChatSlotSchema.parse(id), text, context));
+     if (accepted && draftsStore.get()[id] === text) draftActions.set(id, '');
+     return accepted;
+   },
+@@ -55,9 +76,7 @@ export async function initializeChat() {
+     const status = await window.studio.chat.getStatus();
+     chatStore.set((state) => ({ ...state, status }));
+     await Promise.all(
+-      Object.keys(CONVERSATIONS)
+-        .filter((id) => CONVERSATIONS[id]?.scope.kind === 'personal')
+-        .map(async (id) => receiveConversation(await window.studio.chat.get(ChatSlotSchema.parse(id)))),
++      Object.keys(CONVERSATIONS).map(async (id) => receiveConversation(await window.studio.chat.get(ChatSlotSchema.parse(id)))),
+     );
+   } catch (error) {
+     chatStore.set((state) => ({

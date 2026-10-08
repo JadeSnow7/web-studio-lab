@@ -1,0 +1,22 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/service/src/sbx.test.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/service/src/sbx.test.ts
+index f8e84c8..c7f7d00 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/apps/service/src/sbx.test.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/service/src/sbx.test.ts
+@@ -85,6 +85,17 @@ describe('guest helper 宿主边界', () => {
+     await expect(chat.reset('conv-personal-default')).rejects.toThrow();
+     await expect(chat.shutdown()).rejects.toThrow();
+   });
++  it('terminal 清理未知阻止同 sandbox 的新资源对话', async () => {
++    await connection.initialize();
++    const terminal = new Terminal(connection, () => undefined);
++    vi.stubEnv('WSL_SBX_FIXTURE_CASE', 'cleanup-fail');
++    const opened = await terminal.open(80, 24);
++    await expect.poll(() => terminal.get().state).toBe('running');
++    await expect(terminal.close(opened.sessionId!)).rejects.toThrow();
++    expect(connection.getCleanupPending()).toBe(true);
++    const chat = new CodexChat('', () => undefined, connection);
++    await expect(chat.send('conv-space-taskflow-demo-impl', 'read')).rejects.toThrow('清理状态未知');
++  });
+   it('非致命MCP警告可见、去重，工具输出有界且显式标截断', async () => {
+     const chat = new CodexChat('', () => undefined, connection);
+     await chat.initialize();

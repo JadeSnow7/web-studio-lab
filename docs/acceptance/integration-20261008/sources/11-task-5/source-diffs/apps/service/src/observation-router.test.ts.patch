@@ -1,0 +1,51 @@
+diff --git a/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/observation-router.test.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/observation-router.test.ts
+new file mode 100644
+index 0000000..6f1c3ce
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/observation-router.test.ts
+@@ -0,0 +1,45 @@
++import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
++import os from 'node:os';
++import path from 'node:path';
++import { describe, it, expect } from 'vitest';
++import { ObservationRouter } from './observation-router';
++import { FileObservationProvider } from './observation-files';
++
++describe('trusted observation routing', () => {
++  it('enforces workspace and root identity; fixes evidence to the observed bytes', async () => {
++    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-observe-'));
++    let provider: FileObservationProvider | undefined;
++    try {
++      await writeFile(path.join(root, 'note.txt'), 'first-version');
++      const router = new ObservationRouter(root, async () => ({ error: 'unavailable', message: 'Browser detached' }));
++      provider = new FileObservationProvider({ workspaceId: 'taskflow-demo', environmentId: 'local', root });
++      router.files.set('local', provider);
++      expect(await router.dispatch({ workspaceId: 'other', tool: 'files.read', args: { path: 'note.txt' } })).toMatchObject({
++        error: 'unauthorized',
++      });
++      expect(
++        await router.dispatch({ workspaceId: 'taskflow-demo', tool: 'files.read', args: { path: 'note.txt', resourceId: 'wrong' } }),
++      ).toMatchObject({ error: 'invalid_request' });
++      const first = await router.dispatch({
++        workspaceId: 'taskflow-demo',
++        tool: 'files.read',
++        args: { path: 'note.txt', resourceId: 'files:local' },
++      });
++      expect(first).toMatchObject({ source: 'disk', data: { text: 'first-version' } });
++      if (!('snapshotId' in first)) throw new Error('Missing observation');
++      await writeFile(path.join(root, 'note.txt'), 'second-version');
++      const evidence = JSON.parse(await readFile(path.join(root, 'observations', `${first.snapshotId}.json`), 'utf8'));
++      expect(evidence.data.text).toBe('first-version');
++      expect(evidence.evidenceRef).toBe(first.evidenceRef);
++      expect(await router.dispatch({ workspaceId: 'taskflow-demo', tool: 'workspace.list_sources', args: {} })).toMatchObject({
++        coverage: { status: 'partial', reasons: ['Browser detached'] },
++      });
++      expect(await router.dispatch({ workspaceId: 'taskflow-demo', tool: 'files.read', args: { path: 'missing' } })).toMatchObject({
++        error: 'not_found',
++      });
++    } finally {
++      await provider?.close();
++      await rm(root, { recursive: true, force: true });
++    }
++  });
++});

@@ -1,0 +1,109 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/shell/Overlays.tsx b/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/shell/Overlays.tsx
+index 6cde221..1acc5c4 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/shell/Overlays.tsx
++++ b/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/shell/Overlays.tsx
+@@ -1,85 +1,35 @@
+-import { useEffect, useRef, useState } from 'react';
++import { useEffect } from 'react';
+ import { Icon } from '../components/Icon';
+ import { useStore } from '../lib/store';
+ import { dismissError, errorStore } from '../state/errors';
+-import { uiActions, uiStore, type Modal } from '../state/ui';
++import { uiActions, uiStore } from '../state/ui';
+ 
+-function AppDialog({ modal }: { modal: NonNullable<Modal> }) {
+-  const ref = useRef<HTMLDialogElement>(null);
+-  const cancel = useRef<HTMLButtonElement>(null);
+-  const [busy, setBusy] = useState(false);
+-  const [failed, setFailed] = useState(false);
++export function ModalLayer() {
++  const modal = useStore(uiStore, (s) => s.modal);
+   useEffect(() => {
+-    const dialog = ref.current!;
+-    const previous = document.activeElement as HTMLElement | null;
+-    dialog.showModal();
+-    cancel.current?.focus();
+-    return () => {
+-      dialog.close();
+-      if (previous?.isConnected) previous.focus();
++    if (!modal) return;
++    const onKey = (event: KeyboardEvent) => {
++      if (event.key === 'Escape') uiActions.closeModal();
+     };
+-  }, []);
++    window.addEventListener('keydown', onKey);
++    return () => window.removeEventListener('keydown', onKey);
++  }, [modal]);
++  if (!modal) return null;
+   return (
+-    <dialog
+-      ref={ref}
+-      className={modal.kind === 'confirm' ? 'modal modal-confirm' : 'modal'}
+-      aria-labelledby="modal-title"
+-      aria-describedby={modal.kind === 'confirm' ? 'modal-description' : undefined}
+-      onCancel={(event) => {
+-        event.preventDefault();
+-        if (!busy) uiActions.closeModal();
+-      }}
+-    >
+-      <div className="row space-between gap-12">
+-        <strong id="modal-title">{modal.title}</strong>
+-        {modal.kind === 'image' ? (
+-          <button type="button" ref={cancel} className="icon-btn" aria-label="关闭" onClick={uiActions.closeModal}>
++    <div className="modal-backdrop" onClick={uiActions.closeModal}>
++      <div className="modal" role="dialog" aria-modal="true" aria-label={modal.title} onClick={(event) => event.stopPropagation()}>
++        <div className="row space-between">
++          <strong>{modal.title}</strong>
++          <button type="button" className="icon-btn" aria-label="关闭" onClick={uiActions.closeModal} autoFocus>
+             <Icon name="close" size={15} />
+           </button>
+-        ) : null}
+-      </div>
+-      {modal.kind === 'image' ? (
++        </div>
+         <img src={modal.src} alt={modal.title} />
+-      ) : (
+-        <>
+-          <p id="modal-description">{modal.description}</p>
+-          <p className={failed ? 'small text-bad' : 'small muted'} role={failed ? 'alert' : 'status'}>
+-            {failed ? '未移除资源。请先停止当前空间回复，再重试；取消后可在资源页查看具体错误。' : busy ? '正在移除资源…' : ''}
+-          </p>
+-          <div className="row gap-8 modal-actions">
+-            <button type="button" ref={cancel} className="btn" disabled={busy} onClick={uiActions.closeModal}>
+-              取消
+-            </button>
+-            <button
+-              type="button"
+-              className="btn btn-danger"
+-              disabled={busy}
+-              aria-busy={busy}
+-              onClick={async () => {
+-                if (busy) return;
+-                setBusy(true);
+-                setFailed(false);
+-                try {
+-                  if (await modal.onConfirm()) uiActions.closeModal();
+-                  else setFailed(true);
+-                } finally {
+-                  setBusy(false);
+-                }
+-              }}
+-            >
+-              {modal.confirmLabel}
+-            </button>
+-          </div>
+-        </>
+-      )}
+-    </dialog>
++      </div>
++    </div>
+   );
+ }
+ 
+-export function ModalLayer() {
+-  const modal = useStore(uiStore, (s) => s.modal);
+-  return modal ? <AppDialog key={modal.kind + modal.title} modal={modal} /> : null;
+-}
+ export function ErrorToasts() {
+   const errors = useStore(errorStore, (e) => e);
+   if (errors.length === 0) return null;

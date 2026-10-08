@@ -1,0 +1,13 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/service/src/raw.d.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/service/src/raw.d.ts
+index f345916..483e330 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/apps/service/src/raw.d.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/service/src/raw.d.ts
+@@ -2,3 +2,8 @@ declare module '*.py?raw' {
+   const source: string;
+   export default source;
+ }
++
++declare module '*.cjs?raw' {
++  const source: string;
++  export default source;
++}

@@ -1,0 +1,27 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/ui.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/state/ui.ts
+index ab74d8c..01de461 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/ui.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/state/ui.ts
+@@ -1,4 +1,3 @@
+-import { occlusion } from './occlusion';
+ import { createStore } from '../lib/store';
+ 
+ export interface ConfirmModal {
+@@ -15,14 +14,7 @@ export interface UiState {
+ }
+ export const uiStore = createStore<UiState>({ modal: null });
+ export const uiActions = {
+-  async openImage(title: string, src: string) {
+-    if (await occlusion.open('modal')) uiStore.set((s) => ({ ...s, modal: { kind: 'image', title, src } }));
+-  },
+-  async openConfirm(confirmation: Omit<ConfirmModal, 'kind'>) {
+-    if (await occlusion.open('modal')) uiStore.set((s) => ({ ...s, modal: { ...confirmation, kind: 'confirm' } }));
+-  },
+-  closeModal() {
+-    uiStore.set((s) => ({ ...s, modal: null }));
+-    occlusion.close('modal');
+-  },
++  openImage: (title: string, src: string) => uiStore.set((s) => ({ ...s, modal: { kind: 'image', title, src } })),
++  openConfirm: (confirmation: Omit<ConfirmModal, 'kind'>) => uiStore.set((s) => ({ ...s, modal: { ...confirmation, kind: 'confirm' } })),
++  closeModal: () => uiStore.set((s) => (s.modal === null ? s : { ...s, modal: null })),
+ };

@@ -1,0 +1,34 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/drafts.test.ts b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/state/drafts.test.ts
+index 36778cb..b4ca246 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/state/drafts.test.ts
++++ b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/state/drafts.test.ts
+@@ -1,13 +1,14 @@
+ import { describe, expect, it } from 'vitest';
+-import { CONVERSATIONS, homeTarget, PERSONAL_CONVERSATION_ID, setDraft } from './drafts';
++import { DEMO_SPACE } from '../domain/space';
++import { homeTarget, PERSONAL_CONVERSATION_ID, setDraft, spaceConversationId, spacePanelTarget } from './drafts';
+ 
+ describe('发送目标', () => {
+-  it('全局输入保持个人作用域，不沿用后台空间', () => {
+-    const target = homeTarget();
+-    expect(target.kind === 'conversation' && target.conversation.scope).toEqual({ kind: 'personal' });
++  it('个人作用域下右栏空间分区没有发送目标，不沿用后台空间', () => {
++    expect(spacePanelTarget({ kind: 'personal' })).toEqual({ kind: 'none', reason: '选择空间后对话' });
+   });
+-  it('个人会话目录不包含空间可写入口', () => {
+-    expect(Object.values(CONVERSATIONS).every((c) => c.scope.kind === 'personal')).toBe(true);
++  it('空间作用域锁定该空间的会话', () => {
++    const target = spacePanelTarget({ kind: 'space', spaceId: DEMO_SPACE.id });
++    expect(target.kind === 'conversation' && target.conversation.id).toBe(spaceConversationId(DEMO_SPACE.id));
+   });
+   it('首页输入只指向个人会话', () => {
+     const target = homeTarget();
+@@ -18,7 +19,7 @@ describe('发送目标', () => {
+ 
+ describe('草稿按会话保存', () => {
+   it('不同会话的草稿互不替换', () => {
+-    const space = 'session-space-stable-id';
++    const space = spaceConversationId(DEMO_SPACE.id);
+     let drafts = setDraft({}, space, '空间草稿');
+     drafts = setDraft(drafts, PERSONAL_CONVERSATION_ID, '个人草稿');
+     expect(drafts[space]).toBe('空间草稿');

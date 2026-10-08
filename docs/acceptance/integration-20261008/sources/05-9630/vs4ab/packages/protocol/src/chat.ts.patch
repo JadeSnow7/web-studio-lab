@@ -1,0 +1,34 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/packages/protocol/src/chat.ts b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/chat.ts
+index 0886dea..5edd018 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/packages/protocol/src/chat.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/chat.ts
+@@ -1,7 +1,9 @@
+ import { z } from 'zod';
+ import { TerminalOpenSchema, TerminalWriteSchema, TerminalResizeSchema, TerminalTargetSchema, TerminalSnapshotSchema } from './terminal';
+ 
+-export const ChatSlotSchema = z.enum(['conv-personal-default', 'conv-space-taskflow-demo-impl']);
++import { ChatSlotSchema } from './chat-slot';
++export { ChatSlotSchema } from './chat-slot';
++import { ResourceCollectionSchema, ResourceListRequestSchema, ResourceRemoveRequestSchema, ResourceSaveRequestSchema } from './resources';
+ export const ChatStatusSchema = z.object({
+   available: z.boolean(),
+   reason: z.string().nullable(),
+@@ -48,6 +50,9 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
+   z.object({ id: z.string(), method: z.literal('terminal.write'), payload: TerminalWriteSchema }),
+   z.object({ id: z.string(), method: z.literal('terminal.resize'), payload: TerminalResizeSchema }),
+   z.object({ id: z.string(), method: z.literal('terminal.close'), payload: TerminalTargetSchema }),
++  z.object({ id: z.string(), method: z.literal('resources.list'), payload: ResourceListRequestSchema }).strict(),
++  z.object({ id: z.string(), method: z.literal('resources.save'), payload: ResourceSaveRequestSchema }).strict(),
++  z.object({ id: z.string(), method: z.literal('resources.remove'), payload: ResourceRemoveRequestSchema }).strict(),
+   z.object({ id: z.string(), method: z.literal('shutdown') }),
+ ]);
+ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
+@@ -57,7 +62,7 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
+   z.object({
+     type: z.literal('response'),
+     id: z.string(),
+-    result: z.union([ChatStatusSchema, ChatConversationSchema, TerminalSnapshotSchema, z.null()]),
++    result: z.union([ChatStatusSchema, ChatConversationSchema, TerminalSnapshotSchema, ResourceCollectionSchema, z.null()]),
+   }),
+   z.object({ type: z.literal('error'), id: z.string(), error: z.string() }),
+ ]);

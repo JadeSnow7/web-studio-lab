@@ -1,0 +1,25 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/sbx-contract.test.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/service/src/sbx-contract.test.ts
+index 8b491a5..dc454cc 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/sbx-contract.test.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/service/src/sbx-contract.test.ts
+@@ -43,18 +43,8 @@ describe('UI 所需 sbx 与终端跨进程契约', () => {
+   it('终端 open / 输入 / resize / close 和状态事件均有 schema', () => {
+     const channels = protocol.invokeChannels as Record<string, unknown>;
+     for (const name of ['terminal:get', 'terminal:open', 'terminal:write', 'terminal:resize', 'terminal:close']) {
+-      expect(channels[name], name).toBeUndefined();
++      expect(channels[name], name).toBeDefined();
+     }
+-    expect((protocol.eventChannels as Record<string, unknown>)['terminal:state']).toBeUndefined();
+-    for (const method of ['terminal.get', 'terminal.open', 'terminal.write', 'terminal.resize', 'terminal.close']) {
+-      const request = {
+-        id: 'request',
+-        method,
+-        resourceId: 'terminal-resource',
+-        payload: { resourceId: 'terminal-resource', sessionId: 'pty', cols: 80, rows: 24, data: 'pwd\n' },
+-      };
+-      expect(protocol.ChatServiceRequestSchema.safeParse(request).success, method).toBe(true);
+-    }
+-    expect(protocol.ChatServiceRequestSchema.safeParse({ id: 'request', method: 'terminal.get' }).success).toBe(false);
++    expect((protocol.eventChannels as Record<string, unknown>)['terminal:state']).toBeDefined();
+   });
+ });

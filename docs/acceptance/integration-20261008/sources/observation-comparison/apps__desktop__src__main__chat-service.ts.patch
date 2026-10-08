@@ -1,0 +1,39 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/desktop/src/main/chat-service.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/main/chat-service.ts
+index 22bfc1a..c52217a 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/desktop/src/main/chat-service.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/main/chat-service.ts
+@@ -1,4 +1,10 @@
+-import { ObservationResultSchema, type ChatContext, type ObservationRequest, type ObservationResult } from '@wsl/protocol';
++import {
++  ObservationResultSchema,
++  type FileInvalidationHint,
++  type ChatContext,
++  type ObservationRequest,
++  type ObservationResult,
++} from '@wsl/protocol';
+ import path from 'node:path';
+ import { randomUUID } from 'node:crypto';
+ import { app, utilityProcess, type UtilityProcess } from 'electron';
+@@ -21,6 +27,11 @@ import {
+ } from '@wsl/protocol';
+ 
+ export class ChatService {
++  private invalidationListener: ((hint: FileInvalidationHint) => void) | null = null;
++  setInvalidationListener(listener: ((hint: FileInvalidationHint) => void) | null) {
++    this.invalidationListener = listener;
++  }
++
+   private observationReader: ((request: ObservationRequest) => Promise<ObservationResult>) | null = null;
+   setObservationReader(reader: (request: ObservationRequest) => Promise<ObservationResult>) {
+     this.observationReader = reader;
+@@ -66,6 +77,10 @@ export class ChatService {
+     this.child.on('message', (raw: unknown) => {
+       try {
+         const message = ChatServiceMessageSchema.parse(raw);
++        if (message.type === 'observation-invalidation') {
++          this.invalidationListener?.(message.hint);
++          return;
++        }
+         if (message.type === 'observation-request') {
+           const read =
+             this.observationReader?.(message.request) ??

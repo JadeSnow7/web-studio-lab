@@ -1,0 +1,18 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/packages/protocol/src/ipc.ts b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/ipc.ts
+index 3335045..6a2aded 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/packages/protocol/src/ipc.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/ipc.ts
+@@ -1,4 +1,4 @@
+-import { ObservationRequestSchema, ObservationResultSchema } from './observation';
++import { FileInvalidationHintSchema, ObservationRequestSchema, ObservationResultSchema } from './observation';
+ import {
+   ResourceCollectionSchema,
+   ResourceListRequestSchema,
+@@ -61,6 +61,7 @@ export type InvokeResponse<C extends InvokeChannel> = z.output<(typeof invokeCha
+ 
+ /** main → renderer 的事件通道。 */
+ export const eventChannels = {
++  'observation:invalidated': FileInvalidationHintSchema,
+   'terminal:state': TerminalSnapshotSchema,
+   'chat:status': ChatStatusSchema,
+   'chat:conversation': ChatConversationSchema,

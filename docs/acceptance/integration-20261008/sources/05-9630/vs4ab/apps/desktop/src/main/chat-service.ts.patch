@@ -1,0 +1,38 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/main/chat-service.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/chat-service.ts
+index fe985f2..d84214b 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/main/chat-service.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/chat-service.ts
+@@ -2,6 +2,11 @@ import path from 'node:path';
+ import { randomUUID } from 'node:crypto';
+ import { app, utilityProcess, type UtilityProcess } from 'electron';
+ import {
++  ResourceCollectionSchema,
++  ResourceListRequestSchema,
++  ResourceSaveRequestSchema,
++  ResourceRemoveRequestSchema,
++  type PageResourceSnapshot,
+   ChatConversationSchema,
+   TerminalSnapshotSchema,
+   type TerminalSnapshot,
+@@ -149,6 +154,21 @@ export class ChatService {
+       this.child.postMessage(data);
+     });
+   }
++  async resourcesList(spaceId: string) {
++    return ResourceCollectionSchema.parse(
++      await this.request({ method: 'resources.list', payload: ResourceListRequestSchema.parse({ spaceId }) }),
++    );
++  }
++  async resourcesSave(spaceId: string, snapshot: PageResourceSnapshot, resourceId?: string) {
++    return ResourceCollectionSchema.parse(
++      await this.request({ method: 'resources.save', payload: ResourceSaveRequestSchema.parse({ spaceId, snapshot, resourceId }) }),
++    );
++  }
++  async resourcesRemove(spaceId: string, resourceId: string) {
++    return ResourceCollectionSchema.parse(
++      await this.request({ method: 'resources.remove', payload: ResourceRemoveRequestSchema.parse({ spaceId, resourceId }) }),
++    );
++  }
+   async status() {
+     if (this.failure)
+       return {

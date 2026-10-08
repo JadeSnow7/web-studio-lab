@@ -1,0 +1,95 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/workbench/BrowserToolbar.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/workbench/BrowserToolbar.tsx
+index e6939a4..3b850f3 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/workbench/BrowserToolbar.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/workbench/BrowserToolbar.tsx
+@@ -1,6 +1,10 @@
+ import { useEffect, useRef, useState } from 'react';
+ import { Notice } from '../components/Badges';
+ import { Icon } from '../components/Icon';
++import { ResourceFeedback } from '../components/ResourceFeedback';
++import { chatStore } from '../state/chat';
++import { resourceActions, resourceMutationBlock, resourcesStore } from '../state/resources';
++import { shellActions, shellStore } from '../state/shell';
+ import { useStore } from '../lib/store';
+ import { track } from '../state/errors';
+ import { previewStore } from '../state/preview';
+@@ -11,6 +15,17 @@ export function BrowserToolbar() {
+   const preview = useStore(previewStore, (p) => p);
+   const focusTick = useStore(uiStore, (s) => s.addressFocusTick);
+   const inputRef = useRef<HTMLInputElement>(null);
++  const composing = useRef(false);
++  const scope = useStore(shellStore, (state) => state.activeScope);
++  const spaceId = scope.kind === 'space' ? scope.spaceId : null;
++  const chat = useStore(chatStore, (state) => state);
++  const pending = useStore(resourcesStore, (state) => (spaceId ? state.pending[spaceId] : false));
++  const block = spaceId ? resourceMutationBlock(chat, spaceId) : '进入空间后可加入网页。';
++  const publicPage = preview?.page.url.startsWith('https://') ?? false;
++  const captureDisabled = !spaceId || !!block || pending || !publicPage || !!preview?.loading || !!preview?.loadError;
++  useEffect(() => {
++    if (spaceId) void resourceActions.load(spaceId);
++  }, [spaceId]);
+   // 编辑期间显示草稿；不编辑时始终显示页面当前地址。
+   const [draft, setDraft] = useState<string | null>(null);
+   const currentUrl = preview?.page.url ?? '';
+@@ -51,8 +66,10 @@ export function BrowserToolbar() {
+         </button>
+         <form
+           className="address"
++          noValidate
+           onSubmit={(event) => {
+             event.preventDefault();
++            if (composing.current) return;
+             setDraft(null);
+             inputRef.current?.blur();
+             void track('打开地址', api.navigate(address.trim()));
+@@ -67,8 +84,15 @@ export function BrowserToolbar() {
+             ref={inputRef}
+             value={address}
+             spellCheck={false}
++            onCompositionStart={() => {
++              composing.current = true;
++            }}
++            onCompositionEnd={() => {
++              composing.current = false;
++            }}
+             onBlur={() => setDraft(null)}
+             onKeyDown={(event) => {
++              if (event.nativeEvent.isComposing) return;
+               if (event.key === 'Escape') {
+                 setDraft(null);
+                 inputRef.current?.blur();
+@@ -91,6 +115,25 @@ export function BrowserToolbar() {
+         </span>
+         {preview && preview.consoleIssueCount > 0 ? <span className="chip chip-warn">页面错误 {preview.consoleIssueCount}</span> : null}
+       </div>
++      <div className="resource-browser-actions row wrap gap-8">
++        <span className="muted small">{publicPage ? '公开网页 · 只读文档' : '在地址栏打开公开 HTTPS 网页后可加入空间'}</span>
++        <button
++          type="button"
++          className="btn"
++          disabled={captureDisabled}
++          aria-busy={pending}
++          onClick={() => {
++            if (spaceId && preview) void resourceActions.capture(spaceId, preview.page);
++          }}
++        >
++          加入空间
++        </button>
++        <button type="button" className="btn btn-ghost" onClick={() => shellActions.navigate('resources')}>
++          查看空间资源
++        </button>
++        {block ? <span className="muted small">{block}</span> : null}
++      </div>
++      {spaceId ? <ResourceFeedback spaceId={spaceId} /> : null}
+       {preview?.cdp.state === 'detached' ? (
+         <Notice tone="warn">
+           CDP 已断开（{preview.cdp.reason}），页面自动操作已暂停。重新附着后需要重新采集现场。
+@@ -105,7 +148,7 @@ export function BrowserToolbar() {
+         </Notice>
+       ) : null}
+       {preview?.blockedNavigation ? (
+-        <Notice tone="warn">已拦截导航到 {preview.blockedNavigation}：Browser 区只允许打开演示页面。</Notice>
++        <Notice tone="warn">已拦截导航到 {preview.blockedNavigation}：只允许演示页面或通过安全检查的公开 HTTPS 文档。</Notice>
+       ) : null}
+     </div>
+   );

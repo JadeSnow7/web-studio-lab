@@ -1,0 +1,18 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/e2e/workspace-runtime.spec.ts b/private/tmp/wsl-integration-sources/08-eb15/e2e/workspace-runtime.spec.ts
+index 5781749..90141b6 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/e2e/workspace-runtime.spec.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/e2e/workspace-runtime.spec.ts
+@@ -1,4 +1,3 @@
+-import { setWorkspaceTheme } from './helpers';
+ import { mkdir, writeFile } from 'node:fs/promises';
+ import path from 'node:path';
+ import { randomUUID } from 'node:crypto';
+@@ -135,7 +134,7 @@ test('A11 重启恢复布局与草稿和历史，运行不重放，明确旧模
+     await session.getByRole('button', { name: '发送', exact: true }).click();
+     await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('completed');
+     await session.getByRole('textbox').fill('重启保留草稿');
+-    await setWorkspaceTheme(page, 'warm');
++    await page.getByLabel('工作台主题').selectOption('warm');
+     await page.getByRole('button', { name: '上下分屏', exact: true }).click();
+     await expect(page.locator('[data-pane-id]')).toHaveCount(2);
+     const snapshot = await workspaceSnapshot(page);

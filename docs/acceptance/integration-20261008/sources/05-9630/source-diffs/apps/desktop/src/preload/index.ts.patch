@@ -1,0 +1,47 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/preload/index.ts b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/preload/index.ts
+index 4e70d58..02d22fe 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/preload/index.ts
++++ b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/preload/index.ts
+@@ -19,12 +19,6 @@ function subscribe<C extends EventChannel>(channel: C, listener: (payload: Event
+ }
+ 
+ const studio: StudioApi = {
+-  workbench: {
+-    reload: () => invoke('workbench:reload'),
+-    getSnapshot: () => invoke('workbench:get-snapshot'),
+-    command: (command) => invoke('workbench:command', command),
+-    onEvent: (listener) => subscribe('workbench:event', listener),
+-  },
+   chat: {
+     getStatus: () => invoke('chat:get-status'),
+     get: (conversationId) => invoke('chat:get', { conversationId }),
+@@ -34,6 +28,29 @@ const studio: StudioApi = {
+     onStatus: (listener) => subscribe('chat:status', listener),
+     onConversation: (listener) => subscribe('chat:conversation', listener),
+   },
++  terminal: {
++    get: () => invoke('terminal:get'),
++    open: (cols, rows) => invoke('terminal:open', { cols, rows }),
++    write: (sessionId, data) => invoke('terminal:write', { sessionId, data }),
++    resize: (sessionId, cols, rows) => invoke('terminal:resize', { sessionId, cols, rows }),
++    close: (sessionId) => invoke('terminal:close', { sessionId }),
++    onState: (listener) => subscribe('terminal:state', listener),
++  },
++  preview: {
++    getState: () => invoke('preview:get-state'),
++    setLayout: (layout) => invoke('preview:set-layout', layout),
++    freeze: () => invoke('preview:freeze'),
++    navigate: (url) => invoke('preview:navigate', { url }),
++    reload: () => invoke('preview:reload'),
++    goBack: () => invoke('preview:go-back'),
++    goForward: () => invoke('preview:go-forward'),
++    focus: () => invoke('preview:focus'),
++    startPick: () => invoke('preview:start-pick'),
++    cancelPick: () => invoke('preview:cancel-pick'),
++    reattachCdp: () => invoke('preview:reattach-cdp'),
++    onState: (listener) => subscribe('preview:state', listener),
++    onCaptured: (listener) => subscribe('preview:captured', listener),
++  },
+   app: {
+     getInfo: () => invoke('app:get-info'),
+   },

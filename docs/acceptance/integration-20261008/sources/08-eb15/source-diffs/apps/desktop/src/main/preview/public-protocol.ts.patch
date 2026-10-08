@@ -1,0 +1,48 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/preview/public-protocol.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/preview/public-protocol.ts
+index 6ce31d6..ce2702c 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/preview/public-protocol.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/preview/public-protocol.ts
+@@ -5,29 +5,11 @@ import { fetchPublicDocument, parsePublicUrl, READER_HEADERS, renderReaderDocume
+ interface PublicProtocolOptions {
+   allowedOrigins: readonly string[];
+   webContentsId: number;
+-  devToolsWebContentsId(): number | undefined;
+   epoch(): number;
+   onDocument(document: PublicDocument, epoch: number): void;
+   onError(error: Error, url: string): void;
+ }
+ 
+-function isBundledDevToolsUrl(value: string): boolean {
+-  try {
+-    const url = new URL(value);
+-    return (
+-      url.href === value &&
+-      url.protocol === 'devtools:' &&
+-      url.hostname === 'devtools' &&
+-      !url.port &&
+-      !url.username &&
+-      !url.password &&
+-      url.pathname.startsWith('/bundled/')
+-    );
+-  } catch {
+-    return false;
+-  }
+-}
+-
+ /** 仅 Browser session 使用；远端响应永远不直接交给 Chromium。 */
+ export class PublicDocumentProtocol {
+   private sequence = 0;
+@@ -43,12 +25,7 @@ export class PublicDocumentProtocol {
+   ) {
+     try {
+       session.webRequest.onBeforeRequest((details, callback) => {
+-        if (details.webContentsId !== options.webContentsId) {
+-          // DevTools shares the isolated partition but only its own bundled frontend may bypass the document broker.
+-          const devTools =
+-            details.webContentsId === options.devToolsWebContentsId() && details.method === 'GET' && isBundledDevToolsUrl(details.url);
+-          return callback({ cancel: !devTools });
+-        }
++        if (details.webContentsId !== options.webContentsId) return callback({ cancel: true });
+         if (isAllowedPreviewUrl(details.url, options.allowedOrigins)) return callback({ cancel: details.method !== 'GET' });
+         let allowed = details.resourceType === 'mainFrame' && details.method === 'GET';
+         try {

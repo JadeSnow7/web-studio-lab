@@ -1,0 +1,13 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/initialization-migration.test.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/service/src/initialization-migration.test.ts
+index b44d26b..44f115d 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/initialization-migration.test.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/service/src/initialization-migration.test.ts
+@@ -65,7 +65,7 @@ describe('R6 service boundary initialization', () => {
+       { id: 'status', method: 'status' },
+       { id: 'get', method: 'get', payload: { conversationId: 'session-fixture' } },
+       { id: 'resources', method: 'resources.list', payload: { spaceId: 'taskflow-demo' } },
+-      { id: 'terminal', method: 'terminal.get', resourceId: 'terminal-resource' },
++      { id: 'terminal', method: 'terminal.get' },
+     ];
+     for (const request of requests) fixture.listener!({ data: request });
+     await vi.waitFor(

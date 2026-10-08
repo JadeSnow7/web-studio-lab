@@ -1,0 +1,33 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/resources.test.ts b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/resources.test.ts
+index e82721e..422f014 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/resources.test.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/resources.test.ts
+@@ -113,28 +113,3 @@ describe('strict guest resource provenance', () => {
+       expect(GuestPageResourceSnapshotSchema.safeParse({ ...guest(), page: { ...guest().page, ...pagePatch } }).success).toBe(false);
+   });
+ });
+-
+-describe('host-registered dynamic conversation capability envelope', () => {
+-  const bundle = {
+-    conversationId: 'session-7189a675-2a3d-4ede-b5b5-d615c486aa28',
+-    generation: 'generation-1',
+-    turnId: 'turn-1',
+-    spaceId: 'taskflow-demo',
+-    collectionRevision: 1,
+-    resources: [],
+-  };
+-  it('accepts the registered TaskFlow capability and an empty capability for another space', () => {
+-    expect(ResourceBundleSchema.safeParse(bundle).success).toBe(true);
+-    expect(ResourceBundleSchema.safeParse({ ...bundle, spaceId: null, collectionRevision: 0 }).success).toBe(true);
+-  });
+-  it('keeps personal/fixed-space ownership and dynamic identity restrictions aligned with guest validation', () => {
+-    for (const value of [
+-      { ...bundle, conversationId: 'conv-personal-default' },
+-      { ...bundle, spaceId: 'other-space' },
+-      { ...bundle, conversationId: 'session-../file' },
+-      { ...bundle, spaceId: null },
+-      { ...bundle, conversationId: 'conv-space-taskflow-demo-impl', spaceId: null, collectionRevision: 0 },
+-    ])
+-      expect(ResourceBundleSchema.safeParse(value).success).toBe(false);
+-  });
+-});

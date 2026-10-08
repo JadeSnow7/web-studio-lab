@@ -1,0 +1,20 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/desktop/src/main/ipc.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/main/ipc.ts
+index 58cd94d..c294b13 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/desktop/src/main/ipc.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/main/ipc.ts
+@@ -34,6 +34,7 @@ function senderInfo(event: IpcMainInvokeEvent, window: BrowserWindow) {
+ }
+ 
+ export function registerIpc({ window, preview, trusted, chat }: IpcDeps): () => void {
++  chat.setInvalidationListener((hint) => sendToRenderer(window, 'observation:invalidated', hint));
+   chat.setObservationReader(async (request) => {
+     if (request.tool === 'workspace.list_sources')
+       return {
+@@ -103,6 +104,7 @@ export function registerIpc({ window, preview, trusted, chat }: IpcDeps): () =>
+     });
+   }
+   return () => {
++    chat.setInvalidationListener(null);
+     for (const channel of INVOKE_CHANNEL_NAMES) ipcMain.removeHandler(channel);
+   };
+ }

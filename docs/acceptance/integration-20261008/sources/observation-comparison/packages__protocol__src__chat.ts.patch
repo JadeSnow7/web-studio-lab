@@ -1,0 +1,26 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/packages/protocol/src/chat.ts b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/chat.ts
+index 5b7f606..6d1b1a3 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/packages/protocol/src/chat.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/chat.ts
+@@ -1,4 +1,4 @@
+-import { ObservationRequestSchema, ObservationResultSchema } from './observation';
++import { FileInvalidationHintSchema, ObservationRequestSchema, ObservationResultSchema } from './observation';
+ import { z } from 'zod';
+ import { TerminalOpenSchema, TerminalWriteSchema, TerminalResizeSchema, TerminalTargetSchema, TerminalSnapshotSchema } from './terminal';
+ 
+@@ -45,6 +45,7 @@ export const ChatContextSchema = z
+     selection: z.string().max(4000).optional(),
+     errorSummary: z.string().max(1000).optional(),
+     capturedAt: z.string().datetime(),
++    fileInvalidation: FileInvalidationHintSchema.optional(),
+   })
+   .strict();
+ export type ChatContext = z.infer<typeof ChatContextSchema>;
+@@ -77,6 +78,7 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
+   z.object({ id: z.string(), method: z.literal('shutdown') }),
+ ]);
+ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
++  z.object({ type: z.literal('observation-invalidation'), hint: FileInvalidationHintSchema }).strict(),
+   z.object({ type: z.literal('observation-request'), id: z.string(), request: ObservationRequestSchema }),
+   z.object({ type: z.literal('initialized'), status: ChatStatusSchema, cleanupPending: z.boolean() }),
+   z.object({ type: z.literal('event'), conversation: ChatConversationSchema }),

@@ -1,0 +1,78 @@
+{
+  "source": "/Users/huaodong/.codex/worktrees/95ba/web-studio-lab",
+  "state": {
+    "head": "0318a622e1f83c8bfd42c0d0962e06be5f9701eb",
+    "status": "",
+    "branch": "refs/heads/codex/checkpoint-architecture-20261007"
+  },
+  "entries": [
+    {
+      "path": ".gitignore",
+      "kind": "file",
+      "size": 385,
+      "sha256": "e45e7a7e2da297434ccb80804c31b7b367ce19b7cbb1c34d0c44f68e8eefffe0"
+    },
+    {
+      "path": "AGENTS.md",
+      "kind": "file",
+      "size": 3323,
+      "sha256": "4b39cf45297efe5fbfac46e68eb6db817447b263602ef961c0e5b0d07b209a6c"
+    },
+    {
+      "path": "CLAUDE.md",
+      "kind": "file",
+      "size": 289,
+      "sha256": "4c10ee733641cbab06e54b2659a06b9dcbbd59882a80fbe1e3a562b0ade808ac"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "kind": "file",
+      "size": 12099,
+      "sha256": "6b8b4d9ff7f5cf9e9bc975146463cceae187ec406f30e15748a42e75af950346"
+    },
+    {
+      "path": "LICENSE",
+      "kind": "file",
+      "size": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "README.md",
+      "kind": "file",
+      "size": 4656,
+      "sha256": "56e36c00f7e9dbb2030d3e5d4fd2f63f75434ab1bc48dbe5d770db1c42ce1369"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "kind": "file",
+      "size": 19229,
+      "sha256": "f5ef0810a443217689bad3072561cee179f7fd2c75726e92b88cd53815f6a4d0"
+    },
+    {
+      "path": "docs/architecture/adr/0001-modular-monolith.md",
+      "kind": "file",
+      "size": 4405,
+      "sha256": "7fcbf4a7d5133188317ee585be5383b5cd5decb4271012f40d59d3439606ee04"
+    },
+    {
+      "path": "docs/architecture/baseline-2026-10-06.md",
+      "kind": "file",
+      "size": 12005,
+      "sha256": "fbd22a9e52135ca019082eec50159d118dd28ce31a1c69992bbdd7f212ca4d94"
+    },
+    {
+      "path": "docs/architecture/task-priority-walkthrough.md",
+      "kind": "file",
+      "size": 7332,
+      "sha256": "3840ea1a060fef91a07b2e04fa00d118f9e31f180b84edb9b536491179ac1ec8"
+    },
+    {
+      "path": "scripts/check-docs.mjs",
+      "kind": "file",
+      "size": 2981,
+      "sha256": "034d21f7f7c01272d25e2ec7f807b502c1f5fdc1f332821f53232f0242318c71"
+    }
+  ],
+  "stable": true,
+  "attempt": 1
+}

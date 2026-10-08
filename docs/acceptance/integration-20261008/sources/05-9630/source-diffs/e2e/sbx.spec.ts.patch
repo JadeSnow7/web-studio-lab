@@ -1,0 +1,171 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/e2e/sbx.spec.ts b/private/tmp/wsl-integration-sources/05-9630/e2e/sbx.spec.ts
+index 1cd64ac..6a50678 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/e2e/sbx.spec.ts
++++ b/private/tmp/wsl-integration-sources/05-9630/e2e/sbx.spec.ts
+@@ -5,16 +5,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+ import { randomUUID } from 'node:crypto';
+ import { stripVTControlCharacters } from 'node:util';
+ import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
+-import {
+-  launchApp,
+-  previewInfo,
+-  setWindowSize,
+-  windowShots,
+-  screensDir,
+-  terminalSnapshot,
+-  workshopNavigate,
+-  workspaceSnapshot,
+-} from './helpers';
++import { launchApp, previewInfo, setWindowSize, windowShots, screensDir } from './helpers';
+ 
+ // PTY 可发 CRLF 后额外 CR；仅规范化测试读取，服务快照保留原始字节。
+ function ptyText(raw: string): string {
+@@ -39,10 +30,10 @@ test('PTY 文本：规范化控制字符后只匹配完整输出行', () => {
+ 
+ test('sbx：空间提供独立终端标签，切换时隐藏原生预览', async () => {
+   ({ app, page } = await launchApp());
+-  const terminalTab = page.getByRole('button', { name: '开发终端', exact: true });
++  const terminalTab = page.getByRole('tab', { name: '终端', exact: true });
+   await expect(terminalTab).toBeVisible({ timeout: 3000 });
+   await terminalTab.click();
+-  await expect(terminalTab).toHaveAttribute('aria-current', 'page');
++  await expect(terminalTab).toHaveAttribute('aria-selected', 'true');
+   await expect(page.getByRole('region', { name: '沙箱终端' })).toBeVisible();
+   expect((await previewInfo(app)).visible).toBe(false);
+   const panel = page.getByRole('region', { name: '沙箱终端' });
+@@ -53,7 +44,7 @@ test('sbx：空间提供独立终端标签，切换时隐藏原生预览', async
+ 
+ test('sbx：对话显示执行来源，连接失败不允许发送', async () => {
+   ({ app, page } = await launchApp());
+-  await workshopNavigate(page, '首页');
++  await page.getByRole('navigation', { name: 'Workshop 导航' }).getByRole('button', { name: '首页' }).click();
+   const region = page.getByRole('region', { name: '混合输入' });
+   await expect(region.getByLabel('对话执行环境')).toBeVisible({ timeout: 3000 });
+   await expect(region.getByLabel('对话执行环境')).toContainText('sbx');
+@@ -63,23 +54,12 @@ test('sbx：对话显示执行来源，连接失败不允许发送', async () =>
+   await expect(region.locator('.message-user')).toHaveCount(0);
+ });
+ 
+-test('空间会话：执行器不可用时保留草稿并记录失败运行', async () => {
+-  ({ app, page } = await launchApp());
+-  await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
+-  const region = page.getByRole('region', { name: 'Agent 会话内容' });
+-  await region.getByRole('textbox').fill('执行器不可用时不能清空这份空间草稿');
+-  await region.getByRole('button', { name: '发送', exact: true }).click();
+-  await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('failed');
+-  await expect(region.getByRole('textbox')).toHaveValue('执行器不可用时不能清空这份空间草稿');
+-  expect((await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.draft).toBe('执行器不可用时不能清空这份空间草稿');
+-});
+-
+ test('fixture：终端持久 cwd、Ctrl-C、resize、切标签保留与确认关闭', async () => {
+   ({ app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx.mjs', import.meta.url).pathname }));
+-  await page.getByRole('button', { name: '开发终端', exact: true }).click();
++  await page.getByRole('tab', { name: '终端', exact: true }).click();
+   const panel = page.getByRole('region', { name: '沙箱终端' });
+-  await panel.getByRole('button', { name: '连接终端', exact: true }).click();
+   await expect(panel).toContainText('fixture-sandbox');
++  await panel.getByRole('button', { name: '连接终端', exact: true }).click();
+   await expect(panel).toContainText('已连接');
+   const input = panel.getByLabel('沙箱终端输入');
+   await input.focus();
+@@ -91,8 +71,8 @@ test('fixture：终端持久 cwd、Ctrl-C、resize、切标签保留与确认关
+   await input.pressSequentially('printf marker');
+   await input.press('Enter');
+   await expect(panel.locator('.xterm')).toContainText('TERMINAL_MARKER');
+-  await page.getByRole('button', { name: 'TaskFlow 预览', exact: true }).click();
+-  await page.getByRole('button', { name: '开发终端', exact: true }).click();
++  await page.getByRole('tab', { name: '运行日志', exact: true }).click();
++  await page.getByRole('tab', { name: '终端', exact: true }).click();
+   await expect(panel.locator('.xterm')).toContainText('TERMINAL_MARKER');
+   await input.focus();
+   await input.pressSequentially('sleep 60');
+@@ -100,16 +80,16 @@ test('fixture：终端持久 cwd、Ctrl-C、resize、切标签保留与确认关
+   await input.press('Control+c');
+   await expect(panel.locator('.xterm')).toContainText('^C');
+   await setWindowSize(app, 1024, 768);
+-
++  await page.getByRole('complementary', { name: '通信栏' }).getByRole('button', { name: '收起通信栏', exact: true }).click();
+   await input.focus();
+   await input.pressSequentially('stty size');
+   await input.press('Enter');
+-  const snapshot = await terminalSnapshot(page);
++  const snapshot = await page.evaluate(() => (window as unknown as { studio: StudioApi }).studio.terminal.get());
+   expect(ptyText(snapshot.output)).toMatch(/^\d+ \d+$/m);
+   await windowShots(app, page, 'sbx-terminal-fixture-narrow');
+   await panel.getByRole('button', { name: '关闭终端', exact: true }).click();
+   await expect(panel).toContainText('已关闭，远端进程已退出');
+-  expect((await terminalSnapshot(page)).state).toBe('closed');
++  expect((await page.evaluate(() => (window as unknown as { studio: StudioApi }).studio.terminal.get())).state).toBe('closed');
+ });
+ 
+ test('fixture：活动终端直接关闭应用需确认 Electron 进程退出', async () => {
+@@ -129,11 +109,11 @@ test('fixture：活动终端直接关闭应用需确认 Electron 进程退出',
+   });
+   let timer: ReturnType<typeof setTimeout> | undefined;
+   try {
+-    await closingPage.getByRole('button', { name: '开发终端', exact: true }).click();
++    await closingPage.getByRole('tab', { name: '终端', exact: true }).click();
+     const panel = closingPage.getByRole('region', { name: '沙箱终端' });
+     await panel.getByRole('button', { name: '连接终端', exact: true }).click();
+     await expect(panel).toContainText('已连接');
+-    const terminal = await terminalSnapshot(closingPage);
++    const terminal = await closingPage.evaluate(() => (window as unknown as { studio: StudioApi }).studio.terminal.get());
+     expect(terminal.state).toBe('running');
+     expect(terminal.cleanupPending).toBe(true);
+     // 不预先关闭 PTY：直接覆盖应用关闭时的远端清理路径。
+@@ -162,7 +142,7 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
+   await writeFile(canary, 'host-only test canary');
+   try {
+     ({ app, page } = await launchApp({ live: true }));
+-    await page.getByRole('button', { name: '开发终端', exact: true }).click();
++    await page.getByRole('tab', { name: '终端', exact: true }).click();
+     const panel = page.getByRole('region', { name: '沙箱终端' });
+     await expect(panel).toContainText('wsl-sbx-smoke-20261006', { timeout: 30000 });
+     await panel.getByRole('button', { name: '连接终端', exact: true }).click();
+@@ -174,7 +154,8 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
+       await input.pressSequentially(text);
+       await input.press('Enter');
+     }
+-    const output = async () => ptyText((await terminalSnapshot(page)).output);
++    const output = async () =>
++      ptyText(await page.evaluate(async () => (await (window as unknown as { studio: StudioApi }).studio.terminal.get()).output));
+     await command('uname -s; node --version; codex --version; pwd');
+     await expect.poll(output).toMatch(/^Linux$[\s\S]*^v24\.[^\n]*$[\s\S]*^codex-cli 0\.[^\n]*$[\s\S]*^\/home\/agent\/workspace$/m);
+     const guestDir = `/home/agent/workspace/wsl-ui-${randomUUID()}`;
+@@ -193,7 +174,7 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
+     const initialSize = (await output()).match(/^\d+ \d+$/gm)!.at(-1)!;
+     await windowShots(app, page, 'sbx-terminal-live-wide');
+     await setWindowSize(app, 1024, 768);
+-
++    await page.getByRole('complementary', { name: '通信栏' }).getByRole('button', { name: '收起通信栏', exact: true }).click();
+     await command('stty size');
+     await expect.poll(async () => (await output()).match(/^\d+ \d+$/gm)?.at(-1)).not.toBe(initialSize);
+     await command(`python3 -c 'import os,time;print("FG_PID="+str(os.getpid()),flush=True);time.sleep(60)'`);
+@@ -204,11 +185,11 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
+     await expect.poll(output).toMatch(/^INTERRUPT_OK$/m);
+     await command(`if kill -0 ${foregroundPid} 2>/dev/null; then echo FG_STILL_RUNNING; else echo FG_EXITED; fi`);
+     await expect.poll(output).toMatch(/^FG_EXITED$/m);
+-    await page.getByRole('button', { name: 'TaskFlow 预览', exact: true }).click();
+-    await page.getByRole('button', { name: '开发终端', exact: true }).click();
++    await page.getByRole('tab', { name: '运行日志', exact: true }).click();
++    await page.getByRole('tab', { name: '终端', exact: true }).click();
+     expect(await output()).toContain(nonce);
+     await windowShots(app, page, 'sbx-terminal-live-narrow');
+-    await workshopNavigate(page, '首页');
++    await page.getByRole('navigation', { name: 'Workshop 导航' }).getByRole('button', { name: '首页' }).click();
+     const region = page.getByRole('region', { name: '混合输入' });
+     await expect(region.getByLabel('对话执行环境')).toContainText('/home/agent/workspace');
+     await region.getByRole('textbox').fill(`使用工具读取文件 ${guestFile}，仅回复文件的完整内容。`);
+@@ -230,10 +211,10 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
+     ).toBe(true);
+     await writeFile(path.join(screensDir, 'sbx-live-conversation.json'), JSON.stringify(conversation, null, 2));
+     await windowShots(app, page, 'sbx-chat-live-read');
+-    await workshopNavigate(page, '空间');
++    await page.getByRole('navigation', { name: 'Workshop 导航' }).getByRole('button', { name: '空间' }).click();
+     await panel.getByRole('button', { name: '关闭终端', exact: true }).click();
+     await expect(panel).toContainText('已关闭，远端进程已退出', { timeout: 30000 });
+-    const terminal = await terminalSnapshot(page);
++    const terminal = await page.evaluate(() => (window as unknown as { studio: StudioApi }).studio.terminal.get());
+     expect(terminal.state).toBe('closed');
+     expect(terminal.cleanupPending).toBe(false);
+     await writeFile(path.join(screensDir, 'sbx-live-terminal.json'), JSON.stringify(terminal, null, 2));

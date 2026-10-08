@@ -1,0 +1,86 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/shell/Workshop.tsx b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/shell/Workshop.tsx
+index 4e9f2b0..605f93f 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/shell/Workshop.tsx
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/shell/Workshop.tsx
+@@ -1,11 +1,8 @@
+ import { useEffect, useRef, type ReactNode } from 'react';
+-import { occlusion } from '../state/occlusion';
+ import { Icon } from '../components/Icon';
+ import { useStore } from '../lib/store';
+ import { shellActions, shellStore, type WorkshopMode } from '../state/shell';
+-import { Sidebar } from '../workspace/Sidebar';
+-import { workspaceStore } from '../state/workspace';
+-import { spaceActions } from '../state/space-ui';
++import { WorkbenchPanel } from '../workbench/WorkbenchPanel';
+ import { ROUTES } from './routes';
+ 
+ const PEEK_OPEN_DELAY = 160;
+@@ -54,22 +51,10 @@ function Rail() {
+ 
+ function WorkshopContent() {
+   const route = useStore(shellStore, (s) => s.route);
+-  const state = useStore(workspaceStore, (s) => s);
+-  const panel = useStore(shellStore, (s) => s.workshop);
+-  const workspace = state.snapshot?.workspaces.find((w) => w.workspaceId === state.selectedId);
+   return (
+     <>
+       <Rail />
+-      {route === 'space' ? (
+-        <Sidebar
+-          workspace={workspace}
+-          peek={panel.peek}
+-          onCreateTab={() => void spaceActions.openEditor({ kind: 'tab' })}
+-          onSwitcher={() => void spaceActions.openSwitcher()}
+-          onTabMenu={(tabId) => void spaceActions.openTabMenu(tabId)}
+-          onClosePeek={() => shellActions.closePanel('left')}
+-        />
+-      ) : null}
++      {route === 'space' ? <WorkbenchPanel /> : null}
+     </>
+   );
+ }
+@@ -81,16 +66,6 @@ function OverlayWorkshop({ children }: { children: ReactNode }) {
+     if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+     closeTimer.current = null;
+   };
+-  useEffect(() => {
+-    const escape = (event: KeyboardEvent) => {
+-      if (!event.defaultPrevented && event.key === 'Escape' && occlusion.top() === 'left' && !document.querySelector('dialog[open]')) {
+-        event.preventDefault();
+-        shellActions.closePanel('left');
+-      }
+-    };
+-    window.addEventListener('keydown', escape);
+-    return () => window.removeEventListener('keydown', escape);
+-  }, []);
+   useEffect(() => cancelClose, []);
+   return (
+     <aside
+@@ -107,11 +82,7 @@ function OverlayWorkshop({ children }: { children: ReactNode }) {
+         }, PEEK_CLOSE_DELAY);
+       }}
+       onKeyDown={(event) => {
+-        if (!event.defaultPrevented && event.key === 'Escape' && occlusion.top() === 'left') {
+-          event.preventDefault();
+-          event.stopPropagation();
+-          shellActions.closePanel('left');
+-        }
++        if (event.key === 'Escape') shellActions.setPeek(false);
+       }}
+     >
+       {children}
+@@ -138,13 +109,10 @@ function CollapsedEdge() {
+       <button
+         type="button"
+         className="edge-handle"
+-        id="left-panel-trigger"
+         aria-label="展开 Workshop"
+         title="展开 Workshop（⌘B）"
+         onClick={() => shellActions.setPeek(true)}
+-      >
+-        ☰
+-      </button>
++      />
+     </div>
+   );
+ }

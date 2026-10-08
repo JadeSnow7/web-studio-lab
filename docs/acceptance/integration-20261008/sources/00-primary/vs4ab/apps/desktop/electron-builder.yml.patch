@@ -1,0 +1,13 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/electron-builder.yml b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/electron-builder.yml
+index 18f278e..9b70914 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/electron-builder.yml
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/electron-builder.yml
+@@ -7,6 +7,8 @@ files:
+   - out/**
+   - package.json
+ extraResources:
++  - from: ../service/out
++    to: service
+   # 演示页面单独存放，只由 Browser 区的 wsl-demo 协议读取。
+   - from: ../../demo/taskflow
+     to: demo/taskflow

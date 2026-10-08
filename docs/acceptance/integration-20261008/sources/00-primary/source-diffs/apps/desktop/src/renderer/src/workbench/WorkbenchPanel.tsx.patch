@@ -1,0 +1,29 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/workbench/WorkbenchPanel.tsx b/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/workbench/WorkbenchPanel.tsx
+new file mode 100644
+index 0000000..64a5680
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/workbench/WorkbenchPanel.tsx
+@@ -0,0 +1,23 @@
++import { DemoBadge } from '../components/Badges';
++import { DEMO_SPACE } from '../domain/space';
++import { CaptureSection } from './CaptureSection';
++import { RunSection } from './RunSection';
++import { TaskSection } from './TaskSection';
++
++/** Workshop 在空间页的工作面板：现场 → 任务确认 → 运行与审阅。 */
++export function WorkbenchPanel() {
++  return (
++    <div className="workbench-panel">
++      <div className="wb-header">
++        <span className="muted small">空间</span>
++        <strong>{DEMO_SPACE.name}</strong>
++        <DemoBadge label="演示页面" />
++      </div>
++      <div className="wb-scroll">
++        <CaptureSection />
++        <TaskSection />
++        <RunSection />
++      </div>
++    </div>
++  );
++}

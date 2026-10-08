@@ -1,0 +1,32 @@
+{
+  "note": "Synthetic dragstart/drop exercised actual React handlers and Main reorder command; not native pointer gesture",
+  "before": [
+    {
+      "id": "cb57aa1f-a913-4ba6-ad51-79f9d3411acf",
+      "title": "TaskFlow 预览"
+    },
+    {
+      "id": "b2e4ac2e-0cf8-4d98-9afc-56f377683066",
+      "title": "开发终端"
+    },
+    {
+      "id": "e674b5ac-a566-437b-a52c-9a6cf758d983",
+      "title": "Agent 会话"
+    }
+  ],
+  "after": [
+    {
+      "id": "b2e4ac2e-0cf8-4d98-9afc-56f377683066",
+      "title": "开发终端"
+    },
+    {
+      "id": "cb57aa1f-a913-4ba6-ad51-79f9d3411acf",
+      "title": "TaskFlow 预览"
+    },
+    {
+      "id": "e674b5ac-a566-437b-a52c-9a6cf758d983",
+      "title": "Agent 会话"
+    }
+  ],
+  "changed": true
+}

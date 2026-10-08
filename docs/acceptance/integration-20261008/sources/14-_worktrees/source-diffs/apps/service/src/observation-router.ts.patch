@@ -1,0 +1,166 @@
+diff --git a/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-router.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-router.ts
+new file mode 100644
+index 0000000..6fd9d9d
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-router.ts
+@@ -0,0 +1,160 @@
++import { randomUUID } from 'node:crypto';
++import { mkdir, writeFile, readdir } from 'node:fs/promises';
++import path from 'node:path';
++import { z } from 'zod';
++import {
++  ObservationRequestSchema,
++  ObservationResultSchema,
++  validateObservationData,
++  type ObservationRequest,
++  type ObservationResult,
++} from '@wsl/protocol';
++import { type FileObservationProvider, FileObservationError } from './observation-files';
++import type { TerminalObservation } from './observation-terminal';
++
++const Target = { environmentId: z.string().max(200).optional(), resourceId: z.string().max(200).optional() };
++const FileRead = z
++  .object({
++    ...Target,
++    path: z.string().min(1).max(4096),
++    source: z.enum(['disk', 'editor']).optional(),
++    cursor: z.string().max(4096).optional(),
++    maxBytes: z.number().int().min(4).max(65536).optional(),
++  })
++  .strict();
++const FileList = z
++  .object({ ...Target, path: z.string().max(4096).optional(), limit: z.number().int().min(1).max(500).optional() })
++  .strict();
++const FileSearch = z
++  .object({
++    ...Target,
++    path: z.string().max(4096).optional(),
++    query: z.string().min(1).max(512),
++    limit: z.number().int().min(1).max(100).optional(),
++  })
++  .strict();
++const Screen = z
++  .object({ ...Target, viewportY: z.number().int().nonnegative().optional(), maxLines: z.number().int().min(1).max(300).optional() })
++  .strict();
++const Output = z
++  .object({ ...Target, cursor: z.string().max(4096).optional(), maxChars: z.number().int().min(1).max(65536).optional() })
++  .strict();
++const Command = z
++  .object({ ...Target, commandId: z.string().max(200).optional(), limit: z.number().int().min(1).max(100).optional() })
++  .strict();
++export class ObservationRouter {
++  readonly unavailable = new Map<string, string>();
++  readonly files = new Map<string, FileObservationProvider>();
++  readonly terminals = new Map<string, () => TerminalObservation | null>();
++  constructor(
++    private readonly evidenceRoot: string,
++    private readonly browser: (request: ObservationRequest) => Promise<ObservationResult>,
++  ) {}
++  async dispatch(raw: ObservationRequest): Promise<ObservationResult> {
++    let timer: ReturnType<typeof setTimeout> | undefined;
++    try {
++      const request = ObservationRequestSchema.parse(raw);
++      if (request.workspaceId !== 'taskflow-demo') return { error: 'unauthorized', message: 'Workspace is not active' };
++      const result = await Promise.race([
++        this.read(request),
++        new Promise<ObservationResult>((resolve) => {
++          timer = setTimeout(() => resolve({ error: 'timeout', message: 'Observation exceeded 10 seconds' }), 10000);
++        }),
++      ]);
++      const checked = ObservationResultSchema.parse(result);
++      if ('resource' in checked && checked.resource.workspaceId !== request.workspaceId)
++        return { error: 'unauthorized', message: 'Provider returned a different workspace' };
++      if ('snapshotId' in checked) {
++        validateObservationData(checked);
++        const dir = path.join(this.evidenceRoot, 'observations');
++        await mkdir(dir, { recursive: true, mode: 0o700 });
++        if ((await readdir(dir)).length >= 2000)
++          return { error: 'unavailable', message: 'Observation evidence quota reached; archive evidence before further reads' };
++        checked.evidenceRef = `observation:${checked.snapshotId}`;
++        await writeFile(path.join(dir, `${checked.snapshotId}.json`), JSON.stringify(checked), { flag: 'wx', mode: 0o600 });
++      }
++      return checked;
++    } catch (error) {
++      if (error instanceof z.ZodError) return { error: 'invalid_request', message: 'Invalid observation request or provider result' };
++      if (error instanceof FileObservationError) return { error: error.code, message: error.message };
++      const errno = (error as NodeJS.ErrnoException)?.code;
++      if (errno === 'ENOENT') return { error: 'not_found', message: 'Resource not found' };
++      if (['EACCES', 'EPERM', 'ELOOP'].includes(errno ?? ''))
++        return { error: 'unauthorized', message: 'Resource cannot be accessed within the approved scope' };
++      const message = error instanceof Error ? error.message : String(error);
++      const code = ['stale_cursor', 'stale_ref', 'gap', 'not_found'].find((code) => message.startsWith(code));
++      return { error: (code ?? 'unavailable') as 'stale_cursor' | 'stale_ref' | 'gap' | 'not_found' | 'unavailable', message };
++    } finally {
++      if (timer) clearTimeout(timer);
++    }
++  }
++  private async read(request: ObservationRequest): Promise<ObservationResult> {
++    const { tool, args, workspaceId } = request;
++    if (tool === 'workspace.list_sources') {
++      z.object({}).strict().parse(args);
++      const browser = await this.browser(request);
++      const browserSources = 'data' in browser ? ((browser.data as { sources?: unknown[] }).sources ?? []) : [];
++      const sources = [
++        ...browserSources,
++        ...[...this.files.entries()].map(([environmentId, provider]) => ({
++          ...provider.source(),
++          resource: { workspaceId, environmentId, resourceId: `files:${environmentId}`, kind: 'file' },
++          label: `${environmentId} files`,
++          editor: 'unsupported_no_document_model',
++        })),
++        ...[...this.terminals.values()].flatMap((get) => {
++          const terminal = get();
++          return terminal
++            ? [{ resource: terminal.resource, generation: terminal.generation, label: 'Terminal', capabilities: terminal.capabilities }]
++            : [];
++        }),
++      ];
++      return {
++        resource: { workspaceId, environmentId: 'local', resourceId: 'sources', kind: 'file' },
++        generation: 'registry',
++        revision: { value: new Date().toISOString(), strength: 'best-effort' },
++        snapshotId: randomUUID(),
++        capturedAt: new Date().toISOString(),
++        source: 'resource-registry',
++        representation: 'json',
++        coverage: { status: 'error' in browser ? 'partial' : 'complete', reasons: 'error' in browser ? [browser.message] : [] },
++        data: {
++          sources,
++          unavailable: [...this.unavailable].map(([environmentId, reason]) => ({ environmentId, reason })),
++          consistency: 'independent resource times; no global atomic snapshot',
++        },
++      };
++    }
++    if (tool.startsWith('browser.')) {
++      const { environmentId, resourceId, ...browserArgs } = z.object(Target).passthrough().parse(args);
++      if (environmentId && environmentId !== 'local') return { error: 'not_found', message: 'Browser environment not registered' };
++      return this.browser({ ...request, args: { ...browserArgs, ...(resourceId ? { resourceId } : {}) } });
++    }
++    if (tool.startsWith('files.')) {
++      const input = tool === 'files.read' ? FileRead.parse(args) : tool === 'files.search' ? FileSearch.parse(args) : FileList.parse(args);
++      const provider = this.files.get(input.environmentId ?? 'local');
++      if (!provider) return { error: 'unavailable', message: 'File environment is not configured; set a trusted workspace root' };
++      if (input.resourceId && input.resourceId !== `files:${input.environmentId ?? 'local'}`)
++        return { error: 'invalid_request', message: 'File tools require the registered root resourceId plus a path' };
++      if (tool === 'files.read') return provider.read(FileRead.parse(args));
++      if (tool === 'files.search') return provider.search(FileSearch.parse(args));
++      return provider.list(FileList.parse(args));
++    }
++    const input =
++      tool === 'terminal.read_screen' ? Screen.parse(args) : tool === 'terminal.read_output' ? Output.parse(args) : Command.parse(args);
++    const terminals = [...this.terminals.values()].map((get) => get()).filter((item): item is TerminalObservation => !!item);
++    if (terminals.length > 1 && !input.resourceId && !input.environmentId)
++      return { error: 'invalid_request', message: 'Multiple terminal sessions; choose a resourceId from workspace.list_sources' };
++    const terminal = terminals.find(
++      (item) =>
++        (!input.environmentId || item.resource.environmentId === input.environmentId) &&
++        (!input.resourceId || item.resource.resourceId === input.resourceId),
++    );
++    if (!terminal) return { error: 'not_found', message: 'No matching active terminal session' };
++    if (terminal.resource.workspaceId !== workspaceId)
++      return { error: 'unauthorized', message: 'Terminal belongs to a different workspace' };
++    if (tool === 'terminal.read_screen') return terminal.readScreen(Screen.parse(args));
++    if (tool === 'terminal.read_output') return terminal.readOutput(Output.parse(args));
++    return terminal.readCommand(Command.parse(args));
++  }
++}

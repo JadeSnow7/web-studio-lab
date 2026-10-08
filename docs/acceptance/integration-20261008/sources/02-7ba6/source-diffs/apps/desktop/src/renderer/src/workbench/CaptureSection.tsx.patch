@@ -1,0 +1,126 @@
+diff --git a/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/workbench/CaptureSection.tsx b/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/workbench/CaptureSection.tsx
+new file mode 100644
+index 0000000..0c1e4f1
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/workbench/CaptureSection.tsx
+@@ -0,0 +1,120 @@
++import { Notice } from '../components/Badges';
++import { Icon } from '../components/Icon';
++import { useStore } from '../lib/store';
++import { formatTime } from '../lib/time';
++import { track } from '../state/errors';
++import { previewStore } from '../state/preview';
++import { shellActions, shellStore } from '../state/shell';
++import { uiActions } from '../state/ui';
++import { captureFreshness, workbenchStore } from '../state/workbench';
++
++/** 现场：开启选择模式 → 在页面上点选元素 → 采集摘要、地址、截图与页面身份。 */
++export function CaptureSection() {
++  const capture = useStore(workbenchStore, (s) => s.capture);
++  const preview = useStore(previewStore, (p) => p);
++  const browserTab = useStore(shellStore, (s) => s.browserTab);
++  const freshness = captureFreshness(capture, preview?.page ?? null);
++  const picking = preview?.picking ?? false;
++  const canPick = browserTab === 'preview' && preview !== null;
++
++  const togglePick = () => {
++    if (picking) {
++      void track('取消选择', window.studio.preview.cancelPick());
++    } else {
++      void track('开始选择元素', window.studio.preview.startPick());
++    }
++  };
++
++  return (
++    <section className="wb-section" aria-labelledby="wb-capture">
++      <div className="wb-section-head">
++        <h2 id="wb-capture">页面现场</h2>
++        <span className={`freshness freshness-${freshness}`}>
++          {freshness === 'none' ? '未采集' : freshness === 'fresh' ? '有效' : '已失效'}
++        </span>
++      </div>
++
++      <div className="row gap-8">
++        <button
++          type="button"
++          className={picking ? 'btn btn-active' : 'btn btn-primary'}
++          aria-pressed={picking}
++          disabled={!canPick}
++          onClick={togglePick}
++        >
++          <Icon name="target" size={14} />
++          {picking ? '取消选择（Esc）' : capture ? '重新选择元素' : '选择元素'}
++        </button>
++        {!canPick ? (
++          <button type="button" className="btn btn-ghost" onClick={() => shellActions.setBrowserTab('preview')}>
++            切到页面 Tab
++          </button>
++        ) : null}
++      </div>
++      {picking ? <p className="hint">在右侧页面上悬停查看高亮，点击要修改的元素。按 Esc 取消。</p> : null}
++      {preview?.pickError ? <Notice tone="bad">{preview.pickError}</Notice> : null}
++
++      {capture === null ? (
++        <p className="hint">还没有页面现场。开启选择模式后，在 Browser 区点击要修改的元素；摘要、地址、截图和页面身份会出现在这里。</p>
++      ) : (
++        <div className={freshness === 'stale' ? 'capture-card capture-stale' : 'capture-card'}>
++          {freshness === 'stale' ? (
++            <Notice tone="warn">
++              页面已导航（文档代次 {capture.page.documentGeneration} → {preview?.page.documentGeneration ?? '?'}
++              ），旧现场与元素引用失效，请重新采集后再确认任务。
++            </Notice>
++          ) : null}
++          <div className="capture-shots">
++            {capture.screenshot.element ? (
++              <button type="button" className="shot" onClick={() => uiActions.openImage('元素截图', capture.screenshot.element as string)}>
++                <img src={capture.screenshot.element} alt="被点选元素的截图" />
++                <span>元素</span>
++              </button>
++            ) : (
++              <div className="shot shot-missing">元素不在视口内或没有布局，无元素截图</div>
++            )}
++            <button type="button" className="shot" onClick={() => uiActions.openImage('页面截图', capture.screenshot.viewport)}>
++              <img src={capture.screenshot.viewport} alt="采集时的页面截图" />
++              <span>页面</span>
++            </button>
++          </div>
++          <dl className="kv">
++            <dt>元素</dt>
++            <dd>
++              <code>{capture.element.tagName}</code>{' '}
++              {capture.element.text ? `“${capture.element.text}”` : <span className="muted">（无文本）</span>}
++            </dd>
++            <dt>路径</dt>
++            <dd>
++              <code className="wrap">{capture.element.selector}</code>
++            </dd>
++            <dt>地址</dt>
++            <dd>
++              <code className="wrap">{capture.page.url}</code>
++            </dd>
++            <dt>页面身份</dt>
++            <dd>
++              webContents #{capture.page.webContentsId} · 文档代次 {capture.page.documentGeneration} · {capture.page.partition}
++            </dd>
++            <dt>采集时间</dt>
++            <dd>{formatTime(capture.capturedAt)}</dd>
++            <dt>运行错误</dt>
++            <dd>{capture.consoleIssues.length === 0 ? '无' : `${capture.consoleIssues.length} 条`}</dd>
++          </dl>
++          {capture.consoleIssues.length > 0 ? (
++            <details className="console-issues">
++              <summary>查看页面错误</summary>
++              <ul>
++                {capture.consoleIssues.map((issue, index) => (
++                  <li key={index}>
++                    <span className={`level level-${issue.level}`}>{issue.level}</span> {issue.message}
++                  </li>
++                ))}
++              </ul>
++            </details>
++          ) : null}
++        </div>
++      )}
++    </section>
++  );
++}

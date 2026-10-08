@@ -1,0 +1,1382 @@
+[
+  {
+    "round": 0,
+    "elapsed": 19,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 310,
+        "y": 199,
+        "width": 1085,
+        "height": 657
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 215
+  },
+  {
+    "round": 0,
+    "elapsed": 46,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 68,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 90,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 111,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 132,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 152,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 173,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 193,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 213,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 233,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 253,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 271,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 291,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 0,
+    "elapsed": 311,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 13,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 310,
+        "y": 199,
+        "width": 1085,
+        "height": 657
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 215
+  },
+  {
+    "round": 1,
+    "elapsed": 35,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 53,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 73,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 93,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 113,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 134,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 155,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 175,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 196,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 217,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 238,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 259,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 279,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 1,
+    "elapsed": 300,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 12,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 310,
+        "y": 199,
+        "width": 1085,
+        "height": 657
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 215
+  },
+  {
+    "round": 2,
+    "elapsed": 34,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 54,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 75,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 95,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 115,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 135,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 156,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 176,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 196,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 217,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 237,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 258,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 279,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 2,
+    "elapsed": 299,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 24,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 310,
+        "y": 199,
+        "width": 1085,
+        "height": 657
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 215
+  },
+  {
+    "round": 3,
+    "elapsed": 45,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 65,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 85,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 106,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 127,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 147,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 168,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 188,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 209,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 229,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 249,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 269,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 289,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  },
+  {
+    "round": 3,
+    "elapsed": 310,
+    "width": 960,
+    "native": {
+      "url": "wsl-demo://taskflow/index.html",
+      "visible": true,
+      "bounds": {
+        "x": 45,
+        "y": 199,
+        "width": 870,
+        "height": 500
+      },
+      "id": 2
+    },
+    "dom": {
+      "x": 45,
+      "y": 199,
+      "width": 870,
+      "height": 500
+    },
+    "diff": 0
+  }
+]

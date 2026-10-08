@@ -1,0 +1,648 @@
+[
+  {
+    "tree": "00-primary",
+    "path": "e2e/workbench.spec.ts",
+    "added_in4ab": 6,
+    "removed_from_source": 2,
+    "hunks": [
+      "@@ -27,7 +27,11 @@ test('\u542f\u52a8\uff1a\u7a97\u53e3\u3001\u5b89\u5168\u8fb9\u754c\u4e0e Browser \u533a\u771f\u5b9e\u52a0\u8f7d', async () => {",
+      "@@ -135,7 +139,7 @@ test('Tab \u4e0e\u6f14\u793a\u72b6\u6001\uff1a\u65e5\u5fd7 / diff / \u62a5\u544a\u5207\u6362\uff0c\u5ba1\u9605\u53ea\u4f5c\u7528\u4e8e\u6f14"
+    ],
+    "diff": "00-primary/vs4ab/e2e/workbench.spec.ts.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "e2e/helpers.ts",
+    "added_in4ab": 20,
+    "removed_from_source": 3,
+    "hunks": [
+      "@@ -1,6 +1,7 @@",
+      "@@ -11,15 +12,31 @@ export const screensDir = path.join(root, 'test-results/screens', process.env['W"
+    ],
+    "diff": "00-primary/vs4ab/e2e/helpers.ts.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/package.json",
+    "added_in4ab": 3,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -19,9 +19,12 @@"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/package.json.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/electron-builder.yml",
+    "added_in4ab": 2,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -7,6 +7,8 @@ files:"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/electron-builder.yml.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/main/ipc.ts",
+    "added_in4ab": 18,
+    "removed_from_source": 2,
+    "hunks": [
+      "@@ -8,6 +8,7 @@ import {",
+      "@@ -20,6 +21,7 @@ export interface IpcDeps {",
+      "@@ -31,8 +33,12 @@ function senderInfo(event: IpcMainInvokeEvent, window: BrowserWindow) {",
+      "@@ -53,6 +59,16 @@ export function registerIpc({ window, preview, trusted }: IpcDeps): () => void {",
+      "@@ -61,7 +77,7 @@ export function registerIpc({ window, preview, trusted }: IpcDeps): () => void {"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/main/ipc.ts.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/main/index.ts",
+    "added_in4ab": 26,
+    "removed_from_source": 4,
+    "hunks": [
+      "@@ -1,5 +1,6 @@",
+      "@@ -35,14 +36,35 @@ function openWorkbench(): BrowserWindow {"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/main/index.ts.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/preload/index.ts",
+    "added_in4ab": 35,
+    "removed_from_source": 2,
+    "hunks": [
+      "@@ -1,13 +1,23 @@",
+      "@@ -15,6 +25,29 @@ function subscribe<C extends EventChannel>(channel: C, listener: (payload: Event"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/preload/index.ts.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/main/preview/controller.ts",
+    "added_in4ab": 82,
+    "removed_from_source": 5,
+    "hunks": [
+      "@@ -5,6 +5,7 @@ import type {",
+      "@@ -12,6 +13,8 @@ import type {",
+      "@@ -47,6 +50,10 @@ export class PreviewController {",
+      "@@ -65,6 +72,19 @@ export class PreviewController {",
+      "@@ -75,6 +95,12 @@ export class PreviewController {",
+      "@@ -87,7 +113,11 @@ export class PreviewController {",
+      "@@ -121,16 +151,35 @@ export class PreviewController {",
+      "@@ -199,24 +248,51 @@ export class PreviewController {",
+      "@@ -320,6 +396,7 @@ export class PreviewController {"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/main/preview/controller.ts.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/App.tsx",
+    "added_in4ab": 5,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -1,3 +1,5 @@",
+      "@@ -19,6 +21,9 @@ import { uiStore } from './state/ui';"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/App.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/main.tsx",
+    "added_in4ab": 4,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -1,5 +1,7 @@",
+      "@@ -10,6 +12,8 @@ import { workbenchActions } from './state/workbench';"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/main.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/shell/Overlays.tsx",
+    "added_in4ab": 69,
+    "removed_from_source": 19,
+    "hunks": [
+      "@@ -1,35 +1,85 @@"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/shell/Overlays.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/shell/TitleBar.tsx",
+    "added_in4ab": 25,
+    "removed_from_source": 3,
+    "hunks": [
+      "@@ -1,12 +1,13 @@",
+      "@@ -23,6 +24,27 @@ function BrowserTabs() {",
+      "@@ -48,7 +70,7 @@ export function TitleBar() {",
+      "@@ -78,7 +100,7 @@ export function TitleBar() {"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/shell/TitleBar.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/shell/RightPanel.tsx",
+    "added_in4ab": 5,
+    "removed_from_source": 19,
+    "hunks": [
+      "@@ -1,10 +1,10 @@",
+      "@@ -19,7 +19,6 @@ export function sendBlockedReasonFor(reason: string | null | undefined): string",
+      "@@ -39,24 +38,11 @@ function SpaceTab() {"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/shell/RightPanel.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/shell/Composer.tsx",
+    "added_in4ab": 17,
+    "removed_from_source": 7,
+    "hunks": [
+      "@@ -1,11 +1,12 @@",
+      "@@ -18,8 +19,11 @@ interface ComposerProps {",
+      "@@ -35,10 +39,11 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,",
+      "@@ -55,6 +60,8 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,",
+      "@@ -71,9 +78,12 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/shell/Composer.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/state/shell.ts",
+    "added_in4ab": 1,
+    "removed_from_source": 1,
+    "hunks": [
+      "@@ -2,7 +2,7 @@ import { createStore } from '../lib/store';"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/state/shell.ts.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/state/ui.ts",
+    "added_in4ab": 9,
+    "removed_from_source": 3,
+    "hunks": [
+      "@@ -1,17 +1,23 @@"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/state/ui.ts.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/styles/app.css",
+    "added_in4ab": 188,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -1580,3 +1580,191 @@ p {"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/styles/app.css.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/workbench/TaskSection.tsx",
+    "added_in4ab": 3,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -78,6 +78,7 @@ export function TaskSection() {",
+      "@@ -105,6 +106,7 @@ export function TaskSection() {",
+      "@@ -133,6 +135,7 @@ export function TaskSection() {"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/workbench/TaskSection.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/workbench/PreviewHost.tsx",
+    "added_in4ab": 1,
+    "removed_from_source": 1,
+    "hunks": [
+      "@@ -52,7 +52,7 @@ export function PreviewHost({ active, occluded }: { active: boolean; occluded: b"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/workbench/PreviewHost.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/workbench/BrowserToolbar.tsx",
+    "added_in4ab": 44,
+    "removed_from_source": 1,
+    "hunks": [
+      "@@ -1,6 +1,10 @@",
+      "@@ -11,6 +15,17 @@ export function BrowserToolbar() {",
+      "@@ -51,8 +66,10 @@ export function BrowserToolbar() {",
+      "@@ -67,8 +84,15 @@ export function BrowserToolbar() {",
+      "@@ -91,6 +115,25 @@ export function BrowserToolbar() {",
+      "@@ -105,7 +148,7 @@ export function BrowserToolbar() {"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/workbench/BrowserToolbar.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/workbench/RunSummary.tsx",
+    "added_in4ab": 2,
+    "removed_from_source": 1,
+    "hunks": [
+      "@@ -60,6 +60,7 @@ function ReviewControls({ record, readOnly }: { record: RunRecord; readOnly: boo",
+      "@@ -73,7 +74,7 @@ function ReviewControls({ record, readOnly }: { record: RunRecord; readOnly: boo"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/workbench/RunSummary.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+    "added_in4ab": 181,
+    "removed_from_source": 58,
+    "hunks": [
+      "@@ -1,65 +1,188 @@"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/pages/ResourcesPage.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/pages/SettingsPage.tsx",
+    "added_in4ab": 14,
+    "removed_from_source": 6,
+    "hunks": [
+      "@@ -1,5 +1,6 @@",
+      "@@ -8,7 +9,7 @@ const CAPABILITIES = ['createSession', 'observeState', 'cancel', 'pause', 'resum",
+      "@@ -49,12 +50,19 @@ export function SettingsPage() {",
+      "@@ -75,7 +83,7 @@ export function SettingsPage() {"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/pages/SettingsPage.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/pages/ConversationsPage.tsx",
+    "added_in4ab": 6,
+    "removed_from_source": 22,
+    "hunks": [
+      "@@ -1,11 +1,10 @@",
+      "@@ -19,7 +18,6 @@ export function ConversationsPage() {",
+      "@@ -44,7 +42,7 @@ export function ConversationsPage() {",
+      "@@ -71,24 +69,10 @@ export function ConversationsPage() {"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/pages/ConversationsPage.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/pages/SpacePage.tsx",
+    "added_in4ab": 3,
+    "removed_from_source": 1,
+    "hunks": [
+      "@@ -1,6 +1,7 @@",
+      "@@ -12,8 +13,9 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/pages/SpacePage.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "apps/desktop/src/renderer/src/pages/HomePage.tsx",
+    "added_in4ab": 4,
+    "removed_from_source": 2,
+    "hunks": [
+      "@@ -6,6 +6,7 @@ import { useStore } from '../lib/store';",
+      "@@ -17,7 +18,7 @@ const MODES: ReadonlyArray<{ mode: HomeMode; label: string }> = [",
+      "@@ -27,7 +28,7 @@ export function HomePage() {",
+      "@@ -46,6 +47,7 @@ export function HomePage() {"
+    ],
+    "diff": "00-primary/vs4ab/apps/desktop/src/renderer/src/pages/HomePage.tsx.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "packages/protocol/src/bridge.ts",
+    "added_in4ab": 26,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -1,3 +1,7 @@",
+      "@@ -9,6 +13,28 @@ export type Unsubscribe = () => void;"
+    ],
+    "diff": "00-primary/vs4ab/packages/protocol/src/bridge.ts.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "packages/protocol/src/ipc.ts",
+    "added_in4ab": 24,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -1,5 +1,13 @@",
+      "@@ -17,6 +25,9 @@ const NoResult = z.void();",
+      "@@ -29,6 +40,16 @@ export const invokeChannels = {",
+      "@@ -38,6 +59,9 @@ export type InvokeResponse<C extends InvokeChannel> = z.output<(typeof invokeCha"
+    ],
+    "diff": "00-primary/vs4ab/packages/protocol/src/ipc.ts.patch"
+  },
+  {
+    "tree": "00-primary",
+    "path": "packages/protocol/src/index.ts",
+    "added_in4ab": 7,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -1,7 +1,14 @@"
+    ],
+    "diff": "00-primary/vs4ab/packages/protocol/src/index.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "e2e/workbench.spec.ts",
+    "added_in4ab": 1,
+    "removed_from_source": 1,
+    "hunks": [
+      "@@ -30,7 +30,7 @@ test('\u542f\u52a8\uff1a\u7a97\u53e3\u3001\u5b89\u5168\u8fb9\u754c\u4e0e Browser \u533a\u771f\u5b9e\u52a0\u8f7d', async () => {"
+    ],
+    "diff": "05-9630/vs4ab/e2e/workbench.spec.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "e2e/helpers.ts",
+    "added_in4ab": 6,
+    "removed_from_source": 2,
+    "hunks": [
+      "@@ -1,6 +1,7 @@",
+      "@@ -23,16 +24,19 @@ export async function launchApp("
+    ],
+    "diff": "05-9630/vs4ab/e2e/helpers.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/package.json",
+    "added_in4ab": 1,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -24,6 +24,7 @@"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/package.json.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/service/src/sbx.test.ts",
+    "added_in4ab": 11,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -85,6 +85,17 @@ describe('guest helper \u5bbf\u4e3b\u8fb9\u754c', () => {"
+    ],
+    "diff": "05-9630/vs4ab/apps/service/src/sbx.test.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/service/src/raw.d.ts",
+    "added_in4ab": 5,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -2,3 +2,8 @@ declare module '*.py?raw' {"
+    ],
+    "diff": "05-9630/vs4ab/apps/service/src/raw.d.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/service/src/sbx.ts",
+    "added_in4ab": 15,
+    "removed_from_source": 5,
+    "hunks": [
+      "@@ -4,8 +4,11 @@ import { constants } from 'node:fs';",
+      "@@ -23,7 +26,8 @@ export interface GuestOutcome {",
+      "@@ -62,10 +66,11 @@ export class GuestProcess {",
+      "@@ -138,6 +143,7 @@ export class GuestProcess {",
+      "@@ -179,7 +185,7 @@ export class SbxConnection {",
+      "@@ -191,6 +197,10 @@ export class SbxConnection {"
+    ],
+    "diff": "05-9630/vs4ab/apps/service/src/sbx.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/service/src/guest-helper.py",
+    "added_in4ab": 45,
+    "removed_from_source": 4,
+    "hunks": [
+      "@@ -1,4 +1,5 @@",
+      "@@ -16,6 +17,7 @@ import time",
+      "@@ -79,12 +81,12 @@ def cleanup(sid, child):",
+      "@@ -101,14 +103,22 @@ def main():",
+      "@@ -125,6 +135,19 @@ def main():",
+      "@@ -157,7 +180,12 @@ def main():",
+      "@@ -208,6 +236,19 @@ def main():"
+    ],
+    "diff": "05-9630/vs4ab/apps/service/src/guest-helper.py.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/service/src/codex-chat.ts",
+    "added_in4ab": 141,
+    "removed_from_source": 13,
+    "hunks": [
+      "@@ -1,6 +1,6 @@",
+      "@@ -19,6 +19,12 @@ const EventSchema = z.discriminatedUnion('type', [",
+      "@@ -28,6 +34,45 @@ export function parseCodexLine(line: string) {",
+      "@@ -39,6 +84,7 @@ interface Turn {",
+      "@@ -49,6 +95,7 @@ export class CodexChat {",
+      "@@ -76,6 +123,7 @@ export class CodexChat {",
+      "@@ -90,13 +138,65 @@ export class CodexChat {",
+      "@@ -134,18 +234,32 @@ export class CodexChat {",
+      "@@ -154,10 +268,20 @@ export class CodexChat {",
+      "@@ -169,7 +293,7 @@ export class CodexChat {",
+      "@@ -222,6 +346,10 @@ export class CodexChat {"
+    ],
+    "diff": "05-9630/vs4ab/apps/service/src/codex-chat.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/service/src/index.ts",
+    "added_in4ab": 25,
+    "removed_from_source": 3,
+    "hunks": [
+      "@@ -1,6 +1,7 @@",
+      "@@ -12,19 +13,37 @@ if (!parent) throw new Error('\u7f3a\u5c11\u6267\u884c\u670d\u52a1\u7236\u6d88\u606f\u901a\u9053');",
+      "@@ -71,7 +90,10 @@ parent.on('message', ({ data }) => {"
+    ],
+    "diff": "05-9630/vs4ab/apps/service/src/index.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/main/ipc.ts",
+    "added_in4ab": 4,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -35,6 +35,10 @@ function senderInfo(event: IpcMainInvokeEvent, window: BrowserWindow) {"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/main/ipc.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/main/chat-service.ts",
+    "added_in4ab": 20,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -2,6 +2,11 @@ import path from 'node:path';",
+      "@@ -149,6 +154,21 @@ export class ChatService {"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/main/chat-service.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/preload/index.ts",
+    "added_in4ab": 13,
+    "removed_from_source": 1,
+    "hunks": [
+      "@@ -1,5 +1,11 @@",
+      "@@ -19,6 +25,12 @@ function subscribe<C extends EventChannel>(channel: C, listener: (payload: Event"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/preload/index.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/main/preview/controller.ts",
+    "added_in4ab": 82,
+    "removed_from_source": 5,
+    "hunks": [
+      "@@ -5,6 +5,7 @@ import type {",
+      "@@ -12,6 +13,8 @@ import type {",
+      "@@ -47,6 +50,10 @@ export class PreviewController {",
+      "@@ -65,6 +72,19 @@ export class PreviewController {",
+      "@@ -75,6 +95,12 @@ export class PreviewController {",
+      "@@ -87,7 +113,11 @@ export class PreviewController {",
+      "@@ -121,16 +151,35 @@ export class PreviewController {",
+      "@@ -199,24 +248,51 @@ export class PreviewController {",
+      "@@ -320,6 +396,7 @@ export class PreviewController {"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/main/preview/controller.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/renderer/src/App.tsx",
+    "added_in4ab": 5,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -1,3 +1,5 @@",
+      "@@ -19,6 +21,9 @@ import { uiStore } from './state/ui';"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/renderer/src/App.tsx.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/renderer/src/shell/Overlays.tsx",
+    "added_in4ab": 69,
+    "removed_from_source": 19,
+    "hunks": [
+      "@@ -1,35 +1,85 @@"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/renderer/src/shell/Overlays.tsx.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/renderer/src/shell/Composer.tsx",
+    "added_in4ab": 1,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -60,6 +60,7 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/renderer/src/shell/Composer.tsx.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/renderer/src/state/ui.ts",
+    "added_in4ab": 9,
+    "removed_from_source": 3,
+    "hunks": [
+      "@@ -1,17 +1,23 @@"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/renderer/src/state/ui.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/renderer/src/styles/app.css",
+    "added_in4ab": 104,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -1664,3 +1664,107 @@ p {"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/renderer/src/styles/app.css.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/renderer/src/workbench/TaskSection.tsx",
+    "added_in4ab": 3,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -78,6 +78,7 @@ export function TaskSection() {",
+      "@@ -105,6 +106,7 @@ export function TaskSection() {",
+      "@@ -133,6 +135,7 @@ export function TaskSection() {"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/renderer/src/workbench/TaskSection.tsx.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/renderer/src/workbench/BrowserToolbar.tsx",
+    "added_in4ab": 44,
+    "removed_from_source": 1,
+    "hunks": [
+      "@@ -1,6 +1,10 @@",
+      "@@ -11,6 +15,17 @@ export function BrowserToolbar() {",
+      "@@ -51,8 +66,10 @@ export function BrowserToolbar() {",
+      "@@ -67,8 +84,15 @@ export function BrowserToolbar() {",
+      "@@ -91,6 +115,25 @@ export function BrowserToolbar() {",
+      "@@ -105,7 +148,7 @@ export function BrowserToolbar() {"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/renderer/src/workbench/BrowserToolbar.tsx.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/renderer/src/workbench/RunSummary.tsx",
+    "added_in4ab": 2,
+    "removed_from_source": 1,
+    "hunks": [
+      "@@ -60,6 +60,7 @@ function ReviewControls({ record, readOnly }: { record: RunRecord; readOnly: boo",
+      "@@ -73,7 +74,7 @@ function ReviewControls({ record, readOnly }: { record: RunRecord; readOnly: boo"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/renderer/src/workbench/RunSummary.tsx.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+    "added_in4ab": 181,
+    "removed_from_source": 58,
+    "hunks": [
+      "@@ -1,65 +1,188 @@"
+    ],
+    "diff": "05-9630/vs4ab/apps/desktop/src/renderer/src/pages/ResourcesPage.tsx.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "packages/protocol/src/chat.ts",
+    "added_in4ab": 7,
+    "removed_from_source": 2,
+    "hunks": [
+      "@@ -1,7 +1,9 @@",
+      "@@ -48,6 +50,9 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [",
+      "@@ -57,7 +62,7 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', ["
+    ],
+    "diff": "05-9630/vs4ab/packages/protocol/src/chat.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "packages/protocol/src/bridge.ts",
+    "added_in4ab": 7,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -1,3 +1,5 @@",
+      "@@ -11,6 +13,11 @@ export type Unsubscribe = () => void;"
+    ],
+    "diff": "05-9630/vs4ab/packages/protocol/src/bridge.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "packages/protocol/src/ipc.ts",
+    "added_in4ab": 9,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -1,3 +1,9 @@",
+      "@@ -19,6 +25,9 @@ const NoResult = z.void();"
+    ],
+    "diff": "05-9630/vs4ab/packages/protocol/src/ipc.ts.patch"
+  },
+  {
+    "tree": "05-9630",
+    "path": "packages/protocol/src/index.ts",
+    "added_in4ab": 4,
+    "removed_from_source": 0,
+    "hunks": [
+      "@@ -8,3 +8,7 @@ export * from './task';"
+    ],
+    "diff": "05-9630/vs4ab/packages/protocol/src/index.ts.patch"
+  }
+]

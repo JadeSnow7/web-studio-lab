@@ -1,0 +1,16 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/chat-slot.ts b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/chat-slot.ts
+index 95027cf..458bfaa 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/chat-slot.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/chat-slot.ts
+@@ -1,10 +1,4 @@
+ import { z } from 'zod';
+ 
+-export const ChatSlotSchema = z.union([
+-  z.enum(['conv-personal-default', 'conv-space-taskflow-demo-impl']),
+-  z
+-    .string()
+-    .regex(/^session-[a-zA-Z0-9-]+$/)
+-    .max(200),
+-]);
++export const ChatSlotSchema = z.enum(['conv-personal-default', 'conv-space-taskflow-demo-impl']);
+ export type ChatSlot = z.infer<typeof ChatSlotSchema>;

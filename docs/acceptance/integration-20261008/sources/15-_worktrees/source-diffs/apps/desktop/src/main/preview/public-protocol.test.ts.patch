@@ -1,0 +1,52 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/preview/public-protocol.test.ts b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/main/preview/public-protocol.test.ts
+index 6df9026..fe70adc 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/preview/public-protocol.test.ts
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/main/preview/public-protocol.test.ts
+@@ -15,14 +15,7 @@ function setup(
+     removeListener: vi.fn(),
+   };
+   let epoch = 1;
+-  const options = {
+-    allowedOrigins: ['wsl-demo://taskflow'],
+-    webContentsId: 7,
+-    devToolsWebContentsId: () => 9,
+-    epoch: () => epoch,
+-    onDocument: vi.fn(),
+-    onError: vi.fn(),
+-  };
++  const options = { allowedOrigins: ['wsl-demo://taskflow'], webContentsId: 7, epoch: () => epoch, onDocument: vi.fn(), onError: vi.fn() };
+   const protocol = new PublicDocumentProtocol(session as unknown as Session, options, fetchDocument);
+   return {
+     session,
+@@ -59,31 +52,6 @@ describe('隔离公开文档协议', () => {
+     before({ url: 'https://example.com/', method: 'GET', resourceType: 'mainFrame', webContentsId: 7 }, callback);
+     expect(callback).toHaveBeenCalledWith({ cancel: false });
+   });
+-  it('allows only the owning DevTools bundled GET frontend, never another view or remote resource', () => {
+-    const { session } = setup();
+-    const before = session.webRequest.onBeforeRequest.mock.calls[0]![0] as (
+-      details: Record<string, unknown>,
+-      callback: (result: { cancel: boolean }) => void,
+-    ) => void;
+-    for (const [changed, allowed] of [
+-      [{}, true],
+-      [{ webContentsId: 8 }, false],
+-      [{ webContentsId: 7 }, false],
+-      [{ method: 'POST' }, false],
+-      [{ url: 'https://example.com/' }, false],
+-      [{ url: 'devtools://devtools/other/app.html' }, false],
+-      [{ url: 'devtools://other/bundled/app.html' }, false],
+-      [{ url: 'devtools://devtools/bundled/../other/app.html' }, false],
+-      [{ url: 'devtools://devtools/bundled/%2e%2e/other/app.html' }, false],
+-    ] as const) {
+-      const callback = vi.fn();
+-      before(
+-        { url: 'devtools://devtools/bundled/devtools_app.html', webContentsId: 9, method: 'GET', resourceType: 'mainFrame', ...changed },
+-        callback,
+-      );
+-      expect(callback).toHaveBeenCalledWith({ cancel: !allowed });
+-    }
+-  });
+   it('跳转先通知浏览器最终 URL，只有最终 URL 响应才能成为可捕获文档', async () => {
+     const document = extractPublicDocument(
+       Buffer.from('<title>Final</title><body>Final text</body>'),

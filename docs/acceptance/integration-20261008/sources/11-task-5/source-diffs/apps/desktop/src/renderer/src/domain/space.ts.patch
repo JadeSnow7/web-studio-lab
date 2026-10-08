@@ -1,0 +1,11 @@
+diff --git a/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/domain/space.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/domain/space.ts
+new file mode 100644
+index 0000000..a7e8196
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/domain/space.ts
+@@ -0,0 +1,5 @@
++/** 本版本只有一个可工作的空间：Browser 区加载演示页面的 TaskFlow 演示空间。 */
++export const DEMO_SPACE = {
++  id: 'taskflow-demo',
++  name: 'TaskFlow 演示空间',
++} as const;

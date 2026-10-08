@@ -1,0 +1,60 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/main/ipc.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/ipc.ts
+index bc27d6c..25fb73e 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/main/ipc.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/ipc.ts
+@@ -8,6 +8,7 @@ import {
+   type InvokeRequest,
+   type InvokeResponse,
+ } from '@wsl/protocol';
++import type { ChatService } from './chat-service';
+ import { getExecutionStatus } from './execution';
+ import { assertTrustedSender, type TrustedRenderer } from './ipc-guard';
+ import type { PreviewController } from './preview/controller';
+@@ -20,6 +21,7 @@ export interface IpcDeps {
+   window: BrowserWindow;
+   preview: PreviewController;
+   trusted: TrustedRenderer;
++  chat: ChatService;
+ }
+ 
+ function senderInfo(event: IpcMainInvokeEvent, window: BrowserWindow) {
+@@ -31,8 +33,12 @@ function senderInfo(event: IpcMainInvokeEvent, window: BrowserWindow) {
+   };
+ }
+ 
+-export function registerIpc({ window, preview, trusted }: IpcDeps): () => void {
++export function registerIpc({ window, preview, trusted, chat }: IpcDeps): () => void {
+   const handlers: Handlers = {
++    'resources:list': ({ spaceId }) => chat.resourcesList(spaceId),
++    'resources:capture': async ({ spaceId, expectedPage, resourceId }) =>
++      chat.resourcesSave(spaceId, await preview.captureResource(expectedPage), resourceId),
++    'resources:remove': ({ spaceId, resourceId }) => chat.resourcesRemove(spaceId, resourceId),
+     'preview:get-state': () => preview.getState(),
+     'preview:set-layout': (layout) => preview.setLayout(layout),
+     'preview:freeze': () => preview.freeze(),
+@@ -53,6 +59,16 @@ export function registerIpc({ window, preview, trusted }: IpcDeps): () => void {
+       arch: process.arch,
+       packaged: app.isPackaged,
+     }),
++    'chat:get-status': () => chat.status(),
++    'chat:get': ({ conversationId }) => chat.get(conversationId),
++    'chat:send': ({ conversationId, text }) => chat.send(conversationId, text),
++    'chat:cancel': ({ conversationId }) => chat.cancel(conversationId),
++    'chat:reset': ({ conversationId }) => chat.reset(conversationId),
++    'terminal:get': () => chat.terminalGet(),
++    'terminal:open': ({ cols, rows }) => chat.terminalOpen(cols, rows),
++    'terminal:write': ({ sessionId, data }) => chat.terminalWrite(sessionId, data),
++    'terminal:resize': ({ sessionId, cols, rows }) => chat.terminalResize(sessionId, cols, rows),
++    'terminal:close': ({ sessionId }) => chat.terminalClose(sessionId),
+     'execution:get-status': () => getExecutionStatus(),
+   };
+ 
+@@ -61,7 +77,7 @@ export function registerIpc({ window, preview, trusted }: IpcDeps): () => void {
+       assertTrustedSender(senderInfo(event, window), trusted);
+       const request = invokeChannels[channel].request.parse(raw);
+       const handler = handlers[channel] as (request: unknown) => unknown;
+-      return handler(request);
++      return Promise.resolve(handler(request)).then((result) => invokeChannels[channel].response.parse(result));
+     });
+   }
+   return () => {

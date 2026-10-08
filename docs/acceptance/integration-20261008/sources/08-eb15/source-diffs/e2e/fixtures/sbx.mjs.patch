@@ -1,0 +1,19 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/e2e/fixtures/sbx.mjs b/private/tmp/wsl-integration-sources/08-eb15/e2e/fixtures/sbx.mjs
+index e196c5a..e9176cd 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/e2e/fixtures/sbx.mjs
++++ b/private/tmp/wsl-integration-sources/08-eb15/e2e/fixtures/sbx.mjs
+@@ -56,6 +56,14 @@ rl.on('line', (line) => {
+       setInterval(() => emit({ type: 'item.completed', item: { id: 'late', type: 'agent_message', text: '迟到回复' } }), 200);
+       return;
+     }
++    if (prompt.includes('[delayed-complete]')) {
++      setTimeout(() => {
++        emit({ type: 'item.completed', item: { id: 'reply', type: 'agent_message', text: `fixture 回复：${prompt}` } });
++        emit({ type: 'turn.completed' });
++        finish();
++      }, 2000);
++      return;
++    }
+     if (prompt.includes('[cleanup-fail]')) {
+       frame({ type: 'exit', exitCode: 0 });
+       frame({ type: 'cleanup', ok: false, error: 'fixture 清理失败' });

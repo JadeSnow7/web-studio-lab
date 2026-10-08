@@ -1,0 +1,19 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/execution.ts b/private/tmp/wsl-integration-sources/00-primary/packages/protocol/src/execution.ts
+index 2175fb1..862cc69 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/execution.ts
++++ b/private/tmp/wsl-integration-sources/00-primary/packages/protocol/src/execution.ts
+@@ -1,9 +1,12 @@
+ import { z } from 'zod';
+ 
+-/** 固定比赛执行/验收状态与已集成 Runner 的说明；外部连接可用性由 ChatStatus 报告。 */
++/**
++ * 执行服务的接入状态。真实执行服务（T04）与 Codex CLI 通路（T02）接入之前，
++ * main 只报告 available=false 与原因，renderer 据此禁用真实执行入口。
++ */
+ export const HarnessStatusSchema = z.object({
+   name: z.literal('Codex CLI'),
+-  state: z.enum(['not_integrated', 'integrated', 'unverified', 'verified']),
++  state: z.enum(['not_integrated', 'unverified', 'verified']),
+   version: z.string().nullable(),
+   model: z.string().nullable(),
+ });

@@ -1,0 +1,101 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/ipc.ts b/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/main/ipc.ts
+index f356019..bc27d6c 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/ipc.ts
++++ b/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/main/ipc.ts
+@@ -1,4 +1,3 @@
+-import type { WorkbenchApplication } from './workbench/application';
+ import { app, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+ import {
+   INVOKE_CHANNEL_NAMES,
+@@ -9,9 +8,9 @@ import {
+   type InvokeRequest,
+   type InvokeResponse,
+ } from '@wsl/protocol';
+-import type { ChatService } from './chat-service';
+ import { getExecutionStatus } from './execution';
+ import { assertTrustedSender, type TrustedRenderer } from './ipc-guard';
++import type { PreviewController } from './preview/controller';
+ 
+ type Handlers = {
+   [C in InvokeChannel]: (request: InvokeRequest<C>) => Promise<InvokeResponse<C>> | InvokeResponse<C>;
+@@ -19,9 +18,8 @@ type Handlers = {
+ 
+ export interface IpcDeps {
+   window: BrowserWindow;
++  preview: PreviewController;
+   trusted: TrustedRenderer;
+-  chat: ChatService;
+-  workbench?: WorkbenchApplication;
+ }
+ 
+ function senderInfo(event: IpcMainInvokeEvent, window: BrowserWindow) {
+@@ -33,24 +31,19 @@ function senderInfo(event: IpcMainInvokeEvent, window: BrowserWindow) {
+   };
+ }
+ 
+-function assertLegacySession(id: string) {
+-  if (id !== 'conv-personal-default') throw new Error('会话必须通过所属空间任务用例访问');
+-}
+-
+-export function registerIpc({ window, trusted, chat, workbench }: IpcDeps): () => void {
++export function registerIpc({ window, preview, trusted }: IpcDeps): () => void {
+   const handlers: Handlers = {
+-    'workbench:reload': () => {
+-      if (!workbench) throw new Error('工作台服务不可用');
+-      return workbench.retryInitialization();
+-    },
+-    'workbench:get-snapshot': () => {
+-      if (!workbench) throw new Error('工作台服务不可用');
+-      return workbench.getSnapshot();
+-    },
+-    'workbench:command': (command) => {
+-      if (!workbench) throw new Error('工作台服务不可用');
+-      return workbench.command(command);
+-    },
++    'preview:get-state': () => preview.getState(),
++    'preview:set-layout': (layout) => preview.setLayout(layout),
++    'preview:freeze': () => preview.freeze(),
++    'preview:navigate': ({ url }) => preview.navigate(url),
++    'preview:reload': () => preview.reload(),
++    'preview:go-back': () => preview.goBack(),
++    'preview:go-forward': () => preview.goForward(),
++    'preview:focus': () => preview.focus(),
++    'preview:start-pick': () => preview.startPick(),
++    'preview:cancel-pick': () => preview.cancelPick(),
++    'preview:reattach-cdp': () => preview.reattachCdp(),
+     'app:get-info': () => ({
+       appVersion: app.getVersion(),
+       electron: process.versions.electron,
+@@ -60,23 +53,6 @@ export function registerIpc({ window, trusted, chat, workbench }: IpcDeps): () =
+       arch: process.arch,
+       packaged: app.isPackaged,
+     }),
+-    'chat:get-status': () => chat.status(),
+-    'chat:get': ({ conversationId }) => {
+-      assertLegacySession(conversationId);
+-      return chat.get(conversationId);
+-    },
+-    'chat:send': ({ conversationId, text }) => {
+-      assertLegacySession(conversationId);
+-      return chat.send(conversationId, text);
+-    },
+-    'chat:cancel': ({ conversationId }) => {
+-      assertLegacySession(conversationId);
+-      return chat.cancel(conversationId);
+-    },
+-    'chat:reset': ({ conversationId }) => {
+-      assertLegacySession(conversationId);
+-      return chat.reset(conversationId);
+-    },
+     'execution:get-status': () => getExecutionStatus(),
+   };
+ 
+@@ -85,7 +61,7 @@ export function registerIpc({ window, trusted, chat, workbench }: IpcDeps): () =
+       assertTrustedSender(senderInfo(event, window), trusted);
+       const request = invokeChannels[channel].request.parse(raw);
+       const handler = handlers[channel] as (request: unknown) => unknown;
+-      return Promise.resolve(handler(request)).then((result) => invokeChannels[channel].response.parse(result));
++      return handler(request);
+     });
+   }
+   return () => {

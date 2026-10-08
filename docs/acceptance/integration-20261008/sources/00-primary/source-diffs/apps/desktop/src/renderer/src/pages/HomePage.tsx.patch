@@ -1,0 +1,95 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/HomePage.tsx b/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/pages/HomePage.tsx
+index 8df8bc1..f55501d 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/HomePage.tsx
++++ b/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/pages/HomePage.tsx
+@@ -1,11 +1,11 @@
+ import { useState } from 'react';
+ import { Notice } from '../components/Badges';
+ import { Icon } from '../components/Icon';
++import { DEMO_SPACE } from '../domain/space';
+ import { useStore } from '../lib/store';
+ import { homeTarget } from '../state/drafts';
+ import { shellActions } from '../state/shell';
+-import { workspaceStore, switchWorkspace } from '../state/workspace';
+-import { ChatMessages } from '../shell/ChatMessages';
++import { workbenchStore } from '../state/workbench';
+ import { Composer } from '../shell/Composer';
+ 
+ type HomeMode = 'chat' | 'search' | 'open';
+@@ -17,17 +17,17 @@ const MODES: ReadonlyArray<{ mode: HomeMode; label: string }> = [
+ ];
+ 
+ const MODE_BLOCKED: Record<HomeMode, string> = {
+-  chat: 'Codex CLI 个人对话不附带空间或页面内容；应用内消息仅本次启动可见',
++  chat: '默认 Agent 尚未接入，本版本不发送；草稿保留在个人会话里',
+   search: '搜索尚未接入',
+   open: '从首页打开地址需要临时空间，尚未接入；请在空间的 Browser 区打开演示页面',
+ };
+ 
+ /** 首页：个人作用域的混合输入。它不读取任何空间，也不会向后台空间发送。 */
+-export function HomePage({ onCreateWorkspace }: { onCreateWorkspace?: () => void } = {}) {
++export function HomePage() {
+   const [mode, setMode] = useState<HomeMode>('chat');
+-  const snapshot = useStore(workspaceStore, (s) => s.snapshot);
++  const versions = useStore(workbenchStore, (s) => s.versions.length);
+   // 首页对话的接收方是个人默认 Agent，不是空间里的 Codex 会话，原因按模式说明。
+-  const blocked = mode === 'chat' ? null : MODE_BLOCKED[mode];
++  const blocked = MODE_BLOCKED[mode];
+ 
+   return (
+     <div className="home">
+@@ -46,7 +46,6 @@ export function HomePage({ onCreateWorkspace }: { onCreateWorkspace?: () => void
+           </span>
+           <span className="muted small">不读取其他空间</span>
+         </div>
+-        {mode === 'chat' ? <ChatMessages conversationId={'conv-personal-default'} /> : null}
+         <Composer
+           target={homeTarget()}
+           sendBlockedReason={blocked}
+@@ -60,33 +59,22 @@ export function HomePage({ onCreateWorkspace }: { onCreateWorkspace?: () => void
+       <section className="home-section" aria-label="近期空间">
+         <div className="row space-between">
+           <h2>近期空间</h2>
+-          <button className="btn btn-ghost" type="button" disabled={!onCreateWorkspace} onClick={onCreateWorkspace}>
+-            新建空间
++          <button type="button" className="btn btn-ghost" disabled title="新建空间尚未接入">
++            <Icon name="plus" size={13} /> 新建空间（尚未接入）
+           </button>
+         </div>
+         <div className="space-cards">
+-          {snapshot?.workspaces.map((workspace) => (
+-            <button
+-              type="button"
+-              className="space-card"
+-              key={workspace.workspaceId}
+-              onClick={() => {
+-                void switchWorkspace(workspace.workspaceId).then(() => {
+-                  if (workspaceStore.get().selectedId === workspace.workspaceId) shellActions.navigate('space');
+-                });
+-              }}
+-            >
+-              <span className="row space-between">
+-                <strong>{workspace.name}</strong>
+-                <span className="chip">继续工作</span>
+-              </span>
+-              <span className="muted small">
+-                任务版本数 {workspace.sessions.reduce((count, session) => count + session.taskVersions.length, 0)} · 运行{' '}
+-                {workspace.runs.length} · 标签 {workspace.tabs.length}
+-              </span>
+-            </button>
+-          ))}
+-          {!snapshot?.workspaces.length ? <p className="muted">尚无可用空间。</p> : null}
++          <button type="button" className="space-card" onClick={() => shellActions.navigate('space')}>
++            <span className="row space-between">
++              <strong>{DEMO_SPACE.name}</strong>
++              <span className="chip">继续工作</span>
++            </span>
++            <span className="muted small">Browser 区 · 演示页面 · 已确认任务 {versions} 个版本</span>
++          </button>
++          <div className="space-card space-card-placeholder">
++            <strong>推荐</strong>
++            <span className="muted small">[推荐内容待首页设计确定]</span>
++          </div>
+         </div>
+       </section>
+     </div>

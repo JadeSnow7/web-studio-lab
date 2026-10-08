@@ -1,0 +1,11 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/app.ts b/private/tmp/wsl-integration-sources/15-_worktrees/packages/protocol/src/app.ts
+index d42bd5d..accaae1 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/app.ts
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/packages/protocol/src/app.ts
+@@ -12,5 +12,5 @@ export const AppInfoSchema = z.object({
+ export type AppInfo = z.infer<typeof AppInfoSchema>;
+ 
+ /** 菜单与快捷键命令。主进程统一处理快捷键，焦点在 Browser 区页面时也能生效。 */
+-export const ShellCommandSchema = z.enum(['toggle-workshop', 'toggle-right-panel', 'toggle-focus-mode', 'focus-address', 'open-settings']);
++export const ShellCommandSchema = z.enum(['toggle-workshop', 'toggle-right-panel', 'focus-address', 'open-settings']);
+ export type ShellCommand = z.infer<typeof ShellCommandSchema>;

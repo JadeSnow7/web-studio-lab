@@ -1,0 +1,11 @@
+{
+  "command": "node --import tsx /private/tmp/wsl-vs001-verifier-probe.mts",
+  "result": {
+    "accepted": true,
+    "b03": "passed",
+    "identity": null,
+    "observationArtifact": false,
+    "rawCdp": false
+  },
+  "boundary": "Actual verifier exercised on synthetic evidence; not product acceptance. Temp evidence deleted in finally. Runner normal sequence unaffected."
+}

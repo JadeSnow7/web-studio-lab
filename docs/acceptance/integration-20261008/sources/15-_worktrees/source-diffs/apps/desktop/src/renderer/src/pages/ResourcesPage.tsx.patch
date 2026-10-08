@@ -1,0 +1,117 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/ResourcesPage.tsx b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/pages/ResourcesPage.tsx
+index 1a5f78a..675468d 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/ResourcesPage.tsx
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/pages/ResourcesPage.tsx
+@@ -1,40 +1,35 @@
+-import { useRef, useState } from 'react';
++import { useEffect, useRef, useState } from 'react';
+ import { Notice } from '../components/Badges';
++import { ResourceFeedback } from '../components/ResourceFeedback';
++import { DEMO_SPACE } from '../domain/space';
+ import { useStore } from '../lib/store';
+-import { workspaceStore, workspaceCommand, initializeWorkspace } from '../state/workspace';
+-import { shellActions } from '../state/shell';
++import { chatStore } from '../state/chat';
++import { previewStore } from '../state/preview';
++import { resourceActions, resourceMutationBlock, resourcesStore } from '../state/resources';
++import { shellActions, shellStore } from '../state/shell';
+ import { uiActions } from '../state/ui';
+ 
+ /** 仅显示服务保存的网页快照；演示样例不进入真实资源列表。 */
+ export function ResourcesPage() {
+-  const state = useStore(workspaceStore, (s) => s);
+-  const workspace = state.snapshot?.workspaces.find((w) => w.workspaceId === state.selectedId);
+-  const spaceId = workspace?.workspaceId ?? null;
+-  const resources = workspace?.publicResources;
+-  const [pending, setPending] = useState(false);
+-  const loading = !state.snapshot;
++  const scope = useStore(shellStore, (state) => state.activeScope);
++  const route = useStore(shellStore, (state) => state.route);
++  const spaceId = scope.kind === 'space' ? scope.spaceId : null;
++  const resources = useStore(resourcesStore, (state) => (spaceId ? state.collections[spaceId] : undefined));
++  const loading = useStore(resourcesStore, (state) => (spaceId ? state.loading[spaceId] : false));
++  const pending = useStore(resourcesStore, (state) => (spaceId ? state.pending[spaceId] : false));
++  const chat = useStore(chatStore, (state) => state);
++  const preview = useStore(previewStore, (state) => state);
+   const [selectedId, setSelectedId] = useState<string | null>(null);
+   const listHeading = useRef<HTMLHeadingElement>(null);
++  useEffect(() => {
++    if (route === 'resources' && spaceId) void resourceActions.load(spaceId);
++  }, [route, spaceId]);
+   const selected = resources?.resources.find((resource) => resource.resourceId === selectedId) ?? resources?.resources[0];
+-  const browser = workspace?.resources.find(
+-    (r) =>
+-      r.kind === 'web' && !!r.preview && !!selected && r.preview.page.url === selected.url && !r.preview.loading && !r.preview.loadError,
+-  );
+-  const block = workspace?.runs.some((r) => r.state === 'running' || r.state === 'cancelling' || r.state === 'starting')
+-    ? '任务运行或清理中，暂不能修改参考资源。'
+-    : spaceId !== 'taskflow-demo'
+-      ? '此空间尚未接入公开资源适配器。'
+-      : null;
+-  const matchingPage = !!browser;
+-  const openSpace = () => shellActions.navigate('space');
+-  const mutate = async (payload: Parameters<typeof workspaceCommand>[1]) => {
+-    if (!spaceId) return false;
+-    setPending(true);
+-    try {
+-      return (await workspaceCommand(spaceId, payload))?.ok ?? false;
+-    } finally {
+-      setPending(false);
+-    }
++  const block = spaceId ? resourceMutationBlock(chat, spaceId) : null;
++  const matchingPage = !!selected && preview?.page.url === selected.url && !preview.loading && !preview.loadError;
++  const openSpace = () => {
++    shellActions.navigate('space');
++    shellActions.setBrowserTab('preview');
+   };
+ 
+   return (
+@@ -44,7 +39,7 @@ export function ResourcesPage() {
+           <h1 ref={listHeading} tabIndex={-1}>
+             空间资源
+           </h1>
+-          <p className="muted small">{spaceId ? (workspace?.name ?? '未选择空间') : '个人作用域'}</p>
++          <p className="muted small">{spaceId ? DEMO_SPACE.name : '个人作用域'}</p>
+         </div>
+         <button type="button" className="btn" onClick={openSpace}>
+           打开空间页面
+@@ -61,12 +56,11 @@ export function ResourcesPage() {
+             <p className="muted small" role="status">
+               {loading ? '正在读取资源…' : `共 ${resources?.resources.length ?? 0} 条 · 集合版本 ${resources?.revision ?? 0}`}
+             </p>
+-            <button type="button" className="btn" disabled={loading || pending} onClick={() => void initializeWorkspace()}>
++            <button type="button" className="btn" disabled={loading || pending} onClick={() => void resourceActions.load(spaceId)}>
+               刷新列表
+             </button>
+           </div>
+-          {state.error ? <p role="alert">{state.error}</p> : null}
+-          {workspace?.publicResourcesError ? <p role="alert">公开资源刷新失败：{workspace.publicResourcesError}</p> : null}
++          <ResourceFeedback spaceId={spaceId} />
+           {block ? <Notice tone="warn">{block}</Notice> : null}
+           <div className="resource-list" aria-busy={loading || pending}>
+             {resources?.resources.length ? (
+@@ -154,10 +148,7 @@ export function ResourcesPage() {
+                   type="button"
+                   className="btn"
+                   disabled={pending || !!block || !matchingPage}
+-                  onClick={() => {
+-                    if (browser)
+-                      void mutate({ type: 'capturePublicResource', resourceId: browser.resourceId, savedResourceId: selected.resourceId });
+-                  }}
++                  onClick={() => void resourceActions.capture(spaceId, preview!.page, selected.resourceId)}
+                 >
+                   用当前页面更新
+                 </button>
+@@ -169,10 +160,10 @@ export function ResourcesPage() {
+                     const resource = selected;
+                     uiActions.openConfirm({
+                       title: '从空间移除网页',
+-                      description: `将“${resource.title || resource.url}”从 ${workspace?.name ?? '未选择空间'} 移除。下一轮空间会话将无法通过资源工具读取它；已有对话和 Agent 已保存的副本不会被删除。可重新打开网页加入空间。`,
++                      description: `将“${resource.title || resource.url}”从 ${DEMO_SPACE.name} 移除。下一轮空间会话将无法通过资源工具读取它；已有对话和 Agent 已保存的副本不会被删除。可重新打开网页加入空间。`,
+                       confirmLabel: '移除网页',
+                       onConfirm: async () => {
+-                        const removed = await mutate({ type: 'removePublicResource', savedResourceId: resource.resourceId });
++                        const removed = await resourceActions.remove(spaceId, resource.resourceId);
+                         if (removed) {
+                           setSelectedId(null);
+                           requestAnimationFrame(() => listHeading.current?.focus());

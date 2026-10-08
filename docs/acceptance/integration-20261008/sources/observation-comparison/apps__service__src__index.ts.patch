@@ -1,0 +1,18 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/service/src/index.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/index.ts
+index 8e9c56a..87f167f 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/service/src/index.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/index.ts
+@@ -57,7 +57,12 @@ const observation = new ObservationRouter(
+ if (process.env.WSL_OBSERVATION_ROOT)
+   observation.files.set(
+     'local',
+-    new FileObservationProvider({ workspaceId: 'taskflow-demo', environmentId: 'local', root: process.env.WSL_OBSERVATION_ROOT }),
++    new FileObservationProvider({
++      workspaceId: 'taskflow-demo',
++      environmentId: 'local',
++      root: process.env.WSL_OBSERVATION_ROOT,
++      onInvalidated: (hint) => send({ type: 'observation-invalidation', hint }),
++    }),
+   );
+ observation.terminals.set('sandbox', () => terminal.observation);
+ observation.terminals.set('local', () => localTerminal?.observation ?? null);

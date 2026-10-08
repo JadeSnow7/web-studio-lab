@@ -1,0 +1,78 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/workbench/application.test.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/workbench/application.test.ts
+index e5b0887..1adea0b 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/workbench/application.test.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/workbench/application.test.ts
+@@ -53,47 +53,6 @@ const conversation = (id: string, generation: string, seq: number, state: ChatCo
+   error: null,
+ });
+ describe('workbench authoritative commands', () => {
+-  it('restores business records from old snapshots while discarding per-space sidebar preferences', async () => {
+-    const { app, runtime } = await make();
+-    const initial = await app.getSnapshot();
+-    const session = initial.workspaces[0]?.sessions[0];
+-    if (!session) throw new Error('fixture session missing');
+-    await app.command({
+-      type: 'saveDraft',
+-      commandId: 'restore-draft',
+-      workspaceId: 'taskflow-demo',
+-      sessionId: session.sessionId,
+-      draft: '保留中文草稿',
+-    });
+-    await app.command({ type: 'setPreferences', commandId: 'restore-theme', workspaceId: 'taskflow-demo', theme: 'warm' });
+-    const expected = await app.getSnapshot();
+-    const file = path.join(await mkdtemp(path.join(os.tmpdir(), 'wsl-old-sidebar-')), 'state.json');
+-    const repository = new FileWorkbenchRepository(file);
+-    await writeFile(
+-      file,
+-      JSON.stringify({
+-        schemaVersion: 1,
+-        snapshot: {
+-          ...expected,
+-          workspaces: expected.workspaces.map((workspace) => ({ ...workspace, sidebarMode: 'hidden' })),
+-        },
+-      }),
+-    );
+-    const loaded = await repository.load();
+-    expect(loaded).toEqual(expected);
+-    expect(loaded?.workspaces[0]).not.toHaveProperty('sidebarMode');
+-    const restored = new WorkbenchApplication(repository, runtime, vi.fn());
+-    const workspace = (await restored.getSnapshot()).workspaces[0];
+-    expect(workspace?.tabs).toEqual(expected.workspaces[0]?.tabs);
+-    expect(workspace?.layout).toEqual(expected.workspaces[0]?.layout);
+-    expect(workspace?.resources.map((resource) => resource.resourceId)).toEqual(
+-      expected.workspaces[0]?.resources.map((resource) => resource.resourceId),
+-    );
+-    expect(workspace?.sessions[0]?.draft).toBe('保留中文草稿');
+-    expect(workspace?.theme).toBe('warm');
+-    await repository.save(await restored.getSnapshot());
+-    expect(await readFile(file, 'utf8')).not.toContain('sidebarMode');
+-  });
+   it('rejects stale draft revision and does not overwrite newer text', async () => {
+     const { app } = await make();
+     const w = (await app.getSnapshot()).workspaces[0];
+@@ -907,25 +866,4 @@ describe('workbench authoritative commands', () => {
+     expect(loaded.activeWorkspaceId).toBe('taskflow-demo');
+     expect(loaded.workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.tabs).toEqual(initialTabs);
+   });
+-  it('same-space session location retains native visibility; cross-space location hides old native views', async () => {
+-    const { app, runtime } = await make();
+-    const original = (await app.getSnapshot()).workspaces[0]!;
+-    await app.command({
+-      type: 'locateSession',
+-      workspaceId: original.workspaceId,
+-      commandId: crypto.randomUUID(),
+-      sessionId: original.sessions[0]!.sessionId,
+-    });
+-    expect(runtime.hideBrowsers).not.toHaveBeenCalled();
+-    const created = await app.command({ type: 'createWorkspace', workspaceId: 'other', commandId: 'other-location-test', name: 'Other' });
+-    if (!created.ok) throw new Error(created.error.message);
+-    vi.mocked(runtime.hideBrowsers).mockClear();
+-    await app.command({
+-      type: 'locateSession',
+-      workspaceId: original.workspaceId,
+-      commandId: crypto.randomUUID(),
+-      sessionId: original.sessions[0]!.sessionId,
+-    });
+-    expect(runtime.hideBrowsers).toHaveBeenCalledOnce();
+-  });
+ });

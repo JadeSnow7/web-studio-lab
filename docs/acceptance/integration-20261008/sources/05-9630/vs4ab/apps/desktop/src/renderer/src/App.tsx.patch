@@ -1,0 +1,20 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/App.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/App.tsx
+index a822476..4e23c8d 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/App.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/App.tsx
+@@ -1,3 +1,5 @@
++import { useEffect } from 'react';
++import { ROUTE_TITLES } from './shell/routes';
+ import { useStore } from './lib/store';
+ import { NARROW_BREAKPOINT, useViewportWidth } from './lib/viewport';
+ import { ConversationsPage } from './pages/ConversationsPage';
+@@ -19,6 +21,9 @@ import { uiStore } from './state/ui';
+  */
+ export function App() {
+   const route = useStore(shellStore, (s) => s.route);
++  useEffect(() => {
++    document.title = `${ROUTE_TITLES[route]} · Web Studio Lab`;
++  }, [route]);
+   const workshop = useStore(shellStore, (s) => s.workshop);
+   const rightOpen = useStore(shellStore, (s) => s.rightPanel.open);
+   const modalOpen = useStore(uiStore, (s) => s.modal !== null);

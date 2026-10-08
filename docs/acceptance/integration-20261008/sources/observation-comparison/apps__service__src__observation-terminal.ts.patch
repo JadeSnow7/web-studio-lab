@@ -1,0 +1,69 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/service/src/observation-terminal.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-terminal.ts
+index 8f8bdf8..cf3c125 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/service/src/observation-terminal.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-terminal.ts
+@@ -1,6 +1,20 @@
+ import { createHash, randomUUID } from 'node:crypto';
+ import { Terminal as HeadlessTerminal } from '@xterm/headless';
+ 
++/** Node's base64 decoder is permissive; shell metadata must be canonical UTF-8. */
++function decodeShellMetadata(value: string | undefined): string | null {
++  if (value === undefined || value.length > 16384 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value))
++    return null;
++  const bytes = Buffer.from(value, 'base64');
++  if (bytes.toString('base64') !== value) return null;
++  try {
++    const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
++    return text.includes('\0') ? null : text;
++  } catch {
++    return null;
++  }
++}
++
+ export interface TerminalResource {
+   workspaceId: string;
+   environmentId: string;
+@@ -64,14 +78,25 @@ export class TerminalObservation {
+     // Application OSC from our per-session bash rc. Metadata is self-reported data,
+     // never an authorization source; any process writing the PTY can imitate it.
+     this.vt.parser.registerOscHandler(777, (payload) => {
+-      const [tag, kind, value, directory] = payload.split(';');
++      const fields = payload.split(';');
++      const [tag, kind, value, directory] = fields;
+       if (tag !== 'wsl') return false;
+-      if ((kind === 'start' || kind === 'start_full') && value && value.length <= 16384) {
++      const invalidate = () => {
+         if (this.current) this.current.status = 'unknown';
+-        this.cwd = directory ? Buffer.from(directory, 'base64').toString('utf8') : null;
++        this.current = null;
++      };
++      if (kind === 'start' || kind === 'start_full') {
++        const command = decodeShellMetadata(value);
++        const cwd = directory === undefined ? null : decodeShellMetadata(directory);
++        if (fields.length !== 4 || !command || cwd === null) {
++          invalidate();
++          return true;
++        }
++        invalidate();
++        this.cwd = cwd;
+         this.current = {
+           commandId: randomUUID(),
+-          command: Buffer.from(value, 'base64').toString('utf8'),
++          command,
+           cwd: this.cwd,
+           startedAt: new Date().toISOString(),
+           endedAt: null,
+@@ -85,7 +110,12 @@ export class TerminalObservation {
+         this.commands.push(this.current);
+         this.commandsSeen++;
+         if (this.commands.length > 200) this.commands.shift();
+-      } else if (kind === 'end' && this.current && /^\d{1,3}$/.test(value ?? '')) {
++      } else if (kind === 'end') {
++        if (fields.length !== 3 || !/^(0|[1-9]\d{0,2})$/.test(value ?? '') || Number(value) > 255) {
++          invalidate();
++          return true;
++        }
++        if (!this.current) return true;
+         this.current.exitCode = Number(value);
+         this.current.status = 'completed';
+         this.current.endedAt = new Date().toISOString();

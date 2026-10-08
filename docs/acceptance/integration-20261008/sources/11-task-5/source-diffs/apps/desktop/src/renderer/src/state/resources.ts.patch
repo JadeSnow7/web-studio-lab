@@ -1,0 +1,109 @@
+diff --git a/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/state/resources.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/state/resources.ts
+new file mode 100644
+index 0000000..e3b6947
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/state/resources.ts
+@@ -0,0 +1,103 @@
++import type { PageIdentity, ResourceCollection, StudioApi } from '@wsl/protocol';
++import { createStore } from '../lib/store';
++import type { ChatState } from './chat';
++
++function resourceError(error: Error): string {
++  return error.message.replace(/^Error invoking remote method 'resources:(?:list|capture|remove)': (?:Error: )?/, '');
++}
++
++export interface ResourcesState {
++  collections: Readonly<Record<string, ResourceCollection>>;
++  loading: Readonly<Record<string, boolean>>;
++  pending: Readonly<Record<string, boolean>>;
++  errors: Readonly<Record<string, string | null>>;
++  notices: Readonly<Record<string, string | null>>;
++}
++
++export function createResourcesController(api: StudioApi['resources']) {
++  const store = createStore<ResourcesState>({ collections: {}, loading: {}, pending: {}, errors: {}, notices: {} });
++  const epochs = new Map<string, number>();
++  function receive(collection: ResourceCollection) {
++    store.set((state) => {
++      const previous = state.collections[collection.spaceId];
++      if (previous && previous.revision > collection.revision) return state;
++      return { ...state, collections: { ...state.collections, [collection.spaceId]: collection } };
++    });
++  }
++  async function mutate(spaceId: string, run: () => Promise<ResourceCollection>, success: (changed: boolean) => string) {
++    if (store.get().pending[spaceId]) return false;
++    epochs.set(spaceId, (epochs.get(spaceId) ?? 0) + 1);
++    store.set((state) => ({
++      ...state,
++      pending: { ...state.pending, [spaceId]: true },
++      errors: { ...state.errors, [spaceId]: null },
++      notices: { ...state.notices, [spaceId]: null },
++    }));
++    try {
++      const before = store.get().collections[spaceId]?.revision;
++      const result = await run();
++      receive(result);
++      store.set((state) => ({ ...state, notices: { ...state.notices, [spaceId]: success(before !== result.revision) } }));
++      return true;
++    } catch (error) {
++      store.set((state) => ({ ...state, errors: { ...state.errors, [spaceId]: resourceError(error as Error) } }));
++      return false;
++    } finally {
++      store.set((state) => ({ ...state, pending: { ...state.pending, [spaceId]: false } }));
++    }
++  }
++  const actions = {
++    async load(spaceId: string) {
++      if (store.get().loading[spaceId]) return;
++      const epoch = (epochs.get(spaceId) ?? 0) + 1;
++      epochs.set(spaceId, epoch);
++      store.set((state) => ({ ...state, loading: { ...state.loading, [spaceId]: true }, errors: { ...state.errors, [spaceId]: null } }));
++      try {
++        const result = await api.list(spaceId);
++        if (epochs.get(spaceId) === epoch) receive(result);
++      } catch (error) {
++        if (epochs.get(spaceId) === epoch) {
++          store.set((state) => ({ ...state, errors: { ...state.errors, [spaceId]: resourceError(error as Error) } }));
++        }
++      } finally {
++        store.set((state) => ({ ...state, loading: { ...state.loading, [spaceId]: false } }));
++      }
++    },
++    capture: (spaceId: string, page: PageIdentity, resourceId?: string) =>
++      mutate(
++        spaceId,
++        () => api.capture(spaceId, page, resourceId),
++        (changed) =>
++          changed
++            ? resourceId
++              ? '资源已更新；下一轮空间会话读取最新版本。'
++              : '网页已加入空间；下一轮空间会话可通过资源工具读取。'
++            : '该网页已在空间中，正文未变化。',
++      ),
++    remove: (spaceId: string, resourceId: string) =>
++      mutate(
++        spaceId,
++        () => api.remove(spaceId, resourceId),
++        () => '资源已移除；下一轮空间会话不再提供该资源。',
++      ),
++  };
++  return { store, actions };
++}
++
++const controller = createResourcesController({
++  list: (spaceId) => window.studio.resources.list(spaceId),
++  capture: (spaceId, page, resourceId) => window.studio.resources.capture(spaceId, page, resourceId),
++  remove: (spaceId, resourceId) => window.studio.resources.remove(spaceId, resourceId),
++});
++export const resourcesStore = controller.store;
++export const resourceActions = controller.actions;
++
++/** 权威检查仍在服务；这里提前说明当前空间的不可用原因。 */
++export function resourceMutationBlock(chat: ChatState, spaceId: string): string | null {
++  if (spaceId !== 'taskflow-demo') return '当前空间尚未接入网页资源。';
++  const id = 'conv-space-taskflow-demo-impl';
++  const conversation = chat.conversations[id];
++  if (chat.pending[id] || conversation?.state === 'running' || conversation?.state === 'cancelling' || conversation?.cleanupPending)
++    return '空间回复尚未完成清理，请先停止回复，再更改资源。';
++  return null;
++}

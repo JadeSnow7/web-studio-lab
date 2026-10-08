@@ -1,0 +1,66 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/SettingsPage.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
+index d6a379e..7b6b664 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
+@@ -2,14 +2,13 @@ import { Notice } from '../components/Badges';
+ import { useStore } from '../lib/store';
+ import { chatStore } from '../state/chat';
+ import { environmentStore } from '../state/execution';
+-import { workspaceStore, command } from '../state/workspace';
++import { shellActions, shellStore } from '../state/shell';
+ 
+ const CAPABILITIES = ['createSession', 'observeState', 'cancel', 'pause', 'resume', 'enforceScope'] as const;
+ 
+ export function SettingsPage() {
+   const env = useStore(environmentStore, (e) => e);
+-  const state = useStore(workspaceStore, (s) => s);
+-  const workspace = state.snapshot?.workspaces.find((w) => w.workspaceId === state.selectedId);
++  const pinned = useStore(shellStore, (s) => s.workshop.pinned);
+   const chat = useStore(chatStore, (state) => state.status);
+ 
+   return (
+@@ -30,19 +29,23 @@ export function SettingsPage() {
+         <p className="muted">本设备的应用行为与连接能力。账号资料由首页头像进入（尚未接入）。</p>
+ 
+         <h2 id="settings-appearance">外观与窗口</h2>
+-        <label className="field">
+-          空间主题 · {workspace?.name ?? '加载空间…'}
+-          <select
+-            disabled={!workspace}
+-            value={workspace?.theme ?? 'system'}
+-            onChange={(e) => void command({ type: 'setPreferences', theme: e.target.value as 'light' | 'dark' | 'warm' | 'system' })}
+-          >
+-            <option value="light">白</option>
+-            <option value="dark">暗</option>
+-            <option value="warm">暖</option>
+-            <option value="system">跟随系统</option>
+-          </select>
++        <fieldset className="field">
++          <legend>主题</legend>
++          <label className="check">
++            <input type="radio" name="theme" defaultChecked /> 极简白
++          </label>
++          <label className="check check-disabled">
++            <input type="radio" name="theme" disabled /> 暗黑（后续版本）
++          </label>
++          <label className="check check-disabled">
++            <input type="radio" name="theme" disabled /> 暖色（后续版本）
++          </label>
++        </fieldset>
++        <label className="check">
++          <input type="checkbox" checked={pinned} onChange={(e) => shellActions.setPinned(e.target.checked)} />
++          固定显示 Workshop（⌘B 只切换显隐，图钉单独控制固定）
+         </label>
++
+         <h2 id="settings-harness">连接与 Harness</h2>
+         <Notice tone="warn">{env.execution?.reason ?? '正在读取执行服务状态…'}</Notice>
+         <dl className="kv">
+@@ -59,7 +62,7 @@ export function SettingsPage() {
+           <dt>模型</dt>
+           <dd>由 Codex CLI 默认配置决定；连接检查不代表模型回复已验证</dd>
+         </dl>
+-        <Notice>{chat?.reason ?? '对话已连接；任务与检查状态请在具体会话中查看。'}</Notice>
++        <Notice>{chat?.reason ?? '对话已连接；任务执行服务仍未接入。'}</Notice>
+         <table className="table">
+           <thead>
+             <tr>

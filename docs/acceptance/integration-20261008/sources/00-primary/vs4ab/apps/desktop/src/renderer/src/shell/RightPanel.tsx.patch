@@ -1,0 +1,53 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/shell/RightPanel.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/shell/RightPanel.tsx
+index 2503aae..03434c4 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/shell/RightPanel.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/shell/RightPanel.tsx
+@@ -1,10 +1,10 @@
++import { ChatMessages } from './ChatMessages';
+ import { Composer } from './Composer';
+ import { DemoBadge, Notice } from '../components/Badges';
+ import { Icon } from '../components/Icon';
+-import { DEMO_CONTACTS, DEMO_FEED, DEMO_SPACE_MESSAGES } from '../demo/sampleData';
++import { DEMO_CONTACTS, DEMO_FEED } from '../demo/sampleData';
+ import { useStore } from '../lib/store';
+ import { spacePanelTarget } from '../state/drafts';
+-import { environmentStore } from '../state/execution';
+ import { shellActions, shellStore, type RightTab } from '../state/shell';
+ 
+ const TABS: ReadonlyArray<{ tab: RightTab; label: string }> = [
+@@ -19,7 +19,6 @@ export function sendBlockedReasonFor(reason: string | null | undefined): string
+ 
+ function SpaceTab() {
+   const scope = useStore(shellStore, (s) => s.activeScope);
+-  const execution = useStore(environmentStore, (e) => e.execution);
+   const target = spacePanelTarget(scope);
+   if (target.kind === 'none') {
+     return (
+@@ -39,24 +38,11 @@ function SpaceTab() {
+         <strong>
+           {target.conversation.scopeLabel} · {target.conversation.title}
+         </strong>
+-        <span className="muted">Codex CLI · 尚未接入</span>
+-      </div>
+-      <div className="message-list">
+-        <DemoBadge label="演示消息" />
+-        {DEMO_SPACE_MESSAGES.map((m) => (
+-          <div key={m.id} className={`message message-${m.author}`}>
+-            <p>{m.text}</p>
+-            <span>{m.meta}</span>
+-          </div>
+-        ))}
++        <span className="muted">Codex CLI · 对话</span>
+       </div>
++      <ChatMessages conversationId={target.conversation.id} />
+       <div className="panel-foot">
+-        <Composer
+-          target={target}
+-          sendBlockedReason={sendBlockedReasonFor(execution?.reason)}
+-          placeholder="补充要求…"
+-          harnessLabel="Codex CLI"
+-        />
++        <Composer target={target} sendBlockedReason={null} placeholder="补充要求…" harnessLabel="Codex CLI" />
+       </div>
+     </>
+   );

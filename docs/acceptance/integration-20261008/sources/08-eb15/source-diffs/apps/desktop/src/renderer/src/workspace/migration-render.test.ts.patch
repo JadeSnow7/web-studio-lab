@@ -1,0 +1,187 @@
+diff --git a/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/workspace/migration-render.test.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/workspace/migration-render.test.ts
+new file mode 100644
+index 0000000..bcfd59e
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/renderer/src/workspace/migration-render.test.ts
+@@ -0,0 +1,181 @@
++import { createElement } from 'react';
++import { renderToStaticMarkup } from 'react-dom/server';
++import { beforeEach, expect, it, vi } from 'vitest';
++import { WorkbenchSnapshotSchema } from '@wsl/protocol';
++import type * as StoreModule from '../lib/store';
++import { workspaceStore } from '../state/workspace';
++import { HomePage } from '../pages/HomePage';
++import { TasksPage } from '../pages/TasksPage';
++import { Browser } from './Browser';
++import { Session } from './Session';
++import { RunDetails } from './RunDetails';
++import { Notifications } from './Notifications';
++import { locationStore } from '../state/location';
++
++// Node has no DOM. Render the actual component tree against the frozen store;
++// this does not claim mounted interactions, effects, or native-window coverage.
++vi.mock('../lib/store', async (original) => {
++  const actual = await original<typeof StoreModule>();
++  return { ...actual, useStore: (store: { get(): unknown }, select: (state: unknown) => unknown) => select(store.get()) };
++});
++
++const snapshot = WorkbenchSnapshotSchema.parse({
++  appInstanceId: 'render-fixture',
++  activeWorkspaceId: 'actual-space',
++  storageError: null,
++  seq: 1,
++  workspaces: [
++    {
++      workspaceId: 'actual-space',
++      name: '真实空间742',
++      revision: 1,
++      tabs: [],
++      resources: [
++        {
++          resourceId: 'web',
++          kind: 'web',
++          title: '网页742',
++          url: null,
++          instanceId: null,
++          generation: 0,
++          preview: null,
++          terminal: null,
++          unavailableReason: null,
++        },
++      ],
++      layout: { kind: 'pane', paneId: 'pane', tabId: null },
++      activePaneId: 'pane',
++      sessions: [
++        {
++          sessionId: 'session',
++          resourceId: 'session-resource',
++          title: '会话742',
++          draft: '',
++          conversation: null,
++          context: null,
++          contextTarget: null,
++          taskTargetRef: null,
++          contextApplicability: 'unknown',
++          taskVersions: [
++            {
++              taskVersionId: 'version',
++              version: 1,
++              workspaceId: 'actual-space',
++              sessionId: 'session',
++              goal: '真实任务742',
++              targetRef: null,
++              capture: null,
++              confirmedAt: '2026-10-08T00:00:00Z',
++              acceptance: [],
++              allowedScopes: [],
++            },
++          ],
++        },
++      ],
++      runs: [
++        {
++          runId: 'run742',
++          workspaceId: 'actual-space',
++          sessionId: 'session',
++          taskVersionId: 'version',
++          targetRef: null,
++          state: 'completed',
++          startedAt: '2026-10-08T00:00:00Z',
++          endedAt: '2026-10-08T00:01:00Z',
++          error: null,
++          candidateId: 'candidate',
++          validation: { state: 'not_run', applicability: 'unknown', reason: null },
++          review: null,
++        },
++      ],
++      publicResources: null,
++      theme: 'light',
++      sidebarMode: 'pinned',
++    },
++  ],
++});
++beforeEach(() => {
++  workspaceStore.set(() => ({ snapshot, selectedId: 'actual-space', error: null }));
++  locationStore.set(() => ({ location: null, token: 0 }));
++});
++
++it('R7 actual HomePage renders authoritative workspace name and counts', () => {
++  const html = renderToStaticMarkup(createElement(HomePage));
++  expect(html).toContain('真实空间742');
++  expect(html).toMatch(/任务.*1/);
++  expect(html).toMatch(/运行.*1/);
++  expect(html).not.toContain('推荐内容待首页设计确定');
++});
++it('R1 actual TasksPage renders persisted task and run separate from demos', () => {
++  const html = renderToStaticMarkup(createElement(TasksPage));
++  expect(html).toContain('真实任务742');
++  expect(html).toContain('run742');
++  expect(html).toContain('演示记录');
++});
++it('R4 actual Browser renders single-pane association and capture actions', () => {
++  const workspace = snapshot.workspaces[0]!;
++  const html = renderToStaticMarkup(
++    createElement(Browser, { workspaceId: workspace.workspaceId, resource: workspace.resources[0]!, visible: true, occluded: false }),
++  );
++  expect(html).toContain('关联会话');
++  expect(html).toContain('会话742');
++  expect(html).toContain('采集到关联会话');
++});
++
++it('missing historical logs and real diff/report are explicit, never replaced by demos', () => {
++  const run = snapshot.workspaces[0]!.runs[0]!;
++  expect(renderToStaticMarkup(createElement(RunDetails, { run, view: 'log' }))).toContain('缺少可可靠归属');
++  expect(renderToStaticMarkup(createElement(RunDetails, { run, view: 'diff' }))).toContain('真实 diff 尚未记录');
++  expect(renderToStaticMarkup(createElement(RunDetails, { run, view: 'report' }))).toContain('真实检查报告尚未记录');
++});
++
++it('acceptance stays disabled unless fixed validation passed and current', () => {
++  const workspace = snapshot.workspaces[0]!;
++  locationStore.set(() => ({
++    token: 1,
++    location: { workspaceId: workspace.workspaceId, sessionId: 'session', runId: 'run742', view: 'checks' },
++  }));
++  const html = renderToStaticMarkup(createElement(Session, { workspace, session: workspace.sessions[0]! }));
++  expect(html).toContain('run742');
++  expect(html).toMatch(/<button[^>]*disabled=""[^>]*>接受结果<\/button>/);
++});
++
++it('notifications render exact identities and separate open/read commands', () => {
++  const value = WorkbenchSnapshotSchema.parse({
++    ...snapshot,
++    notifications: [
++      {
++        notificationId: 'notice',
++        workspaceId: 'actual-space',
++        sessionId: 'session',
++        taskVersionId: 'version',
++        runId: 'run742',
++        kind: 'completed',
++        occurredAt: '2026-10-08T00:01:00Z',
++        readAt: null,
++      },
++    ],
++  });
++  workspaceStore.set((s) => ({ ...s, snapshot: value }));
++  const html = renderToStaticMarkup(createElement(Notifications));
++  expect(html).toContain('data-run-id="run742"');
++  expect(html).toContain('未读');
++  expect(html).toContain('打开运行');
++  expect(html).toContain('标记已读');
++});
++
++it('opening an older task without a run never presents another version run', () => {
++  const workspace = structuredClone(snapshot.workspaces[0]!);
++  const session = workspace.sessions[0]!;
++  session.taskVersions[0]!.taskVersionId = 'old-version';
++  session.taskVersions.push({ ...session.taskVersions[0]!, taskVersionId: 'new-version', version: 2, goal: '较新版本' });
++  workspace.runs[0]!.taskVersionId = 'new-version';
++  locationStore.set(() => ({
++    token: 1,
++    location: { workspaceId: workspace.workspaceId, sessionId: session.sessionId, taskVersionId: 'old-version', view: 'task' },
++  }));
++  const html = renderToStaticMarkup(createElement(Session, { workspace, session }));
++  expect(html).toContain('真实任务742');
++  expect(html).not.toContain('run742');
++  expect(html).not.toContain('执行：completed');
++});

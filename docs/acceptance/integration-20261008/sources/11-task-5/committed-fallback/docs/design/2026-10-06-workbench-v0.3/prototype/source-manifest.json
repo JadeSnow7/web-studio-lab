@@ -1,0 +1,23 @@
+{
+  "scope": "Design prototype only; simulated data",
+  "files": {
+    "template.html": "9202dc62f1c890238c61dea9da9bb12a389ec939e5c67924c2194585fd9d6a2c",
+    "logic.js": "9ff3b0ff7292d7cead23273d1c89efa14155d2abf4eee057e888d5879910da6c",
+    "canvas.json": "e4e6616331a5ee2ea2e6d4e85828ee93d22128c0aafc95ac5b34671e9963e664",
+    "support.js": "3f160299989dc595cf434dac7b7f3e6fd20ed015a2d99e075c3eac09dffe0f10",
+    "generate.py": "06f7b450289eaa153882ab49ac1b6ff16f45091dc2a542a8af984845a91f7c7b",
+    "check.mjs": "7e1511a17ee71995d4a293514e2383ed7fbf09510622c1e035380c629e213b18",
+    "README.md": "f4f89b54c974b69a04192143194e679d1f841848e5af818605e73ca7f3587d0c",
+    "Conversations.dc.html": "1b8b4a767c89804dc7a78e165e78e53c2760aa2f38e691217fdbf6ce76950112",
+    "Home.dc.html": "e8340f643ff4eed0c09f396c4ada09fd9cfb58a2acfcfc9e0e5a196a5a809ac6",
+    "Main.dc.html": "ad3e6c76ecbd31d6264ccbbafbe85205d750cc839c973aa856dcda4aa7a7867f",
+    "Overlay.dc.html": "e6c77af92b824fda4949260fa71f04fb80974fab7fd0948394546e0c98be4ad9",
+    "Resources.dc.html": "c371a2bee8a172735efc69c777acd92d1c7aab69b85466096f20d40eec4c5701",
+    "RunCancel.dc.html": "7cb8ebe167a71622bd222644e537f78c8b8f969443a19f3632e0c91e127a307a",
+    "RunHistory.dc.html": "466c3034f5b2b8d216ab16144905a26e11e026f7e50fe4a305f5673c106c8eef",
+    "RunPassed.dc.html": "edd908b9f6f5f4669dfd8c750cff57fe3396903ffc66e4d898f28c696225a1fb",
+    "Settings.dc.html": "10823f9e864d23364c30a3931a5043a580448f5eb8763c1d833493b27af0e234",
+    "Space.dc.html": "f6833ea2081707d4796fb16585d705deadfa20d550261916c1fe80876e2f0530",
+    "Tasks.dc.html": "543e3916665f6aa9a7eef1b3ebb7ca50408ee3e1382a299a7613f11ce90e9090"
+  }
+}

@@ -1,0 +1,10 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/index.ts b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/index.ts
+index af2babd..93ac992 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/index.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/index.ts
+@@ -12,5 +12,3 @@ export * from './terminal';
+ export * from './resources';
+ 
+ export * from './guest-browser';
+-
+-export * from './workspace';

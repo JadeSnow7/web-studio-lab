@@ -1,0 +1,81 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/index.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/index.ts
+index 5b5378a..77e1316 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/index.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/index.ts
+@@ -1,14 +1,15 @@
+-import { WorkbenchApplication } from './workbench/application';
+-import { FileWorkbenchRepository } from './workbench/repository';
+-import { WorkbenchHost } from './workbench/host';
+ import path from 'node:path';
+ import { app, session, type BrowserWindow } from 'electron';
+ import { ChatService } from './chat-service';
+ import { registerIpc, sendToRenderer } from './ipc';
+ import { installAppMenu } from './menu';
+-import { registerDemoScheme } from './preview/demo-protocol';
++import { PreviewController } from './preview/controller';
++import { DEMO_HOME_URL, DEMO_ORIGIN, installDemoProtocol, registerDemoScheme } from './preview/demo-protocol';
+ import { createMainWindow, rendererSource } from './window';
+ 
++/** 演示页面使用的内存 session 分区，不落盘，与工作台默认 session 隔离。 */
++const PREVIEW_PARTITION = 'preview-demo';
++
+ registerDemoScheme();
+ 
+ function demoRoot(): string {
+@@ -24,24 +25,25 @@ function openWorkbench(): BrowserWindow {
+   const trusted = rendererSource();
+   const window = createMainWindow(trusted);
+ 
+-  let workbench: WorkbenchApplication | null = null;
++  const previewSession = session.fromPartition(PREVIEW_PARTITION);
++  denyAllPermissions(previewSession);
++  installDemoProtocol(previewSession, demoRoot());
++
++  const preview = new PreviewController(window, {
++    partition: PREVIEW_PARTITION,
++    homeUrl: DEMO_HOME_URL,
++    allowedOrigins: [DEMO_ORIGIN],
++    onState: (state) => sendToRenderer(window, 'preview:state', state),
++    onCaptured: (capture) => sendToRenderer(window, 'preview:captured', capture),
++  });
+   const chat = new ChatService(
+-    (conversation) => {
+-      sendToRenderer(window, 'chat:conversation', conversation);
+-      workbench?.onConversation(conversation);
+-    },
++    (conversation) => sendToRenderer(window, 'chat:conversation', conversation),
+     (status) => sendToRenderer(window, 'chat:status', status),
+-    (snapshot, resourceId) => {
+-      workbench?.onTerminal(resourceId, snapshot);
+-    },
+-  );
+-  const host = new WorkbenchHost(window, chat, demoRoot());
+-  workbench = new WorkbenchApplication(new FileWorkbenchRepository(path.join(app.getPath('userData'), 'workbench.json')), host, (event) =>
+-    sendToRenderer(window, 'workbench:event', event),
++    (snapshot) => sendToRenderer(window, 'terminal:state', snapshot),
+   );
+-  host.application = workbench;
+-  const unregisterIpc = registerIpc({ window, trusted, chat, workbench });
+-  installAppMenu(window, host);
++  const unregisterIpc = registerIpc({ window, preview, trusted, chat });
++  installAppMenu(window, preview);
++  preview.load();
+ 
+   // 窗口关闭前释放 Browser 区页面与 IPC 处理器。
+   let closing = false;
+@@ -53,13 +55,8 @@ function openWorkbench(): BrowserWindow {
+     closing = true;
+     void chat
+       .shutdown()
+-      .then(async () => {
+-        try {
+-          await workbench?.getSnapshot();
+-        } catch (error) {
+-          console.error('工作台状态不可读；guest清理已确认，继续关闭窗口', error);
+-        }
+-        host.dispose();
++      .then(() => {
++        preview.dispose();
+         unregisterIpc();
+         cleaned = true;
+         window.close();

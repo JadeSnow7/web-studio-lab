@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "runId": "78531515-547a-4d5e-a572-ff6efbf2a80b",
+  "taskSha256": "d3e338da7ff71fa7b69dbe778f9e50d1ea904079f359aaf8f3025b5c08180dcf",
+  "baseline": {
+    "sha256": "e6e980c11e0ac84baf26c52b5724a9a6706e3de480494aba549293425a2ab928",
+    "files": [
+      {
+        "path": "docs/acceptance/VS001.md",
+        "sha256": "6fadef2edeb1c7667464dcae582bf06d01258d3d1ab50a252bf94303fbcc4c9e"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/index.html",
+        "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/package.json",
+        "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/src/App.tsx",
+        "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/src/main.tsx",
+        "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "f9494aa9639637b438929aee8061429ea123879607d5ad63319f7a8e5eb9cd37"
+      },
+      {
+        "path": "package.json",
+        "sha256": "3cbd0373c13cd47dde064c1a1a60d3db5a9f804a57fea8c4f0f709de343d68d6"
+      },
+      {
+        "path": "tests/vertical-slice/cdp.ts",
+        "sha256": "08f7eb8bb48cb0f4cb344f25246e2f733df0019c06bd8a34611f8547ece85da0"
+      },
+      {
+        "path": "tests/vertical-slice/contracts.ts",
+        "sha256": "4f4e47294f2e2650db775a78674a85099e3a7da34e020045b945b63f58193e00"
+      },
+      {
+        "path": "tests/vertical-slice/evidence.ts",
+        "sha256": "271914a26af7ee8bb753dab93274c21ea8c3e7ef669d18532fb5c33a1351ee9f"
+      },
+      {
+        "path": "tests/vertical-slice/postcondition.ts",
+        "sha256": "20920d99eb9280ec6fd62a025eea6489ff893a863095cb977d4a52f4e3d5627c"
+      },
+      {
+        "path": "tests/vertical-slice/run.ts",
+        "sha256": "f335a3439e293372ab645810398644a1d211cec314c53982ee69a9316b5fdde4"
+      },
+      {
+        "path": "tests/vertical-slice/selftest.test.ts",
+        "sha256": "c63075c2b9edccaf4b79c9d8ea7aa1d2aaae9829a169cf39051e05be039e02bd"
+      },
+      {
+        "path": "tsconfig.json",
+        "sha256": "4a7a58e5cdf40cf08aee0aa74b4a60693c73232b4df58a7fad075788325c426a"
+      }
+    ]
+  },
+  "identity": null,
+  "startedAt": "2026-10-07T07:54:56.747Z",
+  "endedAt": "2026-10-07T07:54:56.788Z",
+  "checks": [
+    {
+      "id": "B01",
+      "status": "failed",
+      "performed": false,
+      "code": "target_missing",
+      "detail": "src/vertical-slice/adapter.ts does not exist"
+    },
+    {
+      "id": "B02",
+      "status": "failed",
+      "performed": false,
+      "code": "target_missing",
+      "detail": "src/vertical-slice/adapter.ts does not exist"
+    },
+    {
+      "id": "B03",
+      "status": "failed",
+      "performed": false,
+      "code": "target_missing",
+      "detail": "src/vertical-slice/adapter.ts does not exist"
+    },
+    {
+      "id": "B04",
+      "status": "failed",
+      "performed": false,
+      "code": "target_missing",
+      "detail": "src/vertical-slice/adapter.ts does not exist"
+    },
+    {
+      "id": "B05",
+      "status": "failed",
+      "performed": false,
+      "code": "target_missing",
+      "detail": "src/vertical-slice/adapter.ts does not exist"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "after/index.html",
+      "size": 200,
+      "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+    },
+    {
+      "path": "after/package.json",
+      "size": 121,
+      "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+    },
+    {
+      "path": "after/src/App.tsx",
+      "size": 104,
+      "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+    },
+    {
+      "path": "after/src/main.tsx",
+      "size": 202,
+      "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+    },
+    {
+      "path": "after-files.json",
+      "size": 540,
+      "sha256": "41542cfe2fc14022aa0aeb00141bda4c542f64b3ff60aa920db0dc4a3798dd07"
+    },
+    {
+      "path": "app.ndjson",
+      "size": 388,
+      "sha256": "8d3b5fa4d5064748cf84a9f9bc3031d28cbcc893b700488e7971270db969a0c3"
+    },
+    {
+      "path": "before/index.html",
+      "size": 200,
+      "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+    },
+    {
+      "path": "before/package.json",
+      "size": 121,
+      "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+    },
+    {
+      "path": "before/src/App.tsx",
+      "size": 104,
+      "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+    },
+    {
+      "path": "before/src/main.tsx",
+      "size": 202,
+      "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+    },
+    {
+      "path": "before-files.json",
+      "size": 540,
+      "sha256": "41542cfe2fc14022aa0aeb00141bda4c542f64b3ff60aa920db0dc4a3798dd07"
+    },
+    {
+      "path": "cdp.ndjson",
+      "size": 388,
+      "sha256": "8d3b5fa4d5064748cf84a9f9bc3031d28cbcc893b700488e7971270db969a0c3"
+    },
+    {
+      "path": "diff.json",
+      "size": 1433,
+      "sha256": "3f1f9b70f29c156cdf30e38cb303e63a5c58643e02b8970be2e3033c841dd1de"
+    },
+    {
+      "path": "environment.json",
+      "size": 3050,
+      "sha256": "dca322a48ff8b858cfd01f4bb18731f9bc0165977ac89f187c487e1ca2c4d7c5"
+    },
+    {
+      "path": "events.ndjson",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "harness.ndjson",
+      "size": 388,
+      "sha256": "8d3b5fa4d5064748cf84a9f9bc3031d28cbcc893b700488e7971270db969a0c3"
+    },
+    {
+      "path": "report.json",
+      "size": 1317,
+      "sha256": "a99e987f6e50983ce18c23f5eea06c7175d59272e5498ccd8d2c4a2aa7c04992"
+    },
+    {
+      "path": "runner.ndjson",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "task.json",
+      "size": 418,
+      "sha256": "d3e338da7ff71fa7b69dbe778f9e50d1ea904079f359aaf8f3025b5c08180dcf"
+    }
+  ]
+}

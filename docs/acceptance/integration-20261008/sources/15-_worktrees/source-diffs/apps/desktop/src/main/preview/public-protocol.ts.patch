@@ -1,0 +1,77 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/preview/public-protocol.ts b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/main/preview/public-protocol.ts
+index 6ce31d6..2eea64a 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/preview/public-protocol.ts
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/main/preview/public-protocol.ts
+@@ -5,29 +5,11 @@ import { fetchPublicDocument, parsePublicUrl, READER_HEADERS, renderReaderDocume
+ interface PublicProtocolOptions {
+   allowedOrigins: readonly string[];
+   webContentsId: number;
+-  devToolsWebContentsId(): number | undefined;
+   epoch(): number;
+   onDocument(document: PublicDocument, epoch: number): void;
+   onError(error: Error, url: string): void;
+ }
+ 
+-function isBundledDevToolsUrl(value: string): boolean {
+-  try {
+-    const url = new URL(value);
+-    return (
+-      url.href === value &&
+-      url.protocol === 'devtools:' &&
+-      url.hostname === 'devtools' &&
+-      !url.port &&
+-      !url.username &&
+-      !url.password &&
+-      url.pathname.startsWith('/bundled/')
+-    );
+-  } catch {
+-    return false;
+-  }
+-}
+-
+ /** 仅 Browser session 使用；远端响应永远不直接交给 Chromium。 */
+ export class PublicDocumentProtocol {
+   private sequence = 0;
+@@ -41,29 +23,19 @@ export class PublicDocumentProtocol {
+     private readonly options: PublicProtocolOptions,
+     private readonly fetchDocument = fetchPublicDocument,
+   ) {
+-    try {
+-      session.webRequest.onBeforeRequest((details, callback) => {
+-        if (details.webContentsId !== options.webContentsId) {
+-          // DevTools shares the isolated partition but only its own bundled frontend may bypass the document broker.
+-          const devTools =
+-            details.webContentsId === options.devToolsWebContentsId() && details.method === 'GET' && isBundledDevToolsUrl(details.url);
+-          return callback({ cancel: !devTools });
+-        }
+-        if (isAllowedPreviewUrl(details.url, options.allowedOrigins)) return callback({ cancel: details.method !== 'GET' });
+-        let allowed = details.resourceType === 'mainFrame' && details.method === 'GET';
+-        try {
+-          parsePublicUrl(details.url);
+-        } catch {
+-          allowed = false;
+-        }
+-        callback({ cancel: !allowed });
+-      });
+-      session.on('will-download', this.cancelDownload);
+-      session.protocol.handle('https', (request) => this.handle(request));
+-    } catch (error) {
+-      this.dispose();
+-      throw error;
+-    }
++    session.webRequest.onBeforeRequest((details, callback) => {
++      if (details.webContentsId !== options.webContentsId) return callback({ cancel: true });
++      if (isAllowedPreviewUrl(details.url, options.allowedOrigins)) return callback({ cancel: details.method !== 'GET' });
++      let allowed = details.resourceType === 'mainFrame' && details.method === 'GET';
++      try {
++        parsePublicUrl(details.url);
++      } catch {
++        allowed = false;
++      }
++      callback({ cancel: !allowed });
++    });
++    session.on('will-download', this.cancelDownload);
++    session.protocol.handle('https', (request) => this.handle(request));
+   }
+ 
+   invalidate(): void {

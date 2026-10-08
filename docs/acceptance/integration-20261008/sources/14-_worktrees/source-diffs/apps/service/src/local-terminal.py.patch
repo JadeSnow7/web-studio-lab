@@ -1,0 +1,140 @@
+diff --git a/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/local-terminal.py b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/local-terminal.py
+new file mode 100644
+index 0000000..78919ac
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/local-terminal.py
+@@ -0,0 +1,134 @@
++"""Owned local PTY transport. No network listener, no global shell configuration."""
++import base64, codecs, fcntl, json, os, pty, select, signal, struct, sys, tempfile, termios, time, subprocess
++
++def emit(value):
++    print(json.dumps(value), flush=True)
++
++def resize(fd, cols, rows):
++    if not (2 <= cols <= 500 and 1 <= rows <= 300):
++        raise ValueError("invalid terminal size")
++    fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
++
++# Do not mix TextIOWrapper.readline with os.read: readline can prefetch the
++# next input/close frame, making it invisible to the select loop below.
++start_line = bytearray()
++while True:
++    byte = os.read(sys.stdin.fileno(), 1)
++    if not byte:
++        raise ValueError('missing terminal start frame')
++    if byte == b'\n':
++        break
++    start_line.extend(byte)
++    if len(start_line) > 65536:
++        raise ValueError('terminal start frame too large')
++start = json.loads(start_line)
++shell = start['shell']
++if shell not in ('/bin/bash', '/bin/zsh'):
++    raise ValueError('unsupported local shell')
++with tempfile.TemporaryDirectory(prefix='wsl-shell-') as directory:
++    rc = os.path.join(directory, '.zshrc' if shell.endswith('zsh') else '.bashrc')
++    with open(rc, 'wb') as file:
++        file.write(base64.b64decode(start['rc'], validate=True))
++    pid, fd = pty.fork()
++    if pid == 0:
++        os.chdir(start['cwd'])
++        env = dict(os.environ)
++        env['TERM'] = 'xterm-256color'
++        if shell.endswith('zsh'):
++            env['ZDOTDIR'] = directory
++            argv = [shell, '-d', '-i']
++        else:
++            argv = [shell, '--noprofile', '--rcfile', rc, '-i']
++        os.execve(shell, argv, env)
++    resize(fd, start['cols'], start['rows'])
++    emit({'type': 'ready'})
++    decoder = codecs.getincrementaldecoder('utf8')('replace')
++    pending = b''
++    input_queue = b''
++    os.set_blocking(fd, False)
++    try:
++        alive = True
++        while alive:
++            ready, writable, _ = select.select([fd, sys.stdin.fileno()], [fd] if input_queue else [], [], 0.2)
++            if writable:
++                try:
++                    input_queue = input_queue[os.write(fd, input_queue):]
++                except BlockingIOError:
++                    pass
++            for source in ready:
++                if source == fd:
++                    try:
++                        data = os.read(fd, 65536)
++                    except OSError:
++                        alive = False
++                        break
++                    if not data:
++                        alive = False
++                        break
++                    emit({'type': 'output', 'data': decoder.decode(data)})
++                else:
++                    data = os.read(sys.stdin.fileno(), 65536)
++                    if not data:
++                        alive = False
++                        break
++                    pending += data
++                    if len(pending) > 1048576:
++                        raise ValueError('input queue overflow')
++                    while b'\n' in pending:
++                        line, pending = pending.split(b'\n', 1)
++                        message = json.loads(line)
++                        if message['type'] == 'input':
++                            value = message['data'].encode('utf8')
++                            if len(value) > 65536:
++                                raise ValueError('input too large')
++                            input_queue += value
++                            if len(input_queue) > 1048576:
++                                raise ValueError('PTY input queue overflow')
++                        elif message['type'] == 'resize':
++                            resize(fd, message['cols'], message['rows'])
++                        elif message['type'] == 'close':
++                            alive = False
++    finally:
++        # Closing the controlling terminal supplies a real hangup. Reap before
++        # signalling: macOS can report EPERM for an already gone process group.
++        def process_rows():
++            text = subprocess.check_output(['/bin/ps', '-axo', 'pid=,ppid=,stat='], text=True)
++            return [line.split() for line in text.splitlines() if line.strip()]
++        rows = process_rows()
++        owned = {pid}
++        for _ in range(32):
++            descendants = {int(row[0]) for row in rows if int(row[1]) in owned}
++            if descendants <= owned:
++                break
++            owned |= descendants
++        os.close(fd)
++        status = None
++        for sig in (None, signal.SIGTERM, signal.SIGKILL):
++            if sig is not None:
++                try:
++                    for member in owned:
++                        try:
++                            os.kill(member, sig)
++                        except ProcessLookupError:
++                            pass
++                except ProcessLookupError:
++                    pass
++                except PermissionError:
++                    pass
++            deadline = time.monotonic() + 0.8
++            while time.monotonic() < deadline:
++                if status is None:
++                    found, value = os.waitpid(pid, os.WNOHANG)
++                    if found:
++                        status = value
++                remaining = {int(row[0]) for row in process_rows() if int(row[0]) in owned and not row[2].startswith('Z')}
++                if status is not None and not remaining:
++                    break
++                time.sleep(0.02)
++            if status is not None and not remaining:
++                break
++        if status is None or remaining:
++            emit({'type': 'cleanup', 'ok': False})
++            raise RuntimeError('owned shell cleanup not confirmed')
++        emit({'type': 'exit', 'exitCode': os.waitstatus_to_exitcode(status)})
++        emit({'type': 'cleanup', 'ok': True})

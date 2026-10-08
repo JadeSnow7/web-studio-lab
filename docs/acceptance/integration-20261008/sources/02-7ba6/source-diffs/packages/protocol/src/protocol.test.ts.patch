@@ -1,0 +1,28 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/protocol.test.ts b/private/tmp/wsl-integration-sources/02-7ba6/packages/protocol/src/protocol.test.ts
+index 63636be..9150b2b 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/protocol.test.ts
++++ b/private/tmp/wsl-integration-sources/02-7ba6/packages/protocol/src/protocol.test.ts
+@@ -46,20 +46,11 @@ describe('IPC 通道 schema', () => {
+     expect(() => PreviewLayoutSchema.parse({ bounds: { x: 1.5, y: 0, width: 10, height: 10 }, visible: true })).toThrow();
+   });
+   it('无参数通道拒绝多余参数', () => {
+-    expect(() => invokeChannels['workbench:get-snapshot'].request.parse({ any: 1 })).toThrow();
+-    expect(invokeChannels['workbench:get-snapshot'].request.parse(undefined)).toBeUndefined();
++    expect(() => invokeChannels['preview:reload'].request.parse({ any: 1 })).toThrow();
++    expect(invokeChannels['preview:reload'].request.parse(undefined)).toBeUndefined();
+   });
+   it('导航地址长度受限', () => {
+-    expect(() =>
+-      invokeChannels['workbench:command'].request.parse({
+-        type: 'browserAction',
+-        commandId: 'nav',
+-        workspaceId: 'space',
+-        resourceId: 'web',
+-        action: 'navigate',
+-        url: 'x'.repeat(3000),
+-      }),
+-    ).toThrow();
++    expect(() => invokeChannels['preview:navigate'].request.parse({ url: 'x'.repeat(3000) })).toThrow();
+   });
+ });
+ 

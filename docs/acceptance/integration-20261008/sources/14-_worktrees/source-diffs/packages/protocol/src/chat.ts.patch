@@ -1,0 +1,80 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/chat.ts b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/chat.ts
+index 9ec2dfe..6d1b1a3 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/packages/protocol/src/chat.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/chat.ts
+@@ -1,3 +1,4 @@
++import { FileInvalidationHintSchema, ObservationRequestSchema, ObservationResultSchema } from './observation';
+ import { z } from 'zod';
+ import { TerminalOpenSchema, TerminalWriteSchema, TerminalResizeSchema, TerminalTargetSchema, TerminalSnapshotSchema } from './terminal';
+ 
+@@ -37,22 +38,36 @@ export const ChatConversationSchema = z.object({
+   cleanupPending: z.boolean(),
+   error: z.string().nullable(),
+ });
+-export const ChatSendSchema = z.object({ conversationId: ChatSlotSchema, text: z.string().trim().min(1).max(32000) });
++export const ChatContextSchema = z
++  .object({
++    focusedTab: z.string().max(64),
++    resourceId: z.string().max(200).nullable(),
++    selection: z.string().max(4000).optional(),
++    errorSummary: z.string().max(1000).optional(),
++    capturedAt: z.string().datetime(),
++    fileInvalidation: FileInvalidationHintSchema.optional(),
++  })
++  .strict();
++export type ChatContext = z.infer<typeof ChatContextSchema>;
++export const ChatSendSchema = z.object({
++  conversationId: ChatSlotSchema,
++  text: z.string().trim().min(1).max(32000),
++  context: ChatContextSchema.optional(),
++});
+ export const ChatTargetSchema = z.object({ conversationId: ChatSlotSchema });
+ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
++  z.object({ id: z.string(), method: z.literal('observation.call'), payload: ObservationRequestSchema }),
++  z.object({
++    id: z.string(),
++    method: z.literal('observation.result'),
++    payload: z.object({ callId: z.string(), result: ObservationResultSchema }),
++  }),
+   z.object({ id: z.string(), method: z.literal('status') }),
+-  z
+-    .object({
+-      id: z.string(),
+-      method: z.literal('register'),
+-      payload: z.object({ conversationId: ChatSlotSchema, workspaceId: z.string().min(1) }),
+-    })
+-    .strict(),
+   z.object({ id: z.string(), method: z.literal('get'), payload: ChatTargetSchema }),
+   z.object({ id: z.string(), method: z.literal('send'), payload: ChatSendSchema }),
+   z.object({ id: z.string(), method: z.literal('cancel'), payload: ChatTargetSchema }),
+   z.object({ id: z.string(), method: z.literal('reset'), payload: ChatTargetSchema }),
+-  z.object({ id: z.string(), method: z.literal('terminal.get'), resourceId: z.string().min(1) }),
++  z.object({ id: z.string(), method: z.literal('terminal.get') }),
+   z.object({ id: z.string(), method: z.literal('terminal.open'), payload: TerminalOpenSchema }),
+   z.object({ id: z.string(), method: z.literal('terminal.write'), payload: TerminalWriteSchema }),
+   z.object({ id: z.string(), method: z.literal('terminal.resize'), payload: TerminalResizeSchema }),
+@@ -63,13 +78,22 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
+   z.object({ id: z.string(), method: z.literal('shutdown') }),
+ ]);
+ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
++  z.object({ type: z.literal('observation-invalidation'), hint: FileInvalidationHintSchema }).strict(),
++  z.object({ type: z.literal('observation-request'), id: z.string(), request: ObservationRequestSchema }),
+   z.object({ type: z.literal('initialized'), status: ChatStatusSchema, cleanupPending: z.boolean() }),
+   z.object({ type: z.literal('event'), conversation: ChatConversationSchema }),
+-  z.object({ type: z.literal('terminal-event'), terminal: TerminalSnapshotSchema, resourceId: z.string().min(1) }),
++  z.object({ type: z.literal('terminal-event'), terminal: TerminalSnapshotSchema }),
+   z.object({
+     type: z.literal('response'),
+     id: z.string(),
+-    result: z.union([ChatStatusSchema, ChatConversationSchema, TerminalSnapshotSchema, ResourceCollectionSchema, z.null()]),
++    result: z.union([
++      ChatStatusSchema,
++      ChatConversationSchema,
++      TerminalSnapshotSchema,
++      ResourceCollectionSchema,
++      ObservationResultSchema,
++      z.null(),
++    ]),
+   }),
+   z.object({ type: z.literal('error'), id: z.string(), error: z.string() }),
+ ]);

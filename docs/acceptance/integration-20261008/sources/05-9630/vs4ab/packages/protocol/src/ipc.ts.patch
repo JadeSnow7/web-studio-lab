@@ -1,0 +1,24 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/packages/protocol/src/ipc.ts b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/ipc.ts
+index 505d463..2e57aed 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/packages/protocol/src/ipc.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/ipc.ts
+@@ -1,3 +1,9 @@
++import {
++  ResourceCollectionSchema,
++  ResourceListRequestSchema,
++  ResourceCaptureRequestSchema,
++  ResourceRemoveRequestSchema,
++} from './resources';
+ import { z } from 'zod';
+ import { TerminalOpenSchema, TerminalWriteSchema, TerminalResizeSchema, TerminalTargetSchema, TerminalSnapshotSchema } from './terminal';
+ import { AppInfoSchema, ShellCommandSchema } from './app';
+@@ -19,6 +25,9 @@ const NoResult = z.void();
+  * main 在边界用 request schema 校验参数，校验失败直接抛错。
+  */
+ export const invokeChannels = {
++  'resources:list': { request: ResourceListRequestSchema, response: ResourceCollectionSchema },
++  'resources:capture': { request: ResourceCaptureRequestSchema, response: ResourceCollectionSchema },
++  'resources:remove': { request: ResourceRemoveRequestSchema, response: ResourceCollectionSchema },
+   'preview:get-state': { request: NoArgs, response: PreviewStateSchema },
+   'preview:set-layout': { request: PreviewLayoutSchema, response: NoResult },
+   'preview:freeze': { request: NoArgs, response: PreviewFreezeResultSchema },

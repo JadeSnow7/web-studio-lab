@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "taskId": "VS001",
+  "runId": "78531515-547a-4d5e-a572-ff6efbf2a80b",
+  "instruction": "Change only src/App.tsx so the unique visible [data-testid=\"greeting\"] reads exactly Hello Web Studio. Use one real Agent harness session.",
+  "allowedPaths": [
+    "src/App.tsx"
+  ],
+  "initialText": "Hello baseline",
+  "expectedText": "Hello Web Studio",
+  "selector": "[data-testid=\"greeting\"]"
+}

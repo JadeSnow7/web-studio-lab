@@ -1,0 +1,11 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/state/preview.ts b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/state/preview.ts
+new file mode 100644
+index 0000000..61ef1ac
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/state/preview.ts
+@@ -0,0 +1,5 @@
++import type { PreviewState } from '@wsl/protocol';
++import { createStore } from '../lib/store';
++
++/** 主进程推送的 Browser 区状态镜像；null 表示还没有收到第一份状态。 */
++export const previewStore = createStore<PreviewState | null>(null);

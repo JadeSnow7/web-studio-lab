@@ -1,0 +1,60 @@
+diff --git a/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/domain/cases.ts b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/domain/cases.ts
+new file mode 100644
+index 0000000..61430e3
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/domain/cases.ts
+@@ -0,0 +1,54 @@
++import type { AllowedScope, CaseId } from '@wsl/protocol';
++
++/**
++ * 三个固定用例的意图与验收要点，文字取自任务计划第 6 节。
++ * 这里只用于在任务确认表单里预填；固定验收本身在 acceptance/（T03）里实现。
++ */
++export interface CasePreset {
++  id: CaseId;
++  label: string;
++  title: string;
++  goal: string;
++  allowedScopes: AllowedScope[];
++  acceptance: string[];
++}
++
++export const CASE_PRESETS: Record<CaseId, CasePreset> = {
++  c1: {
++    id: 'c1',
++    label: 'C1',
++    title: '新增持久化字段',
++    goal: '给任务增加 priority 字段，取值 low / medium / high，默认 medium；旧数据没有这个字段。',
++    allowedScopes: ['ui', 'api', 'db-migration', 'shared-types'],
++    acceptance: [
++      'priority 可以编辑并保存，API 返回一致',
++      '旧记录迁移后仍可读取，默认值为 medium',
++      '停止 API 并以同一数据目录冷启动后，值仍然保留（重启前不重新 seed）',
++    ],
++  },
++  c2: {
++    id: 'c2',
++    label: 'C2',
++    title: '修改权限规则',
++    goal: '把任务的修改权限收紧为只有 owner 可以修改。',
++    allowedScopes: ['ui', 'api'],
++    acceptance: ['A 修改自己的任务成功', 'B 直接请求 API 修改 A 的任务被拒绝，数据不变', 'UI 的错误提示与可用操作符合服务端结果'],
++  },
++  c3: {
++    id: 'c3',
++    label: 'C3',
++    title: '修复前后端字段不一致',
++    goal: '前端把截止日期读写为 deadline，固定契约字段是 dueDate。修复前端，使保存与展示都使用 dueDate。',
++    allowedScopes: ['ui', 'shared-types'],
++    acceptance: ['schema / 类型检查通过', '实际提交与 API 响应都使用 dueDate', '保存后 UI 正确展示截止日期，关键原流程无回归'],
++  },
++};
++
++export const CASE_ORDER: readonly CaseId[] = ['c1', 'c2', 'c3'];
++
++export const SCOPE_LABELS: Record<AllowedScope, string> = {
++  ui: '前端界面',
++  api: 'API 路由',
++  'db-migration': '数据库 schema 与迁移',
++  'shared-types': '共享类型 / 契约',
++};

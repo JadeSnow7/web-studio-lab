@@ -1,0 +1,31 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/resource_mcp.py b/private/tmp/wsl-integration-sources/15-_worktrees/apps/service/src/resource_mcp.py
+index a5d1f11..08ab43d 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/resource_mcp.py
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/service/src/resource_mcp.py
+@@ -81,24 +81,15 @@ def validate_guest_record(record):
+ 
+ def validate_bundle(bundle):
+     exact(bundle, BUNDLE_KEYS)
+-    conversation = bundle["conversationId"]
+     expected_space = {"conv-personal-default": None, "conv-space-taskflow-demo-impl": "taskflow-demo"}
+-    if not isinstance(conversation, str):
+-        raise ValueError("invalid conversation identity")
+-    if conversation in expected_space:
+-        allowed = bundle["spaceId"] == expected_space[conversation]
+-    else:
+-        # Dynamic ownership is registered by the host Runner; this sealed bundle carries only its finite resource capability.
+-        allowed = (len(conversation) <= 200 and re.fullmatch(r"session-[A-Za-z0-9-]+", conversation) is not None
+-                   and bundle["spaceId"] in (None, "taskflow-demo"))
+-    if not allowed:
++    if bundle["conversationId"] not in expected_space or bundle["spaceId"] != expected_space[bundle["conversationId"]]:
+         raise ValueError("conversation space mismatch")
+     for key in ("generation", "turnId"):
+         if not isinstance(bundle[key], str) or not 1 <= len(bundle[key]) <= 128:
+             raise ValueError("invalid turn identity")
+     integer(bundle["collectionRevision"])
+     records = bundle["resources"]
+-    if not isinstance(records, list) or len(records) > 16 or (bundle["spaceId"] is None and (records or bundle["collectionRevision"] != 0)):
++    if not isinstance(records, list) or len(records) > 16 or (bundle["spaceId"] is None and records):
+         raise ValueError("invalid resource collection")
+     seen = set()
+     for record in records:

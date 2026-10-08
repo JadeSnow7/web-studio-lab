@@ -1,0 +1,15 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/main/ipc.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/ipc.ts
+index 285b832..25fb73e 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/main/ipc.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/ipc.ts
+@@ -35,6 +35,10 @@ function senderInfo(event: IpcMainInvokeEvent, window: BrowserWindow) {
+ 
+ export function registerIpc({ window, preview, trusted, chat }: IpcDeps): () => void {
+   const handlers: Handlers = {
++    'resources:list': ({ spaceId }) => chat.resourcesList(spaceId),
++    'resources:capture': async ({ spaceId, expectedPage, resourceId }) =>
++      chat.resourcesSave(spaceId, await preview.captureResource(expectedPage), resourceId),
++    'resources:remove': ({ spaceId, resourceId }) => chat.resourcesRemove(spaceId, resourceId),
+     'preview:get-state': () => preview.getState(),
+     'preview:set-layout': (layout) => preview.setLayout(layout),
+     'preview:freeze': () => preview.freeze(),

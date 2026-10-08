@@ -1,0 +1,27 @@
+diff --git a/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/components/ResourceFeedback.tsx b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/components/ResourceFeedback.tsx
+new file mode 100644
+index 0000000..d479ff9
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/components/ResourceFeedback.tsx
+@@ -0,0 +1,21 @@
++import { useStore } from '../lib/store';
++import { resourcesStore } from '../state/resources';
++
++export function ResourceFeedback({ spaceId }: { spaceId: string }) {
++  const error = useStore(resourcesStore, (state) => state.errors[spaceId]);
++  const notice = useStore(resourcesStore, (state) => state.notices[spaceId]);
++  const pending = useStore(resourcesStore, (state) => state.pending[spaceId]);
++  return (
++    <div className="resource-feedback">
++      {error ? (
++        <p className="text-bad small" role="alert">
++          {error}。请检查页面或停止当前回复后重试。
++        </p>
++      ) : (
++        <p className="muted small" role="status">
++          {pending ? '正在更新空间资源…' : (notice ?? '')}
++        </p>
++      )}
++    </div>
++  );
++}

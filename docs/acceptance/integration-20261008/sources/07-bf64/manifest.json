@@ -1,0 +1,3876 @@
+{
+  "source": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "state": {
+    "head": "9e1df45d9ea42a9bf5df76a1babf451e5cafc530",
+    "status": "?? docs/acceptance/integration-20261008/sources/00-primary/manifest.json\n?? docs/acceptance/integration-20261008/sources/00-primary/working-tree.patch\n?? docs/acceptance/integration-20261008/sources/01-1799/manifest.json\n?? docs/acceptance/integration-20261008/sources/01-1799/working-tree.patch\n?? docs/acceptance/integration-20261008/sources/02-7ba6/manifest.json\n?? docs/acceptance/integration-20261008/sources/02-7ba6/working-tree.patch\n?? docs/acceptance/integration-20261008/sources/03-89a8/manifest.json\n?? docs/acceptance/integration-20261008/sources/03-89a8/working-tree.patch\n?? docs/acceptance/integration-20261008/sources/04-95ba/manifest.json\n?? docs/acceptance/integration-20261008/sources/04-95ba/working-tree.patch\n?? docs/acceptance/integration-20261008/sources/05-9630/manifest.json\n?? docs/acceptance/integration-20261008/sources/05-9630/working-tree.patch\n?? docs/acceptance/integration-20261008/sources/06-b8ac/manifest.json\n?? docs/acceptance/integration-20261008/sources/06-b8ac/working-tree.patch\n?? premium-audit.json\n",
+    "branch": "refs/heads/codex/space-remake-integration-20261008"
+  },
+  "entries": [
+    {
+      "path": ".gitignore",
+      "kind": "file",
+      "size": 474,
+      "sha256": "0f1c380a7a0547f96749e0fca3e8a6a72e0a333c7a377563185cf17733f712c2"
+    },
+    {
+      "path": ".nvmrc",
+      "kind": "file",
+      "size": 3,
+      "sha256": "68ca3fba3b7e864770cb61aeb306d4bd4354b68ab4dd38450860c5d823e42a53"
+    },
+    {
+      "path": ".prettierignore",
+      "kind": "file",
+      "size": 563,
+      "sha256": "3c9e4527d993994d06b9523f794b779b85d447721b1a9a2c9e9f5989a1677e5e"
+    },
+    {
+      "path": ".prettierrc.json",
+      "kind": "file",
+      "size": 73,
+      "sha256": "86f8a8cc11020b187cad1e427f2a4724e2e6de02da0db32055973fec27856fd2"
+    },
+    {
+      "path": "AGENTS.md",
+      "kind": "file",
+      "size": 3686,
+      "sha256": "d5a9fc3baddad1113b2027d8d2e727b9d8b1bd92e5a938f2de0c2c0eb038995e"
+    },
+    {
+      "path": "CLAUDE.md",
+      "kind": "file",
+      "size": 289,
+      "sha256": "4c10ee733641cbab06e54b2659a06b9dcbbd59882a80fbe1e3a562b0ade808ac"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "kind": "file",
+      "size": 13805,
+      "sha256": "272cc4d7f6bfed029095a07a5cc0ec688e29d42d4270545ae6ec65d2587ce9e6"
+    },
+    {
+      "path": "DESIGN.md",
+      "kind": "file",
+      "size": 3193,
+      "sha256": "523c7f5879fd4f0d475582ae4f7be5edddb2e57095bbd93f5164692c87427917"
+    },
+    {
+      "path": "LICENSE",
+      "kind": "file",
+      "size": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "README.md",
+      "kind": "file",
+      "size": 12425,
+      "sha256": "35f9c152be2c549c5cd175d461d0b5ad6412a810222144a2fae797d849eb4e5e"
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "kind": "file",
+      "size": 377,
+      "sha256": "7979dbebca3a30a04e492ea6e7c86138c329a0332e6e76f5795c6a6423d488d4"
+    },
+    {
+      "path": "UX-CONTRACT.md",
+      "kind": "file",
+      "size": 8115,
+      "sha256": "b18e85fd9d043fd3774fd149be2dc54c2ef70c270fc1542e9e84b76dd288cebd"
+    },
+    {
+      "path": "Web_Studio_macOS_Interaction_Design_v0.2.docx",
+      "kind": "file",
+      "size": 1907092,
+      "sha256": "fce4119c1eafda9d853f3448c570730548f5fba09e7e1e8ced4391c43437f410"
+    },
+    {
+      "path": "Web_Studio_macOS_Interaction_Design_v0.2.pdf",
+      "kind": "file",
+      "size": 2636669,
+      "sha256": "8d3d51fe5334fe84369141c38d9304d46b2c1abdc417837853d07fe27fd433fa"
+    },
+    {
+      "path": "apps/desktop/electron-builder.yml",
+      "kind": "file",
+      "size": 614,
+      "sha256": "7841df7ed916111dc87cef8364f66e2042c3523f33de3f8eee340bd22984ec0f"
+    },
+    {
+      "path": "apps/desktop/electron.vite.config.ts",
+      "kind": "file",
+      "size": 654,
+      "sha256": "9ce9bfe237b1b6724ae4179332cca8b0678d91e51bbece5b40cb74fd06003a7d"
+    },
+    {
+      "path": "apps/desktop/package.json",
+      "kind": "file",
+      "size": 1009,
+      "sha256": "41d28de2321c8855f05b37f64f4efa59be013ef3559f16fb2ce870f0e5abf397"
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.test.ts",
+      "kind": "file",
+      "size": 10507,
+      "sha256": "08993e27671dd01801e58d61b2430e8825eff28e7e829aeafbb1c1e091bbb18a"
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.ts",
+      "kind": "file",
+      "size": 10864,
+      "sha256": "f721242f8aede7a4408071d1f508980a13fa440f526abea31b0217ed0fae2992"
+    },
+    {
+      "path": "apps/desktop/src/main/execution.ts",
+      "kind": "file",
+      "size": 526,
+      "sha256": "e7cf28e9bedf9e681a6521ed81869d5db0ca721ff9277c8448d244ba53f27ed7"
+    },
+    {
+      "path": "apps/desktop/src/main/index.ts",
+      "kind": "file",
+      "size": 2888,
+      "sha256": "5edc0df451987fa1e5dbecb97f7a4bf40666e3bc6c79b6212e1e09c2891b4543"
+    },
+    {
+      "path": "apps/desktop/src/main/ipc-guard.test.ts",
+      "kind": "file",
+      "size": 1631,
+      "sha256": "6da49034cc222facee9e5cbf06398564a4ac0efd5f2fa6ce9bc07bfe6a446ff5"
+    },
+    {
+      "path": "apps/desktop/src/main/ipc-guard.ts",
+      "kind": "file",
+      "size": 1279,
+      "sha256": "0396cb78268324125b838b448efa1752295ac0e6839e2fc86b098fa22c76b721"
+    },
+    {
+      "path": "apps/desktop/src/main/ipc-resources.test.ts",
+      "kind": "file",
+      "size": 2940,
+      "sha256": "1115cf4359fd7d6f499b938613bcc80d758fd73e9da49104f37f6e27fa8898e5"
+    },
+    {
+      "path": "apps/desktop/src/main/ipc.ts",
+      "kind": "file",
+      "size": 3496,
+      "sha256": "3958a201109fd8798c19cd0fb13773ae1e876ba1312aac51f397c1dfee1c982f"
+    },
+    {
+      "path": "apps/desktop/src/main/menu.ts",
+      "kind": "file",
+      "size": 2761,
+      "sha256": "637c6e6e42595ea4b901d48af2f3b8ec3dab3ed32bd63d1ecd5d6e6175a71a79"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller-construction.test.ts",
+      "kind": "file",
+      "size": 2845,
+      "sha256": "55cbc2d41327340cc30a86eedad968fccbf054f1b38562470df5cc0a8a6d103f"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller-migration.test.ts",
+      "kind": "file",
+      "size": 7993,
+      "sha256": "6dd0b303bea7b098b62f4cd7b3332c0cc96eaead8cd58b0cd67f3944946bf25e"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller-resource.test.ts",
+      "kind": "file",
+      "size": 7590,
+      "sha256": "501b5f56eec207546030624a6645e6ae58a97afd75ac72623208265f5b3d5236"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller.ts",
+      "kind": "file",
+      "size": 18212,
+      "sha256": "2b3d94dc6a9bd7e7afaad717af942fa6c4142fb86f0a1ea51f93c4acfc94d9b1"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/demo-path.ts",
+      "kind": "file",
+      "size": 923,
+      "sha256": "d581238244a92090a894b4e01043ecb3b0c94401aa86962a518e7ba40b161df9"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/demo-protocol.ts",
+      "kind": "file",
+      "size": 1171,
+      "sha256": "ceae3bafa4fe8bddd1ee3b6d4e616d40ac25d13e9e36dffde28a01f8f1009cde"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/element-summary.ts",
+      "kind": "file",
+      "size": 3902,
+      "sha256": "0f283507467999c9bc7b628569a1e23c9fc7bfc191f56d19861abfe831eb59da"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/geometry.ts",
+      "kind": "file",
+      "size": 715,
+      "sha256": "6eb9e018c8fbf66517fff6307837b2bd610786e315c5c8e175aee709d6814479"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/navigation-policy.ts",
+      "kind": "file",
+      "size": 607,
+      "sha256": "279e8d3b7d823b2f422618d6b3b01d2e67ff8a704664ddb0cc09f32a67a339bd"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/preview-pure.test.ts",
+      "kind": "file",
+      "size": 2922,
+      "sha256": "7e2465f16387a54f6f9c4d7a721e462731c2839ac30293d726b625f0f2504acd"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/public-document.test.ts",
+      "kind": "file",
+      "size": 7345,
+      "sha256": "4f8ccd83d87c6caf0ff15e993d11e94297a6cac82ec530734c04b17052e77ae7"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/public-document.ts",
+      "kind": "file",
+      "size": 13551,
+      "sha256": "cbda5638430d2ec7d0d548f46656ee833edbf8c474e44a0290dc560beacc2b9a"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/public-protocol.test.ts",
+      "kind": "file",
+      "size": 5794,
+      "sha256": "7a8bcbf9ca8ebf311d048aa41db77b8c8119962f94c5c809efe283aff0d73712"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/public-protocol.ts",
+      "kind": "file",
+      "size": 4355,
+      "sha256": "d3d64abd988033c471e32b52a475ef99b8bcba1e92acc08fea87806a75f515ad"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/public-request.test.ts",
+      "kind": "file",
+      "size": 3206,
+      "sha256": "17cb215145d0676bee23d9652e3a3945e3e100eb2ff3b0d6e5115ae375e23d3d"
+    },
+    {
+      "path": "apps/desktop/src/main/window-close.test.ts",
+      "kind": "file",
+      "size": 2908,
+      "sha256": "778e35c65eeb73ca0d07c605049a0afacb16ad337c260090ce10c30d2d7bdb21"
+    },
+    {
+      "path": "apps/desktop/src/main/window.ts",
+      "kind": "file",
+      "size": 1603,
+      "sha256": "116b6375299c2c5a348d86e122b5d0c738448f837e3bff390786f3badc3ea776"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.test.ts",
+      "kind": "file",
+      "size": 38776,
+      "sha256": "a2bc59e335c691f629d93c7f2392433453c267e0e7d2fdc3d1d28ac26e33a297"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.ts",
+      "kind": "file",
+      "size": 51057,
+      "sha256": "4b46b8f6b04421e1f9dde894420c40741faa1ffc07538c3644f18b023d73decb"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/host-migration.test.ts",
+      "kind": "file",
+      "size": 5939,
+      "sha256": "caf93c563cbc15b8a8aaf1467976d53324de8ca682ef2c3c871dc0998bf3584a"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/host.ts",
+      "kind": "file",
+      "size": 5595,
+      "sha256": "c431cd9a217d29057002330714ff528056d396fcb99f7aaa9dc598e3ab230087"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/layout.test.ts",
+      "kind": "file",
+      "size": 1238,
+      "sha256": "601a0d3b4c7e51f328187e7afc299345450f9365ead290e2fb628c6c02049ad4"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/layout.ts",
+      "kind": "file",
+      "size": 2924,
+      "sha256": "c22f41b606d45023255fd83f34968f1e19d9e745bf52dab2f7769cb78d3390b0"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/migration-followup.test.ts",
+      "kind": "file",
+      "size": 5108,
+      "sha256": "07613928c74a7d42f61ed8aca6cb19b2a730396c689f59439b32779fcc972471"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/migration-regressions.test.ts",
+      "kind": "file",
+      "size": 8105,
+      "sha256": "d7f66e932191a198cf8777b385dee2508f6ba21944661d96dc67e55ff3c9619b"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/ports.ts",
+      "kind": "file",
+      "size": 1445,
+      "sha256": "0f527014f93efca39bcd7437c1c2ea31890194e02c6d743dacfd7538eb060b58"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+      "kind": "file",
+      "size": 5522,
+      "sha256": "01290cf6aba377d675afcdaaf660eb1a671d1b2fd398df7a67b72940f1dc7cc0"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/recovery-facts.test.ts",
+      "kind": "file",
+      "size": 4719,
+      "sha256": "7e0f20ce231c2dcf960057e31703be67eb2716681019270f5c43584c853ee8dc"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/repository.test.ts",
+      "kind": "file",
+      "size": 1016,
+      "sha256": "a205232ddee396fcabbde8fa4c62a3477ea1e47c4741c66a32ac0a80bd9efb9e"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/repository.ts",
+      "kind": "file",
+      "size": 1361,
+      "sha256": "23f83a6ffe098fa27c44eb621320ceaee2695af1512f8cfd0340275d0fa505cd"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/run-notification-migration.test.ts",
+      "kind": "file",
+      "size": 9156,
+      "sha256": "17c070aaf8787a862359f71e68b42bf73c89f9ffff3db20bbc55d29e39bb7222"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/runtime-outcomes.test.ts",
+      "kind": "file",
+      "size": 5982,
+      "sha256": "81b69c435cdb5259124667269e654e46970fcc74bcf9f2d2aaebffb62cbdb9e9"
+    },
+    {
+      "path": "apps/desktop/src/preload/index.ts",
+      "kind": "file",
+      "size": 2027,
+      "sha256": "cb9439a9253b6af91114c43eb4976bdf6767d299d0f1aa59d6cce743c3bbbf03"
+    },
+    {
+      "path": "apps/desktop/src/renderer/index.html",
+      "kind": "file",
+      "size": 472,
+      "sha256": "ebfc6571b1a6392618dcf472b1fe8723b189668920aeb46512bf154427420ab7"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/App.tsx",
+      "kind": "file",
+      "size": 5719,
+      "sha256": "2721549452278afbc7a8ab5e47db9075c56efb39c52c68f283077efd1939219a"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/components/Badges.tsx",
+      "kind": "file",
+      "size": 2926,
+      "sha256": "a3e823e99b0c966e09b84f10e892e58296f394ace0ee0d1a9d08ed60f43fabc2"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/components/Icon.tsx",
+      "kind": "file",
+      "size": 3380,
+      "sha256": "2902bbf018624e324119561defc0ae1bca394ecd438a0e6ada9853290aa1934c"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/demo/runScenarios.test.ts",
+      "kind": "file",
+      "size": 1526,
+      "sha256": "308e6075e51d724520501005334911c772abecfc565f57bfc2ea70c627469f80"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/demo/runScenarios.ts",
+      "kind": "file",
+      "size": 15120,
+      "sha256": "73a2ec49026d1cb9f9f5e430973fb8481bcf03c312a6692f82b4a6d4f5a501e8"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/demo/sampleData.ts",
+      "kind": "file",
+      "size": 2698,
+      "sha256": "ab6fb44b2573d3b72bfe2bc57ad3419578092a9811b31636976ca55fbc585a32"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/env.d.ts",
+      "kind": "file",
+      "size": 214,
+      "sha256": "2282dbcf21d3103170cf12e03c42db9f8bf859b32c3543b95b5e39e6b13f7d8f"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/lib/store.ts",
+      "kind": "file",
+      "size": 990,
+      "sha256": "9fc9a777c54c492c7d528099160c8ce090acf6dfa6d749d1541a4a457ef74066"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/lib/time.ts",
+      "kind": "file",
+      "size": 484,
+      "sha256": "2fbe5d3f9f1fdbd8787211cc4fa63fc022822c1509775184922e6a177125adb4"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/lib/viewport.ts",
+      "kind": "file",
+      "size": 317,
+      "sha256": "c00e62c37b6bf32e4fb5b7d2bdc1a5e02f87fbac62188218914a7d0d23758389"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/main.tsx",
+      "kind": "file",
+      "size": 789,
+      "sha256": "c2aaa4f03efc98e827bd09d17b8fede51a42906983b3793898c0477761472f25"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/ConversationsPage.tsx",
+      "kind": "file",
+      "size": 3590,
+      "sha256": "919f375b2342ad77ab86855bafa7b5ef20bb7b18d02ee48914ef717b71ab23d4"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/HomePage.tsx",
+      "kind": "file",
+      "size": 4041,
+      "sha256": "6967492e05a6d145ebf773110036a9dd6c1636314b4797df6f0ab57efbe1fbd9"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/ResourcesPage.tsx",
+      "kind": "file",
+      "size": 9213,
+      "sha256": "cf4d6032f7be85312e3170c9ea46ff3a839c5a63d5744bcd6a355f8624799690"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/SettingsPage.tsx",
+      "kind": "file",
+      "size": 4108,
+      "sha256": "096fa34e8bf8b86ef2c271d3b0ea5423cb042b3a282f8b7eadb77d7b9d16a68a"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/SpacePage.tsx",
+      "kind": "file",
+      "size": 10073,
+      "sha256": "faa02e7b52e781488d7dc7ff9200cf911d445a25705e733bee61ecf59866f648"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/pages/TasksPage.tsx",
+      "kind": "file",
+      "size": 4506,
+      "sha256": "ef1077948c1254cf2a949b4c2d66974c22e81469c02c92d27dc2415cbfaa7118"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/ChatMessages.tsx",
+      "kind": "file",
+      "size": 4132,
+      "sha256": "8fe2668ea8b7a1534da1bb8a213cd998af04a6893b158be9cfa7cc4a7b1000ba"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/Composer.tsx",
+      "kind": "file",
+      "size": 3315,
+      "sha256": "1b5bf7dfee111ba09d6c1d9db1d983ddbf678ce3f3c4cf009253fa8237525961"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/Overlays.tsx",
+      "kind": "file",
+      "size": 3556,
+      "sha256": "4496e9d20862340b521fa2f2d3e653bd07fe8f7d0c31bf0de347cd5a19401d83"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/RightPanel.tsx",
+      "kind": "file",
+      "size": 2837,
+      "sha256": "eb8e9788a95206bb94bbe415c845fbcfce3bca00d5bf35ff5d844838d09aed68"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/TitleBar.tsx",
+      "kind": "file",
+      "size": 2210,
+      "sha256": "9de3d0257d470cfd63aec4cc6e52f3e37745cbf09ac1955ef7d39a73da2753b6"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/Workshop.tsx",
+      "kind": "file",
+      "size": 5288,
+      "sha256": "27ea27a338da7fa9f5d10170f8909b76bb0e8f4eb61533dccb324a6900d242aa"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/shell/routes.ts",
+      "kind": "file",
+      "size": 659,
+      "sha256": "e7fa38e027a6cbce0f0fb6f6a1036fe35237d37aa473f07cb9a16edbfcbccf79"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/capture.test.ts",
+      "kind": "file",
+      "size": 8627,
+      "sha256": "4f322828b14d8abc8eec016d3959403b3030b069afd8b4fe46954fbc73c725fa"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/capture.ts",
+      "kind": "file",
+      "size": 2787,
+      "sha256": "9a021d6e45dd8db964ced3acd2d4629bb8c393998f46d6fcc39a6ce632166157"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/chat.test.ts",
+      "kind": "file",
+      "size": 1239,
+      "sha256": "360fc5e89e2156bd62fab9dc0d0355d76855887c7c1b8c31c901c39e7dfd674c"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/chat.ts",
+      "kind": "file",
+      "size": 3314,
+      "sha256": "dfbd69e1ee09c0fad72258cdcdefa76f1870658567dbe27eda1ed0057d7b46b4"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/drafts.test.ts",
+      "kind": "file",
+      "size": 1389,
+      "sha256": "3cf03b2b292e197199499c01185a28952a4a84b89f19f5559f060caa7d5ee6ea"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/drafts.ts",
+      "kind": "file",
+      "size": 1563,
+      "sha256": "70ac0a0a42bf320ec09becb85a89e1ce2cdb4725e7082e2cd3a86f835876e40b"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/errors.ts",
+      "kind": "file",
+      "size": 1096,
+      "sha256": "1367e2a74d80e41858138e9b828dc4653ef921fa15a22f3a2b6e4fd15907f8fe"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/execution.ts",
+      "kind": "file",
+      "size": 396,
+      "sha256": "2f4b12a63b1486878db922da3849f99e108454fc716da64cebfac3e62a0099a3"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/location.ts",
+      "kind": "file",
+      "size": 1200,
+      "sha256": "012370b22b44eca54fbba2a8bce18f7713fdc287c48c4cade9d53260319ed3a4"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/occlusion.test.ts",
+      "kind": "file",
+      "size": 1702,
+      "sha256": "89404233e339e82668e977321f2f33e022186318b7d3868739f57ea0b2f29bda"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/occlusion.ts",
+      "kind": "file",
+      "size": 1606,
+      "sha256": "2b5527977ed1a2e79d9345e41b345924dc13b2ce40c059fbb6ef1e3d4caedba9"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/panels.test.ts",
+      "kind": "file",
+      "size": 1586,
+      "sha256": "0a54ea2bac30b7537ae71099afa7623d3d7f42ae80ee5c9a0a697171ec1c6c5c"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/panels.ts",
+      "kind": "file",
+      "size": 1640,
+      "sha256": "d8333c930d806f6466645d708de486c6a95b2e724e04986bf16decc5751bcea4"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/shell.test.ts",
+      "kind": "file",
+      "size": 2093,
+      "sha256": "bf62e44d973558b75b7db3f428e0c4270e8a01b3d4901fcf8f133daabe1e21ae"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/shell.ts",
+      "kind": "file",
+      "size": 3761,
+      "sha256": "d051e0671bc13294fd6f636a7f3ab45ea4bfe6ff1e4acaa16cc82de71c8dc856"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/space-ui.ts",
+      "kind": "file",
+      "size": 2388,
+      "sha256": "ce0681b06e416b82cbc7cd03aff5807a1ad32a3900b2e2b67c09c3bae524c1ad"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/ui.ts",
+      "kind": "file",
+      "size": 915,
+      "sha256": "11f1a1179ea109acbb643b5b40814b518ef5b6f8d611a369b195c7f32c1b379d"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workspace.test.ts",
+      "kind": "file",
+      "size": 7638,
+      "sha256": "d850c0e6e18f8cd82714eeedebc352fd2feb2c10aca759c4f9a3a207c7d5e443"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workspace.ts",
+      "kind": "file",
+      "size": 5131,
+      "sha256": "477d2fa1db9d4b319233713d60ba873750f99e19e58d6ac7525680b0dcc1c33f"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/styles/app.css",
+      "kind": "file",
+      "size": 42108,
+      "sha256": "7033807a6a1409bbbdc3d49869b5880b9997e0149e1e04d8f7127a767520649d"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workbench/RunViews.tsx",
+      "kind": "file",
+      "size": 5324,
+      "sha256": "2c5375ade909fa2b1fec14648cadf9ff5f6eb771e268496303dd8569c480de1e"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Browser.tsx",
+      "kind": "file",
+      "size": 9471,
+      "sha256": "6ba369f49f5f21addfca38b06748d9a2537434c34e6ebf3ce79aae95b3eed804"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Notifications.tsx",
+      "kind": "file",
+      "size": 3090,
+      "sha256": "77c3bdca74e2a5b77eb4e73802e19229ee1152fcee96366869ad35b028279e9a"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Panes.tsx",
+      "kind": "file",
+      "size": 8779,
+      "sha256": "3cf992c9a6779e7c835f58ec958375c1eba6405d32bf9745f2de25ea5b9dc74a"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/RunDetails.tsx",
+      "kind": "file",
+      "size": 2179,
+      "sha256": "e15540830bd38e86ba4dd7b92dff43772f1c1fe4642199ad29f893efa03fb455"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Session.tsx",
+      "kind": "file",
+      "size": 21403,
+      "sha256": "775f2687424c28146a2df611a118349da224c63608248aa7a1d894a71f54b076"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Sidebar.tsx",
+      "kind": "file",
+      "size": 5668,
+      "sha256": "6571da65ed19241918ec3178fec64aa6abec66d5ad87354acd202e7dcb0c76e2"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/SpaceSwitcher.tsx",
+      "kind": "file",
+      "size": 5053,
+      "sha256": "c0da59b899b87d47305cc6d293bd8506dc0e9b5acaeae9954b05f41d09aa022d"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Terminal.tsx",
+      "kind": "file",
+      "size": 6517,
+      "sha256": "66a9720bb4909f387069bfd810856dee0587fdf837c475ceed23c4e149ac90f0"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/icons.ts",
+      "kind": "file",
+      "size": 283,
+      "sha256": "6718c3f6f7bed1f5ec2228a10640a7e64f58c9aa92f8ababdd2326bc9412e77a"
+    },
+    {
+      "path": "apps/desktop/tsconfig.node.json",
+      "kind": "file",
+      "size": 202,
+      "sha256": "c9af611604e6f0bf31eda4413b0946f38cd32cfe8c4d06475b05f71f7cd7db24"
+    },
+    {
+      "path": "apps/desktop/tsconfig.web.json",
+      "kind": "file",
+      "size": 243,
+      "sha256": "33095ddf246dff51dd177101a0d8bc18f1b5e2812645b478c28d2d690f2a0e93"
+    },
+    {
+      "path": "apps/service/package.json",
+      "kind": "file",
+      "size": 314,
+      "sha256": "483bcc7dbb3beec1bc2eb0e7aa2503989c1614d68e8b4f33b535e6411b48e3f8"
+    },
+    {
+      "path": "apps/service/src/codex-chat.test.ts",
+      "kind": "file",
+      "size": 6040,
+      "sha256": "fd1ef988d24456d1f6f3df2450476c8cbf9bf43dec571d5e7dbd432d74055bbc"
+    },
+    {
+      "path": "apps/service/src/codex-chat.ts",
+      "kind": "file",
+      "size": 16771,
+      "sha256": "1a7371fa6f08b0b6a8104ddbcdc008c5e1895af50aba43c26859bbcb89dfe8e9"
+    },
+    {
+      "path": "apps/service/src/fixtures/sbx.mjs",
+      "kind": "file",
+      "size": 2659,
+      "sha256": "87e6a477c3c414ac6c74f1cc8d0353722ad5f5e66419c8dc260db5cf2ca02893"
+    },
+    {
+      "path": "apps/service/src/guest-browser-bridge.test.ts",
+      "kind": "file",
+      "size": 6439,
+      "sha256": "7d5d3a00fd5bdf808eb669ed8ecf286d03476d42f97e9a62c942c6b4ad5d642e"
+    },
+    {
+      "path": "apps/service/src/guest-browser-bridge.ts",
+      "kind": "file",
+      "size": 8175,
+      "sha256": "48b2304f97ae250e0e859a498b99a948d7de32c99ddc35fc9b14b1a6d1f4fb4d"
+    },
+    {
+      "path": "apps/service/src/guest-browser.cjs",
+      "kind": "file",
+      "size": 38379,
+      "sha256": "6a30a638b48a85e890466e0acbb5359f1030b072847ed8edb2ab281c27bc357c"
+    },
+    {
+      "path": "apps/service/src/guest-browser.live.test.ts",
+      "kind": "file",
+      "size": 4933,
+      "sha256": "8b1f3a67c2fd796caa260a6d51c3b36aecb7c6ba0122601fc9a5e52511125995"
+    },
+    {
+      "path": "apps/service/src/guest-browser.test.ts",
+      "kind": "file",
+      "size": 26849,
+      "sha256": "a6d7106a4da490b75bd62dded4269f2d5140cd67d29c0a4c8dbb2fba8796804b"
+    },
+    {
+      "path": "apps/service/src/guest-helper.py",
+      "kind": "file",
+      "size": 10526,
+      "sha256": "9ab990f40e3873fc6e759c2dd4b41641d033f4f48f6f5c35d17564180466496d"
+    },
+    {
+      "path": "apps/service/src/index.ts",
+      "kind": "file",
+      "size": 5398,
+      "sha256": "943d9890b02b8ea4775776d26024cff9893f52cc154f02eb167b654b261a5cff"
+    },
+    {
+      "path": "apps/service/src/initialization-migration.test.ts",
+      "kind": "file",
+      "size": 3087,
+      "sha256": "cdd2e734aa6a3c89ae543540c58829adccbd9599ec17650e64121c5aebf1083b"
+    },
+    {
+      "path": "apps/service/src/raw.d.ts",
+      "kind": "file",
+      "size": 160,
+      "sha256": "10096924f4015474b776d9ebfe8ea9df35453b7bdffd56a532a7d42b35c6510e"
+    },
+    {
+      "path": "apps/service/src/resource-agent.live.test.ts",
+      "kind": "file",
+      "size": 4953,
+      "sha256": "6e0515b0bd41e004e3bd1016658ad5b28f34afa245cf45ab693e785815ff83a1"
+    },
+    {
+      "path": "apps/service/src/resource-chat.test.ts",
+      "kind": "file",
+      "size": 10323,
+      "sha256": "18678731a33a9af49518b4530e8c60dbb5cc342bc4917afb94c48ff290df160a"
+    },
+    {
+      "path": "apps/service/src/resource-dispatch.test.ts",
+      "kind": "file",
+      "size": 5765,
+      "sha256": "e19db9b331af6af2a36382718b5a161f0a4689e7122b85956cb251f7e8f5304b"
+    },
+    {
+      "path": "apps/service/src/resource-mcp.live.test.ts",
+      "kind": "file",
+      "size": 2430,
+      "sha256": "bac0948c1a9a98a3bb333a735c99cac64c19161c533071c4508d2bb9639a2225"
+    },
+    {
+      "path": "apps/service/src/resource-mcp.test.ts",
+      "kind": "file",
+      "size": 862,
+      "sha256": "6483e0ad7784a13d727e8cbecfebbbe4817a0d9a5d771bc60a416438353b6b1b"
+    },
+    {
+      "path": "apps/service/src/resource-store.test.ts",
+      "kind": "file",
+      "size": 12021,
+      "sha256": "067ec10a671f6040475ff896dd5b5fad6e4d42936434610257ec7716450e73ae"
+    },
+    {
+      "path": "apps/service/src/resource-store.ts",
+      "kind": "file",
+      "size": 6501,
+      "sha256": "d5b36648e07198b024a7033eb7bc23b2da9d5aba0ff1d85045739ecc5f5f1d8c"
+    },
+    {
+      "path": "apps/service/src/resource_mcp.py",
+      "kind": "file",
+      "size": 13744,
+      "sha256": "782f7085a0855e24422626ac93395d8fd38d9e8b72f8e3f10bd39c9397bdc3a0"
+    },
+    {
+      "path": "apps/service/src/resource_mcp_tests.py",
+      "kind": "file",
+      "size": 14900,
+      "sha256": "a38a252065c7f42bbc7b7e6eeb995a2cb0b778c107740b9e76fd730f7e56cf5d"
+    },
+    {
+      "path": "apps/service/src/sbx-contract.test.ts",
+      "kind": "file",
+      "size": 2730,
+      "sha256": "344255b65834e9c5d2ae1088a78dd31afb0d036fc7662f4d14d180dc14fb9df2"
+    },
+    {
+      "path": "apps/service/src/sbx.live.test.ts",
+      "kind": "file",
+      "size": 6528,
+      "sha256": "2d0d9ada8f81590964f853e466db71ccba445633154986af2667a2b78daaf2f5"
+    },
+    {
+      "path": "apps/service/src/sbx.test.ts",
+      "kind": "file",
+      "size": 5966,
+      "sha256": "bd2881c9cec0e574e3b59f3275a65af54012d64183bf5e84c5ea807c79e9fbd0"
+    },
+    {
+      "path": "apps/service/src/sbx.ts",
+      "kind": "file",
+      "size": 9241,
+      "sha256": "a4784f66c2bec661911f0bf8be80894410f407038246adbda9b54e42108c0557"
+    },
+    {
+      "path": "apps/service/src/terminal.ts",
+      "kind": "file",
+      "size": 3820,
+      "sha256": "c45f943fa64a0bc5f75084fce4dcee6f11a1a5d97e4e099b1e52d0f454455069"
+    },
+    {
+      "path": "apps/service/tsconfig.json",
+      "kind": "file",
+      "size": 147,
+      "sha256": "596c754cf51463a030b75194ebd91e3079acd17e19d3245294e309a65837b479"
+    },
+    {
+      "path": "apps/service/vite.config.ts",
+      "kind": "file",
+      "size": 517,
+      "sha256": "7b67c66de8086844c01a76f51d39b0b94fa31a20fbb88c9073e50b83161bccd2"
+    },
+    {
+      "path": "demo/README.md",
+      "kind": "file",
+      "size": 661,
+      "sha256": "5efbdb87720a85ca1ba057b4ca847e113fd1a4ec321325893f6bb7e3d26f142a"
+    },
+    {
+      "path": "demo/taskflow/app.js",
+      "kind": "file",
+      "size": 2398,
+      "sha256": "54e7ca232151c6e44fabc6a7bcd75fc10ee534c51006ebe027a9c3f6be6d04a9"
+    },
+    {
+      "path": "demo/taskflow/index.html",
+      "kind": "file",
+      "size": 1127,
+      "sha256": "1260e8a9dde196c26bc54f911b4a71f4d35010288c8e7e19931bd03aeaf89257"
+    },
+    {
+      "path": "demo/taskflow/members.html",
+      "kind": "file",
+      "size": 1343,
+      "sha256": "a2ff722567dcaced361ad1522217d4acd82ec667a3f371f01c2bd07b098879fb"
+    },
+    {
+      "path": "demo/taskflow/styles.css",
+      "kind": "file",
+      "size": 2716,
+      "sha256": "d0f8e00d9743dff7bf2b1937fa8b88f262d28af84aaf50d57d5f0323e4911283"
+    },
+    {
+      "path": "demo/taskflow/task.html",
+      "kind": "file",
+      "size": 730,
+      "sha256": "6dc700363ed008a1dc16a10f16f9de380c5cc6a204c8bcc46561db9e1086a0ed"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "kind": "file",
+      "size": 19950,
+      "sha256": "108a7ee5efbaac33bb2a8c7fab88f5925bf34377a8983fc606c1eef26d143df3"
+    },
+    {
+      "path": "docs/acceptance/README.md",
+      "kind": "file",
+      "size": 10068,
+      "sha256": "1c29ff60fad63f7c4d4e627b72955507e50dfcb53992371ec0f698cdf57fb0f9"
+    },
+    {
+      "path": "docs/acceptance/VS001.md",
+      "kind": "file",
+      "size": 8915,
+      "sha256": "6fadef2edeb1c7667464dcae582bf06d01258d3d1ab50a252bf94303fbcc4c9e"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/baseline.json",
+      "kind": "file",
+      "size": 128,
+      "sha256": "5ecffb4c49752c0bcee95e0ed245fd672d7e86c1614fd3b3f6aa9da9a22a42e2"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/baseline.stderr.txt",
+      "kind": "file",
+      "size": 191,
+      "sha256": "638fe3e467d58be677160f7815b86f90d1721ed2592a3b6fd20f2e8d0c1afa2f"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/baseline.stdout.txt",
+      "kind": "file",
+      "size": 489,
+      "sha256": "8635ad2b8610a72fbe8ce53060bfeee19029f873051227ac4fd25f03a7f9ce14"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/regression-before-fix.json",
+      "kind": "file",
+      "size": 137,
+      "sha256": "11f6d969daf5793c0323a738f1228f4c95b8c19fc2269fe4eec5bc74b47e778a"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/regression-before-fix.stderr.txt",
+      "kind": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/regression-before-fix.stdout.txt",
+      "kind": "file",
+      "size": 2337,
+      "sha256": "fdad25b012acfa417ff4f3e3c4058e191599bfd7e4fe7923e73a0f9807a217b1"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/selftest.json",
+      "kind": "file",
+      "size": 137,
+      "sha256": "3e1fc318e8e9bdfdb162916e87e1212281bf0c98ffa79e65c9006a4b4113ac7c"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/selftest.stderr.txt",
+      "kind": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/selftest.stdout.txt",
+      "kind": "file",
+      "size": 1183,
+      "sha256": "5aa9555ccd52592e48f923b1214295ad0ac490b39ccaa51fc8740b9cc291b68f"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck-probe-invalid-adapter.json",
+      "kind": "file",
+      "size": 129,
+      "sha256": "589df5712e51545352b48ab4b2a37eb030f501f66bfd05ffa4fb811d253302ea"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck-probe-invalid-adapter.stderr.txt",
+      "kind": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck-probe-invalid-adapter.stdout.txt",
+      "kind": "file",
+      "size": 364,
+      "sha256": "078d258afdcba186522beb9f16c964d338bdb878274f37c81f848672a17b2b98"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck-probe-invalid-tsx.json",
+      "kind": "file",
+      "size": 129,
+      "sha256": "f5e5aa4a621f4c4ed3776e7b9bb0263ab813b1b2639a29e861a2cbb283e8dbba"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck-probe-invalid-tsx.stderr.txt",
+      "kind": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck-probe-invalid-tsx.stdout.txt",
+      "kind": "file",
+      "size": 181,
+      "sha256": "1e63c244dab29d10eed2969c876b8a36a14480654073587397fde44b7f6cd752"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck-probe-valid.json",
+      "kind": "file",
+      "size": 129,
+      "sha256": "c7792c4c5a6a185216dda98cacf47dfd054a3587d0b9d1db64ae6889097a95b6"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck-probe-valid.stderr.txt",
+      "kind": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck-probe-valid.stdout.txt",
+      "kind": "file",
+      "size": 95,
+      "sha256": "bbeaa029972876d145fcba85a48a91b61c75d0e93b21a3e43a3ca9a26dcb6dc4"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck.json",
+      "kind": "file",
+      "size": 129,
+      "sha256": "48acbe10108275bfde5df0f50d7435833acff0f741d8c87c91b233f14aae728c"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck.stderr.txt",
+      "kind": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck.stdout.txt",
+      "kind": "file",
+      "size": 95,
+      "sha256": "bbeaa029972876d145fcba85a48a91b61c75d0e93b21a3e43a3ca9a26dcb6dc4"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/receipt.json",
+      "kind": "file",
+      "size": 4376,
+      "sha256": "8bf8684386f13b98c42cea2a27c41834abc5fea099ff661374b16fad5dd2fa2d"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/after-files.json",
+      "kind": "file",
+      "size": 540,
+      "sha256": "41542cfe2fc14022aa0aeb00141bda4c542f64b3ff60aa920db0dc4a3798dd07"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/after/index.html",
+      "kind": "file",
+      "size": 200,
+      "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/after/package.json",
+      "kind": "file",
+      "size": 121,
+      "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/after/src/App.tsx",
+      "kind": "file",
+      "size": 104,
+      "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/after/src/main.tsx",
+      "kind": "file",
+      "size": 202,
+      "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/app.ndjson",
+      "kind": "file",
+      "size": 388,
+      "sha256": "8d3b5fa4d5064748cf84a9f9bc3031d28cbcc893b700488e7971270db969a0c3"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/before-files.json",
+      "kind": "file",
+      "size": 540,
+      "sha256": "41542cfe2fc14022aa0aeb00141bda4c542f64b3ff60aa920db0dc4a3798dd07"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/before/index.html",
+      "kind": "file",
+      "size": 200,
+      "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/before/package.json",
+      "kind": "file",
+      "size": 121,
+      "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/before/src/App.tsx",
+      "kind": "file",
+      "size": 104,
+      "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/before/src/main.tsx",
+      "kind": "file",
+      "size": 202,
+      "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/cdp.ndjson",
+      "kind": "file",
+      "size": 388,
+      "sha256": "8d3b5fa4d5064748cf84a9f9bc3031d28cbcc893b700488e7971270db969a0c3"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/diff.json",
+      "kind": "file",
+      "size": 1433,
+      "sha256": "3f1f9b70f29c156cdf30e38cb303e63a5c58643e02b8970be2e3033c841dd1de"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/environment.json",
+      "kind": "file",
+      "size": 3050,
+      "sha256": "dca322a48ff8b858cfd01f4bb18731f9bc0165977ac89f187c487e1ca2c4d7c5"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/events.ndjson",
+      "kind": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/harness.ndjson",
+      "kind": "file",
+      "size": 388,
+      "sha256": "8d3b5fa4d5064748cf84a9f9bc3031d28cbcc893b700488e7971270db969a0c3"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/manifest.json",
+      "kind": "file",
+      "size": 6255,
+      "sha256": "1aa8af00d1f6028b60286e3912f44218f781ae286fed0253b14df59ca8cce5c8"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/report.json",
+      "kind": "file",
+      "size": 1317,
+      "sha256": "a99e987f6e50983ce18c23f5eea06c7175d59272e5498ccd8d2c4a2aa7c04992"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/runner.ndjson",
+      "kind": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/task.json",
+      "kind": "file",
+      "size": 418,
+      "sha256": "d3e338da7ff71fa7b69dbe778f9e50d1ea904079f359aaf8f3025b5c08180dcf"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/commands/baseline.json",
+      "kind": "file",
+      "size": 177,
+      "sha256": "ddb3c0f9b4481f77743f1331ac8579a07b0cc22a7d738f876bd04b7131334716"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/commands/baseline.stderr.txt",
+      "kind": "file",
+      "size": 191,
+      "sha256": "f52ad3632037e3c950aacb3a2cc641cf0ff8edfd755109a3162c358d48ed9010"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/commands/baseline.stdout.txt",
+      "kind": "file",
+      "size": 556,
+      "sha256": "34a1971b7b2e5342db2de15d7ce416876fba69a9ee3d1915941d7e2ee7497171"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/commands/selftest.json",
+      "kind": "file",
+      "size": 186,
+      "sha256": "77dc0a827d338915062c2665d972960832c86482b1527ded1b294ba4fdf122c7"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/commands/selftest.stderr.txt",
+      "kind": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/commands/selftest.stdout.txt",
+      "kind": "file",
+      "size": 921,
+      "sha256": "b686f3dc92e2d76511c45958999984c9156447ff3a2212ad0dc6899385e5a829"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/commands/typecheck.json",
+      "kind": "file",
+      "size": 178,
+      "sha256": "453439e4e056d9630ba78e5bffcceb8550c07c8ed419f7be9dbee8598cdab883"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/commands/typecheck.stderr.txt",
+      "kind": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/commands/typecheck.stdout.txt",
+      "kind": "file",
+      "size": 95,
+      "sha256": "bbeaa029972876d145fcba85a48a91b61c75d0e93b21a3e43a3ca9a26dcb6dc4"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/receipt.json",
+      "kind": "file",
+      "size": 2052,
+      "sha256": "00e96d2f2060b89dfcfe3fc95d1af204529ac75c8e6ca6b19b45dd25f0f48014"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/after-files.json",
+      "kind": "file",
+      "size": 540,
+      "sha256": "41542cfe2fc14022aa0aeb00141bda4c542f64b3ff60aa920db0dc4a3798dd07"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/after/index.html",
+      "kind": "file",
+      "size": 200,
+      "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/after/package.json",
+      "kind": "file",
+      "size": 121,
+      "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/after/src/App.tsx",
+      "kind": "file",
+      "size": 104,
+      "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/after/src/main.tsx",
+      "kind": "file",
+      "size": 202,
+      "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/app.ndjson",
+      "kind": "file",
+      "size": 388,
+      "sha256": "e3ab3139552de3cbe3656421eb62965c7cd9445411a528468396148f7dd20b5b"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/before-files.json",
+      "kind": "file",
+      "size": 540,
+      "sha256": "41542cfe2fc14022aa0aeb00141bda4c542f64b3ff60aa920db0dc4a3798dd07"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/before/index.html",
+      "kind": "file",
+      "size": 200,
+      "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/before/package.json",
+      "kind": "file",
+      "size": 121,
+      "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/before/src/App.tsx",
+      "kind": "file",
+      "size": 104,
+      "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/before/src/main.tsx",
+      "kind": "file",
+      "size": 202,
+      "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/cdp.ndjson",
+      "kind": "file",
+      "size": 388,
+      "sha256": "e3ab3139552de3cbe3656421eb62965c7cd9445411a528468396148f7dd20b5b"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/diff.json",
+      "kind": "file",
+      "size": 1433,
+      "sha256": "8b6a9a4232591f2243e38665f8ea1b52825bb145ee1a9dbe03e6aa6c9c35931a"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/environment.json",
+      "kind": "file",
+      "size": 3492,
+      "sha256": "9175ccd6f38a150d26c5f7ad2581d58d48b06a081bebb639d16ae4cc3a8279e3"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/events.ndjson",
+      "kind": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/harness.ndjson",
+      "kind": "file",
+      "size": 388,
+      "sha256": "e3ab3139552de3cbe3656421eb62965c7cd9445411a528468396148f7dd20b5b"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/manifest.json",
+      "kind": "file",
+      "size": 6255,
+      "sha256": "7fb8a30387235cf8de8c87d9e054bef1cdeb3315cb4ae378381a90c1256c0da5"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/report.json",
+      "kind": "file",
+      "size": 1317,
+      "sha256": "54201be8893f78a79e056d5b48df6ac77fc0ca756bf4d5d54b28ccad312736da"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/runner.ndjson",
+      "kind": "file",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/task.json",
+      "kind": "file",
+      "size": 418,
+      "sha256": "01c0eed7114a567d7dbcc1264e1547a5ca33252fa7898dd3eb536e0aee782a16"
+    },
+    {
+      "path": "docs/acceptance/space-remake/SPEC.md",
+      "kind": "file",
+      "size": 5349,
+      "sha256": "d2ff128d9f5582955b014a7fc99b549204c332c6577993d16898f66342409617"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/baseline-observations.json",
+      "kind": "file",
+      "size": 2709,
+      "sha256": "dbd7534f31777ef8f7bdcbafe40879b36b318a8e249d7a55f32fe657a31c77d5"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/build-pnpm11-environment-failure.txt",
+      "kind": "file",
+      "size": 2317,
+      "sha256": "f0d135896263828cff3f73dc6eb8abaf38f84c96696a78db09050c28a041da97"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/build.txt",
+      "kind": "file",
+      "size": 5594,
+      "sha256": "e4820fc64c1c3710d2b0692e19069706d01ea94f1eb77d21c1fa4eb87e61cbe5"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/delivery-source-manifest.json",
+      "kind": "file",
+      "size": 24771,
+      "sha256": "4e78d45f9888ec559d7ca3462c62a54d1a1a2e7dabf45c05b3b27d2ebbc40a02"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/electron-attempt.txt",
+      "kind": "file",
+      "size": 2459,
+      "sha256": "6862cf56e31ce4ee0a898c22780a6fc35be91f2756aae7dad954d9c46c090709"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/electron-baseline.txt",
+      "kind": "file",
+      "size": 1450,
+      "sha256": "3ff197986f49d9a53584912cb6d454ecc6c257fca60320c5e3bc25abe8d6aca5"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/initial-manifest.json",
+      "kind": "file",
+      "size": 164536,
+      "sha256": "3ad051004cb46277c3449405eee5855c8f2331da0669ea4759194023cf608118"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/lint-pnpm11-environment-failure.txt",
+      "kind": "file",
+      "size": 2316,
+      "sha256": "aeeb9c767a992f142048c13e98f2eb63af32074c5a8a4f888a7b12d3ec7271ff"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/lint.txt",
+      "kind": "file",
+      "size": 436,
+      "sha256": "dc0ee5c6fa753aff26467da305231dd27d0d5ede074c1a90d9b60f5732cafdbc"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/manual-launch.json",
+      "kind": "file",
+      "size": 850,
+      "sha256": "0c2b9bc9f1a6a3632c4b6ba7ba4fa2094b8bb22d5273282c970a45b670e94946"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/01-reference-layout.png",
+      "kind": "file",
+      "size": 320016,
+      "sha256": "f9df57ce26e814f0b360c88f638f0e620529157afef5160b7df430ffffa16ef9"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/02-notification-bubble.png",
+      "kind": "file",
+      "size": 267943,
+      "sha256": "082c46d63333d11fb8d595bb030784c6b2627a64cd1353c8c8eee3f8467956bf"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/03-notification-docked.png",
+      "kind": "file",
+      "size": 325874,
+      "sha256": "a0a043d0a6931017770074385993d717ab95731aa241d87cf3471b9557d4ee1e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/04-left-group-floating.png",
+      "kind": "file",
+      "size": 227311,
+      "sha256": "cedcd81efae176482068cb43b87466b1093854f990d6d224b104920de3403b67"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/05-settings-dark.png",
+      "kind": "file",
+      "size": 339653,
+      "sha256": "b648b6082b93408209fc45ebbb26662c7264b22a4253743a31db574bb039fe34"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/06-terminal-dark.png",
+      "kind": "file",
+      "size": 206227,
+      "sha256": "2779061ef81d9f1ec69f44b03e1164d1b2c4ea4b6cc1b2b3a14ee2d802bdc600"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/07-chinese-draft-restored.png",
+      "kind": "file",
+      "size": 266615,
+      "sha256": "0960edc6391a86500d92c5496e739acc918e4e8113bdeddc77ff32039d675bbd"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/08-settings-dark-fixed.png",
+      "kind": "file",
+      "size": 338781,
+      "sha256": "dc51b31616424b1d2b794f4ff235e0458c851dc74b26671f06592ee673ea5c16"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/09-settings-warm.png",
+      "kind": "file",
+      "size": 346568,
+      "sha256": "5ddf04d9fa8302614089e5a418fb1e533c7ee867dc9af76069889eecb7cd288d"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/10-settings-light.png",
+      "kind": "file",
+      "size": 345431,
+      "sha256": "ec325959077fcd11df981c2f9c79a9a5354248194182a4b08ce0c28a9fa47f75"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/11-long-label.png",
+      "kind": "file",
+      "size": 283879,
+      "sha256": "5e99869184127c336b53cb1aef569f0c93f05f313291cd7b785b165db783cbd8"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/12-reordered-labels.ax.txt",
+      "kind": "file",
+      "size": 3392,
+      "sha256": "48f74734d67952209a7ae6bf7462cf570a95811f3c588dbbf7a9271e05747eb9"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/12-reordered-labels.png",
+      "kind": "file",
+      "size": 283853,
+      "sha256": "e3375ffb9f0978b9a7201a38e336924f963e475fe77edb87d859aa304242f83e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/13-space-switcher.png",
+      "kind": "file",
+      "size": 243796,
+      "sha256": "6ec94a6ca831d8c430f8d4a4695e5b2245fea94f03bc0a10ab75abd42ffbd452"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/14-final-layout.png",
+      "kind": "file",
+      "size": 324804,
+      "sha256": "26383a7da3abc3eea4af1dc87980d1f5e2e2325b45c9d2f7c4d8e212fc72ba43"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/native-window/README.md",
+      "kind": "file",
+      "size": 4991,
+      "sha256": "7275019ccc585aec91018e741e743bad5cf76354864aa8743d267e51a2e76061"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-baseline-commands.json",
+      "kind": "file",
+      "size": 3022,
+      "sha256": "17aaec70fea5960f434dd7fb8b04bcfd72bae52c0334595d3ae93a2119756931"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-baseline-integrity.json",
+      "kind": "file",
+      "size": 2667,
+      "sha256": "c85a22b22fa80fc442036b404e622c80dfbec755a4d8e6c9fb880116e8341c1a"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-e2e/chat.spec.ts",
+      "kind": "file",
+      "size": 6638,
+      "sha256": "0d1c38287f528ff03270a22ae1b089386266b47fea68c0a240f2d1c8ea1c99b8"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-e2e/helpers.ts",
+      "kind": "file",
+      "size": 5726,
+      "sha256": "6a43013d9894e68026142e3d10bcbe78ef8ddfe4fdf11036a90b23f9c002dfbc"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-e2e/public-document.spec.ts",
+      "kind": "file",
+      "size": 7393,
+      "sha256": "d7fe6b766553b3121e09169937d81528536cb89b0eed8496093bb7140ca31f68"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-e2e/resources-live.spec.ts",
+      "kind": "file",
+      "size": 8266,
+      "sha256": "76e6305ecb65299e48aedc50f351d2ac1f3f7abad4972f011a5a73538058be0f"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-e2e/resources.spec.ts",
+      "kind": "file",
+      "size": 8893,
+      "sha256": "40e709b4fe1de7df4537c5173cd782bab20b1c2b3f8d279821619434f315e9a5"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-e2e/sbx.spec.ts",
+      "kind": "file",
+      "size": 12941,
+      "sha256": "ab4e4e5cb9f69ec87039f8958ef84089c8823039698b0be60823d7d6ef31669e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-e2e/workbench.spec.ts",
+      "kind": "file",
+      "size": 13835,
+      "sha256": "76e1a1c1b37ef361bf7de8a727ebd96bc3210bf6fdd3d4563ca21a207272b3b1"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-source-manifest.json",
+      "kind": "file",
+      "size": 19132,
+      "sha256": "5238735672ae65213bb3aedcd4605ac014c3d935f55e032e4ea0c523c7d0e561"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/01-workbench-initial.png",
+      "kind": "file",
+      "size": 399982,
+      "sha256": "9beb31485ee8679865b900209730464497113d3649c68a203fbc55e6e98d53cc"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/01-workbench-initial.preview.png",
+      "kind": "file",
+      "size": 71512,
+      "sha256": "a521444ed96a9f8280c2256b2a58a2f5931297ba9b67e5f276c4256d2c7b99b4"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/02-capture.png",
+      "kind": "file",
+      "size": 362454,
+      "sha256": "bbebf17d546b40404f2172e254dd90ca12dd47c5fa78f6c2f708e79d86da5e2c"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/02-capture.preview.png",
+      "kind": "file",
+      "size": 71512,
+      "sha256": "a521444ed96a9f8280c2256b2a58a2f5931297ba9b67e5f276c4256d2c7b99b4"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/03-task-confirmed.png",
+      "kind": "file",
+      "size": 406861,
+      "sha256": "29ef42de359f5284fa18e3a10b103937a098059fade24fe893fc08baa3c2d6c8"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/04-capture-stale.png",
+      "kind": "file",
+      "size": 386110,
+      "sha256": "ec444fc0cbe6f4ba0ea4a295a45e0735fe16d828d640ff4d7a493d6fe4cbbaea"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/04-capture-stale.preview.png",
+      "kind": "file",
+      "size": 77785,
+      "sha256": "f4118c94150edb903e395c8b4dc4303a941b7c2fde811bec0b852c91c411abd3"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/05-report-demo.png",
+      "kind": "file",
+      "size": 499367,
+      "sha256": "e129a83a89aa12159c06c4c80078e3735aff4b60839fad0fcc021d31591df666"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/06-demo-cancelling.png",
+      "kind": "file",
+      "size": 521087,
+      "sha256": "fc04943fae8ab00442756a65f9e9356bd0eaf7d75e9ad85e8f7eee02c9a721ee"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/07-home.png",
+      "kind": "file",
+      "size": 262475,
+      "sha256": "7dc0d82ddc9d75c778293ce9f8c8da53a83592d1182df891bbe00e1ac1a9c70a"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/08-settings.png",
+      "kind": "file",
+      "size": 281727,
+      "sha256": "9c240bb818eba85a925491ad604414317b3afba927899cefc576beac5c2941f7"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/09-workshop-overlay.png",
+      "kind": "file",
+      "size": 420309,
+      "sha256": "f420110c085e5e7f206eaed420d5d55b3343f5162418b20509c8a5730b3bfdc7"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/10-narrow-overlay.png",
+      "kind": "file",
+      "size": 386018,
+      "sha256": "8b404d5bb555f8e9192e9869fbd162c69dbe8455449db3028d38b2b24b94acd6"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/11-narrow.png",
+      "kind": "file",
+      "size": 233104,
+      "sha256": "7c7d798b2434f16c9c35a0d08f8fbe0c71946b4cdcee22d682c704031ad79371"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/old-window-screens/11-narrow.preview.png",
+      "kind": "file",
+      "size": 69174,
+      "sha256": "ec994bf85e57b7e547e66715d5fe92936611ee7489d01f1d4d2dee21b8a366c4"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/pnpm11-environment-failure-commands.json",
+      "kind": "file",
+      "size": 1558,
+      "sha256": "84faec39b400e1ad47e9e6999f8e95cbbc5420954dd6aa257a6b8cddd1d471f6"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/components/ResourceFeedback.tsx",
+      "kind": "file",
+      "size": 770,
+      "sha256": "8f4bde054e5210e4c29fce5f75547eb5f09ae4bd71277e91416a8b487ad9d683"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/domain/cases.ts",
+      "kind": "file",
+      "size": 2054,
+      "sha256": "3cf6ba39f52ca34cf3202774e912d7d513fa8fe6e422e9cde26f4890dc897e35"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/domain/space.ts",
+      "kind": "file",
+      "size": 203,
+      "sha256": "a886bd48f923674f3ba673db513f616fb7ccc6a8fde73d4397728d5f20ae99c1"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/state/preview.ts",
+      "kind": "file",
+      "size": 261,
+      "sha256": "d421844cc4f64754f9451a370b47a05f78178d2cd3826a6b12bd26baf5197e9a"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/state/resources.test.ts",
+      "kind": "file",
+      "size": 3800,
+      "sha256": "5aa614acc29599e9c94cf78de89f15f6bce27da6bf5d70725b67e3b2524d92f7"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/state/resources.ts",
+      "kind": "file",
+      "size": 4679,
+      "sha256": "243d606fb021f2138bd53a1ced58cd77aa0e0c097611cb861a2e606daffb894e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/state/runs.test.ts",
+      "kind": "file",
+      "size": 2572,
+      "sha256": "cd1b5b49be4073ac8f7c739cef3e66518bab7a8acc53893aa1ef65fd3b6f39e3"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/state/runs.ts",
+      "kind": "file",
+      "size": 3119,
+      "sha256": "874d164516739a36e50b3bf64fe30a5197803e05d8b46d3c9b1374f872463a68"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/state/shell.test.ts",
+      "kind": "file",
+      "size": 1999,
+      "sha256": "4eb6ba669c03c19d6cf56e566dda478afe6d03b4e42628d29685ac6189535977"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/state/terminal.test.ts",
+      "kind": "file",
+      "size": 1204,
+      "sha256": "258e6d7e846a82610eb50c4f813fc879e7c2497acb64feee0b9c9b37328267d3"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/state/terminal.ts",
+      "kind": "file",
+      "size": 1779,
+      "sha256": "b7d5ca980b8acbc4cd31049ad7c37613d1f2dfce8f55210a1276589a72f94572"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/state/workbench.test.ts",
+      "kind": "file",
+      "size": 3313,
+      "sha256": "1e8c2987e19f7eec122d1144e1ac8b16109f4df9d1810a2b280a51bd269eb346"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/state/workbench.ts",
+      "kind": "file",
+      "size": 5867,
+      "sha256": "3412164138f31ae757b5881ad243f85ecf8c3fd8a0bc76cef84aa125e89fb040"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/workbench/BrowserToolbar.tsx",
+      "kind": "file",
+      "size": 6605,
+      "sha256": "071dc05f3b65980d7bdf2ef9d363d729beb17136234f1324a037fcfe340e1ec6"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/workbench/CaptureSection.tsx",
+      "kind": "file",
+      "size": 5312,
+      "sha256": "2f0a0d83629d3760c92089667d70b69f11d0bc9da193601c6b735e0a88ce9500"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/workbench/PreviewHost.tsx",
+      "kind": "file",
+      "size": 2479,
+      "sha256": "1d306a26e34564e7d10fda25c4879cd9ebdc83634e0291e86bf59a6b775e814a"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/workbench/RunSection.tsx",
+      "kind": "file",
+      "size": 3699,
+      "sha256": "42c7c4a58e773efe482aadf32a2138f20c105b9a6c0b1f2e86793b6e2e2b87d4"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/workbench/RunSummary.tsx",
+      "kind": "file",
+      "size": 7211,
+      "sha256": "ffc2b8a6c965ef9dfd19c93214c114100a01b66b85089e4cea1b536d93b22a48"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/workbench/TaskSection.tsx",
+      "kind": "file",
+      "size": 8315,
+      "sha256": "144be05a4d00bed020a151912d105f83a39f085e560c0b8010209127f56b7de6"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/workbench/TerminalPanel.tsx",
+      "kind": "file",
+      "size": 5510,
+      "sha256": "f70bc2d83ef135c3bb7754a32e30f92e70c3bb97c4bcedd15ced373979101980"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/retired-renderer/workbench/WorkbenchPanel.tsx",
+      "kind": "file",
+      "size": 737,
+      "sha256": "9c16f5f31a8b17a0a10c584c380b2567ad5b29bb49c1d266c2d2a0483cadd3cb"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/root-changed-doc-links.json",
+      "kind": "file",
+      "size": 225,
+      "sha256": "35fab2527be7685a8dc59c2adfde7a791f9d3f45141952234eb08c1fe3fde214"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/root-doc-check.txt",
+      "kind": "file",
+      "size": 135,
+      "sha256": "54962eda3136122594436e2e6fda74d04512fc37dc07a3e94e38bef001da38d3"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/root-doc-format.txt",
+      "kind": "file",
+      "size": 395,
+      "sha256": "cc64804d106ea294a5379003fef130cbacc715bafd690367ecff55e5aed4ac9b"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/root-final-integrity.json",
+      "kind": "file",
+      "size": 1940,
+      "sha256": "c10e98c1f476c58a8246449b41640d3339b611136bad082e274a2ce1c05a927c"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/root-integrity-check.json",
+      "kind": "file",
+      "size": 309,
+      "sha256": "4b5b2a1aea491ba362febbb2c684fe2ad156406566765672bfd3c6ed58c834bc"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-commands.json",
+      "kind": "file",
+      "size": 1815,
+      "sha256": "9a6a2af81d43eaddd42d6dd3c9dc2d79930155e315fcce5bec06f32145a96d0e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-final-commands.json",
+      "kind": "file",
+      "size": 2266,
+      "sha256": "ad2321e8891b948087ce05801758aa6677873633d8dff82d1d3dcd5eac904165"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-final-main-typecheck.txt",
+      "kind": "file",
+      "size": 147,
+      "sha256": "44ff0dc19ae2307e3449e1dc94e6c354e6888272a72b4622bb3c848ae6efad28"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-final-protocol-typecheck.txt",
+      "kind": "file",
+      "size": 255,
+      "sha256": "e9027f5e56cbdffac5371c752820c475ca5f932a3d8892f593848318ddbdb554"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-final-resource-mcp.txt",
+      "kind": "file",
+      "size": 360,
+      "sha256": "badcd7ef4cc59d12e22df05c0e1d91452064f5065bb9d8dedd37d2a47d305688"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-final-service-typecheck.txt",
+      "kind": "file",
+      "size": 248,
+      "sha256": "a42f4ee798078a346159669dcbcad54fddf3046e871ed659f0a415c4046e262e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-final-source-manifest.json",
+      "kind": "file",
+      "size": 22216,
+      "sha256": "d8785a8ef568a703c4f16ca8b9434e9af787180e89ff1d0e09a2c0934831b8bf"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-final-unit.txt",
+      "kind": "file",
+      "size": 613,
+      "sha256": "38f7c78a7b9ccdde5890bc66c3fe3ec57cb5f5cb0982267b2881766576d8e1a6"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-import-manifest.json",
+      "kind": "file",
+      "size": 6929,
+      "sha256": "dde2364d64deb9137bc1dbf3260198ae4ed5e13651539f0a75dc6163b9995187"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-main-typecheck.txt",
+      "kind": "file",
+      "size": 1246,
+      "sha256": "7bb49671e72d2adb3177945a1745570aac515e963bbd3b3bfce6c80a750c3513"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-protocol-typecheck.txt",
+      "kind": "file",
+      "size": 255,
+      "sha256": "c2aca3735af0b4154cce34ece11d6ea268eb267d0ebcd2456df4b5a72d66b538"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-renderer-incompatibility.txt",
+      "kind": "file",
+      "size": 5797,
+      "sha256": "bb771c73ee4ab968bf32c96ec516ac0381f5ff76448ee5a2301f2c576ddf58b6"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-resource-mcp.txt",
+      "kind": "file",
+      "size": 41553,
+      "sha256": "a03c20d8c9b73011be2169cd700ab10a8ec2ed7647338dc21e26d1804e583693"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-service-typecheck.txt",
+      "kind": "file",
+      "size": 248,
+      "sha256": "fb35a2b13fad85411ccf40a7a655e9c48d349f238e4adb6cd7c2efd2f2ff62cb"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-source-manifest.json",
+      "kind": "file",
+      "size": 22216,
+      "sha256": "a2c187b749beffad4c92a9955b1493cfed750f21cf2f756d6ff703ad163465b9"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/stage2-unit.txt",
+      "kind": "file",
+      "size": 614,
+      "sha256": "ea7f70807f01bf53759c92bc41c269019620eb6698ce839ae982f0f453eac8ec"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/target-baseline.json",
+      "kind": "file",
+      "size": 3443,
+      "sha256": "7e0f37094fda714c03ba356411aa32321d0c3b31f8904c452659e27cac109d4f"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/test-migration-map.json",
+      "kind": "file",
+      "size": 1926,
+      "sha256": "5b9c25ffba860e907a344ac0c71dd9259d42461268dff352293609fbbf5cc633"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-fix-before-css.sha256",
+      "kind": "file",
+      "size": 65,
+      "sha256": "46d1cba60acd2ca9e15acce344d072d17d8008d026ae0fd17e250921d7805b1d"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-build.txt",
+      "kind": "file",
+      "size": 5594,
+      "sha256": "5ad6cf252be36f27fb3cf63b824e9d0b5c0e8076615efbb8124526ec6e50730a"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-commands.json",
+      "kind": "file",
+      "size": 2890,
+      "sha256": "f96f380819f022b3dc2160e085c6008f418167c4988ceb31325f6acf56c4a1f0"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-contrast.json",
+      "kind": "file",
+      "size": 2192,
+      "sha256": "349e5916f4453ed758a2d86f1dc98e98e290074d8536959373470d77240f1c08"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-electron.txt",
+      "kind": "file",
+      "size": 1319,
+      "sha256": "d30a0626dbd225e5c21b70fe8e71575c5316b83c06b0bc07e4707cd2dfdd29cf"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-format.txt",
+      "kind": "file",
+      "size": 342,
+      "sha256": "f5dbca277dc2606a421db12c3c858fcfe520978ab9cc9bd79ef7f1ea3e3ddb43"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-native-probe-final.txt",
+      "kind": "file",
+      "size": 1665,
+      "sha256": "379d78cd7ef27da1e8161b1950a505a50ed5241d2babce8b8679fe0e21e52bae"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-native-probe.txt",
+      "kind": "file",
+      "size": 473,
+      "sha256": "bcb70a971585b92478e4e3225bce882dbcf4e40d8cb197cf1cdaf36a73d172c8"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-receipt.json",
+      "kind": "file",
+      "size": 1013,
+      "sha256": "ab6379bd6103b88e36daeb69cf4cba7c1451ad52719d544c3368987dbda30824"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-scoped-lint.txt",
+      "kind": "file",
+      "size": 124,
+      "sha256": "c0bd72e95fe1908fa423e436bbf8bae33a5576ecf237b12446a461ffce6821fe"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-screens/remake-terminal-dark.png",
+      "kind": "file",
+      "size": 122671,
+      "sha256": "104a16266bbc44451cd0b3653660b8e2161867cf0dfca6b4a1815571c43771bf"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-screens/remake-terminal-light.png",
+      "kind": "file",
+      "size": 123610,
+      "sha256": "5a46aece9350ba80946d4c879a9b74c933e2581c1fe9c15b65a327eef4a1ee99"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-screens/remake-terminal-warm.png",
+      "kind": "file",
+      "size": 123030,
+      "sha256": "0a8dc7c5ba7280eaba153881c131350199885f7a31f9475f3511b8db7bbe0ba6"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-screens/theme-semantic-settings-dark.png",
+      "kind": "file",
+      "size": 252307,
+      "sha256": "08bed58249084414059f68d6d9739651b8014f917105ebed7059e57df0bc522e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-screens/theme-semantic-settings-light.png",
+      "kind": "file",
+      "size": 251787,
+      "sha256": "2057865dd8ce501eb1c40ff831704322a0ee1acbdfb7fc0e414aea89a19ff590"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-screens/theme-semantic-settings-warm.png",
+      "kind": "file",
+      "size": 252382,
+      "sha256": "ffd4bb9acfd7be6bb892a7096d0b352d19dce3c496212055b1a20f0823a15b41"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-selector-changes.json",
+      "kind": "file",
+      "size": 3061,
+      "sha256": "0c4dc8ff9646a56eb1c52c724828d8781bc33fd787c873767f37606b0928ddf9"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-source-manifest.json",
+      "kind": "file",
+      "size": 24540,
+      "sha256": "7151034d298771b637a687cf87d86c7db0ad06e5c74d0f450bad6404d52eb627"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-typecheck.txt",
+      "kind": "file",
+      "size": 729,
+      "sha256": "4a4a28bed96682fc416ba1433d3ea2c1985d74130dd139c3dc4cbe8eef8dc1db"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/theme-semantic-verifier.ts",
+      "kind": "file",
+      "size": 1966,
+      "sha256": "ed8816ec16be7eb475cbfb69ad253e5964e84f809df946c1fb41173f0dffb6e4"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/typecheck-pnpm11-environment-failure.txt",
+      "kind": "file",
+      "size": 2321,
+      "sha256": "67dbe35d43b8a61e8911923ecf672e8a4230cac4c2d244ebae668ac70ca84653"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/typecheck.txt",
+      "kind": "file",
+      "size": 729,
+      "sha256": "b34514f09b712ac0710a8fc93ffcca186013bbaac174989a35e393fdee196d6d"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-all-first-failures/.last-run.json",
+      "kind": "file",
+      "size": 684,
+      "sha256": "20ebaa48d33d1bf88275b0e2d6639b16e0a2348570eb63ca15ddd67f87e22faa"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-all-first-failures/chat-live：中文对话、上下文续聊、新会话隔离/error-context.md",
+      "kind": "file",
+      "size": 11242,
+      "sha256": "77736866bf1501c176d2fd306c30d430118d0cba552eaf73bcc56408286af684"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-all-first-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md",
+      "kind": "file",
+      "size": 11257,
+      "sha256": "afa352bb2bfbbff9756854f2334d1f4c703c78ce3b91015bb7b6be67d2af18b9"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-all-first-failures/space-remake-SR10：通知与窗格菜单共-bc73f-r交接editor、快速开关resize不复活原生网页/error-context.md",
+      "kind": "file",
+      "size": 18749,
+      "sha256": "fae3fedfd2cdd9d03aa79a2e9e00da47e1f1ea1e2bed77ba2041ab22a2616934"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-all-first-failures/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md",
+      "kind": "file",
+      "size": 212887,
+      "sha256": "25463b7b7c980e884a932d461332f0b58d670f0096ea2ac6f05dcc56db1d396a"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R3-双网页原生focus事件决定地址与刷新目标，布局更新保持焦点/error-context.md",
+      "kind": "file",
+      "size": 8578,
+      "sha256": "2579b8459e8373f6e060652efb34d34248f6591672e0220cfe563eb634b128d7"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R4-单窗格窄窗从网页关联会话并采集/error-context.md",
+      "kind": "file",
+      "size": 11418,
+      "sha256": "eb9723d96ce5af6de43e1b30bb3fd862c0fff663336b277f272817b1b44baeb4"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-upgrade-A02-A11-真实UI新建空间与会话，草稿隔离，搜索定位与无结果不切换/error-context.md",
+      "kind": "file",
+      "size": 10202,
+      "sha256": "57bf402f33e4b28d639597975d8ea0717746c50ca7011b6e8ca28d3f9736cd2b"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-before-tests.txt",
+      "kind": "file",
+      "size": 1784,
+      "sha256": "5f6254aef0328dd5829f4c6a2d6d08715dcf8e11bfafa2d545ea8a08cc2d679d"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-build-attempt.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "afde4d909574cff3d79f296ec6593a5c9a1abe2a63b8b8bbf6290e8554e450bc"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-capture-devtools-diagnostic.txt",
+      "kind": "file",
+      "size": 8108,
+      "sha256": "fa91c5a249a1138286855d01c8c4dd6ca431565a1513caf5ea0b463f7ef97245"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-critical-repair.txt",
+      "kind": "file",
+      "size": 5460,
+      "sha256": "80b19b9035039379253356391abd2a95bbd8bb607c8a04edccde100ee3b5fa8e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-devtools-defer-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "f77dacce88a7048d94bf7f25f5cf1a9e7a13a6db8fca3dec5f40dc82f2d04e82"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-devtools-defer-diagnostic.txt",
+      "kind": "file",
+      "size": 2440,
+      "sha256": "2e673a16dae6e46a814b75d0bc911cd1e4005d17ff0a0c42b04eca7b2130d4ae"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-devtools-diagnostic-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "5d883d6141d7ce5cb1a15cbbeaacef8d90e87b7501e2860c4af9aae8e0144c95"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-devtools-lifecycle-final.txt",
+      "kind": "file",
+      "size": 357,
+      "sha256": "d2aa593ed8c4a99110de893d314d6d6dba50bab35143ec5c6568c65ffe8fde14"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-devtools-loading.txt",
+      "kind": "file",
+      "size": 1620,
+      "sha256": "d4a4b98de908fa543edefc9e93a2c21a998b8fcb46473833f8ee1e5852404b5b"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-devtools-main-diagnostic.txt",
+      "kind": "file",
+      "size": 2303,
+      "sha256": "06d049fb38bee5100830e40bca97722f085ddafed398bc7c475fd6a60acd5991"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-devtools-owned-diagnostic.txt",
+      "kind": "file",
+      "size": 3052,
+      "sha256": "1801803ba6a16918de785bd3187122d1a66d40c3389029da1ca7c1d9d0663632"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-devtools-owned-final.txt",
+      "kind": "file",
+      "size": 1620,
+      "sha256": "10c5ee9f5e09311789733231ff2d23e1580a278ecabe9a9b23a1ec7f9bdbf4b5"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-devtools-owned-window.txt",
+      "kind": "file",
+      "size": 1727,
+      "sha256": "9d48c5284668fddf83086c882bc0e8a2880dfcb90633ffb92dd29874ca754ac2"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-devtools-request-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "d681e56ef7bfd6aa81e37195423d5280eb833ad82343dedb4cdf6093ec4f71b9"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-devtools-request-diagnostic.txt",
+      "kind": "file",
+      "size": 2395,
+      "sha256": "ed8af4a04ff68866ea8b72a2c09d5c7724c28902443c50587351c21a605251d9"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-diagnostic-build-2.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "3f62700163e751fd76c444508d38f4ede9cb2a7868c9eab61dd84378c8c9734e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-diagnostic-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "24b0ee4a8899f2741935d86088440e989f056576fad72c7f5f3a338078998079"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-eighth-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "93fb5f7e05c38dcbd5c528a9eeec9607fc79515becfd88cdbf0c9613f940eb29"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-electron-repair-first.txt",
+      "kind": "file",
+      "size": 10069,
+      "sha256": "97001731c758b3ad0675941c3391230b9b7d5a4e3181da50386f1666f0f149c5"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-eleventh-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "31578070925d305c3b56f5f6c4eb59dbf2ccf7abb8a0078051063721f3ba3998"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-esc-diagnostic-2.txt",
+      "kind": "file",
+      "size": 2642,
+      "sha256": "a0b8a669c0179bd87bfc548a8a80aed7435c3d4cdb9e1a0fbfbeb1decae465ed"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-esc-diagnostic-3.txt",
+      "kind": "file",
+      "size": 14009,
+      "sha256": "f5f11b4126058c73f3ece3267d47f6d6b0e80688ccf3877617ea59609ce9f1a5"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-esc-diagnostic.txt",
+      "kind": "file",
+      "size": 2374,
+      "sha256": "f351e1c7c93f012d7468950ead3fdcca5a234a9fdae94401e8a6dff54e91b643"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-fifth-typecheck.txt",
+      "kind": "file",
+      "size": 625,
+      "sha256": "1543f9cfa20114c6676fc04a38f3a8844b3290fad55d650db99d36b87a508b47"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-final-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "e0d874e6980a7258858ba50a3c5639639f295d666468bea221ced77fb768544e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-final-electron-all.txt",
+      "kind": "file",
+      "size": 215369,
+      "sha256": "98c1ae4be388977a3a752eeb0c27811343df5675c7c1d77bd0fceab5ba49d5e8"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-final-stable-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "2185b567bef69158145f7fd413c44315769102911eac9f532556780c9e499092"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-final-typecheck.txt",
+      "kind": "file",
+      "size": 625,
+      "sha256": "4f90b2f09f4a6a135fb83d4d693691bd7da8a30846181edf2c0e53c1c3d83203"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-final-unit.txt",
+      "kind": "file",
+      "size": 533,
+      "sha256": "c13de0131ad3c1c699327b3babcfe9b116408a238486013e5529fbfb18811830"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-first-electron.txt",
+      "kind": "file",
+      "size": 9021,
+      "sha256": "6715d36955fbfe045f932b1951b73db3a20df3066bc83d37d031adcd57f4a2fd"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-format-second.txt",
+      "kind": "file",
+      "size": 179,
+      "sha256": "069c24b5229641a1d61a199ddb0bf04b35e9d25bc1c740241d27d2eb114af9f5"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-format-third.txt",
+      "kind": "file",
+      "size": 137,
+      "sha256": "1ab4a8652c0eccbaf9328ec15776dede4df9fafc7cd91c97611880da1f9fd392"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-format.txt",
+      "kind": "file",
+      "size": 1714,
+      "sha256": "959a2f80534e96a0c1d76e4a294cb03f93749c438533d3bab0df7365daeb3c18"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-fourth-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "f3da9950ce911f07b4551dc00fc2620d2b09986b1d1e24c37a076cbebe019b8b"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-fourth-typecheck.txt",
+      "kind": "file",
+      "size": 868,
+      "sha256": "2b204517f838af0d79cc05a38178bb15771e6f5a1b330675a857ea15a0554972"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-initial-typecheck.txt",
+      "kind": "file",
+      "size": 1185,
+      "sha256": "35ac9926975dba2b982739814177f246933383792370f7c9e2efee74994fcef8"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-initial-unit.txt",
+      "kind": "file",
+      "size": 2572,
+      "sha256": "270c7ed7c4b745f057605eb0aa8f8551dc7f25811ecf83ab6977e4827b548daf"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-lint-repair.txt",
+      "kind": "file",
+      "size": 526,
+      "sha256": "8ff78c3fec8a734c1e974a68d0921256883d5614a156d5c79fa0ed0b02a118db"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-location-unit.txt",
+      "kind": "file",
+      "size": 215,
+      "sha256": "82943ff0958d932d9b59dbc25cdd1d40b36bc9b9831e69447de8883683834733"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-narrow-roundtrip-before.txt",
+      "kind": "file",
+      "size": 2057,
+      "sha256": "70aea57ebe49c0a52455cad3e240a26a66707f6f739124dd6c903cae6b086421"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-ninth-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "c354b2390c46da78636ea092bc274f23196a22374bb3741935b8e293616b3b58"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-build.txt",
+      "kind": "file",
+      "size": 5594,
+      "sha256": "a7d78f86f30b7ef35381339ab89e2bb62718ddb8d2efe63af8694b8f2a3f7590"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-commands.json",
+      "kind": "file",
+      "size": 3493,
+      "sha256": "d8a739639ea039b7ecceffb256dfe9699b1358b0b28bf891e651064f37b34dbc"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-electron-all.txt",
+      "kind": "file",
+      "size": 6631,
+      "sha256": "7404247ac4898fadb43847aea0cd43715ee858612a29117c72826bdb859b9b56"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-scoped-lint.txt",
+      "kind": "file",
+      "size": 124,
+      "sha256": "3a86ba54d6499ffa19aaff3eb9b6abaad5c16c565d0db4bcbf953221b10b7f9b"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/01-workbench-initial.png",
+      "kind": "file",
+      "size": 399982,
+      "sha256": "9beb31485ee8679865b900209730464497113d3649c68a203fbc55e6e98d53cc"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/01-workbench-initial.preview.png",
+      "kind": "file",
+      "size": 71512,
+      "sha256": "a521444ed96a9f8280c2256b2a58a2f5931297ba9b67e5f276c4256d2c7b99b4"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/02-capture.png",
+      "kind": "file",
+      "size": 362454,
+      "sha256": "bbebf17d546b40404f2172e254dd90ca12dd47c5fa78f6c2f708e79d86da5e2c"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/02-capture.preview.png",
+      "kind": "file",
+      "size": 71512,
+      "sha256": "a521444ed96a9f8280c2256b2a58a2f5931297ba9b67e5f276c4256d2c7b99b4"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/03-task-confirmed.png",
+      "kind": "file",
+      "size": 406861,
+      "sha256": "29ef42de359f5284fa18e3a10b103937a098059fade24fe893fc08baa3c2d6c8"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/04-capture-stale.png",
+      "kind": "file",
+      "size": 386110,
+      "sha256": "ec444fc0cbe6f4ba0ea4a295a45e0735fe16d828d640ff4d7a493d6fe4cbbaea"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/04-capture-stale.preview.png",
+      "kind": "file",
+      "size": 77785,
+      "sha256": "f4118c94150edb903e395c8b4dc4303a941b7c2fde811bec0b852c91c411abd3"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/05-report-demo.png",
+      "kind": "file",
+      "size": 499367,
+      "sha256": "e129a83a89aa12159c06c4c80078e3735aff4b60839fad0fcc021d31591df666"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/06-demo-cancelling.png",
+      "kind": "file",
+      "size": 521087,
+      "sha256": "fc04943fae8ab00442756a65f9e9356bd0eaf7d75e9ad85e8f7eee02c9a721ee"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/07-home.png",
+      "kind": "file",
+      "size": 262475,
+      "sha256": "7dc0d82ddc9d75c778293ce9f8c8da53a83592d1182df891bbe00e1ac1a9c70a"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/08-settings.png",
+      "kind": "file",
+      "size": 281727,
+      "sha256": "9c240bb818eba85a925491ad604414317b3afba927899cefc576beac5c2941f7"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/09-workshop-overlay.png",
+      "kind": "file",
+      "size": 420309,
+      "sha256": "f420110c085e5e7f206eaed420d5d55b3343f5162418b20509c8a5730b3bfdc7"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/10-narrow-overlay.png",
+      "kind": "file",
+      "size": 386018,
+      "sha256": "8b404d5bb555f8e9192e9869fbd162c69dbe8455449db3028d38b2b24b94acd6"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/11-narrow.png",
+      "kind": "file",
+      "size": 233104,
+      "sha256": "7c7d798b2434f16c9c35a0d08f8fbe0c71946b4cdcee22d682c704031ad79371"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/11-narrow.preview.png",
+      "kind": "file",
+      "size": 69174,
+      "sha256": "ec994bf85e57b7e547e66715d5fe92936611ee7489d01f1d4d2dee21b8a366c4"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/chat-fixture.png",
+      "kind": "file",
+      "size": 180053,
+      "sha256": "500b894b6a0c1e1d4afc0722f98f1309e9a69b127df826360d22aabc955daccf"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/public-document-controlled-evidence.json",
+      "kind": "file",
+      "size": 1494,
+      "sha256": "040868b5a2fbb14815a3009cd2519da579086e03a4029e1564a9a541520fb1e0"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/public-document-controlled-redirect-saved.png",
+      "kind": "file",
+      "size": 151855,
+      "sha256": "2597cb4f33b00c348b418bc747aa1ea4e27cbb3a9348f7ab9606a98a33cd2f44"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/public-document-controlled-redirect-saved.preview.png",
+      "kind": "file",
+      "size": 62965,
+      "sha256": "fa106178cc48eef775ee6849330882eaf49c67a5cff82a76f79d6c3240120ee9"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/remake-floating-panels.png",
+      "kind": "file",
+      "size": 93955,
+      "sha256": "79e3794161a350786a167065f377399d8ea9804acd9aa5516918ead2f82bf1f0"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/remake-floating-panels.preview.png",
+      "kind": "file",
+      "size": 78651,
+      "sha256": "c2df818db67638cfdafb82f37f8c77952628c5a08ed078b308356678e94985fb"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/remake-six-sections.png",
+      "kind": "file",
+      "size": 150023,
+      "sha256": "2f71892ff7576e36876df44e49258da4c074a218db7b3bdd627bfe783a373f03"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/remake-six-sections.preview.png",
+      "kind": "file",
+      "size": 76104,
+      "sha256": "80f09f009ba55ebf5511acac32d78103f1b610029e2f3ac5be6ae783462021ec"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/remake-terminal-dark.png",
+      "kind": "file",
+      "size": 123889,
+      "sha256": "891ec7d45874c67b306749566b3646b577dc9e68701b3865527bfa46562423d1"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/remake-terminal-light.png",
+      "kind": "file",
+      "size": 124412,
+      "sha256": "b361c335740e448c4f3d14ddf4531b58169da090f9092714e77e11ad733b1828"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/remake-terminal-warm.png",
+      "kind": "file",
+      "size": 123975,
+      "sha256": "983e4ea6e084a866daca60ff906d87c0250c852d876db64dc092954ca762dc6b"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/resources-fixture-narrow.png",
+      "kind": "file",
+      "size": 175616,
+      "sha256": "3a2cce742c12f31e686bf856ac015d4d9f15837de107d90b4c4e10d5ee914e8c"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/sbx-terminal-fixture-narrow.png",
+      "kind": "file",
+      "size": 92559,
+      "sha256": "75242982e098ba3254d712f508f3e9dcbd66e73ad4c4a4bb1c37cfebbfe459b3"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workbench-context-before-confirm.png",
+      "kind": "file",
+      "size": 392766,
+      "sha256": "013ad330ef3c8a726299e4fe4e9ec01edd65b777e2ad2222fd36daa3f434a20d"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workbench-context-before-confirm.preview.png",
+      "kind": "file",
+      "size": 68823,
+      "sha256": "2bf918c7b65e1860d67ba7fc6d720b45cf93fbfec43a2bce04e515b38a3fc951"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workbench-start.png",
+      "kind": "file",
+      "size": 150680,
+      "sha256": "5d80076047682ee64cb994a0c0b543af2e1c0612afdf139a63cd55f54abf36e1"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workbench-start.preview.png",
+      "kind": "file",
+      "size": 76104,
+      "sha256": "80f09f009ba55ebf5511acac32d78103f1b610029e2f3ac5be6ae783462021ec"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workspace-narrow.renderer.png",
+      "kind": "file",
+      "size": 73900,
+      "sha256": "3c12f2f22abaa7cc32d2b35bf98ae0f5a6a1d0343bec0859ffc2ca281ce6bc20"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workspace-narrow.window.png",
+      "kind": "file",
+      "size": 73900,
+      "sha256": "3c12f2f22abaa7cc32d2b35bf98ae0f5a6a1d0343bec0859ffc2ca281ce6bc20"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workspace-switcher.renderer.png",
+      "kind": "file",
+      "size": 279801,
+      "sha256": "be088f30015d0e8ee983d1ca30eda863aa2033fab50cf5e5c2a7ef10e4bc36f9"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workspace-switcher.window.png",
+      "kind": "file",
+      "size": 279792,
+      "sha256": "d8f218f20866cc5d1ebfec9dcfc447a1c3318e84a629cb87796023089084153c"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workspace-three-panes-dark.renderer.png",
+      "kind": "file",
+      "size": 269239,
+      "sha256": "475d8ff96127ccd922c5d7d544d50b61dd755ccf54f4d96947984169b3c85c8e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workspace-three-panes-dark.window.png",
+      "kind": "file",
+      "size": 269239,
+      "sha256": "475d8ff96127ccd922c5d7d544d50b61dd755ccf54f4d96947984169b3c85c8e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workspace-three-panes-light.renderer.png",
+      "kind": "file",
+      "size": 267242,
+      "sha256": "497735538801d203e82b2f8574a9a0f55d87d58dd20acf24fbbc7c677ff9c85b"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workspace-three-panes-light.window.png",
+      "kind": "file",
+      "size": 267242,
+      "sha256": "497735538801d203e82b2f8574a9a0f55d87d58dd20acf24fbbc7c677ff9c85b"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workspace-three-panes-warm.renderer.png",
+      "kind": "file",
+      "size": 268679,
+      "sha256": "17516028a30b7254a91c33229d2c2ce3c2811c7cc83f0b46a466acdb4fd7cb85"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-screens/workspace-three-panes-warm.window.png",
+      "kind": "file",
+      "size": 268679,
+      "sha256": "17516028a30b7254a91c33229d2c2ce3c2811c7cc83f0b46a466acdb4fd7cb85"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-source-manifest.json",
+      "kind": "file",
+      "size": 24540,
+      "sha256": "0d8c9d12feca76972601a48e75e016dc94c0e8469483a78bbad510c711d3e7e2"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-typecheck.txt",
+      "kind": "file",
+      "size": 729,
+      "sha256": "32944ac31bc788b875914b865d067cdb52937b9bf4bb0d9fea5abfef0b28cb94"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-unit.txt",
+      "kind": "file",
+      "size": 632,
+      "sha256": "dcb26d80b44117b987f7a9127559c79fb50bd06c280a02870ad445b1c40853f7"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-final-vs001-selftest.txt",
+      "kind": "file",
+      "size": 1226,
+      "sha256": "2c1e06279fcfeb5bbb8a3f4d28853d595800ca23b6e76669074417d3218187c6"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-integrity.json",
+      "kind": "file",
+      "size": 215,
+      "sha256": "abd312cb18b7ba87825f6a55ea6846f607d3ec4c7f505443e5fcfa94b6108dc7"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-prettier-final.txt",
+      "kind": "file",
+      "size": 66,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-prettier-write.txt",
+      "kind": "file",
+      "size": 33,
+      "sha256": "82f23c8c0602f7b1c6d079470bbdaba93704c2b5b91fbef748c34bb0990f3b0a"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-package-prettier.txt",
+      "kind": "file",
+      "size": 142,
+      "sha256": "1bca6d4db52ac703c836832ee05cf1fbe4f9705ea83dccfc94ac137039628d62"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-preview-final-unit.txt",
+      "kind": "file",
+      "size": 215,
+      "sha256": "5d24c1ec8f2ddeb6d0a841672e75770d3f917e869f9fd027f0bd2e74bb447e01"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-review-final-commands.json",
+      "kind": "file",
+      "size": 1388,
+      "sha256": "cfa77c9432156c647ba018202c3bf937814ed5c749fb56623a76d8ecea86f370"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-review-final-scoped-lint.txt",
+      "kind": "file",
+      "size": 124,
+      "sha256": "639556488d802b0054398573b30214017eba71b957a16e257b85654b5a8766d1"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-review-final-source-manifest.json",
+      "kind": "file",
+      "size": 24540,
+      "sha256": "1e8f1b6ff3a4f43b436e45b275ce96441ba3e50cb83b1d0702ef06b9dc780f2b"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-review-final-typecheck.txt",
+      "kind": "file",
+      "size": 729,
+      "sha256": "052f3b963d3faa5933c56ea0ad27ec65775e5ec7d6f752476c068471cf6a9075"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-review-final-unit.txt",
+      "kind": "file",
+      "size": 632,
+      "sha256": "ddaeb746577b3223b1b4604735636e98eec7dd8d175fa5a9e1d9a08ed28a6fa6"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-review-final-vs001-selftest.txt",
+      "kind": "file",
+      "size": 1228,
+      "sha256": "e42bea23bf1e94ff60d3e649d4342d96614898c09081da287303c4ac19e58b7e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-scoped-lint.txt",
+      "kind": "file",
+      "size": 2564,
+      "sha256": "c3405d561d284b43fba0e8f4805b6650943a774a05de52e2c4a9ab8449210dcb"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-second-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "83d8f59baf90af1528bc2b06808b72bcb2dfb8643f45f295d396116aebb817b9"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-second-electron.txt",
+      "kind": "file",
+      "size": 3910,
+      "sha256": "b696fcd7985cc2339e490c6dabc0a0fad6b2eb79495e124307a129c4049877dc"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-second-typecheck.txt",
+      "kind": "file",
+      "size": 2325,
+      "sha256": "640b266221ead282f40783b84e15a17859b63d62fa7c5f49b2d3d0181f5a05c1"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-second-unit.txt",
+      "kind": "file",
+      "size": 533,
+      "sha256": "db887860560c53c2c299067a9cab609a31bee95e9458fb283a4c05e4a4322db0"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-seventh-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "3907352246f64a64b51a2f749cbeeaaf0b68c0545707c8d366ed269acd4097c5"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-sixth-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "e2a4a55ab3492daa5c02d98b9c74badfff990a552683907080fe2b11aa4583aa"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-commands.json",
+      "kind": "file",
+      "size": 1364,
+      "sha256": "58ad6fa339d87eae4d442fd904f756b0cec03ef51b7305dfd36f4ebe48ddb330"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-electron-all.txt",
+      "kind": "file",
+      "size": 9915,
+      "sha256": "a696cb2406f6894463d3628b34e1aee882afcd6b28846ba64f5c01ad00bf76c1"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-first-static/ui-stable-commands.json",
+      "kind": "file",
+      "size": 1364,
+      "sha256": "58ad6fa339d87eae4d442fd904f756b0cec03ef51b7305dfd36f4ebe48ddb330"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-first-static/ui-stable-electron-all.txt",
+      "kind": "file",
+      "size": 9915,
+      "sha256": "a696cb2406f6894463d3628b34e1aee882afcd6b28846ba64f5c01ad00bf76c1"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-first-static/ui-stable-scoped-lint.txt",
+      "kind": "file",
+      "size": 124,
+      "sha256": "2b8c33cbd065deba18cf25921ebcc91ac703da21931c8388a2fc7444dce25f2e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-first-static/ui-stable-source-manifest.json",
+      "kind": "file",
+      "size": 24540,
+      "sha256": "f32b8725726d2bbdba788972d6fe3413c1e8462d3431b322cf569dcb7ce2cb62"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-first-static/ui-stable-typecheck.txt",
+      "kind": "file",
+      "size": 1073,
+      "sha256": "c60bf3f9ece502013ca27437a934171844a03f40af2ff8b112608482406c3fcf"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-first-static/ui-stable-unit.txt",
+      "kind": "file",
+      "size": 632,
+      "sha256": "8654851024104f609af2346006cf1f65240c8b8265d32a568d3c80cddd76ad7b"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-first-static/ui-stable-vs001-selftest.txt",
+      "kind": "file",
+      "size": 1232,
+      "sha256": "374990d6ed9180f7fc3ee062a093097b7bc22de422c513a6e8ce9eb3f6e85c6f"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-scoped-lint.txt",
+      "kind": "file",
+      "size": 124,
+      "sha256": "2b8c33cbd065deba18cf25921ebcc91ac703da21931c8388a2fc7444dce25f2e"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-source-manifest.json",
+      "kind": "file",
+      "size": 24540,
+      "sha256": "f32b8725726d2bbdba788972d6fe3413c1e8462d3431b322cf569dcb7ce2cb62"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-typecheck.txt",
+      "kind": "file",
+      "size": 1073,
+      "sha256": "c60bf3f9ece502013ca27437a934171844a03f40af2ff8b112608482406c3fcf"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-unit.txt",
+      "kind": "file",
+      "size": 632,
+      "sha256": "8654851024104f609af2346006cf1f65240c8b8265d32a568d3c80cddd76ad7b"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-stable-vs001-selftest.txt",
+      "kind": "file",
+      "size": 1232,
+      "sha256": "374990d6ed9180f7fc3ee062a093097b7bc22de422c513a6e8ce9eb3f6e85c6f"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-tenth-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "de93a1a6b8512bb9312ce0b2bf9390c97076275a844ab02d7df52247dcb27de4"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-third-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "d2f6cd3d1ac5754a920e0c5473304e09b7507822001576541ffdb04c397bd516"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-third-electron.txt",
+      "kind": "file",
+      "size": 921,
+      "sha256": "0784c9d63f1554e83d0854552acdc84617a6130e1fb3f912f30dfcfb39484eff"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-third-typecheck.txt",
+      "kind": "file",
+      "size": 955,
+      "sha256": "89a0fda863454b3b4d053df96ccefb1eea91e78943f5940234441f22ef8a3f9a"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-twelfth-build.txt",
+      "kind": "file",
+      "size": 5494,
+      "sha256": "5a7248ad0a8bed48461ee93d47eaf49126257b63394e03c5fd0265362656c547"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/ui-typecheck-repair.txt",
+      "kind": "file",
+      "size": 625,
+      "sha256": "1543f9cfa20114c6676fc04a38f3a8844b3290fad55d650db99d36b87a508b47"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/unit-pnpm11-environment-failure.txt",
+      "kind": "file",
+      "size": 2316,
+      "sha256": "e6c9920291cd437f53c161f7d44f645a7c5a3a13965c686c091119970c5f99f9"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/unit.txt",
+      "kind": "file",
+      "size": 433,
+      "sha256": "dc34263797afb378de3d63b7b2a09ba7882beb1ad7b1cfcbbe01a6d72a6ee421"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/vs001-direct-loader.txt",
+      "kind": "file",
+      "size": 1069,
+      "sha256": "3dddb85bcb34a26480ce6d88a1c939282442a22f6a4654e2fa0e0d31661c83ff"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/vs001-selftest-pnpm11-environment-failure.txt",
+      "kind": "file",
+      "size": 2329,
+      "sha256": "834d53aa4c099df8c2bc7671899c7cedf4b4a4d12eba10467e3ece8305f77db9"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/vs001-selftest-unsandboxed.txt",
+      "kind": "file",
+      "size": 1217,
+      "sha256": "393b1ee12c4b069c3402dbd7b94a45b7ba0d15d44ee75588bb3367169bfcc642"
+    },
+    {
+      "path": "docs/acceptance/space-remake/evidence/vs001-selftest.txt",
+      "kind": "file",
+      "size": 1306,
+      "sha256": "beb2b7ac795dca4216af7769ae593991400c9c201587d7248a6649801b365f8b"
+    },
+    {
+      "path": "docs/acceptance/space-remake/review.md",
+      "kind": "file",
+      "size": 3413,
+      "sha256": "bd9a7b86aea27b60d44dd5c544fcfb40320f336d04ceeee5d581d826f0de7f5d"
+    },
+    {
+      "path": "docs/acceptance/space-remake/task-summary.md",
+      "kind": "file",
+      "size": 9421,
+      "sha256": "5796c6b8dda7dc2c851379fe560870e7b26a60bec96ff9ba1579125c611fc9b8"
+    },
+    {
+      "path": "docs/acceptance/toolchain/README.md",
+      "kind": "file",
+      "size": 987,
+      "sha256": "fbba024574eaffa136f5f3a77b78d9359e2fbf9b0500b5174a4b69270d54d1ce"
+    },
+    {
+      "path": "docs/acceptance/toolchain/package-lock.json",
+      "kind": "file",
+      "size": 40813,
+      "sha256": "f9494aa9639637b438929aee8061429ea123879607d5ad63319f7a8e5eb9cd37"
+    },
+    {
+      "path": "docs/acceptance/toolchain/package.json",
+      "kind": "file",
+      "size": 617,
+      "sha256": "3cbd0373c13cd47dde064c1a1a60d3db5a9f804a57fea8c4f0f709de343d68d6"
+    },
+    {
+      "path": "docs/architecture/adr/0001-modular-monolith.md",
+      "kind": "file",
+      "size": 4405,
+      "sha256": "7fcbf4a7d5133188317ee585be5383b5cd5decb4271012f40d59d3439606ee04"
+    },
+    {
+      "path": "docs/architecture/baseline-2026-10-06.md",
+      "kind": "file",
+      "size": 12005,
+      "sha256": "fbd22a9e52135ca019082eec50159d118dd28ce31a1c69992bbdd7f212ca4d94"
+    },
+    {
+      "path": "docs/architecture/current-runtime.md",
+      "kind": "file",
+      "size": 12358,
+      "sha256": "dba5c7a918d8b249e7a0b1c707dc8078c80645c3e441137cb6e1fab9f05a035f"
+    },
+    {
+      "path": "docs/architecture/task-priority-walkthrough.md",
+      "kind": "file",
+      "size": 7332,
+      "sha256": "3840ea1a060fef91a07b2e04fa00d118f9e31f180b84edb9b536491179ac1ec8"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/README.md",
+      "kind": "file",
+      "size": 3778,
+      "sha256": "904322a3527d15d16d59f2ad0b52dfe9baf3878e22d5e5c6c72766e1a14ba66a"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/SPEC.md",
+      "kind": "file",
+      "size": 3383,
+      "sha256": "2eb9389fa5ff77ffa106214955570fd0bb1d200f3d704e6f415c87354fc0e7d2"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/README.md",
+      "kind": "file",
+      "size": 10253,
+      "sha256": "ec487f5ad8c72674539d7a4087a0e1d2253c8b9aec24f7cd42487f29c7f705de"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/SHA256SUMS",
+      "kind": "file",
+      "size": 2880,
+      "sha256": "7337e54c9afbe2389a443d1db63b5ec30f2cfa324e0aabde11071c4d194e265c"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/SKILL.md",
+      "kind": "file",
+      "size": 16041,
+      "sha256": "dfc19b2503613070faea0a4d796ef455b383d30da84b2fb0764d1566961993b6"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/app.css",
+      "kind": "file",
+      "size": 456322,
+      "sha256": "3eff7aee853696eecdc480540da08bdf259ce91fb1c107e475130196e2dbee51"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/app.js",
+      "kind": "file",
+      "size": 3640802,
+      "sha256": "c30dca8fee6cee9326050b2eb168a66e6a2fe1dd8300c892f0823834375f20d4"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/dc-runtime.js",
+      "kind": "file",
+      "size": 187897,
+      "sha256": "3f160299989dc595cf434dac7b7f3e6fd20ed015a2d99e075c3eac09dffe0f10"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/brand-colors.md",
+      "kind": "file",
+      "size": 2234,
+      "sha256": "f451f1e68b640f2bbe4d15420339ddcb7a84595cb7d12e888caa1a6bd5bd4b3a"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/brand-typography.md",
+      "kind": "file",
+      "size": 1534,
+      "sha256": "d3aa7f635e355d674680a54fe305d4efc66463c25ec04e0a1243f8937a9ece20"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/craft.md",
+      "kind": "file",
+      "size": 16081,
+      "sha256": "6f6b9444635cdd5e371ee2ce85e62a61be2b44d6b0a14359313a7070a01db344"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/design-system-components.md",
+      "kind": "file",
+      "size": 12139,
+      "sha256": "757251bf066881fa449229679c9e12d185a572d1a6c78a559c861c48af23df10"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/diagrams.md",
+      "kind": "file",
+      "size": 9638,
+      "sha256": "c5747e7ab8d8bd04e7ac484f10be02728b9f8f2df1c024024d1d218be9bb20a7"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/format.md",
+      "kind": "file",
+      "size": 11295,
+      "sha256": "b509b31cc2db41a7ddc247f67b164c0f6f755e3f07d909ad3baf20a27718b771"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/print.md",
+      "kind": "file",
+      "size": 5443,
+      "sha256": "ed7b2b2c069c0fb164201afe15041158f2c5427bed2cb6c25a84876d51ac0253"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/questions.md",
+      "kind": "file",
+      "size": 4419,
+      "sha256": "34139a6b25e7b6048b8c98afbb7892116c9c3dc7369f22b5cf9c88d06cab108e"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/reference/view-state.md",
+      "kind": "file",
+      "size": 8777,
+      "sha256": "2f50b955fdd7aaf17488d0eaff524a313e92ee0f8f5f81f1e403cfb0a80b5c96"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/thumbnail/thumbnail.json",
+      "kind": "file",
+      "size": 359,
+      "sha256": "eb391285e03f9f372be5219759be433cebeee2deda20841593a06f050c3fbb9c"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/index.html",
+      "kind": "file",
+      "size": 33362,
+      "sha256": "e81ba95d716b219e0c37b5c8ace2d6bd26df964aca5a8d20fda1bf8d8aaf677d"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Conversations.dc.html",
+      "kind": "file",
+      "size": 13980,
+      "sha256": "4334895a30b41b5811516bdfa09e38be05524504f54bfd00bdf25998028f9dd7"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Home.dc.html",
+      "kind": "file",
+      "size": 14165,
+      "sha256": "d1236f4d0629ae612138b0eb6f59dede0cdb82d6a30e4efee98b97ac37251738"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Main.dc.html",
+      "kind": "file",
+      "size": 47711,
+      "sha256": "97cf5c74a6baa29ace80db9f92ef2e33511cf8ec6483a73dfa648d584c57e826"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Overlay.dc.html",
+      "kind": "file",
+      "size": 15155,
+      "sha256": "b8570cb79f2eaa3567d64cac565886ced7619b24daf069777c3b7427f19a8c31"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Resources.dc.html",
+      "kind": "file",
+      "size": 13368,
+      "sha256": "022c03bdc3062b1704fa94055a89e15c9f966ea96b66491fcd0f7d70f7c2f5fe"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/RunCancel.dc.html",
+      "kind": "file",
+      "size": 15572,
+      "sha256": "1aaf8d4f03b9ab6b103909e0ca0cfddc42dc245e81382078b09cf03601dd66f3"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/RunHistory.dc.html",
+      "kind": "file",
+      "size": 15643,
+      "sha256": "c4e8f957b6fb9911b54ebfb8ad67d669760e295f3369baa0a6a1562e360d9ce0"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/RunPassed.dc.html",
+      "kind": "file",
+      "size": 19926,
+      "sha256": "f469df82522eb962bf23d7093785befc2cafd95a4e1536f9abfffb2eaabde829"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Settings.dc.html",
+      "kind": "file",
+      "size": 13125,
+      "sha256": "a7d3e2d8ec4ddd5c452684f31fef89a01552d9d5486022682a41cafff23176b1"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Space.dc.html",
+      "kind": "file",
+      "size": 18992,
+      "sha256": "6734f1829f5db3c21b1daebc9ce5a40a647f9acd71583444140ead7157d3d8b9"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/Tasks.dc.html",
+      "kind": "file",
+      "size": 14057,
+      "sha256": "c606ec3a3c2e7e22b218c23af24e7d81787f03cbd44955fc89ebec436a333a00"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/artifact/project/canvas.json",
+      "kind": "file",
+      "size": 3091,
+      "sha256": "7eb8742f6136537b528ae19ffc8a7565f250f6d1ac3a8ece432e10200bbeeda1"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/board-map.json",
+      "kind": "file",
+      "size": 5876,
+      "sha256": "65d953bdd8b031187552c74c8b328d63321429576595be4460bb6dd6107c1ed1"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/baseline/tools/serve-local.mjs",
+      "kind": "file",
+      "size": 3407,
+      "sha256": "eed45984b32ec614297b78c8458b0ac621e98570898b3a16ea5c8c01ad34d9ee"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/handoff/demo-script.md",
+      "kind": "file",
+      "size": 3839,
+      "sha256": "405b4e3b169b43e61ea5ca4ddd89ac504946b759cd430a35b009123085a532a8"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/handoff/difference-table.md",
+      "kind": "file",
+      "size": 11010,
+      "sha256": "07b10f5f002e39eabb62db1691ff0e4cea68c5594b4bd940362f985552e66d2a"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/handoff/engineering-handoff.md",
+      "kind": "file",
+      "size": 6841,
+      "sha256": "058f7c279e189fa5cc10dce59bbbe6100c685284c8837dced72f8a87f8bccafc"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Conversations.dc.html",
+      "kind": "file",
+      "size": 56580,
+      "sha256": "1b8b4a767c89804dc7a78e165e78e53c2760aa2f38e691217fdbf6ce76950112"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Home.dc.html",
+      "kind": "file",
+      "size": 56571,
+      "sha256": "e8340f643ff4eed0c09f396c4ada09fd9cfb58a2acfcfc9e0e5a196a5a809ac6"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Main.dc.html",
+      "kind": "file",
+      "size": 56588,
+      "sha256": "ad3e6c76ecbd31d6264ccbbafbe85205d750cc839c973aa856dcda4aa7a7867f"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Overlay.dc.html",
+      "kind": "file",
+      "size": 56581,
+      "sha256": "e6c77af92b824fda4949260fa71f04fb80974fab7fd0948394546e0c98be4ad9"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/README.md",
+      "kind": "file",
+      "size": 4358,
+      "sha256": "f4f89b54c974b69a04192143194e679d1f841848e5af818605e73ca7f3587d0c"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Resources.dc.html",
+      "kind": "file",
+      "size": 56595,
+      "sha256": "c371a2bee8a172735efc69c777acd92d1c7aab69b85466096f20d40eec4c5701"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/RunCancel.dc.html",
+      "kind": "file",
+      "size": 56599,
+      "sha256": "7cb8ebe167a71622bd222644e537f78c8b8f969443a19f3632e0c91e127a307a"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/RunHistory.dc.html",
+      "kind": "file",
+      "size": 56597,
+      "sha256": "466c3034f5b2b8d216ab16144905a26e11e026f7e50fe4a305f5673c106c8eef"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/RunPassed.dc.html",
+      "kind": "file",
+      "size": 56589,
+      "sha256": "edd908b9f6f5f4669dfd8c750cff57fe3396903ffc66e4d898f28c696225a1fb"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Settings.dc.html",
+      "kind": "file",
+      "size": 56575,
+      "sha256": "10823f9e864d23364c30a3931a5043a580448f5eb8763c1d833493b27af0e234"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Space.dc.html",
+      "kind": "file",
+      "size": 56591,
+      "sha256": "f6833ea2081707d4796fb16585d705deadfa20d550261916c1fe80876e2f0530"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/Tasks.dc.html",
+      "kind": "file",
+      "size": 56579,
+      "sha256": "543e3916665f6aa9a7eef1b3ebb7ca50408ee3e1382a299a7613f11ce90e9090"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/canvas.json",
+      "kind": "file",
+      "size": 3757,
+      "sha256": "e4e6616331a5ee2ea2e6d4e85828ee93d22128c0aafc95ac5b34671e9963e664"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/check.mjs",
+      "kind": "file",
+      "size": 8550,
+      "sha256": "7e1511a17ee71995d4a293514e2383ed7fbf09510622c1e035380c629e213b18"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/generate.py",
+      "kind": "file",
+      "size": 2025,
+      "sha256": "06f7b450289eaa153882ab49ac1b6ff16f45091dc2a542a8af984845a91f7c7b"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/index.html",
+      "kind": "file",
+      "size": 1184,
+      "sha256": "de91ba24ea353fd0dd3d8c229b57145a68d9d9ecdf24102c8833d0fb798bbb0a"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/logic.js",
+      "kind": "file",
+      "size": 32638,
+      "sha256": "9ff3b0ff7292d7cead23273d1c89efa14155d2abf4eee057e888d5879910da6c"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/serve.py",
+      "kind": "file",
+      "size": 475,
+      "sha256": "1bad25385f17b2b7da0a631ab8aa771180be6b986be8f2969f6ec0eb56bc716c"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/source-manifest.json",
+      "kind": "file",
+      "size": 1682,
+      "sha256": "8a64ee72f58732d49d443fdc141907b9360afcdec07de65b56c2e1f40480e470"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/state-check-results.txt",
+      "kind": "file",
+      "size": 1230,
+      "sha256": "6f4e7d31ea60217b44226edd14c4dd96c769ea425f08855e470021a6b9ced87e"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/support.js",
+      "kind": "file",
+      "size": 187897,
+      "sha256": "3f160299989dc595cf434dac7b7f3e6fd20ed015a2d99e075c3eac09dffe0f10"
+    },
+    {
+      "path": "docs/design/2026-10-06-workbench-v0.3/prototype/template.html",
+      "kind": "file",
+      "size": 23931,
+      "sha256": "9202dc62f1c890238c61dea9da9bb12a389ec939e5c67924c2194585fd9d6a2c"
+    },
+    {
+      "path": "docs/development/dependencies.md",
+      "kind": "file",
+      "size": 16174,
+      "sha256": "73d8d4e48f24cd0c12571ac4e0e0221727fffdbfdc320d3811039cb2785f3f57"
+    },
+    {
+      "path": "docs/plans/2026-10-os2026-task-plan.md",
+      "kind": "file",
+      "size": 43628,
+      "sha256": "40c97780d917945f107e97ea596f011b3b8f188e52f8cca10d4331b88c763b0a"
+    },
+    {
+      "path": "docs/verification/2026-10-06-codex-chat/README.md",
+      "kind": "file",
+      "size": 6686,
+      "sha256": "6524e0b789d27ae5f4b643102347af196ae3971a12295e3c2f0918ffda388148"
+    },
+    {
+      "path": "docs/verification/2026-10-06-codex-chat/SPEC.md",
+      "kind": "file",
+      "size": 4488,
+      "sha256": "f85a516b1d8d901947bd24ecb021f3af2280b41ecdc61e6f2c9ad69e60c45f39"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/README.md",
+      "kind": "file",
+      "size": 9834,
+      "sha256": "c1b81a9fafccae1e4facb7916867bb4f3d83b08857e1255f884ee55397a90d34"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/01-workbench-initial.png",
+      "kind": "file",
+      "size": 388535,
+      "sha256": "68b2001f8a76139bd454e8c2b9ef3e02a44a39a55d20e963a905ef67cabb0d9b"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/01-workbench-initial.preview.png",
+      "kind": "file",
+      "size": 72264,
+      "sha256": "c2704253acfb4fd8020ebbc5d0e78ddedaa8fe0d180b4f39c5a3300290a28097"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/02-capture.png",
+      "kind": "file",
+      "size": 350496,
+      "sha256": "54ab1d1eedad67ee2518ba9b491c5c7ef17c24db8e5315bc40446ff74c7d14dc"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/02-capture.preview.png",
+      "kind": "file",
+      "size": 72264,
+      "sha256": "c2704253acfb4fd8020ebbc5d0e78ddedaa8fe0d180b4f39c5a3300290a28097"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/03-task-confirmed.png",
+      "kind": "file",
+      "size": 396128,
+      "sha256": "b08077bbe4089b4717dad6263582f252a9383808cebe542dd96a33656e7f69ec"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/04-capture-stale.png",
+      "kind": "file",
+      "size": 375634,
+      "sha256": "3efdefc78122aea9c3a98b8f35b42e14dd35b3d6c96092acc550e7b51dc57215"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/04-capture-stale.preview.png",
+      "kind": "file",
+      "size": 78549,
+      "sha256": "b90edbc723b44bea2a3e4936cecec9c2874b9334a39579565641666e3b8094fc"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/05-report-demo.png",
+      "kind": "file",
+      "size": 505286,
+      "sha256": "1f517de5e583a287aef7d66934f0baeb305d29a606989f49cf469d889e6f41ec"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/06-demo-cancelling.png",
+      "kind": "file",
+      "size": 523990,
+      "sha256": "33c7da59aa7eacdcc5a06c07d5cb67878d5c3321b5c8a226afbc4e2c05e8c2ad"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/07-home.png",
+      "kind": "file",
+      "size": 225492,
+      "sha256": "118328d657c67d19593f95e7f534b509f9137e26f13b6d6e54a62a8541f3ea2e"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/08-settings.png",
+      "kind": "file",
+      "size": 268465,
+      "sha256": "79c5cdf859bc1e8ae5beaf2e0019300a712651b5717c7c7001070b15d45f1706"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/09-workshop-overlay.png",
+      "kind": "file",
+      "size": 422027,
+      "sha256": "b8f7b4fb57bec611d163b5ff1f65fe07841145e2ab228b49958850f16c4113a4"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/10-narrow-overlay.png",
+      "kind": "file",
+      "size": 368783,
+      "sha256": "f4de42f506c5655bac032c3581ca9aa699d2e46e1dac3b752652f0b5c4f69de1"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/11-narrow.png",
+      "kind": "file",
+      "size": 216107,
+      "sha256": "13ebb220ca29bb787acdd662a42d2ac7d0aaa0a64726d66a83dc1872ba12e3f3"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/11-narrow.preview.png",
+      "kind": "file",
+      "size": 69965,
+      "sha256": "80ac71674a1dde4dd0c4063bb5d9387e9dc44abde600173478233261c9cc0c25"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/real-window-bug-inspect-mode-left-on.jpg",
+      "kind": "file",
+      "size": 200909,
+      "sha256": "21f7f1b289b3aff5bfd5d88fa45ce3d1465f283c77f780bc70841ce4c208a321"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/real-window-packaged-capture.jpg",
+      "kind": "file",
+      "size": 195308,
+      "sha256": "058ebc80977aceb062731f6e9c903c751bc8c5742edd71680ef943c16060d884"
+    },
+    {
+      "path": "docs/verification/2026-10-06-desktop-ui/screens/real-window-workshop-overlay.jpg",
+      "kind": "file",
+      "size": 63062,
+      "sha256": "f403f795a8de2325acc16da686537c4ac9ebc50b24eba1cc66699b290256113e"
+    },
+    {
+      "path": "docs/verification/2026-10-06-public-resources/SPEC.md",
+      "kind": "file",
+      "size": 6159,
+      "sha256": "0e5b278a2cd111faaa6af696c626c3150567b42752154fbd27ce1101c54de452"
+    },
+    {
+      "path": "docs/verification/2026-10-06-public-resources/task-state.json",
+      "kind": "file",
+      "size": 6088,
+      "sha256": "c208a7fb03fd9d1a4dd772a4ecd1831f28fc29f24e3334c910a57b860e771d54"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/README.md",
+      "kind": "file",
+      "size": 11715,
+      "sha256": "bdb803ca2a154de8f1bfac438a22c90b23064ed9a40077c47ddfba905e91ec15"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx-app/SPEC.md",
+      "kind": "file",
+      "size": 4331,
+      "sha256": "e9c1d24999433d4eb2670397cadb10d7a0bc4426077f0e2510b79a5b1240beb9"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/README.md",
+      "kind": "file",
+      "size": 7391,
+      "sha256": "a8690b9ee1102364911c21a3fdb9a61c4d7fe703db86341696cba4037b0ff511"
+    },
+    {
+      "path": "docs/verification/2026-10-06-sbx/SPEC.md",
+      "kind": "file",
+      "size": 2516,
+      "sha256": "9ab8743f4a39ae2c24f5da353bf982823142281ca3c38839d0f65280f1e20892"
+    },
+    {
+      "path": "docs/verification/2026-10-07-sandbox-browser/SPEC.md",
+      "kind": "file",
+      "size": 6196,
+      "sha256": "85fbe02cb1d6ead2e5c3e851b1c6e840de3a42a4477f0e6780a916d4c8c4002e"
+    },
+    {
+      "path": "e2e/chat.spec.ts",
+      "kind": "file",
+      "size": 6370,
+      "sha256": "4916b23138ebe34286c35d3c76841eca120e2e152f344a4ff731f6d6f3598460"
+    },
+    {
+      "path": "e2e/fixtures/codex.mjs",
+      "kind": "file",
+      "size": 2184,
+      "sha256": "8b5450a9437f1f28461161dda202f755b4199d9ed4278bdebdb14708241d5e6d"
+    },
+    {
+      "path": "e2e/fixtures/sbx.mjs",
+      "kind": "file",
+      "size": 4422,
+      "sha256": "8f310786626fb777de6a1458a76face5394569b597ff9b420235d4838c79e08a"
+    },
+    {
+      "path": "e2e/helpers.ts",
+      "kind": "file",
+      "size": 10305,
+      "sha256": "6b8b7143ad964039a44ead0e3d2c274e7ee31e8cd08687c7d5df1a9d8153a3e5"
+    },
+    {
+      "path": "e2e/public-document.spec.ts",
+      "kind": "file",
+      "size": 7158,
+      "sha256": "50eb95113a204032c24023cac49a40f357d8af04f53a7c2ab6756ac9862fe25b"
+    },
+    {
+      "path": "e2e/resources-live.spec.ts",
+      "kind": "file",
+      "size": 8614,
+      "sha256": "219278725b6589b4ba78dc12bd42acb3ffae37f720f1915bbba9a53fb32d4ae7"
+    },
+    {
+      "path": "e2e/resources.spec.ts",
+      "kind": "file",
+      "size": 8515,
+      "sha256": "5c4bded5af26f39f7f17af71128c7e9497941fbebe45b01c6d81f62c13ff7d08"
+    },
+    {
+      "path": "e2e/sbx.spec.ts",
+      "kind": "file",
+      "size": 13128,
+      "sha256": "0a21440ebef120fe7665b021fd25a433c5208ac844532f2467bd9fff6308eb1f"
+    },
+    {
+      "path": "e2e/space-remake.spec.ts",
+      "kind": "file",
+      "size": 14102,
+      "sha256": "b925efb0122fb857bc0a286c4e5fad827041a02204d11b227768c491d864058d"
+    },
+    {
+      "path": "e2e/workbench.spec.ts",
+      "kind": "file",
+      "size": 12227,
+      "sha256": "a89b99e337f6a47014175b0ec2db9a30e9b185a9db6f0069822c6401d0458e06"
+    },
+    {
+      "path": "e2e/workspace-debug.spec.ts",
+      "kind": "file",
+      "size": 602,
+      "sha256": "3e6c8cc8e1d128681fd5b02572ae9d65e16f5ce5da291d46da731d706bc24322"
+    },
+    {
+      "path": "e2e/workspace-migration.spec.ts",
+      "kind": "file",
+      "size": 14062,
+      "sha256": "84587353a8881d4c166d5238f7290ad7f4c319661cd2c223a667cb55dcc33f57"
+    },
+    {
+      "path": "e2e/workspace-runtime.spec.ts",
+      "kind": "file",
+      "size": 10261,
+      "sha256": "180cd1686abaa2a866d3d8addcfc282a3be71709ead70024e8a09cfd5b15e6aa"
+    },
+    {
+      "path": "e2e/workspace-upgrade.spec.ts",
+      "kind": "file",
+      "size": 8389,
+      "sha256": "969945c25a73ff39e5e385535a2c094b5899491aee5380003cf1415f2a1bc08a"
+    },
+    {
+      "path": "e2e/workspace-visual.spec.ts",
+      "kind": "file",
+      "size": 3800,
+      "sha256": "252077d3d13496889de1d65bbd13270d24853017a6c8c30455e397d330786974"
+    },
+    {
+      "path": "eslint.config.js",
+      "kind": "file",
+      "size": 2266,
+      "sha256": "59a3b557593466ffa4025fe3fd5bda732c3339c12328edbae680c114086d6d8c"
+    },
+    {
+      "path": "fixtures/vertical-slice/page/index.html",
+      "kind": "file",
+      "size": 200,
+      "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+    },
+    {
+      "path": "fixtures/vertical-slice/page/package.json",
+      "kind": "file",
+      "size": 121,
+      "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+    },
+    {
+      "path": "fixtures/vertical-slice/page/src/App.tsx",
+      "kind": "file",
+      "size": 104,
+      "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+    },
+    {
+      "path": "fixtures/vertical-slice/page/src/main.tsx",
+      "kind": "file",
+      "size": 202,
+      "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+    },
+    {
+      "path": "package-lock.json",
+      "kind": "file",
+      "size": 40813,
+      "sha256": "f9494aa9639637b438929aee8061429ea123879607d5ad63319f7a8e5eb9cd37"
+    },
+    {
+      "path": "package.json",
+      "kind": "file",
+      "size": 1836,
+      "sha256": "3213aedb95e2f13871a1527c3823500e7fe080b6fe286c9a0fecf5b2e30da5f2"
+    },
+    {
+      "path": "packages/protocol/package.json",
+      "kind": "file",
+      "size": 336,
+      "sha256": "b01cf9be222fcd7d710d91270c9f2fbb56e3d4d946bd2fa314e1ef5d94788e0e"
+    },
+    {
+      "path": "packages/protocol/src/app.ts",
+      "kind": "file",
+      "size": 601,
+      "sha256": "25427308e1f3304cc77ecdafd19cc81b20e8944a8d5751b4039e33bfd44b7e35"
+    },
+    {
+      "path": "packages/protocol/src/bridge.ts",
+      "kind": "file",
+      "size": 1452,
+      "sha256": "0731bdc56c94d714dda22be1aa69a05ba6efefd5e879882913b278936139cf4f"
+    },
+    {
+      "path": "packages/protocol/src/chat-slot.ts",
+      "kind": "file",
+      "size": 266,
+      "sha256": "fc429125c0c9b2c6dce66d2b7ee27f3ea8f697166bdb70e05280effd23e8d757"
+    },
+    {
+      "path": "packages/protocol/src/chat.ts",
+      "kind": "file",
+      "size": 4341,
+      "sha256": "698f322f3e64493deb2aa2dffffcf86dee66d4d5b28cacd8b46de2bcb9483cf1"
+    },
+    {
+      "path": "packages/protocol/src/execution.ts",
+      "kind": "file",
+      "size": 645,
+      "sha256": "c426c4efa6e932296b0e13ac922ccc16fde712c216dcb020a7db684aa7caaa91"
+    },
+    {
+      "path": "packages/protocol/src/guest-browser.ts",
+      "kind": "file",
+      "size": 3915,
+      "sha256": "9baba1ec6063b8e76f9b70bf427b98448ca511d72de8b924317293dc35935da3"
+    },
+    {
+      "path": "packages/protocol/src/index.ts",
+      "kind": "file",
+      "size": 322,
+      "sha256": "0b43dc171e9e75d01fd8ffd053cf606b6b1c358791b5c40d51cb75aba90f7850"
+    },
+    {
+      "path": "packages/protocol/src/ipc.ts",
+      "kind": "file",
+      "size": 2225,
+      "sha256": "4a61994636e727caf9d8967f4b0004f3df1f28bc95ded87acdbef8db34bb9c03"
+    },
+    {
+      "path": "packages/protocol/src/preview.ts",
+      "kind": "file",
+      "size": 4175,
+      "sha256": "42ca2620fe4b7bbf0f09bc461a55627aa9cf6838a1535e3eaf9b236bde6c2e23"
+    },
+    {
+      "path": "packages/protocol/src/protocol.test.ts",
+      "kind": "file",
+      "size": 3104,
+      "sha256": "069c3389db2cf3d6bd1cba3680d927b0f9c51a5b9492131b826a60ce5850a957"
+    },
+    {
+      "path": "packages/protocol/src/resources.test.ts",
+      "kind": "file",
+      "size": 5950,
+      "sha256": "40dfd4209de94acab52d187635725970d5d4caa4e2bfcd20bc755ae0b48934a6"
+    },
+    {
+      "path": "packages/protocol/src/resources.ts",
+      "kind": "file",
+      "size": 7505,
+      "sha256": "e935562aadb8defc3ed7b1755b5d468d60b1675487d5d0882ee61b2a4725be54"
+    },
+    {
+      "path": "packages/protocol/src/run.ts",
+      "kind": "file",
+      "size": 4931,
+      "sha256": "8ae86ea1a805ea3ee134b7fe3ceb27f620c9a46374e6cbbb86eee20fcb5b09a0"
+    },
+    {
+      "path": "packages/protocol/src/task.ts",
+      "kind": "file",
+      "size": 1828,
+      "sha256": "6d9ed523734e649a230fa8c24c01b501d7d08509ec8f1da04a2fa7c12bc83d94"
+    },
+    {
+      "path": "packages/protocol/src/terminal.ts",
+      "kind": "file",
+      "size": 999,
+      "sha256": "fceb32c093aac5b78efa4444b8396ba0ebc5289f968e9c9e29fdba969da68de1"
+    },
+    {
+      "path": "packages/protocol/src/workspace-preferences.test.ts",
+      "kind": "file",
+      "size": 546,
+      "sha256": "5e15040e5f2028a488620f83772fce97408908262e6d77102bbacb6126889d5b"
+    },
+    {
+      "path": "packages/protocol/src/workspace.ts",
+      "kind": "file",
+      "size": 10043,
+      "sha256": "153f79bb8d0d425aa8ba926b9b1cfce340db902441df3341dd52ef11342d7163"
+    },
+    {
+      "path": "packages/protocol/tsconfig.json",
+      "kind": "file",
+      "size": 133,
+      "sha256": "fe2fcfc11ee3613141a6d6f53f0a0e81ce4f4c11dd21e63dfe39ad6f00ca2f80"
+    },
+    {
+      "path": "playwright.config.ts",
+      "kind": "file",
+      "size": 280,
+      "sha256": "7fed99c0109093f0fd454ebb30c2ea8af83faa5738f70ce2f1cde770d34f38d4"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "kind": "file",
+      "size": 161132,
+      "sha256": "651395435c34d32c22db36223641e7e126985bf68b1033d181aa6c09c6194a57"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "kind": "file",
+      "size": 201,
+      "sha256": "996c06053b6c327a083c732c7fe1aa69d17850f95f4baba34b2eed05615f84e2"
+    },
+    {
+      "path": "premium-audit.json",
+      "kind": "file",
+      "size": 237,
+      "sha256": "95b6c732a7617d9679a4dd600415dcc4081d59814689d168d29040eb70be3670"
+    },
+    {
+      "path": "premium-ui.json",
+      "kind": "file",
+      "size": 561,
+      "sha256": "1341054e6b0851fe7a58a5ed06075435c66d33262b4357df856abc40a4702bfc"
+    },
+    {
+      "path": "scripts/check-docs.mjs",
+      "kind": "file",
+      "size": 2981,
+      "sha256": "034d21f7f7c01272d25e2ec7f807b502c1f5fdc1f332821f53232f0242318c71"
+    },
+    {
+      "path": "scripts/sbx-prepare-guest.sh",
+      "kind": "file",
+      "size": 1002,
+      "sha256": "db994fa0995a13de36c0f1fbb72d24f7fda2d6a5725e7ad7c20f33f8b082930c"
+    },
+    {
+      "path": "scripts/sbx-read-smoke.py",
+      "kind": "file",
+      "size": 4098,
+      "sha256": "26c95deaa9d3230dc61e4244551dc75c7fe93e5502a627ac35d683f1f7e8fa11"
+    },
+    {
+      "path": "tests/vertical-slice/cdp.ts",
+      "kind": "file",
+      "size": 9786,
+      "sha256": "08f7eb8bb48cb0f4cb344f25246e2f733df0019c06bd8a34611f8547ece85da0"
+    },
+    {
+      "path": "tests/vertical-slice/contracts.ts",
+      "kind": "file",
+      "size": 3291,
+      "sha256": "4f4e47294f2e2650db775a78674a85099e3a7da34e020045b945b63f58193e00"
+    },
+    {
+      "path": "tests/vertical-slice/evidence.ts",
+      "kind": "file",
+      "size": 13073,
+      "sha256": "271914a26af7ee8bb753dab93274c21ea8c3e7ef669d18532fb5c33a1351ee9f"
+    },
+    {
+      "path": "tests/vertical-slice/postcondition.ts",
+      "kind": "file",
+      "size": 1665,
+      "sha256": "20920d99eb9280ec6fd62a025eea6489ff893a863095cb977d4a52f4e3d5627c"
+    },
+    {
+      "path": "tests/vertical-slice/run.ts",
+      "kind": "file",
+      "size": 13067,
+      "sha256": "f335a3439e293372ab645810398644a1d211cec314c53982ee69a9316b5fdde4"
+    },
+    {
+      "path": "tests/vertical-slice/selftest.test.ts",
+      "kind": "file",
+      "size": 9249,
+      "sha256": "c63075c2b9edccaf4b79c9d8ea7aa1d2aaae9829a169cf39051e05be039e02bd"
+    },
+    {
+      "path": "tsconfig.base.json",
+      "kind": "file",
+      "size": 413,
+      "sha256": "4a65a7281153c63610722d0155c85c9db038f58692824005e738f4cc05b8128e"
+    },
+    {
+      "path": "tsconfig.e2e.json",
+      "kind": "file",
+      "size": 316,
+      "sha256": "337a61e5b0e010defffa8be7542dcce4ca86b9287ebbb12caae5a32e7d60ac83"
+    },
+    {
+      "path": "tsconfig.json",
+      "kind": "file",
+      "size": 381,
+      "sha256": "4a7a58e5cdf40cf08aee0aa74b4a60693c73232b4df58a7fad075788325c426a"
+    },
+    {
+      "path": "vitest.config.ts",
+      "kind": "file",
+      "size": 194,
+      "sha256": "c1c33443453fd2726a9095962d4bc4d532a44293159e7a5c507d5cc25b8d07a6"
+    }
+  ],
+  "stable": true,
+  "attempt": 1
+}

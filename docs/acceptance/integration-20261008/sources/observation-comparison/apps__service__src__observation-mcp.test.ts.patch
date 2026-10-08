@@ -1,0 +1,49 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/service/src/observation-mcp.test.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-mcp.test.ts
+index ab482ca..ee97b66 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/service/src/observation-mcp.test.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/observation-mcp.test.ts
+@@ -49,3 +49,44 @@ print('socket-roundtrip-and-bounds-pass')
+   const output = execFileSync('python3', ['-B', '-c', script], { encoding: 'utf8', timeout: 10000 });
+   expect(output).toContain('socket-roundtrip-and-bounds-pass');
+ });
++
++it.each([false, true])('reads actual JPEG disk bytes through FileProvider and MCP image gate %s', async (images) => {
++  const { FileObservationProvider } = await import('./observation-files');
++  const { mkdtemp, writeFile, rm } = await import('node:fs/promises');
++  const { tmpdir } = await import('node:os');
++  const fixtureRoot = path.resolve('docs/verification/2026-10-06-desktop-ui/screens');
++  const provider = new FileObservationProvider({ workspaceId: 'w', environmentId: 'local', root: fixtureRoot });
++  const temp = await mkdtemp(path.join(tmpdir(), 'wsl-jpeg-mcp-'));
++  try {
++    const result = await provider.read({ path: 'real-window-workshop-overlay.jpg' });
++    expect(result.data.mediaType).toBe('image/jpeg');
++    const responsePath = path.join(temp, 'response.json');
++    await writeFile(responsePath, JSON.stringify(result));
++    const script = `
++import importlib.util,socket,threading,json
++spec=importlib.util.spec_from_file_location('m',${JSON.stringify(path.resolve('apps/service/src/resource_mcp.py'))})
++m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
++m.OBSERVATION_IMAGES=${images ? 'True' : 'False'}
++m.OBSERVATION_SOCKET=${JSON.stringify(path.join(temp, 'read.sock'))}
++with open(${JSON.stringify(responsePath)}) as f: observation=json.load(f)
++s=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);s.bind(m.OBSERVATION_SOCKET);s.listen(1)
++def reply():
++ c,_=s.accept()
++ with c:
++  request=json.loads(c.makefile('rb').readline());assert request['tool']=='files.read'
++  c.sendall((json.dumps(observation)+'\\n').encode())
++t=threading.Thread(target=reply);t.start()
++r=m.dispatch({},'tools/call',{'name':'files_read','arguments':{'path':'real-window-workshop-overlay.jpg'}})
++t.join(2);s.close()
++images=[x for x in r['content'] if x['type']=='image']
++assert len(images)==(1 if m.OBSERVATION_IMAGES else 0)
++if images: assert images[0]['mimeType']=='image/jpeg' and images[0]['data']==observation['data']['base64']
++assert observation['data']['base64'] not in json.dumps(r['structuredContent'])
++print('actual-jpeg-gate-pass')
++`;
++    expect(execFileSync('python3', ['-B', '-c', script], { encoding: 'utf8', timeout: 10000 })).toContain('actual-jpeg-gate-pass');
++  } finally {
++    await provider.close();
++    await rm(temp, { recursive: true, force: true });
++  }
++});

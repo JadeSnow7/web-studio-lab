@@ -1,0 +1,7 @@
+
+> web-studio-lab-baseline@0.0.0 typecheck
+> node node_modules/typescript/lib/tsc.js --noEmit
+
+src/vertical-slice/adapter.ts(2,14): error TS2322: Type '() => Promise<string>' is not assignable to type 'ExecuteTask'.
+  Type 'Promise<string>' is not assignable to type 'Promise<StartedApplication>'.
+    Type 'string' is not assignable to type 'StartedApplication'.

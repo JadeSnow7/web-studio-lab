@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>首页 · H-01</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.w{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Helvetica Neue",sans-serif;color:#1D1D1F;-webkit-font-smoothing:antialiased}
+.w button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mono{font-family:"SF Mono",Menlo,Consolas,monospace}
+a{color:#0A67D1}a:hover{color:#08539F}
+</style>
+</helmet>
+<div class="w" style="width:1440px;height:900px;box-sizing:border-box;background:#F6F7F9;display:flex;flex-direction:column;overflow:hidden;border-radius:12px;border:1px solid #D8DCE3">
+
+  <header style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;background:#F4F6FA;border-bottom:1px solid #D8DCE3">
+    <div aria-hidden="true" style="display:flex;gap:8px;width:72px;flex:none">
+      <span style="width:12px;height:12px;border-radius:50%;background:#FF5F57"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#FEBC2E"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#28C840"></span>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;gap:10px;padding-left:8px;font-size:13px">
+      <span style="font-weight:600">首页</span>
+      <span style="font-size:12px;color:#60656F">个人作用域 · TaskFlow 现场在后台保留</span>
+    </div>
+    <button aria-label="账号：林夏，打开账号设置" style="display:flex;align-items:center;gap:8px;height:32px;padding:0 10px 0 4px;border-radius:16px;font-size:13px">
+      <span style="width:26px;height:26px;border-radius:50%;background:#D9E6F7;color:#0A4F9E;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">林</span>林夏
+    </button>
+    <button aria-label="通信面板，已展开" style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#E3EDFA;color:#0A67D1">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"></path></svg>
+    </button>
+  </header>
+
+  <div style="flex:1;display:flex;min-height:0">
+
+    <nav aria-label="Workshop" style="width:56px;flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:#F4F6FA;border-right:1px solid #D8DCE3">
+      <button aria-current="page" style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:#E3EDFA;color:#0A67D1;font-size:11px;font-weight:600">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"></path></svg>首页
+      </button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>空间
+      </button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"></path></svg>资源
+      </button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"></path></svg>会话
+      </button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="m8 12 3 3 5-6"></path></svg>任务
+      </button>
+      <div style="flex:1"></div>
+      <button aria-label="固定 Workshop（已固定）" style="width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#0A67D1">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3H7l3-3z"></path><path d="M12 13v7"></path></svg>
+      </button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px">
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg>设置
+      </button>
+    </nav>
+
+    <main aria-label="首页" style="flex:1;min-width:0;background:#FFFFFF;display:flex;flex-direction:column;align-items:center;padding:96px 48px 32px;gap:40px;overflow:hidden">
+      <h1 style="margin:0;font-size:28px;font-weight:600;letter-spacing:-0.02em">今天从哪里开始？</h1>
+
+      <section aria-label="混合输入" style="width:100%;max-width:720px;border-radius:16px;background:#FFFFFF;box-shadow:0 0 0 1px #D8DCE3,0 12px 32px rgba(29,29,31,0.08);padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div role="tablist" aria-label="输入模式" style="display:flex;gap:2px;padding:2px;border-radius:9px;background:#EEF1F5">
+            <button role="tab" aria-selected="true" style="height:26px;padding:0 12px;border-radius:7px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,0.08);font-size:13px;font-weight:600">对话</button>
+            <button role="tab" aria-selected="false" style="height:26px;padding:0 12px;border-radius:7px;font-size:13px;color:#60656F">搜索</button>
+            <button role="tab" aria-selected="false" style="height:26px;padding:0 12px;border-radius:7px;font-size:13px;color:#60656F">打开</button>
+          </div>
+          <span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;background:#F1F3F6;font-size:12px;color:#3C4049">
+            <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>个人 · 默认 Agent
+          </span>
+          <span style="flex:1"></span>
+          <span style="font-size:12px;color:#60656F">不读取其他空间</span>
+        </div>
+        <label for="home-input" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">输入内容</label>
+        <textarea id="home-input" rows="2" style="border:0;outline:none;resize:none;font:inherit;font-size:16px;line-height:1.5;color:#1D1D1F;background:transparent">帮我看看 localhost:5173 的移动端布局</textarea>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:#F4F6FA;font-size:12px">
+          <svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px;color:#0A67D1"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"></path></svg>
+          <span style="flex:1">识别到地址 <span class="mono">localhost:5173</span>。当前仍是「对话」：地址只作为文字发给默认 Agent。</span>
+          <button style="color:#0A67D1;font-weight:600">改为打开此地址</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#60656F">
+          <span>Enter 发送 · Shift+Enter 换行 · 输入法组词时不提交</span>
+          <span style="flex:1"></span>
+          <button style="height:32px;padding:0 16px;border-radius:8px;background:#0A67D1;color:#FFFFFF;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px"><svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M4 12 20 4l-6 16-3-7z"></path></svg>发送</button>
+        </div>
+      </section>
+
+      <section aria-label="近期空间" style="width:100%;max-width:720px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <h2 style="margin:0;font-size:14px;font-weight:600">近期空间</h2>
+          <button style="font-size:12px;color:#0A67D1;display:flex;align-items:center;gap:4px"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M12 5v14M5 12h14"></path></svg>新建空间</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+          <a href="Space.dc.html" style="text-decoration:none;color:#1D1D1F;border-radius:12px;box-shadow:0 0 0 1px #D8DCE3;padding:14px;display:flex;flex-direction:column;gap:8px">
+            <span style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:600">TaskFlow</span><span style="font-size:11px;color:#0A4F9E;background:#E3EDFA;padding:2px 8px;border-radius:10px">继续工作</span></span>
+            <span style="font-size:12px;color:#60656F">3 个 Tab · 1 个会话等待输入</span>
+            <span class="mono" style="font-size:11px;color:#60656F">~/taskflow · main · :5173</span>
+          </a>
+          <a href="#" style="text-decoration:none;color:#1D1D1F;border-radius:12px;box-shadow:0 0 0 1px #D8DCE3;padding:14px;display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;font-weight:600">研究空间</span>
+            <span style="font-size:12px;color:#60656F">5 个 Tab · 无活动执行</span>
+            <span style="font-size:11px;color:#60656F">2 天前</span>
+          </a>
+          <a href="#" style="text-decoration:none;color:#1D1D1F;border-radius:12px;box-shadow:0 0 0 1px #D8DCE3;border:0;padding:14px;display:flex;flex-direction:column;gap:8px;background:#FAFBFC">
+            <span style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:600">临时空间</span><span style="font-size:11px;color:#60656F">未命名</span></span>
+            <span style="font-size:12px;color:#60656F">1 个 Tab · 从首页打开</span>
+            <span style="font-size:11px;color:#0A67D1">命名保存</span>
+          </a>
+        </div>
+      </section>
+
+      <section aria-label="推荐" style="width:100%;max-width:720px;border-radius:12px;border:1.5px dashed #D8DCE3;padding:16px;display:flex;align-items:center;gap:10px;color:#60656F;font-size:13px">
+        <svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="m12 3 2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4 6.5 20.3l1-6.2L3 9.7l6.2-.9z"></path></svg>
+        推荐区 · [推荐内容待下一轮首页设计确定]
+      </section>
+    </main>
+
+    <aside aria-label="通信" style="width:360px;flex:none;display:flex;flex-direction:column;background:#F4F6FA;border-left:1px solid #D8DCE3;min-height:0">
+      <div style="padding:12px 14px 10px;border-bottom:1px solid #D8DCE3">
+        <div role="tablist" aria-label="通信分区" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:2px;border-radius:9px;background:#E6E9EF">
+          <button role="tab" aria-selected="true" style="height:28px;border-radius:7px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,0.08);font-size:13px;font-weight:600">空间</button>
+          <button role="tab" aria-selected="false" style="height:28px;border-radius:7px;font-size:13px;color:#60656F">联系人 · 2</button>
+          <button role="tab" aria-selected="false" style="height:28px;border-radius:7px;font-size:13px;color:#60656F">动态</button>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px;text-align:center">
+        <span style="width:48px;height:48px;border-radius:14px;background:#E6E9EF;display:flex;align-items:center;justify-content:center;color:#60656F">
+          <svg class="ic" viewBox="0 0 24 24" style="width:22px;height:22px"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>
+        </span>
+        <div style="font-size:15px;font-weight:600">选择空间后对话</div>
+        <div style="font-size:12px;color:#60656F;line-height:1.6">首页处于个人作用域。后台的 TaskFlow 不会被当成发送目标，你在那里未发出的草稿仍然保留。</div>
+        <a href="Space.dc.html" style="font-size:13px;font-weight:600">继续 TaskFlow</a>
+      </div>
+      <div style="padding:12px 14px 14px;border-top:1px solid #D8DCE3">
+        <div style="border-radius:10px;background:#EEF1F5;padding:10px 12px;display:flex;align-items:center;gap:8px">
+          <label for="home-space-input" style="font-size:12px;color:#60656F;flex:1">没有选定空间，暂不可发送</label>
+          <input id="home-space-input" disabled="disabled" style="width:0;border:0;padding:0">
+          <button aria-label="发送（不可用）" disabled="disabled" style="width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#8A9099"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M4 12 20 4l-6 16-3-7z"></path></svg></button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

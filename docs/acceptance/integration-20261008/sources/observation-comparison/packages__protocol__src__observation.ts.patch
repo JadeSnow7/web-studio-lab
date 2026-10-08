@@ -1,0 +1,24 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/packages/protocol/src/observation.ts b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/observation.ts
+index cd828be..07fea42 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/packages/protocol/src/observation.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/packages/protocol/src/observation.ts
+@@ -156,3 +156,19 @@ export function validateObservationData(observation: Observation): Observation {
+   if (JSON.stringify(observation).length > 1100000) throw new Error('Observation exceeds total result budget');
+   return observation;
+ }
++
++/** Lossy invalidation hint, never proof of unchanged contents or a recursive watch. */
++export const FileInvalidationHintSchema = z
++  .object({
++    workspaceId: z.string().min(1).max(200),
++    environmentId: z.string().min(1).max(200),
++    resourceId: z.string().min(1).max(200),
++    generation: z.string().min(1).max(200),
++    watchGeneration: z.number().int().nonnegative(),
++    sequence: z.number().int().nonnegative(),
++    capturedAt: z.string().datetime(),
++    change: z.enum(['change', 'rename', 'delete', 'unknown', 'root_replaced', 'closed']),
++    coverage: z.object({ scope: z.literal('observed-directories'), recursive: z.literal(false), lossy: z.literal(true) }).strict(),
++  })
++  .strict();
++export type FileInvalidationHint = z.infer<typeof FileInvalidationHintSchema>;

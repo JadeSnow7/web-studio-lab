@@ -1,0 +1,94 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/ipc-resources.test.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/main/ipc-resources.test.ts
+index a0c0e7e..6d2945d 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/ipc-resources.test.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/main/ipc-resources.test.ts
+@@ -1,6 +1,8 @@
+ import { beforeEach, describe, expect, it, vi } from 'vitest';
+ import type { IpcMainInvokeEvent } from 'electron';
+ import { registerIpc, type IpcDeps } from './ipc';
++import type { PageResourceSnapshot } from '@wsl/protocol';
++
+ const handlers = vi.hoisted(() => new Map<string, (event: IpcMainInvokeEvent, request: unknown) => unknown>());
+ vi.mock('electron', () => ({
+   app: {},
+@@ -9,48 +11,53 @@ vi.mock('electron', () => ({
+     removeHandler: (channel: string) => handlers.delete(channel),
+   },
+ }));
++const page = { webContentsId: 9, documentGeneration: 2, url: 'https://example.com/', title: 'Example', partition: 'preview' };
++const snapshot: PageResourceSnapshot = {
++  page,
++  requestedUrl: page.url,
++  url: page.url,
++  title: page.title,
++  text: 'trusted capture',
++  capturedAt: '2026-10-06T12:00:00.000Z',
++  sourceSha256: '0'.repeat(64),
++  contentSha256: '1'.repeat(64),
++  extractionVersion: 'html-text-v1',
++  truncated: false,
++};
+ const frame = { url: 'file:///renderer/index.html' };
+ const webContents = { mainFrame: frame };
+ const event = { sender: webContents, senderFrame: frame } as unknown as IpcMainInvokeEvent;
+ let capture: ReturnType<typeof vi.fn>;
++let save: ReturnType<typeof vi.fn>;
+ beforeEach(() => {
+   handlers.clear();
+-  capture = vi.fn().mockResolvedValue({
+-    ok: true,
+-    snapshot: { appInstanceId: 'test', storageError: null, activeWorkspaceId: 'taskflow-demo', seq: 0, workspaces: [] },
+-  });
++  capture = vi.fn().mockResolvedValue(snapshot);
++  save = vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] });
+   registerIpc({
+     window: { isDestroyed: () => false, webContents },
+-    chat: {},
+-    workbench: { command: capture },
++    preview: { captureResource: capture },
++    chat: { resourcesSave: save, setObservationReader: vi.fn(), setInvalidationListener: vi.fn() },
+     trusted: { kind: 'file', url: frame.url },
+   } as unknown as IpcDeps);
+ });
+-const request = { type: 'capturePublicResource', commandId: 'capture', workspaceId: 'taskflow-demo', resourceId: 'web-resource' };
+-describe('公开资源 main IPC 权威边界', () => {
+-  it('accepts only stable resource identity; renderer cannot inject captured content', async () => {
+-    await handlers.get('workbench:command')?.(event, request);
+-    expect(capture).toHaveBeenCalledWith(request);
+-    expect(() => handlers.get('workbench:command')?.(event, { ...request, snapshot: { text: 'forged' } })).toThrow();
+-    expect(capture).toHaveBeenCalledOnce();
++const request = { spaceId: 'taskflow-demo', expectedPage: page };
++describe('挂载资源的 main IPC 权威边界', () => {
++  it('只把主进程实际捕获的正文交给服务，renderer 只申报页面身份', async () => {
++    await handlers.get('resources:capture')!(event, request);
++    expect(capture).toHaveBeenCalledWith(page);
++    expect(save).toHaveBeenCalledWith('taskflow-demo', snapshot, undefined);
++    expect(() => handlers.get('resources:capture')!(event, { ...request, snapshot: { text: 'forged' } })).toThrow();
++    expect(save).toHaveBeenCalledOnce();
+   });
+-  it('rejects a preview webContents even when it knows a valid command', () => {
++  it('公开预览 webContents 即使知道通道与正确参数也不能调用资源 IPC', () => {
+     const untrusted = { sender: { mainFrame: frame }, senderFrame: frame } as unknown as IpcMainInvokeEvent;
+-    expect(() => handlers.get('workbench:command')?.(untrusted, request)).toThrow('非工作台');
++    expect(() => handlers.get('resources:capture')!(untrusted, request)).toThrow('非工作台');
+     expect(capture).not.toHaveBeenCalled();
++    expect(save).not.toHaveBeenCalled();
+   });
+-  it('does not turn navigation capture failure into a successful save', async () => {
++  it('页面导航身份校验失败时，不持久化任何快照', async () => {
+     capture.mockRejectedValueOnce(new Error('页面已导航'));
+-    await expect(handlers.get('workbench:command')?.(event, request)).rejects.toThrow('页面已导航');
+-    expect(handlers.has('resources:capture')).toBe(false);
+-    expect(handlers.has('preview:navigate')).toBe(false);
+-  });
+-  it('rejects the retired space-chat slot and dynamic slots on every legacy chat command', () => {
+-    for (const channel of ['chat:get', 'chat:send', 'chat:cancel', 'chat:reset'])
+-      for (const conversationId of ['conv-space-taskflow-demo-impl', 'session-dynamic']) {
+-        expect(() => handlers.get(channel)?.(event, { conversationId, ...(channel === 'chat:send' ? { text: 'bypass' } : {}) })).toThrow(
+-          '任务用例',
+-        );
+-      }
++    await expect(handlers.get('resources:capture')!(event, request)).rejects.toThrow('页面已导航');
++    expect(save).not.toHaveBeenCalled();
+   });
+ });

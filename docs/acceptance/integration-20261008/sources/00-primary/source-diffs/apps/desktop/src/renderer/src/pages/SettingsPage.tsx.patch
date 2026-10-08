@@ -1,0 +1,90 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/SettingsPage.tsx b/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
+index d6a379e..b098731 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
++++ b/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
+@@ -1,16 +1,14 @@
+-import { Notice } from '../components/Badges';
++import { DisabledAction, Notice } from '../components/Badges';
+ import { useStore } from '../lib/store';
+-import { chatStore } from '../state/chat';
+ import { environmentStore } from '../state/execution';
+-import { workspaceStore, command } from '../state/workspace';
++import { shellActions, shellStore } from '../state/shell';
+ 
+ const CAPABILITIES = ['createSession', 'observeState', 'cancel', 'pause', 'resume', 'enforceScope'] as const;
+ 
+ export function SettingsPage() {
+   const env = useStore(environmentStore, (e) => e);
+-  const state = useStore(workspaceStore, (s) => s);
+-  const workspace = state.snapshot?.workspaces.find((w) => w.workspaceId === state.selectedId);
+-  const chat = useStore(chatStore, (state) => state.status);
++  const pinned = useStore(shellStore, (s) => s.workshop.pinned);
++  const harness = env.execution?.harness ?? null;
+ 
+   return (
+     <div className="page-columns">
+@@ -30,36 +28,33 @@ export function SettingsPage() {
+         <p className="muted">本设备的应用行为与连接能力。账号资料由首页头像进入（尚未接入）。</p>
+ 
+         <h2 id="settings-appearance">外观与窗口</h2>
+-        <label className="field">
+-          空间主题 · {workspace?.name ?? '加载空间…'}
+-          <select
+-            disabled={!workspace}
+-            value={workspace?.theme ?? 'system'}
+-            onChange={(e) => void command({ type: 'setPreferences', theme: e.target.value as 'light' | 'dark' | 'warm' | 'system' })}
+-          >
+-            <option value="light">白</option>
+-            <option value="dark">暗</option>
+-            <option value="warm">暖</option>
+-            <option value="system">跟随系统</option>
+-          </select>
++        <fieldset className="field">
++          <legend>主题</legend>
++          <label className="check">
++            <input type="radio" name="theme" defaultChecked /> 极简白
++          </label>
++          <label className="check check-disabled">
++            <input type="radio" name="theme" disabled /> 暗黑（后续版本）
++          </label>
++          <label className="check check-disabled">
++            <input type="radio" name="theme" disabled /> 暖色（后续版本）
++          </label>
++        </fieldset>
++        <label className="check">
++          <input type="checkbox" checked={pinned} onChange={(e) => shellActions.setPinned(e.target.checked)} />
++          固定显示 Workshop（⌘B 只切换显隐，图钉单独控制固定）
+         </label>
++
+         <h2 id="settings-harness">连接与 Harness</h2>
+         <Notice tone="warn">{env.execution?.reason ?? '正在读取执行服务状态…'}</Notice>
+         <dl className="kv">
+           <dt>主 Harness</dt>
+-          <dd>{chat ? `Codex CLI · ${chat.available ? '对话已连接' : '对话不可用'}` : '读取中…'}</dd>
+-          <dt>沙箱</dt>
+-          <dd>{chat?.sandbox ?? '未选择'}</dd>
+-          <dt>工作目录</dt>
+-          <dd>
+-            <code className="wrap">{chat?.cwd ?? '未读取'}</code>
+-          </dd>
++          <dd>{harness ? `${harness.name} · 尚未接入/验证` : '读取中…'}</dd>
+           <dt>CLI 版本</dt>
+-          <dd>{chat?.version ?? '未读取'}</dd>
++          <dd>{harness?.version ?? '未记录（T02 实测后冻结）'}</dd>
+           <dt>模型</dt>
+-          <dd>由 Codex CLI 默认配置决定；连接检查不代表模型回复已验证</dd>
++          <dd>{harness?.model ?? '未记录（T02 实测后冻结）'}</dd>
+         </dl>
+-        <Notice>{chat?.reason ?? '对话已连接；任务与检查状态请在具体会话中查看。'}</Notice>
+         <table className="table">
+           <thead>
+             <tr>
+@@ -80,7 +75,7 @@ export function SettingsPage() {
+             ))}
+           </tbody>
+         </table>
+-        <p className="muted small">对话与终端使用所选 sbx 中的环境；OAuth 由 Docker Sandboxes 宿主凭据存储管理。</p>
++        <DisabledAction label="测试连接" reason="Codex CLI adapter 尚未实现（T02）" />
+ 
+         <h2 id="settings-about">关于</h2>
+         <dl className="kv">

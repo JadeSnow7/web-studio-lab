@@ -1,0 +1,17 @@
+diff --git a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/desktop/src/renderer/src/state/chat.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/chat.ts
+index 1a65896..94cb20e 100644
+--- a/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab/apps/desktop/src/renderer/src/state/chat.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/chat.ts
+@@ -1,3 +1,4 @@
++import { observationHintsStore } from './observation-hints';
+ import { terminalStore } from './terminal';
+ import { shellStore } from './shell';
+ import { previewStore } from './preview';
+@@ -60,6 +61,7 @@ export const chatActions = {
+             selection: tab === 'terminal' ? terminal.selection?.slice(0, 4000) : undefined,
+             errorSummary: (tab === 'terminal' ? terminal.error : page?.loadError?.description)?.slice(0, 1000),
+             capturedAt: new Date().toISOString(),
++            fileInvalidation: observationHintsStore.get().latest ?? undefined,
+           }
+         : undefined;
+     const accepted = await act(id, () => window.studio.chat.send(ChatSlotSchema.parse(id), text, context));

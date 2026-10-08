@@ -20,3 +20,15 @@
 | --- | --- | --- |
 | F06 | Sidebar自落点拖拽先删除自身后indexOf=-1，真实窗口中首标签移位；sources/sidebar-selfdrop-probe.json | 待Phase3修复 |
 | F07 | Session选择v2后selectedRunId仍指v1，任务正文与运行日志错配；sources/history-version-probe.json | 待Phase3修复 |
+| F08 | VS001 verifyManifest 只在 B05 passed 分支重评观察证据；单独 B03 passed 且无 identity/observation/CDP 的合成负例仍被接受；sources/vs001-verifier-probe.json | 待独立修复复核器，固定目标、fixture、postcondition 与历史指纹不变；新方法版本单独记录 |
+| F09 | 远程文件图片结果误标 disk，文本结果正确标 sftp | Phase2a 已补来源修复及负例，待本段终审 |
+| F10 | LocalTerminal helper 未确认清理后 child=null，及 SSH 断线后 shell=null，close/shutdown 仍可返回成功，令未知进程被当作已关闭 | 主线程 Phase2a 差异审查发现，退回 coder 补失败证据和修复 |
+| F11 | sandbox Terminal 输出截断未增加 outputOffset；超过 262144 字符后 renderer 不能判断新窗口偏移 | 待同一 PTY 连续输出回归与 Phase3 消费者接线 |
+
+## 全量静态覆盖
+
+来源审查的 2974 条文件台账见 [sources/file-ledger.json](sources/file-ledger.json)；这是来源差异裁决，不代表 2974 个独立产品文件。Renderer、非 live 测试、配置与固定展示内容的 138 文件正文审查见 [sources/review-renderer.md](sources/review-renderer.md)。
+
+主线程另行读取 Main 工作台 application/host/repository/ports/layout、启动与关闭、IPC/来源校验/preload/菜单、PreviewController 和公开文档代理、所有既有协议，以及 service 的 Codex/PTY/sbx/资源存储、guest 浏览器与 Python MCP。重点核对单一状态归属、持久化与失败回滚、跨空间代次、取消/清理确认、网络与文件边界；新代码按各阶段 manifest 补评，不能沿用基准结论。
+
+现有 live 测试正文已逐项核对：真实对话两轮及 reset；sandbox 前台/后台进程、EOF 与 PID 清理；资源 nonce 不进入 prompt、要求实际 MCP 调用和精确内容；guest 浏览器 DOM/PNG 摘要与 sealed memfd 负例；空间运行及 PTY 跨页/跨空间实例保持。发现 guest-browser live 证据路径写死在旧目录、sbx UI live 未清理本轮 guestDir，交后续测试工作包修复。正文审查不构成 live 已执行通过。

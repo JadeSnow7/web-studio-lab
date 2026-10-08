@@ -1,0 +1,34 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/ConversationsPage.tsx b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/pages/ConversationsPage.tsx
+index 16beb79..9346ce4 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/ConversationsPage.tsx
++++ b/private/tmp/wsl-integration-sources/05-9630/apps/desktop/src/renderer/src/pages/ConversationsPage.tsx
+@@ -2,14 +2,16 @@ import { useState } from 'react';
+ import { Notice } from '../components/Badges';
+ import { DEMO_CONTACTS } from '../demo/sampleData';
+ import { useStore } from '../lib/store';
+-import { CONVERSATIONS, draftsStore, PERSONAL_CONVERSATION_ID, type ConversationInfo } from '../state/drafts';
++import { CONVERSATIONS, draftsStore, PERSONAL_CONVERSATION_ID, spaceConversationId, type ConversationInfo } from '../state/drafts';
+ import { Composer } from '../shell/Composer';
+ import { ChatMessages } from '../shell/ChatMessages';
+-import { shellActions } from '../state/shell';
++import { DEMO_SPACE } from '../domain/space';
+ 
+ type Section = 'agent' | 'people';
+ 
+-const AGENT_CONVERSATIONS = [PERSONAL_CONVERSATION_ID].map((id) => CONVERSATIONS[id]).filter((c): c is ConversationInfo => c !== undefined);
++const AGENT_CONVERSATIONS = [spaceConversationId(DEMO_SPACE.id), PERSONAL_CONVERSATION_ID]
++  .map((id) => CONVERSATIONS[id])
++  .filter((c): c is ConversationInfo => c !== undefined);
+ 
+ /** 会话页与右栏、首页共用同一会话与草稿。 */
+ export function ConversationsPage() {
+@@ -59,9 +61,6 @@ export function ConversationsPage() {
+         )}
+       </nav>
+       <section className="page-main conv-detail" aria-label="会话详情">
+-        <button type="button" className="btn" onClick={() => shellActions.navigate('space')}>
+-          返回空间工作会话
+-        </button>
+         {selected ? (
+           <>
+             <div className="row space-between">

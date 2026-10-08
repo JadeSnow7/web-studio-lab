@@ -1,0 +1,165 @@
+{
+  "schema_version": "1.3",
+  "spec": {
+    "version": "PUBLIC-RESOURCES-v1",
+    "authority": "docs/verification/2026-10-06-public-resources/SPEC.md",
+    "source_ids": ["SRC-001"],
+    "goal_ref": "discovery.expected_outcome",
+    "scope_ref": "discovery.scope",
+    "constraints": ["No host mounts, new credentials, persistent MCP configuration or source modifications in original worktrees."],
+    "exceptions": [],
+    "conditions": [
+      {
+        "id": "SC-CHAIN",
+        "metric_ids": ["MET-001", "MET-002"],
+        "deliverables": [
+          "apps/desktop/src/main/preview/controller.ts",
+          "apps/service/src/codex-chat.ts",
+          "packages/protocol/src/resources.ts"
+        ]
+      }
+    ],
+    "contracts": ["docs/verification/2026-10-06-public-resources/SPEC.md"],
+    "open_items": []
+  },
+  "task": {
+    "id": "PUBLIC-RESOURCES-20261006",
+    "title": "Public webpage resources",
+    "mode": "new",
+    "status": "blocked",
+    "source_ids": ["SRC-001"]
+  },
+  "discovery": {
+    "status": "ready",
+    "user": "Web Studio Lab user with an existing Docker Sandbox",
+    "scenario": "Open a public webpage, save its snapshot in a space, then let the existing Codex Agent read it",
+    "problem": "Public navigation and space resources were unavailable in the baseline",
+    "expected_outcome": "Actual public document -> saved space snapshot -> sandbox MCP and actual Agent read",
+    "scope": "Controlled public navigation, snapshot resource store, per-turn readonly MCP, existing UI and tests",
+    "acceptable_result": "Frozen SPEC A-F must pass; fixture success cannot replace real webpage or actual Agent evidence"
+  },
+  "sources": [
+    {
+      "id": "SRC-001",
+      "kind": "user_requirement",
+      "reference": "conversation:01a0f83d-0edb-749b-80fa-4314661f5027",
+      "summary": "User authorized implementing and retesting the failed public webpage to space to Docker Sandbox chain.",
+      "adoption": "accepted"
+    }
+  ],
+  "main_tasks": [
+    {
+      "id": "MT-001",
+      "source_ids": ["SRC-001"],
+      "goal": "Actual public document -> saved space snapshot -> sandbox MCP and actual Agent read",
+      "scope": ["Controlled public navigation, snapshot resource store, per-turn readonly MCP, existing UI and tests"],
+      "non_goals": ["No commits, push, PR creation or unrelated fixes"],
+      "dependencies": [],
+      "assumptions": ["Existing sandbox and authorization only"],
+      "status": "blocked",
+      "metric_ids": ["MET-001", "MET-002"],
+      "implementation_task_ids": ["IT-001"]
+    }
+  ],
+  "metrics": [
+    {
+      "id": "MET-001",
+      "main_task_id": "MT-001",
+      "kind": "mandatory_gate",
+      "name": "Functional and security checks",
+      "baseline": "Public navigation blocked and space mounting unavailable in previous real UI test",
+      "target": "SPEC A-D and F pass",
+      "method": "Bound unit, integration, type, lint, build and UI checks",
+      "environment_data": "Mac Electron, existing Docker Sandbox, fixed offline fixtures",
+      "evidence_ids": [],
+      "status": "failed",
+      "verification": "execution"
+    },
+    {
+      "id": "MET-002",
+      "main_task_id": "MT-001",
+      "kind": "mandatory_gate",
+      "name": "Actual Agent resource read",
+      "baseline": "Unavailable feature; no resource existed",
+      "target": "SPEC E actual MCP model call reads mounted public snapshot",
+      "method": "Real UI and structured guest Codex MCP event evidence",
+      "environment_data": "Existing authorized Codex sandbox",
+      "evidence_ids": [],
+      "status": "undetermined",
+      "verification": "execution"
+    }
+  ],
+  "implementation_tasks": [
+    {
+      "id": "IT-001",
+      "main_task_id": "MT-001",
+      "source_ids": ["SRC-001"],
+      "scope": "Controlled public navigation, snapshot resource store, per-turn readonly MCP, existing UI and tests",
+      "file_scope": ["apps", "packages", "e2e", "docs/verification/2026-10-06-public-resources"],
+      "interface_constraints": ["Frozen SPEC-v1 boundary"],
+      "dependencies": [],
+      "acceptance": ["MET-001", "MET-002"],
+      "support_reason": "",
+      "evidence_ids": [],
+      "owner": "delegated coders",
+      "status": "implemented"
+    }
+  ],
+  "evidence": [],
+  "changes": [],
+  "overall_acceptance": {
+    "metric_ids": ["MET-001", "MET-002"],
+    "evidence_ids": [],
+    "status": "failed"
+  },
+  "baseline": {
+    "git_ref": "536f0a1948e522a09310aa20784ec512476dc7be",
+    "worktree_status": "dirty_dependency_confirmed",
+    "ownership": "Copied verified latest 9630 working tree into isolated worktree; original preserved; baseline-manifest.json records inherited content.",
+    "foreign_paths": [],
+    "prepared_at": "2026-10-06T11:29:14.054961+00:00"
+  },
+  "binding": {
+    "receipt_paths": []
+  },
+  "authorization": {
+    "commit": {
+      "status": "not_authorized",
+      "source_id": null
+    },
+    "push": {
+      "status": "not_authorized",
+      "source_id": null
+    },
+    "merge": {
+      "status": "not_authorized",
+      "source_id": null
+    },
+    "deploy": {
+      "status": "not_authorized",
+      "source_id": null
+    }
+  },
+  "delivery": {
+    "local_validation": "failed",
+    "remote_ci": "not_started",
+    "remote_ci_revision": null
+  },
+  "actions": [],
+  "decisions": [],
+  "hypotheses": [],
+  "recovery_strategy": {
+    "trigger": "Failed acceptance",
+    "steps": ["Retain failures and repair implementation against the frozen contract"],
+    "owner": "root"
+  },
+  "outcome_notes": {
+    "recorded_at": "2026-10-06T12:05:48.099577+00:00",
+    "report_directory": "/Users/huaodong/workspace/_agent-reports/20261006/public-resources-implementation",
+    "report": "REPORT.txt",
+    "results": "results.json",
+    "reason": "Real navigation blocked by reserved DNS; local regression and controlled actual model MCP checks passed",
+    "evidence_location_reason": "User requires all new evidence in the designated external report directory",
+    "template_metadata_corrected": "Non-referenced discovery prose only; frozen goal, metrics and SPEC unchanged"
+  }
+}

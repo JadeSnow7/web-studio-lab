@@ -1,0 +1,61 @@
+diff --git a/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/state/terminal.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/state/terminal.ts
+new file mode 100644
+index 0000000..afab86a
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/state/terminal.ts
+@@ -0,0 +1,55 @@
++import type { TerminalSnapshot } from '@wsl/protocol';
++import { createStore } from '../lib/store';
++
++export interface TerminalState {
++  snapshot: TerminalSnapshot | null;
++  pending: boolean;
++  error: string | null;
++  viewportY?: number;
++  selection?: string;
++  projectionSynchronized?: boolean;
++  projectionSessionId?: string | null;
++  renderedSeq?: number;
++  parsing?: boolean;
++}
++export const terminalStore = createStore<TerminalState>({ snapshot: null, pending: false, error: null });
++
++export function projectTerminal(state: TerminalState, snapshot: TerminalSnapshot): TerminalState {
++  if (state.snapshot && state.snapshot.seq >= snapshot.seq) return state;
++  return {
++    ...state,
++    snapshot,
++    parsing: true,
++    ...(state.snapshot?.sessionId !== snapshot.sessionId
++      ? { projectionSynchronized: false, projectionSessionId: null, renderedSeq: undefined, viewportY: undefined, selection: undefined }
++      : {}),
++  };
++}
++function receive(snapshot: TerminalSnapshot) {
++  terminalStore.set((state) => projectTerminal(state, snapshot));
++}
++async function action(run: () => Promise<void | TerminalSnapshot>) {
++  try {
++    const snapshot = await run();
++    if (snapshot) receive(snapshot);
++  } catch (error) {
++    terminalStore.set((state) => ({ ...state, error: (error as Error).message }));
++  }
++}
++async function transition(run: () => Promise<TerminalSnapshot>) {
++  if (terminalStore.get().pending) return;
++  terminalStore.set((state) => ({ ...state, pending: true, error: null }));
++  await action(run);
++  terminalStore.set((state) => ({ ...state, pending: false }));
++}
++export const terminalActions = {
++  open: (cols: number, rows: number, environment?: 'local' | 'sandbox' | 'ssh') =>
++    transition(() => window.studio.terminal.open(cols, rows, environment)),
++  close: (sessionId: string) => transition(() => window.studio.terminal.close(sessionId)),
++  write: (sessionId: string, data: string) => action(() => window.studio.terminal.write(sessionId, data)),
++  resize: (sessionId: string, cols: number, rows: number) => action(() => window.studio.terminal.resize(sessionId, cols, rows)),
++};
++export async function initializeTerminal() {
++  window.studio.terminal.onState(receive);
++  await action(() => window.studio.terminal.get());
++}

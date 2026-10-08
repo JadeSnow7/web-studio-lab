@@ -1,0 +1,25 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/index.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/service/src/index.ts
+index 24dde16..ccf1c9b 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/index.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/service/src/index.ts
+@@ -15,8 +15,10 @@ if (!root) throw new Error('缺少对话运行目录');
+ const send = (message: ChatServiceMessage) => parent.postMessage(ChatServiceMessageSchema.parse(message));
+ const resources = new ResourceStore(root);
+ const chat = new CodexChat(root, (conversation) => send({ type: 'event', conversation }), undefined, resources);
++const terminal = new Terminal(chat.connection, (snapshot) => send({ type: 'terminal-event', terminal: snapshot }));
+ const terminals = new Map<string, Terminal>();
+-const terminalFor = (resourceId: string): Terminal => {
++const terminalFor = (resourceId?: string): Terminal => {
++  if (!resourceId) return terminal;
+   let instance = terminals.get(resourceId);
+   if (!instance) {
+     instance = new Terminal(chat.connection, (snapshot) => send({ type: 'terminal-event', terminal: snapshot, resourceId }));
+@@ -24,7 +26,7 @@ const terminalFor = (resourceId: string): Terminal => {
+   }
+   return instance;
+ };
+-const allTerminals = () => [...terminals.values()];
++const allTerminals = () => [terminal, ...terminals.values()];
+ const ready = chat.initialize().then((status) => {
+   send({ type: 'initialized', status, cleanupPending: chat.connection.getCleanupPending() });
+   return status;

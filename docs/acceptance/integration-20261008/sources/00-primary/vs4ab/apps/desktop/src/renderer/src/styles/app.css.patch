@@ -1,0 +1,196 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/styles/app.css b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/styles/app.css
+index fac22b8..399cf1f 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/styles/app.css
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/styles/app.css
+@@ -1580,3 +1580,191 @@ p {
+     display: none;
+   }
+ }
++
++/* 聊天沿用现有消息样式；仅界定长消息与首页的滚动归属。 */
++.message p {
++  overflow-wrap: anywhere;
++}
++.home-card .message-list {
++  max-height: 280px;
++  flex: none;
++}
++
++/* 终端复用空间的主题与内容边界，滚动由 xterm viewport 持有。 */
++.terminal-panel {
++  flex: 1;
++  min-width: 0;
++  min-height: 0;
++  display: flex;
++  flex-direction: column;
++  gap: 8px;
++  border-radius: 10px;
++  background: var(--content);
++  box-shadow: 0 0 0 1px var(--line);
++  padding: 12px;
++}
++.terminal-toolbar {
++  flex-wrap: wrap;
++  flex: none;
++}
++.terminal-origin {
++  min-width: 0;
++  overflow-wrap: anywhere;
++}
++.terminal-surface {
++  flex: 1;
++  min-height: 0;
++  min-width: 0;
++}
++.terminal-error {
++  overflow-wrap: anywhere;
++}
++.terminal-hint {
++  flex: none;
++}
++.chat-tools {
++  border: 1px solid var(--line);
++  border-radius: 8px;
++  padding: 8px;
++}
++.chat-tools summary {
++  cursor: pointer;
++}
++.chat-tools pre {
++  white-space: pre-wrap;
++  overflow-wrap: anywhere;
++  font-family: var(--mono);
++}
++
++/* 同一基线覆盖应用自有滚动面，xterm 保留 viewport 几何。 */
++:root {
++  scrollbar-color: var(--text-3) var(--content);
++  scrollbar-width: thin;
++}
++*::-webkit-scrollbar {
++  width: 8px;
++  height: 8px;
++}
++*::-webkit-scrollbar-track {
++  background: var(--content);
++}
++*::-webkit-scrollbar-thumb {
++  background: var(--text-3);
++  border: 2px solid var(--content);
++  border-radius: 8px;
++}
++*::-webkit-scrollbar-thumb:hover {
++  background: var(--text-2);
++}
++*::-webkit-scrollbar-thumb:active {
++  background: var(--text);
++}
++@media (forced-colors: active) {
++  :root {
++    scrollbar-color: auto;
++  }
++}
++
++/* 网页资源复用管理页滚动、语义按钮和全局 token。 */
++.resource-browser-actions {
++  min-height: 30px;
++}
++.resource-feedback {
++  min-height: 20px;
++  overflow-wrap: anywhere;
++}
++.resource-empty {
++  min-height: 96px;
++  padding: 20px 0;
++}
++.resource-url,
++.resource-title {
++  overflow-wrap: anywhere;
++}
++.resource-title {
++  white-space: normal;
++  text-align: left;
++}
++.resource-selected td {
++  background: var(--accent-soft);
++}
++.resource-list {
++  flex: none;
++}
++.resource-detail {
++  border-top: 1px solid var(--line);
++  padding-top: 18px;
++}
++.resource-actions {
++  padding-top: 8px;
++}
++.resource-body-heading {
++  margin: 8px 0 0;
++  font-size: 13px;
++}
++.resource-text {
++  margin: 0;
++  white-space: pre-wrap;
++  overflow-wrap: anywhere;
++  font: inherit;
++  line-height: 1.65;
++  padding: 14px;
++  background: var(--canvas);
++  border-radius: 8px;
++}
++.resources-page .table td:nth-child(n + 2) {
++  white-space: nowrap;
++}
++.btn:active:not(:disabled) {
++  transform: translateY(1px);
++}
++.btn-danger {
++  color: var(--content);
++  background: var(--bad);
++  box-shadow: none;
++}
++.btn-danger:hover:not(:disabled) {
++  color: var(--bad);
++  background: var(--bad-soft);
++}
++dialog.modal {
++  border: 1px solid var(--line);
++  margin: auto;
++  overflow: auto;
++  color: var(--text);
++}
++dialog.modal:not([open]) {
++  display: none;
++}
++dialog.modal::backdrop {
++  background: rgba(29, 29, 31, 0.35);
++}
++.modal-confirm {
++  width: min(480px, calc(100vw - 32px));
++  overflow-wrap: anywhere;
++}
++.modal-confirm [role='status'],
++.modal-confirm [role='alert'] {
++  min-height: 20px;
++}
++.modal-actions {
++  justify-content: flex-end;
++}
++@media (max-width: 1199px) {
++  .resources-page {
++    padding: 16px;
++  }
++  .browser-toolbar {
++    flex-wrap: wrap;
++  }
++}
++
++textarea.resize-none {
++  resize: none;
++}
++.field textarea.resize-none {
++  field-sizing: content;
++  min-height: 80px;
++  max-height: 240px;
++  overflow: auto;
++}

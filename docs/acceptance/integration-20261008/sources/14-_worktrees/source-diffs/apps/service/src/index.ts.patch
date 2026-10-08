@@ -1,0 +1,231 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/index.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/index.ts
+index 24dde16..87f167f 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/service/src/index.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/index.ts
+@@ -1,3 +1,10 @@
++import { LocalTerminal } from './local-terminal';
++import { SshTerminal } from './ssh-terminal';
++import { SshObservationConnection } from './observation-ssh';
++import { randomUUID } from 'node:crypto';
++import type { ObservationRequest, ObservationResult } from '@wsl/protocol';
++import { ObservationRouter } from './observation-router';
++import { FileObservationProvider } from './observation-files';
+ import { ChatServiceMessageSchema, ChatServiceRequestSchema, type ChatServiceMessage } from '@wsl/protocol';
+ import { CodexChat } from './codex-chat';
+ import { Terminal } from './terminal';
+@@ -12,19 +19,93 @@ const parent = (
+ if (!parent) throw new Error('缺少执行服务父消息通道');
+ const root = process.argv[2];
+ if (!root) throw new Error('缺少对话运行目录');
+-const send = (message: ChatServiceMessage) => parent.postMessage(ChatServiceMessageSchema.parse(message));
++let terminalEventSeq = 0;
++const send = (message: ChatServiceMessage) => {
++  if (message.type === 'terminal-event') message = { ...message, terminal: { ...message.terminal, seq: ++terminalEventSeq } };
++  parent.postMessage(ChatServiceMessageSchema.parse(message));
++};
+ const resources = new ResourceStore(root);
+ const chat = new CodexChat(root, (conversation) => send({ type: 'event', conversation }), undefined, resources);
+-const terminals = new Map<string, Terminal>();
+-const terminalFor = (resourceId: string): Terminal => {
+-  let instance = terminals.get(resourceId);
+-  if (!instance) {
+-    instance = new Terminal(chat.connection, (snapshot) => send({ type: 'terminal-event', terminal: snapshot, resourceId }));
+-    terminals.set(resourceId, instance);
++const terminal = new Terminal(chat.connection, (snapshot) => {
++  if (selectedTerminal === terminal) send({ type: 'terminal-event', terminal: snapshot });
++});
++const localTerminal = process.env.WSL_OBSERVATION_ROOT
++  ? new LocalTerminal(process.env.WSL_OBSERVATION_ROOT, 'taskflow-demo', (snapshot) => {
++      if (selectedTerminal === localTerminal) send({ type: 'terminal-event', terminal: snapshot });
++    })
++  : null;
++let sshTerminal: SshTerminal | null = null;
++let selectedTerminal: Terminal | LocalTerminal | SshTerminal = terminal;
++const observationPending = new Map<string, (result: ObservationResult) => void>();
++const observation = new ObservationRouter(
++  root,
++  (request: ObservationRequest) =>
++    new Promise((resolve) => {
++      const id = randomUUID();
++      const timer = setTimeout(() => {
++        observationPending.delete(id);
++        resolve({ error: 'timeout', message: 'Browser target did not respond' });
++      }, 6000);
++      observationPending.set(id, (result) => {
++        clearTimeout(timer);
++        observationPending.delete(id);
++        resolve(result);
++      });
++      send({ type: 'observation-request', id, request });
++    }),
++);
++if (process.env.WSL_OBSERVATION_ROOT)
++  observation.files.set(
++    'local',
++    new FileObservationProvider({
++      workspaceId: 'taskflow-demo',
++      environmentId: 'local',
++      root: process.env.WSL_OBSERVATION_ROOT,
++      onInvalidated: (hint) => send({ type: 'observation-invalidation', hint }),
++    }),
++  );
++observation.terminals.set('sandbox', () => terminal.observation);
++observation.terminals.set('local', () => localTerminal?.observation ?? null);
++observation.terminals.set('ssh', () => sshTerminal?.observation ?? null);
++const sshReady = (async () => {
++  const {
++    WSL_SSH_HOST: host,
++    WSL_SSH_USER: username,
++    WSL_SSH_HOST_KEY_SHA256: hostKeySha256,
++    WSL_SSH_ROOT: sshRoot,
++    SSH_AUTH_SOCK: agent,
++  } = process.env;
++  if (!host || !username || !hostKeySha256 || !sshRoot || !agent) return;
++  const connection = await SshObservationConnection.connect({
++    host,
++    username,
++    hostKeySha256,
++    agent,
++    port: process.env.WSL_SSH_PORT ? Number(process.env.WSL_SSH_PORT) : undefined,
++  });
++  try {
++    const environmentId = `ssh:${connection.connectionId}`;
++    observation.files.set(
++      environmentId,
++      new FileObservationProvider({
++        workspaceId: 'taskflow-demo',
++        environmentId,
++        root: sshRoot,
++        transport: await connection.fileTransport(),
++      }),
++    );
++    sshTerminal = new SshTerminal(connection, 'taskflow-demo', (snapshot) => {
++      if (selectedTerminal === sshTerminal) send({ type: 'terminal-event', terminal: snapshot });
++    });
++  } catch (error) {
++    connection.close();
++    throw error;
+   }
+-  return instance;
+-};
+-const allTerminals = () => [...terminals.values()];
++})().catch(() => {
++  observation.unavailable.set('ssh', 'SSH unavailable: verify trusted host pin, agent authentication and reachability');
++});
++
++chat.setObservationReader((request) => observation.dispatch(request));
+ const ready = chat.initialize().then((status) => {
+   send({ type: 'initialized', status, cleanupPending: chat.connection.getCleanupPending() });
+   return status;
+@@ -35,9 +116,16 @@ parent.on('message', ({ data }) => {
+   const request = ChatServiceRequestSchema.parse(data);
+   const execute = async () => {
+     try {
+-      if (['send', 'terminal.open', 'resources.save', 'resources.remove'].includes(request.method)) await ready;
++      if (!request.method.startsWith('observation.')) await ready;
+       let result;
+       switch (request.method) {
++        case 'observation.call':
++          result = await observation.dispatch(request.payload);
++          break;
++        case 'observation.result':
++          observationPending.get(request.payload.callId)?.(request.payload.result);
++          result = null;
++          break;
+         case 'resources.list':
+           result = await resources.list(request.payload.spaceId);
+           break;
+@@ -53,10 +141,6 @@ parent.on('message', ({ data }) => {
+           result = await resources.remove(request.payload.spaceId, request.payload.resourceId);
+           chat.invalidateResources(request.payload.spaceId);
+           break;
+-        case 'register':
+-          chat.register(request.payload.conversationId, request.payload.workspaceId);
+-          result = null;
+-          break;
+         case 'status':
+           result = chat.getStatus();
+           break;
+@@ -64,7 +148,7 @@ parent.on('message', ({ data }) => {
+           result = chat.get(request.payload.conversationId);
+           break;
+         case 'send':
+-          result = await chat.send(request.payload.conversationId, request.payload.text);
++          result = await chat.send(request.payload.conversationId, request.payload.text, request.payload.context);
+           break;
+         case 'cancel':
+           result = await chat.cancel(request.payload.conversationId);
+@@ -73,24 +157,43 @@ parent.on('message', ({ data }) => {
+           result = await chat.reset(request.payload.conversationId);
+           break;
+         case 'terminal.get':
+-          result = terminalFor(request.resourceId).get();
++          result = selectedTerminal.get();
+           break;
+         case 'terminal.open':
+-          result = await terminalFor(request.payload.resourceId).open(request.payload.cols, request.payload.rows);
++          if (request.payload.environment === 'ssh') await sshReady;
++          {
++            const target =
++              request.payload.environment === 'local' ? localTerminal : request.payload.environment === 'ssh' ? sshTerminal : terminal;
++            if (!target) throw new Error('Terminal environment is not configured');
++            if (
++              selectedTerminal !== target &&
++              selectedTerminal.get().sessionId &&
++              (selectedTerminal.get().cleanupPending || ['running', 'starting', 'closing'].includes(selectedTerminal.get().state))
++            )
++              throw new Error('Close the current terminal before changing environment');
++            selectedTerminal = target;
++            result = await target.open(request.payload.cols, request.payload.rows);
++          }
+           break;
+         case 'terminal.write':
+-          terminalFor(request.payload.resourceId).write(request.payload.sessionId, request.payload.data);
++          selectedTerminal.write(request.payload.sessionId, request.payload.data);
+           result = null;
+           break;
+         case 'terminal.resize':
+-          terminalFor(request.payload.resourceId).resize(request.payload.sessionId, request.payload.cols, request.payload.rows);
++          selectedTerminal.resize(request.payload.sessionId, request.payload.cols, request.payload.rows);
+           result = null;
+           break;
+         case 'terminal.close':
+-          result = await terminalFor(request.payload.resourceId).close(request.payload.sessionId);
++          result = await selectedTerminal.close(request.payload.sessionId);
+           break;
+         case 'shutdown': {
+-          const results = await Promise.allSettled([chat.shutdown(), ...allTerminals().map((instance) => instance.shutdown())]);
++          const results = await Promise.allSettled([
++            chat.shutdown(),
++            terminal.shutdown(),
++            localTerminal?.shutdown(),
++            sshTerminal?.shutdown(),
++            ...[...observation.files.values()].map((file) => file.close()),
++          ]);
+           const failure = results.find((result) => result.status === 'rejected');
+           if (failure?.status === 'rejected') throw failure.reason;
+ 
+@@ -98,6 +201,8 @@ parent.on('message', ({ data }) => {
+           break;
+         }
+       }
++      if (request.method.startsWith('terminal.') && result && typeof result === 'object' && 'sessionId' in result)
++        result = { ...result, seq: ++terminalEventSeq };
+       send({ type: 'response', id: request.id, result });
+       // ACK须由宿主收到后再结束utility，立即exit会丢失仍在传输的消息。
+     } catch (error) {
+@@ -110,7 +215,13 @@ parent.on('message', ({ data }) => {
+ });
+ 
+ process.on('SIGTERM', () => {
+-  void Promise.all([chat.shutdown(), ...allTerminals().map((instance) => instance.shutdown())])
++  void Promise.all([
++    chat.shutdown(),
++    terminal.shutdown(),
++    localTerminal?.shutdown(),
++    sshTerminal?.shutdown(),
++    ...[...observation.files.values()].map((file) => file.close()),
++  ])
+     .then(() => process.exit(0))
+     .catch((error: unknown) => {
+       console.error('guest 清理失败', error);

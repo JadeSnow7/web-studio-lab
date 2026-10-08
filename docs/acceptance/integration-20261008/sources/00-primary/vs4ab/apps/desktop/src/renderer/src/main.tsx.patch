@@ -1,0 +1,21 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/main.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/main.tsx
+index 3646626..124e6f1 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/main.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/main.tsx
+@@ -1,5 +1,7 @@
+ import { StrictMode } from 'react';
+ import { createRoot } from 'react-dom/client';
++import { initializeTerminal } from './state/terminal';
++import { initializeChat } from './state/chat';
+ import { App } from './App';
+ import { environmentStore } from './state/execution';
+ import { track } from './state/errors';
+@@ -10,6 +12,8 @@ import { workbenchActions } from './state/workbench';
+ import './styles/app.css';
+ 
+ const { studio } = window;
++void initializeChat();
++void initializeTerminal();
+ 
+ // 主进程推送的事件是 Browser 区状态与现场的唯一来源。
+ studio.preview.onState((state) => previewStore.set(() => state));

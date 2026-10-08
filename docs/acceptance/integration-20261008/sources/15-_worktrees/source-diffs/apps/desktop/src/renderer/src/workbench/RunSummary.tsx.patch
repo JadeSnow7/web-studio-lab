@@ -1,0 +1,198 @@
+diff --git a/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/workbench/RunSummary.tsx b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/workbench/RunSummary.tsx
+new file mode 100644
+index 0000000..afeb8ac
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/15-_worktrees/apps/desktop/src/renderer/src/workbench/RunSummary.tsx
+@@ -0,0 +1,192 @@
++import { useState } from 'react';
++import type { AttemptOutcome, RunRecord } from '@wsl/protocol';
++import { DemoBadge, Notice, ReviewPill, StatusPill } from '../components/Badges';
++import { CASE_PRESETS } from '../domain/cases';
++import { formatTime } from '../lib/time';
++import { reportError } from '../state/errors';
++import { canReview, runsActions } from '../state/runs';
++import { workbenchActions } from '../state/workbench';
++
++const OUTCOME_LABEL: Record<AttemptOutcome, string> = {
++  running: '进行中',
++  passed: '通过',
++  failed: '验收未通过',
++  inconclusive: '无法判断（工具故障）',
++  cancelled: '已取消',
++  timed_out: '超时',
++};
++
++const PROCESS_LABEL = {
++  running: '运行中',
++  term_sent: '已发 SIGTERM，等待退出',
++  kill_sent: '已发 SIGKILL，等待退出',
++  exited: '已退出',
++} as const;
++
++function ReviewControls({ record, readOnly }: { record: RunRecord; readOnly: boolean }) {
++  const [note, setNote] = useState('');
++  const [asking, setAsking] = useState(false);
++  const { review } = record;
++
++  if (review.state === 'accepted') {
++    return (
++      <Notice>
++        已接受 · 绑定任务 v{review.taskVersion} · 源码快照 {review.sourceState.diffHash}（基线 {review.sourceState.baseCommit}）·{' '}
++        {formatTime(review.decidedAt)}
++      </Notice>
++    );
++  }
++  if (review.state === 'changes_requested') {
++    return (
++      <div className="stack-8">
++        <Notice tone="warn">
++          已要求修改（任务 v{review.taskVersion}）：{review.note}
++        </Notice>
++        {!readOnly ? (
++          <button type="button" className="btn" onClick={workbenchActions.startEditing}>
++            修改任务，确认后生成新版本
++          </button>
++        ) : null}
++      </div>
++    );
++  }
++  if (!canReview(record) || readOnly) return null;
++
++  return (
++    <div className="review-box">
++      <p className="small">
++        固定验收通过只说明检查项通过。是否满足目标由你判断：接受会绑定任务 v{record.taskRef.version} 与源码快照{' '}
++        {record.sourceState?.diffHash ?? '（缺失）'}。
++      </p>
++      {asking ? (
++        <form
++          noValidate
++          className="stack-8"
++          onSubmit={(event) => {
++            event.preventDefault();
++            try {
++              runsActions.requestChanges(record.runId, note);
++              setAsking(false);
++            } catch (error) {
++              reportError('要求修改', error);
++            }
++          }}
++        >
++          <label className="field">
++            <span className="field-label">需要修改的原因</span>
++            <textarea className="resize-none" rows={2} value={note} onChange={(event) => setNote(event.target.value)} />
++          </label>
++          <div className="row gap-8">
++            <button type="submit" className="btn btn-primary" disabled={note.trim() === ''}>
++              提交修改要求
++            </button>
++            <button type="button" className="btn btn-ghost" onClick={() => setAsking(false)}>
++              返回
++            </button>
++          </div>
++        </form>
++      ) : (
++        <div className="row gap-8">
++          <button
++            type="button"
++            className="btn btn-primary"
++            onClick={() => {
++              try {
++                runsActions.accept(record.runId);
++              } catch (error) {
++                reportError('接受结果', error);
++              }
++            }}
++          >
++            接受结果
++          </button>
++          <button type="button" className="btn" onClick={() => setAsking(true)}>
++            要求修改
++          </button>
++        </div>
++      )}
++    </div>
++  );
++}
++
++/** 一条运行记录的摘要：run、其中的 attempt、所属进程与开发者审阅分开展示。 */
++export function RunSummary({ record, readOnly = false }: { record: RunRecord; readOnly?: boolean }) {
++  const preset = CASE_PRESETS[record.caseId];
++  return (
++    <div className="run-summary">
++      <div className="row gap-8 wrap">
++        <StatusPill status={record.status} />
++        <span className="chip">{record.mode === 'online' ? '在线运行' : '无模型复验'}</span>
++        {record.origin === 'demo' ? <DemoBadge /> : null}
++      </div>
++      {record.statusReason ? <p className="run-reason">{record.statusReason}</p> : null}
++      <dl className="kv">
++        <dt>用例</dt>
++        <dd>
++          {preset.label} {preset.title}
++        </dd>
++        <dt>任务</dt>
++        <dd>
++          {record.taskRef.taskId} · v{record.taskRef.version}
++        </dd>
++        <dt>Harness</dt>
++        <dd>
++          {record.mode === 'revalidate'
++            ? '不调用模型'
++            : `${record.harness.name} · ${record.harness.version ?? '未记录版本'} · ${record.harness.model ?? '未记录模型'}`}
++        </dd>
++        <dt>预算</dt>
++        <dd>
++          attempt {record.attempts.length} / {record.budget.maxAttempts} · 时限 {record.budget.timeLimitMinutes} 分钟
++        </dd>
++        <dt>源码</dt>
++        <dd>{record.sourceState ? `${record.sourceState.diffHash}（基线 ${record.sourceState.baseCommit}）` : '尚无最终快照'}</dd>
++      </dl>
++
++      <ol className="attempt-list" aria-label="attempt">
++        {record.attempts.map((attempt) => {
++          const passed = attempt.checks.filter((c) => c.result === 'pass').length;
++          return (
++            <li key={attempt.attemptId} className={`attempt attempt-${attempt.outcome}`}>
++              <div className="row space-between">
++                <strong>attempt {attempt.index}</strong>
++                <span className="small">{OUTCOME_LABEL[attempt.outcome]}</span>
++              </div>
++              <span className="muted small">
++                阶段 {attempt.stage} · 检查 {passed}/{attempt.checks.length} 通过 · 改动 {attempt.files.length} 个文件
++              </span>
++              {attempt.reason ? <span className="small">{attempt.reason}</span> : null}
++            </li>
++          );
++        })}
++      </ol>
++
++      {record.processes.length > 0 ? (
++        <div className="process-list">
++          <span className="muted small">本 run 登记的子进程</span>
++          {record.processes.map((p) => (
++            <div key={p.pgid} className="row space-between small">
++              <span>
++                {p.name} <code>pgid {p.pgid}</code>
++              </span>
++              <span className={p.state === 'exited' ? 'text-ok' : 'text-warn'}>{PROCESS_LABEL[p.state]}</span>
++            </div>
++          ))}
++        </div>
++      ) : null}
++
++      {record.status === 'cancelling' ? (
++        <Notice tone="warn">所有子进程真正退出后才会记为“已取消”；界面没有新输出不代表进程已清理。</Notice>
++      ) : null}
++      {record.status === 'inconclusive' ? (
++        <Notice tone="warn">这是工具故障，不是业务验收失败，结论记为“无法判断”；修复工具后需要重新运行才能得到验收结论。</Notice>
++      ) : null}
++
++      <div className="row gap-8">
++        <span className="muted small">审阅</span>
++        <ReviewPill review={record.review} />
++      </div>
++      <ReviewControls record={record} readOnly={readOnly} />
++    </div>
++  );
++}

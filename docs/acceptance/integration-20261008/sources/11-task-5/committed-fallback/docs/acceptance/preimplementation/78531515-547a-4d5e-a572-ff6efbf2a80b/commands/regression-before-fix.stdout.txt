@@ -1,0 +1,36 @@
+
+> web-studio-lab-baseline@0.0.0 baseline:selftest
+> tsx --test tests/vertical-slice/selftest.test.ts
+
+(node:32250) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ synthetic: strict task and event contracts reject relaxed goals and extra pass claims (1.522042ms)
+✔ synthetic: postcondition rejects initial/wrong/hidden/duplicate/mixed-run/exception observations (0.5075ms)
+✔ synthetic: mixed run/hash, sequence, lifecycle, logs and nonzero exit are rejected (0.750375ms)
+✔ synthetic: diff detects add/delete and paths/CDP URLs cannot escape boundaries (0.41325ms)
+✔ synthetic: manifest refuses content tampering, missing evidence and mixed-run events (3.376292ms)
+✖ synthetic: complete empty DOM returns immediately and B03 rejects it (110.479041ms)
+✔ synthetic: navigation waits for complete state and the expected URL (205.268166ms)
+✔ synthetic: complete single-match DOM returns on the first evaluation (0.609542ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 7
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 559.903417
+
+✖ failing tests:
+
+test at tests/vertical-slice/selftest.test.ts:1:6708
+✖ synthetic: complete empty DOM returns immediately and B03 rejects it (110.479041ms)
+  Error: Unexpected extra DOM readiness poll
+      at SyntheticSocket.send (/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/lab-pr1-probe-10pbcv7a/tests/vertical-slice/selftest.test.ts:92:26)
+      at <anonymous> (/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/lab-pr1-probe-10pbcv7a/tests/vertical-slice/cdp.ts:112:21)
+      at new Promise (<anonymous>)
+      at CdpConnection.request (/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/lab-pr1-probe-10pbcv7a/tests/vertical-slice/cdp.ts:110:28)
+      at CdpConnection.navigateAndObserve (/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/lab-pr1-probe-10pbcv7a/tests/vertical-slice/cdp.ts:138:27)
+      at async TestContext.<anonymous> (/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/lab-pr1-probe-10pbcv7a/tests/vertical-slice/selftest.test.ts:113:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)

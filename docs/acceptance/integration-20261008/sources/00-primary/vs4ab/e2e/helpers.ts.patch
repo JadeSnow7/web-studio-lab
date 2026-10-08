@@ -1,0 +1,47 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/e2e/helpers.ts b/private/tmp/wsl-integration-sources/12-_worktrees/e2e/helpers.ts
+index 803e2aa..2950faf 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/e2e/helpers.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/e2e/helpers.ts
+@@ -1,6 +1,7 @@
+-import { writeFile } from 'node:fs/promises';
++import { mkdtemp, writeFile } from 'node:fs/promises';
+ import { createRequire } from 'node:module';
+ import path from 'node:path';
++import { tmpdir } from 'node:os';
+ import { fileURLToPath } from 'node:url';
+ import { _electron, type ElectronApplication, type Page } from '@playwright/test';
+ 
+@@ -11,15 +12,31 @@ export const screensDir = path.join(root, 'test-results/screens', process.env['W
+ /** WSL_E2E_TARGET=packaged 时启动 pnpm package 生成的 .app，否则启动 pnpm build 的产物。 */
+ export const target = process.env['WSL_E2E_TARGET'] === 'packaged' ? 'packaged' : 'build';
+ 
+-export async function launchApp(): Promise<{ app: ElectronApplication; page: Page }> {
++export async function launchApp(
++  options: { codexBin?: string; sbxBin?: string; sandbox?: string; live?: boolean } = {},
++): Promise<{ app: ElectronApplication; page: Page }> {
++  // 默认回归不得消耗模型；真实模型仅在显式 live 模式使用已选 sbx。
++  const env = {
++    ...process.env,
++    WSL_SBX_NAME: options.live ? (process.env['WSL_SBX_NAME'] ?? 'wsl-sbx-smoke-20261006') : (options.sandbox ?? 'fixture-sandbox'),
++    WSL_SBX_BIN: options.live
++      ? (process.env['WSL_SBX_BIN'] ?? '/opt/homebrew/bin/sbx')
++      : (options.sbxBin ?? (options.codexBin ? path.join(root, 'e2e/fixtures/sbx.mjs') : '/missing/wsl-e2e-sbx')),
++    WSL_CODEX_BIN: '/missing/host-codex-must-not-run',
++  };
++  // Each run owns a fresh profile; retain it in tmp for failure evidence.
++  const userData = await mkdtemp(path.join(tmpdir(), 'wsl-e2e-'));
+   const app =
+     target === 'packaged'
+       ? await _electron.launch({
++          env,
++          args: [`--user-data-dir=${userData}`],
+           executablePath: path.join(desktopDir, 'release/mac-arm64/Web Studio Lab.app/Contents/MacOS/Web Studio Lab'),
+         })
+       : await _electron.launch({
++          env,
+           executablePath: createRequire(path.join(desktopDir, 'package.json'))('electron') as unknown as string,
+-          args: [desktopDir],
++          args: [desktopDir, `--user-data-dir=${userData}`],
+           cwd: desktopDir,
+         });
+   // Browser 区的 WebContentsView 也会作为一个 Page 出现，这里按地址找工作台页面。

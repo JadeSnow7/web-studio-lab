@@ -1,0 +1,63 @@
+diff --git a/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/state/runs.test.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/state/runs.test.ts
+new file mode 100644
+index 0000000..b04e508
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/desktop/src/renderer/src/state/runs.test.ts
+@@ -0,0 +1,57 @@
++import { describe, expect, it } from 'vitest';
++import { RunRecordSchema, type RunRecord } from '@wsl/protocol';
++import { DEMO_RUNS, DEMO_SCENARIOS } from '../demo/runScenarios';
++import { acceptRun, canReview, requestChanges } from './runs';
++
++const now = new Date('2026-10-06T06:00:00.000Z');
++const byId = (id: string) => DEMO_RUNS.find((r) => r.runId === id) as RunRecord;
++
++describe('演示运行记录', () => {
++  it('全部符合协议，且都标记为 demo', () => {
++    for (const record of DEMO_RUNS) {
++      expect(() => RunRecordSchema.parse(record)).not.toThrow();
++      expect(record.origin).toBe('demo');
++    }
++  });
++  it('每个演示入口都有对应记录', () => {
++    for (const s of DEMO_SCENARIOS) expect(byId(s.runId)).toBeDefined();
++  });
++  it('工具故障记为无法判断，不出现业务失败的检查结果', () => {
++    const run = byId('demo-run-inconclusive');
++    expect(run.status).toBe('inconclusive');
++    const checks = run.attempts.flatMap((a) => a.checks.map((c) => c.result));
++    expect(checks).toContain('error');
++    expect(checks).not.toContain('fail');
++  });
++  it('取消中的记录仍有未退出进程；已取消的记录全部退出', () => {
++    expect(byId('demo-run-cancelling').processes.some((p) => p.state !== 'exited')).toBe(true);
++    expect(byId('demo-run-cancelled').processes.every((p) => p.state === 'exited')).toBe(true);
++  });
++  it('无模型复验不记录模型，也不需要审阅', () => {
++    const run = byId('demo-run-revalidate');
++    expect(run.mode).toBe('revalidate');
++    expect(run.harness.model).toBeNull();
++    expect(canReview(run)).toBe(false);
++  });
++});
++
++describe('审阅', () => {
++  it('接受结果绑定任务版本与源码快照', () => {
++    const accepted = acceptRun(byId('demo-run-passed'), now);
++    expect(accepted.review).toEqual({
++      state: 'accepted',
++      decidedAt: now.toISOString(),
++      taskVersion: 1,
++      sourceState: { baseCommit: 'demo-base-0000000', diffHash: 'sha256:demo-7d41e0' },
++    });
++  });
++  it('只有通过且待审阅的 run 才能接受或要求修改', () => {
++    expect(() => acceptRun(byId('demo-run-failed'), now)).toThrow();
++    expect(() => acceptRun(byId('demo-run-accepted'), now)).toThrow();
++    expect(() => requestChanges(byId('demo-run-running'), '改', now)).toThrow();
++  });
++  it('要求修改必须写明原因', () => {
++    expect(() => requestChanges(byId('demo-run-passed'), '  ', now)).toThrow();
++    expect(requestChanges(byId('demo-run-passed'), '下拉要有中文', now).review.state).toBe('changes_requested');
++  });
++});

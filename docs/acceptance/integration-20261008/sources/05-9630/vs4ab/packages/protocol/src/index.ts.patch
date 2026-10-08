@@ -1,0 +1,12 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/packages/protocol/src/index.ts b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/index.ts
+index 9c17f15..93ac992 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/packages/protocol/src/index.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/packages/protocol/src/index.ts
+@@ -8,3 +8,7 @@ export * from './task';
+ export * from './bridge';
+ 
+ export * from './terminal';
++
++export * from './resources';
++
++export * from './guest-browser';

@@ -1,0 +1,51 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/main/index.ts b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/index.ts
+index 442c05f..77e1316 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/main/index.ts
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/main/index.ts
+@@ -1,5 +1,6 @@
+ import path from 'node:path';
+ import { app, session, type BrowserWindow } from 'electron';
++import { ChatService } from './chat-service';
+ import { registerIpc, sendToRenderer } from './ipc';
+ import { installAppMenu } from './menu';
+ import { PreviewController } from './preview/controller';
+@@ -35,14 +36,35 @@ function openWorkbench(): BrowserWindow {
+     onState: (state) => sendToRenderer(window, 'preview:state', state),
+     onCaptured: (capture) => sendToRenderer(window, 'preview:captured', capture),
+   });
+-  const unregisterIpc = registerIpc({ window, preview, trusted });
++  const chat = new ChatService(
++    (conversation) => sendToRenderer(window, 'chat:conversation', conversation),
++    (status) => sendToRenderer(window, 'chat:status', status),
++    (snapshot) => sendToRenderer(window, 'terminal:state', snapshot),
++  );
++  const unregisterIpc = registerIpc({ window, preview, trusted, chat });
+   installAppMenu(window, preview);
+   preview.load();
+ 
+   // 窗口关闭前释放 Browser 区页面与 IPC 处理器。
+-  window.on('close', () => {
+-    preview.dispose();
+-    unregisterIpc();
++  let closing = false;
++  let cleaned = false;
++  window.on('close', (event) => {
++    if (cleaned) return;
++    event.preventDefault();
++    if (closing) return;
++    closing = true;
++    void chat
++      .shutdown()
++      .then(() => {
++        preview.dispose();
++        unregisterIpc();
++        cleaned = true;
++        window.close();
++      })
++      .catch((error: unknown) => {
++        console.error('对话服务清理失败', error);
++        closing = false;
++      });
+   });
+   return window;
+ }

@@ -1,0 +1,57 @@
+diff --git a/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/observation-mcp.test.ts b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/observation-mcp.test.ts
+new file mode 100644
+index 0000000..ab482ca
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/11-task-5/apps/service/src/observation-mcp.test.ts
+@@ -0,0 +1,51 @@
++import { execFileSync } from 'node:child_process';
++import { expect, it } from 'vitest';
++import path from 'node:path';
++
++it.each([false, true])('uses a real Unix socket with image capability %s and preserves observation metadata', (images) => {
++  const script = `
++import importlib.util, socket, tempfile, threading, json, os
++spec = importlib.util.spec_from_file_location('observation_mcp', ${JSON.stringify(path.resolve('apps/service/src/resource_mcp.py'))})
++m = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(m)
++m.OBSERVATION_IMAGES = ${images ? 'True' : 'False'}
++png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXioAAAAASUVORK5CYII='
++with tempfile.TemporaryDirectory(prefix='wsl-mcp-') as root:
++    m.OBSERVATION_SOCKET = root + '/read.sock'
++    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
++    server.bind(m.OBSERVATION_SOCKET)
++    server.listen(1)
++    calls = []
++    def reply():
++        client, _ = server.accept()
++        with client:
++            request = json.loads(client.makefile('rb').readline())
++            calls.append(request)
++            client.sendall((json.dumps({'resource': {'resourceId': 'real-instance'}, 'coverage': {'status': 'partial'}, 'data': {'dataUrl': 'data:image/png;base64,' + png, 'base64': 'invalid-image'}, 'evidenceRef': 'sha256:fixed'}) + '\\n').encode())
++    worker = threading.Thread(target=reply)
++    worker.start()
++    result = m.dispatch({}, 'tools/call', {'name': 'browser_snapshot', 'arguments': {'resourceId': 'real-instance'}})
++    worker.join(timeout=2)
++    assert calls == [{'tool': 'browser.snapshot', 'args': {'resourceId': 'real-instance'}}]
++    assert result['structuredContent']['data']['evidenceRef'] == 'sha256:fixed'
++    assert 'data:image' not in json.dumps(result)
++    assert png not in json.dumps(result['structuredContent'])
++    if m.OBSERVATION_IMAGES:
++        assert len(result['content']) == 2
++        assert result['content'][1] == {'type': 'image', 'mimeType': 'image/png', 'data': png}
++        assert result['structuredContent']['data']['data']['base64']['imageDelivery'] == 'omitted'
++    else:
++        assert len(result['content']) == 1
++        assert png not in json.dumps(result)
++    assert result['structuredContent']['untrusted'] is True
++    try:
++        m.observe('files.read', {'path': 'x' * 17000})
++        raise AssertionError('oversized args accepted')
++    except m.RpcError:
++        pass
++    server.close()
++print('socket-roundtrip-and-bounds-pass')
++`;
++  const output = execFileSync('python3', ['-B', '-c', script], { encoding: 'utf8', timeout: 10000 });
++  expect(output).toContain('socket-roundtrip-and-bounds-pass');
++});

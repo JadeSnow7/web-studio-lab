@@ -1,0 +1,11 @@
+
+> web-studio-lab-baseline@0.0.0 baseline
+> tsx tests/vertical-slice/run.ts
+
+run: /Users/huaodong/Documents/Codex/2026-10-06/jadesnow7-web-studio-lab-main-536f0a1948e522a09310aa20784ec512476dc7be/work/web-studio-lab/records/vertical-slice/d1c9bc9e-4092-4697-83cf-d52d334b7686
+1..5
+not ok B01 - failed / target_missing / performed=false
+not ok B02 - failed / target_missing / performed=false
+not ok B03 - failed / target_missing / performed=false
+not ok B04 - failed / target_missing / performed=false
+not ok B05 - failed / target_missing / performed=false

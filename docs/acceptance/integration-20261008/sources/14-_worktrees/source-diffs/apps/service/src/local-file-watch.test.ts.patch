@@ -1,0 +1,137 @@
+diff --git a/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/local-file-watch.test.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/local-file-watch.test.ts
+new file mode 100644
+index 0000000..64f0a97
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/service/src/local-file-watch.test.ts
+@@ -0,0 +1,131 @@
++import { afterEach, expect, test } from 'vitest';
++import { mkdtemp, mkdir, writeFile, rename, rm } from 'node:fs/promises';
++import os from 'node:os';
++import path from 'node:path';
++import { FileObservationProvider } from './observation-files';
++import { LocalFileWatch } from './local-file-watch';
++import type { FileInvalidationHint } from '@wsl/protocol';
++const cleanup: (() => Promise<unknown>)[] = [];
++afterEach(async () => {
++  for (const run of cleanup.splice(0).reverse()) await run();
++});
++async function fixture() {
++  const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-watch-'));
++  cleanup.push(() => rm(root, { recursive: true, force: true }));
++  return root;
++}
++async function until(check: () => boolean) {
++  for (let i = 0; i < 100 && !check(); i++) await new Promise((r) => setTimeout(r, 20));
++  expect(check()).toBe(true);
++}
++test('real nested change rename delete invalidate bounded hints; reread hashes and close stops events', async () => {
++  const root = await fixture();
++  await mkdir(path.join(root, 'src'));
++  const file = path.join(root, 'src', 'a.txt');
++  await writeFile(file, 'before');
++  const hints: FileInvalidationHint[] = [];
++  const provider = new FileObservationProvider({
++    workspaceId: 'w',
++    environmentId: 'local',
++    root,
++    onInvalidated: (hint) => hints.push(hint),
++  });
++  cleanup.push(() => provider.close());
++  const before = await provider.read({ path: 'src/a.txt' });
++  expect(before.data.watch).toMatchObject({ watched: true, recursive: false, lossy: true });
++  await writeFile(file, 'after');
++  await until(() => hints.some((h) => h.change === 'change' || h.change === 'rename'));
++  expect((await provider.read({ path: 'src/a.txt' })).revision.value).not.toBe(before.revision.value);
++  let count = hints.length;
++  await rename(file, path.join(root, 'src', 'b.txt'));
++  await until(() => hints.length > count);
++  expect(hints.slice(count).some((h) => h.change === 'rename' || h.change === 'delete')).toBe(true);
++  count = hints.length;
++  await rm(path.join(root, 'src', 'b.txt'));
++  await until(() => hints.slice(count).some((h) => h.change === 'delete'));
++  expect(hints.every((h) => !('path' in h) && h.generation === before.generation)).toBe(true);
++  await provider.close();
++  count = hints.length;
++  await writeFile(file, 'closed');
++  await new Promise((r) => setTimeout(r, 150));
++  expect(hints).toHaveLength(count);
++  expect(provider.source().available).toBe(false);
++});
++test('directory budget is explicit and root replacement revokes the generation', async () => {
++  const root = await fixture();
++  const observed: string[] = [];
++  const watcher = new LocalFileWatch(
++    root,
++    (hint) => observed.push(hint.change),
++    () => {},
++    2,
++  );
++  cleanup.push(async () => watcher.close());
++  await mkdir(path.join(root, 'one'));
++  await mkdir(path.join(root, 'two'));
++  await watcher.observe(path.join(root, 'one'));
++  await watcher.observe(path.join(root, 'two'));
++  expect(watcher.status(path.join(root, 'two'))).toMatchObject({
++    watched: false,
++    watchedDirectories: 2,
++    maxDirectories: 2,
++    state: 'partial',
++  });
++  const hints: FileInvalidationHint[] = [];
++  const provider = new FileObservationProvider({
++    workspaceId: 'w',
++    environmentId: 'local',
++    root,
++    onInvalidated: (hint) => hints.push(hint),
++  });
++  cleanup.push(() => provider.close());
++  await provider.list();
++  const generation = provider.source().generation;
++  const moved = root + '-old';
++  cleanup.push(() => rm(moved, { recursive: true, force: true }));
++  await rename(root, moved);
++  await mkdir(root);
++  await writeFile(path.join(root, 'foreign.txt'), 'new root');
++  await expect(provider.read({ path: 'foreign.txt' })).rejects.toMatchObject({ code: 'unavailable' });
++  expect(provider.source().generation).not.toBe(generation);
++  expect(provider.source().available).toBe(false);
++  expect(hints.some((h) => h.change === 'root_replaced')).toBe(true);
++});
++
++test('rereading a replaced observed subdirectory refreshes its watch generation', async () => {
++  const root = await fixture();
++  const folder = path.join(root, 'src');
++  await mkdir(folder);
++  await writeFile(path.join(folder, 'a.txt'), 'old');
++  const hints: FileInvalidationHint[] = [];
++  const provider = new FileObservationProvider({
++    workspaceId: 'w',
++    environmentId: 'local',
++    root,
++    onInvalidated: (hint) => hints.push(hint),
++  });
++  cleanup.push(() => provider.close());
++  await provider.read({ path: 'src/a.txt' });
++  await rename(folder, path.join(root, 'old'));
++  await mkdir(folder);
++  await writeFile(path.join(folder, 'a.txt'), 'new');
++  const next = await provider.read({ path: 'src/a.txt' });
++  expect(next.data.watch).toMatchObject({ watched: true, watchGeneration: 2 });
++  const count = hints.length;
++  await writeFile(path.join(folder, 'a.txt'), 'changed');
++  await until(() => hints.length > count);
++  expect(hints.at(-1)?.watchGeneration).toBe(2);
++});
++
++test('close during asynchronous watch setup cannot leave late watchers', async () => {
++  const root = await fixture();
++  const watcher = new LocalFileWatch(
++    root,
++    () => {},
++    () => {},
++  );
++  const pending = watcher.observe(root);
++  watcher.close();
++  await pending;
++  expect(watcher.status()).toMatchObject({ state: 'closed', watchedDirectories: 0 });
++});

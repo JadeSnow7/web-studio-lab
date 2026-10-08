@@ -1,0 +1,71 @@
+diff --git a/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/workbench/PreviewHost.tsx b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/workbench/PreviewHost.tsx
+new file mode 100644
+index 0000000..3052633
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/workbench/PreviewHost.tsx
+@@ -0,0 +1,65 @@
++import { useEffect, useLayoutEffect, useRef, useState } from 'react';
++import type { PreviewBounds } from '@wsl/protocol';
++import { track } from '../state/errors';
++
++function measure(element: HTMLElement): PreviewBounds {
++  const rect = element.getBoundingClientRect();
++  return {
++    x: Math.max(0, Math.round(rect.left)),
++    y: Math.max(0, Math.round(rect.top)),
++    width: Math.max(0, Math.round(rect.width)),
++    height: Math.max(0, Math.round(rect.height)),
++  };
++}
++
++/**
++ * Browser 区原生视图的占位。主进程把 WebContentsView 放在这个元素的位置上；
++ * 有浮层遮挡时先截取同一页面的静态快照再隐藏原生视图，避免原生视图盖住浮层。
++ */
++export function PreviewHost({ active, occluded }: { active: boolean; occluded: boolean }) {
++  const hostRef = useRef<HTMLDivElement>(null);
++  const [frozen, setFrozen] = useState<string | null>(null);
++  const showNative = active && !occluded;
++
++  useLayoutEffect(() => {
++    const element = hostRef.current;
++    // 被遮挡期间由 freeze() 截图后隐藏原生视图；这里先不发布局，避免截图前就把视图藏掉。
++    if (!element || (active && occluded)) return;
++    const sync = () => {
++      void track('同步 Browser 区布局', window.studio.preview.setLayout({ bounds: measure(element), visible: showNative }));
++    };
++    sync();
++    const observer = new ResizeObserver(sync);
++    observer.observe(element);
++    window.addEventListener('resize', sync);
++    return () => {
++      observer.disconnect();
++      window.removeEventListener('resize', sync);
++    };
++  }, [showNative, active, occluded]);
++
++  useEffect(() => {
++    if (!(active && occluded)) return;
++    let cancelled = false;
++    void track('截取页面快照', window.studio.preview.freeze()).then((result) => {
++      if (!cancelled && result) setFrozen(result.dataUrl);
++    });
++    return () => {
++      // 遮挡结束：丢弃快照，原生视图由布局同步重新显示。
++      cancelled = true;
++      setFrozen(null);
++    };
++  }, [active, occluded]);
++
++  return (
++    <div ref={hostRef} hidden={!active} className="preview-host" data-native={showNative ? 'visible' : 'hidden'}>
++      {active && occluded ? (
++        frozen ? (
++          <img className="preview-frozen" src={frozen} alt="页面静态快照（浮层打开期间）" />
++        ) : (
++          <div className="preview-placeholder">页面被浮层遮挡，关闭浮层后恢复</div>
++        )
++      ) : null}
++    </div>
++  );
++}

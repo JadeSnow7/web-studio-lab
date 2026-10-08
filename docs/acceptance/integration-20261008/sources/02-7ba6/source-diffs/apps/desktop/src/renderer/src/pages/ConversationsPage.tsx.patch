@@ -1,0 +1,82 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/ConversationsPage.tsx b/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/pages/ConversationsPage.tsx
+index 16beb79..d4630e1 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/renderer/src/pages/ConversationsPage.tsx
++++ b/private/tmp/wsl-integration-sources/02-7ba6/apps/desktop/src/renderer/src/pages/ConversationsPage.tsx
+@@ -1,21 +1,25 @@
+ import { useState } from 'react';
+-import { Notice } from '../components/Badges';
+-import { DEMO_CONTACTS } from '../demo/sampleData';
++import { DemoBadge, Notice } from '../components/Badges';
++import { DEMO_CONTACTS, DEMO_SPACE_MESSAGES } from '../demo/sampleData';
+ import { useStore } from '../lib/store';
+-import { CONVERSATIONS, draftsStore, PERSONAL_CONVERSATION_ID, type ConversationInfo } from '../state/drafts';
++import { CONVERSATIONS, draftsStore, PERSONAL_CONVERSATION_ID, spaceConversationId, type ConversationInfo } from '../state/drafts';
++import { environmentStore } from '../state/execution';
+ import { Composer } from '../shell/Composer';
+-import { ChatMessages } from '../shell/ChatMessages';
+-import { shellActions } from '../state/shell';
++import { sendBlockedReasonFor } from '../shell/RightPanel';
++import { DEMO_SPACE } from '../domain/space';
+ 
+ type Section = 'agent' | 'people';
+ 
+-const AGENT_CONVERSATIONS = [PERSONAL_CONVERSATION_ID].map((id) => CONVERSATIONS[id]).filter((c): c is ConversationInfo => c !== undefined);
++const AGENT_CONVERSATIONS = [spaceConversationId(DEMO_SPACE.id), PERSONAL_CONVERSATION_ID]
++  .map((id) => CONVERSATIONS[id])
++  .filter((c): c is ConversationInfo => c !== undefined);
+ 
+ /** 会话页与右栏、首页共用同一会话与草稿。 */
+ export function ConversationsPage() {
+   const [section, setSection] = useState<Section>('agent');
+   const [selectedId, setSelectedId] = useState(AGENT_CONVERSATIONS[0]?.id ?? '');
+   const drafts = useStore(draftsStore, (d) => d);
++  const execution = useStore(environmentStore, (e) => e.execution);
+   const selected = CONVERSATIONS[selectedId] ?? null;
+ 
+   return (
+@@ -40,7 +44,7 @@ export function ConversationsPage() {
+             >
+               <span className="row space-between">
+                 <strong>{c.title}</strong>
+-                <span className="muted small">Codex CLI</span>
++                <span className="muted small">Codex CLI · 未接入</span>
+               </span>
+               <span className="muted small">{c.scopeLabel}</span>
+               {drafts[c.id] ? <span className="small text-warn">草稿：{drafts[c.id]}</span> : null}
+@@ -59,9 +63,6 @@ export function ConversationsPage() {
+         )}
+       </nav>
+       <section className="page-main conv-detail" aria-label="会话详情">
+-        <button type="button" className="btn" onClick={() => shellActions.navigate('space')}>
+-          返回空间工作会话
+-        </button>
+         {selected ? (
+           <>
+             <div className="row space-between">
+@@ -70,10 +71,24 @@ export function ConversationsPage() {
+               </h1>
+               <span className="chip">{selected.scope.kind === 'personal' ? '个人作用域' : '空间会话'}</span>
+             </div>
+-            <ChatMessages conversationId={selected.id} />
++            <div className="message-list">
++              {selected.scope.kind === 'space' ? (
++                <>
++                  <DemoBadge label="演示消息" />
++                  {DEMO_SPACE_MESSAGES.map((m) => (
++                    <div key={m.id} className={`message message-${m.author}`}>
++                      <p>{m.text}</p>
++                      <span>{m.meta}</span>
++                    </div>
++                  ))}
++                </>
++              ) : (
++                <p className="muted">个人会话还没有消息。</p>
++              )}
++            </div>
+             <Composer
+               target={{ kind: 'conversation', conversation: selected }}
+-              sendBlockedReason={null}
++              sendBlockedReason={sendBlockedReasonFor(execution?.reason)}
+               placeholder="输入消息…"
+               harnessLabel={selected.scope.kind === 'personal' ? '默认 Agent' : 'Codex CLI'}
+               rows={3}

@@ -1,0 +1,41 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/e2e/chat.spec.ts b/private/tmp/wsl-integration-sources/14-_worktrees/e2e/chat.spec.ts
+index 78c3610..57c1eb0 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/e2e/chat.spec.ts
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/e2e/chat.spec.ts
+@@ -1,7 +1,7 @@
+ import path from 'node:path';
+ import { randomUUID } from 'node:crypto';
+ import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
+-import { launchApp, setWindowSize, windowShots, workshopNavigate } from './helpers';
++import { launchApp, setWindowSize, windowShots } from './helpers';
+ 
+ let app: ElectronApplication;
+ let page: Page;
+@@ -9,7 +9,7 @@ test.afterEach(async () => {
+   if (app) await app.close();
+ });
+ async function home() {
+-  await workshopNavigate(page, '首页');
++  await page.getByRole('navigation', { name: 'Workshop 导航' }).getByRole('button', { name: '首页' }).click();
+   return page.getByRole('region', { name: '混合输入' });
+ }
+ async function send(text: string) {
+@@ -35,7 +35,7 @@ test('fixture：续聊、新对话隔离、共享消息、IME、重复提交和
+   await expect(input).toBeFocused();
+   await send('回忆');
+   await expect(region.locator('.message-agent').last()).toContainText('记住晴川742');
+-  await workshopNavigate(page, '会话');
++  await page.getByRole('navigation', { name: 'Workshop 导航' }).getByRole('button', { name: '会话' }).click();
+   await page.getByRole('button', { name: /首页对话/ }).click();
+   await expect(page.getByRole('region', { name: '会话详情' })).toContainText('记住晴川742');
+   await home();
+@@ -53,7 +53,8 @@ test('fixture：续聊、新对话隔离、共享消息、IME、重复提交和
+   await expect(region.locator('.message-agent')).toContainText('fixture 回复：新消息');
+   await expect(region).not.toContainText('迟到回复');
+   await setWindowSize(app, 1024, 768);
+-  // 窄窗仅改变工作台可见布局，个人对话仍能通过真实按钮操作。
++  // 窄窗口沿用覆盖式右栏；关闭浮层后用真实按钮验证输入区可操作。
++  await page.getByRole('complementary', { name: '通信栏' }).getByRole('button', { name: '收起通信栏', exact: true }).click();
+   await region.getByRole('button', { name: '开始新对话' }).click();
+   await expect(region.locator('.message-user')).toHaveCount(0);
+   await input.fill('窄窗口按钮发送');

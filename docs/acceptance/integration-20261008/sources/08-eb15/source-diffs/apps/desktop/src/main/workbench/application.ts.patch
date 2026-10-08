@@ -1,0 +1,34 @@
+diff --git a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/workbench/application.ts b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/workbench/application.ts
+index c1bd0d2..842e810 100644
+--- a/private/tmp/wsl-integration-sources/07-bf64/apps/desktop/src/main/workbench/application.ts
++++ b/private/tmp/wsl-integration-sources/08-eb15/apps/desktop/src/main/workbench/application.ts
+@@ -34,6 +34,7 @@ function workspace(workspaceId: string, name: string): WorkspaceSnapshot {
+     publicResources: null,
+     publicResourcesError: null,
+     theme: 'system',
++    sidebarMode: 'pinned',
+   };
+ }
+ export function validateSnapshot(snapshot: WorkbenchSnapshot): void {
+@@ -541,6 +542,7 @@ export class WorkbenchApplication {
+             break;
+           case 'setPreferences':
+             if (c.theme !== undefined) w.theme = c.theme;
++            if (c.sidebarMode !== undefined) w.sidebarMode = c.sidebarMode;
+             break;
+           case 'saveTaskCriteria': {
+             const session = this.session(w, c.sessionId);
+@@ -741,12 +743,7 @@ export class WorkbenchApplication {
+       }
+       validateSnapshot(this.snapshot);
+       await this.persist(w, c.commandId);
+-      if (
+-        c.type === 'switchWorkspace' ||
+-        c.type === 'createWorkspace' ||
+-        (c.type === 'locateSession' && before.activeWorkspaceId !== this.snapshot.activeWorkspaceId)
+-      )
+-        this.runtime.hideBrowsers();
++      if (c.type === 'switchWorkspace' || c.type === 'createWorkspace' || c.type === 'locateSession') this.runtime.hideBrowsers();
+       const result = this.result();
+       this.rememberCommand(c.commandId, fingerprint, result);
+       return result;

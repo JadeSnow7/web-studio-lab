@@ -1,0 +1,38 @@
+diff --git a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/pages/HomePage.tsx b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/pages/HomePage.tsx
+index f55501d..66684fb 100644
+--- a/private/tmp/wsl-integration-sources/00-primary/apps/desktop/src/renderer/src/pages/HomePage.tsx
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/desktop/src/renderer/src/pages/HomePage.tsx
+@@ -6,6 +6,7 @@ import { useStore } from '../lib/store';
+ import { homeTarget } from '../state/drafts';
+ import { shellActions } from '../state/shell';
+ import { workbenchStore } from '../state/workbench';
++import { ChatMessages } from '../shell/ChatMessages';
+ import { Composer } from '../shell/Composer';
+ 
+ type HomeMode = 'chat' | 'search' | 'open';
+@@ -17,7 +18,7 @@ const MODES: ReadonlyArray<{ mode: HomeMode; label: string }> = [
+ ];
+ 
+ const MODE_BLOCKED: Record<HomeMode, string> = {
+-  chat: '默认 Agent 尚未接入，本版本不发送；草稿保留在个人会话里',
++  chat: 'Codex CLI 个人对话不附带空间或页面内容；应用内消息仅本次启动可见',
+   search: '搜索尚未接入',
+   open: '从首页打开地址需要临时空间，尚未接入；请在空间的 Browser 区打开演示页面',
+ };
+@@ -27,7 +28,7 @@ export function HomePage() {
+   const [mode, setMode] = useState<HomeMode>('chat');
+   const versions = useStore(workbenchStore, (s) => s.versions.length);
+   // 首页对话的接收方是个人默认 Agent，不是空间里的 Codex 会话，原因按模式说明。
+-  const blocked = MODE_BLOCKED[mode];
++  const blocked = mode === 'chat' ? null : MODE_BLOCKED[mode];
+ 
+   return (
+     <div className="home">
+@@ -46,6 +47,7 @@ export function HomePage() {
+           </span>
+           <span className="muted small">不读取其他空间</span>
+         </div>
++        {mode === 'chat' ? <ChatMessages conversationId={'conv-personal-default'} /> : null}
+         <Composer
+           target={homeTarget()}
+           sendBlockedReason={blocked}

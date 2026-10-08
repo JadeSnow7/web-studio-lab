@@ -1,0 +1,111 @@
+diff --git a/private/tmp/wsl-integration-sources/05-9630/apps/service/src/guest-helper.py b/private/tmp/wsl-integration-sources/12-_worktrees/apps/service/src/guest-helper.py
+index 2059d04..98c92e3 100644
+--- a/private/tmp/wsl-integration-sources/05-9630/apps/service/src/guest-helper.py
++++ b/private/tmp/wsl-integration-sources/12-_worktrees/apps/service/src/guest-helper.py
+@@ -1,4 +1,5 @@
+ """Linux guest only: owned session cleanup and framed Codex/PTY transport."""
++import base64
+ import codecs
+ import ctypes
+ import errno
+@@ -16,6 +17,7 @@ import time
+ 
+ PREFIX = "WSL_GUEST_FRAME:"
+ CWD = "/home/agent/workspace"
++RESOURCE_MCP_BASE64 = ""  # Replaced only by the trusted host build, never by a page or frame.
+ 
+ 
+ def emit(kind, **fields):
+@@ -79,12 +81,12 @@ def cleanup(sid, child):
+ 
+ 
+ def resize(fd, cols, rows):
+-    if not isinstance(cols, int) or not 2 <= cols <= 500 or not isinstance(rows, int) or not 1 <= rows <= 300:
++    if type(cols) is not int or not 2 <= cols <= 500 or type(rows) is not int or not 1 <= rows <= 300:
+         raise ValueError("invalid PTY dimensions")
+     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+ 
+ 
+-def main():
++def read_start():
+     if sys.platform != "linux":
+         raise RuntimeError("guest helper requires Linux")
+     libc = ctypes.CDLL(None, use_errno=True)
+@@ -101,14 +103,22 @@ def main():
+     if not first:
+         raise RuntimeError("missing start frame")
+     start = json.loads(first)
+-    if start.get("type") != "start" or start.get("mode") not in ("codex", "terminal"):
++    if not isinstance(start, dict) or start.get("type") != "start" or start.get("mode") not in ("codex", "terminal"):
+         raise ValueError("invalid start frame")
++    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "prompt", "resourceBundle"}
++    if set(start) - allowed:
++        raise ValueError("unknown start fields")
++    return start
++
++
++def main(start):
+     os.makedirs(CWD, exist_ok=True)
+     env = dict(os.environ)
+     env["PATH"] = "/usr/local/bin:/usr/local/share/npm-global/bin:" + env.get("PATH", "")
+     terminal = start["mode"] == "terminal"
+     master = None
+     child = None
++    resource_fd = None
+     try:
+         if terminal:
+             master, slave = pty.openpty()
+@@ -125,6 +135,19 @@ def main():
+             argv = start["argv"]
+             if not isinstance(argv, list) or not argv or not all(isinstance(arg, str) for arg in argv):
+                 raise ValueError("invalid Codex argv")
++            if "resourceBundle" in start:
++                if argv[0] != "codex" or "exec" not in argv or not RESOURCE_MCP_BASE64:
++                    raise ValueError("resource capability requires fixed Codex exec")
++                source = base64.b64decode(RESOURCE_MCP_BASE64, validate=True).decode("utf-8")
++                module = {"__name__": "wsl_resource_module"}
++                exec(compile(source, "<wsl-resource-mcp>", "exec"), module)
++                resource_fd = module["sealed_bundle"](start["resourceBundle"])
++                descriptor = "/proc/%d/fd/%d" % (os.getpid(), resource_fd)
++                # TOML basic strings/arrays use the same escaping used here by JSON.
++                config = ["-c", 'mcp_servers.wsl_space.command="python3"', "-c",
++                          "mcp_servers.wsl_space.args=" + json.dumps(["-I", "-u", "-c", source, descriptor]),
++                          "-c", "mcp_servers.wsl_space.required=true"]
++                argv = [argv[0], *config, *argv[1:]]
+             child = subprocess.Popen(argv, cwd=CWD, env=env, stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+             child.stdin.write(start.get("prompt", "").encode())
+@@ -157,7 +180,12 @@ def main():
+                     while b"\n" in buffer:
+                         line, buffer = buffer.split(b"\n", 1)
+                         frame = json.loads(line)
++                        if not isinstance(frame, dict):
++                            raise ValueError("invalid control frame")
+                         kind = frame.get("type")
++                        keys = {"close": {"type"}, "input": {"type", "data"}, "resize": {"type", "cols", "rows"}}
++                        if kind not in keys or set(frame) != keys[kind]:
++                            raise ValueError("invalid control fields")
+                         if kind == "close":
+                             closing = True
+                         elif terminal and kind == "input":
+@@ -208,6 +236,19 @@ def main():
+     finally:
+         if master is not None:
+             os.close(master)
++        if resource_fd is not None:
++            os.close(resource_fd)
+ 
+ 
+-main()
++try:
++    start = read_start()
++except BaseException as error:
++    # Preflight has no process side effects; rejection does not leave an owned child.
++    emit("error", error=str(error))
++    emit("cleanup", ok=True)
++else:
++    try:
++        main(start)
++    except BaseException as error:
++        emit("error", error=str(error))
++        emit("cleanup", ok=False, error="helper finalization failed")

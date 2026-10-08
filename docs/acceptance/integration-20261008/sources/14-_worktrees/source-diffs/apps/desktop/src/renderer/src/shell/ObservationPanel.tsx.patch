@@ -1,0 +1,176 @@
+diff --git a/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/shell/ObservationPanel.tsx b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/shell/ObservationPanel.tsx
+new file mode 100644
+index 0000000..a7bae07
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/shell/ObservationPanel.tsx
+@@ -0,0 +1,170 @@
++import { observationHintsStore, relevantInvalidation } from '../state/observation-hints';
++import { useEffect, useId, useRef, useState } from 'react';
++import type { ObservationResult, ObservationRequest } from '@wsl/protocol';
++import { useStore } from '../lib/store';
++import { shellStore } from '../state/shell';
++import { terminalStore } from '../state/terminal';
++import { previewStore } from '../state/preview';
++
++/** Explicit, bounded reads; no polling and no model invocation on resource events. */
++export function ObservationPanel() {
++  const tab = useStore(shellStore, (state) => state.browserTab);
++  const sessionId = useStore(terminalStore, (state) => state.snapshot?.sessionId);
++  const pageId = useStore(previewStore, (state) =>
++    state ? `${state.page.webContentsId}:${state.page.documentGeneration}` : 'unavailable',
++  );
++  return <ObservationReader key={`${tab}:${sessionId ?? ''}:${pageId}`} tab={tab} sessionId={sessionId ?? null} pageId={pageId} />;
++}
++function ObservationReader({ tab, sessionId, pageId }: { tab: string; sessionId: string | null; pageId: string }) {
++  const fileInputId = useId();
++  const projection = useStore(terminalStore, (state) => state);
++  const viewportReady =
++    projection.projectionSynchronized === true &&
++    !projection.parsing &&
++    projection.projectionSessionId === sessionId &&
++    projection.renderedSeq === projection.snapshot?.seq;
++  const [result, setResult] = useState<ObservationResult | null>(null);
++  const latestHint = useStore(observationHintsStore, (state) => state.latest);
++  const invalidation = relevantInvalidation(result, latestHint);
++  const [filePath, setFilePath] = useState('');
++  const [pending, setPending] = useState(false);
++  const [failure, setFailure] = useState<string | null>(null);
++  const serial = useRef(0);
++  useEffect(
++    () => () => {
++      serial.current += 1;
++    },
++    [],
++  );
++  async function read(tool: ObservationRequest['tool'], args: Record<string, unknown> = {}) {
++    if (pending) return;
++    const viewport = tool === 'terminal.read_screen' && args['viewportY'] !== undefined;
++    const before = terminalStore.get();
++    if (
++      viewport &&
++      (!before.projectionSynchronized ||
++        before.parsing ||
++        before.projectionSessionId !== sessionId ||
++        before.renderedSeq !== before.snapshot?.seq)
++    ) {
++      setResult({ error: 'gap', message: '当前界面尚未完整解析或存在恢复缺口；请读取最新程序屏幕。' });
++      return;
++    }
++    const request = ++serial.current;
++    setPending(true);
++    setFailure(null);
++    try {
++      const next = await window.studio.observation.read({ workspaceId: 'taskflow-demo', tool, args });
++      if (request === serial.current) {
++        const current = terminalStore.get();
++        if (viewport && (current.snapshot?.seq !== before.snapshot?.seq || current.parsing || !current.projectionSynchronized))
++          setResult({ error: 'unstable', message: '读取期间终端输出已更新，请重读当前区域或最新程序屏幕。' });
++        else setResult(next);
++      }
++    } catch {
++      if (request === serial.current) setFailure('读取失败，请检查资源连接后重试。');
++    } finally {
++      if (request === serial.current) setPending(false);
++    }
++  }
++  return (
++    <details className="chat-tools">
++      <summary>读取工作现场</summary>
++      <div className="stack-8">
++        <div className="row">
++          <button type="button" className="btn btn-ghost" disabled={pending} onClick={() => void read('workspace.list_sources')}>
++            查看可读资源
++          </button>
++          <button
++            type="button"
++            className="btn btn-ghost"
++            disabled={pending || !['preview', 'terminal'].includes(tab) || (tab === 'terminal' && (!sessionId || !viewportReady))}
++            onClick={() =>
++              void read(
++                tab === 'terminal' ? 'terminal.read_screen' : 'browser.snapshot',
++                tab === 'terminal'
++                  ? { resourceId: sessionId, viewportY: terminalStore.get().viewportY }
++                  : { resourceId: `webcontents:${pageId.split(':')[0]}` },
++              )
++            }
++          >
++            {pending ? '读取中…' : '读取当前资源'}
++          </button>
++          {tab === 'terminal' ? (
++            <button
++              type="button"
++              className="btn btn-ghost"
++              disabled={pending || !sessionId}
++              onClick={() => void read('terminal.read_screen', { resourceId: sessionId })}
++            >
++              读取最新程序屏幕
++            </button>
++          ) : null}
++        </div>
++        {tab === 'terminal' && !viewportReady ? (
++          <p className="muted small" role="status">
++            {projection.parsing ? '终端正在解析输出，当前可见区域暂不可读。' : '界面恢复存在数据缺口，当前可见区域无法与后台对齐。'}{' '}
++            可另读最新程序屏幕。
++          </p>
++        ) : null}
++        <form
++          className="row"
++          noValidate
++          onSubmit={(event) => {
++            event.preventDefault();
++            if (filePath.trim())
++              void read('files.read', { environmentId: 'local', resourceId: 'files:local', path: filePath.trim(), maxBytes: 16384 });
++          }}
++        >
++          <label className="sr-only" htmlFor={fileInputId}>
++            工作区内文件路径
++          </label>
++          <input
++            id={fileInputId}
++            className="input"
++            value={filePath}
++            onChange={(event) => setFilePath(event.target.value)}
++            placeholder="工作区内文件路径"
++          />
++          <button className="btn btn-ghost" type="submit" disabled={pending || !filePath.trim()}>
++            读取文件
++          </button>
++        </form>
++        <p className="muted small">只读取此刻的页面或终端，不改变现场。可在对话中要求 AI 继续读取具体文件或资源。</p>
++        {failure ? (
++          <p role="alert" className="text-warn">
++            {failure}
++          </p>
++        ) : null}
++        {invalidation ? (
++          <p className="muted small" role="status" aria-label="文件更新提示">
++            {invalidation.change === 'root_replaced' || invalidation.change === 'closed'
++              ? '文件读取连接已失效，当前结果保留为历史证据。'
++              : '文件目录有变化提示，当前读取结果可能已过期。请按需重新读取。'}{' '}
++            通知只覆盖已观察目录且可能丢失，未收到提示不代表内容未变化。
++          </p>
++        ) : null}
++        {result ? (
++          'error' in result ? (
++            <p role="status" className="text-warn">
++              {result.message}
++            </p>
++          ) : (
++            <>
++              <p role="status" className="muted small">
++                {result.source} · {new Date(result.capturedAt).toLocaleTimeString()} ·{' '}
++                {result.coverage.status === 'complete' ? '指定范围已读完' : '部分范围，请查看详情'}
++              </p>
++              <details>
++                <summary>读取内容与来源详情</summary>
++                <pre>{JSON.stringify(result, null, 2)}</pre>
++              </details>
++            </>
++          )
++        ) : (
++          <p className="muted small">尚未读取；点击上方按钮查看当前可用内容。</p>
++        )}
++      </div>
++    </details>
++  );
++}

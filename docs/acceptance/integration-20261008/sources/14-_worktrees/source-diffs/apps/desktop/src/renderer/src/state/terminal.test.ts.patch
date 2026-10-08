@@ -1,0 +1,56 @@
+diff --git a/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/terminal.test.ts b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/terminal.test.ts
+new file mode 100644
+index 0000000..b5363a1
+--- /dev/null
++++ b/private/tmp/wsl-integration-sources/14-_worktrees/apps/desktop/src/renderer/src/state/terminal.test.ts
+@@ -0,0 +1,50 @@
++import { describe, expect, it } from 'vitest';
++import type { TerminalSnapshot } from '@wsl/protocol';
++import { projectTerminal, type TerminalState } from './terminal';
++
++const initial: TerminalState = { snapshot: null, pending: false, error: null };
++const snapshot: TerminalSnapshot = {
++  seq: 10,
++  sessionId: 'current',
++  sandbox: 'fixture-sandbox',
++  cwd: '/home/agent/workspace',
++  state: 'running',
++  output: 'current prompt',
++  cleanupPending: true,
++  error: null,
++};
++describe('终端会话投影', () => {
++  it('new output cannot inherit parsed viewport readiness, and a new session clears old selection', () => {
++    const ready: TerminalState = {
++      ...initial,
++      snapshot,
++      projectionSynchronized: true,
++      projectionSessionId: 'current',
++      renderedSeq: 10,
++      parsing: false,
++      viewportY: 42,
++      selection: 'old selection',
++    };
++    const next = projectTerminal(ready, { ...snapshot, seq: 11, output: 'changed prompt' });
++    expect(next.parsing).toBe(true);
++    expect(next.renderedSeq).toBe(10);
++    const replaced = projectTerminal(next, { ...snapshot, seq: 12, sessionId: 'new-shell' });
++    expect(replaced).toMatchObject({ projectionSynchronized: false, parsing: true, projectionSessionId: null });
++    expect(replaced.viewportY).toBeUndefined();
++    expect(replaced.selection).toBeUndefined();
++  });
++  it('重开后旧会话与迟到初始查询不能覆盖输出', () => {
++    const state = projectTerminal(initial, snapshot);
++    expect(projectTerminal(state, { ...snapshot, seq: 9, sessionId: 'old', output: 'late' })).toBe(state);
++    expect(projectTerminal(state, snapshot)).toBe(state);
++  });
++  it('关闭失败保留已确认会话输出与错误', () => {
++    const state = projectTerminal(initial, snapshot);
++    expect(projectTerminal(state, { ...snapshot, seq: 11, state: 'failed', error: '未确认远端退出' }).snapshot).toMatchObject({
++      output: 'current prompt',
++      cleanupPending: true,
++      error: '未确认远端退出',
++      state: 'failed',
++    });
++  });
++});
