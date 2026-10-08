@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-10-08T19:03:32Z",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+  "node": "v24.19.0",
+  "baseCommit": "3e631a9e387190da5a2241945bbf7e14edbd5707",
+  "commands": {
+    "sbx": null,
+    "codex": null,
+    "docker": null,
+    "Xvfb": null,
+    "xvfb-run": null
+  },
+  "configured": {
+    "WSL_SBX_NAME": false,
+    "WSL_SBX_BIN": false,
+    "WSL_VS001_MODEL": false,
+    "DISPLAY": false,
+    "WAYLAND_DISPLAY": false
+  },
+  "electronPackageVersion": "44.5.1",
+  "electronBinaryExists": false,
+  "liveVS001": "not_run",
+  "reason": "No configured sbx, real Codex runtime, or display session; no synthetic adapter connected to baseline."
+}

@@ -1,0 +1,4 @@
+WSL_GUEST_FRAME:{"type": "ready", "pid": 9}
+WSL_GUEST_FRAME:{"type": "output", "stream": "stdout", "data": "BG_PID:10\nBODY_READY\n"}
+WSL_GUEST_FRAME:{"type": "error", "error": "guest output drain not confirmed"}
+WSL_GUEST_FRAME:{"type": "cleanup", "ok": false, "error": "guest output drain not confirmed"}

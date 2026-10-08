@@ -1,0 +1,66 @@
+
+ RUN  v5.0.3 /workspace/scratch/7fe460de7b83/web-studio-lab
+
+stdout | apps/service/src/guest-workspace.test.ts
+NOT_RUN guest close/EOF descendant tests: host /proc PPID/session fields differ from process-reported identities; genuine sbx guest cleanup remains unverified.
+
+ ✓ apps/service/src/guest-workspace.test.ts > actual guest run-copy and cleanup boundaries > returns the complete inventory after nonzero exit, then removes its exclusive directory 103ms
+ ✓ apps/service/src/guest-workspace.test.ts > actual guest run-copy and cleanup boundaries > rejects symlinks without transferring their targets and still confirms directory cleanup 69ms
+ ✓ apps/service/src/sbx-contract.test.ts > sbx 唯一路由的配置边界 > 配置  /  不可用时不得回退宿主 Codex 5ms
+ ✓ apps/service/src/sbx-contract.test.ts > sbx 唯一路由的配置边界 > 配置 fixture-sandbox / /missing/wsl-sbx 不可用时不得回退宿主 Codex 1ms
+ ✓ apps/service/src/sbx-contract.test.ts > UI 所需 sbx 与终端跨进程契约 > 聊天状态保留选定 sandbox 与 guest cwd 3ms
+ ✓ apps/service/src/sbx-contract.test.ts > UI 所需 sbx 与终端跨进程契约 > 终端 open / 输入 / resize / close 和状态事件均有 schema 4ms
+ ✓ apps/service/src/guest-workspace.test.ts > actual guest run-copy and cleanup boundaries > retains the exclusive cwd and edits on a synthetic cleanup-confirmation failure (no descendants or model) 85ms
+ ↓ apps/service/src/guest-workspace.test.ts > actual guest run-copy and cleanup boundaries > [not_run: host /proc ancestry/session mismatch] close drains final output, preserves the edit and reaps a detached grandchild before acknowledgment
+ ↓ apps/service/src/guest-workspace.test.ts > actual guest run-copy and cleanup boundaries > [not_run: host /proc ancestry/session mismatch] eof drains final output, preserves the edit and reaps a detached grandchild before acknowledgment
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > 拒绝挂载host的目标而不调用Codex 78ms
+ ✓ apps/service/src/codex-chat.test.ts > 外部 CLI 协议 > 校验已知事件，不把未知事件当成完成 150ms
+ ✓ apps/service/src/codex-chat.test.ts > 外部 CLI 协议 > 显式无效路径不回退到已安装 CLI 131ms
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > 仅接受与目标sandbox匹配的启动说明 284ms
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > missing-cleanup 不等于guest成功退出 73ms
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > cleanup-fail 不等于guest成功退出 77ms
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > initialize probe未确认清理时保持登记并拒绝shutdown 146ms
+ ✓ apps/service/src/codex-chat.test.ts > 真实子进程生命周期（fixture） > 同会话恢复身份，个人与空间隔离，reset 清除上下文 557ms
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > 失败版本probe已有清理确认时允许正常shutdown 133ms
+ ✓ apps/service/src/codex-chat.test.ts > 真实子进程生命周期（fixture） > [bad-json] 必须失败且保留用户消息 258ms
+ ✓ apps/service/src/codex-chat.test.ts > 真实子进程生命周期（fixture） > [exit] 必须失败且保留用户消息 250ms
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > 正常PTY输入与resize转发且关闭须确认，旧session不得操作新终端 394ms
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > 清理失败阻止terminal重新open并保留失败状态 261ms
+ ✓ apps/service/src/codex-chat.test.ts > 真实子进程生命周期（fixture） > [no-completion] 必须失败且保留用户消息 227ms
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > missing-cleanup聊天失败保持明确cleanupPending占用 222ms
+ ✓ apps/service/src/codex-chat.test.ts > 真实子进程生命周期（fixture） > [empty-reply] 必须失败且保留用户消息 228ms
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > cleanup-fail聊天失败保持明确cleanupPending占用 237ms
+ ✓ apps/service/src/codex-chat.test.ts > 真实子进程生命周期（fixture） > 取消 的进程组清理失败必须阻止重置、关闭与新发送 198ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > builds and imports the real service adapter, retaining a preflight error without starting an Agent 1407ms
+ ✓ apps/service/src/codex-chat.test.ts > 真实子进程生命周期（fixture） > 协议失败 的进程组清理失败必须阻止重置、关闭与新发送 247ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > builds the actual thin Electron host with the production PreviewController 755ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > waits for a late root allocation after abort before closing its diagnostic descriptor 3ms
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > terminal 清理未知阻止同 sandbox 的新资源对话 264ms
+ ✓ apps/service/src/codex-chat.test.ts > 真实子进程生命周期（fixture） > shutdown 同步关闭接收入口，清理立即发送的请求 200ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > serves the unchanged fixed page and resolves React and App.js to TSX through the real Vite component 227ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > rejects extra inventory and retains a safe App edit when available 3ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > rejects deleted inventory and retains a safe App edit when available 4ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > rejects unchanged inventory and retains a safe App edit when available 3ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > rejects duplicate inventory and retains a safe App edit when available 2ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > rejects unsafe inventory and retains a safe App edit when available 3ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > rejects wrong-run inventory and retains a safe App edit when available 2ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > rejects concurrent host changes instead of overwriting them 2ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > immediately releases a late allocation whose cleanup registration is rejected 2ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > shutdown during asynchronous sbx resolution prevents later probe allocation 3ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > abort from an inspect diagnostic callback prevents a later Codex version probe 70ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > retains pre-thread output and modifications without claiming successful acceptance 5ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > retains malformed output and modifications without claiming successful acceptance 9ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > retains nonzero output and modifications without claiming successful acceptance 8ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > retains abort output and modifications without claiming successful acceptance 6ms
+ ✓ apps/service/src/codex-chat.test.ts > 真实子进程生命周期（fixture） > 发送后立即 reset 不会启动旧轮次或污染新会话 194ms
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > 非致命MCP警告可见、去重，工具输出有界且显式标截断 230ms
+ ✓ apps/service/src/sbx.test.ts > guest helper 宿主边界 > rejects oversized Chinese input at service and workbench boundaries while preserving the same PTY 304ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > eof stops an actual host grandchild and confirms the owned process group is gone 134ms
+ ✓ apps/service/src/codex-chat.test.ts > 真实子进程生命周期（fixture） > 拒绝重复发送，取消等待进程 close，迟到消息不污染 reset 338ms
+ ✓ apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > term stops an actual host grandchild and confirms the owned process group is gone 2152ms
+
+ Test Files  5 passed (5)
+      Tests  52 passed | 2 skipped (54)
+   Start at  04:34:25
+   Duration  5.49s (tests 85%, transform 9%, import 6%)
+

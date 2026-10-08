@@ -1,0 +1,5 @@
+
+> web-studio-lab@ baseline:selftest /workspace/scratch/7fe460de7b83/web-studio-lab
+> tsx --test tests/vertical-slice/selftest.test.ts
+
+ ELIFECYCLE  Command failed with exit code 1.

@@ -1,0 +1,7 @@
+run: /workspace/scratch/7fe460de7b83/web-studio-lab/records/vertical-slice/f051323e-5b2f-43f8-b8e1-47a9654a4654
+1..5
+not ok B01 - failed / target_missing / performed=false
+not ok B02 - failed / target_missing / performed=false
+not ok B03 - failed / target_missing / performed=false
+not ok B04 - failed / target_missing / performed=false
+not ok B05 - failed / target_missing / performed=false

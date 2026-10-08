@@ -1,0 +1,1128 @@
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/evidence/final/guest-network-diagnostic-v2.mjs
+   16:5   error  'process' is not defined  no-undef
+   17:3   error  'console' is not defined  no-undef
+   18:3   error  'process' is not defined  no-undef
+   20:16  error  'process' is not defined  no-undef
+  109:78  error  'Buffer' is not defined   no-undef
+  117:1   error  'console' is not defined  no-undef
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/evidence/final/guest-network-diagnostic.mjs
+   15:5   error  'process' is not defined  no-undef
+   16:3   error  'console' is not defined  no-undef
+   17:3   error  'process' is not defined  no-undef
+   19:16  error  'process' is not defined  no-undef
+  108:78  error  'Buffer' is not defined   no-undef
+  114:1   error  'console' is not defined  no-undef
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/evidence/scripts/phase3-focus-probe-before.ts
+   7:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:83  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  57:82  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/evidence/scripts/phase3-focus-probe-held.mjs
+  29:19   error  'window' is not defined      no-undef
+  31:105  error  'document' is not defined    no-undef
+  31:153  error  'document' is not defined    no-undef
+  31:269  error  'document' is not defined    no-undef
+  32:5    error  'window' is not defined      no-undef
+  33:5    error  'window' is not defined      no-undef
+  34:5    error  'document' is not defined    no-undef
+  35:5    error  'document' is not defined    no-undef
+  36:5    error  'window' is not defined      no-undef
+  38:164  error  'document' is not defined    no-undef
+  38:212  error  'document' is not defined    no-undef
+  38:287  error  'document' is not defined    no-undef
+  63:36   error  'setTimeout' is not defined  no-undef
+  66:76   error  'window' is not defined      no-undef
+  67:23   error  'URL' is not defined         no-undef
+  68:3    error  'console' is not defined     no-undef
+  68:76   error  'process' is not defined     no-undef
+  68:101  error  'process' is not defined     no-undef
+  71:23   error  'URL' is not defined         no-undef
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/evidence/scripts/phase3-focus-probe-held.ts
+   8:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  26:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  59:83  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  60:82  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/evidence/scripts/phase3-focus-probe.mjs
+  28:19   error  'window' is not defined      no-undef
+  30:105  error  'document' is not defined    no-undef
+  30:153  error  'document' is not defined    no-undef
+  30:269  error  'document' is not defined    no-undef
+  31:5    error  'window' is not defined      no-undef
+  32:5    error  'window' is not defined      no-undef
+  33:5    error  'document' is not defined    no-undef
+  34:5    error  'document' is not defined    no-undef
+  35:5    error  'window' is not defined      no-undef
+  37:164  error  'document' is not defined    no-undef
+  37:212  error  'document' is not defined    no-undef
+  37:287  error  'document' is not defined    no-undef
+  62:36   error  'setTimeout' is not defined  no-undef
+  65:76   error  'window' is not defined      no-undef
+  67:23   error  'URL' is not defined         no-undef
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/evidence/scripts/phase3-focus-probe.ts
+   7:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  58:83  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  59:82  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/evidence/scripts/phase4a-verifier-before-v2/cdp.ts
+  16:9  error  'timer' is never reassigned. Use 'const' instead  prefer-const
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe-final.mjs
+  40:184  error  'process' is not defined     no-undef
+  45:30   error  'window' is not defined      no-undef
+  45:55   error  'document' is not defined    no-undef
+  45:138  error  'window' is not defined      no-undef
+  52:43   error  'window' is not defined      no-undef
+  58:33   error  'window' is not defined      no-undef
+  59:29   error  'setTimeout' is not defined  no-undef
+  61:144  error  'window' is not defined      no-undef
+  61:200  error  'window' is not defined      no-undef
+  63:18   error  'process' is not defined     no-undef
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe-stop-events.mjs
+  39:184  error  'process' is not defined     no-undef
+  44:30   error  'window' is not defined      no-undef
+  44:55   error  'document' is not defined    no-undef
+  44:138  error  'window' is not defined      no-undef
+  51:43   error  'window' is not defined      no-undef
+  57:33   error  'window' is not defined      no-undef
+  58:29   error  'setTimeout' is not defined  no-undef
+  59:144  error  'window' is not defined      no-undef
+  59:200  error  'window' is not defined      no-undef
+  61:18   error  'process' is not defined     no-undef
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs
+  38:184  error  'process' is not defined     no-undef
+  43:30   error  'window' is not defined      no-undef
+  43:55   error  'document' is not defined    no-undef
+  43:138  error  'window' is not defined      no-undef
+  50:43   error  'window' is not defined      no-undef
+  56:33   error  'window' is not defined      no-undef
+  57:29   error  'setTimeout' is not defined  no-undef
+  58:144  error  'window' is not defined      no-undef
+  58:200  error  'window' is not defined      no-undef
+  60:18   error  'process' is not defined     no-undef
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline/apps/desktop/electron.vite.config.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline/eslint.config.js
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline/playwright.config.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline/vitest.config.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/electron.vite.config.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/chat-service.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/execution.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/index.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/ipc-guard.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/ipc-guard.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/menu.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/preview/controller-resource.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/preview/demo-path.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/preview/demo-protocol.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/preview/element-summary.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/preview/geometry.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/preview/navigation-policy.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/preview/preview-pure.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/preview/public-document.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/preview/public-document.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/preview/public-protocol.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/preview/public-protocol.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/preview/public-request.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/main/window.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/App.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/components/Badges.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/components/Icon.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/components/ResourceFeedback.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/demo/runScenarios.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/demo/sampleData.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/domain/cases.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/domain/space.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/env.d.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/lib/store.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/lib/time.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/lib/viewport.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/main.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/pages/ConversationsPage.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/pages/HomePage.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/pages/ResourcesPage.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/pages/SettingsPage.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/pages/SpacePage.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/pages/TasksPage.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/shell/Composer.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/shell/Overlays.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/shell/RightPanel.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/shell/TitleBar.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/shell/Workshop.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/shell/routes.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/chat.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/drafts.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/drafts.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/errors.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/execution.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/preview.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/resources.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/resources.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/runs.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/runs.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/shell.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/shell.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/ui.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/workbench.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/state/workbench.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/workbench/BrowserToolbar.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/workbench/CaptureSection.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/workbench/PreviewHost.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/workbench/RunSection.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/workbench/RunSummary.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/workbench/RunViews.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/workbench/TaskSection.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/desktop/src/renderer/src/workbench/WorkbenchPanel.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/codex-chat.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/fixtures/sbx.mjs
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/guest-browser-bridge.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/guest-browser-bridge.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/guest-browser.cjs
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/guest-browser.live.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/guest-browser.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/resource-agent.live.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/resource-mcp.live.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/resource-mcp.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/resource-store.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/resource-store.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/sbx-contract.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/sbx.live.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/apps/service/src/sbx.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/after/src/App.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/after/src/main.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/before/src/App.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/before/src/main.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/after/src/App.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/after/src/main.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/before/src/App.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/run/before/src/main.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/e2e/chat.spec.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/e2e/fixtures/codex.mjs
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/e2e/fixtures/sbx.mjs
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/e2e/helpers.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/e2e/public-document.spec.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/e2e/resources-live.spec.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/e2e/resources.spec.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/e2e/sbx.spec.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/e2e/workbench.spec.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/eslint.config.js
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/fixtures/vertical-slice/page/src/App.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/fixtures/vertical-slice/page/src/main.tsx
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/packages/protocol/src/app.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/packages/protocol/src/chat-slot.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/packages/protocol/src/execution.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/packages/protocol/src/guest-browser.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/packages/protocol/src/preview.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/packages/protocol/src/protocol.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/packages/protocol/src/resources.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/packages/protocol/src/resources.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/packages/protocol/src/run.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/packages/protocol/src/task.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/playwright.config.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/scripts/check-docs.mjs
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/tests/vertical-slice/cdp.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/tests/vertical-slice/contracts.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/tests/vertical-slice/evidence.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/tests/vertical-slice/postcondition.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/tests/vertical-slice/run.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/tests/vertical-slice/selftest.test.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback/vitest.config.ts
+  0:0  error  Parsing error: No tsconfigRootDir was set, and multiple candidate TSConfigRootDirs are present:
+ - /workspace/scratch/7fe460de7b83/web-studio-lab
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/07-bf64/config-baseline
+ - /workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/11-task-5/committed-fallback
+You'll need to explicitly set tsconfigRootDir in your parser options.
+See: https://tseslint.com/parser-tsconfigrootdir
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/docs/acceptance/integration-20261008/sources/vs001-verifier-synthetic-probe.mts
+  3:662  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/scratch/7fe460de7b83/web-studio-lab/tests/vertical-slice/cdp.ts
+  16:9  error  'timer' is never reassigned. Use 'const' instead  prefer-const
+
+✖ 217 problems (217 errors, 0 warnings)
+

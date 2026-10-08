@@ -1,0 +1,15 @@
+
+> web-studio-lab@ typecheck /workspace/scratch/7fe460de7b83/web-studio-lab
+> pnpm -r typecheck && tsc -p tsconfig.e2e.json && pnpm typecheck:baseline
+
+Scope: 3 of 4 workspace projects
+packages/protocol typecheck$ tsc -p tsconfig.json
+packages/protocol typecheck: Done
+apps/service typecheck$ tsc -p tsconfig.json
+apps/desktop typecheck$ tsc -p tsconfig.node.json && tsc -p tsconfig.web.json
+apps/service typecheck: Done
+apps/desktop typecheck: Done
+
+> web-studio-lab@ typecheck:baseline /workspace/scratch/7fe460de7b83/web-studio-lab
+> node node_modules/typescript-baseline/lib/tsc.js -p tsconfig.json --noEmit
+
