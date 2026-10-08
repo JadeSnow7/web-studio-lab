@@ -1,0 +1,97 @@
+{
+  "typecheck": {
+    "result": "passed",
+    "exit_code": 0,
+    "argv": [
+      "pnpm",
+      "typecheck"
+    ]
+  },
+  "lint": {
+    "result": "failed",
+    "exit_code": 1,
+    "argv": [
+      "pnpm",
+      "lint"
+    ]
+  },
+  "format": {
+    "result": "failed",
+    "exit_code": 1,
+    "argv": [
+      "pnpm",
+      "format:check"
+    ]
+  },
+  "unit": {
+    "result": "passed",
+    "exit_code": 0,
+    "argv": [
+      "pnpm",
+      "test"
+    ]
+  },
+  "docs": {
+    "result": "passed",
+    "exit_code": 0,
+    "argv": [
+      "node",
+      "scripts/check-docs.mjs"
+    ]
+  },
+  "vs001": {
+    "result": "failed",
+    "exit_code": 1,
+    "argv": [
+      "pnpm",
+      "baseline:selftest"
+    ]
+  },
+  "vs001-unsandboxed": {
+    "result": "passed",
+    "exit_code": 0,
+    "argv": [
+      "pnpm",
+      "baseline:selftest"
+    ]
+  },
+  "build": {
+    "result": "passed",
+    "exit_code": 0,
+    "argv": [
+      "pnpm",
+      "build"
+    ]
+  },
+  "electron": {
+    "result": "failed",
+    "exit_code": 1,
+    "argv": [
+      "pnpm",
+      "exec",
+      "playwright",
+      "test"
+    ]
+  },
+  "electron-unsandboxed": {
+    "result": "failed",
+    "exit_code": 1,
+    "argv": [
+      "pnpm",
+      "exec",
+      "playwright",
+      "test"
+    ]
+  },
+  "workbench-repeat": {
+    "result": "failed",
+    "exit_code": 1,
+    "argv": [
+      "pnpm",
+      "exec",
+      "playwright",
+      "test",
+      "e2e/workbench.spec.ts"
+    ]
+  }
+}

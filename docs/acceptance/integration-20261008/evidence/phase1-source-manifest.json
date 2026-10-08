@@ -1,0 +1,45 @@
+{
+  "head": "9e1df45d9ea42a9bf5df76a1babf451e5cafc530",
+  "files": {
+    "apps/desktop/src/main/preview/observation.test.ts": "eede537c4c3549d5366178755758fa9c0e0ec08b1b8d8e4d7a5c010e0b0d7c74",
+    "apps/desktop/src/main/preview/observation.ts": "5269ffd3899b75838d40df1ce2591cd2f37fdd723fd403653c3d26b2e9ca89ad",
+    "apps/service/package.json": "e2e28b62fc6cb00c0f2204f131f646bfa79a562ad714f159e5ca34b70d0c9e4d",
+    "apps/service/src/local-file-watch.test.ts": "d5edfcc0665c4dcdf510c84842e8109e23f54fce8f4a10456fc8262b01c06818",
+    "apps/service/src/local-file-watch.ts": "9644d89612005a3eca0493429ed3c40e2ff7780b3be319c031e29d719a107826",
+    "apps/service/src/observation-files.test.ts": "20ec35411c0f94b74efbc783e14a34349f1e88da363230963638860c431c40df",
+    "apps/service/src/observation-files.ts": "a1f60e5c33b548ac3f5f42292b91f9b93c4527c071edfb552794dc3eaebde1e8",
+    "apps/service/src/observation-ssh.test.ts": "c4aa8b9d95c57f785c095150a0a998ab9e33597fe11cf6486c6281d6edcfd170",
+    "apps/service/src/observation-ssh.ts": "874c5525d611480ec8ddc39f88cf76f5ed022bb9133eeb1cb5347a98ed052a4a",
+    "apps/service/src/observation-terminal.test.ts": "e64d5b5ca8eb7f6d3352494f760e99f52adca1045bdae14f107c67777058369a",
+    "apps/service/src/observation-terminal.ts": "b3f1c6ff954a79911c78ae42750d8dae013d649fb6af02f013ea793d90c3d185",
+    "apps/service/vite.config.ts": "63baa2845db3eb6ded822f917b649aa96f2006dc6ed7a82224a873c38fe42c40",
+    "packages/protocol/src/index.ts": "86658c1a5cb168dcae8d042cfcbf740e7d5bfa1f9c1168b72193222af6560352",
+    "packages/protocol/src/observation.test.ts": "d8946a8281a422d425ff6588b0a5e0aa9ca6d9ae81437cbc582c06cde2fd80ac",
+    "packages/protocol/src/observation.ts": "15879fbde2a17983bbb71c4c7df000dde6a10ec470ec5d7861b3b081fa4dc1b4",
+    "pnpm-lock.yaml": "ea999b3a5f504d56df752ac5795a46f43f4c3e4d61236c9116fc331d59b43136"
+  },
+  "source_digest": "f298c8f012a0c4fbf9a870c2f12fc7dd7b8a6c29427bd60928a5ade028fdd70f",
+  "deferred_tests": "baseline/deferred-local-terminal-tests.txt",
+  "validation": {
+    "phase1-typecheck-reviewed": {
+      "result": "passed",
+      "record_sha256": "d8f0a79ea838409664eca5203c594212ca6fa725a64e385470437ca954c4665d"
+    },
+    "phase1-unit-reviewed": {
+      "result": "passed",
+      "record_sha256": "23cda4cf5918218234bbcd177c0d22b3ed65e9b2bf718858a7002cbbac781e34"
+    },
+    "phase1-format-reviewed": {
+      "result": "passed",
+      "record_sha256": "f6d84f4016e262080ab081507f33cc58af994bc541da4c86ae20b056f8935929"
+    },
+    "phase1-lint-reviewed": {
+      "result": "passed",
+      "record_sha256": "a467d9d963b91eb1e5219dd2b4cc75d913d57e992e0259c7ea565381f5f3ba9e"
+    },
+    "phase1-build-reviewed": {
+      "result": "passed",
+      "record_sha256": "8564202065424e0660a76a6c395288a8436c40c582921b0c94f873a1592bacf0"
+    }
+  }
+}

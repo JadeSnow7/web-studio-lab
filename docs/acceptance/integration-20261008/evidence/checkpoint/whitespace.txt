@@ -1,0 +1,152 @@
+docs/acceptance/space-remake/evidence/stage2-final-protocol-typecheck.txt:6: new blank line at EOF.
+docs/acceptance/space-remake/evidence/stage2-final-resource-mcp.txt:11: new blank line at EOF.
+docs/acceptance/space-remake/evidence/stage2-final-service-typecheck.txt:6: new blank line at EOF.
+docs/acceptance/space-remake/evidence/stage2-final-unit.txt:14: new blank line at EOF.
+docs/acceptance/space-remake/evidence/stage2-protocol-typecheck.txt:6: new blank line at EOF.
+docs/acceptance/space-remake/evidence/stage2-resource-mcp.txt:7: trailing whitespace.
++test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) ... 
+docs/acceptance/space-remake/evidence/stage2-resource-mcp.txt:45: trailing whitespace.
++test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) ... 
+docs/acceptance/space-remake/evidence/stage2-service-typecheck.txt:6: new blank line at EOF.
+docs/acceptance/space-remake/evidence/stage2-unit.txt:14: new blank line at EOF.
+docs/acceptance/space-remake/evidence/theme-semantic-typecheck.txt:17: new blank line at EOF.
+docs/acceptance/space-remake/evidence/typecheck.txt:17: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-all-first-failures/chat-live：中文对话、上下文续聊、新会话隔离/error-context.md:34: trailing whitespace.
++  14  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/chat-live：中文对话、上下文续聊、新会话隔离/error-context.md:38: trailing whitespace.
++  18  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/chat-live：中文对话、上下文续聊、新会话隔离/error-context.md:41: trailing whitespace.
++  21  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/chat-live：中文对话、上下文续聊、新会话隔离/error-context.md:127: trailing whitespace.
++  106 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/chat-live：中文对话、上下文续聊、新会话隔离/error-context.md:131: trailing whitespace.
++  110 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/chat-live：中文对话、上下文续聊、新会话隔离/error-context.md:145: trailing whitespace.
++  124 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/chat-live：中文对话、上下文续聊、新会话隔离/error-context.md:152: trailing whitespace.
++  131 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/chat-live：中文对话、上下文续聊、新会话隔离/error-context.md:161: trailing whitespace.
++  140 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/chat-live：中文对话、上下文续聊、新会话隔离/error-context.md:172: trailing whitespace.
++  151 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/chat-live：中文对话、上下文续聊、新会话隔离/error-context.md:184: trailing whitespace.
++  163 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/chat-live：中文对话、上下文续聊、新会话隔离/error-context.md:193: trailing whitespace.
++  172 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md:34: trailing whitespace.
++  14  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md:38: trailing whitespace.
++  18  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md:41: trailing whitespace.
++  21  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md:127: trailing whitespace.
++  106 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md:131: trailing whitespace.
++  110 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md:145: trailing whitespace.
++  124 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md:152: trailing whitespace.
++  131 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md:161: trailing whitespace.
++  140 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md:172: trailing whitespace.
++  151 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md:184: trailing whitespace.
++  163 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/sbx-fixture：活动终端直接关闭应用需确认-Electron-进程退出/error-context.md:193: trailing whitespace.
++  172 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/space-remake-SR10：通知与窗格菜单共-bc73f-r交接editor、快速开关resize不复活原生网页/error-context.md:156: trailing whitespace.
++  20  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/space-remake-SR10：通知与窗格菜单共-bc73f-r交接editor、快速开关resize不复活原生网页/error-context.md:184: trailing whitespace.
++  48  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/space-remake-SR10：通知与窗格菜单共-bc73f-r交接editor、快速开关resize不复活原生网页/error-context.md:211: trailing whitespace.
++  75  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/space-remake-SR10：通知与窗格菜单共-bc73f-r交接editor、快速开关resize不复活原生网页/error-context.md:248: trailing whitespace.
++  111 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/space-remake-SR10：通知与窗格菜单共-bc73f-r交接editor、快速开关resize不复活原生网页/error-context.md:282: trailing whitespace.
++  145 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md:215: trailing whitespace.
++  22  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md:247: trailing whitespace.
++  54  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md:268: trailing whitespace.
++  75  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md:288: trailing whitespace.
++  95  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md:301: trailing whitespace.
++  107 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md:312: trailing whitespace.
++  118 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md:334: trailing whitespace.
++  140 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md:346: trailing whitespace.
++  152 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md:358: trailing whitespace.
++  164 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md:381: trailing whitespace.
++  187 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workbench-导航：页面跳转后旧现场失效，历史版本仍保留原目标/error-context.md:398: trailing whitespace.
++  204 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R3-双网页原生focus事件决定地址与刷新目标，布局更新保持焦点/error-context.md:39: trailing whitespace.
++  99  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R3-双网页原生focus事件决定地址与刷新目标，布局更新保持焦点/error-context.md:64: trailing whitespace.
++  124 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R3-双网页原生focus事件决定地址与刷新目标，布局更新保持焦点/error-context.md:85: trailing whitespace.
++  145 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R3-双网页原生focus事件决定地址与刷新目标，布局更新保持焦点/error-context.md:132: trailing whitespace.
++  191 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R3-双网页原生focus事件决定地址与刷新目标，布局更新保持焦点/error-context.md:137: trailing whitespace.
++  196 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R3-双网页原生focus事件决定地址与刷新目标，布局更新保持焦点/error-context.md:150: trailing whitespace.
++  209 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R4-单窗格窄窗从网页关联会话并采集/error-context.md:32: trailing whitespace.
++  46  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R4-单窗格窄窗从网页关联会话并采集/error-context.md:50: trailing whitespace.
++  64  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R4-单窗格窄窗从网页关联会话并采集/error-context.md:85: trailing whitespace.
++  99  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R4-单窗格窄窗从网页关联会话并采集/error-context.md:110: trailing whitespace.
++  124 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R4-单窗格窄窗从网页关联会话并采集/error-context.md:132: trailing whitespace.
++  145 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R4-单窗格窄窗从网页关联会话并采集/error-context.md:178: trailing whitespace.
++  191 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R4-单窗格窄窗从网页关联会话并采集/error-context.md:183: trailing whitespace.
++  196 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-migration-R4-单窗格窄窗从网页关联会话并采集/error-context.md:196: trailing whitespace.
++  209 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-upgrade-A02-A11-真实UI新建空间与会话，草稿隔离，搜索定位与无结果不切换/error-context.md:27: trailing whitespace.
++  4   | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-upgrade-A02-A11-真实UI新建空间与会话，草稿隔离，搜索定位与无结果不切换/error-context.md:49: trailing whitespace.
++  26  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-upgrade-A02-A11-真实UI新建空间与会话，草稿隔离，搜索定位与无结果不切换/error-context.md:73: trailing whitespace.
++  50  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-upgrade-A02-A11-真实UI新建空间与会话，草稿隔离，搜索定位与无结果不切换/error-context.md:97: trailing whitespace.
++  74  | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-upgrade-A02-A11-真实UI新建空间与会话，草稿隔离，搜索定位与无结果不切换/error-context.md:145: trailing whitespace.
++  121 | 
+docs/acceptance/space-remake/evidence/ui-all-first-failures/workspace-upgrade-A02-A11-真实UI新建空间与会话，草稿隔离，搜索定位与无结果不切换/error-context.md:166: trailing whitespace.
++  142 | 
+docs/acceptance/space-remake/evidence/ui-before-tests.txt:36: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-fifth-typecheck.txt:15: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-final-electron-all.txt:221: trailing whitespace.
++    
+docs/acceptance/space-remake/evidence/ui-final-typecheck.txt:15: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-final-unit.txt:16: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-lint-repair.txt:9: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-location-unit.txt:9: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-package-final-typecheck.txt:17: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-package-final-unit.txt:18: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-preview-final-unit.txt:9: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-review-final-typecheck.txt:17: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-review-final-unit.txt:18: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-scoped-lint.txt:25: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-second-unit.txt:16: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-stable-first-static/ui-stable-unit.txt:18: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-stable-unit.txt:18: new blank line at EOF.
+docs/acceptance/space-remake/evidence/ui-typecheck-repair.txt:15: new blank line at EOF.
+docs/acceptance/space-remake/evidence/unit.txt:15: new blank line at EOF.
+docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/app.js:1319: trailing whitespace.
++0000000000 65535 f 
+docs/design/2026-10-06-workbench-v0.3/baseline/artifact/artifact-type/app.js:1320: trailing whitespace.
++`+D.map(U=>F(U)+` 00000 n 

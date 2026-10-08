@@ -1,0 +1,165 @@
+{
+  "schema_version": "1.3",
+  "spec": {
+    "version": "INTEGRATION-1",
+    "authority": "docs/acceptance/integration-20261008/SPEC.md",
+    "source_ids": [
+      "SRC-001"
+    ],
+    "goal_ref": "discovery.expected_outcome",
+    "scope_ref": "discovery.scope",
+    "constraints": [
+      "Main state authority; other worktrees readonly; preserve VS001 and historical evidence"
+    ],
+    "exceptions": [
+      "Environment or manual input limitations remain undetermined"
+    ],
+    "conditions": [
+      {
+        "id": "INT-ALL",
+        "metric_ids": [
+          "MET-001"
+        ],
+        "deliverables": [
+          "docs/acceptance/integration-20261008/task-summary.md"
+        ]
+      }
+    ],
+    "contracts": [
+      "docs/acceptance/integration-20261008/SPEC.md"
+    ],
+    "open_items": []
+  },
+  "task": {
+    "id": "INTEGRATION-20261008",
+    "title": "本地提交与跨分支整合",
+    "mode": "new",
+    "status": "in_progress",
+    "source_ids": [
+      "SRC-001"
+    ]
+  },
+  "discovery": {
+    "status": "ready",
+    "expected_outcome": "Integrate existing observation and environment capabilities, preserve six-section shell, review and verify all code",
+    "scope": "Current bf64 product, related branches and dirty candidates, local commits only"
+  },
+  "sources": [
+    {
+      "id": "SRC-001",
+      "kind": "user_requirement",
+      "reference": "conversation:2026-10-08-approved-integration-plan",
+      "summary": "PLEASE IMPLEMENT THIS PLAN: 本地提交、全量审查与跨分支整合; includes existing local/SSH/file providers, real model and sandbox live; no push/merge/release",
+      "adoption": "accepted"
+    }
+  ],
+  "main_tasks": [
+    {
+      "id": "MT-001",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "goal": "Approved integration specification",
+      "scope": [
+        "INT-01 through INT-12"
+      ],
+      "non_goals": [
+        "mother template",
+        "independent verifier",
+        "business API expansion"
+      ],
+      "dependencies": [],
+      "assumptions": [],
+      "status": "in_progress",
+      "metric_ids": [
+        "MET-001"
+      ],
+      "implementation_task_ids": []
+    }
+  ],
+  "metrics": [
+    {
+      "id": "MET-001",
+      "main_task_id": "MT-001",
+      "kind": "mandatory_gate",
+      "name": "Approved specification verified against final source",
+      "baseline": "9e1df45 independent commands and source inventory",
+      "target": "INT-01 through INT-12 verified or explicit unavailable evidence recorded",
+      "method": "Review source diffs and raw command/window evidence per SPEC",
+      "environment_data": "bf64, macOS, existing sandbox, loopback SSH",
+      "evidence_ids": [],
+      "status": "undetermined",
+      "verification": "execution"
+    }
+  ],
+  "implementation_tasks": [],
+  "evidence": [],
+  "changes": [],
+  "overall_acceptance": {
+    "metric_ids": [
+      "MET-001"
+    ],
+    "evidence_ids": [],
+    "status": "undetermined"
+  },
+  "baseline": {
+    "git_ref": "9e1df45d9ea42a9bf5df76a1babf451e5cafc530",
+    "worktree_status": "clean",
+    "ownership": "root documentation and review; unique coder source/tests; sources explorer records",
+    "foreign_paths": [
+      "premium-audit.json"
+    ],
+    "prepared_at": "2026-10-08T07:44:06.458460+00:00"
+  },
+  "binding": {
+    "receipt_paths": []
+  },
+  "authorization": {
+    "commit": {
+      "status": "authorized",
+      "source_id": "SRC-001",
+      "scope": [
+        "local"
+      ]
+    },
+    "push": {
+      "status": "not_authorized",
+      "source_id": "SRC-001",
+      "scope": []
+    },
+    "merge": {
+      "status": "not_authorized",
+      "source_id": "SRC-001",
+      "scope": []
+    },
+    "deploy": {
+      "status": "not_authorized",
+      "source_id": "SRC-001",
+      "scope": []
+    },
+    "live": {
+      "status": "authorized",
+      "source_id": "SRC-001",
+      "scope": []
+    }
+  },
+  "delivery": {
+    "local_validation": "not_started",
+    "remote_ci": "not_started",
+    "remote_ci_revision": null
+  },
+  "actions": [
+    {
+      "id": "ACT-001",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "9e1df45d9ea42a9bf5df76a1babf451e5cafc530",
+      "status": "completed",
+      "receipt": "9e1df45d9ea42a9bf5df76a1babf451e5cafc530",
+      "idempotency_key": "checkpoint-9e1df45"
+    }
+  ],
+  "decisions": [],
+  "hypotheses": []
+}
