@@ -42,7 +42,11 @@
   "discovery": {
     "status": "ready",
     "expected_outcome": "Integrate existing observation and environment capabilities, preserve six-section shell, review and verify all code",
-    "scope": "Current bf64 product, related branches and dirty candidates, local commits only"
+    "scope": "Current bf64 product, related branches and dirty candidates, local commits only",
+    "user": "Web Studio 本地开发者",
+    "scenario": "将空间重制成果与跨工作树既有能力整合到同一产品",
+    "problem": "并行分支的能力、状态权威与历史证据尚未统一审查和接线",
+    "acceptable_result": "按 INTEGRATION-1 完成实现与全量验证；环境缺口明确记录，不伪造通过"
   },
   "sources": [
     {
@@ -74,7 +78,14 @@
       "metric_ids": [
         "MET-001"
       ],
-      "implementation_task_ids": []
+      "implementation_task_ids": [
+        "IT-001",
+        "IT-002",
+        "IT-003",
+        "IT-004",
+        "IT-005",
+        "IT-006"
+      ]
     }
   ],
   "metrics": [
@@ -92,7 +103,166 @@
       "verification": "execution"
     }
   ],
-  "implementation_tasks": [],
+  "implementation_tasks": [
+    {
+      "id": "IT-001",
+      "main_task_id": "MT-001",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "scope": "协议与观察 Provider",
+      "file_scope": [
+        "packages/protocol",
+        "apps/service/src/observation-files.ts",
+        "apps/service/src/observation-terminal.ts",
+        "apps/service/src/observation-ssh.ts",
+        "apps/desktop/src/main/preview/observation.ts"
+      ],
+      "interface_constraints": [
+        "Main 唯一事实源；六页布局；历史证据和其他树只读"
+      ],
+      "dependencies": [],
+      "acceptance": [
+        "MET-001"
+      ],
+      "support_reason": "",
+      "evidence_ids": [],
+      "owner": "coder",
+      "status": "implemented"
+    },
+    {
+      "id": "IT-002",
+      "main_task_id": "MT-001",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "scope": "本地与 SSH 服务资源和进程生命周期",
+      "file_scope": [
+        "apps/service",
+        "apps/desktop/src/main/chat-service.ts",
+        "packages/protocol"
+      ],
+      "interface_constraints": [
+        "Main 唯一事实源；六页布局；历史证据和其他树只读"
+      ],
+      "dependencies": [
+        "IT-001"
+      ],
+      "acceptance": [
+        "MET-001"
+      ],
+      "support_reason": "",
+      "evidence_ids": [],
+      "owner": "coder",
+      "status": "implemented"
+    },
+    {
+      "id": "IT-003",
+      "main_task_id": "MT-001",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "scope": "Main、持久化、IPC 与冻结的 MCP 观察通道",
+      "file_scope": [
+        "apps/desktop/src/main",
+        "apps/desktop/src/preload",
+        "apps/service",
+        "packages/protocol"
+      ],
+      "interface_constraints": [
+        "Main 唯一事实源；六页布局；历史证据和其他树只读"
+      ],
+      "dependencies": [
+        "IT-002"
+      ],
+      "acceptance": [
+        "MET-001"
+      ],
+      "support_reason": "",
+      "evidence_ids": [],
+      "owner": "coder",
+      "status": "implemented"
+    },
+    {
+      "id": "IT-004",
+      "main_task_id": "MT-001",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "scope": "空间界面和既有回归问题修复",
+      "file_scope": [
+        "apps/desktop/src/renderer",
+        "e2e",
+        "premium-ui.json"
+      ],
+      "interface_constraints": [
+        "Main 唯一事实源；六页布局；历史证据和其他树只读"
+      ],
+      "dependencies": [
+        "IT-003"
+      ],
+      "acceptance": [
+        "MET-001"
+      ],
+      "support_reason": "",
+      "evidence_ids": [],
+      "owner": "coder",
+      "status": "in_progress"
+    },
+    {
+      "id": "IT-005",
+      "main_task_id": "MT-001",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "scope": "验证工具、live 隔离及文档导出适配",
+      "file_scope": [
+        "tests/vertical-slice",
+        "apps/service",
+        "e2e",
+        "docs/submission/export_pdf.py"
+      ],
+      "interface_constraints": [
+        "Main 唯一事实源；六页布局；历史证据和其他树只读"
+      ],
+      "dependencies": [
+        "IT-004"
+      ],
+      "acceptance": [
+        "MET-001"
+      ],
+      "support_reason": "",
+      "evidence_ids": [],
+      "owner": "coder",
+      "status": "planned"
+    },
+    {
+      "id": "IT-006",
+      "main_task_id": "MT-001",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "scope": "来源审查、当前文档、最终验证与交付",
+      "file_scope": [
+        "docs",
+        "README.md",
+        "CONTRIBUTING.md",
+        "DESIGN.md",
+        "UX-CONTRACT.md"
+      ],
+      "interface_constraints": [
+        "Main 唯一事实源；六页布局；历史证据和其他树只读"
+      ],
+      "dependencies": [],
+      "acceptance": [
+        "MET-001"
+      ],
+      "support_reason": "",
+      "evidence_ids": [],
+      "owner": "root",
+      "status": "in_progress"
+    }
+  ],
   "evidence": [],
   "changes": [],
   "overall_acceptance": {
@@ -158,8 +328,62 @@
       "status": "completed",
       "receipt": "9e1df45d9ea42a9bf5df76a1babf451e5cafc530",
       "idempotency_key": "checkpoint-9e1df45"
+    },
+    {
+      "id": "ACT-002",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "331c47f751ff4600a61fab0dc4699459499fe75e",
+      "status": "completed",
+      "receipt": "331c47f751ff4600a61fab0dc4699459499fe75e",
+      "idempotency_key": "checkpoint-331c47f"
+    },
+    {
+      "id": "ACT-003",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "fc71b55b82227ed93b1994e7ff8a14ababe837da",
+      "status": "completed",
+      "receipt": "fc71b55b82227ed93b1994e7ff8a14ababe837da",
+      "idempotency_key": "checkpoint-fc71b55"
+    },
+    {
+      "id": "ACT-004",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "c97b673e789f87edf9c81a9ee79fdcd42f27125e",
+      "status": "completed",
+      "receipt": "c97b673e789f87edf9c81a9ee79fdcd42f27125e",
+      "idempotency_key": "checkpoint-c97b673"
+    },
+    {
+      "id": "ACT-005",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "d9beb8ac0164e6a56d0b5f1e451e42d716fa77fd",
+      "status": "completed",
+      "receipt": "d9beb8ac0164e6a56d0b5f1e451e42d716fa77fd",
+      "idempotency_key": "checkpoint-d9beb8a"
     }
   ],
-  "decisions": [],
-  "hypotheses": []
+  "decisions": [
+    {
+      "id": "DEC-001",
+      "summary": "阶段通过不等于最终源码验收；各阶段原文由 review.md 和 manifest 索引，最终全量结果待绑定。"
+    }
+  ],
+  "hypotheses": [],
+  "recovery_strategy": {
+    "trigger": "阶段复验失败或整合造成可复现回归",
+    "steps": [
+      "保存失败原文和当前源码指纹",
+      "在当前工作树追加修复并复跑同一场景及受影响回归",
+      "不改写已提交基准、封存证据或其他工作树"
+    ],
+    "owner": "root review; unique coder implementation"
+  }
 }

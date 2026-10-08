@@ -1,3 +1,5 @@
+import type { EnvironmentDescription } from '@wsl/protocol';
+import { useImeForm } from '../lib/ime';
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../lib/store';
@@ -19,9 +21,19 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
   const focus = useStore(shellStore, (s) => s.focusMode);
   const width = useViewportWidth();
   const workspace = state.snapshot?.workspaces.find((w) => w.workspaceId === state.selectedId);
+  const ime = useImeForm();
   const dialog = useRef<HTMLDialogElement>(null);
   const [pending, setPending] = useState(false);
   const submitting = useRef(false);
+  const { environments, environmentId, environmentError, loadingEnvironments } = ui;
+  const setEnvironmentId = (environmentId: string) => spaceUiStore.set((s) => ({ ...s, environmentId }));
+  const requiresEnvironment = ['file', 'terminal', 'ssh'].includes(ui.kind);
+  const supports = (environment: EnvironmentDescription) =>
+    environment.state === 'configured' &&
+    environment.capabilities[ui.kind === 'file' ? 'files' : 'terminal'] &&
+    (ui.kind !== 'ssh' || environment.environmentId === 'ssh');
+  const selectedEnvironment = environments.find((environment) => environment.environmentId === environmentId);
+  const canCreate = !requiresEnvironment || (!!selectedEnvironment && !loadingEnvironments && supports(selectedEnvironment));
   useEffect(() => {
     if (ui.editor) dialog.current?.showModal();
     else dialog.current?.close();
@@ -38,7 +50,7 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
     return () => window.removeEventListener('keydown', escape);
   }, [ui.tabMenu]);
   const submit = async () => {
-    if (!workspace || !ui.editor || !ui.name.trim() || submitting.current) return;
+    if (!workspace || !ui.editor || !ui.name.trim() || submitting.current || ime.composing.current) return;
     submitting.current = true;
     setPending(true);
     try {
@@ -49,8 +61,15 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
         result = await workspaceCommand(workspaceId, { type: 'createWorkspace', name: ui.name.trim() });
         if (result?.ok) await switchWorkspace(workspaceId);
       } else if (editor.kind === 'rename-workspace') result = await command({ type: 'renameWorkspace', name: ui.name.trim() });
-      else if (editor.kind === 'tab') result = await command({ type: 'createTab', kind: ui.kind, title: ui.name.trim() });
-      else if (editor.kind === 'rename-tab' && editor.tabId)
+      else if (editor.kind === 'tab') {
+        if (!canCreate) return;
+        result = await command({
+          type: 'createTab',
+          kind: ui.kind,
+          title: ui.name.trim(),
+          ...(requiresEnvironment ? { environmentId: environmentId as EnvironmentDescription['environmentId'] } : {}),
+        });
+      } else if (editor.kind === 'rename-tab' && editor.tabId)
         result = await command({ type: 'updateTab', tabId: editor.tabId, title: ui.name.trim() });
       else if (editor.tabId) result = await command({ type: 'updateTab', tabId: editor.tabId, group: ui.name.trim() });
       if (result?.ok) {
@@ -120,6 +139,8 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
             }}
           >
             <form
+              noValidate
+              {...ime.handlers}
               onSubmit={(event) => {
                 event.preventDefault();
                 void submit();
@@ -142,7 +163,10 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
                   <select
                     aria-label="标签类型"
                     value={ui.kind}
-                    onChange={(event) => spaceUiStore.set((s) => ({ ...s, kind: event.target.value as typeof ui.kind }))}
+                    onChange={(event) => {
+                      setEnvironmentId('');
+                      spaceUiStore.set((s) => ({ ...s, kind: event.target.value as typeof ui.kind }));
+                    }}
                   >
                     {['web', 'terminal', 'session', 'file', 'ssh'].map((kind) => (
                       <option key={kind} value={kind}>
@@ -156,11 +180,51 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
                   </select>
                 </label>
               ) : null}
+              {ui.editor?.kind === 'tab' && requiresEnvironment ? (
+                <>
+                  <label className="field">
+                    资源环境
+                    <select
+                      aria-label="资源环境"
+                      value={environmentId}
+                      disabled={loadingEnvironments || pending}
+                      onChange={(event) => setEnvironmentId(event.target.value)}
+                    >
+                      <option value="">明确选择已配置环境</option>
+                      {environments.map((environment) => (
+                        <option key={environment.environmentId} value={environment.environmentId} disabled={!supports(environment)}>
+                          {environment.label}
+                          {!supports(environment) ? ` · ${environment.reason ?? '不支持此资源类型'}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {loadingEnvironments ? <p role="status">正在核对环境能力…</p> : null}
+                  {environmentError ? <p role="alert">环境加载失败：{environmentError}。可重新加载环境，保留已填内容。</p> : null}
+                  {environmentError ? (
+                    <button type="button" className="btn" disabled={loadingEnvironments} onClick={spaceActions.reloadEnvironments}>
+                      重新加载环境
+                    </button>
+                  ) : null}
+                  {environments
+                    .filter((environment) => !supports(environment))
+                    .map((environment) => (
+                      <p className="muted small" key={environment.environmentId}>
+                        {environment.label} · {environment.reason ?? '不支持此资源类型'}
+                      </p>
+                    ))}
+                  <p className="muted small">仅使用已有可信配置；选择不会授予 home 或复制认证。</p>
+                </>
+              ) : null}
               <div className="row gap-8">
                 <button type="button" className="btn" disabled={pending} onClick={spaceActions.closeEditor}>
                   取消
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={pending || !ui.name.trim()}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={pending || !ui.name.trim() || (ui.editor?.kind === 'tab' && !canCreate)}
+                >
                   {pending ? '保存中…' : '保存'}
                 </button>
               </div>

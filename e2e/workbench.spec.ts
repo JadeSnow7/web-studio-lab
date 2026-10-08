@@ -145,14 +145,14 @@ test('运行、检查、审阅分别记录；没有独立检查器不会显示�
 });
 
 test('导航与草稿：个人作用域不沿用空间输入，回空间恢复草稿', async () => {
-  await session().getByRole('textbox').last().fill('空间未发送草稿');
+  await session().getByRole('textbox', { name: '会话消息', exact: true }).fill('空间未发送草稿');
   await workshopNavigate(page, '首页');
   const personal = page.getByRole('region', { name: '混合输入' }).getByRole('textbox');
   await expect(personal).toHaveValue('');
   await personal.fill('个人未发送草稿');
   expect((await previewInfo(app)).visible).toBe(false);
   await workshopNavigate(page, '空间');
-  await expect(session().getByRole('textbox').last()).toHaveValue('空间未发送草稿');
+  await expect(session().getByRole('textbox', { name: '会话消息', exact: true })).toHaveValue('空间未发送草稿');
   await expect.poll(async () => (await previewInfo(app)).visible).toBe(true);
 });
 
@@ -203,10 +203,14 @@ test('窄窗口：活动窗格保留原生bounds，扩大恢复多窗格', async
   await setWindowSize(app, 900, 700);
   await expect(page.locator('[data-pane-id]:visible')).toHaveCount(1);
   await expect.poll(async () => (await previewInfo(app)).visible).toBe(true);
-  const info = await previewInfo(app),
-    host = await page.locator('.preview-host:visible').boundingBox();
-  expect(info.bounds.width).toBeGreaterThan(600);
-  expect(Math.abs(info.bounds.width - host!.width)).toBeLessThanOrEqual(1);
+  await expect
+    .poll(async () => {
+      const info = await previewInfo(app),
+        host = await page.locator('.preview-host:visible').boundingBox();
+      return host ? Math.max(...(['x', 'y', 'width', 'height'] as const).map((key) => Math.abs(info.bounds[key] - host[key]))) : Infinity;
+    })
+    .toBeLessThanOrEqual(1);
+  expect((await previewInfo(app)).bounds.width).toBeGreaterThan(600);
   await setWindowSize(app, 1440, 900);
   await expect(page.locator('[data-pane-id]:visible')).toHaveCount(2);
   expect((await workspaceSnapshot(page)).workspaces[0]!.layout).toEqual(original);

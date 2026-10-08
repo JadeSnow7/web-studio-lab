@@ -11,8 +11,8 @@ test.afterEach(async () => {
 const tabs = () => page.getByRole('navigation', { name: '空间标签', exact: true });
 const notifications = () => page.getByRole('button', { name: /^通知 · \d+ 条未读$/ });
 const nativeVisible = () => previewInfo(app).then((p) => p.visible);
-async function launch() {
-  ({ app, page } = await launchApp());
+async function launch(sbxBin?: string) {
+  ({ app, page } = await launchApp({ sbxBin }));
   await setWindowSize(app, 1440, 900);
   await expect(tabs()).toBeVisible();
   await expect.poll(nativeVisible).toBe(true);
@@ -145,7 +145,7 @@ test('SR05/11：独立固定偏好、窄窗投影不改分割树、重启只恢�
 });
 
 test('SR01/09：首页新建对话框取消回原入口，主题同步实际终端与系统', async () => {
-  await launch();
+  await launch(new URL('./fixtures/sbx.mjs', import.meta.url).pathname);
   await page.getByRole('button', { name: '切换空间', exact: true }).click();
   await page.getByRole('button', { name: '管理空间', exact: true }).click();
   await page.getByRole('button', { name: '取消', exact: true }).click();
@@ -164,6 +164,7 @@ test('SR01/09：首页新建对话框取消回原入口，主题同步实际终�
   await page.getByRole('button', { name: '新建标签', exact: true }).click();
   await page.getByLabel('名称', { exact: true }).fill('主题终端742');
   await page.getByLabel('标签类型').selectOption('terminal');
+  await page.getByLabel('资源环境').selectOption('sandbox');
   await page.getByRole('button', { name: '保存', exact: true }).click();
   await tabs().getByRole('button', { name: '主题终端742', exact: true }).click();
   await workshopNavigate(page, '设置');

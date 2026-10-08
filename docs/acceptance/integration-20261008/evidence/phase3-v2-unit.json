@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "pnpm",
+    "test"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T10:57:31.060788Z",
+  "ended_at": "2026-10-08T10:57:35.777724Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n> web-studio-lab@ test /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n> vitest run\n\n\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n\n Test Files  60 passed | 4 skipped (64)\n      Tests  406 passed | 8 skipped (414)\n   Start at  18:57:31\n   Duration  4.15s (tests 78%, import 12%, transform 9%, worker 1%)\n\n    Isolate  64 workers spawned · ~91ms startup each (spawn + environment, per file)\n             at least ~558ms faster with isolate: false — reuses workers across files instead of one per file\n\n",
+  "stderr": "",
+  "stdout_base64": "Cj4gd2ViLXN0dWRpby1sYWJAIHRlc3QgL1VzZXJzL2h1YW9kb25nLy5jb2RleC93b3JrdHJlZXMvYmY2NC93ZWItc3R1ZGlvLWxhYgo+IHZpdGVzdCBydW4KCgogUlVOICB2NS4wLjMgL1VzZXJzL2h1YW9kb25nLy5jb2RleC93b3JrdHJlZXMvYmY2NC93ZWItc3R1ZGlvLWxhYgoKCiBUZXN0IEZpbGVzICA2MCBwYXNzZWQgfCA0IHNraXBwZWQgKDY0KQogICAgICBUZXN0cyAgNDA2IHBhc3NlZCB8IDggc2tpcHBlZCAoNDE0KQogICBTdGFydCBhdCAgMTg6NTc6MzEKICAgRHVyYXRpb24gIDQuMTVzICh0ZXN0cyA3OCUsIGltcG9ydCAxMiUsIHRyYW5zZm9ybSA5JSwgd29ya2VyIDElKQoKICAgIElzb2xhdGUgIDY0IHdvcmtlcnMgc3Bhd25lZCDCtyB+OTFtcyBzdGFydHVwIGVhY2ggKHNwYXduICsgZW52aXJvbm1lbnQsIHBlciBmaWxlKQogICAgICAgICAgICAgYXQgbGVhc3QgfjU1OG1zIGZhc3RlciB3aXRoIGlzb2xhdGU6IGZhbHNlIOKAlCByZXVzZXMgd29ya2VycyBhY3Jvc3MgZmlsZXMgaW5zdGVhZCBvZiBvbmUgcGVyIGZpbGUKCg==",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a27b420e61100871954095fe27de6cbeb6e4548fa4da5cfb8333b6016d63175d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a27b420e61100871954095fe27de6cbeb6e4548fa4da5cfb8333b6016d63175d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a27b420e61100871954095fe27de6cbeb6e4548fa4da5cfb8333b6016d63175d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

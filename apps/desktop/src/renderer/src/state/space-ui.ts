@@ -1,4 +1,4 @@
-import type { WorkbenchTab } from '@wsl/protocol';
+import type { WorkbenchTab, EnvironmentDescription } from '@wsl/protocol';
 import { createStore } from '../lib/store';
 import { occlusion } from './occlusion';
 export type Editor = { kind: 'workspace' | 'rename-workspace' | 'tab' | 'rename-tab' | 'group'; tabId?: string };
@@ -8,7 +8,21 @@ export const spaceUiStore = createStore<{
   name: string;
   kind: WorkbenchTab['targetRef']['kind'];
   tabMenu: string | null;
-}>({ switcher: false, editor: null, name: '', kind: 'web', tabMenu: null });
+  environments: EnvironmentDescription[];
+  environmentId: string;
+  environmentError: string | null;
+  loadingEnvironments: boolean;
+}>({
+  switcher: false,
+  editor: null,
+  name: '',
+  kind: 'web',
+  tabMenu: null,
+  environments: [],
+  environmentId: '',
+  environmentError: null,
+  loadingEnvironments: false,
+});
 const previous = new Map<string, HTMLElement | null>();
 async function acquire(source: string) {
   previous.set(
@@ -33,7 +47,23 @@ function release(source: string) {
   });
 }
 
+async function loadEnvironments(editor: Editor) {
+  spaceUiStore.set((s) => (s.editor === editor ? { ...s, loadingEnvironments: true, environmentError: null } : s));
+  try {
+    const environments = await window.studio.workbench.environments();
+    spaceUiStore.set((s) => (s.editor === editor ? { ...s, environments, loadingEnvironments: false } : s));
+  } catch (error) {
+    spaceUiStore.set((s) =>
+      s.editor === editor ? { ...s, environments: [], environmentError: (error as Error).message, loadingEnvironments: false } : s,
+    );
+  }
+}
+
 export const spaceActions = {
+  reloadEnvironments() {
+    const state = spaceUiStore.get();
+    if (state.editor?.kind === 'tab' && !state.loadingEnvironments) void loadEnvironments(state.editor);
+  },
   async openSwitcher() {
     if (await acquire('switcher')) spaceUiStore.set((s) => ({ ...s, switcher: true }));
   },
@@ -43,7 +73,17 @@ export const spaceActions = {
   },
   async openEditor(editor: Editor, name = '') {
     if (!(await acquire('editor'))) return;
-    spaceUiStore.set((s) => ({ ...s, editor, name, switcher: false, tabMenu: null }));
+    spaceUiStore.set((s) => ({
+      ...s,
+      editor,
+      name,
+      switcher: false,
+      tabMenu: null,
+      environmentId: '',
+      environmentError: null,
+      loadingEnvironments: editor.kind === 'tab',
+    }));
+    if (editor.kind === 'tab') void loadEnvironments(editor);
     occlusion.close('switcher');
     occlusion.close('tab-menu');
     previous.delete('switcher');

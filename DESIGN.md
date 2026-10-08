@@ -22,7 +22,7 @@ omitted:
 
 # Web Studio Lab 设计上下文
 
-用户已经确定 UI/UX。本轮按 [SR-1](docs/acceptance/space-remake/SPEC.md) 恢复升级前的全局布局，空间内部保留升级视觉与切换逻辑。原设计与 v0.3 原型仍保留在 `docs/design/2026-10-06-workbench-v0.3/`，不重新定义其历史交付；实际实现和验证进展见[本轮记录](docs/acceptance/space-remake/task-summary.md)。
+用户已经确定 UI/UX。本轮按 [SR-1](docs/acceptance/space-remake/SPEC.md) 恢复升级前的全局布局，空间内部保留升级视觉与切换逻辑。原设计与 v0.3 原型仍保留在 `docs/design/2026-10-06-workbench-v0.3/`，不重新定义其历史交付；重制历史见[SR-1记录](docs/acceptance/space-remake/task-summary.md)；后续资源与观察整合见[INTEGRATION-1](docs/acceptance/integration-20261008/SPEC.md)，继续使用同一视觉与六板块结构。
 
 ## Overview
 
@@ -53,3 +53,7 @@ UI 使用系统中文字体；命令、路径、shell 输出使用 `--mono`。�
 ## Components
 
 复用 `.btn`、`.row`、`.muted`、共享 Icon 和 app-owned dialog。左右容器使用相同的固定/浮层状态规则。终端开关、忙态、关闭后的远端清理确认和错误见 `UX-CONTRACT.md`；chat 工具详情用原生 details 按需展开。全局滚动条由 app.css 控制，保留 forced-colors 系统选择。
+
+## Do's and Don'ts
+
+文件标签和会话观察区使用现有内容面、系统字体、语义token和行内状态；来源、范围、失败与更新提示服务于用户判断。环境选择使用既有原生select习惯，凭据与宿主内部调用不进入常规产品流程。不要为观察功能重建外壳、右侧会话或独立配色系统。

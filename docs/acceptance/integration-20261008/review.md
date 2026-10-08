@@ -90,3 +90,41 @@ F14–F21 的对应回归在最终全量单元 393 passed / 8 既有 live skippe
 | F23 | guest helper 在拆换行之前限制累计控制 buffer 为 1 MiB，多条合法大帧合并读取时可能误拒 | 源码分析待验证；列入 Phase4 每帧预算及完整 guest 通路回归，尚未修复或宣称通过                                                                                                                                        |
 
 此工作包未执行 renderer 产品、Electron、packaged 或真实模型验收；整体仍为 undetermined。
+
+## Phase3 中途界面复审
+
+初始 `phase3-presentation-before.json` 为 4 failed：自拖移位、历史版本对话以及两个终端增量断言。前两项直接证明原展示问题；后两个用例误把 outputOffset 当输出终点，不能作为真实 Provider 契约证据。独立复审核对 local/sandbox/SSH 的 outputOffset 实为已裁掉前缀长度，即保留窗口起点。
+
+按真实语义新增 `phase3-provider-offset-before.json`，原文为 1 failed / 4 passed，证明 offset=0 且输出从 abc 增至 abcd 时新字符 d 被漏写。修复须按 previousEnd=previous.offset+previous.output.length、nextStart=next.offset 算区间；最终还需实际本地 PTY→xterm 可见输出复验。原始错误假设的记录保留，不改写为有效 Provider 证明。
+
+Files/Observation/新建环境表单预审要求：IME确认不提交；截图和文件图片显示实际只读预览而非base64正文；目录与搜索结果使用请求冻结的路径；缺配置按 capability 禁用，不用默认环境掩盖失败。当前仍在实施，尚未作为界面通过。
+
+当前文档独立阅读发现的三项实际误导已修正：旧机器OAuth/smoke只代表历史；sbx只为sandbox能力所需；Provider级SSH回环不等于产品链路或外部主机验收。另一个审稿意见把尚待Phase4的VS001修复当作已实现，经工作树与源码核对后纠正，E06现在明确F08尚待修复。导出工具迁入前标为待接入。最终文档验收仍须对应完成源码。
+
+| ID  | 观察准备阶段竞态                                                                                                                                                                                                              | 处置                                                                                                                                                           |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F24 | observe 先等待环境查询，后登记 record/controller；此间 UI 已可取消，但 Main 尚无记录而拒绝取消。`phase3-preflight-cancel-before.json` 按用例名过滤，1 failed / 13 未选择，直接断言 cancelled.ok=false；未选择不是新增测试skip | 沿现有 Main 记录先冻结完整身份并保存，再在队列外刷新环境能力。取消不能启动Provider；环境失败须终结同一记录并释放活动slot，列表不能混入后创建资源。修复与复验中 |
+
+## Phase3 首次正式回归
+
+本阶段首轮类型、构建、改动文件 lint/format、严格 UI 静态审计通过，全量 unit 为 403 passed / 8 既有 live skipped；回执执行期间指纹稳定。这些是首次冻结版本的阶段结果，不能代替修复后的最终验证。
+
+`phase3-final-electron.json` 原文为 41 passed / 6 failed / 2 live skipped，另有一个 worker teardown timeout。新增八个文件/观察窗口场景通过，包括只读 PNG 实际解码、续读与可点击搜索、失败表单重试、原会话归属、真实本地 PTY 增量和裁剪窗口、程序 composition 保护。程序拖放与 composition 事件不构成真实原生拖拽或中文候选窗验收。
+
+| ID  | 发现                                                                                                                                                   | 处置                                                                                                    |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| F25 | 首次启动查询到 sandbox 正在检查的环境快照后，状态变为可用却未更新 Main 环境投影；Terminal 持续禁用。失败窗口顶部显示对话已连接，面板仍显示正在检查 sbx | 修复 Main 状态变化到环境快照的更新/广播链路；不让 renderer 引入独立能力判断，不在测试中手动刷新绕过故障 |
+
+其余失败须分别解释：未启动资源的 terminal 为 null，负例调用要求快照存在的 helper 是测试假设错误；一次保存对话框点击时 Electron 提前关闭并伴随 worker 清理超时，原因仍待同场景复验。主线程另发现 sbx live 首页输入框误用了空间会话的 aria-label，要求恢复准确定位；该 live 用例尚未执行，不能称为已复现的模型失败。所有失败原文保留，下一轮重新冻结后独立运行验证。
+
+## Phase3 最终源码审查与环境缺口
+
+26 个源文件由主线程逐项复读并核对 [v3 manifest](evidence/phase3-final-source-manifest-v3.json) 的全部 SHA256；9 份 v2 回执和 52 份证据附录指纹均一致。文件标签与会话上下文观察接入 Main，原生 select 明确环境，图片以只读 raster 显示，续读/搜索/失败重试可见。F06 自拖、F07 历史版本/运行/对话、F11 终端绝对输出区间、F24 观察预处理取消与归属已完成相应回归。
+
+F25 已修复：Main 在执行器状态改变时刷新权威环境、增加 seq 并广播；旧查询的成功或失败均不能覆盖新结果。首次启动不可用时终端保持 null，UI 明确禁用；新鲜 profile 下首次连接及关闭场景复验通过。最终全量单元 406 passed / 8 既有 live skipped；类型、构建、改动 lint/format、diff 和严格 UI 静态审计通过。v2 产品源码在 v3 清单中保持相同字节。
+
+Electron 相关子集为 46 passed / 1 failed / 2 live skipped，不是全部 Electron 测试。剩余 R3 原生 WebContents 焦点失败在独立复跑中重现。只读探针显示窗口始终 visible=true/minimized=false、Window.isFocused=false、无 focused WebContents；Main 已正确切换 activePane，未见浮层晚恢复或 F25 导致的 blur。应用 focus/show 对照也未获得系统焦点。
+
+F26 的环境前置由主线程 CUA 直接确认：Mac 已锁定且自动解锁失败，见 [原生工具记录](evidence/phase3-native-lock.json)。因此原生焦点、实际拖拽和中文候选窗验收为 blocked_environment / undetermined；原焦点实现和测试断言保持不变。用户已收到手动解锁请求，解锁后重跑。仅本轮探针 PID 50142 在精确可执行文件/profile 核对后关闭并确认退出；诊断收尾 dispatcher 报错保留，不冒充产品正常关闭证据。
+
+本阶段形成可继续整合的本地工作包，仍需 Phase4 工具修复、真实 SSH 产品链路、全部 Electron、packaged、live 和解锁后的原生验收。阶段回执指纹冻结的是当时源码与文档；本节后写的审查说明不能宣称已被这些回执重新验证。

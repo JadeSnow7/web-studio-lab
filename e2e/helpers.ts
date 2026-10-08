@@ -20,11 +20,21 @@ export const screensDir = path.join(root, 'test-results/screens', process.env['W
 export const target = process.env['WSL_E2E_TARGET'] === 'packaged' ? 'packaged' : 'build';
 
 export async function launchApp(
-  options: { codexBin?: string; sbxBin?: string; sandbox?: string; live?: boolean; userData?: string; startupError?: string } = {},
+  options: {
+    observationRoot?: string;
+    controlledObservation?: boolean;
+    codexBin?: string;
+    sbxBin?: string;
+    sandbox?: string;
+    live?: boolean;
+    userData?: string;
+    startupError?: string;
+  } = {},
 ): Promise<{ app: ElectronApplication; page: Page; rendererErrors: string[] }> {
   // 默认回归不得消耗模型；真实模型仅在显式 live 模式使用已选 sbx。
   const env = {
     ...process.env,
+    ...(options.observationRoot === undefined ? {} : { WSL_OBSERVATION_ROOT: options.observationRoot }),
     WSL_SBX_NAME: options.live ? (process.env['WSL_SBX_NAME'] ?? 'wsl-sbx-smoke-20261006') : (options.sandbox ?? 'fixture-sandbox'),
     WSL_SBX_BIN: options.live
       ? (process.env['WSL_SBX_BIN'] ?? '/opt/homebrew/bin/sbx')
@@ -41,6 +51,30 @@ export async function launchApp(
 const { app } = require('electron');
 app.setAppPath(${JSON.stringify(desktopDir)});
 globalThis.__wslRendererErrors = [];
+${
+  options.controlledObservation
+    ? `
+const { utilityProcess } = require('electron');
+const originalFork = utilityProcess.fork.bind(utilityProcess);
+globalThis.__wslObservationGate = { armed: false, deliveries: [], reads: 0 };
+utilityProcess.fork = (...args) => {
+  const child = originalFork(...args);
+  const originalPost = child.postMessage.bind(child);
+  child.postMessage = (message) => {
+    const gate = globalThis.__wslObservationGate;
+    if (message.method === 'observation.read') gate.reads++;
+    if (gate.armed && message.method === 'environments.list') {
+      gate.deliveries.push(() => originalPost(message));
+      return;
+    }
+    return originalPost(message);
+  };
+  return child;
+};
+`
+    : ''
+}
+
 app.on('web-contents-created', (_event, contents) => {
   contents.on('console-message', (event) => {
     if (contents.getURL().endsWith('/renderer/index.html') && event.level === 'error') {

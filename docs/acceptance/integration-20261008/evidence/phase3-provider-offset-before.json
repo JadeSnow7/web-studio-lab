@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/desktop/src/renderer/src/workspace/presentation.test.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T10:20:12.994421Z",
+  "ended_at": "2026-10-08T10:20:13.497141Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/desktop/src/renderer/src/workspace/presentation.test.ts (5 tests | 1 failed) 5ms\n   ❯ workspace presentation ownership (5)\n     × provider offset zero appends only new characters before any clipping 3ms\n\n Test Files  1 failed (1)\n      Tests  1 failed | 4 passed (5)\n   Start at  18:20:13\n   Duration  92ms (transform 62%, tests 17%, import 16%, worker 5%)\n\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/desktop/src/renderer/src/workspace/presentation.test.ts > workspace presentation ownership > provider offset zero appends only new characters before any clipping\nAssertionError: expected { reset: false, text: '', gap: false } to deeply equal { reset: false, text: 'd', gap: false }\n\n- Expected\n+ Received\n\n  {\n    \"gap\": false,\n    \"reset\": false,\n-   \"text\": \"d\",\n+   \"text\": \"\",\n  }\n\n ❯ apps/desktop/src/renderer/src/workspace/presentation.test.ts:25:70\n     23|   it('provider offset zero appends only new characters before any clip…\n     24|     const previous = { instanceId: 'i', sessionId: 'pty', output: 'abc…\n     25|     expect(terminalDelta(previous, { ...previous, output: 'abcd' })).t…\n       |                                                                      ^\n     26|     expect(terminalDelta(previous, previous)).toEqual({ reset: false, …\n     27|   });\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvZGVza3RvcC9zcmMvcmVuZGVyZXIvc3JjL3dvcmtzcGFjZS9wcmVzZW50YXRpb24udGVzdC50cyAoNSB0ZXN0cyB8IDEgZmFpbGVkKSA1bXMKICAg4p2vIHdvcmtzcGFjZSBwcmVzZW50YXRpb24gb3duZXJzaGlwICg1KQogICAgIMOXIHByb3ZpZGVyIG9mZnNldCB6ZXJvIGFwcGVuZHMgb25seSBuZXcgY2hhcmFjdGVycyBiZWZvcmUgYW55IGNsaXBwaW5nIDNtcwoKIFRlc3QgRmlsZXMgIDEgZmFpbGVkICgxKQogICAgICBUZXN0cyAgMSBmYWlsZWQgfCA0IHBhc3NlZCAoNSkKICAgU3RhcnQgYXQgIDE4OjIwOjEzCiAgIER1cmF0aW9uICA5Mm1zICh0cmFuc2Zvcm0gNjIlLCB0ZXN0cyAxNyUsIGltcG9ydCAxNiUsIHdvcmtlciA1JSkKCg==",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL2Rlc2t0b3Avc3JjL3JlbmRlcmVyL3NyYy93b3Jrc3BhY2UvcHJlc2VudGF0aW9uLnRlc3QudHMgPiB3b3Jrc3BhY2UgcHJlc2VudGF0aW9uIG93bmVyc2hpcCA+IHByb3ZpZGVyIG9mZnNldCB6ZXJvIGFwcGVuZHMgb25seSBuZXcgY2hhcmFjdGVycyBiZWZvcmUgYW55IGNsaXBwaW5nCkFzc2VydGlvbkVycm9yOiBleHBlY3RlZCB7IHJlc2V0OiBmYWxzZSwgdGV4dDogJycsIGdhcDogZmFsc2UgfSB0byBkZWVwbHkgZXF1YWwgeyByZXNldDogZmFsc2UsIHRleHQ6ICdkJywgZ2FwOiBmYWxzZSB9CgotIEV4cGVjdGVkCisgUmVjZWl2ZWQKCiAgewogICAgImdhcCI6IGZhbHNlLAogICAgInJlc2V0IjogZmFsc2UsCi0gICAidGV4dCI6ICJkIiwKKyAgICJ0ZXh0IjogIiIsCiAgfQoKIOKdryBhcHBzL2Rlc2t0b3Avc3JjL3JlbmRlcmVyL3NyYy93b3Jrc3BhY2UvcHJlc2VudGF0aW9uLnRlc3QudHM6MjU6NzAKICAgICAyM3wgICBpdCgncHJvdmlkZXIgb2Zmc2V0IHplcm8gYXBwZW5kcyBvbmx5IG5ldyBjaGFyYWN0ZXJzIGJlZm9yZSBhbnkgY2xpcOKApgogICAgIDI0fCAgICAgY29uc3QgcHJldmlvdXMgPSB7IGluc3RhbmNlSWQ6ICdpJywgc2Vzc2lvbklkOiAncHR5Jywgb3V0cHV0OiAnYWJj4oCmCiAgICAgMjV8ICAgICBleHBlY3QodGVybWluYWxEZWx0YShwcmV2aW91cywgeyAuLi5wcmV2aW91cywgb3V0cHV0OiAnYWJjZCcgfSkpLnTigKYKICAgICAgIHwgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXgogICAgIDI2fCAgICAgZXhwZWN0KHRlcm1pbmFsRGVsdGEocHJldmlvdXMsIHByZXZpb3VzKSkudG9FcXVhbCh7IHJlc2V0OiBmYWxzZSwg4oCmCiAgICAgMjd8ICAgfSk7Cgrijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq9bMS8xXeKOrwoK",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:0559d227f39b41ea86d3f614444bc0463a3fcff46866a36807d7cbc57e22f58b:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:0559d227f39b41ea86d3f614444bc0463a3fcff46866a36807d7cbc57e22f58b:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:0559d227f39b41ea86d3f614444bc0463a3fcff46866a36807d7cbc57e22f58b:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

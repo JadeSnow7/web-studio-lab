@@ -3,6 +3,7 @@ import type { PaneLayout, WorkspaceSnapshot } from '@wsl/protocol';
 import { Icon } from '../components/Icon';
 import { occlusion } from '../state/occlusion';
 import { workspaceCommand } from '../state/workspace';
+import { Files } from './Files';
 import { Browser } from './Browser';
 import { Terminal } from './Terminal';
 import { Session } from './Session';
@@ -182,7 +183,7 @@ export function WorkspaceContent({
           >
             {resource?.kind === 'web' ? (
               <Browser workspaceId={workspace.workspaceId} resource={resource} visible={visible} occluded={occluded} />
-            ) : resource?.kind === 'terminal' ? (
+            ) : resource?.kind === 'terminal' || resource?.kind === 'ssh' ? (
               <Terminal
                 workspaceId={workspace.workspaceId}
                 resource={resource}
@@ -191,6 +192,8 @@ export function WorkspaceContent({
                 occluded={occluded}
                 theme={workspace.theme}
               />
+            ) : resource?.kind === 'file' ? (
+              <Files workspace={workspace} resource={resource} />
             ) : session ? (
               <Session workspace={workspace} session={session} />
             ) : (

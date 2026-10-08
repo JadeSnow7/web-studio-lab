@@ -43,12 +43,13 @@ test('sbx：空间提供独立终端标签，切换时隐藏原生预览', async
   await expect(terminalTab).toBeVisible({ timeout: 3000 });
   await terminalTab.click();
   await expect(terminalTab).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('region', { name: '沙箱终端' })).toBeVisible();
+  await expect(page.getByRole('region', { name: '资源终端' })).toBeVisible();
   expect((await previewInfo(app)).visible).toBe(false);
-  const panel = page.getByRole('region', { name: '沙箱终端' });
-  await panel.getByRole('button', { name: '连接终端', exact: true }).click();
-  await expect(panel.getByRole('alert')).toContainText('sbx');
-  await expect(panel).toContainText('连接失败');
+  const panel = page.getByRole('region', { name: '资源终端' });
+  await expect(panel).toContainText('sbx');
+  await expect(panel.getByRole('button', { name: '连接终端', exact: true })).toBeDisabled();
+  const snapshot = await workspaceSnapshot(page);
+  expect(snapshot.workspaces[0]!.resources.find((resource) => resource.kind === 'terminal')!.terminal).toBeNull();
 });
 
 test('sbx：对话显示执行来源，连接失败不允许发送', async () => {
@@ -67,21 +68,21 @@ test('空间会话：执行器不可用时保留草稿并记录失败运行', as
   ({ app, page } = await launchApp());
   await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
   const region = page.getByRole('region', { name: 'Agent 会话内容' });
-  await region.getByRole('textbox').fill('执行器不可用时不能清空这份空间草稿');
+  await region.getByRole('textbox', { name: '会话消息', exact: true }).fill('执行器不可用时不能清空这份空间草稿');
   await region.getByRole('button', { name: '发送', exact: true }).click();
   await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('failed');
-  await expect(region.getByRole('textbox')).toHaveValue('执行器不可用时不能清空这份空间草稿');
+  await expect(region.getByRole('textbox', { name: '会话消息', exact: true })).toHaveValue('执行器不可用时不能清空这份空间草稿');
   expect((await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.draft).toBe('执行器不可用时不能清空这份空间草稿');
 });
 
 test('fixture：终端持久 cwd、Ctrl-C、resize、切标签保留与确认关闭', async () => {
   ({ app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx.mjs', import.meta.url).pathname }));
   await page.getByRole('button', { name: '开发终端', exact: true }).click();
-  const panel = page.getByRole('region', { name: '沙箱终端' });
+  const panel = page.getByRole('region', { name: '资源终端' });
   await panel.getByRole('button', { name: '连接终端', exact: true }).click();
   await expect(panel).toContainText('fixture-sandbox');
   await expect(panel).toContainText('已连接');
-  const input = panel.getByLabel('沙箱终端输入');
+  const input = panel.getByLabel('终端输入');
   await input.focus();
   await input.pressSequentially('cd /tmp');
   await input.press('Enter');
@@ -108,7 +109,7 @@ test('fixture：终端持久 cwd、Ctrl-C、resize、切标签保留与确认关
   expect(ptyText(snapshot.output)).toMatch(/^\d+ \d+$/m);
   await windowShots(app, page, 'sbx-terminal-fixture-narrow');
   await panel.getByRole('button', { name: '关闭终端', exact: true }).click();
-  await expect(panel).toContainText('已关闭，远端进程已退出');
+  await expect(panel).toContainText('已关闭，所属进程已确认退出');
   expect((await terminalSnapshot(page)).state).toBe('closed');
 });
 
@@ -130,7 +131,7 @@ test('fixture：活动终端直接关闭应用需确认 Electron 进程退出', 
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     await closingPage.getByRole('button', { name: '开发终端', exact: true }).click();
-    const panel = closingPage.getByRole('region', { name: '沙箱终端' });
+    const panel = closingPage.getByRole('region', { name: '资源终端' });
     await panel.getByRole('button', { name: '连接终端', exact: true }).click();
     await expect(panel).toContainText('已连接');
     const terminal = await terminalSnapshot(closingPage);
@@ -163,11 +164,11 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
   try {
     ({ app, page } = await launchApp({ live: true }));
     await page.getByRole('button', { name: '开发终端', exact: true }).click();
-    const panel = page.getByRole('region', { name: '沙箱终端' });
+    const panel = page.getByRole('region', { name: '资源终端' });
     await expect(panel).toContainText('wsl-sbx-smoke-20261006', { timeout: 30000 });
     await panel.getByRole('button', { name: '连接终端', exact: true }).click();
     await expect(panel).toContainText('已连接', { timeout: 30000 });
-    const input = panel.getByLabel('沙箱终端输入');
+    const input = panel.getByLabel('终端输入');
     async function command(text: string) {
       await input.focus();
       // xterm screenReaderMode 使用 keypress 路径；insertText 仅发 input 事件，不能模拟实际键入。
@@ -232,7 +233,7 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
     await windowShots(app, page, 'sbx-chat-live-read');
     await workshopNavigate(page, '空间');
     await panel.getByRole('button', { name: '关闭终端', exact: true }).click();
-    await expect(panel).toContainText('已关闭，远端进程已退出', { timeout: 30000 });
+    await expect(panel).toContainText('已关闭，所属进程已确认退出', { timeout: 30000 });
     const terminal = await terminalSnapshot(page);
     expect(terminal.state).toBe('closed');
     expect(terminal.cleanupPending).toBe(false);

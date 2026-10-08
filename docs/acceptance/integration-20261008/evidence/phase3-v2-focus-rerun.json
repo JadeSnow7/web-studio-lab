@@ -1,0 +1,47 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "e2e/workspace-migration.spec.ts",
+    "--grep",
+    "R3 双网页"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T10:59:10.875094Z",
+  "ended_at": "2026-10-08T10:59:17.221635Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\nRunning 1 test using 1 worker\n\n  ✘  1 e2e/workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 (5.8s)\n\n\n  1) e2e/workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 ─────────────────────\n\n    Error: expect(received).toBe(expected) // Object.is equality\n\n    Expected: true\n    Received: false\n\n    Call Log:\n    - Timeout 5000ms exceeded while waiting on the predicate\n\n      177 |     await expect\n      178 |       .poll(() => app.evaluate(({ webContents }, id) => webContents.fromId(id)!.isFocused(), web.preview!.page.webContentsId))\n    > 179 |       .toBe(true);\n          |        ^\n      180 |     await setWindowSize(app, 1400, 880);\n      181 |     await expect\n      182 |       .poll(() => app.evaluate(({ webContents }, id) => webContents.fromId(id)!.isFocused(), web.preview!.page.webContentsId))\n        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/workspace-migration.spec.ts:179:8\n\n    Error Context: test-results/e2e/workspace-migration-R3-双网页原生focus事件决定地址与刷新目标，布局更新保持焦点/error-context.md\n\n  1 failed\n    e2e/workspace-migration.spec.ts:151:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 ──────────────────────\n",
+  "stderr": "(node:49216) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+  "stdout_base64": "ClJ1bm5pbmcgMSB0ZXN0IHVzaW5nIDEgd29ya2VyCgogIOKcmCAgMSBlMmUvd29ya3NwYWNlLW1pZ3JhdGlvbi5zcGVjLnRzOjE1MToxIOKAuiBSMyDlj4znvZHpobXljp/nlJ9mb2N1c+S6i+S7tuWGs+WumuWcsOWdgOS4juWIt+aWsOebruagh++8jOW4g+WxgOabtOaWsOS/neaMgeeEpueCuSAoNS44cykKCgogIDEpIGUyZS93b3Jrc3BhY2UtbWlncmF0aW9uLnNwZWMudHM6MTUxOjEg4oC6IFIzIOWPjOe9kemhteWOn+eUn2ZvY3Vz5LqL5Lu25Yaz5a6a5Zyw5Z2A5LiO5Yi35paw55uu5qCH77yM5biD5bGA5pu05paw5L+d5oyB54Sm54K5IOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKICAgIEVycm9yOiBleHBlY3QocmVjZWl2ZWQpLnRvQmUoZXhwZWN0ZWQpIC8vIE9iamVjdC5pcyBlcXVhbGl0eQoKICAgIEV4cGVjdGVkOiB0cnVlCiAgICBSZWNlaXZlZDogZmFsc2UKCiAgICBDYWxsIExvZzoKICAgIC0gVGltZW91dCA1MDAwbXMgZXhjZWVkZWQgd2hpbGUgd2FpdGluZyBvbiB0aGUgcHJlZGljYXRlCgogICAgICAxNzcgfCAgICAgYXdhaXQgZXhwZWN0CiAgICAgIDE3OCB8ICAgICAgIC5wb2xsKCgpID0+IGFwcC5ldmFsdWF0ZSgoeyB3ZWJDb250ZW50cyB9LCBpZCkgPT4gd2ViQ29udGVudHMuZnJvbUlkKGlkKSEuaXNGb2N1c2VkKCksIHdlYi5wcmV2aWV3IS5wYWdlLndlYkNvbnRlbnRzSWQpKQogICAgPiAxNzkgfCAgICAgICAudG9CZSh0cnVlKTsKICAgICAgICAgIHwgICAgICAgIF4KICAgICAgMTgwIHwgICAgIGF3YWl0IHNldFdpbmRvd1NpemUoYXBwLCAxNDAwLCA4ODApOwogICAgICAxODEgfCAgICAgYXdhaXQgZXhwZWN0CiAgICAgIDE4MiB8ICAgICAgIC5wb2xsKCgpID0+IGFwcC5ldmFsdWF0ZSgoeyB3ZWJDb250ZW50cyB9LCBpZCkgPT4gd2ViQ29udGVudHMuZnJvbUlkKGlkKSEuaXNGb2N1c2VkKCksIHdlYi5wcmV2aWV3IS5wYWdlLndlYkNvbnRlbnRzSWQpKQogICAgICAgIGF0IC9Vc2Vycy9odWFvZG9uZy8uY29kZXgvd29ya3RyZWVzL2JmNjQvd2ViLXN0dWRpby1sYWIvZTJlL3dvcmtzcGFjZS1taWdyYXRpb24uc3BlYy50czoxNzk6OAoKICAgIEVycm9yIENvbnRleHQ6IHRlc3QtcmVzdWx0cy9lMmUvd29ya3NwYWNlLW1pZ3JhdGlvbi1SMy3lj4znvZHpobXljp/nlJ9mb2N1c+S6i+S7tuWGs+WumuWcsOWdgOS4juWIt+aWsOebruagh++8jOW4g+WxgOabtOaWsOS/neaMgeeEpueCuS9lcnJvci1jb250ZXh0Lm1kCgogIDEgZmFpbGVkCiAgICBlMmUvd29ya3NwYWNlLW1pZ3JhdGlvbi5zcGVjLnRzOjE1MToxIOKAuiBSMyDlj4znvZHpobXljp/nlJ9mb2N1c+S6i+S7tuWGs+WumuWcsOWdgOS4juWIt+aWsOebruagh++8jOW4g+WxgOabtOaWsOS/neaMgeeEpueCuSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAK",
+  "stderr_base64": "KG5vZGU6NDkyMTYpIFdhcm5pbmc6IFRoZSAnTk9fQ09MT1InIGVudiBpcyBpZ25vcmVkIGR1ZSB0byB0aGUgJ0ZPUkNFX0NPTE9SJyBlbnYgYmVpbmcgc2V0LgooVXNlIGBub2RlIC0tdHJhY2Utd2FybmluZ3MgLi4uYCB0byBzaG93IHdoZXJlIHRoZSB3YXJuaW5nIHdhcyBjcmVhdGVkKQo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a27b420e61100871954095fe27de6cbeb6e4548fa4da5cfb8333b6016d63175d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a27b420e61100871954095fe27de6cbeb6e4548fa4da5cfb8333b6016d63175d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a27b420e61100871954095fe27de6cbeb6e4548fa4da5cfb8333b6016d63175d:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

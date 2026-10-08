@@ -1,19 +1,21 @@
 # 工作台交互契约
 
-本轮导航与布局依据 [SR-1](docs/acceptance/space-remake/SPEC.md)。业务来源为 `docs/verification/2026-10-06-sbx-app/SPEC.md`、公开资源合同和 `packages/protocol/src/{workspace,chat,terminal,resources}.ts`。历史原型保持原意；此合同定义目标行为，实现和实测状态见[本轮记录](docs/acceptance/space-remake/task-summary.md)。
+本轮导航与布局依据 [SR-1](docs/acceptance/space-remake/SPEC.md)。业务来源为 `docs/verification/2026-10-06-sbx-app/SPEC.md`、公开资源合同和 `packages/protocol/src/{workspace,chat,terminal,resources}.ts`。历史原型保持原意；此合同定义目标行为；空间重制历史见[SR-1记录](docs/acceptance/space-remake/task-summary.md)，本轮接线与实测见[INTEGRATION-1记录](docs/acceptance/integration-20261008/task-summary.md)。
 
 ## Canonical UI Map
 
-| Capability     | Canonical owner                | Source of truth                             | Allowed variants                    | Verification                        |
-| -------------- | ------------------------------ | ------------------------------------------- | ----------------------------------- | ----------------------------------- |
-| Scrollbar      | app.css 全局样式               | app.css 运行时 token                        | xterm viewport 保持内部几何         | 窄窗与终端 E2E                      |
-| Form           | Composer / Session             | 个人 drafts / Main 空间会话                 | 个人/空间会话                       | chat E2E 的 IME、草稿保留与重复提交 |
-| CRUD           | Main workbench / ResourcesPage | public-resources SPEC 与 resources protocol | 工具栏保存留在页面 / 资源页更新移除 | resources UI E2E                    |
-| Toast          | Notice / ErrorToasts           | Main 业务错误与 shell 偏好错误              | 全局错误 / 资源行内状态             | 失败恢复 E2E                        |
-| Dialog         | ModalLayer                     | app-owned dialog 与资源生命周期合同         | 图像查看 / 资源移除                 | Escape / focus / 移除 E2E           |
-| Navigation     | App / Workshop / SpacePage     | shell 展示状态、Main 空间快照               | 全局按钮、空间垂直标签、固定/浮层   | 六页导航、切换、重启和窄窗          |
-| Notification   | RightPanel / Notifications     | Main 运行终态与持久阅读回执                 | 真实通知 / 标记的历史演示           | 定位不执行、不接受、不自动已读      |
-| Select/Listbox | native select                  | Main 空间 theme                             | 设置页接受系统弹出层                | 主题与键盘测试                      |
+| Capability       | Canonical owner                  | Source of truth                                 | Allowed variants                     | Verification                        |
+| ---------------- | -------------------------------- | ----------------------------------------------- | ------------------------------------ | ----------------------------------- |
+| Scrollbar        | app.css 全局样式                 | app.css 运行时 token                            | xterm viewport 保持内部几何          | 窄窗与终端 E2E                      |
+| Form             | Composer / Session               | 个人 drafts / Main 空间会话                     | 个人/空间会话                        | chat E2E 的 IME、草稿保留与重复提交 |
+| CRUD             | Main workbench / ResourcesPage   | public-resources SPEC 与 resources protocol     | 工具栏保存留在页面 / 资源页更新移除  | resources UI E2E                    |
+| Toast            | Notice / ErrorToasts             | Main 业务错误与 shell 偏好错误                  | 全局错误 / 资源行内状态              | 失败恢复 E2E                        |
+| Dialog           | ModalLayer                       | app-owned dialog 与资源生命周期合同             | 图像查看 / 资源移除                  | Escape / focus / 移除 E2E           |
+| Navigation       | App / Workshop / SpacePage       | shell 展示状态、Main 空间快照                   | 全局按钮、空间垂直标签、固定/浮层    | 六页导航、切换、重启和窄窗          |
+| Notification     | RightPanel / Notifications       | Main 运行终态与持久阅读回执                     | 真实通知 / 标记的历史演示            | 定位不执行、不接受、不自动已读      |
+| Select/Listbox   | native select                    | Main theme、已配置环境及会话观察源              | 接受系统弹出层；不自建第二套listbox  | 主题、环境选择与键盘测试            |
+| Resource context | Main observation / Session上下文 | 冻结workspace/session/run/resource/instance身份 | 主动观察、结果与失效提示；右栏不承载 | 多空间、取消/迟到、真实UI           |
+| File reader      | 空间文件标签                     | Main资源与显式授权环境的只读Provider            | 本地/SSH目录、正文、续读             | 越界/符号链接、hash/续读失效、窄窗  |
 
 ## 状态与导航
 
@@ -29,11 +31,11 @@
 
 终端入口显式连接，starting/closing 禁用重复操作；仅 running 接收键盘和 resize。Ctrl-C 可通过键盘或可见按钮输入。关闭等待远端 cleanup 确认后显示已关闭；失败保持输出并展示错误，不能暗示成功。退出 shell 会关闭会话；再次连接创建新的 shell，不继承旧 cwd。
 
-服务序号决定输出新旧；迟到查询与旧会话事件不能覆盖最新快照。服务只保存尾部 256 Ki 字符，界面明确该范围；截断后 xterm 重建当前快照，避免把重复尾部当新输出。
+服务序号决定输出新旧；迟到查询与旧会话事件不能覆盖最新快照。服务保存有界尾部，outputOffset 与字符串采用同一 UTF-16 字符计数。界面按实例、PTY会话和绝对区间追加新尾段；重复文本但偏移增加仍是新输出。裁剪后存在重叠时保持终端状态，未读区间已丢失或实例更换时重建并明确提示缺口。
 
 chat 在首页、会话页和空间会话标签显示相同 sandbox/cwd 来源；工具命令、输出、退出码和截断标记按需展开，非致命配置 warning 显示文字。服务不可用时保留输入、拒绝发送，不回退宿主 Codex。
 
-通知只读展示运行事实，并定位准确的空间、会话和run。打开不自动已读，已读只保存阅读回执，不改变执行、检查或接受。任务历史、日志、diff和报告按指定运行展示；没有证据明确说明，不能填入演示成功。现场采集通过网页关联会话入口到达，requestId冻结接收方，迟到结果不能污染其他请求。联系人位于会话板块。
+通知只读展示运行事实，并定位准确的空间、会话和run。打开不自动已读，已读只保存阅读回执，不改变执行、检查或接受。任务历史、日志、diff和报告按指定运行展示；选择历史版本同步选择该版本的运行，若尚无运行则显示空态，不能回退到最新会话消息、工具或错误。没有证据明确说明，不能填入演示成功。现场采集通过网页关联会话入口到达，requestId冻结接收方，迟到结果不能污染其他请求。联系人位于会话板块。
 
 窄窗口保持现有侧栏和布局 token；终端尺寸由可见内容区域计算。输入具有中文可访问名称，连接/关闭状态用 status，失败用 alert。真实 live 验证显式启用，fixture 输出不作为真实 Linux 或模型证据。
 
@@ -50,3 +52,13 @@ chat 在首页、会话页和空间会话标签显示相同 sandbox/cwd 来源�
 - 滚动：资源列表与详情沿用管理页内容滚动；正文换行，完整 URL / UUID / SHA-256 可见，窄窗不隐藏详情或动作。
 - 页面来源：依据 `packages/protocol/src/resources.ts` 的 `extractionVersion` 区分身份。`html-text-v1` 保留 webContents 与文档代次；`rendered-dom-text-v1` 明示“沙箱浏览器”、沙箱名、页面 targetId 与导航代次，不套用宿主页面身份或显示运行时文件路径。
 - 验证：`main/workbench/public-resources-migration.test.ts`、`state/workspace.test.ts` 和 `e2e/resources.spec.ts` 覆盖应用、投影与交互；`e2e/resources-live.spec.ts` 必须显式授权运行，校验真实网络与 MCP 工具调用，fixture 不能替代。
+
+## 统一观察与资源环境（INTEGRATION-1）
+
+- 新建文件或终端时明确选择已配置环境；显示环境名称及可用能力。未配置本地根或SSH配置时给出不可用原因，不使用home、不复制认证，也不从终端输入推导授权。资源创建后绑定当前空间与环境，切空间不能把已有资源重新归属。
+- 文件标签仅浏览授权根内的目录和读取内容，不提供编辑/保存。路径、内容来源、范围、散列和截断可见；续读使用已有游标，内容变化时显示失效并要求重新读取。watch提示“可能变化”，不能用无提示表示内容未变。SFTP没有watch时明确说明。
+- 终端资源使用本地、sandbox或SSH之一；UI与观察读取同一实际PTY。连接/关闭/重连为明确动作，关闭标签保留实例；重启只恢复资源描述，不自动执行shell。SSH断线后的远端进程状态不明时显示未确认，不能宣称已清理。
+- 会话的上下文区域提供观察入口，选择本空间实际资源及适合该类型的读取动作，显示来源、范围、结果、时间及更新提示。观察成功不自动发送消息、启动任务、标记通知已读或接受结果；结果归属请求开始时的空间、会话和运行。
+- 读取期间给出忙态和取消入口，重复提交受限；取消、切空间、替换实例后的迟到结果不能覆盖新的上下文。取消保留之前已完成的证据；证据只追加，不覆写。失败保持用户输入和可重试状态，明确区分无权限、不可用、过期与截断。
+- 复用现有按钮、行内状态、原生select、ModalLayer与原生网页遮挡集合。文件读取和观察不新增全局板块、右侧会话、空间主题入口或悬浮终端。新增表单使用noValidate、中文标签和IME安全提交；搜索有可见清除按钮，长资源名/路径能换行或完整查看。
+- 旧公开网页快照合同仅为TaskFlow demo空间提供资源MCP，其他空间不能继承该集合。统一观察按Main注册的空间与环境授权，独立于该历史限定，不把旧demo集合当作全空间观察源。

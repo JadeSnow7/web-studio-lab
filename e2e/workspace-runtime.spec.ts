@@ -28,7 +28,7 @@ test('A06 / A07 fixture执行中关闭标签后重新打开仍是同一运行，
   try {
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
     const region = page.getByRole('region', { name: 'Agent 会话内容' });
-    await region.getByRole('textbox').fill('[slow]');
+    await region.getByRole('textbox', { name: '会话消息', exact: true }).fill('[slow]');
     await region.getByRole('button', { name: '发送', exact: true }).evaluate((node) => {
       (node as HTMLButtonElement).click();
       (node as HTMLButtonElement).click();
@@ -63,11 +63,11 @@ test('live：真实PTY与单Agent执行跨空间保持归属，检查和审阅�
   const marker = randomUUID();
   try {
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '开发终端', exact: true }).click();
-    const terminal = page.getByRole('region', { name: '沙箱终端' });
+    const terminal = page.getByRole('region', { name: '资源终端' });
     await terminal.getByRole('button', { name: '连接终端', exact: true }).click();
     await expect(terminal).toContainText('已连接', { timeout: 30000 });
     const initial = await terminalSnapshot(page);
-    const input = terminal.getByLabel('沙箱终端输入');
+    const input = terminal.getByLabel('终端输入');
     await input.focus();
     await input.pressSequentially(`printf 'WSL_RUNTIME_NONCE=%s\\n' '${marker}'`);
     await input.press('Enter');
@@ -131,10 +131,10 @@ test('A11 重启恢复布局与草稿和历史，运行不重放，明确旧模�
   try {
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
     const session = page.getByRole('region', { name: 'Agent 会话内容' });
-    await session.getByRole('textbox').fill('重启历史742');
+    await session.getByRole('textbox', { name: '会话消息', exact: true }).fill('重启历史742');
     await session.getByRole('button', { name: '发送', exact: true }).click();
     await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('completed');
-    await session.getByRole('textbox').fill('重启保留草稿');
+    await session.getByRole('textbox', { name: '会话消息', exact: true }).fill('重启保留草稿');
     await setWorkspaceTheme(page, 'warm');
     await page.getByRole('button', { name: '上下分屏', exact: true }).click();
     await expect(page.locator('[data-pane-id]')).toHaveCount(2);
@@ -146,7 +146,9 @@ test('A11 重启恢复布局与草稿和历史，运行不重放，明确旧模�
     ({ app, page } = await launchApp({ sbxBin: fixture, userData: profile }));
     await expect(page.getByRole('button', { name: '切换空间', exact: true })).toContainText('TaskFlow');
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
-    await expect(page.getByRole('region', { name: 'Agent 会话内容' }).getByRole('textbox')).toHaveValue('重启保留草稿');
+    await expect(page.getByRole('region', { name: 'Agent 会话内容' }).getByRole('textbox', { name: '会话消息', exact: true })).toHaveValue(
+      '重启保留草稿',
+    );
     await expect(page.getByText('历史已恢复；新执行不会自动延续旧模型上下文。')).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'warm');
     const restored = await workspaceSnapshot(page);

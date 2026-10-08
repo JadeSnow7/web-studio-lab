@@ -35,9 +35,12 @@ test('A12 三窗格、切换器、暗暖主题与窄窗真实窗口截图', asyn
         window.studio.workbench.command({ commandId: crypto.randomUUID(), workspaceId, type: 'setRatio', paneId, ratio: 0.7 }),
       { workspaceId: w.workspaceId, paneId: w.activePaneId },
     );
-    await page.getByRole('region', { name: '沙箱终端' }).getByRole('button', { name: '连接终端', exact: true }).click();
-    await expect(page.getByRole('region', { name: '沙箱终端' })).toContainText('已连接');
-    await page.getByRole('region', { name: 'Agent 会话内容' }).getByRole('textbox').fill('补充优先级字段，保存后刷新仍保留。');
+    await page.getByRole('region', { name: '资源终端' }).getByRole('button', { name: '连接终端', exact: true }).click();
+    await expect(page.getByRole('region', { name: '资源终端' })).toContainText('已连接');
+    await page
+      .getByRole('region', { name: 'Agent 会话内容' })
+      .getByRole('textbox', { name: '会话消息', exact: true })
+      .fill('补充优先级字段，保存后刷新仍保留。');
     await setWorkspaceTheme(page, 'light');
     await capture(app, page, 'workspace-three-panes-light');
     await page.getByRole('button', { name: '切换空间', exact: true }).click();

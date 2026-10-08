@@ -1,0 +1,47 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/desktop/src/main/workbench/observation-application.test.ts",
+    "-t",
+    "cancels a request while environment"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T10:26:54.198468Z",
+  "ended_at": "2026-10-08T10:26:54.853547Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/desktop/src/main/workbench/observation-application.test.ts (14 tests | 1 failed | 13 skipped) 62ms\n   × cancels a request while environment discovery is delayed without starting its provider 61ms\n\n Test Files  1 failed (1)\n      Tests  1 failed | 13 skipped (14)\n   Start at  18:26:54\n   Duration  276ms (transform 44%, tests 29%, import 27%, worker 1%)\n\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/desktop/src/main/workbench/observation-application.test.ts > cancels a request while environment discovery is delayed without starting its provider\nAssertionError: expected false to be true // Object.is equality\n\n- Expected\n+ Received\n\n- true\n+ false\n\n ❯ apps/desktop/src/main/workbench/observation-application.test.ts:575:24\n    573|   release();\n    574|   const result = await reading;\n    575|   expect(cancelled.ok).toBe(true);\n       |                        ^\n    576|   expect(result).toMatchObject({ error: 'cancelled' });\n    577|   expect(runtime.observe).not.toHaveBeenCalled();\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvZGVza3RvcC9zcmMvbWFpbi93b3JrYmVuY2gvb2JzZXJ2YXRpb24tYXBwbGljYXRpb24udGVzdC50cyAoMTQgdGVzdHMgfCAxIGZhaWxlZCB8IDEzIHNraXBwZWQpIDYybXMKICAgw5cgY2FuY2VscyBhIHJlcXVlc3Qgd2hpbGUgZW52aXJvbm1lbnQgZGlzY292ZXJ5IGlzIGRlbGF5ZWQgd2l0aG91dCBzdGFydGluZyBpdHMgcHJvdmlkZXIgNjFtcwoKIFRlc3QgRmlsZXMgIDEgZmFpbGVkICgxKQogICAgICBUZXN0cyAgMSBmYWlsZWQgfCAxMyBza2lwcGVkICgxNCkKICAgU3RhcnQgYXQgIDE4OjI2OjU0CiAgIER1cmF0aW9uICAyNzZtcyAodHJhbnNmb3JtIDQ0JSwgdGVzdHMgMjklLCBpbXBvcnQgMjclLCB3b3JrZXIgMSUpCgo=",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL2Rlc2t0b3Avc3JjL21haW4vd29ya2JlbmNoL29ic2VydmF0aW9uLWFwcGxpY2F0aW9uLnRlc3QudHMgPiBjYW5jZWxzIGEgcmVxdWVzdCB3aGlsZSBlbnZpcm9ubWVudCBkaXNjb3ZlcnkgaXMgZGVsYXllZCB3aXRob3V0IHN0YXJ0aW5nIGl0cyBwcm92aWRlcgpBc3NlcnRpb25FcnJvcjogZXhwZWN0ZWQgZmFsc2UgdG8gYmUgdHJ1ZSAvLyBPYmplY3QuaXMgZXF1YWxpdHkKCi0gRXhwZWN0ZWQKKyBSZWNlaXZlZAoKLSB0cnVlCisgZmFsc2UKCiDina8gYXBwcy9kZXNrdG9wL3NyYy9tYWluL3dvcmtiZW5jaC9vYnNlcnZhdGlvbi1hcHBsaWNhdGlvbi50ZXN0LnRzOjU3NToyNAogICAgNTczfCAgIHJlbGVhc2UoKTsKICAgIDU3NHwgICBjb25zdCByZXN1bHQgPSBhd2FpdCByZWFkaW5nOwogICAgNTc1fCAgIGV4cGVjdChjYW5jZWxsZWQub2spLnRvQmUodHJ1ZSk7CiAgICAgICB8ICAgICAgICAgICAgICAgICAgICAgICAgXgogICAgNTc2fCAgIGV4cGVjdChyZXN1bHQpLnRvTWF0Y2hPYmplY3QoeyBlcnJvcjogJ2NhbmNlbGxlZCcgfSk7CiAgICA1Nzd8ICAgZXhwZWN0KHJ1bnRpbWUub2JzZXJ2ZSkubm90LnRvSGF2ZUJlZW5DYWxsZWQoKTsKCuKOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr+KOr1sxLzFd4o6vCgo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a72674d3f4b78db7bc27faacbb0b3bec6cd84abb84c6c2325e2e7ff6b1756669:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a72674d3f4b78db7bc27faacbb0b3bec6cd84abb84c6c2325e2e7ff6b1756669:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a72674d3f4b78db7bc27faacbb0b3bec6cd84abb84c6c2325e2e7ff6b1756669:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

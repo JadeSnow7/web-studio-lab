@@ -25,7 +25,7 @@ test('R1 可见导航进入真实任务历史，查看日志/diff/报告不执�
   try {
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
     const session = page.getByRole('region', { name: 'Agent 会话内容' });
-    await session.getByRole('textbox').fill('migration-history-742');
+    await session.getByRole('textbox', { name: '会话消息', exact: true }).fill('migration-history-742');
     await session.getByRole('button', { name: '发送', exact: true }).click();
     await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('completed');
     const before = await workspaceSnapshot(page);
@@ -68,7 +68,7 @@ test('R1 通知定位后台同一运行，打开与已读分离且重启保持�
   try {
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
     const session = page.getByRole('region', { name: 'Agent 会话内容' });
-    await session.getByRole('textbox').fill('[delayed-complete] notification-owner-742');
+    await session.getByRole('textbox', { name: '会话消息', exact: true }).fill('[delayed-complete] notification-owner-742');
     await session.getByRole('button', { name: '发送', exact: true }).click();
     await expect(session.getByRole('button', { name: '取消回复' })).toBeVisible();
     await page.getByRole('button', { name: 'Agent 会话操作' }).click();

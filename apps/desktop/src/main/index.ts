@@ -30,7 +30,10 @@ function openWorkbench(): BrowserWindow {
       sendToRenderer(window, 'chat:conversation', conversation);
       workbench?.onConversation(conversation);
     },
-    (status) => sendToRenderer(window, 'chat:status', status),
+    (status) => {
+      sendToRenderer(window, 'chat:status', status);
+      void workbench?.onChatStatus().catch((error: unknown) => console.error('工作台执行环境状态更新失败', error));
+    },
     (snapshot, resourceId, binding) => {
       workbench?.onTerminal(resourceId, snapshot, binding);
     },

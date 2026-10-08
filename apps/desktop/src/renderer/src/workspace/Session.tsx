@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { WorkbenchSession, WorkspaceSnapshot, TargetRef } from '@wsl/protocol';
 import { locationStore } from '../state/location';
 import { captureContext } from '../state/capture';
+import { SessionObservation } from './Observation';
+import { sessionSelection } from './presentation';
 import { RunDetails } from './RunDetails';
 import { workspaceCommand } from '../state/workspace';
 
@@ -60,13 +62,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
   );
   const sessionRuns = workspace.runs.filter((r) => r.sessionId === session.sessionId);
   const currentRun = sessionRuns.at(-1);
-  const version = selectedVersionId ? session.taskVersions.find((v) => v.taskVersionId === selectedVersionId) : session.taskVersions.at(-1);
-  const run = selectedRunId
-    ? sessionRuns.find((r) => r.runId === selectedRunId)
-    : selectedVersionId
-      ? sessionRuns.filter((r) => r.taskVersionId === selectedVersionId).at(-1)
-      : currentRun;
-  const conversation = selectedRunId ? run?.conversation : session.conversation;
+  const { version, run, conversation } = sessionSelection(session, workspace.runs, selectedVersionId, selectedRunId);
   const context = selectedVersionId ? version?.capture : session.context;
   useEffect(() => {
     if (!dirty.current) {
@@ -182,7 +178,9 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
                   </div>
                 ))
               ) : (
-                <p className="workspace-empty">描述想完成的工作；执行结果与检查分别记录。</p>
+                <p className="workspace-empty">
+                  {selectedVersionId && !run ? '此版本尚未运行。' : '描述想完成的工作；执行结果与检查分别记录。'}
+                </p>
               )}
             </div>
             {conversation?.toolExecutions.length ? (
@@ -213,7 +211,13 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
             {session.taskVersions.length ? (
               <label className="field">
                 任务版本
-                <select value={selectedVersionId} onChange={(e) => setSelectedVersionId(e.target.value)}>
+                <select
+                  value={selectedVersionId}
+                  onChange={(e) => {
+                    setSelectedVersionId(e.target.value);
+                    setSelectedRunId('');
+                  }}
+                >
                   <option value="">最新版本</option>
                   {session.taskVersions.map((v) => (
                     <option key={v.taskVersionId} value={v.taskVersionId}>
@@ -322,6 +326,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
         {view === 'context' ? (
           <>
             <h2>任务上下文</h2>
+            <SessionObservation workspace={workspace} session={session} />
             <p role="status">
               现场适用性：
               {selectedVersionId
@@ -374,7 +379,14 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
             {sessionRuns.length ? (
               <label className="field">
                 执行记录
-                <select value={selectedRunId} onChange={(e) => setSelectedRunId(e.target.value)}>
+                <select
+                  value={selectedRunId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setSelectedRunId(id);
+                    setSelectedVersionId(sessionRuns.find((r) => r.runId === id)?.taskVersionId ?? '');
+                  }}
+                >
                   <option value="">最新执行</option>
                   {sessionRuns.map((r) => (
                     <option key={r.runId} value={r.runId}>
@@ -466,6 +478,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
         </label>
         <textarea
           id={`draft-${session.sessionId}`}
+          aria-label="会话消息"
           className="resize-none"
           rows={3}
           value={draft}

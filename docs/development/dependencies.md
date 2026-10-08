@@ -1,6 +1,6 @@
 # 开发依赖与安装
 
-桌面对话和交互终端通过 sbx 使用同一个 Linux guest 工作目录。host 需要 Node/pnpm 构建应用和 sbx CLI；guest 需要 Python 3、Codex CLI 及项目工具。独立环境准备记录见[sbx 安装验证](../verification/2026-10-06-sbx/README.md)，应用接入记录见[应用验证](../verification/2026-10-06-sbx-app/README.md)。
+桌面对话和 sandbox 终端通过 sbx 使用同一个 Linux guest 工作目录。本地与 SSH 文件、终端已接 Main/MCP，空间界面仍在实施；阶段结果见 [INTEGRATION-1](../acceptance/integration-20261008/task-summary.md)。host 需要 Node/pnpm 构建应用；sbx CLI 只为 sandbox 对话和终端所需。本地文件及终端需 Python 3 和显式授权根，SSH需已有agent及可信配置；guest需要Python 3、Codex CLI及项目工具。独立环境准备记录见[sbx 安装验证](../verification/2026-10-06-sbx/README.md)，应用接入记录见[应用验证](../verification/2026-10-06-sbx-app/README.md)。
 
 ## 桌面项目
 
@@ -14,7 +14,7 @@
 
 ### 从零准备 host 工具
 
-以下命令面向已安装 Homebrew 的 Apple Silicon macOS；当前 host 已有 Homebrew。`/opt/homebrew/bin` 必须存在、当前用户可写并在 PATH 中。先确认 host 前置条件：
+以下命令面向已安装 Homebrew 的 Apple Silicon macOS。`/opt/homebrew/bin` 必须存在、当前用户可写并在 PATH 中。先确认 host 前置条件：
 
 ```bash
 command -v brew
@@ -179,7 +179,7 @@ WSL_SBX_NAME=wsl-sbx-smoke-20261006 npx pnpm@10.34.6 dev
 
 新建环境则将名称改为前述 `$sbx_smoke_name`。`WSL_SBX_BIN` 可显式指定 sbx；默认查 PATH 与常见安装位置。选择的 sandbox 必须为 Codex agent 且没有运行时挂载。配置缺失或目标不符时，应用报告不可用；它不会自动创建环境或运行 host Codex。
 
-打开空间的“终端”标签并点击“连接终端”；终端与聊天都使用 `/home/agent/workspace`。从终端创建文件后，在聊天中提供 guest 路径即可让 Codex 使用工具读取。终端输出保留最近 256 Ki 字符；Codex 工具结果有界且截断会标明。关闭终端或窗口会清理应用登记的 guest 进程，不删除文件或停止整个 sandbox。直接双击未设置启动环境的应用不会自动知道应使用哪个 sandbox。
+打开空间的“开发终端”标签并点击“连接终端”；sandbox 终端与聊天都使用 `/home/agent/workspace`。从终端创建文件后，在聊天中提供 guest 路径即可让 Codex 使用工具读取。终端输出保留最近 256 Ki 字符；Codex 工具结果有界且截断会标明。关闭终端或窗口会清理应用登记的 guest 进程，不删除文件或停止整个 sandbox。直接双击未设置启动环境的应用不会自动知道应使用哪个 sandbox。
 
 显式集成验证：
 
@@ -202,3 +202,19 @@ WSL_LIVE_SBX=1 WSL_SBX_NAME=wsl-sbx-smoke-20261006 npx pnpm@10.34.6 exec playwri
 运行中的资源回复禁止更新/删除；完成清理后可变更，下轮读取新版本。界面历史中的既有引用不会被删除或改写。既有终端文件 smoke 只验证 guest 文件读取，不代表空间资源 MCP 已通过；本轮合同和结果见 [公开资源验证](../verification/2026-10-06-public-resources/SPEC.md)。
 
 系统 DNS 如返回 private、loopback 或保留地址，公开导航会失败并给出错误。不得为使测试通过而放行这些范围或关闭 TLS 校验；这类环境问题与产品回归分别记录。
+
+## 本地与 SSH 观察环境
+
+以下是本轮已实现的服务配置契约；界面接入状态和最终实测结果以 [整合记录](../acceptance/integration-20261008/task-summary.md) 为准。环境从启动进程继承，只向工作台暴露环境 ID、能力和不可用原因；空间快照不保存这些配置或认证材料。
+
+| 环境    | 可信启动配置                                                                                                                  | 行为与范围                                                                                          |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 本设备  | `WSL_OBSERVATION_ROOT` 为已有绝对目录                                                                                         | 授权此根下的只读文件观察，并以该目录启动本地终端；未配置时这两项能力不可用，网页仍可使用            |
+| sandbox | `WSL_SBX_NAME`，可选 `WSL_SBX_BIN`                                                                                            | 使用已配置的 Codex sandbox；终端工作目录 `/home/agent/workspace`，不自动提供 sandbox 文件观察适配器 |
+| SSH     | `WSL_SSH_HOST`、`WSL_SSH_USER`、`WSL_SSH_HOST_KEY_SHA256`、`WSL_SSH_ROOT`、已有 `SSH_AUTH_SOCK`；可选 `WSL_SSH_PORT`，默认 22 | 完整配置后才可创建 SSH 终端或 SFTP 文件资源；仅列出环境不会连接远端，实际打开资源时建立连接         |
+
+`WSL_SSH_HOST_KEY_SHA256` 使用可信来源预先确认的公钥 SHA256 十六进制串（64 位），不能把首次收到的未知 host key 当作可信值。应用使用已有 SSH agent，不复制私钥或认证文件；缺配置和 pin 不匹配会失败。本轮已完成 Provider 级临时回环测试；Main→service→agent→SSH/SFTP 产品回环与实际窗口尚待最终执行，不据此声称生产远端验收通过。
+
+本地文件读取使用固定根描述符和逐级不跟随符号链接的路径打开；续读核对内容散列，变化提示可能合并，不能证明文件从未变化。SFTP 的路径检查不能提供恶意远端并发替换下的原子 beneath 保证，远端权限范围仍需由可信服务器约束。
+
+本地终端通过 Python 3 标准库 PTY 实现，启动时需要 host 可执行 `python3` 和受支持的 shell；不安装 node-pty。终端以当前用户权限运行，起始目录不是操作系统沙箱。关闭时只追踪本轮继承标记与出生身份相符的进程；无法确认清理时保留 unknown 状态并阻止静默替换。文件授权根不会限制用户在终端中执行命令的权限。

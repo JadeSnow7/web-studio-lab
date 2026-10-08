@@ -1,3 +1,4 @@
+import { reorderTabIds } from './presentation';
 import { useState } from 'react';
 import type { WorkspaceSnapshot } from '@wsl/protocol';
 import { Icon } from '../components/Icon';
@@ -51,9 +52,12 @@ export function Sidebar({
               }}
               onDrop={(e) => {
                 e.preventDefault();
-                if (dragged) {
-                  const ids = items.map((t) => t.tabId).filter((id) => id !== dragged);
-                  ids.splice(ids.indexOf(tab.tabId), 0, dragged);
+                if (dragged && dragged !== tab.tabId) {
+                  const ids = reorderTabIds(
+                    items.map((t) => t.tabId),
+                    dragged,
+                    tab.tabId,
+                  );
                   void command({ type: 'reorderTabs', tabIds: ids });
                 }
                 setDrop(null);

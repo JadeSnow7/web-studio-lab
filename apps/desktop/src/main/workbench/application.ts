@@ -171,6 +171,7 @@ export class WorkbenchApplication {
   private initialized = false;
   private initializationFailed = false;
   private resourceRefresh: Promise<void> | null = null;
+  private environmentRequest = 0;
   private emissionTimer: ReturnType<typeof setTimeout> | null = null;
   constructor(
     private readonly repository: WorkbenchRepository,
@@ -373,11 +374,34 @@ export class WorkbenchApplication {
     return next;
   }
   async environments(): Promise<EnvironmentDescription[]> {
+    const request = ++this.environmentRequest;
     const environments = EnvironmentListSchema.parse(await this.runtime.environmentsList());
     await this.serialize(() => {
+      if (request !== this.environmentRequest) return;
       this.snapshot.environments = environments;
+      this.snapshot.seq++;
+      this.emitSnapshot(this.snapshot.activeWorkspaceId, this.snapshot.activeWorkspaceId);
     });
     return structuredClone(environments);
+  }
+  async onChatStatus(): Promise<void> {
+    const request = this.environmentRequest + 1;
+    try {
+      await this.environments();
+    } catch (error) {
+      const reason = `执行环境查询失败：${error instanceof Error ? error.message : String(error)}`;
+      await this.serialize(() => {
+        if (request !== this.environmentRequest) return;
+        this.snapshot.environments = this.snapshot.environments.map((environment) => ({
+          ...environment,
+          state: 'unavailable',
+          reason,
+          capabilities: { browser: environment.capabilities.browser, files: false, terminal: false },
+        }));
+        this.snapshot.seq++;
+        this.emitSnapshot(this.snapshot.activeWorkspaceId, this.snapshot.activeWorkspaceId);
+      });
+    }
   }
   private observationRecords(workspace: WorkspaceSnapshot, sessionId: string | null) {
     return sessionId === null ? workspace.observations : this.session(workspace, sessionId).observations;
@@ -440,11 +464,6 @@ export class WorkbenchApplication {
     if (!parsed.success) return { error: 'invalid_request', message: '观察输入无效或超过预算' };
     input = parsed.data;
     await this.ready;
-    try {
-      await this.environments();
-    } catch (error) {
-      return { error: 'unavailable', message: (error as Error).message };
-    }
     const controller = new AbortController();
     let settled = false;
     const externalAbort = () => {
@@ -495,9 +514,7 @@ export class WorkbenchApplication {
           if (!input.resourceId) throw new Error('invalid_request: 请显式选择资源');
           const resource = this.resource(workspace, input.resourceId);
           if (input.sessionId === null && resource.kind !== 'file') throw new Error('unauthorized: 无会话请求不允许此资源');
-          const capability = resource.kind === 'web' ? 'browser' : resource.kind === 'file' ? 'files' : 'terminal';
-          const environment = this.snapshot.environments.find((environment) => environment.environmentId === resource.environmentId);
-          if (!environment?.capabilities[capability] || resource.kind === 'session') throw new Error('unavailable: 资源环境未配置此能力');
+          if (!resource.environmentId || resource.kind === 'session') throw new Error('unavailable: 资源没有授权环境');
           if (environmentId !== undefined && environmentId !== resource.environmentId) throw new Error('unauthorized: 环境不属于资源');
           const toolPrefix = resource.kind === 'web' ? 'browser.' : resource.kind === 'file' ? 'files.' : 'terminal.';
           if (!input.tool.startsWith(toolPrefix)) throw new Error('unsupported: 工具与资源类型不匹配');
@@ -569,8 +586,40 @@ export class WorkbenchApplication {
     try {
       const read = async () => {
         if (controller.signal.aborted) return { error: 'cancelled' as const, message: '观察已取消' };
+        // Freeze and persist ownership before discovery so preflight is cancellable too.
+        const environments = await this.environments();
+        if (controller.signal.aborted) return { error: 'cancelled' as const, message: '观察已取消' };
+        if (listing) {
+          if (!request!.runId)
+            listing.sources = listing.sources.map((source) => {
+              const environment = environments.find((environment) => environment.environmentId === source.resource.environmentId);
+              const capability = source.resource.kind === 'browser' ? 'browser' : source.resource.kind === 'file' ? 'files' : 'terminal';
+              const allowed = !!environment?.capabilities[capability];
+              return {
+                ...source,
+                capabilities: allowed
+                  ? source.resource.kind === 'browser'
+                    ? ['browser.snapshot', 'browser.query', 'browser.screenshot', 'browser.read_events']
+                    : source.resource.kind === 'file'
+                      ? ['files.list', 'files.search', 'files.read']
+                      : ['terminal.read_screen', 'terminal.read_output', 'terminal.read_command']
+                  : [],
+                state: allowed ? (source.instance ? ('live' as const) : ('closed' as const)) : ('unavailable' as const),
+                reason: allowed ? (source.instance ? null : '实例未打开') : (environment?.reason ?? '环境未配置'),
+              };
+            });
+          return listing;
+        }
+        await this.serialize(() => {
+          const resource = this.resource(this.requireWorkspace(request!.workspaceId), request!.target!.resourceId);
+          if (resource.instanceId !== request!.target!.instanceId || resource.generation !== request!.target!.instanceGeneration)
+            throw new Error('unavailable: 观察预处理期间资源实例已更换');
+          const environment = environments.find((environment) => environment.environmentId === request!.target!.environmentId);
+          const capability = request!.target!.kind === 'browser' ? 'browser' : request!.target!.kind === 'file' ? 'files' : 'terminal';
+          if (!environment?.capabilities[capability]) throw new Error('unavailable: 资源环境未配置此能力');
+        });
+        if (controller.signal.aborted) return { error: 'cancelled' as const, message: '观察已取消' };
         if (browser) this.runtime.ensureBrowser(request!.workspaceId, browser);
-        if (listing) return listing;
         const result = ObservationResultSchema.parse(await this.runtime.observe(request!, controller.signal));
         if (!('error' in result)) {
           validateObservationData(result);

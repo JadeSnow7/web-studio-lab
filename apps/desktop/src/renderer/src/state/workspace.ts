@@ -106,6 +106,8 @@ export function initializeWorkspace(retry = false): Promise<void> {
   initializing = (async () => {
     try {
       projectSnapshot(await (retry ? window.studio.workbench.reload() : window.studio.workbench.getSnapshot()), true);
+      await window.studio.workbench.environments();
+      projectSnapshot(await window.studio.workbench.getSnapshot());
       workspaceStore.set((s) => ({ ...s, error: null }));
     } catch (error) {
       workspaceStore.set((s) => ({ ...s, error: (error as Error).message }));

@@ -1,0 +1,21 @@
+
+Running 13 tests using 1 worker
+
+(node:47580) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/sbx.spec.ts:30:1 › PTY 文本：规范化控制字符后只匹配完整输出行 (3ms)
+  ✓   2 e2e/sbx.spec.ts:40:1 › sbx：空间提供独立终端标签，切换时隐藏原生预览 (1.3s)
+  ✓   3 e2e/sbx.spec.ts:55:1 › sbx：对话显示执行来源，连接失败不允许发送 (674ms)
+  ✓   4 e2e/sbx.spec.ts:67:1 › 空间会话：执行器不可用时保留草稿并记录失败运行 (797ms)
+  ✓   5 e2e/sbx.spec.ts:78:1 › fixture：终端持久 cwd、Ctrl-C、resize、切标签保留与确认关闭 (1.2s)
+  ✓   6 e2e/sbx.spec.ts:116:1 › fixture：活动终端直接关闭应用需确认 Electron 进程退出 (746ms)
+  -   7 e2e/sbx.spec.ts:158:1 › live：应用终端与 Codex 共享 guest 文件并确认交互与清理
+  ✓   8 e2e/workspace-upgrade.spec.ts:5:1 › A01 / A12 空间切换器独立于侧栏，浮层使原生网页让位并恢复焦点 (729ms)
+  ✓   9 e2e/workspace-upgrade.spec.ts:27:1 › A03 / A04 / A05 统一标签与四窗格不重复创建网页实例，关闭窗格保留标签 (842ms)
+  ✓  10 e2e/workspace-upgrade.spec.ts:51:1 › A12 键盘、主题、窄窗和专注模式恢复原布局 (884ms)
+  ✓  11 e2e/workspace-upgrade.spec.ts:75:1 › A02 / A11 真实UI新建空间与会话，草稿隔离，搜索定位与无结果不切换 (987ms)
+  ✓  12 e2e/workspace-upgrade.spec.ts:129:1 › A12 三窗格活动PTY关闭切换器后不抢走触发器焦点 (833ms)
+  ✓  13 e2e/workspace-visual.spec.ts:13:1 › A12 三窗格、切换器、暗暖主题与窄窗真实窗口截图 (1.9s)
+
+  1 skipped
+  12 passed (11.2s)

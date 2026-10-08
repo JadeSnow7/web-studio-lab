@@ -2336,3 +2336,28 @@ textarea.resize-none {
 .notification-edge button {
   pointer-events: auto;
 }
+
+.file-panel {
+  height: 100%;
+  overflow: auto;
+  padding: 20px;
+}
+.file-panel pre,
+.observation-result pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.file-panel p,
+.observation-context p,
+.observation-history p {
+  overflow-wrap: anywhere;
+}
+.observation-context {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  margin-block: 16px;
+}
+.observation-history {
+  margin-block: 16px;
+}

@@ -6,7 +6,7 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 
 ## 当前状态
 
-当前工作树按[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)保留升级前的全局布局，并逐项接入空间运行能力。源代码、自动检查、原生窗口和未完成项分别记录在[本轮验收](docs/acceptance/space-remake/task-summary.md)，历史验收不能替代本轮结果。
+当前工作树按[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)保留升级前的全局布局，本地基准为 `9e1df45`。正在实施[跨分支整合 INTEGRATION-1](docs/acceptance/integration-20261008/SPEC.md)：`331c47f` 已加入统一观察协议与 Provider，`c97b673` 接入环境和终端，`d9beb8a` 接入 Main、持久化与 MCP；空间界面继续实施。源码、检查、原生窗口与未完成项分别记录在[当前验收](docs/acceptance/integration-20261008/task-summary.md)，历史记录不能替代本轮结果。
 
 | 能力         | 实现与验证边界                                                                   |
 | ------------ | -------------------------------------------------------------------------------- |
@@ -19,15 +19,15 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 | 任务与通知   | 持久任务版本、运行历史、日志、终态通知与阅读回执；执行、检查和人工接受分别记录   |
 | 恢复         | 恢复元数据、草稿、布局和历史，不自动重放执行或重新连接PTY                        |
 | 完整业务闭环 | 母模板、priority业务API、独立检查器、真实diff/报告产物及VS001产品adapter仍未实现 |
-| 其他资源     | SSH和文件适配器未实现；演示页面和历史样本均保持标识                              |
+| 统一观察     | Browser、文件、终端与 SSH 已接 Main 和 MCP；空间界面及完整验证进行中             |
 
 ## 环境
 
-详细安装与独立 sbx 沙箱测试前置条件见[开发依赖与安装](docs/development/dependencies.md)。sbx v0.47.0 已安装，Docker/OpenAI OAuth 已完成，独立沙箱内 Codex 读取内部文件的真实 smoke 已通过，见[沙箱验证记录](docs/verification/2026-10-06-sbx/README.md)。桌面对话与终端现已接入同一个 sbx 环境，应用层测试见 [sbx 接入验证](docs/verification/2026-10-06-sbx-app/README.md)。
+详细安装与独立 sbx 沙箱测试前置条件见[开发依赖与安装](docs/development/dependencies.md)。2026-10-06 的本机历史记录包含 sbx v0.47.0、Docker/OpenAI OAuth 准备与真实 smoke，见[沙箱验证记录](docs/verification/2026-10-06-sbx/README.md)和[应用接入验证](docs/verification/2026-10-06-sbx-app/README.md)。新机器须重新准备，本轮认证和 live 是否可用以当前验收记录为准。未配置 sbx 不妨碍启动桌面；sandbox 对话/终端会明确不可用。
 
 - macOS Apple Silicon。其他平台没有验证。
 - Node：与 Electron 44.5.1 内置的 Node 24 对齐，`.nvmrc` 为 24。2026-10-06 的本地验证实际运行在 Node 26.5.0 上，Node 24 尚未单独验证。
-- pnpm 10.34.6（见根 `package.json` 的 `packageManager`）。Node 25 起不再自带 Corepack，可以 `npm install -g pnpm@10.34.6`，或者在下面的命令前加 `npx pnpm@10.34.6` 代替 `pnpm`。
+- pnpm 10.34.6（见根 `package.json` 的 `packageManager`）。若本机尚未安装，可以 `npm install -g pnpm@10.34.6`，或者在下面的命令前加 `npx pnpm@10.34.6` 代替 `pnpm`。
 - 首次运行 Electron 时会下载 Electron 二进制（约 100 MB）；首次打包时 electron-builder 还会下载自己的 Electron 包与 dmg 工具。需要网络。
 
 ## 启动与检查
@@ -58,9 +58,9 @@ pnpm test:e2e
 
 ## 沙箱对话与终端
 
-先按[依赖说明](docs/development/dependencies.md)准备 sbx、宿主 OAuth 和 guest Codex/Node。启动时用 `WSL_SBX_NAME` 选择已有沙箱，历史测试使用 `wsl-sbx-smoke-20261006`，本轮重制不调用真实模型或sandbox live；`WSL_SBX_BIN` 可指定 CLI 路径。应用从 PATH、`/opt/homebrew/bin/sbx`、`/usr/local/bin/sbx` 定位 sbx，配置不成功时明确禁用发送。生产通路不再使用 `WSL_CODEX_BIN` 或 host Codex。
+先按[依赖说明](docs/development/dependencies.md)准备 sbx、宿主 OAuth 和 guest Codex/Node。启动时用 `WSL_SBX_NAME` 选择已有沙箱，历史测试使用 `wsl-sbx-smoke-20261006`；`WSL_SBX_BIN` 可指定 CLI 路径。SR-1 重制阶段没有调用真实模型；本次整合已获 live 验证授权，执行结果单独记录在当前验收中。应用从 PATH、`/opt/homebrew/bin/sbx`、`/usr/local/bin/sbx` 定位 sbx，配置不成功时明确禁用发送。生产通路不再使用 `WSL_CODEX_BIN` 或 host Codex。
 
-首页个人对话、会话页和空间会话标签保留原交互：Enter 发送，Shift+Enter 换行，可以取消和开始新对话。界面显示 sandbox 与 guest cwd，工程详情可查看工具结果及警告。Codex 可以使用 guest 工具读写 `/home/agent/workspace`；对话历史分开，但文件系统与终端共享。新对话不会删除 guest 文件，也不承诺删除 CLI 历史。
+首页个人对话和会话页支持 Enter 发送、Shift+Enter 换行、取消和开始新对话。空间会话标签分别保存草稿、任务版本与运行，进入新会话使用空间的新建会话入口。界面显示 sandbox 与 guest cwd，运行详情可查看工具结果及警告。Codex 可以使用 guest 工具读写 `/home/agent/workspace`；对话历史分开，但文件系统与终端共享。新对话不会删除 guest 文件，也不承诺删除 CLI 历史。
 
 空间垂直标签中的“开发终端”提供显式连接入口，打开交互shell，支持持续 cwd/环境、Ctrl-C、窗口尺寸变化与关闭。切换标签保留 shell；关闭终端或取消对话须确认所属远端进程退出。应用不会停止整个 sandbox，sandbox 内安装与文件由 sbx 保留。Browser 可加载演示页面和受控公开 HTTPS 只读文档，尚未转发 guest 服务端口。
 
@@ -77,7 +77,7 @@ WSL_LIVE_SBX=1 WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm exec playwright test e2e
 
 公开文档沿用既有只读路径：在地址栏输入公开 HTTPS URL，成功加载后点击“加入空间”。资源页可查看 URL、标题、正文、资源身份、版本与摘要，并用当前同 URL 页面更新或移除。外部脚本、子资源和登录状态不进入该文档视图；不支持的响应会明确失败。
 
-空间会话通过有限只读 MCP 获取用户保存的快照，个人会话是空资源范围。资源更新或删除后下一轮读取新集合；历史消息保留。该功能不创建 host mount，不改变已有沙箱认证。真实网络与模型结果、DNS 阻塞和受控 fixture 必须分别判断，见[本轮合同](docs/verification/2026-10-06-public-resources/SPEC.md)。
+此既有公开快照合同仅服务 `taskflow-demo` 的对应空间会话，其他空间和个人会话没有该资源范围；不能据此宣称任意空间已获得公开快照权限。资源更新或删除后下一轮读取新集合，历史消息保留。本次统一观察使用独立的 Main 资源绑定，不扩展旧公开快照合同。该功能不创建 host mount，不改变已有沙箱认证。真实网络与模型结果、DNS 阻塞和受控 fixture 必须分别判断，见[公开快照合同](docs/verification/2026-10-06-public-resources/SPEC.md)。
 
 普通测试默认不调用模型。以下分别是实际 Codex 读取明确标识的内存测试资料，以及真实公网到 UI 空间再到模型的链路；需显式运行并保留实际结果，不能相互替代：
 

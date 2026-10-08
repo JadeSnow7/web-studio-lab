@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Terminal as Xterm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import type { WorkbenchResource } from '@wsl/protocol';
-import { workspaceCommand } from '../state/workspace';
+import { useStore } from '../lib/store';
+import { workspaceCommand, workspaceStore } from '../state/workspace';
+import { terminalDelta, type RenderedTerminal } from './presentation';
 import '@xterm/xterm/css/xterm.css';
 
 export function Terminal({
@@ -20,6 +22,11 @@ export function Terminal({
   occluded: boolean;
   theme: string;
 }) {
+  const environment = useStore(workspaceStore, (state) =>
+    state.snapshot?.environments.find((environment) => environment.environmentId === resource.environmentId),
+  );
+  const unavailable =
+    resource.unavailableReason ?? (!environment?.capabilities.terminal ? (environment?.reason ?? '环境能力尚未核对或终端未配置') : null);
   const host = useRef<HTMLDivElement>(null),
     term = useRef<Xterm | null>(null),
     fit = useRef<FitAddon | null>(null);
@@ -27,7 +34,8 @@ export function Terminal({
   useEffect(() => {
     latest.current = resource;
   }, [resource]);
-  const rendered = useRef({ instanceId: null as string | null, output: '' });
+  const rendered = useRef<RenderedTerminal>({ instanceId: null, sessionId: null, output: '', offset: 0 });
+  const [truncated, setTruncated] = useState(false);
   useEffect(() => {
     const t = new Xterm({
       fontFamily: getComputedStyle(document.documentElement).getPropertyValue('--mono').trim(),
@@ -38,7 +46,7 @@ export function Terminal({
     const f = new FitAddon();
     t.loadAddon(f);
     t.open(host.current!);
-    t.textarea?.setAttribute('aria-label', '沙箱终端输入');
+    t.textarea?.setAttribute('aria-label', '终端输入');
     term.current = t;
     fit.current = f;
     const input = t.onData((data) => {
@@ -61,7 +69,7 @@ export function Terminal({
       resize.dispose();
       t.dispose();
       term.current = null;
-      rendered.current = { instanceId: null, output: '' };
+      rendered.current = { instanceId: null, sessionId: null, output: '', offset: 0 };
     };
   }, [workspaceId, resource.resourceId]);
   useEffect(() => {
@@ -86,11 +94,18 @@ export function Terminal({
     const t = term.current;
     if (!t) return;
     const output = resource.terminal?.output ?? '';
-    if (rendered.current.instanceId !== resource.instanceId || !output.startsWith(rendered.current.output)) {
-      t.reset();
-      t.write(output);
-    } else t.write(output.slice(rendered.current.output.length));
-    rendered.current = { instanceId: resource.instanceId, output };
+    const next = {
+      instanceId: resource.instanceId,
+      sessionId: resource.terminal?.sessionId ?? null,
+      output,
+      offset: resource.terminal?.outputOffset ?? 0,
+    };
+    const delta = terminalDelta(rendered.current, next);
+    if (delta.reset) t.reset();
+    if (delta.text) t.write(delta.text);
+    if (delta.gap) setTruncated(true);
+    else if (delta.reset) setTruncated(false);
+    rendered.current = next;
     t.options.disableStdin = occluded || resource.terminal?.state !== 'running';
   }, [resource, occluded]);
   const activation = useRef('');
@@ -105,14 +120,15 @@ export function Terminal({
   const running = resource.terminal?.state === 'running',
     busy = resource.terminal?.state === 'starting' || resource.terminal?.state === 'closing';
   return (
-    <section className="terminal-panel" aria-label="沙箱终端">
+    <section className="terminal-panel" aria-label="资源终端">
       <div className="terminal-toolbar row space-between gap-8">
         <span role="status">
-          {resource.terminal?.sandbox ?? 'sbx'} · {resource.terminal?.cwd ?? '工作目录未读取'} ·{' '}
+          {resource.environmentId ?? '未绑定环境'}
+          {resource.terminal?.sandbox ? ` / ${resource.terminal.sandbox}` : ''} · {resource.terminal?.cwd ?? '工作目录未读取'} ·{' '}
           {resource.terminal?.state === 'running'
             ? '已连接'
             : resource.terminal?.state === 'closed'
-              ? '已关闭，远端进程已退出'
+              ? '已关闭，所属进程已确认退出'
               : resource.terminal?.state === 'failed'
                 ? '连接失败'
                 : (resource.terminal?.state ?? '尚未连接')}
@@ -152,7 +168,7 @@ export function Terminal({
           <button
             type="button"
             className="btn"
-            disabled={busy}
+            disabled={busy || !resource.environmentId || !!unavailable}
             onClick={() =>
               void workspaceCommand(workspaceId, {
                 type: 'terminalOpen',
@@ -167,6 +183,8 @@ export function Terminal({
         )}
       </div>
       {resource.terminal?.error ? <p role="alert">{resource.terminal.error}</p> : null}
+      {unavailable ? <p role="status">{unavailable}</p> : null}
+      {truncated ? <p role="status">未读输出已超出保留窗口；已从当前窗口重建显示。</p> : null}
       <div className="terminal-surface" ref={host} />
       <p className="muted small terminal-hint">输出最多保留 256 Ki 字符 · 隐藏窗格继续运行</p>
     </section>

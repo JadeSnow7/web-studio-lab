@@ -64,7 +64,8 @@ async function setup() {
     send: vi.fn(),
     cancel: vi.fn(),
   };
-  const app = new WorkbenchApplication(repository, runtime, vi.fn());
+  const emit = vi.fn();
+  const app = new WorkbenchApplication(repository, runtime, emit);
   await app.getSnapshot();
   await app.environments();
   const command = (workspaceId: string, payload: Record<string, unknown>) =>
@@ -76,7 +77,7 @@ async function setup() {
       .resources.filter((r) => r.kind === 'file')
       .at(-1)!;
   };
-  return { app, runtime, repository, archived, command, file };
+  return { app, runtime, repository, archived, command, file, emit };
 }
 function result(request: ObservationRequest): ObservationResult {
   return {
@@ -103,6 +104,52 @@ function input(resourceId: string, workspaceId = 'taskflow-demo', sessionId: str
   };
 }
 describe('Main observation ownership and lifecycle', () => {
+  it('refreshes the Main environment projection when chat transitions from checking to ready', async () => {
+    const { app, runtime, emit } = await setup();
+    const checking = [
+      {
+        environmentId: 'sandbox',
+        kind: 'sandbox',
+        label: 'Sandbox',
+        state: 'unavailable',
+        reason: '正在检查 sbx…',
+        capabilities: { browser: false, files: false, terminal: false },
+      },
+    ];
+    vi.mocked(runtime.environmentsList).mockResolvedValueOnce(checking as Awaited<ReturnType<WorkbenchRuntime['environmentsList']>>);
+    await app.environments();
+    const seq = (await app.getSnapshot()).seq;
+    emit.mockClear();
+    await app.onChatStatus();
+    expect(emit).toHaveBeenCalled();
+    expect((await app.getSnapshot()).environments.find((e) => e.environmentId === 'sandbox')?.capabilities.terminal).toBe(true);
+    expect((await app.getSnapshot()).seq).toBeGreaterThan(seq);
+  });
+  it('keeps a newer ready projection when an earlier status refresh fails late', async () => {
+    const { app, runtime } = await setup();
+    let reject!: (error: Error) => void;
+    vi.mocked(runtime.environmentsList).mockImplementationOnce(
+      () =>
+        new Promise((_resolve, fail) => {
+          reject = fail;
+        }),
+    );
+    const previous = app.onChatStatus();
+    await app.onChatStatus();
+    reject(new Error('old transport closed'));
+    await previous;
+    expect((await app.getSnapshot()).environments.find((e) => e.environmentId === 'sandbox')?.capabilities.terminal).toBe(true);
+  });
+  it('projects environment query failure visibly without granting service capabilities', async () => {
+    const { app, runtime } = await setup();
+    vi.mocked(runtime.environmentsList).mockRejectedValueOnce(new Error('transport closed'));
+    await app.onChatStatus();
+    expect((await app.getSnapshot()).environments.find((e) => e.environmentId === 'sandbox')).toMatchObject({
+      state: 'unavailable',
+      reason: '执行环境查询失败：transport closed',
+      capabilities: { terminal: false, files: false },
+    });
+  });
   it('allows explicit sessionless file browsing without writing Agent context; sources remain independent', async () => {
     const { app, file } = await setup();
     const resource = await file();
@@ -544,4 +591,142 @@ describe('Main observation ownership and lifecycle', () => {
     expect(runtime.observe).not.toHaveBeenCalled();
     expect(runtime.registerResource).not.toHaveBeenCalled();
   });
+});
+
+it('cancels a request while environment discovery is delayed without starting its provider', async () => {
+  const { app, runtime, command, file } = await setup();
+  const resource = await file();
+  const sessionId = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.sessionId;
+  const environments = await runtime.environmentsList();
+  let release!: () => void;
+  vi.mocked(runtime.environmentsList).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        release = () => resolve(environments);
+      }),
+  );
+  const requestId = randomUUID();
+  const reading = app.observe({
+    requestId,
+    workspaceId: 'taskflow-demo',
+    sessionId,
+    runId: null,
+    resourceId: resource.resourceId,
+    tool: 'files.read',
+    args: { path: 'a.txt' },
+  });
+  await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+  const cancelled = await command('taskflow-demo', { type: 'cancelObservation', sessionId, requestId });
+  release();
+  const result = await reading;
+  expect(cancelled.ok).toBe(true);
+  expect(result).toMatchObject({ error: 'cancelled' });
+  expect(runtime.observe).not.toHaveBeenCalled();
+  const record = (await app.getSnapshot()).workspaces[0]!.sessions.find((session) => session.sessionId === sessionId)!.observations.find(
+    (record) => record.request.requestId === requestId,
+  )!;
+  expect(record.state).toBe('cancelled');
+  expect(record.request.workspaceId).toBe('taskflow-demo');
+  expect(record.request.sessionId).toBe(sessionId);
+});
+
+it('environment discovery failure terminates the frozen record and releases its active slot', async () => {
+  const { app, runtime, file, archived } = await setup();
+  const resource = await file();
+  vi.mocked(runtime.environmentsList).mockRejectedValueOnce(new Error('ENV_DISCOVERY_FAILED'));
+  const request = input(resource.resourceId);
+  expect(await app.observe(request)).toMatchObject({ error: 'unavailable', message: 'ENV_DISCOVERY_FAILED' });
+  const record = (await app.getSnapshot()).workspaces[0]!.observations.at(-1)!;
+  expect(record.state).toBe('failed');
+  expect(record.evidenceRef).toBeTypeOf('string');
+  expect(archived).toHaveLength(1);
+  expect(await app.observe(input(resource.resourceId))).toHaveProperty('source', 'disk');
+});
+
+it('environment preflight keeps the source set frozen across new resources and a space switch', async () => {
+  const { app, runtime, file, command } = await setup();
+  await file();
+  const workspace = (await app.getSnapshot()).workspaces[0]!;
+  const environments = await runtime.environmentsList();
+  let release!: () => void;
+  vi.mocked(runtime.environmentsList).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        release = () => resolve(environments);
+      }),
+  );
+  const reading = app.observe({
+    requestId: randomUUID(),
+    workspaceId: workspace.workspaceId,
+    sessionId: workspace.sessions[0]!.sessionId,
+    runId: null,
+    resourceId: null,
+    tool: 'workspace.list_sources',
+    args: {},
+  });
+  await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+  const later = await file();
+  await command('later-space', { type: 'createWorkspace', name: 'Later' });
+  release();
+  const result = await reading;
+  expect(result).toHaveProperty('kind', 'sources');
+  if (!('kind' in result)) throw new Error('Expected frozen source list');
+  expect(result.workspaceId).toBe(workspace.workspaceId);
+  expect(result.sources.some((source) => source.resource.resourceId === later.resourceId)).toBe(false);
+  expect(result.sources.find((source) => source.resource.kind === 'file')!.capabilities).toContain('files.read');
+});
+
+it('replacement during environment preflight rejects the frozen instance before provider I/O', async () => {
+  const { app, runtime, command } = await setup();
+  const workspace = (await app.getSnapshot()).workspaces[0]!;
+  const terminal = workspace.resources.find((resource) => resource.kind === 'terminal')!;
+  const sessionId = workspace.sessions[0]!.sessionId;
+  const snapshot = {
+    seq: 1,
+    sessionId: 'pty',
+    sandbox: 'fixture',
+    cwd: '/tmp',
+    state: 'running',
+    output: '',
+    outputOffset: 0,
+    cleanupPending: true,
+    error: null,
+  } as TerminalSnapshot;
+  vi.mocked(runtime.terminalOpen).mockResolvedValue(snapshot);
+  vi.mocked(runtime.terminalStop).mockResolvedValue({ ...snapshot, seq: 2, state: 'closed', cleanupPending: false });
+  await command(workspace.workspaceId, { type: 'terminalOpen', resourceId: terminal.resourceId, cols: 80, rows: 24 });
+  await vi.waitFor(async () =>
+    expect(
+      (await app.getSnapshot()).workspaces[0]!.resources.find((resource) => resource.resourceId === terminal.resourceId)!.terminal!.state,
+    ).toBe('running'),
+  );
+  const initial = (await app.getSnapshot()).workspaces[0]!.resources.find((resource) => resource.resourceId === terminal.resourceId)!;
+  const environments = await runtime.environmentsList();
+  let release!: () => void;
+  vi.mocked(runtime.environmentsList).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        release = () => resolve(environments);
+      }),
+  );
+  const reading = app.observe({
+    requestId: randomUUID(),
+    workspaceId: workspace.workspaceId,
+    sessionId,
+    runId: null,
+    resourceId: terminal.resourceId,
+    tool: 'terminal.read_screen',
+    args: {},
+  });
+  await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+  await command(workspace.workspaceId, { type: 'stopInstance', resourceId: terminal.resourceId, instanceId: initial.instanceId });
+  await vi.waitFor(async () =>
+    expect(
+      (await app.getSnapshot()).workspaces[0]!.resources.find((resource) => resource.resourceId === terminal.resourceId)!.terminal!.state,
+    ).toBe('closed'),
+  );
+  await command(workspace.workspaceId, { type: 'terminalOpen', resourceId: terminal.resourceId, cols: 80, rows: 24 });
+  release();
+  expect(await reading).toMatchObject({ error: 'unavailable' });
+  expect(runtime.observe).not.toHaveBeenCalled();
 });

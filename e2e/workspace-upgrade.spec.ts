@@ -94,18 +94,25 @@ test('A02 / A11 真实UI新建空间与会话，草稿隔离，搜索定位与�
     await tab.getByRole('button', { name: '保存', exact: true }).click();
     await expect(tab).not.toBeVisible();
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '整理研究资料742', exact: true }).click();
-    await page.getByRole('region', { name: 'Agent 会话内容' }).getByRole('textbox').fill('研究空间独立草稿');
+    await page
+      .getByRole('region', { name: 'Agent 会话内容' })
+      .getByRole('textbox', { name: '会话消息', exact: true })
+      .fill('研究空间独立草稿');
     await page.getByRole('button', { name: '切换空间', exact: true }).click();
     await expect(switcher).toBeVisible();
     await page.getByLabel('搜索空间或标签').fill('TaskFlow');
     await switcher.getByRole('button', { name: /TaskFlow.*个标签/ }).click();
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
-    await expect(page.getByRole('region', { name: 'Agent 会话内容' }).getByRole('textbox')).toHaveValue('');
+    await expect(page.getByRole('region', { name: 'Agent 会话内容' }).getByRole('textbox', { name: '会话消息', exact: true })).toHaveValue(
+      '',
+    );
     await page.getByRole('button', { name: '切换空间', exact: true }).click();
     await expect(switcher).toBeVisible();
     await page.getByLabel('搜索空间或标签').fill('整理研究资料742');
     await switcher.getByRole('button', { name: /整理研究资料742/ }).click();
-    await expect(page.getByRole('region', { name: 'Agent 会话内容' }).getByRole('textbox')).toHaveValue('研究空间独立草稿');
+    await expect(page.getByRole('region', { name: 'Agent 会话内容' }).getByRole('textbox', { name: '会话消息', exact: true })).toHaveValue(
+      '研究空间独立草稿',
+    );
     await page.getByRole('button', { name: '切换空间', exact: true }).click();
     await expect(switcher).toBeVisible();
     await page.getByLabel('搜索空间或标签').fill('无匹配结果');
@@ -127,8 +134,8 @@ test('A12 三窗格活动PTY关闭切换器后不抢走触发器焦点', async (
     await page.getByRole('button', { name: '聚焦窗格 · TaskFlow 预览' }).click();
     await page.getByRole('button', { name: '上下分屏', exact: true }).first().click();
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '开发终端', exact: true }).click();
-    await page.getByRole('region', { name: '沙箱终端' }).getByRole('button', { name: '连接终端', exact: true }).click();
-    await expect(page.getByLabel('沙箱终端输入')).toBeFocused();
+    await page.getByRole('region', { name: '资源终端' }).getByRole('button', { name: '连接终端', exact: true }).click();
+    await expect(page.getByLabel('终端输入')).toBeFocused();
     const trigger = page.getByRole('button', { name: '切换空间', exact: true });
     await trigger.click();
     await expect(page.getByRole('dialog', { name: '切换空间' })).toBeVisible();
