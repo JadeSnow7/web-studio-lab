@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
     setLayout: ReturnType<typeof vi.fn>;
     captureResource: ReturnType<typeof vi.fn>;
   }>,
+  appendObservation: vi.fn(async () => crypto.randomUUID()),
   load: vi.fn(),
   page: { webContentsId: 42, documentGeneration: 1, url: 'https://example.com/', title: 'fixture', partition: 'fixture' },
 }));
@@ -43,6 +44,7 @@ import { WorkbenchHost } from './host';
 const resource = (id: string): WorkbenchResource => ({
   resourceId: id,
   kind: 'web',
+  environmentId: 'local',
   title: id,
   url: 'wsl-demo://taskflow/',
   instanceId: id + '-instance',

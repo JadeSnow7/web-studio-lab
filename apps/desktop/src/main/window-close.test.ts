@@ -12,6 +12,7 @@ vi.mock('electron', () => ({
 }));
 vi.mock('./chat-service', () => ({
   ChatService: class {
+    setObservationReader = vi.fn();
     shutdown = fixture.shutdown;
   },
 }));

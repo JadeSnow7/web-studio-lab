@@ -1,3 +1,4 @@
+import type { EnvironmentDescription, WorkbenchObservationInput, WorkspaceObservationResult } from './index';
 import type { WorkbenchCommand, WorkbenchEvent, WorkbenchResult, WorkbenchSnapshot } from './workspace';
 import type { ChatConversation, ChatSlot, ChatStatus } from './chat';
 import type { AppInfo, ShellCommand } from './app';
@@ -13,6 +14,8 @@ export interface StudioApi {
   workbench: {
     getSnapshot(): Promise<WorkbenchSnapshot>;
     reload(): Promise<WorkbenchSnapshot>;
+    environments(): Promise<EnvironmentDescription[]>;
+    observe(input: WorkbenchObservationInput): Promise<WorkspaceObservationResult>;
     command(command: WorkbenchCommand): Promise<WorkbenchResult>;
     onEvent(listener: (event: WorkbenchEvent) => void): Unsubscribe;
   };

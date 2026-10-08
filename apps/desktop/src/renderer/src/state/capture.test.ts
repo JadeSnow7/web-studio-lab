@@ -24,6 +24,7 @@ const makeSnapshot = () =>
           {
             resourceId: 'web',
             kind: 'web',
+            environmentId: 'local',
             title: 'web',
             url: page.url,
             instanceId: 'native',

@@ -1,3 +1,4 @@
+import { WorkspaceObservationResultSchema, ObservationRequestSchema as RequestSchema, ObservationTurnScopeSchema } from './observation';
 import { EnvironmentListSchema, RuntimeResourceIdentitySchema } from './environments';
 import {
   ObservationRequestSchema,
@@ -6,6 +7,14 @@ import {
   FileInvalidationHintSchema,
 } from './observation';
 import { z } from 'zod';
+const BufferlessBytes = (value: string) => {
+  let bytes = 0;
+  for (const char of value) {
+    const code = char.codePointAt(0)!;
+    bytes += code < 128 ? 1 : code < 2048 ? 2 : code < 65536 ? 3 : 4;
+  }
+  return bytes;
+};
 import { TerminalOpenSchema, TerminalWriteSchema, TerminalResizeSchema, TerminalTargetSchema, TerminalSnapshotSchema } from './terminal';
 
 import { ChatSlotSchema } from './chat-slot';
@@ -44,9 +53,20 @@ export const ChatConversationSchema = z.object({
   cleanupPending: z.boolean(),
   error: z.string().nullable(),
 });
-export const ChatSendSchema = z.object({ conversationId: ChatSlotSchema, text: z.string().trim().min(1).max(32000) });
+export const ChatSendSchema = z.object({
+  conversationId: ChatSlotSchema,
+  text: z.string().trim().min(1).max(32000),
+  observationScope: ObservationTurnScopeSchema.optional(),
+});
 export const ChatTargetSchema = z.object({ conversationId: ChatSlotSchema });
 export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
+  z
+    .object({
+      id: z.string(),
+      method: z.literal('observation.reply'),
+      payload: z.object({ callId: z.string().uuid(), result: WorkspaceObservationResultSchema }).strict(),
+    })
+    .strict(),
   z.object({ id: z.string(), method: z.literal('status') }),
   z.object({ id: z.string(), method: z.literal('environments.list') }).strict(),
   z.object({ id: z.string(), method: z.literal('resource.register'), payload: RuntimeResourceIdentitySchema }).strict(),
@@ -89,6 +109,16 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
     binding: ResourceInstanceIdentitySchema,
   }),
   z.object({ type: z.literal('file-hint'), hint: FileInvalidationHintSchema }).strict(),
+  z
+    .object({
+      type: z.literal('observation-call'),
+      id: z.string().uuid(),
+      scope: ObservationTurnScopeSchema,
+      tool: RequestSchema.shape.tool,
+      args: z.record(z.string(), z.unknown()).refine((args) => BufferlessBytes(JSON.stringify(args)) <= 16384),
+    })
+    .strict(),
+  z.object({ type: z.literal('observation-abort'), id: z.string().uuid() }).strict(),
   z.object({
     type: z.literal('response'),
     id: z.string(),

@@ -1,3 +1,5 @@
+import { EnvironmentListSchema } from './environments';
+import { WorkbenchObservationInputSchema, WorkspaceObservationResultSchema } from './observation';
 import { WorkbenchCommandSchema, WorkbenchEventSchema, WorkbenchResultSchema, WorkbenchSnapshotSchema } from './workspace';
 import { z } from 'zod';
 import { AppInfoSchema, ShellCommandSchema } from './app';
@@ -11,6 +13,8 @@ const NoArgs = z.undefined();
  * main 在边界用 request schema 校验参数，校验失败直接抛错。
  */
 export const invokeChannels = {
+  'workbench:environments': { request: NoArgs, response: EnvironmentListSchema },
+  'workbench:observe': { request: WorkbenchObservationInputSchema, response: WorkspaceObservationResultSchema },
   'workbench:reload': { request: NoArgs, response: WorkbenchSnapshotSchema },
   'workbench:get-snapshot': { request: NoArgs, response: WorkbenchSnapshotSchema },
   'workbench:command': { request: WorkbenchCommandSchema, response: WorkbenchResultSchema },

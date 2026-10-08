@@ -1,0 +1,235 @@
+{
+  "phase": "2b",
+  "head": "c97b673e789f87edf9c81a9ee79fdcd42f27125e",
+  "source_files": [
+    {
+      "path": "apps/desktop/src/main/chat-service.test.ts",
+      "sha256": "a82f4f69fcff453443cb5a8a06656685c09f2ddd91d97afd145f54d3864a8828"
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.ts",
+      "sha256": "0514fc489f1a69f5cb6e8da43c1bb59833aeb98dc8c089b5f6dbfe189c14a83e"
+    },
+    {
+      "path": "apps/desktop/src/main/index.ts",
+      "sha256": "b5b712330ecac2f6d76036610d97e563987614e1df4a3a0c910ef8287000f02c"
+    },
+    {
+      "path": "apps/desktop/src/main/ipc.ts",
+      "sha256": "2f7afe9d5fb69b07fae19415b45047c729b7f268dcaf570b373b271af41c587f"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller.ts",
+      "sha256": "09cb7b55d727eb384c11c1ebcbe18a026787bd1223a407bff9bdd05b6a23da1f"
+    },
+    {
+      "path": "apps/desktop/src/main/window-close.test.ts",
+      "sha256": "bb1a6b2a8a400300ed9a5605233821f376709a2e796f2d645e6c69a757de2d43"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.test.ts",
+      "sha256": "743dd3bfc00a2294cb0eaef7f7f4d5ff4d846d6fc6382af8d72dfa2a702a023b"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.ts",
+      "sha256": "2352b6d6d347e802092f3a054d102d1632fe3a6644d6eef591001e24881cd031"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/host-migration.test.ts",
+      "sha256": "f642e86a0be2805bdf502050224b8cf0e82df222752c4aaa63de8799a88d04b7"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/host.ts",
+      "sha256": "f7fa881b87480334b0754caf985dfd21364af0175ead5ff2b9559f8ed0e67618"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/migration-followup.test.ts",
+      "sha256": "f30598ff91ee0b88cc6b21ce41eebdd775d5684e57b2245e544a8925a76e424a"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/migration-regressions.test.ts",
+      "sha256": "ecc4b9b9438d36754a0961f7fcdaf674044d5db159ecffa2433742b074b1f219"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/observation-application.test.ts",
+      "sha256": "ed99b2b1febe7cd7d9c29f28eccf6de8dc1540bc3c3126ac9252be3089ddfc32"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/observation-persistence.test.ts",
+      "sha256": "79d779cd0d89086a36513635a82bd334264545dcd3e97e600fbd831c46e3e670"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/ports.ts",
+      "sha256": "2749bc73dea173e9482f8ab4c53aa4530df63e41ba940f5a7c57853d9a67de36"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/public-resources-migration.test.ts",
+      "sha256": "a03631bdc63c7beda59fec636abd0cd06be8d1d8552cddd44807750e922d7130"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/recovery-facts.test.ts",
+      "sha256": "fef4f487ceddb6a041a1b5082ccc3fc55cfd924162fb6b891d976234d2c2ed62"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/repository.ts",
+      "sha256": "c5d2f8724f4f32a315f143af090b3dba484b26e99cf0581873c3af090691bb60"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/run-notification-migration.test.ts",
+      "sha256": "a6c94ed0c4bd32e6d36a59ba710a9bf928d0d9222cd1277ac6fb5ec1a0955df5"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/runtime-outcomes.test.ts",
+      "sha256": "1db120d60d4c4672a63f07961046d5e3268479174b33b60aa12b8d9613c14d6a"
+    },
+    {
+      "path": "apps/desktop/src/preload/index.ts",
+      "sha256": "8bf3ffe3de5c1b79bd7419f7c4b0fc71ba00a7b2f16fb515a967b3717cc9bda3"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/capture.test.ts",
+      "sha256": "a7cc0d1eb5f6a59e8676701307004c6fb0614e54428904034bfe323caf0a6469"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workspace.test.ts",
+      "sha256": "8fa4d61d03684a3c1e5966f39605f0666f5285f5a06bf66bcd5b9ff4a82519f6"
+    },
+    {
+      "path": "apps/service/src/codex-chat.ts",
+      "sha256": "0016eef21c59275a9423bf7027b195f9a9715b0507a0a8a3ef718b762502dcd3"
+    },
+    {
+      "path": "apps/service/src/fixtures/observation-sbx.mjs",
+      "sha256": "574bdf774c6590de8d5e840cd40ea59beb45b2f9785a350190608c6dc6118250"
+    },
+    {
+      "path": "apps/service/src/guest-helper.py",
+      "sha256": "414e1293bb41c92ab9846afd703e60fd6d1726b93085ee15b555097e35494605"
+    },
+    {
+      "path": "apps/service/src/index.ts",
+      "sha256": "4b9e4e3d163704e3c0a4acbb3924af1efc81819e59d5763d4e3456d63b701a06"
+    },
+    {
+      "path": "apps/service/src/initialization-migration.test.ts",
+      "sha256": "16268882683b193fd572988a0d09cd2e906ad705f3037d3e8f7eaca7ed21ccab"
+    },
+    {
+      "path": "apps/service/src/observation-mcp.test.ts",
+      "sha256": "af91f0b5745504d82a78c50afa6d5ac0d294ebeb5f2c940864cd7a4d792c71cc"
+    },
+    {
+      "path": "apps/service/src/observation-socket.test.ts",
+      "sha256": "1cad52a0e903e05140810dfc09fb9057e4855d5ea7884d29037cb16d121d70b3"
+    },
+    {
+      "path": "apps/service/src/observation_mcp_tests.py",
+      "sha256": "5eebac1d0974ede7d88895b91e6ea3acd9c08208c07a8b596913a18d1a9b752c"
+    },
+    {
+      "path": "apps/service/src/resource-dispatch.test.ts",
+      "sha256": "4da459e1158eba5fd4b353bbbdc1b5096080c4325de2f232077e650938991af1"
+    },
+    {
+      "path": "apps/service/src/resource_mcp.py",
+      "sha256": "b5b81f7d6946782338310d5c0e3ab1d21661ac7005ea9a65023609078198a2e8"
+    },
+    {
+      "path": "apps/service/src/sbx.test.ts",
+      "sha256": "18e41c8b0c4bafd6ea8b2e03a0cffebe0177fc6bd21dd7c30a3e088e75ad4005"
+    },
+    {
+      "path": "apps/service/src/sbx.ts",
+      "sha256": "5bc9baf7cf37b912911a4b323ae546a1435e5495337a6a76d49954b5ed6803aa"
+    },
+    {
+      "path": "packages/protocol/src/bridge.ts",
+      "sha256": "1037185bdb9ed8fb2cb011e813181d036d2c4ccab61e78277c4b07cc146f08c4"
+    },
+    {
+      "path": "packages/protocol/src/chat.ts",
+      "sha256": "861f98abdac3a3078c26b9438f4dba0be2b6cb80dffbe736b1daba8de4a51fec"
+    },
+    {
+      "path": "packages/protocol/src/ipc.ts",
+      "sha256": "27365af45073e7b05c6bdc3dc54478c649ed58f512a96a79ea1483dc45a6ba64"
+    },
+    {
+      "path": "packages/protocol/src/observation.ts",
+      "sha256": "1d74443d2817121c24e557953d846a9e15d52ec2ee6faf228d6c92b428514c6e"
+    },
+    {
+      "path": "packages/protocol/src/terminal.ts",
+      "sha256": "d02960e1bb70a9c484269ec047063720db611f7684c0ecc1f0df51735f9205f2"
+    },
+    {
+      "path": "packages/protocol/src/workspace.ts",
+      "sha256": "c67fafb2d82786f5f013c3b726ea18bbc987fd2ab173b1d1a10db198efa56690"
+    }
+  ],
+  "receipts": {
+    "typecheck": {
+      "path": "docs/acceptance/integration-20261008/evidence/phase2b-final-typecheck.json",
+      "sha256": "68b8e3e499868bcba5ecf04d7827f7d53f383e04499413394e7eb3d6e4300592",
+      "result": "passed",
+      "exit_code": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:3594c113361328dd42e25963c53249e7189bae59b375f771884e8fd6c9226838:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "changed_paths": []
+    },
+    "unit": {
+      "path": "docs/acceptance/integration-20261008/evidence/phase2b-final-unit.json",
+      "sha256": "5c32041363d2fb9945e357fd46d7b6f61f3b7ecc9c3cb8808a00a2038e45515b",
+      "result": "passed",
+      "exit_code": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:3594c113361328dd42e25963c53249e7189bae59b375f771884e8fd6c9226838:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "changed_paths": []
+    },
+    "lint": {
+      "path": "docs/acceptance/integration-20261008/evidence/phase2b-final-lint.json",
+      "sha256": "5d6c4d48e95152693803d8f0507f746f0dd90c5916089ee4e63db27c0c97e9c7",
+      "result": "passed",
+      "exit_code": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:3594c113361328dd42e25963c53249e7189bae59b375f771884e8fd6c9226838:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "changed_paths": []
+    },
+    "format": {
+      "path": "docs/acceptance/integration-20261008/evidence/phase2b-final-format.json",
+      "sha256": "f949ee14b3707297cb255a0b8c1ddfbc464ab58c952d0b50ca443c343bf3fc25",
+      "result": "passed",
+      "exit_code": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:3594c113361328dd42e25963c53249e7189bae59b375f771884e8fd6c9226838:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "changed_paths": []
+    },
+    "build": {
+      "path": "docs/acceptance/integration-20261008/evidence/phase2b-final-build.json",
+      "sha256": "f516481774eecdd1607277e1790bfffe0e0a8ec815c4081209e2008c4fedbc91",
+      "result": "passed",
+      "exit_code": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:3594c113361328dd42e25963c53249e7189bae59b375f771884e8fd6c9226838:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "changed_paths": []
+    },
+    "python": {
+      "path": "docs/acceptance/integration-20261008/evidence/phase2b-final-python.json",
+      "sha256": "ded49d9a5a083bb66f16354d130eee2f48213995a50c02c65a4f34ac5b7eea8e",
+      "result": "passed",
+      "exit_code": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:3594c113361328dd42e25963c53249e7189bae59b375f771884e8fd6c9226838:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "changed_paths": []
+    },
+    "diff": {
+      "path": "docs/acceptance/integration-20261008/evidence/phase2b-final-diff.json",
+      "sha256": "57518ea485d4db12e6d4516dd43c93ac46d745f7fdd893f74e8f56b1dabfc106",
+      "result": "passed",
+      "exit_code": 0,
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:3594c113361328dd42e25963c53249e7189bae59b375f771884e8fd6c9226838:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+      "changed_paths": []
+    }
+  },
+  "limitations": [
+    "Renderer product UI and Electron/live/packaged verification remain assigned to later phases.",
+    "Full unit suite retains eight existing live skips; no new skips or assertion deletion.",
+    "Python helper syntax and actual local Unix socket MCP verified; actual guest socket/PTY/live model remains later-phase."
+  ],
+  "recorder": "/Users/huaodong/Documents/evidence-driven-development/skill/veriflow/scripts/record_execution.py",
+  "recorder_sha256": "6d82ccb7477ed7b56ce41c50315c69ab165294bc9733ad1e6f84e250509aa1d8"
+}

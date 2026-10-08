@@ -12,6 +12,8 @@ const workspace = (workspaceId: string, revision = 0): WorkspaceSnapshot => ({
   activePaneId: `pane-${workspaceId}`,
   sessions: [],
   runs: [],
+  fileHints: [],
+  observations: [],
   theme: 'light',
   publicResources: null,
   publicResourcesError: null,
@@ -22,6 +24,7 @@ const snapshot = (seq: number, appInstanceId = 'epoch-one', revision = 0): Workb
   activeWorkspaceId: 'A',
   storageError: null,
   notifications: [],
+  environments: [],
   notificationReadReceipts: [],
   workspaces: [workspace('A', revision), workspace('B'), workspace('C')],
 });

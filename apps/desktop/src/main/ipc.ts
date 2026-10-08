@@ -39,6 +39,14 @@ function assertLegacySession(id: string) {
 
 export function registerIpc({ window, trusted, chat, workbench }: IpcDeps): () => void {
   const handlers: Handlers = {
+    'workbench:environments': () => {
+      if (!workbench) throw new Error('工作台服务不可用');
+      return workbench.environments();
+    },
+    'workbench:observe': (input) => {
+      if (!workbench) throw new Error('工作台服务不可用');
+      return workbench.observe({ ...input, args: input.args ?? {} });
+    },
     'workbench:reload': () => {
       if (!workbench) throw new Error('工作台服务不可用');
       return workbench.retryInitialization();

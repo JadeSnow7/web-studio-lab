@@ -17,6 +17,34 @@ const state: PreviewState = {
 async function setup() {
   let saved: WorkbenchSnapshot | null = null;
   const runtime = {
+    environmentsList: vi.fn().mockResolvedValue([
+      {
+        environmentId: 'local',
+        kind: 'local',
+        state: 'configured',
+        label: '本机',
+        capabilities: { browser: true, files: true, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'sandbox',
+        kind: 'sandbox',
+        state: 'configured',
+        label: 'Sandbox',
+        capabilities: { browser: false, files: false, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'ssh',
+        kind: 'ssh',
+        state: 'unavailable',
+        label: 'SSH',
+        capabilities: { browser: false, files: false, terminal: false },
+        reason: '未配置',
+      },
+    ]),
+    registerResource: vi.fn(),
+    observe: vi.fn(),
     publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
     ensureBrowser: vi.fn(),
     browserState: vi.fn(() => state),
@@ -25,6 +53,7 @@ async function setup() {
   } as unknown as WorkbenchRuntime;
   const app = new WorkbenchApplication(
     {
+      appendObservation: vi.fn(async () => crypto.randomUUID()),
       load: async () => saved,
       save: async (snapshot) => {
         saved = structuredClone(snapshot);
@@ -113,11 +142,17 @@ describe('Main runtime outcome ownership', () => {
     };
     vi.mocked(runtime.terminalOpen).mockResolvedValue(terminal);
     await command({ type: 'terminalOpen', resourceId: r.resourceId, cols: 80, rows: 24 });
-    app.onTerminal(r.resourceId, { ...terminal, seq: 9, sessionId: 'old', output: 'late' });
-    app.onTerminal(r.resourceId, { ...terminal, output: 'duplicate' });
+    await vi.waitFor(async () =>
+      expect((await app.getSnapshot()).workspaces[0]!.resources.find((x) => x.resourceId === r.resourceId)!.terminal?.state).toBe(
+        'running',
+      ),
+    );
+    const binding = vi.mocked(runtime.registerResource).mock.calls[0]![0];
+    app.onTerminal(r.resourceId, { ...terminal, seq: 9, sessionId: 'old', output: 'late' }, binding);
+    app.onTerminal(r.resourceId, { ...terminal, output: 'duplicate' }, binding);
     let current = (await app.getSnapshot()).workspaces[0]!.resources.find((item) => item.resourceId === r.resourceId)!;
     expect(current.terminal).toEqual(terminal);
-    app.onTerminal(r.resourceId, { ...terminal, seq: 11, state: 'failed', error: '未确认远端退出' });
+    app.onTerminal(r.resourceId, { ...terminal, seq: 11, state: 'failed', error: '未确认远端退出' }, binding);
     current = (await app.getSnapshot()).workspaces[0]!.resources.find((item) => item.resourceId === r.resourceId)!;
     expect(current.terminal).toMatchObject({ output: 'current prompt', cleanupPending: true, error: '未确认远端退出', state: 'failed' });
   });

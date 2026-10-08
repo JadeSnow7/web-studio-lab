@@ -17,6 +17,34 @@ const state: PreviewState = {
 const collection = (revision: number): ResourceCollection => ({ spaceId: 'taskflow-demo', revision, resources: [] });
 async function setup(list = vi.fn().mockResolvedValue(collection(0))) {
   const runtime = {
+    environmentsList: vi.fn().mockResolvedValue([
+      {
+        environmentId: 'local',
+        kind: 'local',
+        state: 'configured',
+        label: '本机',
+        capabilities: { browser: true, files: true, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'sandbox',
+        kind: 'sandbox',
+        state: 'configured',
+        label: 'Sandbox',
+        capabilities: { browser: false, files: false, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'ssh',
+        kind: 'ssh',
+        state: 'unavailable',
+        label: 'SSH',
+        capabilities: { browser: false, files: false, terminal: false },
+        reason: '未配置',
+      },
+    ]),
+    registerResource: vi.fn(),
+    observe: vi.fn(),
     publicResourcesList: list,
     publicResourcesCapture: vi.fn().mockResolvedValue(collection(1)),
     publicResourcesRemove: vi.fn().mockResolvedValue(collection(2)),
@@ -25,7 +53,11 @@ async function setup(list = vi.fn().mockResolvedValue(collection(0))) {
     validateBrowserUrl: vi.fn(),
     hideBrowsers: vi.fn(),
   } as unknown as WorkbenchRuntime;
-  const app = new WorkbenchApplication({ load: async () => null, save: async () => {} }, runtime, vi.fn());
+  const app = new WorkbenchApplication(
+    { appendObservation: vi.fn(async () => crypto.randomUUID()), load: async () => null, save: async () => {} },
+    runtime,
+    vi.fn(),
+  );
   const w = (await app.getSnapshot()).workspaces[0]!;
   const web = w.resources.find((r) => r.kind === 'web')!;
   const command = (payload: Record<string, unknown>) =>

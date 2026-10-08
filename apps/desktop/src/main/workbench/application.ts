@@ -1,6 +1,20 @@
 import { createHash, randomUUID } from 'node:crypto';
 import {
   type ChatConversation,
+  EnvironmentListSchema,
+  ObservationErrorSchema,
+  WorkbenchObservationInputSchema,
+  ObservationResultSchema,
+  validateObservationData,
+  type EnvironmentDescription,
+  type ObservationRecord,
+  type ObservationRequest,
+  type ResourceInstanceIdentity,
+  type FileInvalidationHint,
+  type ObservationTurnScope,
+  type ObservationSources,
+  type WorkbenchObservationInput,
+  type WorkspaceObservationResult,
   type PageCapture,
   type PageIdentity,
   type PreviewState,
@@ -33,6 +47,8 @@ function workspace(workspaceId: string, name: string): WorkspaceSnapshot {
     runs: [],
     publicResources: null,
     publicResourcesError: null,
+    fileHints: [],
+    observations: [],
     theme: 'system',
   };
 }
@@ -58,6 +74,24 @@ export function validateSnapshot(snapshot: WorkbenchSnapshot): void {
       throw new Error('denied: 标签引用不属于空间');
     if (item.sessions.some((s) => !item.resources.some((r) => r.resourceId === s.resourceId && r.kind === 'session')))
       throw new Error('denied: 会话不属于空间');
+    for (const [sessionId, records] of [
+      [null, item.observations],
+      ...item.sessions.map((session) => [session.sessionId, session.observations]),
+    ] as [string | null, ObservationRecord[]][]) {
+      for (const record of records) {
+        const request = record.request;
+        if (
+          request.workspaceId !== item.workspaceId ||
+          request.sessionId !== sessionId ||
+          (request.target && request.target.workspaceId !== item.workspaceId)
+        )
+          throw new Error('denied: 观察记录归属无效');
+        if (sessionId === null && (request.runId !== null || request.target?.kind !== 'file' || !request.tool.startsWith('files.')))
+          throw new Error('denied: 无会话观察记录不是文件只读浏览');
+        if (request.runId && !item.runs.some((run) => run.runId === request.runId && run.sessionId === sessionId))
+          throw new Error('denied: 观察记录执行归属无效');
+      }
+    }
     const targetBelongs = (target: WorkbenchRun['targetRef']) =>
       !target || item.resources.some((resource) => resource.resourceId === target.resourceId && resource.kind === target.kind);
     const sessionResources = item.sessions.map((session) => session.resourceId);
@@ -114,10 +148,15 @@ export class WorkbenchApplication {
     activeWorkspaceId: 'taskflow-demo',
     seq: 0,
     workspaces: [],
+    environments: [],
     notifications: [],
     notificationReadReceipts: [],
   };
   private queue: Promise<unknown> = Promise.resolve();
+  private readonly observations = new Map<string, AbortController>();
+  private readonly observationCounts = new Map<string, number>();
+  private readonly observationScopes = new Map<string, ObservationTurnScope>();
+  private readonly terminalLaunches = new Map<string, Promise<TerminalSnapshot>>();
   private readonly commands = new Map<
     string,
     { fingerprint: string; outcome: { ok: true } | { ok: false; error: Extract<WorkbenchResult, { ok: false }>['error'] } }
@@ -171,7 +210,12 @@ export class WorkbenchApplication {
           r.instanceId = null;
           r.preview = null;
           if (r.terminal)
-            r.terminal = { ...r.terminal, sessionId: null, state: 'closed', cleanupPending: false, error: '应用重启；终端需明确重新连接' };
+            r.terminal = {
+              ...r.terminal,
+              sessionId: null,
+              state: r.terminal.cleanupPending ? 'failed' : 'closed',
+              error: r.terminal.cleanupPending ? '应用重启；旧进程清理未确认，不重放' : '应用重启；终端需明确重新连接',
+            };
         }
         for (const s of w.sessions)
           if (s.conversation && activeStates.includes(s.conversation.state))
@@ -189,7 +233,21 @@ export class WorkbenchApplication {
             run.endedAt = new Date().toISOString();
             run.error = '应用重启；未重放执行';
           }
+        for (const record of w.observations)
+          if (record.state === 'pending') {
+            record.state = 'cancelled';
+            record.endedAt = new Date().toISOString();
+            record.result = { error: 'cancelled', message: '应用重启；观察未完成，不重放' };
+            recoveredExecution = true;
+          }
         for (const s of w.sessions) {
+          for (const record of s.observations)
+            if (record.state === 'pending') {
+              record.state = 'cancelled';
+              record.endedAt = new Date().toISOString();
+              record.result = { error: 'cancelled', message: '应用重启；观察未完成，不重放' };
+              recoveredExecution = true;
+            }
           if (s.context) s.contextApplicability = 'stale';
           if (s.captureRequest?.state === 'pending') {
             recoveredExecution = true;
@@ -284,6 +342,15 @@ export class WorkbenchApplication {
     return snapshot;
   }
   command(command: WorkbenchCommand): Promise<WorkbenchResult> {
+    if (
+      command.type === 'startRun' ||
+      command.type === 'terminalOpen' ||
+      (command.type === 'createTab' && ['file', 'terminal', 'ssh'].includes(command.kind))
+    )
+      return this.environments().then(() => this.enqueueCommand(command));
+    return this.enqueueCommand(command);
+  }
+  private enqueueCommand(command: WorkbenchCommand): Promise<WorkbenchResult> {
     const next = this.queue.then(async () => {
       await this.ready;
       return this.execute(command);
@@ -293,6 +360,332 @@ export class WorkbenchApplication {
       () => undefined,
     );
     return next;
+  }
+  private serialize<T>(work: () => T | Promise<T>): Promise<T> {
+    const next = this.queue.then(async () => {
+      await this.ready;
+      return work();
+    });
+    this.queue = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    return next;
+  }
+  async environments(): Promise<EnvironmentDescription[]> {
+    const environments = EnvironmentListSchema.parse(await this.runtime.environmentsList());
+    await this.serialize(() => {
+      this.snapshot.environments = environments;
+    });
+    return structuredClone(environments);
+  }
+  private observationRecords(workspace: WorkspaceSnapshot, sessionId: string | null) {
+    return sessionId === null ? workspace.observations : this.session(workspace, sessionId).observations;
+  }
+  private instance(workspace: WorkspaceSnapshot, resource: WorkbenchResource): ResourceInstanceIdentity {
+    if (!resource.environmentId || !resource.instanceId) throw new Error('unavailable: 资源没有已授权实例');
+    return {
+      workspaceId: workspace.workspaceId,
+      environmentId: resource.environmentId,
+      resourceId: resource.resourceId,
+      kind: resource.kind === 'web' ? 'browser' : resource.kind === 'file' ? 'file' : 'terminal',
+      instanceId: resource.instanceId,
+      instanceGeneration: resource.generation,
+    };
+  }
+  private fileInstance(resource: WorkbenchResource) {
+    if (resource.kind === 'file' && resource.environmentId && !resource.instanceId) {
+      resource.instanceId = randomUUID();
+      resource.generation++;
+    }
+  }
+  private sources(workspace: WorkspaceSnapshot): ObservationSources {
+    const resources = workspace.resources.filter((resource) => resource.kind !== 'session');
+    if (resources.length > 500) throw new Error('budget_exceeded: 空间资源数量超过来源枚举预算');
+    return {
+      kind: 'sources',
+      workspaceId: workspace.workspaceId,
+      sources: resources.map((resource) => {
+        const environment = this.snapshot.environments.find((environment) => environment.environmentId === resource.environmentId);
+        const kind = resource.kind === 'web' ? 'browser' : resource.kind === 'file' ? 'file' : 'terminal';
+        const allowed =
+          kind === 'browser'
+            ? environment?.capabilities.browser
+            : kind === 'file'
+              ? environment?.capabilities.files
+              : environment?.capabilities.terminal;
+        return {
+          resource: { workspaceId: workspace.workspaceId, environmentId: resource.environmentId, resourceId: resource.resourceId, kind },
+          instance: resource.instanceId && resource.environmentId ? this.instance(workspace, resource) : null,
+          title: resource.title,
+          capabilities: !allowed
+            ? []
+            : kind === 'browser'
+              ? ['browser.snapshot', 'browser.query', 'browser.screenshot', 'browser.read_events']
+              : kind === 'file'
+                ? ['files.list', 'files.search', 'files.read']
+                : ['terminal.read_screen', 'terminal.read_output', 'terminal.read_command'],
+          state: !allowed ? 'unavailable' : resource.instanceId ? 'live' : 'closed',
+          reason: !allowed
+            ? (resource.unavailableReason ?? environment?.reason ?? '环境未配置')
+            : resource.instanceId
+              ? null
+              : '实例未打开',
+        };
+      }),
+    };
+  }
+  async observe(input: WorkbenchObservationInput, signal?: AbortSignal): Promise<WorkspaceObservationResult> {
+    const parsed = WorkbenchObservationInputSchema.safeParse(input);
+    if (!parsed.success) return { error: 'invalid_request', message: '观察输入无效或超过预算' };
+    input = parsed.data;
+    await this.ready;
+    try {
+      await this.environments();
+    } catch (error) {
+      return { error: 'unavailable', message: (error as Error).message };
+    }
+    const controller = new AbortController();
+    let settled = false;
+    const externalAbort = () => {
+      if (!settled) controller.abort();
+    };
+    signal?.addEventListener('abort', externalAbort, { once: true });
+    if (signal?.aborted) controller.abort();
+    let request: ObservationRequest;
+    let record: ObservationRecord;
+    let listing: ObservationSources | null = null;
+    let browser: WorkbenchResource | null = null;
+    try {
+      await this.serialize(async () => {
+        const before = structuredClone(this.snapshot);
+        const workspace = this.requireWorkspace(input.workspaceId);
+        const records = this.observationRecords(workspace, input.sessionId);
+        if (input.sessionId === null && (input.runId !== null || !input.tool.startsWith('files.')))
+          throw new Error('unauthorized: 无会话请求仅允许文件标签只读浏览');
+        if (this.observations.size >= 4 || (input.runId && (this.observationCounts.get(input.runId) ?? 0) >= 64))
+          throw new Error('budget_exceeded: 观察并发或历史预算已用完');
+        if (
+          this.snapshot.workspaces.some((workspace) =>
+            [workspace.observations, ...workspace.sessions.map((session) => session.observations)].some((records) =>
+              records.some((record) => record.request.requestId === input.requestId),
+            ),
+          )
+        )
+          throw new Error('invalid_request: 观察请求身份重复');
+        const scope = input.runId ? this.observationScopes.get(input.runId) : null;
+        if (
+          input.runId &&
+          (!scope ||
+            scope.workspaceId !== workspace.workspaceId ||
+            scope.sessionId !== input.sessionId ||
+            !activeStates.includes(this.run(workspace, input.runId).state) ||
+            this.run(workspace, input.runId).state === 'cancelling')
+        )
+          throw new Error('unauthorized: 执行观察归属失效');
+        let target: ResourceInstanceIdentity | null = null;
+        const { environmentId, ...args } = input.args;
+        if (input.tool === 'workspace.list_sources') {
+          if (input.resourceId !== null || Object.keys(args).length || environmentId !== undefined)
+            throw new Error('invalid_request: 来源列表不接受资源或权限参数');
+          listing = scope
+            ? { kind: 'sources', workspaceId: scope.workspaceId, sources: structuredClone(scope.sources) }
+            : this.sources(workspace);
+        } else {
+          if (!input.resourceId) throw new Error('invalid_request: 请显式选择资源');
+          const resource = this.resource(workspace, input.resourceId);
+          if (input.sessionId === null && resource.kind !== 'file') throw new Error('unauthorized: 无会话请求不允许此资源');
+          const capability = resource.kind === 'web' ? 'browser' : resource.kind === 'file' ? 'files' : 'terminal';
+          const environment = this.snapshot.environments.find((environment) => environment.environmentId === resource.environmentId);
+          if (!environment?.capabilities[capability] || resource.kind === 'session') throw new Error('unavailable: 资源环境未配置此能力');
+          if (environmentId !== undefined && environmentId !== resource.environmentId) throw new Error('unauthorized: 环境不属于资源');
+          const toolPrefix = resource.kind === 'web' ? 'browser.' : resource.kind === 'file' ? 'files.' : 'terminal.';
+          if (!input.tool.startsWith(toolPrefix)) throw new Error('unsupported: 工具与资源类型不匹配');
+          if (scope) {
+            const frozen = scope.sources.find((source) => source.resource.resourceId === resource.resourceId)?.instance;
+            if (!frozen || resource.instanceId !== frozen.instanceId || resource.generation !== frozen.instanceGeneration)
+              throw new Error('unavailable: 执行冻结的资源实例已失效');
+          } else if (resource.kind === 'web' && !resource.instanceId) {
+            resource.instanceId = randomUUID();
+            resource.generation++;
+            browser = structuredClone(resource);
+          } else this.fileInstance(resource);
+          target = this.instance(workspace, resource);
+          if (environmentId !== undefined && environmentId !== target.environmentId) throw new Error('unauthorized: 环境不属于资源');
+          if (!input.tool.startsWith(target.kind === 'browser' ? 'browser.' : target.kind === 'file' ? 'files.' : 'terminal.'))
+            throw new Error('unsupported: 工具与资源类型不匹配');
+        }
+        request = {
+          requestId: input.requestId,
+          workspaceId: workspace.workspaceId,
+          sessionId: input.sessionId,
+          runId: input.runId,
+          target,
+          tool: input.tool,
+          args,
+        };
+        record = {
+          request: structuredClone(request),
+          state: 'pending',
+          startedAt: new Date().toISOString(),
+          endedAt: null,
+          result: null,
+          evidenceRef: null,
+        };
+        if (records.length >= 200) {
+          const old = records.findIndex((record) => record.state !== 'pending' && !this.observations.has(record.request.requestId));
+          if (old < 0) throw new Error('budget_exceeded: 历史窗口中观察均未结束');
+          records.splice(old, 1);
+        }
+        records.push(record);
+        this.observations.set(request.requestId, controller);
+        try {
+          await this.repository.save(this.snapshot);
+        } catch (error) {
+          this.snapshot = before;
+          this.snapshot.storageError = '观察请求保存失败：' + (error as Error).message;
+          throw error;
+        }
+        if (input.runId) this.observationCounts.set(input.runId, (this.observationCounts.get(input.runId) ?? 0) + 1);
+        this.emitSnapshot(workspace.workspaceId, request.requestId);
+      });
+    } catch (error) {
+      if (this.observations.get(input.requestId) === controller) this.observations.delete(input.requestId);
+      signal?.removeEventListener('abort', externalAbort);
+      return this.observationFailure(error);
+    }
+    let timedOut = false;
+    let abort!: () => void;
+    const cancelled = new Promise<WorkspaceObservationResult>((resolve) => {
+      abort = () => resolve(timedOut ? { error: 'timeout', message: '观察超时' } : { error: 'cancelled', message: '观察已取消' });
+      controller.signal.addEventListener('abort', abort, { once: true });
+      if (controller.signal.aborted) abort();
+    });
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 10000);
+    let result: WorkspaceObservationResult;
+    try {
+      const read = async () => {
+        if (controller.signal.aborted) return { error: 'cancelled' as const, message: '观察已取消' };
+        if (browser) this.runtime.ensureBrowser(request!.workspaceId, browser);
+        if (listing) return listing;
+        const result = ObservationResultSchema.parse(await this.runtime.observe(request!, controller.signal));
+        if (!('error' in result)) {
+          validateObservationData(result);
+          if (
+            (Object.keys(request!.target!) as (keyof ResourceInstanceIdentity)[]).some(
+              (key) => result.resource[key] !== request!.target![key],
+            )
+          )
+            throw new Error('unauthorized: Provider结果不属于冻结资源实例');
+        }
+        return result;
+      };
+      result = await Promise.race([read(), cancelled]);
+    } catch (error) {
+      result = this.observationFailure(error);
+    } finally {
+      clearTimeout(timer);
+      controller.signal.removeEventListener('abort', abort);
+    }
+    await this.serialize(() => {
+      const workspace = this.requireWorkspace(request!.workspaceId);
+      record = this.observationRecords(workspace, request!.sessionId).find((record) => record.request.requestId === request!.requestId)!;
+      if (!record) throw new Error('观察记录身份丢失');
+      const resource = request!.target ? this.resource(workspace, request!.target.resourceId) : null;
+      if (controller.signal.aborted || record!.state === 'cancelled')
+        result = timedOut ? { error: 'timeout', message: '观察超时' } : { error: 'cancelled', message: '观察已取消' };
+      else if (
+        resource &&
+        (resource.instanceId !== request!.target!.instanceId || resource.generation !== request!.target!.instanceGeneration)
+      )
+        result = { error: 'unavailable', message: '观察期间资源实例已更换' };
+      else if (request!.runId && !['starting', 'running'].includes(this.run(workspace, request!.runId).state))
+        result = { error: 'cancelled', message: '执行观察已结束' };
+      record!.state = 'error' in result ? (result.error === 'cancelled' ? 'cancelled' : 'failed') : 'completed';
+      record!.endedAt = new Date().toISOString();
+      record!.result = structuredClone(result);
+      settled = true;
+      signal?.removeEventListener('abort', externalAbort);
+    });
+    try {
+      const ref = await this.repository.appendObservation(structuredClone(record!));
+      await this.serialize(async () => {
+        record = this.observationRecords(this.requireWorkspace(request!.workspaceId), request!.sessionId).find(
+          (record) => record.request.requestId === request!.requestId,
+        )!;
+        if (!record) throw new Error('观察记录身份丢失');
+        record!.evidenceRef = ref;
+        if (!('error' in result) && 'resource' in result) result = { ...result, evidenceRef: ref };
+        record!.result = structuredClone(result);
+        await this.repository.save(this.snapshot);
+        this.emitSnapshot(request!.workspaceId, request!.requestId);
+      });
+    } catch (error) {
+      result = { error: 'unavailable', message: '观察证据保存失败：' + (error as Error).message };
+      await this.serialize(() => {
+        record = this.observationRecords(this.requireWorkspace(request!.workspaceId), request!.sessionId).find(
+          (record) => record.request.requestId === request!.requestId,
+        )!;
+        record.state = 'failed';
+        record.result = structuredClone(result);
+        this.snapshot.storageError = '观察证据保存失败：' + (error as Error).message;
+        this.emitSnapshot(request!.workspaceId, request!.requestId);
+      });
+    } finally {
+      this.observations.delete(input.requestId);
+      signal?.removeEventListener('abort', externalAbort);
+    }
+    return result;
+  }
+  async observeForTurn(
+    scope: ObservationTurnScope,
+    tool: string,
+    args: Record<string, unknown>,
+    signal: AbortSignal,
+  ): Promise<WorkspaceObservationResult> {
+    const frozen = this.observationScopes.get(scope.runId);
+    if (!scope.sessionId || !scope.runId || !frozen || frozen.workspaceId !== scope.workspaceId || frozen.sessionId !== scope.sessionId)
+      return { error: 'unauthorized', message: 'MCP缺少有效会话与运行归属' };
+    const { resourceId, ...readArgs } = args;
+    const parsed = WorkbenchObservationInputSchema.safeParse({
+      requestId: randomUUID(),
+      workspaceId: frozen.workspaceId,
+      sessionId: frozen.sessionId,
+      runId: frozen.runId,
+      resourceId: resourceId ?? null,
+      tool,
+      args: readArgs,
+    });
+    if (!parsed.success) return { error: 'invalid_request', message: 'MCP观察参数无效或超过预算' };
+    return this.observe(parsed.data, signal);
+  }
+  private observationFailure(error: unknown): WorkspaceObservationResult {
+    const message = error instanceof Error ? error.message : String(error);
+    const prefix = message.split(':')[0];
+    const mapped = prefix === 'denied' ? 'unauthorized' : prefix === 'invalid_input' ? 'invalid_request' : prefix;
+    const code = ObservationErrorSchema.shape.error.safeParse(mapped);
+    return { error: code.success ? code.data : 'unavailable', message };
+  }
+  onFileHint(hint: FileInvalidationHint) {
+    void this.updateRuntime(() => {
+      const workspace = this.snapshot.workspaces.find((workspace) => workspace.workspaceId === hint.workspaceId);
+      const resource = workspace?.resources.find((resource) => resource.resourceId === hint.resourceId);
+      if (
+        !workspace ||
+        !resource ||
+        resource.instanceId !== hint.instanceId ||
+        resource.generation !== hint.instanceGeneration ||
+        resource.environmentId !== hint.environmentId
+      )
+        return null;
+      const previous = workspace.fileHints.find((previous) => previous.resourceId === hint.resourceId);
+      if (previous && previous.watchGeneration === hint.watchGeneration && previous.sequence >= hint.sequence) return null;
+      workspace.fileHints = [hint, ...workspace.fileHints.filter((previous) => previous.resourceId !== hint.resourceId)].slice(0, 100);
+      return workspace;
+    });
   }
   private requireWorkspace(id: string) {
     const w = this.snapshot.workspaces.find((w) => w.workspaceId === id);
@@ -315,10 +708,17 @@ export class WorkbenchApplication {
     if (!r) throw new Error('denied: 执行不属于该空间');
     return r;
   }
-  private createResource(w: WorkspaceSnapshot, kind: WorkbenchResource['kind'], title: string, url?: string) {
+  private createResource(
+    w: WorkspaceSnapshot,
+    kind: WorkbenchResource['kind'],
+    title: string,
+    url?: string,
+    environmentId: WorkbenchResource['environmentId'] = kind === 'web' ? 'local' : kind === 'terminal' ? 'sandbox' : null,
+  ) {
     const resourceId = randomUUID();
     const r: WorkbenchResource = {
       resourceId,
+      environmentId,
       kind,
       title,
       url: url ?? null,
@@ -326,7 +726,7 @@ export class WorkbenchApplication {
       generation: 0,
       preview: null,
       terminal: null,
-      unavailableReason: kind === 'ssh' ? 'SSH 适配器尚未接入' : kind === 'file' ? '文件编辑适配器尚未接入' : null,
+      unavailableReason: ['ssh', 'file'].includes(kind) && !environmentId ? '资源未绑定授权环境' : null,
     };
     w.resources.push(r);
     if (kind === 'session')
@@ -337,6 +737,7 @@ export class WorkbenchApplication {
         draft: '',
         conversation: null,
         historyRestored: false,
+        observations: [],
         context: null,
         captureRequest: null,
         contextTarget: null,
@@ -448,7 +849,15 @@ export class WorkbenchApplication {
           case 'createTab': {
             if (c.url && c.kind !== 'web') throw new Error('invalid_input: 只有网页资源接受URL');
             if (c.url) this.runtime.validateBrowserUrl(c.url);
-            const tab = this.createResource(w, c.kind, c.title, c.url);
+            if (['file', 'terminal', 'ssh'].includes(c.kind)) {
+              if (!c.environmentId) throw new Error('invalid_input: 请选择已配置环境');
+              const environment = this.snapshot.environments.find((e) => e.environmentId === c.environmentId);
+              const capability = c.kind === 'file' ? 'files' : 'terminal';
+              if (!environment?.capabilities[capability] || (c.kind === 'ssh' && c.environmentId !== 'ssh'))
+                throw new Error('unsupported: 该环境未配置此资源能力');
+            }
+            if (c.kind === 'web' && c.environmentId && c.environmentId !== 'local') throw new Error('unsupported: 原生网页属于本设备');
+            const tab = this.createResource(w, c.kind, c.title, c.url, c.environmentId ?? (c.kind === 'web' ? 'local' : null));
             const a = activateTab(w.layout, w.activePaneId, tab.tabId);
             w.layout = a.layout;
             w.activePaneId = a.activePaneId;
@@ -645,6 +1054,14 @@ export class WorkbenchApplication {
                 c.targetRef?.kind === 'web' && s.contextTarget?.resourceId === c.targetRef.resourceId && s.context
                   ? structuredClone(s.context)
                   : null,
+              captureBinding:
+                c.targetRef?.kind === 'web'
+                  ? {
+                      appInstanceId: this.snapshot.appInstanceId,
+                      instanceId: this.resource(w, c.targetRef.resourceId).instanceId!,
+                      generation: this.resource(w, c.targetRef.resourceId).generation,
+                    }
+                  : null,
               confirmedAt: new Date().toISOString(),
               acceptance: [...(c.acceptance ?? s.taskAcceptance)],
               allowedScopes: [...(c.allowedScopes ?? s.taskAllowedScopes)],
@@ -654,11 +1071,25 @@ export class WorkbenchApplication {
           case 'startRun':
             await this.startRun(w, c.sessionId, c.taskVersionId);
             break;
+          case 'cancelObservation': {
+            const record = this.observationRecords(w, c.sessionId).find((r) => r.request.requestId === c.requestId);
+            if (!record) throw new Error('not_found: 观察请求不存在');
+            if (record.state === 'pending') {
+              this.observations.get(c.requestId)?.abort();
+              record.state = 'cancelled';
+              record.endedAt = new Date().toISOString();
+              record.result = { error: 'cancelled', message: '用户取消观察' };
+            }
+            break;
+          }
           case 'cancelRun': {
             const run = this.run(w, c.runId);
             if (!activeStates.includes(run.state)) break;
             const previousState = run.state;
             run.state = 'cancelling';
+            for (const record of this.session(w, run.sessionId).observations)
+              if (record.request.runId === run.runId && record.state === 'pending')
+                this.observations.get(record.request.requestId)?.abort();
             try {
               await this.persist(w, c.commandId);
             } catch (error) {
@@ -699,29 +1130,45 @@ export class WorkbenchApplication {
             return rememberResult();
           }
           case 'terminalOpen': {
-            const r = this.resource(w, c.resourceId, 'terminal');
-            if (r.terminal?.cleanupPending || r.terminal?.state === 'running') return rememberResult();
+            const r = this.terminalResource(w, c.resourceId);
+            if (r.terminal?.cleanupPending || ['running', 'starting', 'closing'].includes(r.terminal?.state ?? '')) return rememberResult();
+            const environment = this.snapshot.environments.find((environment) => environment.environmentId === r.environmentId);
+            if (!environment?.capabilities.terminal) throw new Error('unsupported: 终端环境未配置');
+            r.instanceId = randomUUID();
             r.generation++;
-            r.terminal = await this.runtime.terminalOpen(r.resourceId, c.cols, c.rows);
-            r.instanceId = r.terminal.sessionId;
-            break;
+            r.terminal = {
+              seq: 0,
+              sessionId: null,
+              sandbox: null,
+              cwd: null,
+              state: 'starting',
+              output: '',
+              outputOffset: 0,
+              cleanupPending: true,
+              error: null,
+            };
+            await this.persist(w, c.commandId);
+            this.requestTerminalOpen(this.instance(w, r), c.cols, c.rows);
+            return rememberResult();
           }
           case 'terminalWrite': {
-            const r = this.resource(w, c.resourceId, 'terminal');
+            const r = this.terminalResource(w, c.resourceId);
             this.checkInstance(r, c.instanceId);
-            await this.runtime.terminalWrite(r.resourceId, c.instanceId, c.data);
+            if (!r.terminal?.sessionId || r.terminal.state !== 'running') throw new Error('conflict: 终端尚未运行');
+            await this.runtime.terminalWrite(r.resourceId, r.terminal.sessionId, c.data);
             return rememberResult();
           }
           case 'terminalResize': {
-            const r = this.resource(w, c.resourceId, 'terminal');
+            const r = this.terminalResource(w, c.resourceId);
             this.checkInstance(r, c.instanceId);
-            await this.runtime.terminalResize(r.resourceId, c.instanceId, c.cols, c.rows);
+            if (!r.terminal?.sessionId || r.terminal.state !== 'running') throw new Error('conflict: 终端尚未运行');
+            await this.runtime.terminalResize(r.resourceId, r.terminal.sessionId, c.cols, c.rows);
             return rememberResult();
           }
           case 'stopInstance': {
             const r = this.resource(w, c.resourceId);
             this.checkInstance(r, c.instanceId);
-            if (r.kind !== 'terminal') throw new Error('unsupported: 该资源没有可停止的进程');
+            if (!['terminal', 'ssh'].includes(r.kind)) throw new Error('unsupported: 该资源没有可停止的进程');
             if (!r.terminal) throw new Error('执行实例缺少终端快照');
             if (r.terminal.state === 'closing' || (r.terminal.state === 'closed' && !r.terminal.cleanupPending)) return rememberResult();
             if (r.terminal.state === 'failed' && r.terminal.cleanupPending)
@@ -824,6 +1271,13 @@ export class WorkbenchApplication {
     if (w.runs.some((r) => r.sessionId === sessionId && activeStates.includes(r.state))) throw new Error('conflict: 会话已有执行');
     if (v.targetRef?.kind === 'web') {
       const r = this.resource(w, v.targetRef.resourceId, 'web');
+      if (
+        !v.captureBinding ||
+        v.captureBinding.appInstanceId !== this.snapshot.appInstanceId ||
+        v.captureBinding.instanceId !== r.instanceId ||
+        v.captureBinding.generation !== r.generation
+      )
+        throw new Error('conflict: 任务现场所属实例已失效，请重新采集确认');
       this.ensureBrowser(w, r);
       if (
         !v.capture ||
@@ -850,6 +1304,10 @@ export class WorkbenchApplication {
       conversation: null,
       executionBinding: null,
     };
+    for (const resource of w.resources) this.fileInstance(resource);
+    const scope: ObservationTurnScope = { workspaceId: w.workspaceId, sessionId, runId: run.runId, sources: this.sources(w).sources };
+    this.observationScopes.set(run.runId, scope);
+    this.observationCounts.set(run.runId, 0);
     w.runs.push(run);
     this.runLogBaselines.set(run.runId, {
       messageIds: new Set(s.conversation?.messages.map((m) => m.id)),
@@ -861,6 +1319,8 @@ export class WorkbenchApplication {
     } catch (error) {
       w.runs = previousRuns;
       this.runLogBaselines.delete(run.runId);
+      this.observationScopes.delete(run.runId);
+      this.observationCounts.delete(run.runId);
       throw error;
     }
     try {
@@ -868,6 +1328,7 @@ export class WorkbenchApplication {
       const conversation = await this.runtime.send(
         sessionId,
         `任务版本 ${v.taskVersionId}\n空间 ${w.workspaceId}\n目标 ${JSON.stringify(v.targetRef)}\n上下文 ${v.capture?.element.text ?? '未附加'}\n允许范围 ${v.allowedScopes.join(', ')}\n验收条件 ${v.acceptance.join('; ')}\n\n${v.goal}`,
+        structuredClone(scope),
       );
       this.applyConversation(w, conversation);
     } catch (error) {
@@ -875,45 +1336,83 @@ export class WorkbenchApplication {
       run.error = (error as Error).message;
       run.endedAt = new Date().toISOString();
       this.runLogBaselines.delete(run.runId);
+      this.releaseObservationScope(w, run.runId);
     }
   }
-  private requestTerminalStop(workspaceId: string, resourceId: string, instanceId: string, generation: number) {
-    void Promise.resolve()
-      .then(() => this.runtime.terminalStop(resourceId, instanceId))
+  private terminalResource(workspace: WorkspaceSnapshot, resourceId: string) {
+    const resource = this.resource(workspace, resourceId);
+    if (!['terminal', 'ssh'].includes(resource.kind)) throw new Error('invalid_input: 资源不是终端');
+    return resource;
+  }
+  private requestTerminalOpen(binding: ResourceInstanceIdentity, cols: number, rows: number) {
+    const launch = Promise.resolve().then(async () => {
+      await this.runtime.registerResource(binding);
+      return this.runtime.terminalOpen(binding.resourceId, cols, rows);
+    });
+    this.terminalLaunches.set(binding.instanceId, launch);
+    void launch
       .then(
         (terminal) =>
           this.updateRuntime(() => {
-            const w = this.requireWorkspace(workspaceId);
-            const resource = this.resource(w, resourceId, 'terminal');
-            if (
-              resource.instanceId !== instanceId ||
-              resource.generation !== generation ||
-              terminal.sessionId !== instanceId ||
-              (resource.terminal?.seq ?? -1) > terminal.seq
-            )
+            const workspace = this.requireWorkspace(binding.workspaceId);
+            const resource = this.terminalResource(workspace, binding.resourceId);
+            if (resource.instanceId !== binding.instanceId || resource.generation !== binding.instanceGeneration) return null;
+            if ((resource.terminal?.seq ?? -1) > terminal.seq) return null;
+            if (resource.terminal?.state === 'closing') {
+              resource.terminal = { ...terminal, state: 'closing', cleanupPending: true };
+            } else if ((resource.terminal?.seq ?? -1) <= terminal.seq) resource.terminal = terminal;
+            return workspace;
+          }, true),
+        (error) =>
+          this.updateRuntime(() => {
+            const workspace = this.requireWorkspace(binding.workspaceId);
+            const resource = this.terminalResource(workspace, binding.resourceId);
+            if (resource.instanceId !== binding.instanceId || resource.generation !== binding.instanceGeneration) return null;
+            resource.terminal = { ...resource.terminal!, state: 'failed', cleanupPending: true, error: (error as Error).message };
+            return workspace;
+          }, true),
+      )
+      .finally(() => {
+        if (this.terminalLaunches.get(binding.instanceId) === launch) this.terminalLaunches.delete(binding.instanceId);
+      });
+  }
+  private requestTerminalStop(workspaceId: string, resourceId: string, instanceId: string, generation: number) {
+    const launch = this.terminalLaunches.get(instanceId);
+    const ptySessionId = this.terminalResource(this.requireWorkspace(workspaceId), resourceId).terminal?.sessionId;
+    void Promise.resolve()
+      .then(async () => {
+        const sessionId = launch ? (await launch).sessionId : ptySessionId;
+        if (!sessionId) throw new Error('终端启动结果未知；清理未确认');
+        return this.runtime.terminalStop(resourceId, sessionId);
+      })
+      .then(
+        (terminal) =>
+          this.updateRuntime(() => {
+            const workspace = this.requireWorkspace(workspaceId);
+            const resource = this.terminalResource(workspace, resourceId);
+            if (resource.instanceId !== instanceId || resource.generation !== generation || (resource.terminal?.seq ?? -1) > terminal.seq)
               return null;
             resource.terminal =
               terminal.cleanupPending || !['closed', 'failed'].includes(terminal.state)
-                ? { ...terminal, state: 'failed', cleanupPending: true, error: terminal.error ?? '停止返回但guest清理未确认' }
+                ? { ...terminal, state: 'failed', cleanupPending: true, error: terminal.error ?? '停止返回但清理未确认' }
                 : terminal;
-            return w;
-          }),
+            return workspace;
+          }, true),
         (error) =>
           this.updateRuntime(() => {
-            const w = this.requireWorkspace(workspaceId);
-            const resource = this.resource(w, resourceId, 'terminal');
+            const workspace = this.requireWorkspace(workspaceId);
+            const resource = this.terminalResource(workspace, resourceId);
             if (resource.instanceId !== instanceId || resource.generation !== generation) return null;
             if (resource.terminal && !resource.terminal.cleanupPending && ['closed', 'failed'].includes(resource.terminal.state))
               return null;
-            if (!resource.terminal) throw new Error('执行实例缺少终端快照');
             resource.terminal = {
-              ...resource.terminal,
+              ...resource.terminal!,
               state: 'failed',
               cleanupPending: true,
-              error: '终端停止失败；guest清理未确认：' + (error as Error).message,
+              error: '终端停止失败；清理未确认：' + (error as Error).message,
             };
-            return w;
-          }),
+            return workspace;
+          }, true),
       );
   }
   private requestCancellation(workspaceId: string, runId: string, binding: { generation: string; turnId: string | null } | undefined) {
@@ -978,7 +1477,15 @@ export class WorkbenchApplication {
     if (!activeStates.includes(run.state)) {
       run.endedAt = new Date().toISOString();
       this.runLogBaselines.delete(run.runId);
+      this.releaseObservationScope(w, run.runId);
     }
+  }
+  private releaseObservationScope(workspace: WorkspaceSnapshot, runId: string) {
+    this.observationScopes.delete(runId);
+    this.observationCounts.delete(runId);
+    for (const session of workspace.sessions)
+      for (const record of session.observations)
+        if (record.request.runId === runId && record.state === 'pending') this.observations.get(record.request.requestId)?.abort();
   }
   onConversation(conversation: ChatConversation) {
     void this.updateRuntime(() => {
@@ -988,15 +1495,21 @@ export class WorkbenchApplication {
       return w;
     });
   }
-  onTerminal(resourceId: string, snapshot: TerminalSnapshot) {
+  onTerminal(resourceId: string, snapshot: TerminalSnapshot, binding: ResourceInstanceIdentity) {
     void this.updateRuntime(() => {
-      const w = this.snapshot.workspaces.find((w) => w.resources.some((r) => r.resourceId === resourceId));
-      if (!w) return null;
-      const r = this.resource(w, resourceId, 'terminal');
-      if (r.instanceId && snapshot.sessionId !== r.instanceId) return null;
+      const w = this.snapshot.workspaces.find((w) => w.workspaceId === binding.workspaceId);
+      const r = w?.resources.find((r) => r.resourceId === resourceId);
+      if (
+        !w ||
+        !r ||
+        r.environmentId !== binding.environmentId ||
+        r.instanceId !== binding.instanceId ||
+        r.generation !== binding.instanceGeneration
+      )
+        return null;
+      if (r.terminal?.sessionId && snapshot.sessionId !== r.terminal.sessionId) return null;
       if (r.terminal?.sessionId === snapshot.sessionId && r.terminal.seq >= snapshot.seq) return null;
-      r.terminal = snapshot;
-      r.instanceId = snapshot.sessionId;
+      r.terminal = r.terminal?.state === 'closing' && snapshot.cleanupPending ? { ...snapshot, state: 'closing' } : snapshot;
       return w;
     }, true);
   }

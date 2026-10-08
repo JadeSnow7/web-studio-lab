@@ -22,6 +22,7 @@ vi.mock('./resource-store', () => ({
 }));
 vi.mock('./codex-chat', () => ({
   CodexChat: class {
+    setObservationReader = vi.fn();
     connection = { getCleanupPending: () => false };
     initialize = async () => ({ available: true, reason: null, version: 'fixture', sandbox: 'fixture', cwd: '/home/agent/workspace' });
     assertResourceMutationAllowed = mocks.assertMutation;

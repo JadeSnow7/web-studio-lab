@@ -242,6 +242,9 @@ export class PreviewController {
     };
   }
 
+  get observationTarget() {
+    return this.view.webContents;
+  }
   getState(): PreviewState {
     const history = this.webContents.navigationHistory;
     return {

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ChatConversation, ChatStatus, TerminalSnapshot } from '@wsl/protocol';
+import type { ChatConversation, ChatStatus, ResourceInstanceIdentity, TerminalSnapshot } from '@wsl/protocol';
 const mock = vi.hoisted(() => ({
   callbacks: new Map<string, (value: unknown) => void>(),
   postMessage: vi.fn(),
@@ -39,6 +39,20 @@ const snapshot: ChatConversation = {
   cleanupPending: true,
   error: null,
 };
+const terminalBinding: ResourceInstanceIdentity = {
+  workspaceId: 'w',
+  environmentId: 'sandbox',
+  resourceId: 'terminal-resource',
+  kind: 'terminal',
+  instanceId: 'main-instance',
+  instanceGeneration: 1,
+};
+async function bindTerminal(service: ChatService, binding = terminalBinding) {
+  const registering = service.registerResource(binding);
+  const request = mock.postMessage.mock.calls.at(-1)![0];
+  mock.callbacks.get('message')?.({ type: 'response', id: request.id, result: null });
+  await registering;
+}
 beforeEach(() => {
   mock.initialized = true;
   mock.callbacks.clear();
@@ -71,6 +85,7 @@ describe('对话服务宿主故障', () => {
       () => undefined,
       (state) => states.push(state),
     );
+    await bindTerminal(service);
     mock.callbacks.get('message')?.({
       type: 'terminal-event',
       binding: {
@@ -103,6 +118,7 @@ describe('对话服务宿主故障', () => {
       () => undefined,
       () => undefined,
     );
+    if (kind === 'terminal') await bindTerminal(service);
     const failed = { ...snapshot, state: 'failed', error: 'fixture transport lost', cleanupPending: true };
     mock.callbacks.get('message')?.(
       kind === 'chat'
@@ -284,5 +300,43 @@ describe('对话服务宿主故障', () => {
     await expect(reading).rejects.toThrow('通信失败');
     expect(statuses.at(-1)?.available).toBe(false);
     expect(mock.kill).toHaveBeenCalledOnce();
+  });
+  it('retains the registered Main binding and accepts a new PTY sequence after replacement', async () => {
+    const states: TerminalSnapshot[] = [];
+    const service = new ChatService(
+      () => {},
+      () => {},
+      (terminal) => states.push(terminal),
+    );
+    const terminal = {
+      seq: 100,
+      sessionId: 'old-pty',
+      sandbox: 'fixture',
+      cwd: null,
+      state: 'closed',
+      output: 'old',
+      cleanupPending: false,
+      error: null,
+    };
+    await bindTerminal(service);
+    mock.callbacks.get('message')?.({ type: 'terminal-event', binding: terminalBinding, resourceId: terminalBinding.resourceId, terminal });
+    const replacement = { ...terminalBinding, instanceId: 'new-main', instanceGeneration: 2 };
+    await bindTerminal(service, replacement);
+    mock.callbacks.get('message')?.({
+      type: 'terminal-event',
+      binding: replacement,
+      resourceId: terminalBinding.resourceId,
+      terminal: { ...terminal, seq: 1, sessionId: 'new-pty', state: 'running', cleanupPending: true, output: 'new' },
+    });
+    mock.callbacks.get('message')?.({
+      type: 'terminal-event',
+      binding: terminalBinding,
+      resourceId: terminalBinding.resourceId,
+      terminal: { ...terminal, seq: 101 },
+    });
+    expect(states.at(-1)).toMatchObject({ sessionId: 'new-pty', output: 'new', state: 'running' });
+    mock.callbacks.get('exit')?.(1);
+    expect(states.at(-1)).toMatchObject({ sessionId: 'new-pty', state: 'failed', cleanupPending: true });
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
   });
 });

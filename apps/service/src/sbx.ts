@@ -4,15 +4,27 @@ import { constants } from 'node:fs';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { z } from 'zod';
-import { ResourceBundleSchema, type ChatStatus, type ResourceBundle } from '@wsl/protocol';
+import { ResourceBundleSchema, type ChatStatus, type ResourceBundle, type WorkspaceObservationResult } from '@wsl/protocol';
 import helper from './guest-helper.py?raw';
 import resourceMcp from './resource_mcp.py?raw';
+import terminalRc from './terminal-bash-integration.sh?raw';
 
-const guestHelper = helper.replace('RESOURCE_MCP_BASE64 = ""', `RESOURCE_MCP_BASE64 = "${Buffer.from(resourceMcp).toString('base64')}"`);
+const guestHelper = helper
+  .replace('TERMINAL_RC_BASE64 = ""', `TERMINAL_RC_BASE64 = "${Buffer.from(terminalRc).toString('base64')}"`)
+  .replace('RESOURCE_MCP_BASE64 = ""', `RESOURCE_MCP_BASE64 = "${Buffer.from(resourceMcp).toString('base64')}"`);
 
 export const GUEST_CWD = '/home/agent/workspace';
 const PREFIX = 'WSL_GUEST_FRAME:';
 const FrameSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('observation-call'),
+      id: z.string().uuid(),
+      tool: z.string().max(80),
+      args: z.record(z.string(), z.unknown()).refine((args) => Buffer.byteLength(JSON.stringify(args), 'utf8') <= 16384),
+    })
+    .strict(),
+  z.object({ type: z.literal('observation-cancel'), id: z.string().uuid() }).strict(),
   z.object({ type: z.literal('ready'), pid: z.number().int().positive() }),
   z.object({ type: z.literal('output'), stream: z.enum(['stdout', 'stderr']), data: z.string() }),
   z.object({ type: z.literal('exit'), exitCode: z.number().int().nullable() }),
@@ -26,7 +38,15 @@ export interface GuestOutcome {
   confirmed: boolean;
 }
 export type GuestStart =
-  | { type: 'start'; mode: 'codex'; argv: string[]; prompt?: string; resourceBundle?: ResourceBundle }
+  | {
+      type: 'start';
+      mode: 'codex';
+      argv: string[];
+      prompt?: string;
+      resourceBundle?: ResourceBundle;
+      observation?: boolean;
+      observationImages?: boolean;
+    }
   | { type: 'start'; mode: 'terminal'; cols: number; rows: number };
 
 export async function resolveSbxBinary(override = process.env['WSL_SBX_BIN']): Promise<string> {
@@ -117,7 +137,14 @@ export class GuestProcess {
     });
     this.write(start);
   }
-  write(frame: GuestStart | { type: 'input'; data: string } | { type: 'resize'; cols: number; rows: number } | { type: 'close' }) {
+  write(
+    frame:
+      | { type: 'observation-result'; id: string; result: WorkspaceObservationResult }
+      | GuestStart
+      | { type: 'input'; data: string }
+      | { type: 'resize'; cols: number; rows: number }
+      | { type: 'close' },
+  ) {
     if (this.ended) throw new Error('guest 传输已关闭');
     this.child.stdin.write(JSON.stringify(frame) + '\n');
   }

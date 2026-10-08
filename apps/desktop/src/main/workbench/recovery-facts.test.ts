@@ -11,6 +11,34 @@ async function runningFixture() {
   const repository = new FileWorkbenchRepository(file);
   const runtime = {
     validateBrowserUrl: vi.fn(),
+    environmentsList: vi.fn().mockResolvedValue([
+      {
+        environmentId: 'local',
+        kind: 'local',
+        state: 'configured',
+        label: '本机',
+        capabilities: { browser: true, files: true, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'sandbox',
+        kind: 'sandbox',
+        state: 'configured',
+        label: 'Sandbox',
+        capabilities: { browser: false, files: false, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'ssh',
+        kind: 'ssh',
+        state: 'unavailable',
+        label: 'SSH',
+        capabilities: { browser: false, files: false, terminal: false },
+        reason: '未配置',
+      },
+    ]),
+    registerResource: vi.fn(),
+    observe: vi.fn(),
     publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
     registerSession: vi.fn(),
     send: vi.fn(),

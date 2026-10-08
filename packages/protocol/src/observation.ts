@@ -1,4 +1,12 @@
 import { z } from 'zod';
+const utf8Bytes = (value: string) => {
+  let bytes = 0;
+  for (const char of value) {
+    const code = char.codePointAt(0)!;
+    bytes += code < 128 ? 1 : code < 2048 ? 2 : code < 65536 ? 3 : 4;
+  }
+  return bytes;
+};
 
 export const ResourceIdentitySchema = z.object({
   workspaceId: z.string().min(1).max(200),
@@ -48,6 +56,7 @@ export const ObservationErrorSchema = z
       'timeout',
       'unstable',
       'cancelled',
+      'budget_exceeded',
     ]),
     message: z.string(),
     details: z.unknown().optional(),
@@ -84,6 +93,65 @@ export const ObservationRequestSchema = z
 export type ObservationRequest = z.infer<typeof ObservationRequestSchema>;
 export const ObservationResultSchema = z.union([ObservationSchema, ObservationErrorSchema]);
 export type ObservationResult = z.infer<typeof ObservationResultSchema>;
+
+/** A registry listing describes configured resources; it is not a fabricated capture. */
+export const ObservationSourcesSchema = z
+  .object({
+    kind: z.literal('sources'),
+    workspaceId: z.string().min(1).max(200),
+    sources: z
+      .array(
+        z
+          .object({
+            resource: ResourceIdentitySchema.extend({ environmentId: z.string().min(1).max(200).nullable() }).strict(),
+            instance: ResourceInstanceIdentitySchema.nullable(),
+            title: z.string().max(200),
+            capabilities: z.array(z.string().max(80)).max(20),
+            state: z.enum(['live', 'closed', 'unavailable']),
+            reason: z.string().max(2000).nullable(),
+          })
+          .strict(),
+      )
+      .max(500),
+  })
+  .strict();
+export type ObservationSources = z.infer<typeof ObservationSourcesSchema>;
+export const WorkspaceObservationResultSchema = z.union([ObservationSourcesSchema, ObservationResultSchema]);
+export type WorkspaceObservationResult = z.infer<typeof WorkspaceObservationResultSchema>;
+
+export const WorkbenchObservationInputSchema = z
+  .object({
+    requestId: z.string().min(1).max(200),
+    workspaceId: z.string().min(1).max(200),
+    sessionId: z.string().min(1).max(200).nullable(),
+    runId: z.string().min(1).max(200).nullable(),
+    resourceId: z.string().min(1).max(200).nullable(),
+    tool: ObservationRequestSchema.shape.tool,
+    args: z.record(z.string(), z.unknown()).default({}),
+  })
+  .strict()
+  .refine((input) => utf8Bytes(JSON.stringify(input.args)) <= 16384, { message: 'Observation arguments exceed budget' });
+export type WorkbenchObservationInput = z.infer<typeof WorkbenchObservationInputSchema>;
+export const ObservationTurnScopeSchema = z
+  .object({
+    workspaceId: z.string().min(1).max(200),
+    sessionId: z.string().min(1).max(200),
+    runId: z.string().min(1).max(200),
+    sources: ObservationSourcesSchema.shape.sources,
+  })
+  .strict();
+export type ObservationTurnScope = z.infer<typeof ObservationTurnScopeSchema>;
+export const ObservationRecordSchema = z
+  .object({
+    request: ObservationRequestSchema,
+    state: z.enum(['pending', 'completed', 'cancelled', 'failed']),
+    startedAt: z.string().datetime(),
+    endedAt: z.string().datetime().nullable(),
+    result: WorkspaceObservationResultSchema.nullable(),
+    evidenceRef: z.string().max(200).nullable(),
+  })
+  .strict();
+export type ObservationRecord = z.infer<typeof ObservationRecordSchema>;
 
 /** Validate payloads at the provider boundary in addition to the common envelope. */
 export const ObservationDataSchemas = {
@@ -142,12 +210,11 @@ export const ObservationDataSchemas = {
         .max(100),
     })
     .passthrough(),
-  'resource-registry': z.object({ sources: z.array(z.object({ resource: ResourceInstanceIdentitySchema }).passthrough()) }).passthrough(),
 };
 export function validateObservationData(observation: Observation): Observation {
   const browserSources = ['accessibility', 'dom-element', 'screenshot', 'runtime-events'];
   const terminalSources = ['terminal_screen', 'terminal_output', 'terminal_commands'];
-  const fileSources = ['disk', 'editor', 'sftp', 'disk-search', 'sftp-search', 'resource-registry'];
+  const fileSources = ['disk', 'editor', 'sftp', 'disk-search', 'sftp-search'];
   const allowed =
     observation.resource.kind === 'browser' ? browserSources : observation.resource.kind === 'terminal' ? terminalSources : fileSources;
   if (!allowed.includes(observation.source)) throw new Error('Observation source does not match resource kind');

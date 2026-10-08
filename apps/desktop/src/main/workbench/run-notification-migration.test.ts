@@ -22,12 +22,41 @@ const conversation = (sessionId: string, turnId: string, seq: number, messages: 
 async function setup() {
   let saved: WorkbenchSnapshot | null = null;
   const repository = {
+    appendObservation: vi.fn(async () => crypto.randomUUID()),
     load: async () => saved,
     save: async (snapshot: WorkbenchSnapshot) => {
       saved = structuredClone(snapshot);
     },
   };
   const runtime = {
+    environmentsList: vi.fn().mockResolvedValue([
+      {
+        environmentId: 'local',
+        kind: 'local',
+        state: 'configured',
+        label: '本机',
+        capabilities: { browser: true, files: true, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'sandbox',
+        kind: 'sandbox',
+        state: 'configured',
+        label: 'Sandbox',
+        capabilities: { browser: false, files: false, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'ssh',
+        kind: 'ssh',
+        state: 'unavailable',
+        label: 'SSH',
+        capabilities: { browser: false, files: false, terminal: false },
+        reason: '未配置',
+      },
+    ]),
+    registerResource: vi.fn(),
+    observe: vi.fn(),
     publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
     validateBrowserUrl: vi.fn(),
     registerSession: vi.fn(),

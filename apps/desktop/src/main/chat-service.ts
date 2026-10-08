@@ -6,6 +6,8 @@ import {
   ObservationResultSchema,
   type ResourceInstanceIdentity,
   type ObservationRequest,
+  type ObservationTurnScope,
+  type WorkspaceObservationResult,
   type FileInvalidationHint,
   ResourceCollectionSchema,
   ResourceListRequestSchema,
@@ -45,6 +47,18 @@ export class ChatService {
   private sequence = 0;
   private readonly terminals = new Map<string, TerminalSnapshot>();
   private readonly resourceBindings = new Map<string, ResourceInstanceIdentity>();
+  private observationReader:
+    | ((
+        scope: ObservationTurnScope,
+        tool: string,
+        args: Record<string, unknown>,
+        signal: AbortSignal,
+      ) => Promise<WorkspaceObservationResult>)
+    | null = null;
+  private readonly observationCalls = new Map<string, AbortController>();
+  setObservationReader(reader: NonNullable<ChatService['observationReader']>) {
+    this.observationReader = reader;
+  }
   private lastStatus: ChatStatus | null = null;
   constructor(
     private readonly onConversation: (conversation: ChatConversation) => void,
@@ -72,13 +86,46 @@ export class ChatService {
           this.onStatus(message.status);
           return;
         }
+        if (message.type === 'observation-abort') {
+          this.observationCalls.get(message.id)?.abort();
+          return;
+        }
+        if (message.type === 'observation-call') {
+          if (this.observationCalls.has(message.id)) throw new Error('观察调用身份重复');
+          const controller = new AbortController();
+          this.observationCalls.set(message.id, controller);
+          const read = this.observationReader
+            ? this.observationReader(message.scope, message.tool, message.args, controller.signal)
+            : Promise.resolve({ error: 'unavailable' as const, message: 'Main观察通道未接入' });
+          void read
+            .then(
+              (result) => this.request({ method: 'observation.reply', payload: { callId: message.id, result } }),
+              (error) =>
+                this.request({
+                  method: 'observation.reply',
+                  payload: { callId: message.id, result: { error: 'unavailable', message: (error as Error).message } },
+                }),
+            )
+            .then(
+              () => {
+                this.observationCalls.delete(message.id);
+              },
+              (error) => {
+                this.observationCalls.delete(message.id);
+                this.fail('观察返回通道失败：' + (error as Error).message);
+              },
+            );
+          return;
+        }
         if (message.type === 'event') {
           this.remember(message.conversation);
           this.onConversation(message.conversation);
           return;
         }
         if (message.type === 'terminal-event') {
-          this.resourceBindings.set(message.resourceId, message.binding);
+          const binding = this.resourceBindings.get(message.resourceId);
+          if (!binding || (Object.keys(binding) as (keyof ResourceInstanceIdentity)[]).some((key) => binding[key] !== message.binding[key]))
+            return;
           this.terminals.set(message.resourceId, message.terminal);
           this.onTerminal(message.terminal, message.resourceId, message.binding);
           return;
@@ -113,6 +160,7 @@ export class ChatService {
       this.conversations.set(conversation.conversationId, conversation);
   }
   private fail(reason: string) {
+    for (const controller of this.observationCalls.values()) controller.abort();
     this.failure ??= reason;
     for (const request of this.pending.values()) {
       const start = request.start;
@@ -189,6 +237,9 @@ export class ChatService {
   }
   async registerResource(binding: ResourceInstanceIdentity) {
     await this.request({ method: 'resource.register', payload: binding });
+    const previous = this.resourceBindings.get(binding.resourceId);
+    if (previous && (previous.instanceId !== binding.instanceId || previous.instanceGeneration !== binding.instanceGeneration))
+      this.terminals.delete(binding.resourceId);
     this.resourceBindings.set(binding.resourceId, binding);
   }
   async observe(request: ObservationRequest) {
@@ -230,8 +281,8 @@ export class ChatService {
   async get(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'get', payload: { conversationId: id } }));
   }
-  async send(id: ChatSlot, text: string) {
-    return ChatConversationSchema.parse(await this.request({ method: 'send', payload: { conversationId: id, text } }));
+  async send(id: ChatSlot, text: string, observationScope?: ObservationTurnScope) {
+    return ChatConversationSchema.parse(await this.request({ method: 'send', payload: { conversationId: id, text, observationScope } }));
   }
   async cancel(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'cancel', payload: { conversationId: id } }));

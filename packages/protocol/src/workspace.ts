@@ -1,8 +1,10 @@
+import { ObservationRecordSchema, FileInvalidationHintSchema } from './observation';
+import { EnvironmentListSchema } from './environments';
 import { ResourceCollectionSchema } from './resources';
 import { z } from 'zod';
 import { ChatConversationSchema } from './chat';
 import { PageCaptureSchema, PreviewLayoutSchema, PreviewStateSchema } from './preview';
-import { TerminalSnapshotSchema } from './terminal';
+import { TerminalWriteSchema, TerminalSnapshotSchema } from './terminal';
 
 const Id = z.string().min(1).max(200);
 export const TargetRefSchema = z.object({ kind: z.enum(['web', 'terminal', 'session', 'ssh', 'file']), resourceId: Id }).strict();
@@ -42,6 +44,11 @@ export const WorkbenchTaskVersionSchema = z.object({
   goal: z.string().min(1).max(32000),
   targetRef: TargetRefSchema.nullable(),
   capture: PageCaptureSchema.nullable(),
+  captureBinding: z
+    .object({ appInstanceId: Id, instanceId: Id, generation: z.number().int().nonnegative() })
+    .strict()
+    .nullable()
+    .default(null),
   confirmedAt: z.string(),
   acceptance: z.array(z.string()).default([]),
   allowedScopes: z.array(z.string()).default([]),
@@ -74,6 +81,7 @@ export const WorkbenchSessionSchema = z.object({
   draft: z.string().max(32000),
   conversation: ChatConversationSchema.nullable(),
   historyRestored: z.boolean().default(false),
+  observations: z.array(ObservationRecordSchema).max(200).default([]),
   context: PageCaptureSchema.nullable(),
   captureRequest: z
     .object({
@@ -94,6 +102,7 @@ export const WorkbenchSessionSchema = z.object({
 export type WorkbenchSession = z.infer<typeof WorkbenchSessionSchema>;
 export const WorkbenchResourceSchema = z.object({
   resourceId: Id,
+  environmentId: z.enum(['local', 'sandbox', 'ssh']).nullable(),
   kind: TargetRefSchema.shape.kind,
   title: z.string(),
   url: z.string().nullable(),
@@ -116,6 +125,8 @@ export const WorkspaceSnapshotSchema = z.object({
   runs: z.array(WorkbenchRunSchema),
   publicResources: ResourceCollectionSchema.nullable(),
   publicResourcesError: z.string().nullable().default(null),
+  fileHints: z.array(FileInvalidationHintSchema).max(100).default([]),
+  observations: z.array(ObservationRecordSchema).max(200).default([]),
   theme: z.enum(['light', 'dark', 'warm', 'system']),
 });
 export type WorkspaceSnapshot = z.infer<typeof WorkspaceSnapshotSchema>;
@@ -136,6 +147,7 @@ export const WorkbenchSnapshotSchema = z.object({
   activeWorkspaceId: Id,
   seq: z.number().int().nonnegative(),
   workspaces: z.array(WorkspaceSnapshotSchema),
+  environments: EnvironmentListSchema.default([]),
   notificationReadReceipts: z.array(z.object({ notificationId: Id, readAt: z.string() })).default([]),
   notifications: z.array(WorkbenchNotificationSchema).default([]),
 });
@@ -149,6 +161,7 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
   command('switchWorkspace', {}),
   command('createTab', {
     kind: TargetRefSchema.shape.kind,
+    environmentId: z.enum(['local', 'sandbox', 'ssh']).optional(),
     title: z.string().trim().min(1).max(200),
     url: z.string().max(2048).optional(),
   }),
@@ -192,6 +205,7 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
   }),
   command('startRun', { sessionId: Id, taskVersionId: Id }),
   command('cancelRun', { runId: Id }),
+  command('cancelObservation', { sessionId: Id.nullable(), requestId: Id }),
   command('runValidation', { runId: Id }),
   command('recordReview', { runId: Id, candidateId: Id, decision: z.enum(['accepted', 'changes_requested']) }),
   command('browserLayout', { resourceId: Id, layout: PreviewLayoutSchema }),
@@ -201,7 +215,7 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
     url: z.string().max(2048).optional(),
   }),
   command('terminalOpen', { resourceId: Id, cols: z.number().int().min(2).max(500), rows: z.number().int().min(1).max(200) }),
-  command('terminalWrite', { resourceId: Id, instanceId: Id, data: z.string().max(65536) }),
+  command('terminalWrite', { resourceId: Id, instanceId: Id, data: TerminalWriteSchema.shape.data }),
   command('terminalResize', {
     resourceId: Id,
     instanceId: Id,

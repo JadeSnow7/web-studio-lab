@@ -1,8 +1,9 @@
 import { isAllowedPreviewUrl } from '../preview/navigation-policy';
 import { parsePublicUrl } from '../preview/public-document';
 import { session, type BrowserWindow } from 'electron';
-import type { WorkbenchResource } from '@wsl/protocol';
+import type { ObservationRequest, ObservationTurnScope, ResourceInstanceIdentity, WorkbenchResource } from '@wsl/protocol';
 import type { ChatService } from '../chat-service';
+import { BrowserObservation } from '../preview/observation';
 import { PreviewController } from '../preview/controller';
 import { DEMO_ORIGIN, installDemoProtocol } from '../preview/demo-protocol';
 import type { WorkbenchRuntime } from './ports';
@@ -15,7 +16,43 @@ export class WorkbenchHost implements WorkbenchRuntime {
     await this.application?.performActiveBrowserAction('openDevTools');
   }
   private readonly browsers = new Map<string, PreviewController>();
+  private readonly observers = new Map<string, BrowserObservation>();
+  private readonly browserBindings = new Map<string, ResourceInstanceIdentity>();
   application: WorkbenchApplication | null = null;
+  environmentsList() {
+    return this.chat.environmentsList();
+  }
+  registerResource(identity: ResourceInstanceIdentity) {
+    return this.chat.registerResource(identity);
+  }
+  async observe(request: ObservationRequest, signal: AbortSignal) {
+    const target = request.target;
+    if (!target) throw new Error('invalid_request: 缺少资源实例');
+    if (target.kind === 'browser') {
+      const binding = this.browserBindings.get(target.resourceId);
+      if (!binding || (Object.keys(binding) as (keyof ResourceInstanceIdentity)[]).some((key) => binding[key] !== target[key]))
+        return { error: 'unavailable' as const, message: '网页实例已失效' };
+      let observer = this.observers.get(target.resourceId);
+      if (!observer) {
+        observer = new BrowserObservation(this.browser(target.resourceId).observationTarget, binding);
+        this.observers.set(target.resourceId, observer);
+      }
+      return observer.observe(request.tool, request.args, request.workspaceId, signal);
+    }
+    await this.chat.registerResource(target);
+    if (signal.aborted) return { error: 'cancelled' as const, message: '观察已取消' };
+    let cancellation: Promise<void> | null = null;
+    const abort = () => {
+      cancellation = this.chat.cancelObservation(request.requestId);
+    };
+    signal.addEventListener('abort', abort, { once: true });
+    try {
+      return await this.chat.observe(request);
+    } finally {
+      signal.removeEventListener('abort', abort);
+      if (cancellation) await cancellation;
+    }
+  }
   constructor(
     private readonly window: BrowserWindow,
     private readonly chat: ChatService,
@@ -51,6 +88,16 @@ export class WorkbenchHost implements WorkbenchRuntime {
     try {
       preview.load();
       this.browsers.set(resourceId, preview);
+      if (!instanceId) throw new Error('网页缺少 Main 实例身份');
+      const binding: ResourceInstanceIdentity = {
+        workspaceId,
+        environmentId: 'local',
+        resourceId,
+        kind: 'browser',
+        instanceId,
+        instanceGeneration: generation,
+      };
+      this.browserBindings.set(resourceId, binding);
     } catch (error) {
       preview.dispose();
       throw error;
@@ -122,13 +169,16 @@ export class WorkbenchHost implements WorkbenchRuntime {
   publicResourcesRemove(savedResourceId: string) {
     return this.chat.resourcesRemove('taskflow-demo', savedResourceId);
   }
-  send(sessionId: string, text: string) {
-    return this.chat.send(sessionId, text);
+  send(sessionId: string, text: string, scope?: ObservationTurnScope) {
+    return this.chat.send(sessionId, text, scope);
   }
   cancel(sessionId: string) {
     return this.chat.cancel(sessionId);
   }
   dispose() {
+    for (const observer of this.observers.values()) observer.dispose();
+    this.observers.clear();
+    this.browserBindings.clear();
     for (const p of this.browsers.values()) p.dispose();
     this.browsers.clear();
   }

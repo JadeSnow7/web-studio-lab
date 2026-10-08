@@ -1,6 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { ResourceBundleSchema, type ChatConversation, type ChatSlot, type ChatStatus, type ResourceCollection } from '@wsl/protocol';
+import {
+  ObservationTurnScopeSchema,
+  WorkspaceObservationResultSchema,
+  ResourceBundleSchema,
+  type ObservationTurnScope,
+  type WorkspaceObservationResult,
+  type ChatConversation,
+  type ChatSlot,
+  type ChatStatus,
+  type ResourceCollection,
+} from '@wsl/protocol';
 import { SbxConnection, type GuestProcess } from './sbx';
 
 const EventSchema = z.discriminatedUnion('type', [
@@ -80,6 +90,8 @@ interface Turn {
   completed: boolean;
   replied: boolean;
   cleanupError: string | null;
+  observation: AbortController;
+  calls: Map<string, AbortController>;
 }
 interface Slot {
   conversation: ChatConversation;
@@ -87,6 +99,17 @@ interface Slot {
   preparing: { done: Promise<void>; finish(): void; cancelled: boolean } | null;
 }
 export class CodexChat {
+  private observationReader:
+    | ((
+        scope: ObservationTurnScope,
+        tool: string,
+        args: Record<string, unknown>,
+        signal: AbortSignal,
+      ) => Promise<WorkspaceObservationResult>)
+    | null = null;
+  setObservationReader(reader: NonNullable<CodexChat['observationReader']>) {
+    this.observationReader = reader;
+  }
   private readonly slots = new Map<ChatSlot, Slot>();
   private readonly workspaceBySession = new Map<ChatSlot, string>();
   register(id: ChatSlot, workspaceId: string) {
@@ -168,10 +191,15 @@ export class CodexChat {
       this.publish(slot);
     }
   }
-  async send(id: ChatSlot, text: string): Promise<ChatConversation> {
+  async send(id: ChatSlot, text: string, observationScope?: ObservationTurnScope): Promise<ChatConversation> {
     if (this.closing) throw new Error('对话服务正在关闭');
     if (id !== 'conv-personal-default' && id !== 'conv-space-taskflow-demo-impl' && !this.workspaceBySession.has(id))
       throw new Error('会话尚未由宿主注册');
+    if (observationScope) {
+      observationScope = ObservationTurnScopeSchema.parse(observationScope);
+      if (observationScope.sessionId !== id || this.workspaceBySession.get(id) !== observationScope.workspaceId)
+        throw new Error('观察会话不属于已注册空间');
+    }
     const status = this.getStatus();
     if (!status.available) throw new Error(status.reason ?? 'sbx 不可用');
     const slot = this.slot(id);
@@ -218,6 +246,7 @@ export class CodexChat {
     let stderr = '';
     const fail = (reason: string) => {
       turn.failure ??= reason;
+      turn.observation.abort();
       void turn.process.close();
     };
     const consume = (line: string) => {
@@ -303,31 +332,97 @@ export class CodexChat {
         fail(`Codex 协议错误：${(error as Error).message}`);
       }
     };
-    const process = this.connection.start({ type: 'start', mode: 'codex', argv, prompt: text, resourceBundle }, (frame) => {
-      if (frame.type === 'cleanup') {
-        slot.conversation.cleanupPending = !frame.ok;
-        this.publish(slot);
-      }
-      if (frame.type !== 'output') return;
-      if (frame.stream === 'stderr') {
-        stderr = (stderr + frame.data).slice(-4000);
-        return;
-      }
-      buffer += frame.data;
-      if (buffer.length > 1048576) {
-        fail('Codex 协议行超过限制');
-        return;
-      }
-      while (buffer.includes('\n')) {
-        const index = buffer.indexOf('\n');
-        const line = buffer.slice(0, index);
-        buffer = buffer.slice(index + 1);
-        consume(line);
-      }
-    });
-    const turn: Turn = { process, cancel: false, failure: null, completed: false, replied: false, cleanupError: null };
+    let callCount = 0;
+    const process = this.connection.start(
+      {
+        type: 'start',
+        mode: 'codex',
+        argv,
+        prompt: text,
+        resourceBundle,
+        observation: Boolean(observationScope && this.observationReader),
+        observationImages: false,
+      },
+      (frame) => {
+        if (frame.type === 'observation-cancel') {
+          turn.calls.get(frame.id)?.abort();
+          return;
+        }
+        if (frame.type === 'observation-call') {
+          const reply = (result: WorkspaceObservationResult) => {
+            if (slot.active !== turn || turn.cancel || turn.observation.signal.aborted) return;
+            const bounded = boundedObservationReply(frame.id, result);
+            process.write(bounded);
+          };
+          if (!observationScope || !this.observationReader || turn.cancel) {
+            reply({ error: 'unauthorized', message: '无运行观察归属' });
+            return;
+          }
+          if (turn.calls.has(frame.id)) {
+            fail('观察调用身份重复');
+            return;
+          }
+          if (turn.calls.size >= 4 || ++callCount > 64) {
+            reply({ error: 'budget_exceeded', message: '观察并发或单轮预算已用完' });
+            return;
+          }
+          const controller = new AbortController();
+          turn.calls.set(frame.id, controller);
+          const abort = () => controller.abort();
+          turn.observation.signal.addEventListener('abort', abort, { once: true });
+          void this.observationReader(structuredClone(observationScope), frame.tool, frame.args, controller.signal)
+            .then(
+              (result) => reply(WorkspaceObservationResultSchema.parse(result)),
+              (error) => reply({ error: 'unavailable', message: (error as Error).message }),
+            )
+            .then(
+              () => {
+                turn.calls.delete(frame.id);
+                turn.observation.signal.removeEventListener('abort', abort);
+              },
+              (error) => {
+                turn.calls.delete(frame.id);
+                turn.observation.signal.removeEventListener('abort', abort);
+                if (slot.active === turn) fail('观察返回失败：' + (error as Error).message);
+              },
+            );
+          return;
+        }
+        if (frame.type === 'cleanup') {
+          slot.conversation.cleanupPending = !frame.ok;
+          this.publish(slot);
+        }
+        if (frame.type !== 'output') return;
+        if (frame.stream === 'stderr') {
+          stderr = (stderr + frame.data).slice(-4000);
+          return;
+        }
+        buffer += frame.data;
+        if (buffer.length > 1048576) {
+          fail('Codex 协议行超过限制');
+          return;
+        }
+        while (buffer.includes('\n')) {
+          const index = buffer.indexOf('\n');
+          const line = buffer.slice(0, index);
+          buffer = buffer.slice(index + 1);
+          consume(line);
+        }
+      },
+    );
+    const turn: Turn = {
+      process,
+      cancel: false,
+      failure: null,
+      completed: false,
+      replied: false,
+      cleanupError: null,
+      observation: new AbortController(),
+      calls: new Map(),
+    };
     slot.active = turn;
     void process.done.then((outcome) => {
+      turn.observation.abort();
       if (buffer.trim()) consume(buffer);
       if (slot.active !== turn) return;
       turn.cleanupError = !outcome.confirmed ? (outcome.error ?? 'guest 清理未确认') : null;
@@ -364,6 +459,7 @@ export class CodexChat {
     if (!turn) return this.get(id);
     if (turn.cleanupError) throw new Error(turn.cleanupError);
     turn.cancel = true;
+    turn.observation.abort();
     slot.conversation.state = 'cancelling';
     this.publish(slot);
     const outcome = await turn.process.close();
@@ -382,4 +478,15 @@ export class CodexChat {
     const failure = outcomes.find((outcome) => outcome.status === 'rejected');
     if (failure?.status === 'rejected') throw failure.reason;
   }
+}
+
+export function boundedObservationReply(id: string, result: WorkspaceObservationResult) {
+  const frame = { type: 'observation-result' as const, id, result };
+  if (Buffer.byteLength(JSON.stringify(frame) + '\n', 'utf8') > 1048576)
+    return {
+      type: 'observation-result' as const,
+      id,
+      result: { error: 'budget_exceeded' as const, message: '观察结果超过控制帧UTF-8预算' },
+    };
+  return frame;
 }

@@ -1,4 +1,11 @@
-import { ChatServiceMessageSchema, ChatServiceRequestSchema, type ChatServiceMessage } from '@wsl/protocol';
+import { randomUUID } from 'node:crypto';
+import {
+  ObservationRequestSchema,
+  type WorkspaceObservationResult,
+  ChatServiceMessageSchema,
+  ChatServiceRequestSchema,
+  type ChatServiceMessage,
+} from '@wsl/protocol';
 import { CodexChat } from './codex-chat';
 import { EnvironmentResources } from './environment-resources';
 import { ResourceStore } from './resource-store';
@@ -20,6 +27,30 @@ const environments = new EnvironmentResources(
   (terminal, binding) => send({ type: 'terminal-event', terminal, resourceId: binding.resourceId, binding }),
   (hint) => send({ type: 'file-hint', hint }),
 );
+const observationCalls = new Map<
+  string,
+  { resolve: (result: WorkspaceObservationResult) => void; abort: () => void; signal: AbortSignal }
+>();
+chat.setObservationReader(
+  (scope, tool, args, signal) =>
+    new Promise((resolve) => {
+      const validatedTool = ObservationRequestSchema.shape.tool.parse(tool);
+      const id = randomUUID();
+      const abort = () => {
+        signal.removeEventListener('abort', abort);
+        send({ type: 'observation-abort', id });
+        observationCalls.delete(id);
+        resolve({ error: 'cancelled', message: '执行观察已取消' });
+      };
+      observationCalls.set(id, { resolve, abort, signal });
+      signal.addEventListener('abort', abort, { once: true });
+      if (signal.aborted) {
+        abort();
+        return;
+      }
+      send({ type: 'observation-call', id, scope, tool: validatedTool, args });
+    }),
+);
 const observations = new Map<string, AbortController>();
 const terminalFor = (resourceId: string) => environments.terminal(environments.identity(resourceId));
 const ready = chat.initialize().then((status) => {
@@ -35,6 +66,16 @@ parent.on('message', ({ data }) => {
       if (['send', 'resources.save', 'resources.remove'].includes(request.method)) await ready;
       let result;
       switch (request.method) {
+        case 'observation.reply': {
+          const call = observationCalls.get(request.payload.callId);
+          if (call) {
+            observationCalls.delete(request.payload.callId);
+            call.signal.removeEventListener('abort', call.abort);
+            call.resolve(request.payload.result);
+          }
+          result = null;
+          break;
+        }
         case 'environments.list':
           result = environments.list();
           break;
@@ -83,7 +124,7 @@ parent.on('message', ({ data }) => {
           result = chat.get(request.payload.conversationId);
           break;
         case 'send':
-          result = await chat.send(request.payload.conversationId, request.payload.text);
+          result = await chat.send(request.payload.conversationId, request.payload.text, request.payload.observationScope);
           break;
         case 'cancel':
           result = await chat.cancel(request.payload.conversationId);

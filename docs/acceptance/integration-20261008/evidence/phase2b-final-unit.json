@@ -1,0 +1,44 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T09:54:22.330705Z",
+  "ended_at": "2026-10-08T09:54:26.230966Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n\n Test Files  59 passed | 4 skipped (63)\n      Tests  393 passed | 8 skipped (401)\n   Start at  17:54:22\n   Duration  3.54s (tests 80%, import 12%, transform 7%, worker 1%)\n\n    Isolate  63 workers spawned · ~82ms startup each (spawn + environment, per file)\n             at least ~493ms faster with isolate: false — reuses workers across files instead of one per file\n\n",
+  "stderr": "",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgoKIFRlc3QgRmlsZXMgIDU5IHBhc3NlZCB8IDQgc2tpcHBlZCAoNjMpCiAgICAgIFRlc3RzICAzOTMgcGFzc2VkIHwgOCBza2lwcGVkICg0MDEpCiAgIFN0YXJ0IGF0ICAxNzo1NDoyMgogICBEdXJhdGlvbiAgMy41NHMgKHRlc3RzIDgwJSwgaW1wb3J0IDEyJSwgdHJhbnNmb3JtIDclLCB3b3JrZXIgMSUpCgogICAgSXNvbGF0ZSAgNjMgd29ya2VycyBzcGF3bmVkIMK3IH44Mm1zIHN0YXJ0dXAgZWFjaCAoc3Bhd24gKyBlbnZpcm9ubWVudCwgcGVyIGZpbGUpCiAgICAgICAgICAgICBhdCBsZWFzdCB+NDkzbXMgZmFzdGVyIHdpdGggaXNvbGF0ZTogZmFsc2Ug4oCUIHJldXNlcyB3b3JrZXJzIGFjcm9zcyBmaWxlcyBpbnN0ZWFkIG9mIG9uZSBwZXIgZmlsZQoK",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:3594c113361328dd42e25963c53249e7189bae59b375f771884e8fd6c9226838:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:3594c113361328dd42e25963c53249e7189bae59b375f771884e8fd6c9226838:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:3594c113361328dd42e25963c53249e7189bae59b375f771884e8fd6c9226838:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

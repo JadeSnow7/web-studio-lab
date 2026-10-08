@@ -41,6 +41,34 @@ const state: PreviewState = {
 async function setup() {
   let saved: WorkbenchSnapshot | null = null;
   const runtime = {
+    environmentsList: vi.fn().mockResolvedValue([
+      {
+        environmentId: 'local',
+        kind: 'local',
+        state: 'configured',
+        label: '本机',
+        capabilities: { browser: true, files: true, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'sandbox',
+        kind: 'sandbox',
+        state: 'configured',
+        label: 'Sandbox',
+        capabilities: { browser: false, files: false, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'ssh',
+        kind: 'ssh',
+        state: 'unavailable',
+        label: 'SSH',
+        capabilities: { browser: false, files: false, terminal: false },
+        reason: '未配置',
+      },
+    ]),
+    registerResource: vi.fn(),
+    observe: vi.fn(),
     publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
     ensureBrowser: vi.fn(),
     browserState: () => state,
@@ -51,6 +79,7 @@ async function setup() {
   } as unknown as WorkbenchRuntime;
   const app = new WorkbenchApplication(
     {
+      appendObservation: vi.fn(async () => crypto.randomUUID()),
       load: async () => saved,
       save: async (snapshot) => {
         saved = structuredClone(snapshot);
@@ -79,7 +108,11 @@ describe('migration review followup baseline', () => {
       { resourcesList: async () => ({ spaceId: 'taskflow-demo', revision: 0, resources: [] }) } as unknown as ChatService,
       '/fixture',
     );
-    const app = new WorkbenchApplication({ load: async () => null, save: async () => {} }, host, vi.fn());
+    const app = new WorkbenchApplication(
+      { appendObservation: vi.fn(async () => crypto.randomUUID()), load: async () => null, save: async () => {} },
+      host,
+      vi.fn(),
+    );
     host.application = app;
     const command = (payload: Record<string, unknown>) =>
       app.command({ commandId: crypto.randomUUID(), workspaceId: 'taskflow-demo', ...payload } as WorkbenchCommand);

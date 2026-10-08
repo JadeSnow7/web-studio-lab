@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GuestProcess, SbxConnection } from './sbx';
+import { TerminalWriteSchema, WorkbenchCommandSchema } from '@wsl/protocol';
 import { Terminal } from './terminal';
 import { CodexChat } from './codex-chat';
 const binary = path.resolve('apps/service/src/fixtures/sbx.mjs');
@@ -142,5 +143,47 @@ describe('guest helper 宿主边界', () => {
     expect(state.toolExecutions.every((tool) => tool.truncated && tool.output.length <= 16000)).toBe(true);
     expect(state.toolExecutions.reduce((sum, tool) => sum + tool.output.length, 0)).toBeLessThanOrEqual(131072);
     await chat.shutdown();
+  });
+  it('rejects oversized Chinese input at service and workbench boundaries while preserving the same PTY', async () => {
+    await connection.initialize();
+    const terminal = new Terminal(
+      connection,
+      {
+        workspaceId: 'space',
+        environmentId: 'sandbox',
+        resourceId: 'resource',
+        kind: 'terminal',
+        instanceId: 'main-instance',
+        instanceGeneration: 1,
+      },
+      () => {},
+    );
+    const opened = await terminal.open(80, 24);
+    const sessionId = opened.sessionId!;
+    await vi.waitFor(() => expect(terminal.get().state).toBe('running'));
+    let serviceRejected: boolean;
+    let workbenchRejected: boolean;
+    try {
+      const data = '中'.repeat(30000);
+      serviceRejected = !TerminalWriteSchema.safeParse({ resourceId: 'resource', sessionId, data }).success;
+      workbenchRejected = !WorkbenchCommandSchema.safeParse({
+        type: 'terminalWrite',
+        workspaceId: 'space',
+        commandId: 'input',
+        resourceId: 'resource',
+        instanceId: 'main-instance',
+        data,
+      }).success;
+      const valid = TerminalWriteSchema.parse({ resourceId: 'resource', sessionId, data: 'AFTER_REJECT' });
+      terminal.write(valid.sessionId, valid.data);
+      await vi.waitFor(() => expect(terminal.get().output).toContain('AFTER_REJECT'));
+      expect(terminal.get().sessionId).toBe(sessionId);
+      expect(terminal.get().state).toBe('running');
+    } finally {
+      await terminal.close(sessionId);
+      await connection.shutdown();
+    }
+    expect(serviceRejected).toBe(true);
+    expect(workbenchRejected).toBe(true);
   });
 });

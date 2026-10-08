@@ -8,15 +8,19 @@ import json
 import os
 import pty
 import select
+import socket
+import uuid
 import signal
 import struct
 import subprocess
 import sys
 import termios
+import tempfile
 import time
 
 PREFIX = "WSL_GUEST_FRAME:"
 CWD = "/home/agent/workspace"
+TERMINAL_RC_BASE64 = ""
 RESOURCE_MCP_BASE64 = ""  # Replaced only by the trusted host build, never by a page or frame.
 
 
@@ -105,7 +109,10 @@ def read_start():
     start = json.loads(first)
     if not isinstance(start, dict) or start.get("type") != "start" or start.get("mode") not in ("codex", "terminal"):
         raise ValueError("invalid start frame")
-    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "prompt", "resourceBundle"}
+    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "prompt", "resourceBundle", "observation", "observationImages"}
+    for key in ("observation", "observationImages"):
+        if key in start and type(start[key]) is not bool:
+            raise ValueError("invalid observation capability")
     if set(start) - allowed:
         raise ValueError("unknown start fields")
     return start
@@ -119,6 +126,11 @@ def main(start):
     master = None
     child = None
     resource_fd = None
+    observer = None
+    observer_dir = None
+    observer_clients = {}
+    observation_count = 0
+    terminal_rc = None
     try:
         if terminal:
             master, slave = pty.openpty()
@@ -127,7 +139,13 @@ def main(start):
             def own_tty():
                 os.setsid()
                 fcntl.ioctl(0, termios.TIOCSCTTY, 0)
-            child = subprocess.Popen(["/bin/bash", "--noprofile", "--norc", "-i"], cwd=CWD, env=env,
+            shell_argv = ["/bin/bash", "--noprofile", "--norc", "-i"]
+            if TERMINAL_RC_BASE64:
+                terminal_rc = tempfile.NamedTemporaryFile(prefix="wsl-terminal-", suffix=".bashrc", mode="wb")
+                terminal_rc.write(base64.b64decode(TERMINAL_RC_BASE64, validate=True))
+                terminal_rc.flush()
+                shell_argv = ["/bin/bash", "--noprofile", "--rcfile", terminal_rc.name, "-i"]
+            child = subprocess.Popen(shell_argv, cwd=CWD, env=env,
                                      stdin=slave, stdout=slave, stderr=slave, preexec_fn=own_tty)
             os.close(slave)
             streams = {master: ("stdout", codecs.getincrementaldecoder("utf-8")("replace"))}
@@ -143,9 +161,18 @@ def main(start):
                 exec(compile(source, "<wsl-resource-mcp>", "exec"), module)
                 resource_fd = module["sealed_bundle"](start["resourceBundle"])
                 descriptor = "/proc/%d/fd/%d" % (os.getpid(), resource_fd)
+                observation_args = []
+                if start.get("observation") is True:
+                    observer_dir = tempfile.TemporaryDirectory(prefix="wsl-observe-")
+                    observer = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                    observation_path = observer_dir.name + "/read.sock"
+                    observer.bind(observation_path)
+                    observer.listen(4)
+                    observer.setblocking(False)
+                    observation_args = [observation_path, "images" if start.get("observationImages") is True else "text"]
                 # TOML basic strings/arrays use the same escaping used here by JSON.
                 config = ["-c", 'mcp_servers.wsl_space.command="python3"', "-c",
-                          "mcp_servers.wsl_space.args=" + json.dumps(["-I", "-u", "-c", source, descriptor]),
+                          "mcp_servers.wsl_space.args=" + json.dumps(["-I", "-u", "-c", source, descriptor, *observation_args]),
                           "-c", "mcp_servers.wsl_space.required=true"]
                 argv = [argv[0], *config, *argv[1:]]
             child = subprocess.Popen(argv, cwd=CWD, env=env, stdin=subprocess.PIPE,
@@ -164,11 +191,59 @@ def main(start):
         pending_input = b""
         leader_cleaned = False
         while (streams or child.poll() is None) and not closing:
-            readable, writable, _ = select.select([stdin, *streams], [master] if pending_input else [], [], 0.1)
+            readable, writable, _ = select.select([stdin, *streams, *([observer.fileno()] if observer else []), *[client.fileno() for client, pending, _ in observer_clients.values()]], [master] if pending_input else [], [], 0.1)
             if writable:
                 written = os.write(master, pending_input)
                 pending_input = pending_input[written:]
+            for call_id, (client, pending, deadline) in list(observer_clients.items()):
+                if time.monotonic() > deadline:
+                    if pending is None:
+                        emit("observation-cancel", id=call_id)
+                    client.close()
+                    del observer_clients[call_id]
             for fd in readable:
+                if observer and fd == observer.fileno():
+                    client, _ = observer.accept()
+                    client.setblocking(False)
+                    if len(observer_clients) >= 4 or observation_count >= 64:
+                        client.close()
+                    else:
+                        observer_clients[str(uuid.uuid4())] = (client, b"", time.monotonic() + 20)
+                        observation_count += 1
+                    continue
+                observer_id = next((key for key, (client, _, _) in observer_clients.items() if client.fileno() == fd), None)
+                if observer_id:
+                    client, pending, deadline = observer_clients[observer_id]
+                    try:
+                        chunk = client.recv(16385)
+                    except OSError:
+                        chunk = b""
+                    if pending is None:
+                        if not chunk:
+                            emit("observation-cancel", id=observer_id)
+                            client.close()
+                            del observer_clients[observer_id]
+                        elif chunk:
+                            raise ValueError("observation client sent data after request")
+                        continue
+                    pending += chunk
+                    if not chunk or len(pending) > 16384:
+                        client.close()
+                        del observer_clients[observer_id]
+                    elif b"\n" in pending:
+                        try:
+                            request = json.loads(pending)
+                            if not isinstance(request, dict) or set(request) != {"tool", "args"} or not isinstance(request["tool"], str) or not isinstance(request["args"], dict):
+                                raise ValueError("invalid observation request")
+                        except (ValueError, TypeError):
+                            client.close()
+                            del observer_clients[observer_id]
+                            continue
+                        emit("observation-call", id=observer_id, tool=request["tool"], args=request["args"])
+                        observer_clients[observer_id] = (client, None, deadline)
+                    else:
+                        observer_clients[observer_id] = (client, pending, deadline)
+                    continue
                 if fd == stdin:
                     data = os.read(stdin, 65536)
                     if not data:
@@ -183,14 +258,27 @@ def main(start):
                         if not isinstance(frame, dict):
                             raise ValueError("invalid control frame")
                         kind = frame.get("type")
-                        keys = {"close": {"type"}, "input": {"type", "data"}, "resize": {"type", "cols", "rows"}}
+                        keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "input": {"type", "data"}, "resize": {"type", "cols", "rows"}}
                         if kind not in keys or set(frame) != keys[kind]:
                             raise ValueError("invalid control fields")
-                        if kind == "close":
+                        if kind == "observation-result" and not terminal:
+                            pending = observer_clients.pop(frame["id"], None)
+                            if pending:
+                                client = pending[0]
+                                encoded = (json.dumps(frame["result"]) + "\n").encode()
+                                if len(encoded) > 1048576:
+                                    encoded = b'{"error":"unavailable","message":"Observation exceeds transport budget"}\n'
+                                client.settimeout(1)
+                                try:
+                                    client.sendall(encoded)
+                                except OSError:
+                                    emit("observation-cancel", id=frame["id"])
+                                client.close()
+                        elif kind == "close":
                             closing = True
                         elif terminal and kind == "input":
                             data = frame["data"]
-                            if not isinstance(data, str) or not 0 < len(data) <= 65536:
+                            if not isinstance(data, str) or not 0 < len(data.encode()) <= 65536:
                                 raise ValueError("invalid terminal input")
                             pending_input += data.encode()
                             if len(pending_input) > 1048576:
@@ -200,6 +288,8 @@ def main(start):
                         else:
                             raise ValueError("invalid control frame")
                 else:
+                    if fd not in streams:
+                        continue
                     stream, decoder = streams[fd]
                     try:
                         data = os.read(fd, 65536)
@@ -223,6 +313,10 @@ def main(start):
             child.wait()
             cleanup(child.pid, child)
         emit("exit", exitCode=child.returncode)
+        for call_id, (client, _, _) in observer_clients.items():
+            emit("observation-cancel", id=call_id)
+            client.close()
+        observer_clients.clear()
         emit("cleanup", ok=True)
     except BaseException as error:
         emit("error", error=str(error))
@@ -232,8 +326,20 @@ def main(start):
             except BaseException as cleanup_error:
                 emit("cleanup", ok=False, error=str(cleanup_error))
                 return
+        for call_id, (client, _, _) in observer_clients.items():
+            emit("observation-cancel", id=call_id)
+            client.close()
+        observer_clients.clear()
         emit("cleanup", ok=True)
     finally:
+        for client, _, _ in observer_clients.values():
+            client.close()
+        if observer is not None:
+            observer.close()
+        if observer_dir is not None:
+            observer_dir.cleanup()
+        if terminal_rc is not None:
+            terminal_rc.close()
         if master is not None:
             os.close(master)
         if resource_fd is not None:

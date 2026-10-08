@@ -57,6 +57,7 @@ const conversation = (id: string, generation: string, seq: number, text: string)
 function setup() {
   let saved: WorkbenchSnapshot | null = null;
   const repository: WorkbenchRepository = {
+    appendObservation: vi.fn(async () => crypto.randomUUID()),
     load: vi.fn(async () => saved),
     save: vi.fn(async (s) => {
       saved = structuredClone(s);
@@ -64,6 +65,34 @@ function setup() {
   };
   const runtime: WorkbenchRuntime = {
     registerSession: vi.fn(),
+    environmentsList: vi.fn().mockResolvedValue([
+      {
+        environmentId: 'local',
+        kind: 'local',
+        state: 'configured',
+        label: '本机',
+        capabilities: { browser: true, files: true, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'sandbox',
+        kind: 'sandbox',
+        state: 'configured',
+        label: 'Sandbox',
+        capabilities: { browser: false, files: false, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'ssh',
+        kind: 'ssh',
+        state: 'unavailable',
+        label: 'SSH',
+        capabilities: { browser: false, files: false, terminal: false },
+        reason: '未配置',
+      },
+    ]),
+    registerResource: vi.fn(),
+    observe: vi.fn(),
     publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
     publicResourcesCapture: vi.fn(),
     publicResourcesRemove: vi.fn(),

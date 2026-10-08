@@ -20,6 +20,8 @@ function subscribe<C extends EventChannel>(channel: C, listener: (payload: Event
 
 const studio: StudioApi = {
   workbench: {
+    environments: () => invoke('workbench:environments'),
+    observe: (input) => invoke('workbench:observe', input),
     reload: () => invoke('workbench:reload'),
     getSnapshot: () => invoke('workbench:get-snapshot'),
     command: (command) => invoke('workbench:command', command),

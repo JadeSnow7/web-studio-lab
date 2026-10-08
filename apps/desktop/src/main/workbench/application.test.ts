@@ -10,6 +10,7 @@ import type { WorkbenchRepository } from './repository';
 const make = async () => {
   let saved: WorkbenchSnapshot | null = null;
   const repository: WorkbenchRepository = {
+    appendObservation: vi.fn(async () => crypto.randomUUID()),
     load: async () => saved,
     save: vi.fn(async (s) => {
       saved = structuredClone(s);
@@ -17,6 +18,34 @@ const make = async () => {
   };
   const runtime: WorkbenchRuntime = {
     registerSession: vi.fn(),
+    environmentsList: vi.fn().mockResolvedValue([
+      {
+        environmentId: 'local',
+        kind: 'local',
+        state: 'configured',
+        label: '本机',
+        capabilities: { browser: true, files: true, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'sandbox',
+        kind: 'sandbox',
+        state: 'configured',
+        label: 'Sandbox',
+        capabilities: { browser: false, files: false, terminal: true },
+        reason: null,
+      },
+      {
+        environmentId: 'ssh',
+        kind: 'ssh',
+        state: 'unavailable',
+        label: 'SSH',
+        capabilities: { browser: false, files: false, terminal: false },
+        reason: '未配置',
+      },
+    ]),
+    registerResource: vi.fn(),
+    observe: vi.fn(),
     publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
     publicResourcesCapture: vi.fn(),
     publicResourcesRemove: vi.fn(),
@@ -596,7 +625,11 @@ describe('workbench authoritative commands', () => {
     };
     session.contextTarget = { kind: 'web', resourceId: r.resourceId };
     session.contextApplicability = 'current';
-    const repository: WorkbenchRepository = { load: async () => saved, save: vi.fn() };
+    const repository: WorkbenchRepository = {
+      appendObservation: vi.fn(async () => crypto.randomUUID()),
+      load: async () => saved,
+      save: vi.fn(),
+    };
     const restored = new WorkbenchApplication(repository, runtime, vi.fn());
     await restored.getSnapshot();
     const rejected = await restored.command({
@@ -729,6 +762,13 @@ describe('workbench authoritative commands', () => {
       cols: 80,
       rows: 24,
     });
+    await vi.waitFor(async () =>
+      expect(
+        (await app.getSnapshot()).workspaces
+          .find((x) => x.workspaceId === w.workspaceId)
+          ?.resources.find((x) => x.resourceId === r.resourceId)?.terminal?.state,
+      ).not.toBe('starting'),
+    );
     let finish!: (value: TerminalSnapshot) => void;
     vi.mocked(runtime.terminalStop).mockImplementation(
       () =>
@@ -742,7 +782,9 @@ describe('workbench authoritative commands', () => {
         commandId: 'stop',
         workspaceId: w.workspaceId,
         resourceId: r.resourceId,
-        instanceId: 'old-instance',
+        instanceId: (await app.getSnapshot()).workspaces
+          .find((x) => x.workspaceId === w.workspaceId)!
+          .resources.find((x) => x.resourceId === r.resourceId)!.instanceId!,
       }),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 100)),
     ]);
@@ -763,6 +805,13 @@ describe('workbench authoritative commands', () => {
       cols: 80,
       rows: 24,
     });
+    await vi.waitFor(async () =>
+      expect(
+        (await app.getSnapshot()).workspaces
+          .find((x) => x.workspaceId === w.workspaceId)
+          ?.resources.find((x) => x.resourceId === r.resourceId)?.terminal?.state,
+      ).not.toBe('starting'),
+    );
     expect(runtime.terminalOpen).toHaveBeenCalledTimes(1);
     await app.command({
       type: 'saveDraft',
@@ -773,7 +822,8 @@ describe('workbench authoritative commands', () => {
     });
     await app.command({ type: 'createWorkspace', commandId: 'navigate-stop', workspaceId: 'other', name: 'Other' });
     expect((await app.getSnapshot()).activeWorkspaceId).toBe('other');
-    app.onTerminal(r.resourceId, terminal('old-instance', 2, 'closed', false));
+    const oldBinding = vi.mocked(runtime.registerResource).mock.calls[0]![0];
+    app.onTerminal(r.resourceId, terminal('old-instance', 2, 'closed', false), oldBinding);
     await app.getSnapshot();
     vi.mocked(runtime.terminalOpen).mockResolvedValue(terminal('new-instance', 1, 'running', true));
     await app.command({
@@ -784,12 +834,20 @@ describe('workbench authoritative commands', () => {
       cols: 80,
       rows: 24,
     });
+    await vi.waitFor(async () =>
+      expect(
+        (await app.getSnapshot()).workspaces
+          .find((x) => x.workspaceId === w.workspaceId)
+          ?.resources.find((x) => x.resourceId === r.resourceId)?.terminal?.state,
+      ).not.toBe('starting'),
+    );
     finish(terminal('old-instance', 999, 'closed', false));
     await new Promise((resolve) => setTimeout(resolve, 0));
     const current = (await app.getSnapshot()).workspaces
       .find((workspace) => workspace.workspaceId === 'taskflow-demo')
       ?.resources.find((resource) => resource.resourceId === r.resourceId);
-    expect(current?.instanceId).toBe('new-instance');
+    expect(current?.instanceId).not.toBe(oldBinding.instanceId);
+    expect(current?.terminal?.sessionId).toBe('new-instance');
     expect(current?.terminal?.state).toBe('running');
   });
   it('does not stop a terminal when persisting closing fails', async () => {
@@ -815,13 +873,20 @@ describe('workbench authoritative commands', () => {
       cols: 80,
       rows: 24,
     });
+    await vi.waitFor(async () =>
+      expect(
+        (await app.getSnapshot()).workspaces
+          .find((x) => x.workspaceId === w.workspaceId)
+          ?.resources.find((x) => x.resourceId === r.resourceId)?.terminal?.state,
+      ).not.toBe('starting'),
+    );
     vi.mocked(repository.save).mockRejectedValueOnce(new Error('disk full'));
     const stopped = await app.command({
       type: 'stopInstance',
       commandId: 'stop-fail',
       workspaceId: w.workspaceId,
       resourceId: r.resourceId,
-      instanceId: 'instance',
+      instanceId: (await app.getSnapshot()).workspaces[0]!.resources.find((x) => x.resourceId === r.resourceId)!.instanceId!,
     });
     expect(stopped.ok).toBe(false);
     expect(stopped.snapshot.workspaces[0]?.resources.find((resource) => resource.resourceId === r.resourceId)?.terminal?.state).toBe(
@@ -852,13 +917,20 @@ describe('workbench authoritative commands', () => {
       cols: 80,
       rows: 24,
     });
+    await vi.waitFor(async () =>
+      expect(
+        (await app.getSnapshot()).workspaces
+          .find((x) => x.workspaceId === w.workspaceId)
+          ?.resources.find((x) => x.resourceId === r.resourceId)?.terminal?.state,
+      ).not.toBe('starting'),
+    );
     vi.mocked(runtime.terminalStop).mockRejectedValue(new Error('guest cleanup timeout'));
     await app.command({
       type: 'stopInstance',
       commandId: 'stop-unknown',
       workspaceId: w.workspaceId,
       resourceId: r.resourceId,
-      instanceId: 'instance',
+      instanceId: (await app.getSnapshot()).workspaces[0]!.resources.find((x) => x.resourceId === r.resourceId)!.instanceId!,
     });
     await vi.waitFor(async () =>
       expect(
@@ -873,6 +945,13 @@ describe('workbench authoritative commands', () => {
       cols: 80,
       rows: 24,
     });
+    await vi.waitFor(async () =>
+      expect(
+        (await app.getSnapshot()).workspaces
+          .find((x) => x.workspaceId === w.workspaceId)
+          ?.resources.find((x) => x.resourceId === r.resourceId)?.terminal?.state,
+      ).not.toBe('starting'),
+    );
     expect(runtime.terminalOpen).toHaveBeenCalledTimes(1);
   });
   it('does not hide native views if workspace navigation cannot be saved', async () => {

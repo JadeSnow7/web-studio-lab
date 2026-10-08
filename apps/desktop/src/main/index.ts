@@ -31,15 +31,17 @@ function openWorkbench(): BrowserWindow {
       workbench?.onConversation(conversation);
     },
     (status) => sendToRenderer(window, 'chat:status', status),
-    (snapshot, resourceId) => {
-      workbench?.onTerminal(resourceId, snapshot);
+    (snapshot, resourceId, binding) => {
+      workbench?.onTerminal(resourceId, snapshot, binding);
     },
+    (hint) => workbench?.onFileHint(hint),
   );
   const host = new WorkbenchHost(window, chat, demoRoot());
   workbench = new WorkbenchApplication(new FileWorkbenchRepository(path.join(app.getPath('userData'), 'workbench.json')), host, (event) =>
     sendToRenderer(window, 'workbench:event', event),
   );
   host.application = workbench;
+  chat.setObservationReader((scope, tool, args, signal) => workbench!.observeForTurn(scope, tool, args, signal));
   const unregisterIpc = registerIpc({ window, trusted, chat, workbench });
   installAppMenu(window, host);
 
