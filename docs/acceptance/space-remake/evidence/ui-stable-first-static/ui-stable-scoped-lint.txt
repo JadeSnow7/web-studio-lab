@@ -1,0 +1,2 @@
+COMMAND: pnpm exec eslint apps packages e2e
+SOURCE SHA256: 063d6a4c8f77d2cd3a126e1a26dd982459c96df0cded79af66d9fc4108cc9721

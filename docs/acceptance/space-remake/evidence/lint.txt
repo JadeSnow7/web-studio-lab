@@ -1,0 +1,13 @@
+COMMAND: pnpm lint
+SOURCE SHA256: a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d
+
+> web-studio-lab@ lint /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> eslint .
+
+
+/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/tests/vertical-slice/cdp.ts
+  16:9  error  'timer' is never reassigned. Use 'const' instead  prefer-const
+
+✖ 1 problem (1 error, 0 warnings)
+
+ ELIFECYCLE  Command failed with exit code 1.

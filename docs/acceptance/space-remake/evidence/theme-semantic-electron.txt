@@ -1,0 +1,15 @@
+
+Running 8 tests using 1 worker
+
+(node:59652) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/space-remake.spec.ts:21:1 › SR01/02/07/09：六个入口、空间专属标签、设置主题、草稿与原实例保持 (1.9s)
+  ✓  2 e2e/space-remake.spec.ts:49:1 › SR03/04/06/10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点 (941ms)
+  ✓  3 e2e/space-remake.spec.ts:76:1 › SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页 (1.3s)
+  ✓  4 e2e/space-remake.spec.ts:113:1 › SR05/11：独立固定偏好、窄窗投影不改分割树、重启只恢复pin (1.4s)
+  ✓  5 e2e/space-remake.spec.ts:147:1 › SR01/09：首页新建对话框取消回原入口，主题同步实际终端与系统 (1.7s)
+  ✓  6 e2e/space-remake.spec.ts:206:1 › SR10/11：窄窗展开后放宽再缩窄不会留下无屏障浮层 (1.0s)
+  ✓  7 e2e/space-remake.spec.ts:232:1 › SR03：边缘悬停延迟展开，面板内焦点阻止自动收起，焦点离开后恢复原生网页 (2.2s)
+  ✓  8 e2e/workspace-visual.spec.ts:13:1 › A12 三窗格、切换器、暗暖主题与窄窗真实窗口截图 (2.4s)
+
+  8 passed (13.2s)

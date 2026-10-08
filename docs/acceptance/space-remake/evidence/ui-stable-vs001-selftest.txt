@@ -1,0 +1,20 @@
+COMMAND: node --import tsx --test tests/vertical-slice/selftest.test.ts
+SOURCE SHA256: 063d6a4c8f77d2cd3a126e1a26dd982459c96df0cded79af66d9fc4108cc9721
+(node:56235) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ synthetic: strict task and event contracts reject relaxed goals and extra pass claims (1.653459ms)
+✔ synthetic: postcondition rejects initial/wrong/hidden/duplicate/mixed-run/exception observations (0.440958ms)
+✔ synthetic: mixed run/hash, sequence, lifecycle, logs and nonzero exit are rejected (0.711417ms)
+✔ synthetic: diff detects add/delete and paths/CDP URLs cannot escape boundaries (0.592459ms)
+✔ synthetic: manifest refuses content tampering, missing evidence and mixed-run events (2.874625ms)
+✔ synthetic: complete empty DOM returns immediately and B03 rejects it (8.081833ms)
+✔ synthetic: navigation waits for complete state and the expected URL (204.256083ms)
+✔ synthetic: complete single-match DOM returns on the first evaluation (1.279458ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 372.518583

@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - packages/*
+
+# 只允许这些依赖执行安装脚本：electron 需要下载自身二进制，esbuild 需要平台二进制。
+onlyBuiltDependencies:
+  - electron
+  - esbuild

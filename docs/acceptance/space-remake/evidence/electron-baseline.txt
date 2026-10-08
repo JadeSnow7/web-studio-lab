@@ -1,0 +1,17 @@
+
+Running 10 tests using 1 worker
+
+(node:7946) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/workbench.spec.ts:22:1 › 启动：窗口、安全边界与 Browser 区真实加载 (281ms)
+  ✓   2 e2e/workbench.spec.ts:56:1 › 点选：开启选择模式，点击页面元素后采集摘要、截图与页面身份 (374ms)
+  ✓   3 e2e/workbench.spec.ts:75:1 › 任务确认：中文目标、允许项目、验收与预算，确认后生成 v1 (186ms)
+  ✓   4 e2e/workbench.spec.ts:94:1 › 导航：页面跳转后旧现场失效，需要重新采集 (768ms)
+  ✓   5 e2e/workbench.spec.ts:117:1 › 选择模式中导航：退出选择模式，之后的页面点击正常生效 (392ms)
+  ✓   6 e2e/workbench.spec.ts:131:1 › Tab 与演示状态：日志 / diff / 报告切换，审阅只作用于演示记录 (490ms)
+  ✓   7 e2e/workbench.spec.ts:162:1 › 导航与草稿：首页个人作用域不能向空间发送，草稿按会话保留 (384ms)
+  ✓   8 e2e/workbench.spec.ts:191:1 › Workshop：隐藏、悬停展开（页面以快照让位）、固定 (377ms)
+  ✓   9 e2e/workbench.spec.ts:210:1 › 菜单快捷键：⌘B 与 ⌘L 通过应用菜单生效 (15ms)
+  ✓  10 e2e/workbench.spec.ts:235:1 › 较窄窗口：右栏改为覆盖层，Browser 区让位并保持可点击 (293ms)
+
+  10 passed (4.8s)

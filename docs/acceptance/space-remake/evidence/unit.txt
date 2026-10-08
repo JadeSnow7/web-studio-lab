@@ -1,0 +1,15 @@
+COMMAND: pnpm test
+SOURCE SHA256: a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d
+
+> web-studio-lab@ test /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> vitest run
+
+
+ RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+
+
+ Test Files  26 passed | 4 skipped (30)
+      Tests  217 passed | 6 skipped (223)
+   Start at  13:37:50
+   Duration  2.49s (tests 77%, transform 11%, import 11%, worker 1%)
+

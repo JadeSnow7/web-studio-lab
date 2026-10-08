@@ -1,0 +1,7 @@
+{
+  "checkedAt": "2026-10-08T06:55:23.448944+00:00",
+  "scope": "Changed narrative document local link targets only; no anchors, external URLs or readability claim",
+  "documentCount": 9,
+  "localLinks": 73,
+  "errors": []
+}

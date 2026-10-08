@@ -1,0 +1,74 @@
+[
+  {
+    "command": "pnpm typecheck",
+    "startedAt": "2026-10-08T05:37:44.521896+00:00",
+    "exitCode": 0,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "typecheck.txt",
+    "logSha256": "b34514f09b712ac0710a8fc93ffcca186013bbaac174989a35e393fdee196d6d"
+  },
+  {
+    "command": "pnpm test",
+    "startedAt": "2026-10-08T05:37:48.843339+00:00",
+    "exitCode": 0,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "unit.txt",
+    "logSha256": "dc34263797afb378de3d63b7b2a09ba7882beb1ad7b1cfcbbe01a6d72a6ee421"
+  },
+  {
+    "command": "pnpm build",
+    "startedAt": "2026-10-08T05:37:52.799985+00:00",
+    "exitCode": 0,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "build.txt",
+    "logSha256": "e4820fc64c1c3710d2b0692e19069706d01ea94f1eb77d21c1fa4eb87e61cbe5"
+  },
+  {
+    "command": "pnpm baseline:selftest",
+    "startedAt": "2026-10-08T05:37:57.038638+00:00",
+    "exitCode": 1,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "vs001-selftest.txt",
+    "logSha256": "beb2b7ac795dca4216af7769ae593991400c9c201587d7248a6649801b365f8b"
+  },
+  {
+    "command": "pnpm lint",
+    "startedAt": "2026-10-08T05:37:57.700217+00:00",
+    "exitCode": 1,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "lint.txt",
+    "logSha256": "dc0ee5c6fa753aff26467da305231dd27d0d5ede074c1a90d9b60f5732cafdbc"
+  },
+  {
+    "command": "pnpm exec playwright test e2e/workbench.spec.ts --grep \u542f\u52a8 --reporter=list",
+    "exitCode": 1,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "electron-attempt.txt",
+    "logSha256": "6862cf56e31ce4ee0a898c22780a6fc35be91f2756aae7dad954d9c46c090709",
+    "nativePermissions": false
+  },
+  {
+    "command": "node --import tsx --test tests/vertical-slice/selftest.test.ts",
+    "exitCode": 0,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "vs001-direct-loader.txt",
+    "logSha256": "3dddb85bcb34a26480ce6d88a1c939282442a22f6a4654e2fa0e0d31661c83ff",
+    "nativePermissions": false
+  },
+  {
+    "command": "PATH=/private/tmp/wsl-remake-bin:$PATH pnpm exec playwright test e2e/workbench.spec.ts --reporter=list",
+    "exitCode": 0,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "electron-baseline.txt",
+    "logSha256": "3ff197986f49d9a53584912cb6d454ecc6c257fca60320c5e3bc25abe8d6aca5",
+    "nativePermissions": true
+  },
+  {
+    "command": "PATH=/private/tmp/wsl-remake-bin:$PATH pnpm baseline:selftest",
+    "exitCode": 0,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "vs001-selftest-unsandboxed.txt",
+    "logSha256": "393b1ee12c4b069c3402dbd7b94a45b7ba0d15d44ee75588bb3367169bfcc642",
+    "nativePermissions": true
+  }
+]

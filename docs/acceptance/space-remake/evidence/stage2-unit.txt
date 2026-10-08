@@ -1,0 +1,14 @@
+COMMAND: pnpm exec vitest run packages/protocol/src apps/desktop/src/main apps/service/src
+SOURCE SHA256: ecf29f1411930c55daad329e1a7f3f09b2c4283cc9bdd102c9456275d28e3a2d
+
+ RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+
+
+ Test Files  34 passed | 4 skipped (38)
+      Tests  258 passed | 8 skipped (266)
+   Start at  13:40:47
+   Duration  2.45s (tests 71%, import 16%, transform 12%, worker 1%)
+
+    Isolate  38 workers spawned · ~101ms startup each (spawn + environment, per file)
+             at least ~326ms faster with isolate: false — reuses workers across files instead of one per file
+

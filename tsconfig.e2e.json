@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "typeRoots": ["./apps/desktop/node_modules/@types"]
+  },
+  "files": ["apps/desktop/node_modules/electron/electron.d.ts"],
+  "include": ["e2e/**/*.ts", "playwright.config.ts", "vitest.config.ts"]
+}

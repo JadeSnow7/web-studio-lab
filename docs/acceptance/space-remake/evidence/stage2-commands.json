@@ -1,0 +1,42 @@
+[
+  {
+    "command": "pnpm --filter @wsl/desktop exec tsc -p tsconfig.node.json",
+    "startedAt": "2026-10-08T05:40:44.014460+00:00",
+    "exitCode": 1,
+    "sourceSha256": "ecf29f1411930c55daad329e1a7f3f09b2c4283cc9bdd102c9456275d28e3a2d",
+    "log": "stage2-main-typecheck.txt",
+    "logSha256": "7bb49671e72d2adb3177945a1745570aac515e963bbd3b3bfce6c80a750c3513"
+  },
+  {
+    "command": "pnpm --filter @wsl/service typecheck",
+    "startedAt": "2026-10-08T05:40:45.276261+00:00",
+    "exitCode": 0,
+    "sourceSha256": "ecf29f1411930c55daad329e1a7f3f09b2c4283cc9bdd102c9456275d28e3a2d",
+    "log": "stage2-service-typecheck.txt",
+    "logSha256": "fb35a2b13fad85411ccf40a7a655e9c48d349f238e4adb6cd7c2efd2f2ff62cb"
+  },
+  {
+    "command": "pnpm --filter @wsl/protocol typecheck",
+    "startedAt": "2026-10-08T05:40:46.200583+00:00",
+    "exitCode": 0,
+    "sourceSha256": "ecf29f1411930c55daad329e1a7f3f09b2c4283cc9bdd102c9456275d28e3a2d",
+    "log": "stage2-protocol-typecheck.txt",
+    "logSha256": "c2aca3735af0b4154cce34ece11d6ea268eb267d0ebcd2456df4b5a72d66b538"
+  },
+  {
+    "command": "pnpm exec vitest run packages/protocol/src apps/desktop/src/main apps/service/src",
+    "startedAt": "2026-10-08T05:40:46.867854+00:00",
+    "exitCode": 0,
+    "sourceSha256": "ecf29f1411930c55daad329e1a7f3f09b2c4283cc9bdd102c9456275d28e3a2d",
+    "log": "stage2-unit.txt",
+    "logSha256": "ea7f70807f01bf53759c92bc41c269019620eb6698ce839ae982f0f453eac8ec"
+  },
+  {
+    "command": "python3 apps/service/src/resource_mcp_tests.py",
+    "startedAt": "2026-10-08T05:40:49.753453+00:00",
+    "exitCode": 1,
+    "sourceSha256": "ecf29f1411930c55daad329e1a7f3f09b2c4283cc9bdd102c9456275d28e3a2d",
+    "log": "stage2-resource-mcp.txt",
+    "logSha256": "a03c20d8c9b73011be2169cd700ab10a8ec2ed7647338dc21e26d1804e583693"
+  }
+]

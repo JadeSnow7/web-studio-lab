@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-10-08T06:11:54.718074+00:00",
+  "donorFileCount": 544,
+  "donorMismatch": [],
+  "fixedBaselineMismatch": [],
+  "head": "2466936454658153e47a430ce1da853826f69f69",
+  "stagedPaths": [],
+  "scope": "Existing donor files and HEAD fixed baseline bytes; final source manifest is separate."
+}

@@ -1,0 +1,18 @@
+COMMAND: pnpm test
+SOURCE SHA256: d9e53ef57be5a1621cace018c5922b29c27cb7a944ee303da3776ab1865881fe
+
+> web-studio-lab@ test /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> vitest run
+
+
+ RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+
+
+ Test Files  42 passed | 4 skipped (46)
+      Tests  295 passed | 8 skipped (303)
+   Start at  14:27:04
+   Duration  2.18s (tests 72%, import 16%, transform 11%, worker 1%)
+
+    Isolate  46 workers spawned · ~83ms startup each (spawn + environment, per file)
+             at least ~343ms faster with isolate: false — reuses workers across files instead of one per file
+

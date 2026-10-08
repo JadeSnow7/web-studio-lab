@@ -1,0 +1,74 @@
+Window: "空间 · TaskFlow · Web Studio Lab", App: Electron.
+0 标准窗口 空间 · TaskFlow · Web Studio Lab, Secondary Actions: Raise
+	1 container 空间 · TaskFlow · Web Studio Lab
+		2 container
+			3 HTML 内容 空间 · TaskFlow · Web Studio Lab, URL: file:///Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/renderer/index.html
+				4 container
+					5 按钮 显示或隐藏 Workshop（⌘B）
+					6 按钮 切换空间
+						7 文本 ▦
+						8 文本 TaskFlow
+						9 文本 ⌄
+					10 按钮 Codex CLI · 对话已连接
+					11 container Workshop
+						12 container Workshop 导航
+							13 按钮 首页
+							14 按钮 空间
+							15 按钮 资源
+							16 按钮 会话
+							17 按钮 任务
+							18 切换按钮 Description: 取消固定 Workshop, Help: 取消固定：收起后从左边缘悬停或点击把手展开, Value: 1
+							19 按钮 设置
+						20 container 空间导航
+							21 文本 TaskFlow
+							22 文本 空间标签
+							23 container 空间标签
+								24 按钮 TaskFlow 预览
+								25 按钮 TaskFlow 预览操作
+								26 按钮 空间重制验收：这是用于检查长中文名称截断与操作按钮可达性的会话标签
+								27 按钮 空间重制验收：这是用于检查长中文名称截断与操作按钮可达性的会话标签操作
+								28 按钮 开发终端
+								29 按钮 开发终端操作
+								30 开合三角标记 后台资源 / 已关闭标签
+									31 文本 后台资源 / 已关闭标签
+							32 按钮 新建标签
+							33 按钮 搜索空间或标签
+							34 文本 关闭窗格保留标签 · 隐藏继续运行
+					35 container TaskFlow工作现场
+						36 container
+							37 按钮 聚焦窗格 · 空间重制验收：这是用于检查长中文名称截断与操作按钮可达性的会话标签
+							38 按钮 左右分屏
+							39 按钮 上下分屏
+							40 按钮 专注当前窗格
+							41 按钮 窗格操作
+						42 container Agent 会话内容
+							43 标题 Agent 会话, Value: 2
+								44 文本 Agent 会话
+							45 container 会话视图
+								46 切换按钮 对话, Value: 1
+								47 切换按钮 任务, Value: 0
+								48 切换按钮 上下文, Value: 0
+								49 切换按钮 检查, Value: 0
+								50 切换按钮 日志, Value: 0
+								51 切换按钮 diff, Value: 0
+								52 切换按钮 报告, Value: 0
+							53 container
+								54 text Codex CLI ·  尚未运行  · 沙箱由服务决定
+							55 container Codex 对话消息
+								56 文本 描述想完成的工作；执行结果与检查分别记录。
+							57 container
+								58 text 发送到 ·  TaskFlow  /  Agent 会话  / Codex CLI
+							59 文本输入区 (settable) 发送到 · TaskFlow / Agent 会话 / Codex CLI, Value: 中文草稿验收：保留旧版布局，在空间页继续工作。, Placeholder: 继续描述想修改的内容…
+							60 文本 Enter 发送 · Shift+Enter 换行 · 草稿按会话保存
+							61 按钮 发送
+					62 按钮 通知 · 0 条未读
+	63 关闭按钮
+	64 全屏幕按钮 Help: 此按钮也可以执行缩放窗口的操作, Secondary Actions: 缩放窗口
+	65 最小化按钮
+66 menu bar
+	67 Electron
+	68 编辑
+	69 显示
+	70 窗口
+
+The focused UI element is 27 按钮 空间重制验收：这是用于检查长中文名称截断与操作按钮可达性的会话标签操作

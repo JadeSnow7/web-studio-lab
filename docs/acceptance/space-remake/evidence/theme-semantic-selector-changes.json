@@ -1,0 +1,102 @@
+{
+  "file": "apps/desktop/src/renderer/src/styles/app.css",
+  "beforeSha256": "509b74a61b9c8be8a3cf4ab23fe5900865d59e66a2d99f383132d9ebcc952007",
+  "afterSourceManifest": "theme-semantic-source-manifest.json",
+  "scope": "CSS declarations only; no layout/geometry/behavior changes; original CSS bytes were not separately retained before edit, so this is a selector/declaration mapping rather than reconstructed unified diff",
+  "changes": [
+    {
+      "selectors": [
+        "input",
+        "textarea",
+        "select"
+      ],
+      "change": "Added content background, text foreground and existing accent-color token for native form controls."
+    },
+    {
+      "selectors": [
+        ".btn:hover:not(:disabled)",
+        ".btn:disabled",
+        ".icon-btn.primary[aria-disabled=true]",
+        ".chip",
+        ".pill-neutral",
+        ".freshness-none",
+        ".segmented",
+        ".table th",
+        ".harness-line",
+        ".blockers",
+        ".shot",
+        ".process-list",
+        ".diff",
+        ".composer-empty"
+      ],
+      "change": "Replace hardcoded light neutral surfaces with --glass; neutral foreground uses --text-2/--text-3."
+    },
+    {
+      "selectors": [
+        ".btn-primary",
+        ".icon-btn.primary",
+        ".message-user"
+      ],
+      "change": "Replace white foreground with --content so light/dark/warm accent backgrounds keep readable foreground."
+    },
+    {
+      "selectors": [
+        ".btn-primary:hover:not(:disabled)"
+      ],
+      "change": "Replace hardcoded deep-blue hover background with --accent-ink."
+    },
+    {
+      "selectors": [
+        ".notice-info",
+        ".table-select tr[aria-selected=true] td",
+        ".scenario[aria-selected=true]"
+      ],
+      "change": "Replace light blue hardcoded surfaces/ink with --accent-soft/--accent-ink."
+    },
+    {
+      "selectors": [
+        ".badge-demo",
+        ".pill-warn",
+        ".notice-warn",
+        ".notice-history",
+        ".demo-box",
+        ".capture-stale",
+        ".attempt-inconclusive",
+        ".attempt-timed_out",
+        ".attempt-cancelled",
+        ".view-banner"
+      ],
+      "change": "Use existing --warn-soft/--warn-ink/--warn for warning surfaces, text and borders."
+    },
+    {
+      "selectors": [
+        ".notice-bad",
+        ".attempt-failed",
+        ".diff-del",
+        ".toast",
+        ".toast p"
+      ],
+      "change": "Use --bad-soft/--bad surfaces and foreground/borders instead of white/light red/dark red hardcoding."
+    },
+    {
+      "selectors": [
+        ".attempt-passed",
+        ".diff-add"
+      ],
+      "change": "Use --ok/--ok-soft/--ok-ink instead of hardcoded light green/dark green."
+    },
+    {
+      "selectors": [
+        ".diff-hunk",
+        ":root[data-theme=dark]"
+      ],
+      "change": "Use existing --review/--review-soft tokens for diff hunk; provide dark-theme values #c9aff1/#382d49."
+    },
+    {
+      "selectors": [
+        ".icon-btn:disabled"
+      ],
+      "change": "Use existing --text-3 instead of hardcoded light disabled gray."
+    }
+  ]
+}

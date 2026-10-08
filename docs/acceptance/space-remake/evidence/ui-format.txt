@@ -1,0 +1,34 @@
+apps/desktop/src/renderer/src/App.tsx 41ms
+apps/desktop/src/renderer/src/pages/SpacePage.tsx 16ms
+apps/desktop/src/renderer/src/pages/SettingsPage.tsx 6ms (unchanged)
+apps/desktop/src/renderer/src/state/panels.ts 3ms
+apps/desktop/src/renderer/src/state/panels.test.ts 2ms
+apps/desktop/src/renderer/src/state/occlusion.ts 4ms
+apps/desktop/src/renderer/src/state/occlusion.test.ts 2ms
+apps/desktop/src/renderer/src/state/shell.ts 7ms
+apps/desktop/src/renderer/src/state/shell.test.ts 2ms
+apps/desktop/src/renderer/src/state/space-ui.ts 3ms
+apps/desktop/src/renderer/src/state/workspace.ts 6ms (unchanged)
+apps/desktop/src/renderer/src/state/workspace.test.ts 11ms (unchanged)
+apps/desktop/src/renderer/src/state/ui.ts 2ms
+apps/desktop/src/renderer/src/workspace/Sidebar.tsx 6ms
+apps/desktop/src/renderer/src/workspace/Panes.tsx 7ms
+apps/desktop/src/renderer/src/workspace/SpaceSwitcher.tsx 5ms (unchanged)
+apps/desktop/src/renderer/src/shell/Workshop.tsx 4ms
+apps/desktop/src/renderer/src/shell/TitleBar.tsx 2ms
+apps/desktop/src/renderer/src/shell/RightPanel.tsx 2ms
+apps/desktop/src/renderer/src/styles/app.css 77ms
+apps/desktop/src/main/chat-service.ts 15ms
+apps/desktop/src/main/chat-service.test.ts 11ms
+apps/service/src/index.ts 7ms (unchanged)
+apps/service/src/initialization-migration.test.ts 5ms (unchanged)
+apps/service/src/resource-store.test.ts 12ms
+apps/service/src/sbx-contract.test.ts 3ms
+packages/protocol/src/bridge.ts 2ms (unchanged)
+packages/protocol/src/ipc.ts 3ms (unchanged)
+packages/protocol/src/terminal.ts 2ms (unchanged)
+packages/protocol/src/chat.ts 6ms (unchanged)
+e2e/helpers.ts 10ms
+e2e/space-remake.spec.ts 8ms
+e2e/public-document.spec.ts 7ms
+e2e/resources-live.spec.ts 7ms (unchanged)

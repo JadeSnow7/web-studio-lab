@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-10-08T06:54:17.104527+00:00",
+  "sourceManifest": "theme-semantic-source-manifest.json",
+  "sourceSha256": "7eff9b2af337ee5ef0604b2b55c8b118712bedf1be8e997139fecd4b9bbfa246",
+  "sourceFileCount": 180,
+  "currentSourceMismatch": [],
+  "changesSincePreThemeDelivery": [
+    "apps/desktop/src/renderer/src/styles/app.css"
+  ],
+  "commandLogMismatch": [],
+  "donorMismatch": [],
+  "fixedBaselineMismatch": [],
+  "donorFileCount": 544,
+  "head": "2466936454658153e47a430ce1da853826f69f69",
+  "stagedPaths": [],
+  "nativeScreenshots": {
+    "01-reference-layout.png": "f9df57ce26e814f0b360c88f638f0e620529157afef5160b7df430ffffa16ef9",
+    "02-notification-bubble.png": "082c46d63333d11fb8d595bb030784c6b2627a64cd1353c8c8eee3f8467956bf",
+    "03-notification-docked.png": "a0a043d0a6931017770074385993d717ab95731aa241d87cf3471b9557d4ee1e",
+    "04-left-group-floating.png": "cedcd81efae176482068cb43b87466b1093854f990d6d224b104920de3403b67",
+    "05-settings-dark.png": "b648b6082b93408209fc45ebbb26662c7264b22a4253743a31db574bb039fe34",
+    "06-terminal-dark.png": "2779061ef81d9f1ec69f44b03e1164d1b2c4ea4b6cc1b2b3a14ee2d802bdc600",
+    "07-chinese-draft-restored.png": "0960edc6391a86500d92c5496e739acc918e4e8113bdeddc77ff32039d675bbd",
+    "08-settings-dark-fixed.png": "dc51b31616424b1d2b794f4ff235e0458c851dc74b26671f06592ee673ea5c16",
+    "09-settings-warm.png": "5ddf04d9fa8302614089e5a418fb1e533c7ee867dc9af76069889eecb7cd288d",
+    "10-settings-light.png": "ec325959077fcd11df981c2f9c79a9a5354248194182a4b08ce0c28a9fa47f75",
+    "11-long-label.png": "5e99869184127c336b53cb1aef569f0c93f05f313291cd7b785b165db783cbd8",
+    "12-reordered-labels.png": "e3375ffb9f0978b9a7201a38e336924f963e475fe77edb87d859aa304242f83e",
+    "13-space-switcher.png": "6ec94a6ca831d8c430f8d4a4695e5b2245fea94f03bc0a10ab75abd42ffbd452",
+    "14-final-layout.png": "26383a7da3abc3eea4af1dc87980d1f5e2e2325b45c9d2f7c4d8e212fc72ba43"
+  }
+}

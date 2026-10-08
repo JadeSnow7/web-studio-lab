@@ -1,0 +1,22 @@
+
+> web-studio-lab@ baseline:selftest /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> tsx --test tests/vertical-slice/selftest.test.ts
+
+(node:8102) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ synthetic: strict task and event contracts reject relaxed goals and extra pass claims (1.334542ms)
+✔ synthetic: postcondition rejects initial/wrong/hidden/duplicate/mixed-run/exception observations (0.464833ms)
+✔ synthetic: mixed run/hash, sequence, lifecycle, logs and nonzero exit are rejected (0.767042ms)
+✔ synthetic: diff detects add/delete and paths/CDP URLs cannot escape boundaries (0.449792ms)
+✔ synthetic: manifest refuses content tampering, missing evidence and mixed-run events (4.283208ms)
+✔ synthetic: complete empty DOM returns immediately and B03 rejects it (9.0785ms)
+✔ synthetic: navigation waits for complete state and the expected URL (205.270292ms)
+✔ synthetic: complete single-match DOM returns on the first evaluation (2.077708ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 367.0065

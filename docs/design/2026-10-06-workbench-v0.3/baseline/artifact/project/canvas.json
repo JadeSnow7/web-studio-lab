@@ -1,0 +1,144 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Conversations.dc.html": {
+      "h": 900,
+      "radius": 12,
+      "title": "09 会话 · C-01",
+      "w": 1440,
+      "x": 0,
+      "y": 2420
+    },
+    "Home.dc.html": {
+      "h": 900,
+      "radius": 12,
+      "title": "05 首页 · H-01",
+      "w": 1440,
+      "x": 0,
+      "y": 1400
+    },
+    "Main.dc.html": {
+      "h": 900,
+      "radius": 12,
+      "title": "01 P0 工作台 · 可点击原型",
+      "w": 1440,
+      "x": 0,
+      "y": 0,
+      "is_interactive": true
+    },
+    "Overlay.dc.html": {
+      "h": 900,
+      "radius": 12,
+      "title": "07 顶部地址浮层 · Workshop 展开",
+      "w": 1440,
+      "x": 3040,
+      "y": 1400
+    },
+    "Resources.dc.html": {
+      "h": 900,
+      "radius": 12,
+      "title": "08 资源 · 添加到空间 · R-01",
+      "w": 1440,
+      "x": 4560,
+      "y": 1400
+    },
+    "RunCancel.dc.html": {
+      "h": 900,
+      "radius": 12,
+      "title": "03 P0 失败重试 · 取消等待退出",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "RunHistory.dc.html": {
+      "h": 900,
+      "radius": 12,
+      "title": "04 P0 历史记录 · 无模型复验",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "RunPassed.dc.html": {
+      "h": 900,
+      "radius": 12,
+      "title": "02 P0 验收通过 · 证据包",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "Settings.dc.html": {
+      "h": 900,
+      "radius": 12,
+      "title": "11 设置 · A-01",
+      "w": 1440,
+      "x": 3040,
+      "y": 2420
+    },
+    "Space.dc.html": {
+      "h": 900,
+      "radius": 12,
+      "title": "06 空间 · 平铺与折叠 · S-01",
+      "w": 1440,
+      "x": 1520,
+      "y": 1400
+    },
+    "Tasks.dc.html": {
+      "h": 900,
+      "radius": 12,
+      "title": "10 任务 · T-01",
+      "w": 1440,
+      "x": 1520,
+      "y": 2420
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-06T12:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "disclaimer": {
+      "fill": "blue",
+      "size": 24,
+      "text": "全部画板均为交互设计示意。示例人物、哈希、文件和状态用于说明规则，不代表已实现或已运行的功能。方括号内容为待定项（如 harness 选型见 T02）。",
+      "w": 360,
+      "x": 6080,
+      "y": 0
+    },
+    "rowA": {
+      "kind": "title1",
+      "maxW": 5920,
+      "text": "A · 比赛 P0 工作台：run → 预览 → 验收 → 证据",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "rowB": {
+      "kind": "title1",
+      "maxW": 5920,
+      "text": "B · 六模块愿景（交互规范 v0.2 第 5–12 章）",
+      "w": 240,
+      "x": 0,
+      "y": 1100
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "RunPassed.dc.html",
+    "RunCancel.dc.html",
+    "RunHistory.dc.html",
+    "Home.dc.html",
+    "Space.dc.html",
+    "Overlay.dc.html",
+    "Resources.dc.html",
+    "Conversations.dc.html",
+    "Tasks.dc.html",
+    "Settings.dc.html"
+  ],
+  "pages": [],
+  "title": "Web Studio 工作台设计"
+}

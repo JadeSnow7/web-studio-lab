@@ -1,0 +1,34 @@
+[
+  {
+    "command": "pnpm typecheck",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:26:59.881034+00:00",
+    "sourceSha256": "d9e53ef57be5a1621cace018c5922b29c27cb7a944ee303da3776ab1865881fe",
+    "log": "ui-review-final-typecheck.txt",
+    "logSha256": "052f3b963d3faa5933c56ea0ad27ec65775e5ec7d6f752476c068471cf6a9075"
+  },
+  {
+    "command": "pnpm test",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:27:04.553547+00:00",
+    "sourceSha256": "d9e53ef57be5a1621cace018c5922b29c27cb7a944ee303da3776ab1865881fe",
+    "log": "ui-review-final-unit.txt",
+    "logSha256": "ddaeb746577b3223b1b4604735636e98eec7dd8d175fa5a9e1d9a08ed28a6fa6"
+  },
+  {
+    "command": "pnpm exec eslint apps packages e2e",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:27:07.123342+00:00",
+    "sourceSha256": "d9e53ef57be5a1621cace018c5922b29c27cb7a944ee303da3776ab1865881fe",
+    "log": "ui-review-final-scoped-lint.txt",
+    "logSha256": "639556488d802b0054398573b30214017eba71b957a16e257b85654b5a8766d1"
+  },
+  {
+    "command": "node --import tsx --test tests/vertical-slice/selftest.test.ts",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:27:09.520848+00:00",
+    "sourceSha256": "d9e53ef57be5a1621cace018c5922b29c27cb7a944ee303da3776ab1865881fe",
+    "log": "ui-review-final-vs001-selftest.txt",
+    "logSha256": "e42bea23bf1e94ff60d3e649d4342d96614898c09081da287303c4ac19e58b7e"
+  }
+]

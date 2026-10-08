@@ -1,0 +1,4 @@
+apps/desktop/src/renderer/src/pages/SpacePage.tsx 51ms
+apps/desktop/src/renderer/src/styles/app.css 82ms
+e2e/space-remake.spec.ts 16ms
+e2e/resources-live.spec.ts 13ms (unchanged)

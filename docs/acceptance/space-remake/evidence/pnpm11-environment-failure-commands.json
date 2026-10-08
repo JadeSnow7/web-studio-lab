@@ -1,0 +1,42 @@
+[
+  {
+    "command": "pnpm typecheck",
+    "startedAt": "2026-10-08T05:37:25.752645+00:00",
+    "exitCode": 1,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "typecheck.txt",
+    "logSha256": "67dbe35d43b8a61e8911923ecf672e8a4230cac4c2d244ebae668ac70ca84653"
+  },
+  {
+    "command": "pnpm test",
+    "startedAt": "2026-10-08T05:37:26.471875+00:00",
+    "exitCode": 1,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "unit.txt",
+    "logSha256": "e6c9920291cd437f53c161f7d44f645a7c5a3a13965c686c091119970c5f99f9"
+  },
+  {
+    "command": "pnpm build",
+    "startedAt": "2026-10-08T05:37:26.926913+00:00",
+    "exitCode": 1,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "build.txt",
+    "logSha256": "f0d135896263828cff3f73dc6eb8abaf38f84c96696a78db09050c28a041da97"
+  },
+  {
+    "command": "pnpm baseline:selftest",
+    "startedAt": "2026-10-08T05:37:27.376702+00:00",
+    "exitCode": 1,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "vs001-selftest.txt",
+    "logSha256": "834d53aa4c099df8c2bc7671899c7cedf4b4a4d12eba10467e3ece8305f77db9"
+  },
+  {
+    "command": "pnpm lint",
+    "startedAt": "2026-10-08T05:37:27.835235+00:00",
+    "exitCode": 1,
+    "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+    "log": "lint.txt",
+    "logSha256": "aeeb9c767a992f142048c13e98f2eb63af32074c5a8a4f888a7b12d3ec7271ff"
+  }
+]

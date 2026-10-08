@@ -1,0 +1,500 @@
+COMMAND: python3 apps/service/src/resource_mcp_tests.py
+SOURCE SHA256: ecf29f1411930c55daad329e1a7f3f09b2c4283cc9bdd102c9456275d28e3a2d
+test_bundle_scope_and_boundary_validation (__main__.ResourceMcpTests.test_bundle_scope_and_boundary_validation) ... ERROR
+test_dynamic_host_registered_conversation_bundle (__main__.ResourceMcpTests.test_dynamic_host_registered_conversation_bundle) ... ERROR
+test_exact_list_and_read (__main__.ResourceMcpTests.test_exact_list_and_read) ... ERROR
+test_guest_exact_list_and_read_preserves_capture_provenance (__main__.ResourceMcpTests.test_guest_exact_list_and_read_preserves_capture_provenance) ... ERROR
+test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) ... 
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=0) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=1) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=2) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=3) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=4) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=5) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=6) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=7) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=8) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=9) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=10) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=11) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=12) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=13) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=14) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=15) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=16) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=17) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=18) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=19) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=20) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=21) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=22) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=23) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=24) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=25) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=26) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=27) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=28) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=29) ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (missing='captureId') ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (legacy_extra='captureId') ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (missing='screenshotSha256') ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (legacy_extra='screenshotSha256') ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (missing='sourceKind') ... ERROR
+  test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (legacy_extra='sourceKind') ... ERROR
+test_new_version_and_removal_are_exact (__main__.ResourceMcpTests.test_new_version_and_removal_are_exact) ... ERROR
+test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) ... 
+  test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) (params={'name': 'list_resources', 'arguments': {'spaceId': 'other'}}) ... ERROR
+  test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) (params={'name': 'read_resource', 'arguments': {'resourceId': '../../etc/passwd', 'version': 1}}) ... ERROR
+  test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) (params={'name': 'read_resource', 'arguments': {'resourceId': 'e6b3d0b2-891e-4f7b-a49b-5990aef2b911', 'version': 1, 'path': '/etc/passwd'}}) ... ERROR
+  test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) (params={'name': 'write_resource', 'arguments': {}}) ... ERROR
+  test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) (params={'name': 'read_resource', 'arguments': {'url': 'file:///etc/passwd'}}) ... ERROR
+  test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) (params={'name': 'read_resource', 'arguments': {'resourceId': 'e6b3d0b2-891e-4f7b-a49b-5990aef2b911', 'version': True}}) ... ERROR
+test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) ... ERROR
+test_observed_codex_metadata_envelope_grants_no_capability (__main__.ResourceMcpTests.test_observed_codex_metadata_envelope_grants_no_capability) ... ERROR
+test_sealed_memfd_and_real_stdio_client (__main__.ResourceMcpTests.test_sealed_memfd_and_real_stdio_client) ... skipped 'Linux sealed memfd integration is separately run in the real sandbox'
+
+======================================================================
+ERROR: test_bundle_scope_and_boundary_validation (__main__.ResourceMcpTests.test_bundle_scope_and_boundary_validation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 119, in test_bundle_scope_and_boundary_validation
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_dynamic_host_registered_conversation_bundle (__main__.ResourceMcpTests.test_dynamic_host_registered_conversation_bundle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 51, in test_dynamic_host_registered_conversation_bundle
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_exact_list_and_read (__main__.ResourceMcpTests.test_exact_list_and_read)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 35, in test_exact_list_and_read
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_exact_list_and_read_preserves_capture_provenance (__main__.ResourceMcpTests.test_guest_exact_list_and_read_preserves_capture_provenance)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 127, in test_guest_exact_list_and_read_preserves_capture_provenance
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=2)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=3)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=4)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=5)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=6)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=7)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=8)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=9)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=10)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=11)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=12)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=13)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=14)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=15)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=16)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=17)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=18)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=19)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=20)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=21)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=22)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=23)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=24)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=25)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=26)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=27)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=28)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (index=29)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 161, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (missing='captureId')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 166, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (legacy_extra='captureId')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 170, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (missing='screenshotSha256')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 166, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (legacy_extra='screenshotSha256')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 170, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (missing='sourceKind')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 166, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_guest_provenance_requires_exact_variant_and_bounded_identity (__main__.ResourceMcpTests.test_guest_provenance_requires_exact_variant_and_bounded_identity) (legacy_extra='sourceKind')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 170, in test_guest_provenance_requires_exact_variant_and_bounded_identity
+    mcp.validate_bundle(bundle)
+    ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_new_version_and_removal_are_exact (__main__.ResourceMcpTests.test_new_version_and_removal_are_exact)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 102, in test_new_version_and_removal_are_exact
+    with self.assertRaises(mcp.RpcError):
+                           ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) (params={'name': 'list_resources', 'arguments': {'spaceId': 'other'}})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 93, in test_no_unknown_arguments_paths_urls_or_write_methods
+    with self.subTest(params=params), self.assertRaises(mcp.RpcError):
+                                                        ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) (params={'name': 'read_resource', 'arguments': {'resourceId': '../../etc/passwd', 'version': 1}})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 93, in test_no_unknown_arguments_paths_urls_or_write_methods
+    with self.subTest(params=params), self.assertRaises(mcp.RpcError):
+                                                        ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) (params={'name': 'read_resource', 'arguments': {'resourceId': 'e6b3d0b2-891e-4f7b-a49b-5990aef2b911', 'version': 1, 'path': '/etc/passwd'}})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 93, in test_no_unknown_arguments_paths_urls_or_write_methods
+    with self.subTest(params=params), self.assertRaises(mcp.RpcError):
+                                                        ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) (params={'name': 'write_resource', 'arguments': {}})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 93, in test_no_unknown_arguments_paths_urls_or_write_methods
+    with self.subTest(params=params), self.assertRaises(mcp.RpcError):
+                                                        ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) (params={'name': 'read_resource', 'arguments': {'url': 'file:///etc/passwd'}})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 93, in test_no_unknown_arguments_paths_urls_or_write_methods
+    with self.subTest(params=params), self.assertRaises(mcp.RpcError):
+                                                        ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods) (params={'name': 'read_resource', 'arguments': {'resourceId': 'e6b3d0b2-891e-4f7b-a49b-5990aef2b911', 'version': True}})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 93, in test_no_unknown_arguments_paths_urls_or_write_methods
+    with self.subTest(params=params), self.assertRaises(mcp.RpcError):
+                                                        ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_no_unknown_arguments_paths_urls_or_write_methods (__main__.ResourceMcpTests.test_no_unknown_arguments_paths_urls_or_write_methods)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 95, in test_no_unknown_arguments_paths_urls_or_write_methods
+    with self.assertRaises(mcp.RpcError):
+                           ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+======================================================================
+ERROR: test_observed_codex_metadata_envelope_grants_no_capability (__main__.ResourceMcpTests.test_observed_codex_metadata_envelope_grants_no_capability)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/service/src/resource_mcp_tests.py", line 75, in test_observed_codex_metadata_envelope_grants_no_capability
+    self.assertEqual(mcp.dispatch(bundle, "tools/list", metadata), mcp.dispatch(bundle, "tools/list", {}))
+                     ^^^
+NameError: name 'mcp' is not defined. Did you mean: 'map'?
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.004s
+
+FAILED (errors=49, skipped=1)

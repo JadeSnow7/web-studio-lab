@@ -1,0 +1,16 @@
+
+> web-studio-lab@ test /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> vitest run
+
+
+ RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+
+
+ Test Files  42 passed | 4 skipped (46)
+      Tests  292 passed | 8 skipped (300)
+   Start at  13:57:30
+   Duration  2.30s (tests 73%, import 15%, transform 11%, worker 1%)
+
+    Isolate  46 workers spawned · ~80ms startup each (spawn + environment, per file)
+             at least ~329ms faster with isolate: false — reuses workers across files instead of one per file
+

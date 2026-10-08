@@ -1,0 +1,82 @@
+{
+  "sourceSha256": "a366f5674396d588237268a7a0fcbc3f0107103a816fa9ca759784b67fd7a10d",
+  "evidence": "electron-baseline.txt",
+  "notes": "Old Electron tests passed; results below distinguish observed baseline facts from untested remake criteria. No screenshot is a full system composition.",
+  "observations": [
+    {
+      "id": "SR01",
+      "status": "passed",
+      "scope": "旧六入口按钮依次点击；首页/会话/设置/空间有内容断言，资源/任务仅点击",
+      "test": "导航与草稿"
+    },
+    {
+      "id": "SR02",
+      "status": "observed_difference",
+      "scope": "旧启动窗口使用顶部水平标签；升级垂直标签/四窗格尚未接入",
+      "test": "启动 / Tab 与演示状态"
+    },
+    {
+      "id": "SR03",
+      "status": "passed",
+      "scope": "仅旧Workshop隐藏/展开/固定及原生预览让位；整组空间标签/焦点延迟未测",
+      "test": "Workshop"
+    },
+    {
+      "id": "SR04",
+      "status": "observed_difference",
+      "scope": "旧右栏默认展开固定，窄窗投影为覆盖；新通知气泡/图钉未实现",
+      "test": "较窄窗口"
+    },
+    {
+      "id": "SR05",
+      "status": "not_run",
+      "scope": "新左右独立偏好与重启"
+    },
+    {
+      "id": "SR06",
+      "status": "passed",
+      "scope": "仅旧应用菜单⌘B与⌘L调用及地址焦点；通知/专注/Esc恢复组合未测",
+      "test": "菜单快捷键"
+    },
+    {
+      "id": "SR07",
+      "status": "passed",
+      "scope": "仅旧切页保留草稿、task版本与同一预览；新搜索/跨空间/四窗格未测",
+      "test": "导航与草稿"
+    },
+    {
+      "id": "SR08",
+      "status": "not_run",
+      "scope": "新通知精准定位与操作独立"
+    },
+    {
+      "id": "SR09",
+      "status": "not_run",
+      "scope": "新设置页三主题与系统/终端同步"
+    },
+    {
+      "id": "SR10",
+      "status": "passed",
+      "scope": "仅旧左/右覆盖时原生网页隐藏、关闭恢复；多浮层并发/先等待/trigger gutter未测",
+      "test": "Workshop / 较窄窗口"
+    },
+    {
+      "id": "SR11",
+      "status": "passed",
+      "scope": "仅旧1024窗口右栏覆盖与预览重测；新1080分割树投影未测",
+      "test": "较窄窗口"
+    },
+    {
+      "id": "SR12",
+      "status": "passed",
+      "scope": "仅旧点选现场/确认任务/日志/diff/报告路径；新Main会话路径未测",
+      "test": "点选 / 任务确认 / Tab 与演示状态"
+    },
+    {
+      "id": "SR13",
+      "status": "passed",
+      "scope": "仅阶段1导入增量与VS001不变；新Main authority迁移另测",
+      "evidence": "old-baseline-integrity.json"
+    }
+  ]
+}

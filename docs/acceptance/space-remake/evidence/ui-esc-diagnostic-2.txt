@@ -1,0 +1,55 @@
+
+Running 1 test using 1 worker
+
+(node:47273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PAGE_DEBUG RIGHT_ESC_DEBUG Escape false pane-menu overlay {"right":{"token":3,"visible":true},"pane-menu":{"token":4,"visible":true}}
+BEFORE SECOND ESC {
+  active: '<button type="button" class="icon-btn" aria-label="窗格操作">···</button>',
+  dialogs: []
+}
+PAGE_DEBUG RIGHT_ESC_DEBUG Escape false pane-menu overlay {"right":{"token":3,"visible":true},"pane-menu":{"token":4,"visible":true}}
+ESC EVENTS [
+  {
+    key: 'Escape',
+    prevented: false,
+    target: '<button type="button" class="icon-btn" aria-label="窗格操作">···</button>'
+  },
+  {
+    key: 'Escape',
+    prevented: false,
+    target: '<button type="button" class="icon-btn" aria-label="窗格操作">···</button>'
+  }
+]
+  ✘  1 e2e/space-remake.spec.ts:76:1 › SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页 (6.8s)
+
+
+  1) e2e/space-remake.spec.ts:76:1 › SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页 ─────────────
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('complementary', { name: '通知栏' })
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('complementary', { name: '通知栏' }) with timeout 5000ms
+      - waiting for getByRole('complementary', { name: '通知栏' })
+        14 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      94 |   await page.keyboard.press('Escape');
+      95 |   console.log('ESC EVENTS', await page.evaluate(() => (window as any).__keys));
+    > 96 |   await expect(page.getByRole('complementary', { name: '通知栏' })).toHaveCount(0);
+         |                                                                  ^
+      97 |   await expect(notifications()).toBeFocused();
+      98 |   await expect.poll(nativeVisible).toBe(true);
+      99 |   await page.getByRole('button', { name: '切换空间', exact: true }).click();
+        at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/e2e/space-remake.spec.ts:96:66
+
+    Error Context: test-results/e2e/space-remake-SR10：通知与窗格菜单共-bc73f-r交接editor、快速开关resize不复活原生网页/error-context.md
+
+  1 failed
+    e2e/space-remake.spec.ts:76:1 › SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页 ──────────────

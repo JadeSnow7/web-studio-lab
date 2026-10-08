@@ -1,0 +1,50 @@
+
+> web-studio-lab@ test /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+> vitest run
+
+
+ RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+
+ ❯ apps/service/src/sbx-contract.test.ts (4 tests | 1 failed) 22ms
+   ❯ UI 所需 sbx 与终端跨进程契约 (2)
+     × 终端 open / 输入 / resize / close 和状态事件均有 schema 2ms
+ ❯ apps/service/src/resource-store.test.ts (23 tests | 1 failed) 3067ms
+   ❯ 资源输入边界 (2)
+     × renderer 只能申报稳定资源身份；不能伪造正文、未知字段或其他空间 21ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/resource-store.test.ts > 资源输入边界 > renderer 只能申报稳定资源身份；不能伪造正文、未知字段或其他空间
+TypeError: Cannot read properties of undefined (reading 'request')
+ ❯ apps/service/src/resource-store.test.ts:104:45
+    102|     expect(invokeChannels['workbench:command'].request.safeParse(reque…
+    103|     expect(invokeChannels['workbench:command'].request.safeParse({ ...…
+    104|     expect(invokeChannels['resources:list'].request.safeParse({ spaceI…
+       |                                             ^
+    105|     expect(invokeChannels['resources:remove'].request.safeParse({ spac…
+    106|       false,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/service/src/sbx-contract.test.ts > UI 所需 sbx 与终端跨进程契约 > 终端 open / 输入 / resize / close 和状态事件均有 schema
+AssertionError: terminal:get: expected undefined to be defined
+ ❯ apps/service/src/sbx-contract.test.ts:46:36
+     44|     const channels = protocol.invokeChannels as Record<string, unknown…
+     45|     for (const name of ['terminal:get', 'terminal:open', 'terminal:wri…
+     46|       expect(channels[name], name).toBeDefined();
+       |                                    ^
+     47|     }
+     48|     expect((protocol.eventChannels as Record<string, unknown>)['termin…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 40 passed | 4 skipped (46)
+      Tests  2 failed | 290 passed | 8 skipped (300)
+   Start at  13:50:47
+   Duration  3.71s (tests 67%, import 21%, transform 11%, worker 1%)
+
+    Isolate  46 workers spawned · ~150ms startup each (spawn + environment, per file)
+             at least ~616ms faster with isolate: false — reuses workers across files instead of one per file
+
+ ELIFECYCLE  Test failed. See above for more details.

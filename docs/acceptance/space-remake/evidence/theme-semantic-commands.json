@@ -1,0 +1,60 @@
+[
+  {
+    "command": "pnpm build",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:42:35.582677+00:00",
+    "sourceSha256": "7eff9b2af337ee5ef0604b2b55c8b118712bedf1be8e997139fecd4b9bbfa246",
+    "log": "theme-semantic-build.txt",
+    "logSha256": "5ad6cf252be36f27fb3cf63b824e9d0b5c0e8076615efbb8124526ec6e50730a"
+  },
+  {
+    "command": "pnpm typecheck",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:42:39.073481+00:00",
+    "sourceSha256": "7eff9b2af337ee5ef0604b2b55c8b118712bedf1be8e997139fecd4b9bbfa246",
+    "log": "theme-semantic-typecheck.txt",
+    "logSha256": "4a4a28bed96682fc416ba1433d3ea2c1985d74130dd139c3dc4cbe8eef8dc1db"
+  },
+  {
+    "command": "pnpm exec eslint apps packages e2e",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:42:44.863988+00:00",
+    "sourceSha256": "7eff9b2af337ee5ef0604b2b55c8b118712bedf1be8e997139fecd4b9bbfa246",
+    "log": "theme-semantic-scoped-lint.txt",
+    "logSha256": "c0bd72e95fe1908fa423e436bbf8bae33a5576ecf237b12446a461ffce6821fe"
+  },
+  {
+    "command": "pnpm exec prettier --check apps packages e2e package.json pnpm-workspace.yaml playwright.config.ts vitest.config.ts eslint.config.js tsconfig.base.json tsconfig.e2e.json .prettierrc.json",
+    "exitCode": 0,
+    "startedAt": "2026-10-08T06:42:47.652408+00:00",
+    "sourceSha256": "7eff9b2af337ee5ef0604b2b55c8b118712bedf1be8e997139fecd4b9bbfa246",
+    "log": "theme-semantic-format.txt",
+    "logSha256": "f5dbca277dc2606a421db12c3c858fcfe520978ab9cc9bd79ef7f1ea3e3ddb43"
+  },
+  {
+    "command": "node --import tsx /private/tmp/wsl-theme-verify.ts",
+    "exitCode": 1,
+    "log": "theme-semantic-native-probe.txt",
+    "logSha256": "bcb70a971585b92478e4e3225bce882dbcf4e40d8cb197cf1cdaf36a73d172c8",
+    "sourceSha256": "7eff9b2af337ee5ef0604b2b55c8b118712bedf1be8e997139fecd4b9bbfa246",
+    "startedAt": "2026-10-08T06:43:31.395323+00:00",
+    "failure": "tsx keepNames injected __name into page.evaluate callback; verifier changed to untransformed browser source string, application source unchanged"
+  },
+  {
+    "command": "node --import tsx /private/tmp/wsl-theme-verify.ts",
+    "exitCode": 0,
+    "log": "theme-semantic-native-probe-final.txt",
+    "logSha256": "379d78cd7ef27da1e8161b1950a505a50ed5241d2babce8b8679fe0e21e52bae",
+    "sourceSha256": "7eff9b2af337ee5ef0604b2b55c8b118712bedf1be8e997139fecd4b9bbfa246",
+    "startedAt": "2026-10-08T06:44:24.658315+00:00",
+    "verifierSha256": "ed8816ec16be7eb475cbfb69ad253e5964e84f809df946c1fb41173f0dffb6e4"
+  },
+  {
+    "command": "pnpm exec playwright test e2e/space-remake.spec.ts e2e/workspace-visual.spec.ts",
+    "exitCode": 0,
+    "log": "theme-semantic-electron.txt",
+    "logSha256": "d30a0626dbd225e5c21b70fe8e71575c5316b83c06b0bc07e4707cd2dfdd29cf",
+    "sourceSha256": "7eff9b2af337ee5ef0604b2b55c8b118712bedf1be8e997139fecd4b9bbfa246",
+    "startedAt": "2026-10-08T06:44:47.558470+00:00"
+  }
+]

@@ -1,0 +1,3 @@
+apps/desktop/src/renderer/src/shell/Workshop.tsx 42ms
+apps/desktop/src/renderer/src/state/space-ui.ts 18ms
+e2e/space-remake.spec.ts 28ms

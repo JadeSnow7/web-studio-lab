@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>任务 · T-01</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.w{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Helvetica Neue",sans-serif;color:#1D1D1F;-webkit-font-smoothing:antialiased}
+.w button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mono{font-family:"SF Mono",Menlo,Consolas,monospace}
+a{color:#0A67D1}a:hover{color:#08539F}
+</style>
+</helmet>
+<div class="w" style="width:1440px;height:900px;box-sizing:border-box;background:#F6F7F9;display:flex;flex-direction:column;overflow:hidden;border-radius:12px;border:1px solid #D8DCE3">
+
+  <header style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;background:#F4F6FA;border-bottom:1px solid #D8DCE3">
+    <div aria-hidden="true" style="display:flex;gap:8px;width:72px;flex:none">
+      <span style="width:12px;height:12px;border-radius:50%;background:#FF5F57"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#FEBC2E"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#28C840"></span>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;gap:8px;padding-left:8px;font-size:13px"><span style="font-weight:600">任务</span></div>
+    <button style="height:28px;padding:0 10px;border-radius:7px;background:#0A67D1;color:#FFFFFF;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M12 5v14M5 12h14"></path></svg>新建任务</button>
+    <button aria-label="通信面板" style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#60656F"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"></path></svg></button>
+  </header>
+
+  <div style="flex:1;display:flex;min-height:0">
+    <nav aria-label="Workshop" style="width:56px;flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:#F4F6FA;border-right:1px solid #D8DCE3">
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px"><svg class="ic" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"></path></svg>首页</button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>空间</button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px"><svg class="ic" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"></path></svg>资源</button>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"></path></svg>会话</button>
+      <button aria-current="page" style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:#E3EDFA;color:#0A67D1;font-size:11px;font-weight:600"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="m8 12 3 3 5-6"></path></svg>任务</button>
+      <div style="flex:1"></div>
+      <button style="width:48px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#60656F;font-size:11px"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg>设置</button>
+    </nav>
+
+    <section aria-label="任务列表" style="width:360px;flex:none;background:#F4F6FA;border-right:1px solid #D8DCE3;display:flex;flex-direction:column;min-height:0">
+      <div style="padding:12px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #D8DCE3">
+        <div role="tablist" aria-label="视图" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:2px;border-radius:9px;background:#E6E9EF">
+          <button role="tab" aria-selected="true" style="height:28px;border-radius:7px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,0.08);font-size:13px;font-weight:600">待办</button>
+          <button role="tab" aria-selected="false" style="height:28px;border-radius:7px;font-size:13px;color:#60656F">长期目标</button>
+          <button role="tab" aria-selected="false" style="height:28px;border-radius:7px;font-size:13px;color:#60656F">定时计划</button>
+        </div>
+        <div style="display:flex;gap:6px;font-size:12px;flex-wrap:wrap">
+          <button style="padding:4px 10px;border-radius:12px;box-shadow:inset 0 0 0 1px #D8DCE3">TaskFlow ▾</button>
+          <button style="padding:4px 10px;border-radius:12px;box-shadow:inset 0 0 0 1px #D8DCE3">状态 ▾</button>
+          <button style="padding:4px 10px;border-radius:12px;box-shadow:inset 0 0 0 1px #D8DCE3">负责人 ▾</button>
+        </div>
+      </div>
+      <ul style="list-style:none;margin:0;padding:8px;display:flex;flex-direction:column;gap:4px">
+        <li style="padding:10px 12px;border-radius:10px;background:#FFFFFF;box-shadow:0 0 0 1.5px #0A67D1;display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;flex:1">完成移动端适配</span><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#EFE7FA;color:#4F2D86">待验收</span></div>
+          <div style="font-size:12px;color:#60656F">TaskFlow · 交给 Agent · 第 2 次尝试</div>
+        </li>
+        <li style="padding:10px 12px;border-radius:10px;display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;flex:1">更新发布检查表</span><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#EEF1F5;color:#3C4049">就绪</span></div>
+          <div style="font-size:12px;color:#60656F">TaskFlow · 手动推进 · 不需要 Agent</div>
+        </li>
+        <li style="padding:10px 12px;border-radius:10px;display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;flex:1">每日依赖巡检</span><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#EEF1F5;color:#3C4049">计划已暂停</span></div>
+          <div style="font-size:12px;color:#60656F">个人 · 定时 · 每日 09:00 Asia/Shanghai</div>
+        </li>
+      </ul>
+    </section>
+
+    <main aria-label="任务详情" style="flex:1;min-width:0;background:#FFFFFF;padding:22px 28px;display:flex;flex-direction:column;gap:18px;overflow:hidden">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="flex:1">
+          <div style="font-size:12px;color:#60656F">TaskFlow · 目标「10 月上线」</div>
+          <h1 style="margin:4px 0 0;font-size:22px;font-weight:600;letter-spacing:-0.01em">完成移动端适配</h1>
+        </div>
+        <span style="font-size:12px;padding:4px 10px;border-radius:12px;background:#EFE7FA;color:#4F2D86;font-weight:600">inReview · 待验收</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+        <section style="border:1px solid #EDF0F4;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+          <h2 style="margin:0;font-size:13px;font-weight:600">完成条件</h2>
+          <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.75">
+            <li>375 宽度下布局无横向溢出</li>
+            <li>主要按钮触控区不小于 44pt</li>
+            <li>提交可复现的截图与步骤</li>
+          </ul>
+        </section>
+        <section style="border:1px solid #EDF0F4;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+          <h2 style="margin:0;font-size:13px;font-weight:600">执行设置</h2>
+          <dl style="margin:0;display:grid;grid-template-columns:72px 1fr;row-gap:6px;font-size:12.5px">
+            <dt style="color:#60656F">方式</dt><dd style="margin:0">交给 Agent</dd>
+            <dt style="color:#60656F">Harness</dt><dd style="margin:0">[harness] · 停止已验证</dd>
+            <dt style="color:#60656F">资源范围</dt><dd style="margin:0">项目网页、验收清单（副本）</dd>
+          </dl>
+        </section>
+      </div>
+
+      <section aria-label="尝试记录" style="display:flex;flex-direction:column;gap:10px">
+        <h2 style="margin:0;font-size:13px;font-weight:600">尝试记录（TaskRun）</h2>
+        <div style="border:1.5px solid #0A67D1;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px">
+            <span style="font-weight:600">#2 · 手动启动 · 10:02</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;color:#16603C;font-size:12px"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;stroke-width:2.2"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg>执行成功</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;color:#4F2D86;font-size:12px"><span style="width:8px;height:8px;border-radius:50%;border:2px solid #6B44A8;box-sizing:border-box"></span>验收：待你确认</span>
+            <span style="flex:1"></span>
+            <span style="font-size:12px;color:#60656F">2 个 Execution · 1 个会话</span>
+          </div>
+          <div style="display:flex;gap:10px;font-size:12px">
+            <span style="padding:6px 10px;border-radius:7px;background:#F4F6FA">改动 · 3 个文件</span>
+            <span style="padding:6px 10px;border-radius:7px;background:#F4F6FA">截图 · 375×812</span>
+            <span style="padding:6px 10px;border-radius:7px;background:#F4F6FA">自动检查 · 3/3</span>
+          </div>
+          <div style="font-size:12px;color:#60656F">进程正常退出只是执行成功，任务要等你接受结果后才算完成。</div>
+          <div style="display:flex;gap:8px">
+            <button style="height:32px;padding:0 14px;border-radius:8px;background:#0A67D1;color:#FFFFFF;font-size:13px;font-weight:600">接受结果</button>
+            <button style="height:32px;padding:0 14px;border-radius:8px;box-shadow:inset 0 0 0 1px #D8DCE3;font-size:13px">填写原因并重新打开</button>
+          </div>
+        </div>
+        <div style="border:1px solid #EDF0F4;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13px">
+          <span style="font-weight:600">#1 · 手动启动 · 09:20</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;color:#B42318;font-size:12px"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><circle cx="12" cy="12" r="9"></circle><path d="m9 9 6 6M15 9l-6 6"></path></svg>执行失败</span>
+          <span style="flex:1"></span><a href="#" style="font-size:12px">查看保留的证据</a>
+        </div>
+      </section>
+    </main>
+
+    <aside aria-label="定时计划" style="width:320px;flex:none;background:#F4F6FA;border-left:1px solid #D8DCE3;padding:16px;display:flex;flex-direction:column;gap:12px">
+      <h2 style="margin:0;font-size:13px;font-weight:600">定时计划</h2>
+      <div style="background:#FFFFFF;border-radius:10px;box-shadow:0 0 0 1px #D8DCE3;padding:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:600">每周回归检查</span>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" checked="checked">启用</label></div>
+        <dl style="margin:0;display:grid;grid-template-columns:80px 1fr;row-gap:7px;font-size:12px">
+          <dt style="color:#60656F">规则</dt><dd style="margin:0">每周一 09:00</dd>
+          <dt style="color:#60656F">时区</dt><dd style="margin:0">Asia/Shanghai</dd>
+          <dt style="color:#60656F">下次触发</dt><dd style="margin:0">10月12日 09:00（计划值）</dd>
+          <dt style="color:#60656F">重叠</dt><dd style="margin:0">上次未结束则跳过并记录</dd>
+          <dt style="color:#60656F">错过</dt><dd style="margin:0">跳过，重连时不补跑</dd>
+          <dt style="color:#60656F">执行载体</dt><dd style="margin:0;display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#1F7A4D"></span>本机 · 在线</dd>
+        </dl>
+        <div style="font-size:11.5px;color:#60656F;line-height:1.5">本机睡眠或退出时不会按时执行。暂停计划只阻止之后的触发，不会停掉正在运行的执行。</div>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
