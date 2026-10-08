@@ -1,0 +1,589 @@
+{
+  "beforeEnter": {
+    "time": 1791460000269,
+    "address": "wsl-demo://taskflow/members.html"
+  },
+  "contents": [
+    {
+      "wcId": 3,
+      "url": "wsl-demo://taskflow/members.html",
+      "body": "演示页面 · 不是生成 App · 数据为静态示例\nTaskFlow\n任务\n成员\n当前用户 B（演示身份）\n成员\n身份\t说明\nA\t任务 1、3 的负责人（演示）\nB\t任务 2 的负责人（演示）\n\n同页锚点 用于检查同文档导航也会让旧现场失效。\n\n真实的 A/B 身份由母模板的受控测试会话提供（T03）。"
+    },
+    {
+      "wcId": 2,
+      "url": "wsl-demo://taskflow/index.html",
+      "body": "演示页面 · 不是生成 App · 数据为静态示例\nTaskFlow\n任务\n成员\n当前用户 B（演示身份）\n全部任务\n新建任务\n标题\t状态\t负责人\t截止日期\n完善首页\t进行中\tA\t未设置\n移动端适配\t待开始\tB\t未设置\n结果验收\t待开始\tA\t未设置"
+    }
+  ],
+  "profile": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-f27-zGvWKJ/profile",
+  "pid": 60679,
+  "events": [
+    {
+      "time": 1791460000016,
+      "kind": "load-start",
+      "id": 1,
+      "wcId": 1,
+      "url": "file:///Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/renderer/index.html",
+      "stack": "Error\n    at wc.loadURL (/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-f27-zGvWKJ/main.cjs:12:55)\n    at BrowserWindow.loadURL (node:electron/js2c/browser_init:1:19268)\n    at createMainWindow (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:18573:17)\n    at openWorkbench (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:18587:18)\n    at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:18639:3"
+    },
+    {
+      "time": 1791460000017,
+      "kind": "navigation-event",
+      "wcId": 1,
+      "url": "file:///Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/renderer/index.html",
+      "main": true
+    },
+    {
+      "time": 1791460000089,
+      "kind": "load-resolve",
+      "id": 1,
+      "wcId": 1,
+      "url": "file:///Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/renderer/index.html",
+      "actual": "file:///Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/renderer/index.html"
+    },
+    {
+      "time": 1791460000089,
+      "kind": "load-stopped-event",
+      "wcId": 1
+    },
+    {
+      "time": 1791460000127,
+      "kind": "command-start",
+      "commandId": "fe908507-34ff-4e54-93a9-47fe21ae4c03",
+      "type": "browserLayout",
+      "resourceId": "0cc464dd-aa7f-4c55-b6f0-b61ab80733ea"
+    },
+    {
+      "time": 1791460000130,
+      "kind": "load-start",
+      "id": 2,
+      "wcId": 2,
+      "url": "wsl-demo://taskflow/index.html",
+      "stack": "Error\n    at wc.loadURL (/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-f27-zGvWKJ/main.cjs:12:55)\n    at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:17694:60\n    at PreviewController.coordinateNavigation (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:17726:15)\n    at PreviewController.navigate (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:17694:16)\n    at PreviewController.load (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:17638:10)\n    at WorkbenchHost.ensureBrowser (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:18026:15)\n    at WorkbenchApplication.ensureBrowser (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:8221:20)\n    at WorkbenchApplication.execute (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:8118:18)\n    at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:7381:19"
+    },
+    {
+      "time": 1791460000131,
+      "kind": "navigation-event",
+      "wcId": 2,
+      "url": "wsl-demo://taskflow/index.html",
+      "main": true
+    },
+    {
+      "time": 1791460000132,
+      "kind": "command-result",
+      "commandId": "fe908507-34ff-4e54-93a9-47fe21ae4c03",
+      "ok": true
+    },
+    {
+      "time": 1791460000148,
+      "kind": "command-start",
+      "commandId": "16e6435a-7ca4-43ce-8aee-4f91e83c4c4b",
+      "type": "browserLayout",
+      "resourceId": "0cc464dd-aa7f-4c55-b6f0-b61ab80733ea"
+    },
+    {
+      "time": 1791460000151,
+      "kind": "command-result",
+      "commandId": "16e6435a-7ca4-43ce-8aee-4f91e83c4c4b",
+      "ok": true
+    },
+    {
+      "time": 1791460000187,
+      "kind": "command-start",
+      "commandId": "01e9e8fb-3d15-44a8-8b2a-34c5f75b27f1",
+      "type": "splitPane"
+    },
+    {
+      "time": 1791460000189,
+      "kind": "command-result",
+      "commandId": "01e9e8fb-3d15-44a8-8b2a-34c5f75b27f1",
+      "ok": true
+    },
+    {
+      "time": 1791460000198,
+      "kind": "command-start",
+      "commandId": "6b3cf38f-2645-41a3-88bc-66b1bf94efd8",
+      "type": "browserLayout",
+      "resourceId": "0cc464dd-aa7f-4c55-b6f0-b61ab80733ea"
+    },
+    {
+      "time": 1791460000199,
+      "kind": "load-resolve",
+      "id": 2,
+      "wcId": 2,
+      "url": "wsl-demo://taskflow/index.html",
+      "actual": "wsl-demo://taskflow/index.html"
+    },
+    {
+      "time": 1791460000199,
+      "kind": "load-stopped-event",
+      "wcId": 2
+    },
+    {
+      "time": 1791460000200,
+      "kind": "command-result",
+      "commandId": "6b3cf38f-2645-41a3-88bc-66b1bf94efd8",
+      "ok": true
+    },
+    {
+      "time": 1791460000218,
+      "kind": "command-start",
+      "commandId": "a3634114-608b-4d64-80d8-7d4c7776b5e0",
+      "type": "hideBrowsers"
+    },
+    {
+      "time": 1791460000218,
+      "kind": "command-result",
+      "commandId": "a3634114-608b-4d64-80d8-7d4c7776b5e0",
+      "ok": true
+    },
+    {
+      "time": 1791460000219,
+      "kind": "command-start",
+      "commandId": "aa9e359c-d086-49bf-bf88-b5c4fd90fb23",
+      "type": "browserLayout",
+      "resourceId": "0cc464dd-aa7f-4c55-b6f0-b61ab80733ea"
+    },
+    {
+      "time": 1791460000219,
+      "kind": "command-result",
+      "commandId": "aa9e359c-d086-49bf-bf88-b5c4fd90fb23",
+      "ok": true
+    },
+    {
+      "time": 1791460000219,
+      "kind": "command-start",
+      "commandId": "4989d803-7f0a-4b2a-9b80-9b4c9b33ae74",
+      "type": "browserLayout",
+      "resourceId": "0cc464dd-aa7f-4c55-b6f0-b61ab80733ea"
+    },
+    {
+      "time": 1791460000219,
+      "kind": "command-result",
+      "commandId": "4989d803-7f0a-4b2a-9b80-9b4c9b33ae74",
+      "ok": true
+    },
+    {
+      "time": 1791460000232,
+      "kind": "command-start",
+      "commandId": "b99f933a-5ede-4d66-8933-9e08fe034330",
+      "type": "browserLayout",
+      "resourceId": "0cc464dd-aa7f-4c55-b6f0-b61ab80733ea"
+    },
+    {
+      "time": 1791460000232,
+      "kind": "command-result",
+      "commandId": "b99f933a-5ede-4d66-8933-9e08fe034330",
+      "ok": true
+    },
+    {
+      "time": 1791460000251,
+      "kind": "command-start",
+      "commandId": "1e911548-ce5b-40df-8da1-a0b34435ce50",
+      "type": "createTab"
+    },
+    {
+      "time": 1791460000252,
+      "kind": "command-result",
+      "commandId": "1e911548-ce5b-40df-8da1-a0b34435ce50",
+      "ok": true
+    },
+    {
+      "time": 1791460000253,
+      "kind": "command-start",
+      "commandId": "f1a24648-dffd-4712-aa6e-326a798edb7c",
+      "type": "browserLayout",
+      "resourceId": "69037dbb-9bb8-4f3e-bad0-ba42baa7bd7d"
+    },
+    {
+      "time": 1791460000255,
+      "kind": "load-start",
+      "id": 3,
+      "wcId": 3,
+      "url": "wsl-demo://taskflow/index.html",
+      "stack": "Error\n    at wc.loadURL (/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-f27-zGvWKJ/main.cjs:12:55)\n    at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:17694:60\n    at PreviewController.coordinateNavigation (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:17726:15)\n    at PreviewController.navigate (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:17694:16)\n    at PreviewController.load (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:17638:10)\n    at WorkbenchHost.ensureBrowser (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:18026:15)\n    at WorkbenchApplication.ensureBrowser (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:8221:20)\n    at WorkbenchApplication.execute (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:8118:18)\n    at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:7381:19"
+    },
+    {
+      "time": 1791460000256,
+      "kind": "navigation-event",
+      "wcId": 3,
+      "url": "wsl-demo://taskflow/index.html",
+      "main": true
+    },
+    {
+      "time": 1791460000256,
+      "kind": "command-result",
+      "commandId": "f1a24648-dffd-4712-aa6e-326a798edb7c",
+      "ok": true
+    },
+    {
+      "time": 1791460000257,
+      "kind": "command-start",
+      "commandId": "6c632cc8-0727-41f3-b48b-262c4f630492",
+      "type": "browserLayout",
+      "resourceId": "0cc464dd-aa7f-4c55-b6f0-b61ab80733ea"
+    },
+    {
+      "time": 1791460000257,
+      "kind": "command-start",
+      "commandId": "4ea9ee0f-e575-4bdf-a76c-bb6036126ffb",
+      "type": "browserLayout",
+      "resourceId": "69037dbb-9bb8-4f3e-bad0-ba42baa7bd7d"
+    },
+    {
+      "time": 1791460000257,
+      "kind": "command-start",
+      "commandId": "e2fc1254-ac24-47f4-9bdd-c78469eae695",
+      "type": "browserLayout",
+      "resourceId": "0cc464dd-aa7f-4c55-b6f0-b61ab80733ea"
+    },
+    {
+      "time": 1791460000257,
+      "kind": "command-start",
+      "commandId": "899a18dc-a195-4e04-99a8-ef8e58ceeec8",
+      "type": "browserLayout",
+      "resourceId": "69037dbb-9bb8-4f3e-bad0-ba42baa7bd7d"
+    },
+    {
+      "time": 1791460000259,
+      "kind": "command-result",
+      "commandId": "6c632cc8-0727-41f3-b48b-262c4f630492",
+      "ok": true
+    },
+    {
+      "time": 1791460000259,
+      "kind": "command-result",
+      "commandId": "4ea9ee0f-e575-4bdf-a76c-bb6036126ffb",
+      "ok": true
+    },
+    {
+      "time": 1791460000259,
+      "kind": "command-result",
+      "commandId": "e2fc1254-ac24-47f4-9bdd-c78469eae695",
+      "ok": true
+    },
+    {
+      "time": 1791460000259,
+      "kind": "command-result",
+      "commandId": "899a18dc-a195-4e04-99a8-ef8e58ceeec8",
+      "ok": true
+    },
+    {
+      "time": 1791460000266,
+      "kind": "command-start",
+      "commandId": "b842eec9-2cae-40a9-8ffa-2d60ff6d2bf0",
+      "type": "browserLayout",
+      "resourceId": "0cc464dd-aa7f-4c55-b6f0-b61ab80733ea"
+    },
+    {
+      "time": 1791460000266,
+      "kind": "command-result",
+      "commandId": "b842eec9-2cae-40a9-8ffa-2d60ff6d2bf0",
+      "ok": true
+    },
+    {
+      "time": 1791460000266,
+      "kind": "command-start",
+      "commandId": "58de761d-8403-4ad3-a9c1-2d0c615ccb64",
+      "type": "browserLayout",
+      "resourceId": "69037dbb-9bb8-4f3e-bad0-ba42baa7bd7d"
+    },
+    {
+      "time": 1791460000266,
+      "kind": "command-result",
+      "commandId": "58de761d-8403-4ad3-a9c1-2d0c615ccb64",
+      "ok": true
+    },
+    {
+      "time": 1791460000273,
+      "kind": "command-start",
+      "commandId": "17486881-6d41-4055-adc4-2fab9d08efc3",
+      "type": "browserAction",
+      "resourceId": "69037dbb-9bb8-4f3e-bad0-ba42baa7bd7d",
+      "action": "navigate",
+      "url": "wsl-demo://taskflow/members.html"
+    },
+    {
+      "time": 1791460000304,
+      "kind": "load-resolve",
+      "id": 3,
+      "wcId": 3,
+      "url": "wsl-demo://taskflow/index.html",
+      "actual": "wsl-demo://taskflow/index.html"
+    },
+    {
+      "time": 1791460000304,
+      "kind": "load-stopped-event",
+      "wcId": 3
+    },
+    {
+      "time": 1791460000304,
+      "kind": "load-start",
+      "id": 4,
+      "wcId": 3,
+      "url": "wsl-demo://taskflow/members.html",
+      "stack": "Error\n    at wc.loadURL (/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-f27-zGvWKJ/main.cjs:12:55)\n    at /Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:17694:60\n    at PreviewController.coordinateNavigation (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:17726:15)\n    at async PreviewController.navigate (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:17694:5)\n    at async WorkbenchApplication.execute (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/apps/desktop/out/main/index.js:8126:13)"
+    },
+    {
+      "time": 1791460000304,
+      "kind": "navigation-event",
+      "wcId": 3,
+      "url": "wsl-demo://taskflow/members.html",
+      "main": true
+    },
+    {
+      "time": 1791460000321,
+      "kind": "load-resolve",
+      "id": 4,
+      "wcId": 3,
+      "url": "wsl-demo://taskflow/members.html",
+      "actual": "wsl-demo://taskflow/members.html"
+    },
+    {
+      "time": 1791460000321,
+      "kind": "load-stopped-event",
+      "wcId": 3
+    },
+    {
+      "time": 1791460000321,
+      "kind": "command-result",
+      "commandId": "17486881-6d41-4055-adc4-2fab9d08efc3",
+      "ok": true
+    }
+  ],
+  "submits": [
+    {
+      "time": 1791460000273,
+      "value": "wsl-demo://taskflow/members.html"
+    }
+  ],
+  "snapshot": {
+    "appInstanceId": "3e51b0b8-204a-49cc-81fa-7e6b7a364c2e",
+    "storageError": null,
+    "activeWorkspaceId": "taskflow-demo",
+    "seq": 22,
+    "workspaces": [
+      {
+        "workspaceId": "taskflow-demo",
+        "name": "TaskFlow",
+        "revision": 2,
+        "tabs": [
+          {
+            "tabId": "6046972a-55c3-4fa8-a178-2726e8d2b472",
+            "title": "TaskFlow 预览",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "web",
+              "resourceId": "0cc464dd-aa7f-4c55-b6f0-b61ab80733ea"
+            }
+          },
+          {
+            "tabId": "e3bb8d0d-81ee-449e-8875-b4d5c9ab88a1",
+            "title": "开发终端",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "terminal",
+              "resourceId": "ee776a82-4a14-478a-8310-50f452c05e29"
+            }
+          },
+          {
+            "tabId": "db070ede-33ca-48a5-809e-de5634407445",
+            "title": "Agent 会话",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "session",
+              "resourceId": "c70cdc8d-75fa-4fed-9bd2-a6373687abb1"
+            }
+          },
+          {
+            "tabId": "e74e53a9-6989-473d-b76a-56071423f417",
+            "title": "第二网页F27",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "web",
+              "resourceId": "69037dbb-9bb8-4f3e-bad0-ba42baa7bd7d"
+            }
+          }
+        ],
+        "resources": [
+          {
+            "resourceId": "0cc464dd-aa7f-4c55-b6f0-b61ab80733ea",
+            "environmentId": "local",
+            "kind": "web",
+            "title": "TaskFlow 预览",
+            "url": "wsl-demo://taskflow/index.html",
+            "instanceId": "8e3a208e-4bb9-4a5d-833f-5bfb26f6a504",
+            "generation": 1,
+            "preview": {
+              "page": {
+                "webContentsId": 2,
+                "documentGeneration": 1,
+                "url": "wsl-demo://taskflow/index.html",
+                "title": "任务 · TaskFlow 演示",
+                "partition": "preview-taskflow-demo-8e3a208e-4bb9-4a5d-833f-5bfb26f6a504"
+              },
+              "loading": false,
+              "canGoBack": false,
+              "canGoForward": false,
+              "picking": false,
+              "cdp": {
+                "state": "idle"
+              },
+              "consoleIssueCount": 4,
+              "loadError": null,
+              "blockedNavigation": null,
+              "pickError": null
+            },
+            "terminal": null,
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "ee776a82-4a14-478a-8310-50f452c05e29",
+            "environmentId": "sandbox",
+            "kind": "terminal",
+            "title": "开发终端",
+            "url": null,
+            "instanceId": null,
+            "generation": 0,
+            "preview": null,
+            "terminal": null,
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "c70cdc8d-75fa-4fed-9bd2-a6373687abb1",
+            "environmentId": null,
+            "kind": "session",
+            "title": "Agent 会话",
+            "url": null,
+            "instanceId": null,
+            "generation": 0,
+            "preview": null,
+            "terminal": null,
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "69037dbb-9bb8-4f3e-bad0-ba42baa7bd7d",
+            "environmentId": "local",
+            "kind": "web",
+            "title": "第二网页F27",
+            "url": "wsl-demo://taskflow/members.html",
+            "instanceId": "a0482e22-d8b2-4a7b-ad62-68fdb31adf17",
+            "generation": 1,
+            "preview": {
+              "page": {
+                "webContentsId": 3,
+                "documentGeneration": 2,
+                "url": "wsl-demo://taskflow/members.html",
+                "title": "成员 · TaskFlow 演示",
+                "partition": "preview-taskflow-demo-a0482e22-d8b2-4a7b-ad62-68fdb31adf17"
+              },
+              "loading": false,
+              "canGoBack": true,
+              "canGoForward": false,
+              "picking": false,
+              "cdp": {
+                "state": "idle"
+              },
+              "consoleIssueCount": 1,
+              "loadError": null,
+              "blockedNavigation": null,
+              "pickError": null
+            },
+            "terminal": null,
+            "unavailableReason": null
+          }
+        ],
+        "layout": {
+          "kind": "split",
+          "direction": "horizontal",
+          "ratio": 0.5,
+          "first": {
+            "kind": "pane",
+            "paneId": "c789c125-f1ff-456a-9c56-9522f4f0b959",
+            "tabId": "6046972a-55c3-4fa8-a178-2726e8d2b472"
+          },
+          "second": {
+            "kind": "pane",
+            "paneId": "baa342f9-2d8c-4039-a698-f37ed701a773",
+            "tabId": "e74e53a9-6989-473d-b76a-56071423f417"
+          }
+        },
+        "activePaneId": "baa342f9-2d8c-4039-a698-f37ed701a773",
+        "sessions": [
+          {
+            "sessionId": "session-453ef4ae-f9fb-4ed1-9dbb-cffc42449a51",
+            "resourceId": "c70cdc8d-75fa-4fed-9bd2-a6373687abb1",
+            "title": "Agent 会话",
+            "draft": "",
+            "conversation": null,
+            "historyRestored": false,
+            "observations": [],
+            "context": null,
+            "captureRequest": null,
+            "contextTarget": null,
+            "taskTargetRef": null,
+            "taskAcceptance": [],
+            "taskAllowedScopes": [],
+            "contextApplicability": "unknown",
+            "taskVersions": []
+          }
+        ],
+        "runs": [],
+        "publicResources": {
+          "spaceId": "taskflow-demo",
+          "revision": 0,
+          "resources": []
+        },
+        "publicResourcesError": null,
+        "fileHints": [],
+        "observations": [],
+        "theme": "system"
+      }
+    ],
+    "environments": [
+      {
+        "environmentId": "local",
+        "kind": "local",
+        "label": "本设备",
+        "state": "configured",
+        "reason": "未配置 WSL_OBSERVATION_ROOT；本地文件和终端不可用",
+        "capabilities": {
+          "files": false,
+          "terminal": false,
+          "browser": true
+        }
+      },
+      {
+        "environmentId": "sandbox",
+        "kind": "sandbox",
+        "label": "fixture-sandbox",
+        "state": "unavailable",
+        "reason": "sbx 不可用：sbx 不可执行：/missing/wsl-f27-sbx",
+        "capabilities": {
+          "files": false,
+          "terminal": false,
+          "browser": false
+        }
+      },
+      {
+        "environmentId": "ssh",
+        "kind": "ssh",
+        "label": "SSH",
+        "state": "unavailable",
+        "reason": "未配置可信 SSH 环境",
+        "capabilities": {
+          "files": false,
+          "terminal": false,
+          "browser": false
+        }
+      }
+    ],
+    "notificationReadReceipts": [],
+    "notifications": []
+  },
+  "globalError": []
+}

@@ -166,6 +166,8 @@ receipt 的解释字段明确：未调用 Agent、启动 Electron、执行 CDP �
 
 - [空间文件与会话观察源码及证据](../acceptance/integration-20261008/evidence/phase3-final-source-manifest-v3.json)：`612cde0`，406 项单元通过，Electron 相关子集 46 通过、1 焦点失败、2 live 跳过；Mac 锁定使原生焦点、真实拖拽和中文候选窗验收待解锁复跑。
 
+- [验证工具修复与新方法指纹](../acceptance/integration-20261008/evidence/phase4a-final-source-manifest.json)：`46cab72`，406 项单元、12 项 VS001 合成自检通过；F08 独立证据门槛与 JSON 字段顺序已修复，历史固定目标和原失败保持。新方法指纹 `94536a5749212a9526ef89c53a3c4b8e39b8f06a2f69d996eff46d0369e3e332` 不替换 E09。
+
 原始证据绑定其运行源码；后续最终验证另记。Provider测试通过不代表产品UI、真实模型、packaged或外部SSH验收完成。
 
 ## 后续证据更新规则

@@ -273,6 +273,16 @@
       "status": "completed",
       "receipt": "612cde07896215cd456a8ee27fbfe03338c7f137",
       "idempotency_key": "checkpoint-612cde0"
+    },
+    {
+      "id": "ACT-007",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "46cab72d4bef6d713e49e1d4e324313f9064836d",
+      "status": "completed",
+      "receipt": "46cab72d4bef6d713e49e1d4e324313f9064836d",
+      "idempotency_key": "phase4a-46cab72"
     }
   ],
   "decisions": [

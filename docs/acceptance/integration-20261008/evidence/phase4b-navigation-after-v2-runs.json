@@ -1,0 +1,57 @@
+{
+  "script": "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+  "sha256": "7a4130e32ceacaf9be84453af984f865ef1d207ccb211eda801294f978a39e67",
+  "sourceSha256": "5bef90ee1b8c47d46f95fc6c09a5adf7ac417b6a7e9f668fdd91e27a83d84b61",
+  "runs": [
+    {
+      "command": [
+        "/opt/homebrew/Cellar/node/26.5.0/bin/node",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-1.json"
+      ],
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-1.json",
+      "exitCode": 0,
+      "stdout": ""
+    },
+    {
+      "command": [
+        "/opt/homebrew/Cellar/node/26.5.0/bin/node",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-2.json"
+      ],
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-2.json",
+      "exitCode": 0,
+      "stdout": ""
+    },
+    {
+      "command": [
+        "/opt/homebrew/Cellar/node/26.5.0/bin/node",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-3.json"
+      ],
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-3.json",
+      "exitCode": 0,
+      "stdout": ""
+    },
+    {
+      "command": [
+        "/opt/homebrew/Cellar/node/26.5.0/bin/node",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-4.json"
+      ],
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-4.json",
+      "exitCode": 0,
+      "stdout": ""
+    },
+    {
+      "command": [
+        "/opt/homebrew/Cellar/node/26.5.0/bin/node",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-5.json"
+      ],
+      "output": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-5.json",
+      "exitCode": 0,
+      "stdout": ""
+    }
+  ]
+}

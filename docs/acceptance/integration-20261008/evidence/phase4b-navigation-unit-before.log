@@ -1,0 +1,56 @@
+
+ RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab
+
+ ❯ apps/desktop/src/main/preview/controller-navigation.test.ts (3 tests | 2 failed) 7ms
+   ❯ native load request ownership (3)
+     × settles an initial load before installing the new loadURL observer, avoiding cross-request rejection 4ms
+     × does not convert a superseded non-abort initial error into success 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/preview/controller-navigation.test.ts > native load request ownership > settles an initial load before installing the new loadURL observer, avoiding cross-request rejection
+AssertionError: promise rejected "Error: (-3) loading 'wsl-demo://taskflow/… { …(2) }" instead of resolving
+ ❯ apps/desktop/src/main/preview/controller-navigation.test.ts:83:73
+     81|     wc.stop.mockImplementation(() => initial.reject(aborted()));
+     82|     controller.load();
+     83|     await expect(controller.navigate('wsl-demo://taskflow/members.html…
+       |                                                                         ^
+     84|     expect(wc.stop).toHaveBeenCalledOnce();
+     85|     expect(controller.getState().loadError).toBeNull();
+
+Caused by: Error: (-3) loading 'wsl-demo://taskflow/index.html'
+ ❯ EventEmitter.<anonymous> apps/desktop/src/main/preview/controller-navigation.test.ts:78:42
+ ❯ PreviewController.navigate apps/desktop/src/main/preview/controller.ts:290:28
+ ❯ apps/desktop/src/main/preview/controller-navigation.test.ts:83:29
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: '', errno: -3 }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/main/preview/controller-navigation.test.ts > native load request ownership > does not convert a superseded non-abort initial error into success
+AssertionError: promise resolved "undefined" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+undefined
+
+ ❯ apps/desktop/src/main/preview/controller-navigation.test.ts:101:73
+     99|     wc.stop.mockImplementation(() => initial.reject(error));
+    100|     controller.load();
+    101|     await expect(controller.navigate('wsl-demo://taskflow/members.html…
+       |                                                                         ^
+    102|   });
+    103| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  19:36:58
+   Duration  158ms (transform 62%, import 28%, tests 8%, worker 2%)
+

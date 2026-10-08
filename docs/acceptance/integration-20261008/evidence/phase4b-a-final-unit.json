@@ -1,0 +1,48 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/desktop/src/main/preview/controller-navigation.test.ts",
+    "apps/desktop/src/main/preview/controller-resource.test.ts",
+    "apps/desktop/src/main/preview/controller-migration.test.ts",
+    "apps/desktop/src/main/preview/controller-construction.test.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T11:46:05.598907Z",
+  "ended_at": "2026-10-08T11:46:06.780588Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n\n Test Files  4 passed (4)\n      Tests  23 passed (23)\n   Start at  19:46:06\n   Duration  650ms (transform 56%, tests 31%, import 11%, worker 1%)\n\n",
+  "stderr": "",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgoKIFRlc3QgRmlsZXMgIDQgcGFzc2VkICg0KQogICAgICBUZXN0cyAgMjMgcGFzc2VkICgyMykKICAgU3RhcnQgYXQgIDE5OjQ2OjA2CiAgIER1cmF0aW9uICA2NTBtcyAodHJhbnNmb3JtIDU2JSwgdGVzdHMgMzElLCBpbXBvcnQgMTElLCB3b3JrZXIgMSUpCgo=",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a62e530bd1cbec5a7adf934938a7b3faecd4e2f75bc0fb9b6085d37950a482d4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a62e530bd1cbec5a7adf934938a7b3faecd4e2f75bc0fb9b6085d37950a482d4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a62e530bd1cbec5a7adf934938a7b3faecd4e2f75bc0fb9b6085d37950a482d4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

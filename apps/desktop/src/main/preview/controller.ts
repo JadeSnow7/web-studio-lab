@@ -56,6 +56,8 @@ export class PreviewController {
   private devToolsWindow: BrowserWindow | null = null;
   private disposed = false;
   private navigationEpoch = 0;
+  private loadRequestId = 0;
+  private nativeNavigation: { done: Promise<void>; superseded: boolean; release: () => void } | null = null;
   private brokerFailureEpoch: number | null = null;
   private publicDocument: { document: PublicDocument; epoch: number } | null = null;
   private readonly publicProtocol: PublicDocumentProtocol;
@@ -223,9 +225,10 @@ export class PreviewController {
       this.emitState();
       return;
     }
-    this.webContents.loadURL(this.options.homeUrl).catch((error: unknown) => {
+    const requestId = this.loadRequestId + 1;
+    this.navigate(this.options.homeUrl).catch((error: unknown) => {
       // 失败细节已由 did-fail-load 记录；这里只补上没有对应事件的情况。
-      if (this.loadError === null) {
+      if (!this.disposed && requestId === this.loadRequestId && this.loadError === null) {
         this.loadError = { code: -1, description: error instanceof Error ? error.message : String(error), url: this.options.homeUrl };
         this.emitState();
       }
@@ -285,24 +288,71 @@ export class PreviewController {
     if (!this.isAllowedNavigation(url)) {
       throw new Error('仅允许演示页面和无凭据的公网 HTTPS 443 文档');
     }
-    this.beginNavigation();
     const target = isAllowedPreviewUrl(url, this.options.allowedOrigins) ? url : parsePublicUrl(url).href;
-    await this.webContents.loadURL(target);
+    await this.coordinateNavigation(() => this.webContents.loadURL(target));
   }
 
-  reload(): void {
+  private async coordinateNavigation(start: () => Promise<void> | void): Promise<void> {
+    if (this.disposed) throw new Error('网页实例已销毁');
+    const id = ++this.loadRequestId;
+    const previous = this.nativeNavigation;
+    if (previous) {
+      previous.superseded = true;
+      this.webContents.stop();
+      // Electron may reject loadURL before its final loading events arrive. Both
+      // boundaries must finish before another loadURL installs event observers.
+      await Promise.allSettled([previous.done]);
+    }
+    if (this.disposed) throw new Error('网页实例已销毁');
+    if (id !== this.loadRequestId) return;
+    let release!: () => void;
+    const stopped = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const wc = this.webContents;
+    wc.once('did-stop-loading', release);
+    wc.once('destroyed', release);
+    let finish!: () => void;
+    const operation = {
+      done: new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+      superseded: false,
+      release,
+    };
+    this.nativeNavigation = operation;
     this.beginNavigation();
-    this.webContents.reload();
+    try {
+      try {
+        await start();
+      } catch (error) {
+        const code = (error as { errno?: number; code?: string }).errno;
+        if (!operation.superseded || (code !== -3 && (error as { code?: string }).code !== 'ERR_ABORTED')) throw error;
+      }
+      await stopped;
+      if (this.disposed) throw new Error('网页实例已销毁');
+    } finally {
+      // Failed load promises can precede did-stop-loading too.
+      await stopped;
+      wc.removeListener('did-stop-loading', release);
+      wc.removeListener('destroyed', release);
+      if (this.nativeNavigation === operation) this.nativeNavigation = null;
+      finish();
+    }
   }
 
-  goBack(): void {
-    this.beginNavigation();
-    this.webContents.navigationHistory.goBack();
+  reload(): Promise<void> {
+    return this.coordinateNavigation(() => this.webContents.reload());
   }
 
-  goForward(): void {
-    this.beginNavigation();
-    this.webContents.navigationHistory.goForward();
+  goBack(): Promise<void> {
+    if (!this.webContents.navigationHistory.canGoBack()) return Promise.resolve();
+    return this.coordinateNavigation(() => this.webContents.navigationHistory.goBack());
+  }
+
+  goForward(): Promise<void> {
+    if (!this.webContents.navigationHistory.canGoForward()) return Promise.resolve();
+    return this.coordinateNavigation(() => this.webContents.navigationHistory.goForward());
   }
 
   async captureResource(expectedPage: PageIdentity): Promise<PageResourceSnapshot> {
@@ -482,6 +532,7 @@ export class PreviewController {
     if (this.disposed) return;
     this.invalidatePick('网页实例已销毁');
     this.disposed = true;
+    this.nativeNavigation?.release();
     this.devToolsWindow?.destroy();
     this.publicProtocol.dispose();
     if (this.webContents.debugger.isAttached()) this.webContents.debugger.detach();

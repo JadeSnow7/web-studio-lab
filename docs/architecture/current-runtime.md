@@ -20,21 +20,21 @@
 
 ## 4. Electron 安全基线
 
-Browser 区加载的是 Agent 修改过的代码，因此按不可信内容处理。
+当前 Browser 区承载演示页面和受控的公开 HTTPS 只读文档，统一按不可信内容处理。Agent 生成应用的运行地址及 guest 服务端口预览尚未接入；下面的隔离边界同样约束未来接入。
 
 ### 4.1 窗口与视图配置
 
-| 配置                   | 工作台 renderer  | Browser 区视图                                                                                                                                     |
-| ---------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `contextIsolation`     | `true`           | `true`                                                                                                                                             |
-| `sandbox`              | `true`           | `true`                                                                                                                                             |
-| `nodeIntegration`      | `false`          | `false`                                                                                                                                            |
-| `webSecurity`          | `true`           | `true`                                                                                                                                             |
-| preload                | 仅工作台 preload | **无**                                                                                                                                             |
-| session                | 默认 session     | 独立内存分区 `preview-<workspaceId>-<instanceId>`，与工作台隔离                                                                                    |
-| 权限请求               | 默认拒绝         | 默认全部拒绝                                                                                                                                       |
-| `window.open` / 新窗口 | 拒绝             | 拒绝                                                                                                                                               |
-| 导航                   | 只允许本应用页面 | 只允许当前 run 的预览源（`127.0.0.1` / `localhost` 的指定端口）；当前演示允许 `wsl-demo://taskflow`；用户授权的公开 HTTPS 采用下述只读文档代理路径 |
+| 配置                   | 工作台 renderer  | Browser 区视图                                                                                                 |
+| ---------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| `contextIsolation`     | `true`           | `true`                                                                                                         |
+| `sandbox`              | `true`           | `true`                                                                                                         |
+| `nodeIntegration`      | `false`          | `false`                                                                                                        |
+| `webSecurity`          | `true`           | `true`                                                                                                         |
+| preload                | 仅工作台 preload | **无**                                                                                                         |
+| session                | 默认 session     | 独立内存分区 `preview-<workspaceId>-<instanceId>`，与工作台隔离                                                |
+| 权限请求               | 默认拒绝         | 默认全部拒绝                                                                                                   |
+| `window.open` / 新窗口 | 拒绝             | 拒绝                                                                                                           |
+| 导航                   | 只允许本应用页面 | 当前允许 `wsl-demo://taskflow`；用户授权的公开 HTTPS 采用下述只读文档代理路径。产品未注册 localhost 运行预览源 |
 
 其他要求：
 
@@ -50,7 +50,7 @@ preload 只暴露以下几类能力，请求一律使用 `ipcRenderer.invoke`，
 - workbench：读取/重载快照、列出环境、请求观察、提交具名命令、订阅事件；空间网页、PTY、资源和任务均经此入口。
 - 应用信息与执行服务状态（只读）。
 - 个人对话：查询CLI状态、读取/发送/取消/重置个人会话，订阅会话快照与不可用状态；空间会话由Main工作台管理。
-- 菜单命令事件（例如 ⌘B 切换 Workshop）。
+- 菜单命令事件（例如 ⌘B 切换整组左栏）。
 - 不暴露旧的单预览/单终端/公开资源renderer写接口，也不暴露任意IPC通道或宿主文件路径执行器。
 
 main process 对每个 IPC 请求做两项检查：

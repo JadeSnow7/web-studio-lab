@@ -136,3 +136,11 @@ F08：独立通过的 B03/B04 现在分别要求实际观察及匹配的 Runtime
 F23：guest 控制输入按每条完整消息和未完成尾段分别限制 1 MiB，避免合并读取时将两个合法消息共用预算。原始失败 `phase4a-parser-before.json` 驱动的是实际 stdin 分支抽取，修后用 64 KiB 分块验证合法跨块消息和超限拒绝；这不等同于完整 guest 生命周期验收。
 
 同包迁入参赛稿件导出工具，保留历史 URL、PDF 内部证据索引及明确本地文件链接；导出运行和版面验收分别记录。live 测试去掉过期主树输出路径，按本轮 UUID 目录清理，清理错误与原测试失败均保留；build 专用的受控传输测试明确不用于 packaged 产品。正式终验以本阶段新回执为准。
+
+Phase4a 经主线程逐文件和原始回执复核，以 `46cab72` 保存。`phase4a-v2-unit.json` 捕获文件监听测试错误地要求只有一个提示：OS 在 closed 前产生合法 rename，不能因此推定 Provider 失败。修后验证每条提示的身份/序号、closed 恰一次且最后、两次 close 与关闭后读取拒绝；Provider 未改。v3 为 406 pass/8 live skip，文件定向 13 pass，类型及本包 lint/format/diff 通过；未变工具/生产字节的 v2 构建、自检和文档回执范围在 manifest 单列。新 VS001 方法指纹为 `94536a5749212a9526ef89c53a3c4b8e39b8f06a2f69d996eff46d0369e3e332`，不替换 E09 历史指纹。
+
+Phase4a PDF 独立复核覆盖全部九页，15 处现有 E 索引跳转、E01–E14 标题、中文嵌入字体与跨页表头均正常。PNG 与来源指纹保存在 `evidence/phase4a-pdf-review/`；生成 PDF 在 output/submission，未作为代码或历史成功证明提交。
+
+独立文档走查校正了两处会影响新维护者的操作：当前 host 仅注册 demo 与受控公开 HTTPS 文档，不支持 localhost 运行预览或 guest 服务端口转发；本地文件读取经 PATH 的 Python 3 做 openat/dir_fd，而本地 PTY 固定使用 `/usr/bin/python3`。结论由当前 `host.ts`、`observation-files.ts` 和 `local-terminal.ts` 的实际调用复核，不从规划文字推断能力。
+
+F27 精确探针在五轮中四轮复现：一次 members 提交使 initial index 与 members 两次 loadURL Promise 重叠；旧 Promise 先报 error.url=members，旧 index 的迟到 did-fail-load 随后使新 Promise 报 index 的 -3，虽然最终页面成功。`phase4b-navigation-probe-1.json` 同时保存唯一 submit、load ID、IPC commandId 和结果；这比旧 focus probe 提供了完整归因，修复与复验另记。

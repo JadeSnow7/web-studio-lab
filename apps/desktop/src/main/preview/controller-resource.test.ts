@@ -38,6 +38,9 @@ vi.mock('electron', () => ({
       close: vi.fn(),
     });
     constructor(readonly settings: unknown) {
+      this.webContents.loadURL.mockImplementation(async () => {
+        this.webContents.emit('did-stop-loading');
+      });
       mocks.views.push(this);
     }
     setVisible = vi.fn();

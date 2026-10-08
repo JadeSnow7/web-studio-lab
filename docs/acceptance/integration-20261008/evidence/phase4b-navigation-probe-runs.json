@@ -1,0 +1,66 @@
+{
+  "head": "46cab72d4bef6d713e49e1d4e324313f9064836d",
+  "probe_sha256": "1c6581d9df9c4d4bd36072efe87a2d7983693fdb10c7e9df66bd5dbc1b2c88df",
+  "runs": [
+    {
+      "argv": [
+        "pnpm",
+        "exec",
+        "tsx",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-probe-1.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "(node:58433) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n"
+    },
+    {
+      "argv": [
+        "pnpm",
+        "exec",
+        "tsx",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-probe-2.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "(node:58461) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n"
+    },
+    {
+      "argv": [
+        "pnpm",
+        "exec",
+        "tsx",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-probe-3.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "(node:58480) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n"
+    },
+    {
+      "argv": [
+        "pnpm",
+        "exec",
+        "tsx",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-probe-4.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "(node:58496) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n"
+    },
+    {
+      "argv": [
+        "pnpm",
+        "exec",
+        "tsx",
+        "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+        "docs/acceptance/integration-20261008/evidence/phase4b-navigation-probe-5.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "(node:58515) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n"
+    }
+  ]
+}

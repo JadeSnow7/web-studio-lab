@@ -1,6 +1,6 @@
 # 开发依赖与安装
 
-桌面对话和 sandbox 终端通过 sbx 使用同一个 Linux guest 工作目录。本地与 SSH 文件、终端已接 Main/MCP 和空间界面，完整验收仍在进行；阶段结果见 [INTEGRATION-1](../acceptance/integration-20261008/task-summary.md)。host 需要 Node/pnpm 构建应用；sbx CLI 只为 sandbox 对话和终端所需。本地文件及终端需 Python 3 和显式授权根，SSH需已有agent及可信配置；guest需要Python 3、Codex CLI及项目工具。独立环境准备记录见[sbx 安装验证](../verification/2026-10-06-sbx/README.md)，应用接入记录见[应用验证](../verification/2026-10-06-sbx-app/README.md)。
+桌面对话和 sandbox 终端通过 sbx 使用同一个 Linux guest 工作目录。本地与 SSH 文件、终端已接 Main/MCP 和空间界面，完整验收仍在进行；阶段结果见 [INTEGRATION-1](../acceptance/integration-20261008/task-summary.md)。host 需要 Node/pnpm 构建应用；sbx CLI 只为 sandbox 对话和终端所需。本地文件及终端需显式授权根；文件安全读取调用 PATH 中的 `python3`，本地 PTY 固定调用 `/usr/bin/python3`。SSH需已有agent及可信配置；guest需要Python 3、Codex CLI及项目工具。独立环境准备记录见[sbx 安装验证](../verification/2026-10-06-sbx/README.md)，应用接入记录见[应用验证](../verification/2026-10-06-sbx-app/README.md)。
 
 ## 桌面项目
 
@@ -217,4 +217,4 @@ WSL_LIVE_SBX=1 WSL_SBX_NAME=wsl-sbx-smoke-20261006 npx pnpm@10.34.6 exec playwri
 
 本地文件读取使用固定根描述符和逐级不跟随符号链接的路径打开；续读核对内容散列，变化提示可能合并，不能证明文件从未变化。SFTP 的路径检查不能提供恶意远端并发替换下的原子 beneath 保证，远端权限范围仍需由可信服务器约束。
 
-本地终端通过 Python 3 标准库 PTY 实现，启动时需要 host 可执行 `python3` 和受支持的 shell；不安装 node-pty。终端以当前用户权限运行，起始目录不是操作系统沙箱。关闭时只追踪本轮继承标记与出生身份相符的进程；无法确认清理时保留 unknown 状态并阻止静默替换。文件授权根不会限制用户在终端中执行命令的权限。
+本地终端通过 Python 3 标准库 PTY 实现，当前固定调用 `/usr/bin/python3`，macOS 使用 `/bin/zsh`，其他受支持实现使用 `/bin/bash`；应先用 `/usr/bin/python3 --version` 确认系统路径，安装 Homebrew Python 或修改 PATH 不会改变 PTY 调用路径。不安装 node-pty。文件安全读取另用 PATH 中的 `python3` 提供 openat/dir_fd，需用 `python3 --version` 确认。终端以当前用户权限运行，起始目录不是操作系统沙箱。关闭时只追踪本轮继承标记与出生身份相符的进程；无法确认清理时保留 unknown 状态并阻止静默替换。文件授权根不会限制用户在终端中执行命令的权限。

@@ -1,0 +1,222 @@
+{
+  "head": "46cab72d4bef6d713e49e1d4e324313f9064836d",
+  "scope": "Phase4b-A navigation only; no SSH/live/package/native-focus acceptance",
+  "sources": [
+    {
+      "path": "apps/desktop/src/main/preview/controller.ts",
+      "sha256": "5bef90ee1b8c47d46f95fc6c09a5adf7ac417b6a7e9f668fdd91e27a83d84b61"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller-navigation.test.ts",
+      "sha256": "8af4208adb6a9c5043cc6343b13c4e5a8723b8d3c739ed7135cf3514f98f1aa8"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller-resource.test.ts",
+      "sha256": "65e465aaef0a7fe43ba8fbaee1eabd76ba5f43c8e275aa28d4195efb0cbe1b39"
+    }
+  ],
+  "receipts": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-a-final-build.json",
+      "sha256": "11e069e7ee464eed56ef505bb45fbbe8775f4af1f8d09d4bb3a570301e0d7740",
+      "argv": [
+        "pnpm",
+        "build"
+      ],
+      "result": "passed",
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a62e530bd1cbec5a7adf934938a7b3faecd4e2f75bc0fb9b6085d37950a482d4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-a-final-format.json",
+      "sha256": "9b47e81965beae26c5927eafbf474a8effeb6a9efe49be248e1fa6002ac662d7",
+      "argv": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--check",
+        "apps/desktop/src/main/preview/controller.ts",
+        "apps/desktop/src/main/preview/controller-navigation.test.ts",
+        "apps/desktop/src/main/preview/controller-resource.test.ts"
+      ],
+      "result": "passed",
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a62e530bd1cbec5a7adf934938a7b3faecd4e2f75bc0fb9b6085d37950a482d4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-a-final-lint.json",
+      "sha256": "058c3e8ac93f9505d9a862e35cd402f1f78fc57e1446abf94ffde898744e1466",
+      "argv": [
+        "pnpm",
+        "exec",
+        "eslint",
+        "apps/desktop/src/main/preview/controller.ts",
+        "apps/desktop/src/main/preview/controller-navigation.test.ts",
+        "apps/desktop/src/main/preview/controller-resource.test.ts"
+      ],
+      "result": "passed",
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a62e530bd1cbec5a7adf934938a7b3faecd4e2f75bc0fb9b6085d37950a482d4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-a-final-type.json",
+      "sha256": "08e4fe455e83209f5b9ddad861ecea1683d70976966f5612b2cc47e6f781e9e1",
+      "argv": [
+        "pnpm",
+        "--filter",
+        "@wsl/desktop",
+        "typecheck"
+      ],
+      "result": "passed",
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a62e530bd1cbec5a7adf934938a7b3faecd4e2f75bc0fb9b6085d37950a482d4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-a-final-unit.json",
+      "sha256": "14b60c3b1baab21bbf2186dd7c805cb8b0c60f578eddc6a03c8777fbab78831e",
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/desktop/src/main/preview/controller-navigation.test.ts",
+        "apps/desktop/src/main/preview/controller-resource.test.ts",
+        "apps/desktop/src/main/preview/controller-migration.test.ts",
+        "apps/desktop/src/main/preview/controller-construction.test.ts"
+      ],
+      "result": "passed",
+      "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:a62e530bd1cbec5a7adf934938a7b3faecd4e2f75bc0fb9b6085d37950a482d4:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+    }
+  ],
+  "tests": "23 passed in four controller suites; desktop typecheck, scoped lint/format, build passed",
+  "nativeProbe": "five frozen final-script runs: old stop boundary precedes new load, members body/URL, loadError=null and no global error; OS focus not asserted",
+  "evidence": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-1.json",
+      "sha256": "a47cb842b64fd8a621f7aceb33cee91cebab9178e11c00df3d07b2430b5081d6"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-2.json",
+      "sha256": "53a3c6224b14389404374765c64802a170843c2ae525141bc542a702fd4be0f8"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-3.json",
+      "sha256": "dc98a9d19b17581b24ef25f47fba97f2711055c25c6b66c720f4df24a9b53381"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-4.json",
+      "sha256": "be9e12345f530087be82988259112e00ba983fce8256ccb19aa90b49adf9b0e3"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-5.json",
+      "sha256": "e99e87f1d17c07597027f8935a0fc886af04259f910a645b5fc8f84279f0aef4"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-runs.json",
+      "sha256": "0fbfa37811def3eb723ac3283afa211f6d38d75c643e360cb5f26c32b648c35e"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-1.json",
+      "sha256": "023219253aa0c8456e950ea09352ed56dcc846b96348d321ae2262e157fd9f04"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-2.json",
+      "sha256": "aafa10d3627718305c6072117740fa8f95b71f2a57c802d7d077a94cb08fef38"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-3.json",
+      "sha256": "cce8b32cbb9c246038e5d5999fde09519f55ce7f53411e40744a7eb49ea6e339"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-4.json",
+      "sha256": "0f593e58d3c7312ff0239835922ddb92f697795ec61a3e469fbfaeaf21f3eb3e"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-5.json",
+      "sha256": "1cb6914414ce56e75425ad1df24ed32c069ac011165459d06167da6b5b32d702"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-after-v2-runs.json",
+      "sha256": "93d00fafbc321318bee638aca90279dd3592d07a2ff4beb0e62c67bbead28da6"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-build.log",
+      "sha256": "08df5798eb3787da301ef46da0dc58c491147447c653a3ad1c14779d36df8f05"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-1.json",
+      "sha256": "17c535a7065af9699be49f26fb4dbdba520a306bdf53c12973a0c1ac7f244c86"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-2.json",
+      "sha256": "a561ce6bee68dd0964bbf2ebbe426c63bb4ae33996323e9336bd71225acec5ec"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-3.json",
+      "sha256": "4dad3966228d001187338c0ed652306bc4e1fc5aa8790e0c86d962db218ce153"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-4.json",
+      "sha256": "9d8111cf28b702839b034bfcfa85ebf7d20aff060fc9c7ffca0cdb82ede2f6ac"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-5.json",
+      "sha256": "16d2167d51bd151c41951a13a2af5cdec845602ca25975fe40db57ab17a2bfa3"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-final-runs.json",
+      "sha256": "48e1a847d92ca240ba8776c414b0e4367fa22395187a46f8777ac3a1bb9b640c"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-probe-1.json",
+      "sha256": "0625beba296639317c9abbd518a0390770b1522c9b626901596cb7bbd416b41c"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-probe-2.json",
+      "sha256": "2da54b5d0e96f738b9615db1972b4625c9485069f8bf22daf4906c7ca66bd063"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-probe-3.json",
+      "sha256": "42e4351b6e6bd66db482c6da46248fb22def2e45a3a63a262a1604c867b02a31"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-probe-4.json",
+      "sha256": "cf784e8192d5b0b82124c8d98ad60b0ec07950ca59d972f7677d35d371a2dc14"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-probe-5.json",
+      "sha256": "d281623d408d206f28e57ee02540120d316cf8ca3489f0ed9810e2ca6e617266"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-probe-runs.json",
+      "sha256": "d273bbd12ceeae95d1d7b16e6e86719989524136beb7cfaa7e9188385b6ff04b"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-probe.json",
+      "sha256": "a59e2444d2636828e11b0d4fca2f90c963300a0fceab6719c6a4493c21a304fc"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-unit-after.log",
+      "sha256": "87b4e87468d611e3d4a2aecbdfeabcd77917580d178cd8798bf968ccc6a7db6c"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4b-navigation-unit-before.log",
+      "sha256": "242b7a47e938db9119b814b1e44c8351a2fe516f7d6df6365a5730c935155816"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe-final.mjs",
+      "sha256": "7a4130e32ceacaf9be84453af984f865ef1d207ccb211eda801294f978a39e67"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe-stop-events.mjs",
+      "sha256": "9b9dc4d27b7c285a25d40484269ca34d7475a819b9f4aed6bbdfd1471d7c39d4"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase4b-navigation-probe.mjs",
+      "sha256": "1c6581d9df9c4d4bd36072efe87a2d7983693fdb10c7e9df66bd5dbc1b2c88df"
+    }
+  ],
+  "limitations": [
+    "First unit-before had two failures, including one incorrect expectation that a superseded initial non-abort error should reject the next caller; only cross-request race failure proves the defect. Corrected tests retain original caller error.",
+    "Original probe SHA 1c6581d9df9c4d4bd36072efe87a2d7983693fdb10c7e9df66bd5dbc1b2c88df exactly restored; stop-events and final body capture versions archived separately.",
+    "Initial after-runs covers 2–5 only and does not capture success stderr. after-1 actual direct invocation exists but has no wrapper argv receipt. These remain preliminary diagnostics.",
+    "after-v2 was not a frozen script sampling window and is excluded from formal acceptance; final-runs alone provides five argv/stdout/stderr/script+source-bound runs.",
+    "Mac remains locked; native focus, drag and IME remain blocked_environment."
+  ]
+}
