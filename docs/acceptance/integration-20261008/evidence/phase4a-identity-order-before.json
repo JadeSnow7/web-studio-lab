@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "pnpm",
+    "baseline:selftest"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T11:15:43.359255Z",
+  "ended_at": "2026-10-08T11:15:44.025022Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n> web-studio-lab@ baseline:selftest /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n> tsx --test tests/vertical-slice/selftest.test.ts\n\n(node:52191) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n✔ synthetic: strict task and event contracts reject relaxed goals and extra pass claims (1.290333ms)\n✔ synthetic: postcondition rejects initial/wrong/hidden/duplicate/mixed-run/exception observations (0.498625ms)\n✔ synthetic: mixed run/hash, sequence, lifecycle, logs and nonzero exit are rejected (0.724458ms)\n✔ synthetic: diff detects add/delete and paths/CDP URLs cannot escape boundaries (0.367666ms)\n✔ synthetic: manifest refuses content tampering, missing evidence and mixed-run events (3.050041ms)\n✔ synthetic: complete empty DOM returns immediately and B03 rejects it (7.57775ms)\n✔ synthetic: navigation waits for complete state and the expected URL (206.930125ms)\n✔ synthetic: complete single-match DOM returns on the first evaluation (1.925416ms)\n✔ synthetic: B03 partial success needs its own identity, observation and raw evaluation (11.579666ms)\n✔ synthetic: B04 partial success must match independently re-evaluated postcondition (8.5025ms)\n✔ synthetic: no passed check may claim it was not performed; target_missing remains valid (6.084041ms)\n✖ synthetic: identity key order is irrelevant but changed identity fields are rejected (2.699083ms)\nℹ tests 12\nℹ suites 0\nℹ pass 11\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 393.383542\n\n✖ failing tests:\n\ntest at tests/vertical-slice/selftest.test.ts:1:11189\n✖ synthetic: identity key order is irrelevant but changed identity fields are rejected (2.699083ms)\n  Error: observation.json app identity mismatch\n      at verifyManifest (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/tests/vertical-slice/evidence.ts:172:13)\n      at Object.verify (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/tests/vertical-slice/selftest.test.ts:256:24)\n      at TestContext.<anonymous> (/Users/huaodong/.codex/worktrees/bf64/web-studio-lab/tests/vertical-slice/selftest.test.ts:319:13)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)\n      at Test.postRun (node:internal/test_runner/test:1522:19)\n      at Test.run (node:internal/test_runner/test:1447:12)\n      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)\n ELIFECYCLE  Command failed with exit code 1.\n",
+  "stderr": "",
+  "stdout_base64": "Cj4gd2ViLXN0dWRpby1sYWJAIGJhc2VsaW5lOnNlbGZ0ZXN0IC9Vc2Vycy9odWFvZG9uZy8uY29kZXgvd29ya3RyZWVzL2JmNjQvd2ViLXN0dWRpby1sYWIKPiB0c3ggLS10ZXN0IHRlc3RzL3ZlcnRpY2FsLXNsaWNlL3NlbGZ0ZXN0LnRlc3QudHMKCihub2RlOjUyMTkxKSBbREVQMDIwNV0gRGVwcmVjYXRpb25XYXJuaW5nOiBgbW9kdWxlLnJlZ2lzdGVyKClgIGlzIGRlcHJlY2F0ZWQuIFVzZSBgbW9kdWxlLnJlZ2lzdGVySG9va3MoKWAgaW5zdGVhZC4KKFVzZSBgbm9kZSAtLXRyYWNlLWRlcHJlY2F0aW9uIC4uLmAgdG8gc2hvdyB3aGVyZSB0aGUgd2FybmluZyB3YXMgY3JlYXRlZCkK4pyUIHN5bnRoZXRpYzogc3RyaWN0IHRhc2sgYW5kIGV2ZW50IGNvbnRyYWN0cyByZWplY3QgcmVsYXhlZCBnb2FscyBhbmQgZXh0cmEgcGFzcyBjbGFpbXMgKDEuMjkwMzMzbXMpCuKclCBzeW50aGV0aWM6IHBvc3Rjb25kaXRpb24gcmVqZWN0cyBpbml0aWFsL3dyb25nL2hpZGRlbi9kdXBsaWNhdGUvbWl4ZWQtcnVuL2V4Y2VwdGlvbiBvYnNlcnZhdGlvbnMgKDAuNDk4NjI1bXMpCuKclCBzeW50aGV0aWM6IG1peGVkIHJ1bi9oYXNoLCBzZXF1ZW5jZSwgbGlmZWN5Y2xlLCBsb2dzIGFuZCBub256ZXJvIGV4aXQgYXJlIHJlamVjdGVkICgwLjcyNDQ1OG1zKQrinJQgc3ludGhldGljOiBkaWZmIGRldGVjdHMgYWRkL2RlbGV0ZSBhbmQgcGF0aHMvQ0RQIFVSTHMgY2Fubm90IGVzY2FwZSBib3VuZGFyaWVzICgwLjM2NzY2Nm1zKQrinJQgc3ludGhldGljOiBtYW5pZmVzdCByZWZ1c2VzIGNvbnRlbnQgdGFtcGVyaW5nLCBtaXNzaW5nIGV2aWRlbmNlIGFuZCBtaXhlZC1ydW4gZXZlbnRzICgzLjA1MDA0MW1zKQrinJQgc3ludGhldGljOiBjb21wbGV0ZSBlbXB0eSBET00gcmV0dXJucyBpbW1lZGlhdGVseSBhbmQgQjAzIHJlamVjdHMgaXQgKDcuNTc3NzVtcykK4pyUIHN5bnRoZXRpYzogbmF2aWdhdGlvbiB3YWl0cyBmb3IgY29tcGxldGUgc3RhdGUgYW5kIHRoZSBleHBlY3RlZCBVUkwgKDIwNi45MzAxMjVtcykK4pyUIHN5bnRoZXRpYzogY29tcGxldGUgc2luZ2xlLW1hdGNoIERPTSByZXR1cm5zIG9uIHRoZSBmaXJzdCBldmFsdWF0aW9uICgxLjkyNTQxNm1zKQrinJQgc3ludGhldGljOiBCMDMgcGFydGlhbCBzdWNjZXNzIG5lZWRzIGl0cyBvd24gaWRlbnRpdHksIG9ic2VydmF0aW9uIGFuZCByYXcgZXZhbHVhdGlvbiAoMTEuNTc5NjY2bXMpCuKclCBzeW50aGV0aWM6IEIwNCBwYXJ0aWFsIHN1Y2Nlc3MgbXVzdCBtYXRjaCBpbmRlcGVuZGVudGx5IHJlLWV2YWx1YXRlZCBwb3N0Y29uZGl0aW9uICg4LjUwMjVtcykK4pyUIHN5bnRoZXRpYzogbm8gcGFzc2VkIGNoZWNrIG1heSBjbGFpbSBpdCB3YXMgbm90IHBlcmZvcm1lZDsgdGFyZ2V0X21pc3NpbmcgcmVtYWlucyB2YWxpZCAoNi4wODQwNDFtcykK4pyWIHN5bnRoZXRpYzogaWRlbnRpdHkga2V5IG9yZGVyIGlzIGlycmVsZXZhbnQgYnV0IGNoYW5nZWQgaWRlbnRpdHkgZmllbGRzIGFyZSByZWplY3RlZCAoMi42OTkwODNtcykK4oS5IHRlc3RzIDEyCuKEuSBzdWl0ZXMgMArihLkgcGFzcyAxMQrihLkgZmFpbCAxCuKEuSBjYW5jZWxsZWQgMArihLkgc2tpcHBlZCAwCuKEuSB0b2RvIDAK4oS5IGR1cmF0aW9uX21zIDM5My4zODM1NDIKCuKcliBmYWlsaW5nIHRlc3RzOgoKdGVzdCBhdCB0ZXN0cy92ZXJ0aWNhbC1zbGljZS9zZWxmdGVzdC50ZXN0LnRzOjE6MTExODkK4pyWIHN5bnRoZXRpYzogaWRlbnRpdHkga2V5IG9yZGVyIGlzIGlycmVsZXZhbnQgYnV0IGNoYW5nZWQgaWRlbnRpdHkgZmllbGRzIGFyZSByZWplY3RlZCAoMi42OTkwODNtcykKICBFcnJvcjogb2JzZXJ2YXRpb24uanNvbiBhcHAgaWRlbnRpdHkgbWlzbWF0Y2gKICAgICAgYXQgdmVyaWZ5TWFuaWZlc3QgKC9Vc2Vycy9odWFvZG9uZy8uY29kZXgvd29ya3RyZWVzL2JmNjQvd2ViLXN0dWRpby1sYWIvdGVzdHMvdmVydGljYWwtc2xpY2UvZXZpZGVuY2UudHM6MTcyOjEzKQogICAgICBhdCBPYmplY3QudmVyaWZ5ICgvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiL3Rlc3RzL3ZlcnRpY2FsLXNsaWNlL3NlbGZ0ZXN0LnRlc3QudHM6MjU2OjI0KQogICAgICBhdCBUZXN0Q29udGV4dC48YW5vbnltb3VzPiAoL1VzZXJzL2h1YW9kb25nLy5jb2RleC93b3JrdHJlZXMvYmY2NC93ZWItc3R1ZGlvLWxhYi90ZXN0cy92ZXJ0aWNhbC1zbGljZS9zZWxmdGVzdC50ZXN0LnRzOjMxOToxMykKICAgICAgYXQgVGVzdC5ydW5JbkFzeW5jU2NvcGUgKG5vZGU6YXN5bmNfaG9va3M6MjI2OjE0KQogICAgICBhdCBUZXN0LnJ1biAobm9kZTppbnRlcm5hbC90ZXN0X3J1bm5lci90ZXN0OjEzODI6MjUpCiAgICAgIGF0IFRlc3QucHJvY2Vzc1BlbmRpbmdTdWJ0ZXN0cyAobm9kZTppbnRlcm5hbC90ZXN0X3J1bm5lci90ZXN0Ojk2MDoxOCkKICAgICAgYXQgVGVzdC5wb3N0UnVuIChub2RlOmludGVybmFsL3Rlc3RfcnVubmVyL3Rlc3Q6MTUyMjoxOSkKICAgICAgYXQgVGVzdC5ydW4gKG5vZGU6aW50ZXJuYWwvdGVzdF9ydW5uZXIvdGVzdDoxNDQ3OjEyKQogICAgICBhdCBhc3luYyBUZXN0LnByb2Nlc3NQZW5kaW5nU3VidGVzdHMgKG5vZGU6aW50ZXJuYWwvdGVzdF9ydW5uZXIvdGVzdDo5NjA6NykK4oCJRUxJRkVDWUNMReKAiSBDb21tYW5kIGZhaWxlZCB3aXRoIGV4aXQgY29kZSAxLgo=",
+  "stderr_base64": "",
+  "stdout_present": true,
+  "stderr_present": false,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:2c0c41123e5d6f22da3d585c319a964d517cd1b3a4ed5d7c98d64d606dfad194:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:2c0c41123e5d6f22da3d585c319a964d517cd1b3a4ed5d7c98d64d606dfad194:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:2c0c41123e5d6f22da3d585c319a964d517cd1b3a4ed5d7c98d64d606dfad194:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}

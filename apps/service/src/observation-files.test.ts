@@ -2,6 +2,7 @@ import { mkdtemp, rm, writeFile, symlink, mkdir, rename, realpath } from 'node:f
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { FileInvalidationHint } from '@wsl/protocol';
 import { FileObservationProvider, LocalFileTransport } from './observation-files';
 const roots: string[] = [];
 const providers: { close(): Promise<void> }[] = [];
@@ -155,7 +156,7 @@ it('uses the explicit resource and instance for source, read and watch, then clo
   const root = await mkdtemp(path.join(tmpdir(), 'observation-identity-'));
   roots.push(root);
   await writeFile(path.join(root, 'x'), 'bound contents');
-  const hints: unknown[] = [];
+  const hints: FileInvalidationHint[] = [];
   const resource = {
     workspaceId: 'other-workspace',
     environmentId: 'local',
@@ -170,7 +171,10 @@ it('uses the explicit resource and instance for source, read and watch, then clo
   expect((await files.read({ path: 'x' })).resource).toEqual(resource);
   await files.close();
   await files.close();
-  expect(hints).toEqual([expect.objectContaining(resource)]);
+  for (const hint of hints) expect(hint).toMatchObject({ ...resource, coverage: { lossy: true } });
+  expect(hints.map((hint) => hint.sequence)).toEqual(hints.map((_hint, index) => index + 1));
+  expect(hints.filter((hint) => hint.change === 'closed')).toHaveLength(1);
+  expect(hints.at(-1)?.change).toBe('closed');
   await expect(files.read({ path: 'x' })).rejects.toMatchObject({ code: 'unavailable' });
 });
 it('refuses a remote read that completes after its provider is closed', async () => {

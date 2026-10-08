@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { randomUUID, createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import { GUEST_BROWSER_SANDBOX, ResourceBundleSchema } from '@wsl/protocol';
 import { captureGuestPage, saveGuestCapture } from './guest-browser-bridge';
@@ -10,7 +11,7 @@ import resourceMcp from './resource_mcp.py?raw';
 
 const live = process.env['WSL_LIVE_GUEST_BROWSER'] === '1';
 const binary = '/opt/homebrew/bin/sbx';
-const evidenceRoot = '/Users/huaodong/workspace/_agent-reports/20261007/sandbox-browser-test';
+const evidenceRoot = process.env['WSL_GUEST_BROWSER_EVIDENCE_ROOT'] ?? path.join(tmpdir(), 'wsl-guest-browser-live');
 
 describe.skipIf(!live)('既有 sandbox guest 浏览器与同一产物 MCP（无模型）', () => {
   it('采集真实 DOM/PNG、保存空间资源并经 guest stdio MCP 精确读取', async () => {

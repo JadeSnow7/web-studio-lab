@@ -11,7 +11,17 @@ const documents = [
   'CLAUDE.md',
   'README.md',
   'CONTRIBUTING.md',
+  'DESIGN.md',
+  'UX-CONTRACT.md',
   'docs/ARCHITECTURE.md',
+  'docs/architecture/current-runtime.md',
+  'docs/development/dependencies.md',
+  'docs/submission/README.md',
+  'docs/submission/oschina-2026.md',
+  'docs/submission/oschina-2026-evidence.md',
+  'docs/acceptance/integration-20261008/task-summary.md',
+  'docs/acceptance/integration-20261008/acceptance-matrix.md',
+  'docs/acceptance/integration-20261008/integration-disposition.md',
   'docs/architecture/adr/0001-modular-monolith.md',
   'docs/architecture/task-priority-walkthrough.md',
   'docs/architecture/baseline-2026-10-06.md',
@@ -19,20 +29,23 @@ const documents = [
 
 function withoutCode(source) {
   let fence;
-  const prose = source.split('\n').map((line) => {
-    const marker = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
-    if (fence) {
-      if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) {
-        fence = undefined;
+  const prose = source
+    .split('\n')
+    .map((line) => {
+      const marker = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+      if (fence) {
+        if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) {
+          fence = undefined;
+        }
+        return '';
       }
-      return '';
-    }
-    if (marker) {
-      fence = marker[1];
-      return '';
-    }
-    return line;
-  }).join('\n');
+      if (marker) {
+        fence = marker[1];
+        return '';
+      }
+      return line;
+    })
+    .join('\n');
   // 保留换行，使诊断仍能定位到原文件的行号。
   return prose.replace(/(`+)(?!`)[\s\S]*?\1(?!`)/g, (code) => code.replace(/[^\n]/g, ' '));
 }
@@ -76,5 +89,7 @@ if (errors.length) {
   console.error(errors.join('\n'));
   process.exitCode = 1;
 } else {
-  console.log(`Documentation check passed (${documents.length} normative files; local link targets and trailing whitespace). Anchors and external URLs are not checked.`);
+  console.log(
+    `Documentation check passed (${documents.length} normative files; local link targets and trailing whitespace). Anchors and external URLs are not checked.`,
+  );
 }

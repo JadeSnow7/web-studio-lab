@@ -1,0 +1,185 @@
+{
+  "reviewed_at": "2026-10-08T11:27:03.893845+00:00",
+  "method": "Independently exported current two source drafts; pdftoppm -scale-to 1400 -png; visually inspected all 9 pages; pypdf checked every existing E-index link resolves to expected page and all E01-E14 headings exist. No new links invented for headings not referenced in manuscript.",
+  "pdf": "output/submission/phase4a-review.pdf",
+  "pdf_sha256": "455dbe96007504dba05fc80c551add1a47dc3e51db4094c7de28f7eae8665b0d",
+  "sources": [
+    {
+      "path": "docs/submission/export_pdf.py",
+      "sha256": "3eaf2f1cee529f8182e863d08dc0401f7f367865aaac2788f318079a0715dd94"
+    },
+    {
+      "path": "docs/submission/oschina-2026.md",
+      "sha256": "64d9804cad838de90b9eceacc642ee545a4167b94280f6339ee0b573c4dc0be4"
+    },
+    {
+      "path": "docs/submission/oschina-2026-evidence.md",
+      "sha256": "de957ec22bcb418b1f0737eeef729a7f1ee17d3135b59b23a0d6da9c5a4bae12"
+    }
+  ],
+  "page_count": 9,
+  "index_links": [
+    {
+      "source_page": 1,
+      "target_page": 5,
+      "index": "E01"
+    },
+    {
+      "source_page": 1,
+      "target_page": 9,
+      "index": "E14"
+    },
+    {
+      "source_page": 1,
+      "target_page": 8,
+      "index": "E13"
+    },
+    {
+      "source_page": 1,
+      "target_page": 9,
+      "index": "E14"
+    },
+    {
+      "source_page": 1,
+      "target_page": 9,
+      "index": "E14"
+    },
+    {
+      "source_page": 2,
+      "target_page": 6,
+      "index": "E02"
+    },
+    {
+      "source_page": 2,
+      "target_page": 6,
+      "index": "E05"
+    },
+    {
+      "source_page": 2,
+      "target_page": 6,
+      "index": "E06"
+    },
+    {
+      "source_page": 2,
+      "target_page": 7,
+      "index": "E07"
+    },
+    {
+      "source_page": 2,
+      "target_page": 9,
+      "index": "E14"
+    },
+    {
+      "source_page": 2,
+      "target_page": 7,
+      "index": "E09"
+    },
+    {
+      "source_page": 2,
+      "target_page": 7,
+      "index": "E10"
+    },
+    {
+      "source_page": 2,
+      "target_page": 8,
+      "index": "E12"
+    },
+    {
+      "source_page": 2,
+      "target_page": 9,
+      "index": "E14"
+    },
+    {
+      "source_page": 3,
+      "target_page": 8,
+      "index": "E13"
+    }
+  ],
+  "index_headers": {
+    "E01": true,
+    "E02": true,
+    "E03": true,
+    "E04": true,
+    "E05": true,
+    "E06": true,
+    "E07": true,
+    "E08": true,
+    "E09": true,
+    "E10": true,
+    "E11": true,
+    "E12": true,
+    "E13": true,
+    "E14": true
+  },
+  "file_uri_count": 44,
+  "external_uri_count": 26,
+  "embedded_fonts": [
+    "/AAAAAA+STHeitiTC-Light-0:embedded=True",
+    "/AAAAAB+STHeitiTC-Light-0:embedded=True",
+    "/AAAAAC+STHeitiTC-Light-0:embedded=True"
+  ],
+  "visual_result": "passed: Chinese text, long SHA and paths readable; headers repeat on split table pages 7/8; no clipped text or overlap; correct draft/date footer; white remainder on page 4 is table pagination, not missing content.",
+  "scope": "Current draft only; future source edits require re-export/review. Not publication or product acceptance.",
+  "rendered_pages": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4a-pdf-review/wsl-phase4a-pdf-page-1.png",
+      "sha256": "ea343dcff2d904b9155d70f1746df6eac2ce901c14f38d8724cc6615689e5e2a"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4a-pdf-review/wsl-phase4a-pdf-page-2.png",
+      "sha256": "1999c50f245102d65c0d75b81b5ee6af6192c931d4fe77cbbb800d1c4c163141"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4a-pdf-review/wsl-phase4a-pdf-page-3.png",
+      "sha256": "03b00ac59b3d4cd1f789f29edeb0047b561e22368a2164a33eca6b5e7928ee64"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4a-pdf-review/wsl-phase4a-pdf-page-4.png",
+      "sha256": "c4200f6890236af889624a30cd4fc39752e0ec1498d12e22445f2d2231370f3b"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4a-pdf-review/wsl-phase4a-pdf-page-5.png",
+      "sha256": "f5f257fd866ce8a03ba703027e6f1dd5a6906b6d6e29dd5a8258e27b8f7082aa"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4a-pdf-review/wsl-phase4a-pdf-page-6.png",
+      "sha256": "b62fcd045def7cdce4d2995198886ea3d8a7094c5390918a513e9f5540bd58ad"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4a-pdf-review/wsl-phase4a-pdf-page-7.png",
+      "sha256": "7ec028799ac73edf1fd98d5ecc025d9fb5c999ec42757205c035f547e4e9070b"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4a-pdf-review/wsl-phase4a-pdf-page-8.png",
+      "sha256": "5f490e1c6b45a553febdc19c4696e231fb2aa9a6a84e8c5fb612fb199aea8f12"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/phase4a-pdf-review/wsl-phase4a-pdf-page-9.png",
+      "sha256": "a26859ab417a331c8a9bec47ff53406d4a909d64755cb60f1673659a5934e799"
+    }
+  ],
+  "commands": [
+    {
+      "argv": [
+        "/Users/huaodong/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "docs/submission/export_pdf.py",
+        "--font",
+        "/System/Library/Fonts/STHeiti Light.ttc",
+        "--output",
+        "output/submission/phase4a-review.pdf"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/Users/huaodong/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/pdftoppm",
+        "-scale-to",
+        "1400",
+        "-png",
+        "output/submission/phase4a-review.pdf",
+        "/private/tmp/wsl-phase4a-pdf-page"
+      ],
+      "exit_code": 0
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import socket
 import tempfile
 import threading
 import unittest
+import types
 
 class ObservationSocketTests(unittest.TestCase):
     def test_actual_unix_socket_bounded_read_and_scoped_source_list(self):
@@ -121,6 +122,42 @@ class ObservationSocketTests(unittest.TestCase):
             self.assertEqual(errors, [])
             self.assertEqual(received, [])
 
-result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(ObservationSocketTests))
+class ControlFrameParserTests(unittest.TestCase):
+    def parser(self):
+        tree = ast.parse(helper_source)
+        main = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'main')
+        branch = next(node for node in ast.walk(main) if isinstance(node, ast.If)
+                      and isinstance(node.test, ast.Compare) and isinstance(node.test.left, ast.Name)
+                      and node.test.left.id == 'fd' and isinstance(node.test.comparators[0], ast.Name)
+                      and node.test.comparators[0].id == 'stdin')
+        loop = ast.For(target=ast.Name(id='fd', ctx=ast.Store()), iter=ast.List(elts=[ast.Constant(0)], ctx=ast.Load()), body=[copy.deepcopy(branch)], orelse=[])
+        parser = compile(ast.fix_missing_locations(ast.Module(body=[loop], type_ignores=[])), '<actual-guest-stdin-parser>', 'exec')
+        sizes = []
+        namespace = {'os': types.SimpleNamespace(read=lambda _fd, _size: namespace['chunk']), 'stdin': 0, 'buffer': b'', 'json': json,
+                     'terminal': True, 'closing': False, 'master': 1, 'pending_input': b'', 'resize': lambda _master, cols, rows: sizes.append((cols, rows))}
+        return parser, namespace, sizes
+
+    def test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget(self):
+        parser, namespace, sizes = self.parser()
+        first = b'{"type":"resize","cols":80,"rows":24}'
+        first += b' ' * (1048576 - len(first))
+        for offset in range(0, len(first), 65536):
+            namespace['chunk'] = first[offset:offset + 65536]
+            exec(parser, namespace)
+        namespace['chunk'] = b'\n{"type":"resize","cols":90,"rows":30}\n'
+        exec(parser, namespace)
+        self.assertEqual(sizes, [(80, 24), (90, 30)])
+        self.assertEqual(namespace['buffer'], b'')
+
+    def test_oversized_complete_frame_and_unfinished_tail_are_rejected(self):
+        for suffix in (b'\n', b''):
+            parser, namespace, _sizes = self.parser()
+            data = b' ' * 1048577 + suffix
+            with self.assertRaisesRegex(ValueError, 'control frame too large'):
+                for offset in range(0, len(data), 65536):
+                    namespace['chunk'] = data[offset:offset + 65536]
+                    exec(parser, namespace)
+
+result = unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([unittest.defaultTestLoader.loadTestsFromTestCase(ObservationSocketTests), unittest.defaultTestLoader.loadTestsFromTestCase(ControlFrameParserTests)]))
 if not result.wasSuccessful():
     raise SystemExit(1)

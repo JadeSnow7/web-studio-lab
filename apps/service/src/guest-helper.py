@@ -250,10 +250,10 @@ def main(start):
                         closing = True
                         break
                     buffer += data
-                    if len(buffer) > 1048576:
-                        raise ValueError("control frame too large")
                     while b"\n" in buffer:
                         line, buffer = buffer.split(b"\n", 1)
+                        if len(line) > 1048576:
+                            raise ValueError("control frame too large")
                         frame = json.loads(line)
                         if not isinstance(frame, dict):
                             raise ValueError("invalid control frame")
@@ -287,6 +287,8 @@ def main(start):
                             resize(master, frame["cols"], frame["rows"])
                         else:
                             raise ValueError("invalid control frame")
+                    if len(buffer) > 1048576:
+                        raise ValueError("control frame too large")
                 else:
                     if fd not in streams:
                         continue

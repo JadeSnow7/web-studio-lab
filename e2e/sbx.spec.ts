@@ -1,9 +1,10 @@
 import type { StudioApi } from '../packages/protocol/src';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
-import { stripVTControlCharacters } from 'node:util';
+import { stripVTControlCharacters, promisify } from 'node:util';
+import { execFile } from 'node:child_process';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import {
   launchApp,
@@ -161,8 +162,14 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
   const canaryDir = await mkdtemp(path.join(tmpdir(), 'wsl-sbx-ui-canary-'));
   const canary = path.join(canaryDir, 'host-only.txt');
   await writeFile(canary, 'host-only test canary');
+  const guestDir = `/home/agent/workspace/wsl-ui-${randomUUID()}`;
+  let guestDirectoryMayExist = false;
+  let liveApp: ElectronApplication | null = null;
+  let nonce: string | null = null;
+  const failures: unknown[] = [];
   try {
     ({ app, page } = await launchApp({ live: true }));
+    liveApp = app;
     await page.getByRole('button', { name: '开发终端', exact: true }).click();
     const panel = page.getByRole('region', { name: '资源终端' });
     await expect(panel).toContainText('wsl-sbx-smoke-20261006', { timeout: 30000 });
@@ -178,13 +185,14 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
     const output = async () => ptyText((await terminalSnapshot(page)).output);
     await command('uname -s; node --version; codex --version; pwd');
     await expect.poll(output).toMatch(/^Linux$[\s\S]*^v24\.[^\n]*$[\s\S]*^codex-cli 0\.[^\n]*$[\s\S]*^\/home\/agent\/workspace$/m);
-    const guestDir = `/home/agent/workspace/wsl-ui-${randomUUID()}`;
     const guestFile = `${guestDir}/nonce.txt`;
+    guestDirectoryMayExist = true;
     await command(
       `mkdir -p '${guestDir}'; cd '${guestDir}'; node -e 'const fs=require("node:fs");const nonce=require("node:crypto").randomUUID();fs.writeFileSync("nonce.txt",nonce);console.log("NONCE="+nonce)'`,
     );
     await expect.poll(output).toMatch(/^NONCE=[0-9a-f-]{36}$/m);
-    const nonce = (await output()).match(/^NONCE=([0-9a-f-]{36})$/m)![1]!;
+    const capturedNonce = (await output()).match(/^NONCE=([0-9a-f-]{36})$/m)![1]!;
+    nonce = capturedNonce;
     await command('pwd');
     await expect.poll(async () => (await output()).split('\n')).toContain(guestDir);
     await command(`if test -e '${canary}'; then echo CANARY_ACCESSIBLE; else echo CANARY_ABSENT; fi`);
@@ -227,7 +235,9 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
         ?.text.trim(),
     ).toBe(nonce);
     expect(
-      conversation.toolExecutions.some((tool) => tool.command.includes(guestFile) && tool.output.includes(nonce) && tool.exitCode === 0),
+      conversation.toolExecutions.some(
+        (tool) => tool.command.includes(guestFile) && tool.output.includes(capturedNonce) && tool.exitCode === 0,
+      ),
     ).toBe(true);
     await writeFile(path.join(screensDir, 'sbx-live-conversation.json'), JSON.stringify(conversation, null, 2));
     await windowShots(app, page, 'sbx-chat-live-read');
@@ -238,7 +248,42 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
     expect(terminal.state).toBe('closed');
     expect(terminal.cleanupPending).toBe(false);
     await writeFile(path.join(screensDir, 'sbx-live-terminal.json'), JSON.stringify(terminal, null, 2));
+  } catch (error) {
+    failures.push(error);
   } finally {
-    await rm(canaryDir, { recursive: true, force: true });
+    const closed = await Promise.allSettled(liveApp ? [liveApp.close()] : []);
+    const recorded = await Promise.allSettled([
+      mkdir(screensDir, { recursive: true }).then(() =>
+        writeFile(
+          path.join(screensDir, 'sbx-live-owned-cleanup.json'),
+          JSON.stringify({
+            guestDir,
+            nonce,
+            guestDirectoryMayExist,
+            processCleanupConfirmed: closed.every((result) => result.status === 'fulfilled'),
+          }),
+        ),
+      ),
+    ]);
+    const clean = `import pathlib,re,shutil,sys
+p=pathlib.Path(sys.argv[1])
+if p.parent != pathlib.Path('/home/agent/workspace') or not re.fullmatch(r'wsl-ui-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}',p.name): raise ValueError('Unowned cleanup path')
+if p.is_symlink(): p.unlink()
+elif p.exists(): shutil.rmtree(p)
+`;
+    const cleaned = await Promise.allSettled([
+      rm(canaryDir, { recursive: true, force: true }),
+      ...(guestDirectoryMayExist && closed.every((result) => result.status === 'fulfilled')
+        ? [
+            promisify(execFile)(
+              process.env['WSL_SBX_BIN'] ?? '/opt/homebrew/bin/sbx',
+              ['exec', process.env['WSL_SBX_NAME'] ?? 'wsl-sbx-smoke-20261006', 'python3', '-I', '-c', clean, guestDir],
+              { timeout: 30000 },
+            ),
+          ]
+        : []),
+    ]);
+    failures.push(...[...closed, ...recorded, ...cleaned].filter((result) => result.status === 'rejected').map((result) => result.reason));
   }
+  if (failures.length) throw new AggregateError(failures, '本轮live验收或所属进程/目录清理失败');
 });

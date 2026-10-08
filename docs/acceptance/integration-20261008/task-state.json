@@ -3,31 +3,19 @@
   "spec": {
     "version": "INTEGRATION-1",
     "authority": "docs/acceptance/integration-20261008/SPEC.md",
-    "source_ids": [
-      "SRC-001"
-    ],
+    "source_ids": ["SRC-001"],
     "goal_ref": "discovery.expected_outcome",
     "scope_ref": "discovery.scope",
-    "constraints": [
-      "Main state authority; other worktrees readonly; preserve VS001 and historical evidence"
-    ],
-    "exceptions": [
-      "Environment or manual input limitations remain undetermined"
-    ],
+    "constraints": ["Main state authority; other worktrees readonly; preserve VS001 and historical evidence"],
+    "exceptions": ["Environment or manual input limitations remain undetermined"],
     "conditions": [
       {
         "id": "INT-ALL",
-        "metric_ids": [
-          "MET-001"
-        ],
-        "deliverables": [
-          "docs/acceptance/integration-20261008/task-summary.md"
-        ]
+        "metric_ids": ["MET-001"],
+        "deliverables": ["docs/acceptance/integration-20261008/task-summary.md"]
       }
     ],
-    "contracts": [
-      "docs/acceptance/integration-20261008/SPEC.md"
-    ],
+    "contracts": ["docs/acceptance/integration-20261008/SPEC.md"],
     "open_items": []
   },
   "task": {
@@ -35,9 +23,7 @@
     "title": "本地提交与跨分支整合",
     "mode": "new",
     "status": "in_progress",
-    "source_ids": [
-      "SRC-001"
-    ]
+    "source_ids": ["SRC-001"]
   },
   "discovery": {
     "status": "ready",
@@ -60,32 +46,15 @@
   "main_tasks": [
     {
       "id": "MT-001",
-      "source_ids": [
-        "SRC-001"
-      ],
+      "source_ids": ["SRC-001"],
       "goal": "Approved integration specification",
-      "scope": [
-        "INT-01 through INT-12"
-      ],
-      "non_goals": [
-        "mother template",
-        "independent verifier",
-        "business API expansion"
-      ],
+      "scope": ["INT-01 through INT-12"],
+      "non_goals": ["mother template", "independent verifier", "business API expansion"],
       "dependencies": [],
       "assumptions": [],
       "status": "in_progress",
-      "metric_ids": [
-        "MET-001"
-      ],
-      "implementation_task_ids": [
-        "IT-001",
-        "IT-002",
-        "IT-003",
-        "IT-004",
-        "IT-005",
-        "IT-006"
-      ]
+      "metric_ids": ["MET-001"],
+      "implementation_task_ids": ["IT-001", "IT-002", "IT-003", "IT-004", "IT-005", "IT-006"]
     }
   ],
   "metrics": [
@@ -107,9 +76,7 @@
     {
       "id": "IT-001",
       "main_task_id": "MT-001",
-      "source_ids": [
-        "SRC-001"
-      ],
+      "source_ids": ["SRC-001"],
       "scope": "协议与观察 Provider",
       "file_scope": [
         "packages/protocol",
@@ -118,13 +85,9 @@
         "apps/service/src/observation-ssh.ts",
         "apps/desktop/src/main/preview/observation.ts"
       ],
-      "interface_constraints": [
-        "Main 唯一事实源；六页布局；历史证据和其他树只读"
-      ],
+      "interface_constraints": ["Main 唯一事实源；六页布局；历史证据和其他树只读"],
       "dependencies": [],
-      "acceptance": [
-        "MET-001"
-      ],
+      "acceptance": ["MET-001"],
       "support_reason": "",
       "evidence_ids": [],
       "owner": "coder",
@@ -133,24 +96,12 @@
     {
       "id": "IT-002",
       "main_task_id": "MT-001",
-      "source_ids": [
-        "SRC-001"
-      ],
+      "source_ids": ["SRC-001"],
       "scope": "本地与 SSH 服务资源和进程生命周期",
-      "file_scope": [
-        "apps/service",
-        "apps/desktop/src/main/chat-service.ts",
-        "packages/protocol"
-      ],
-      "interface_constraints": [
-        "Main 唯一事实源；六页布局；历史证据和其他树只读"
-      ],
-      "dependencies": [
-        "IT-001"
-      ],
-      "acceptance": [
-        "MET-001"
-      ],
+      "file_scope": ["apps/service", "apps/desktop/src/main/chat-service.ts", "packages/protocol"],
+      "interface_constraints": ["Main 唯一事实源；六页布局；历史证据和其他树只读"],
+      "dependencies": ["IT-001"],
+      "acceptance": ["MET-001"],
       "support_reason": "",
       "evidence_ids": [],
       "owner": "coder",
@@ -159,25 +110,12 @@
     {
       "id": "IT-003",
       "main_task_id": "MT-001",
-      "source_ids": [
-        "SRC-001"
-      ],
+      "source_ids": ["SRC-001"],
       "scope": "Main、持久化、IPC 与冻结的 MCP 观察通道",
-      "file_scope": [
-        "apps/desktop/src/main",
-        "apps/desktop/src/preload",
-        "apps/service",
-        "packages/protocol"
-      ],
-      "interface_constraints": [
-        "Main 唯一事实源；六页布局；历史证据和其他树只读"
-      ],
-      "dependencies": [
-        "IT-002"
-      ],
-      "acceptance": [
-        "MET-001"
-      ],
+      "file_scope": ["apps/desktop/src/main", "apps/desktop/src/preload", "apps/service", "packages/protocol"],
+      "interface_constraints": ["Main 唯一事实源；六页布局；历史证据和其他树只读"],
+      "dependencies": ["IT-002"],
+      "acceptance": ["MET-001"],
       "support_reason": "",
       "evidence_ids": [],
       "owner": "coder",
@@ -186,77 +124,40 @@
     {
       "id": "IT-004",
       "main_task_id": "MT-001",
-      "source_ids": [
-        "SRC-001"
-      ],
+      "source_ids": ["SRC-001"],
       "scope": "空间界面和既有回归问题修复",
-      "file_scope": [
-        "apps/desktop/src/renderer",
-        "e2e",
-        "premium-ui.json"
-      ],
-      "interface_constraints": [
-        "Main 唯一事实源；六页布局；历史证据和其他树只读"
-      ],
-      "dependencies": [
-        "IT-003"
-      ],
-      "acceptance": [
-        "MET-001"
-      ],
+      "file_scope": ["apps/desktop/src/renderer", "e2e", "premium-ui.json"],
+      "interface_constraints": ["Main 唯一事实源；六页布局；历史证据和其他树只读"],
+      "dependencies": ["IT-003"],
+      "acceptance": ["MET-001"],
+      "support_reason": "",
+      "evidence_ids": [],
+      "owner": "coder",
+      "status": "implemented"
+    },
+    {
+      "id": "IT-005",
+      "main_task_id": "MT-001",
+      "source_ids": ["SRC-001"],
+      "scope": "验证工具、live 隔离及文档导出适配",
+      "file_scope": ["tests/vertical-slice", "apps/service", "e2e", "docs/submission/export_pdf.py"],
+      "interface_constraints": ["Main 唯一事实源；六页布局；历史证据和其他树只读"],
+      "dependencies": ["IT-004"],
+      "acceptance": ["MET-001"],
       "support_reason": "",
       "evidence_ids": [],
       "owner": "coder",
       "status": "in_progress"
     },
     {
-      "id": "IT-005",
-      "main_task_id": "MT-001",
-      "source_ids": [
-        "SRC-001"
-      ],
-      "scope": "验证工具、live 隔离及文档导出适配",
-      "file_scope": [
-        "tests/vertical-slice",
-        "apps/service",
-        "e2e",
-        "docs/submission/export_pdf.py"
-      ],
-      "interface_constraints": [
-        "Main 唯一事实源；六页布局；历史证据和其他树只读"
-      ],
-      "dependencies": [
-        "IT-004"
-      ],
-      "acceptance": [
-        "MET-001"
-      ],
-      "support_reason": "",
-      "evidence_ids": [],
-      "owner": "coder",
-      "status": "planned"
-    },
-    {
       "id": "IT-006",
       "main_task_id": "MT-001",
-      "source_ids": [
-        "SRC-001"
-      ],
+      "source_ids": ["SRC-001"],
       "scope": "来源审查、当前文档、最终验证与交付",
-      "file_scope": [
-        "docs",
-        "README.md",
-        "CONTRIBUTING.md",
-        "DESIGN.md",
-        "UX-CONTRACT.md"
-      ],
-      "interface_constraints": [
-        "Main 唯一事实源；六页布局；历史证据和其他树只读"
-      ],
+      "file_scope": ["docs", "README.md", "CONTRIBUTING.md", "DESIGN.md", "UX-CONTRACT.md"],
+      "interface_constraints": ["Main 唯一事实源；六页布局；历史证据和其他树只读"],
       "dependencies": [],
-      "acceptance": [
-        "MET-001"
-      ],
+      "acceptance": ["MET-001"],
       "support_reason": "",
       "evidence_ids": [],
       "owner": "root",
@@ -266,9 +167,7 @@
   "evidence": [],
   "changes": [],
   "overall_acceptance": {
-    "metric_ids": [
-      "MET-001"
-    ],
+    "metric_ids": ["MET-001"],
     "evidence_ids": [],
     "status": "undetermined"
   },
@@ -276,9 +175,7 @@
     "git_ref": "9e1df45d9ea42a9bf5df76a1babf451e5cafc530",
     "worktree_status": "clean",
     "ownership": "root documentation and review; unique coder source/tests; sources explorer records",
-    "foreign_paths": [
-      "premium-audit.json"
-    ],
+    "foreign_paths": ["premium-audit.json"],
     "prepared_at": "2026-10-08T07:44:06.458460+00:00"
   },
   "binding": {
@@ -288,9 +185,7 @@
     "commit": {
       "status": "authorized",
       "source_id": "SRC-001",
-      "scope": [
-        "local"
-      ]
+      "scope": ["local"]
     },
     "push": {
       "status": "not_authorized",
@@ -368,6 +263,16 @@
       "status": "completed",
       "receipt": "d9beb8ac0164e6a56d0b5f1e451e42d716fa77fd",
       "idempotency_key": "checkpoint-d9beb8a"
+    },
+    {
+      "id": "ACT-006",
+      "kind": "local-commit",
+      "authorization_action": "commit",
+      "target": "local",
+      "revision": "612cde07896215cd456a8ee27fbfe03338c7f137",
+      "status": "completed",
+      "receipt": "612cde07896215cd456a8ee27fbfe03338c7f137",
+      "idempotency_key": "checkpoint-612cde0"
     }
   ],
   "decisions": [
@@ -379,11 +284,7 @@
   "hypotheses": [],
   "recovery_strategy": {
     "trigger": "阶段复验失败或整合造成可复现回归",
-    "steps": [
-      "保存失败原文和当前源码指纹",
-      "在当前工作树追加修复并复跑同一场景及受影响回归",
-      "不改写已提交基准、封存证据或其他工作树"
-    ],
+    "steps": ["保存失败原文和当前源码指纹", "在当前工作树追加修复并复跑同一场景及受影响回归", "不改写已提交基准、封存证据或其他工作树"],
     "owner": "root review; unique coder implementation"
   }
 }

@@ -1,6 +1,6 @@
 # 开发依赖与安装
 
-桌面对话和 sandbox 终端通过 sbx 使用同一个 Linux guest 工作目录。本地与 SSH 文件、终端已接 Main/MCP，空间界面仍在实施；阶段结果见 [INTEGRATION-1](../acceptance/integration-20261008/task-summary.md)。host 需要 Node/pnpm 构建应用；sbx CLI 只为 sandbox 对话和终端所需。本地文件及终端需 Python 3 和显式授权根，SSH需已有agent及可信配置；guest需要Python 3、Codex CLI及项目工具。独立环境准备记录见[sbx 安装验证](../verification/2026-10-06-sbx/README.md)，应用接入记录见[应用验证](../verification/2026-10-06-sbx-app/README.md)。
+桌面对话和 sandbox 终端通过 sbx 使用同一个 Linux guest 工作目录。本地与 SSH 文件、终端已接 Main/MCP 和空间界面，完整验收仍在进行；阶段结果见 [INTEGRATION-1](../acceptance/integration-20261008/task-summary.md)。host 需要 Node/pnpm 构建应用；sbx CLI 只为 sandbox 对话和终端所需。本地文件及终端需 Python 3 和显式授权根，SSH需已有agent及可信配置；guest需要Python 3、Codex CLI及项目工具。独立环境准备记录见[sbx 安装验证](../verification/2026-10-06-sbx/README.md)，应用接入记录见[应用验证](../verification/2026-10-06-sbx-app/README.md)。
 
 ## 桌面项目
 

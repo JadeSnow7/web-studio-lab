@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
-import { launchApp, workspaceSnapshot } from './helpers';
+import { launchApp, workspaceSnapshot, target } from './helpers';
 
 const fixture = new URL('./fixtures/sbx.mjs', import.meta.url).pathname;
 
@@ -233,6 +233,7 @@ test('本地同一PTY重复输出与保留窗口滚动仍更新终端显示', as
 });
 
 test('受控环境延迟：UI取消不启动Provider，换空间后的迟到观察仍归原会话', async () => {
+  test.skip(target !== 'build', '此受控传输用例仅依赖build bootstrap；正常文件/观察用例仍覆盖packaged产品');
   const root = await mkdtemp(path.join(tmpdir(), 'wsl-ui-cancel-'));
   await writeFile(path.join(root, 'nonce.txt'), 'FROZEN_SPACE_NONCE_742');
   const { app, page } = await launchApp({ observationRoot: root, controlledObservation: true });

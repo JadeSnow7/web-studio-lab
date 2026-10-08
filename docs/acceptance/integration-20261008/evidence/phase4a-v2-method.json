@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "tsx",
+    "-e",
+    "import {baselineFingerprint} from './tests/vertical-slice/evidence.ts'; console.log(JSON.stringify(baselineFingerprint(process.cwd()),null,2))"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T11:24:52.241154Z",
+  "ended_at": "2026-10-08T11:24:52.922008Z",
+  "exit_code": 0,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "{\n  \"sha256\": \"94536a5749212a9526ef89c53a3c4b8e39b8f06a2f69d996eff46d0369e3e332\",\n  \"files\": [\n    {\n      \"path\": \"docs/acceptance/VS001.md\",\n      \"sha256\": \"6fadef2edeb1c7667464dcae582bf06d01258d3d1ab50a252bf94303fbcc4c9e\"\n    },\n    {\n      \"path\": \"fixtures/vertical-slice/page/index.html\",\n      \"sha256\": \"2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f\"\n    },\n    {\n      \"path\": \"fixtures/vertical-slice/page/package.json\",\n      \"sha256\": \"49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc\"\n    },\n    {\n      \"path\": \"fixtures/vertical-slice/page/src/App.tsx\",\n      \"sha256\": \"68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630\"\n    },\n    {\n      \"path\": \"fixtures/vertical-slice/page/src/main.tsx\",\n      \"sha256\": \"d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36\"\n    },\n    {\n      \"path\": \"package-lock.json\",\n      \"sha256\": \"f9494aa9639637b438929aee8061429ea123879607d5ad63319f7a8e5eb9cd37\"\n    },\n    {\n      \"path\": \"package.json\",\n      \"sha256\": \"3213aedb95e2f13871a1527c3823500e7fe080b6fe286c9a0fecf5b2e30da5f2\"\n    },\n    {\n      \"path\": \"tests/vertical-slice/cdp.ts\",\n      \"sha256\": \"08f7eb8bb48cb0f4cb344f25246e2f733df0019c06bd8a34611f8547ece85da0\"\n    },\n    {\n      \"path\": \"tests/vertical-slice/contracts.ts\",\n      \"sha256\": \"4f4e47294f2e2650db775a78674a85099e3a7da34e020045b945b63f58193e00\"\n    },\n    {\n      \"path\": \"tests/vertical-slice/evidence.ts\",\n      \"sha256\": \"89637e2a6aeacc9d4c0ea384e1aedb5f375ef27f47658cd7e502da4afd171aa1\"\n    },\n    {\n      \"path\": \"tests/vertical-slice/postcondition.ts\",\n      \"sha256\": \"20920d99eb9280ec6fd62a025eea6489ff893a863095cb977d4a52f4e3d5627c\"\n    },\n    {\n      \"path\": \"tests/vertical-slice/run.ts\",\n      \"sha256\": \"f335a3439e293372ab645810398644a1d211cec314c53982ee69a9316b5fdde4\"\n    },\n    {\n      \"path\": \"tests/vertical-slice/selftest.test.ts\",\n      \"sha256\": \"8476ca90b1bff6cebfe41edc59e7bb00112809eeddf2f9d7323b129d582acfee\"\n    },\n    {\n      \"path\": \"tsconfig.json\",\n      \"sha256\": \"4a7a58e5cdf40cf08aee0aa74b4a60693c73232b4df58a7fad075788325c426a\"\n    }\n  ]\n}\n",
+  "stderr": "(node:55672) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n",
+  "stdout_base64": "ewogICJzaGEyNTYiOiAiOTQ1MzZhNTc0OTIxMmE5NTI2ZWY4OWM1M2EzYzRiOGUzOWI4ZjA2YTJmNjlkOTk2ZWZmNDZkMDM2OWUzZTMzMiIsCiAgImZpbGVzIjogWwogICAgewogICAgICAicGF0aCI6ICJkb2NzL2FjY2VwdGFuY2UvVlMwMDEubWQiLAogICAgICAic2hhMjU2IjogIjZmYWRlZjJlZGViMWM3NjY3NDY0ZGNhZTU4MmJmMDZkMDEyNThkM2QxYWI1MGEyNTJiZjk0MzAzZmJjYzRjOWUiCiAgICB9LAogICAgewogICAgICAicGF0aCI6ICJmaXh0dXJlcy92ZXJ0aWNhbC1zbGljZS9wYWdlL2luZGV4Lmh0bWwiLAogICAgICAic2hhMjU2IjogIjJlMGJlYzIyYTRmZjNmMjgxZjUwOTFlOWI0NmJiNTRjMzI0YmVkMzlmNzRjNjQyNWQxNjljZGQzYzAxZTNmNWYiCiAgICB9LAogICAgewogICAgICAicGF0aCI6ICJmaXh0dXJlcy92ZXJ0aWNhbC1zbGljZS9wYWdlL3BhY2thZ2UuanNvbiIsCiAgICAgICJzaGEyNTYiOiAiNDliZWZiOTRjMmRiZTE4N2RiZTZkYzNmNDc5NzA0MTY5MzI5ZGIyM2Q0NjA2NzdjOGYwNWQ3Nzk2NjVmZTdjYyIKICAgIH0sCiAgICB7CiAgICAgICJwYXRoIjogImZpeHR1cmVzL3ZlcnRpY2FsLXNsaWNlL3BhZ2Uvc3JjL0FwcC50c3giLAogICAgICAic2hhMjU2IjogIjY4ZThlZDFhMWYxY2MzMTU5OTU1NWVhYTE0YWM1Njg3ZWIzMmNhZGNiYzg5MDBmNTE5Y2U5NTI0NTkyNDc2MzAiCiAgICB9LAogICAgewogICAgICAicGF0aCI6ICJmaXh0dXJlcy92ZXJ0aWNhbC1zbGljZS9wYWdlL3NyYy9tYWluLnRzeCIsCiAgICAgICJzaGEyNTYiOiAiZDFmNWVhODMwZWNmY2U5YzIwMDM1MmZkNDllZGJmYjkyYjNlZWVhYTBiNjI0YzhmYjc4MjYwYmYwZTAxMGIzNiIKICAgIH0sCiAgICB7CiAgICAgICJwYXRoIjogInBhY2thZ2UtbG9jay5qc29uIiwKICAgICAgInNoYTI1NiI6ICJmOTQ5NGFhOTYzOTYzN2I0Mzg5MjlhZWU4MDYxNDI5ZWExMjM4Nzk2MDdkNWFkNjMzMTlmN2E4ZTVlYjljZDM3IgogICAgfSwKICAgIHsKICAgICAgInBhdGgiOiAicGFja2FnZS5qc29uIiwKICAgICAgInNoYTI1NiI6ICIzMjEzYWVkYjk1ZTJmMTM4NzFhMTUyN2MzODIzNTAwZTdmZTA4MGI2ZmUyODZjOWEwZmVjZjViMmUzMGRhNWYyIgogICAgfSwKICAgIHsKICAgICAgInBhdGgiOiAidGVzdHMvdmVydGljYWwtc2xpY2UvY2RwLnRzIiwKICAgICAgInNoYTI1NiI6ICIwOGY3ZWI4YmI0OGNiMGY0Y2IzNDRmMjUyNDZlMmY3MzNkZjAwMTljMDZiZDhhMzQ2MTFmODU0N2VjZTg1ZGEwIgogICAgfSwKICAgIHsKICAgICAgInBhdGgiOiAidGVzdHMvdmVydGljYWwtc2xpY2UvY29udHJhY3RzLnRzIiwKICAgICAgInNoYTI1NiI6ICI0ZjRlNDcyOTRmMmUyNjUwZGI3NzVhNzg2NzRhODUwOTllM2E3ZGEzNGUwMjAwNDViOTQ1YjYzZjU4MTkzZTAwIgogICAgfSwKICAgIHsKICAgICAgInBhdGgiOiAidGVzdHMvdmVydGljYWwtc2xpY2UvZXZpZGVuY2UudHMiLAogICAgICAic2hhMjU2IjogIjg5NjM3ZTJhNmFlYWNjOWQ0YzBlYTM4NGUxYWVkYjVmMzc1ZWYyN2Y0NzY1OGNkN2U1MDJkYTRhZmQxNzFhYTEiCiAgICB9LAogICAgewogICAgICAicGF0aCI6ICJ0ZXN0cy92ZXJ0aWNhbC1zbGljZS9wb3N0Y29uZGl0aW9uLnRzIiwKICAgICAgInNoYTI1NiI6ICIyMDkyMGQ5OWViOTI4MGVjNmZkNjJhMDI1ZWVhNjQ4OWZmODkzYTg2MzA5NWNiOTc3ZDRhNTJmNGUzZDU2MjdjIgogICAgfSwKICAgIHsKICAgICAgInBhdGgiOiAidGVzdHMvdmVydGljYWwtc2xpY2UvcnVuLnRzIiwKICAgICAgInNoYTI1NiI6ICJmMzM1YTM0MzllMjkzMzcyYWI2NDU4MTAzOTg2NDRhMWQyMTFjZWMzMTRjNTM5ODJlZTY5YTkzMTZiNWZkZGU0IgogICAgfSwKICAgIHsKICAgICAgInBhdGgiOiAidGVzdHMvdmVydGljYWwtc2xpY2Uvc2VsZnRlc3QudGVzdC50cyIsCiAgICAgICJzaGEyNTYiOiAiODQ3NmNhOTBiMWJmZjZjZWJmZTQxZWRjNTllN2JiMDAxMTI4MDllZWRkZjJmOWQ3MzIzYjEyOWQ1ODJhY2ZlZSIKICAgIH0sCiAgICB7CiAgICAgICJwYXRoIjogInRzY29uZmlnLmpzb24iLAogICAgICAic2hhMjU2IjogIjRhN2E1OGU1Y2RmNDBjZjA4YWVlMGFhNzRiNGE2MDY5M2M3MzIzMmI0ZGY1OGE3ZmFkMDc1Nzg4MzI1YzQyNmEiCiAgICB9CiAgXQp9Cg==",
+  "stderr_base64": "KG5vZGU6NTU2NzIpIFtERVAwMjA1XSBEZXByZWNhdGlvbldhcm5pbmc6IGBtb2R1bGUucmVnaXN0ZXIoKWAgaXMgZGVwcmVjYXRlZC4gVXNlIGBtb2R1bGUucmVnaXN0ZXJIb29rcygpYCBpbnN0ZWFkLgooVXNlIGBub2RlIC0tdHJhY2UtZGVwcmVjYXRpb24gLi4uYCB0byBzaG93IHdoZXJlIHRoZSB3YXJuaW5nIHdhcyBjcmVhdGVkKQo=",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:7ee92eed65284b4b2d06be2f392d71fd9461e3dd7897f3fffec80fb9f43d676f:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:7ee92eed65284b4b2d06be2f392d71fd9461e3dd7897f3fffec80fb9f43d676f:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:7ee92eed65284b4b2d06be2f392d71fd9461e3dd7897f3fffec80fb9f43d676f:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "passed"
+}

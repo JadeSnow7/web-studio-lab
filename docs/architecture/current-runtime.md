@@ -1,6 +1,6 @@
 # 当前运行时与目标架构的边界
 
-本记录跟踪2026-10-08[本地整合 INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)。空间重制基准为本地提交 `9e1df45`，Provider工作包为 `331c47f`，环境/终端为 `c97b673`，Main/持久化/MCP为 `d9beb8a`；空间界面与最终验证尚在进行，当前完成边界见[阶段记录](../acceptance/integration-20261008/task-summary.md)。[SR-1](../acceptance/space-remake/SPEC.md)的来源与历史窗口证据原样保留；历史通过不能替代最终源码复验。
+本记录跟踪2026-10-08[本地整合 INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)。空间重制基准为本地提交 `9e1df45`，Provider工作包为 `331c47f`，环境/终端为 `c97b673`，Main/持久化/MCP为 `d9beb8a`，空间文件与会话观察为 `612cde0`；最终验证尚在进行，当前完成边界见[阶段记录](../acceptance/integration-20261008/task-summary.md)。[SR-1](../acceptance/space-remake/SPEC.md)的来源与历史窗口证据原样保留；历史通过不能替代最终源码复验。
 
 ## 已有能力和缺口
 
@@ -10,7 +10,7 @@
 - `packages/protocol` 是跨进程schema来源；空间操作经workbench命令，旧空间/预览/运行/资源/终端renderer控制器随消费者迁移退役。个人会话仍使用窄chat接口。
 - `tests/vertical-slice`、`fixtures/vertical-slice/page` 与 [VS001](../acceptance/README.md) 保留 main 的固定验收与负例。`src/vertical-slice/adapter.ts` 尚不存在；基线自检通过不代表真实 Agent→应用→CDP 闭环通过。
 - 空间元数据、草稿、任务版本、历史运行与阅读回执可以恢复；重启不重放任务和PTY。空间运行、取消、检查与审阅为独立事实；独立检查器尚未接入时明确blocked，不能接受结果。
-- 母模板、priority业务API、C1–C3完整固定验收、真实diff/报告产物及VS001产品adapter仍有缺口。独立文件、终端观察和SSH/SFTP Provider及Main/MCP接线已迁入，界面接线仍按本轮阶段记录判断；Provider单元测试不证明可见功能或生产远端验收。演示页面和历史记录不能当作真实闭环证据。
+- 母模板、priority业务API、C1–C3完整固定验收、真实diff/报告产物及VS001产品adapter仍有缺口。独立文件、终端观察和SSH/SFTP Provider、Main/MCP及空间界面已接入，验收仍按本轮阶段记录判断；Provider单元测试不证明可见功能或生产远端验收。演示页面和历史记录不能当作真实闭环证据。
 
 ## 现有契约与目标约束的协调
 
@@ -114,3 +114,5 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 持久化 schema 2 明确迁移旧网页到 local、旧终端到 sandbox，保留资源/标签/布局身份；旧 file/ssh 保持无环境。空间快照不保存凭据或活动原生/PTY句柄，不自动重放进程。历史观察保留原绑定作为证据，不能据此恢复活动实例。新任务版本同时冻结 appInstanceId、实例 UUID 和代次；重启后旧现场必须重新采集确认。
 
 观察证据在用户数据目录的 observations 子目录用新 UUID 和排他创建写入，历史不覆写。近期窗口可移出已归档记录，但不会驱逐仍在请求或归档中的对象。结果完成与取消在第一次 Main 归并时决定先后，稍后的取消不改写已完成证据。存储失败可见，不能冒充成功归档。
+
+空间文件标签通过 `Files` 提供只读列表、搜索、读取和续读；空间会话的上下文通过 `SessionObservation` 选择实际资源并显示范围、结果和历史。新建文件/终端必须选已配置环境，初始检查到就绪的环境投影由 Main 广播刷新，旧异步查询不能覆盖新结果。关闭标签不会清除资源身份，原生浮层和六页外壳继续遵循 SR-1。

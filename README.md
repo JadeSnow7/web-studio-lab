@@ -6,7 +6,7 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 
 ## 当前状态
 
-当前工作树按[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)保留升级前的全局布局，本地基准为 `9e1df45`。正在实施[跨分支整合 INTEGRATION-1](docs/acceptance/integration-20261008/SPEC.md)：`331c47f` 已加入统一观察协议与 Provider，`c97b673` 接入环境和终端，`d9beb8a` 接入 Main、持久化与 MCP；空间界面继续实施。源码、检查、原生窗口与未完成项分别记录在[当前验收](docs/acceptance/integration-20261008/task-summary.md)，历史记录不能替代本轮结果。
+当前工作树按[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)保留升级前的全局布局，本地基准为 `9e1df45`。正在实施[跨分支整合 INTEGRATION-1](docs/acceptance/integration-20261008/SPEC.md)：`331c47f` 已加入统一观察协议与 Provider，`c97b673` 接入环境和终端，`d9beb8a` 接入 Main、持久化与 MCP，`612cde0` 接入空间文件浏览和会话观察；完整验证继续进行。源码、检查、原生窗口与未完成项分别记录在[当前验收](docs/acceptance/integration-20261008/task-summary.md)，历史记录不能替代本轮结果。
 
 | 能力         | 实现与验证边界                                                                   |
 | ------------ | -------------------------------------------------------------------------------- |
@@ -19,7 +19,7 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 | 任务与通知   | 持久任务版本、运行历史、日志、终态通知与阅读回执；执行、检查和人工接受分别记录   |
 | 恢复         | 恢复元数据、草稿、布局和历史，不自动重放执行或重新连接PTY                        |
 | 完整业务闭环 | 母模板、priority业务API、独立检查器、真实diff/报告产物及VS001产品adapter仍未实现 |
-| 统一观察     | Browser、文件、终端与 SSH 已接 Main 和 MCP；空间界面及完整验证进行中             |
+| 统一观察     | Browser、文件、终端与 SSH 已接 Main、MCP 和空间界面；完整验证进行中              |
 
 ## 环境
 

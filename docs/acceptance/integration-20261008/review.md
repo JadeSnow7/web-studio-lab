@@ -128,3 +128,11 @@ Electron 相关子集为 46 passed / 1 failed / 2 live skipped，不是全部 El
 F26 的环境前置由主线程 CUA 直接确认：Mac 已锁定且自动解锁失败，见 [原生工具记录](evidence/phase3-native-lock.json)。因此原生焦点、实际拖拽和中文候选窗验收为 blocked_environment / undetermined；原焦点实现和测试断言保持不变。用户已收到手动解锁请求，解锁后重跑。仅本轮探针 PID 50142 在精确可执行文件/profile 核对后关闭并确认退出；诊断收尾 dispatcher 报错保留，不冒充产品正常关闭证据。
 
 本阶段形成可继续整合的本地工作包，仍需 Phase4 工具修复、真实 SSH 产品链路、全部 Electron、packaged、live 和解锁后的原生验收。阶段回执指纹冻结的是当时源码与文档；本节后写的审查说明不能宣称已被这些回执重新验证。
+
+## Phase4a 工具边界修复预审
+
+F08：独立通过的 B03/B04 现在分别要求实际观察及匹配的 Runtime.evaluate、后条件重算及异常一致；任一 passed 必须 performed。原 VS001 固定目标、样本、断言及历史证据保持不变。`phase4a-verifier-before.json` 中 B04/performed 用例先被合法 JSON 字段顺序误拒，不能作为对应缺陷的复现证据；隔离旧 verifier 的 `phase4a-verifier-before-v2.json` 使用校正后的合法夹具，三项负例均到达预期缺口。独立 `phase4a-identity-order-before.json` 保存字段顺序误拒，修复以契约解析后的字段值比较身份。
+
+F23：guest 控制输入按每条完整消息和未完成尾段分别限制 1 MiB，避免合并读取时将两个合法消息共用预算。原始失败 `phase4a-parser-before.json` 驱动的是实际 stdin 分支抽取，修后用 64 KiB 分块验证合法跨块消息和超限拒绝；这不等同于完整 guest 生命周期验收。
+
+同包迁入参赛稿件导出工具，保留历史 URL、PDF 内部证据索引及明确本地文件链接；导出运行和版面验收分别记录。live 测试去掉过期主树输出路径，按本轮 UUID 目录清理，清理错误与原测试失败均保留；build 专用的受控传输测试明确不用于 packaged 产品。正式终验以本阶段新回执为准。

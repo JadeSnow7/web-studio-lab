@@ -1,0 +1,26 @@
+{
+  "purpose": "Corrected synthetic fixtures against HEAD old verifier, executed in isolated tmp; shared source never reverted",
+  "head": "612cde07896215cd456a8ee27fbfe03338c7f137",
+  "files": [
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase4a-verifier-before-v2/cdp.ts",
+      "sha256": "08f7eb8bb48cb0f4cb344f25246e2f733df0019c06bd8a34611f8547ece85da0"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase4a-verifier-before-v2/contracts.ts",
+      "sha256": "4f4e47294f2e2650db775a78674a85099e3a7da34e020045b945b63f58193e00"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase4a-verifier-before-v2/evidence.ts",
+      "sha256": "271914a26af7ee8bb753dab93274c21ea8c3e7ef669d18532fb5c33a1351ee9f"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase4a-verifier-before-v2/postcondition.ts",
+      "sha256": "20920d99eb9280ec6fd62a025eea6489ff893a863095cb977d4a52f4e3d5627c"
+    },
+    {
+      "path": "docs/acceptance/integration-20261008/evidence/scripts/phase4a-verifier-before-v2/selftest.test.ts",
+      "sha256": "ed301a9f90217ef3a6f5e5d3711db4cfecaf4e6cdba5f2b9750b21c0b97776a4"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/service/src/observation-socket.test.ts"
+  ],
+  "cwd": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "started_at": "2026-10-08T11:11:42.935986Z",
+  "ended_at": "2026-10-08T11:11:43.439676Z",
+  "exit_code": 1,
+  "timed_out": false,
+  "wrapper_exit_code": null,
+  "stdout": "\n RUN  v5.0.3 /Users/huaodong/.codex/worktrees/bf64/web-studio-lab\n\n ❯ apps/service/src/observation-socket.test.ts (1 test | 1 failed) 123ms\n   × uses a real Unix socket for bounded observation calls and releases its own client/server paths 122ms\n\n Test Files  1 failed (1)\n      Tests  1 failed (1)\n   Start at  19:11:43\n   Duration  201ms (tests 86%, transform 10%, import 3%, worker 1%)\n\n",
+  "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  apps/service/src/observation-socket.test.ts > uses a real Unix socket for bounded observation calls and releases its own client/server paths\nAssertionError: test_actual_unix_socket_bounded_read_and_scoped_source_list (__main__.ObservationSocketTests.test_actual_unix_socket_bounded_read_and_scoped_source_list) ... ok\ntest_disconnected_guest_client_emits_cancel_and_leaves_other_client_usable (__main__.ObservationSocketTests.test_disconnected_guest_client_emits_cancel_and_leaves_other_client_usable) ... ok\ntest_full_request_frame_budget_is_rejected_before_connecting (__main__.ObservationSocketTests.test_full_request_frame_budget_is_rejected_before_connecting) ... ok\ntest_oversized_complete_frame_and_unfinished_tail_are_rejected (__main__.ControlFrameParserTests.test_oversized_complete_frame_and_unfinished_tail_are_rejected) ... ok\ntest_two_legal_frames_across_chunk_boundary_do_not_share_a_budget (__main__.ControlFrameParserTests.test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget) ... ERROR\n\n======================================================================\nERROR: test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget (__main__.ControlFrameParserTests.test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<string>\", line 151, in test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget\n    exec(parser, namespace)\n    ~~~~^^^^^^^^^^^^^^^^^^^\n  File \"<actual-guest-stdin-parser>\", line 254, in <module>\nValueError: control frame too large\n\n----------------------------------------------------------------------\nRan 5 tests in 0.068s\n\nFAILED (errors=1)\n: expected 1 to be +0 // Object.is equality\n\n- Expected\n+ Received\n\n- 0\n+ 1\n\n ❯ apps/service/src/observation-socket.test.ts:10:40\n\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+  "stdout_base64": "CiBSVU4gIHY1LjAuMyAvVXNlcnMvaHVhb2RvbmcvLmNvZGV4L3dvcmt0cmVlcy9iZjY0L3dlYi1zdHVkaW8tbGFiCgog4p2vIGFwcHMvc2VydmljZS9zcmMvb2JzZXJ2YXRpb24tc29ja2V0LnRlc3QudHMgKDEgdGVzdCB8IDEgZmFpbGVkKSAxMjNtcwogICDDlyB1c2VzIGEgcmVhbCBVbml4IHNvY2tldCBmb3IgYm91bmRlZCBvYnNlcnZhdGlvbiBjYWxscyBhbmQgcmVsZWFzZXMgaXRzIG93biBjbGllbnQvc2VydmVyIHBhdGhzIDEyMm1zCgogVGVzdCBGaWxlcyAgMSBmYWlsZWQgKDEpCiAgICAgIFRlc3RzICAxIGZhaWxlZCAoMSkKICAgU3RhcnQgYXQgIDE5OjExOjQzCiAgIER1cmF0aW9uICAyMDFtcyAodGVzdHMgODYlLCB0cmFuc2Zvcm0gMTAlLCBpbXBvcnQgMyUsIHdvcmtlciAxJSkKCg==",
+  "stderr_base64": "CuKOr+KOr+KOr+KOr+KOr+KOr+KOryBGYWlsZWQgVGVzdHMgMSDijq/ijq/ijq/ijq/ijq/ijq/ijq8KCiBGQUlMICBhcHBzL3NlcnZpY2Uvc3JjL29ic2VydmF0aW9uLXNvY2tldC50ZXN0LnRzID4gdXNlcyBhIHJlYWwgVW5peCBzb2NrZXQgZm9yIGJvdW5kZWQgb2JzZXJ2YXRpb24gY2FsbHMgYW5kIHJlbGVhc2VzIGl0cyBvd24gY2xpZW50L3NlcnZlciBwYXRocwpBc3NlcnRpb25FcnJvcjogdGVzdF9hY3R1YWxfdW5peF9zb2NrZXRfYm91bmRlZF9yZWFkX2FuZF9zY29wZWRfc291cmNlX2xpc3QgKF9fbWFpbl9fLk9ic2VydmF0aW9uU29ja2V0VGVzdHMudGVzdF9hY3R1YWxfdW5peF9zb2NrZXRfYm91bmRlZF9yZWFkX2FuZF9zY29wZWRfc291cmNlX2xpc3QpIC4uLiBvawp0ZXN0X2Rpc2Nvbm5lY3RlZF9ndWVzdF9jbGllbnRfZW1pdHNfY2FuY2VsX2FuZF9sZWF2ZXNfb3RoZXJfY2xpZW50X3VzYWJsZSAoX19tYWluX18uT2JzZXJ2YXRpb25Tb2NrZXRUZXN0cy50ZXN0X2Rpc2Nvbm5lY3RlZF9ndWVzdF9jbGllbnRfZW1pdHNfY2FuY2VsX2FuZF9sZWF2ZXNfb3RoZXJfY2xpZW50X3VzYWJsZSkgLi4uIG9rCnRlc3RfZnVsbF9yZXF1ZXN0X2ZyYW1lX2J1ZGdldF9pc19yZWplY3RlZF9iZWZvcmVfY29ubmVjdGluZyAoX19tYWluX18uT2JzZXJ2YXRpb25Tb2NrZXRUZXN0cy50ZXN0X2Z1bGxfcmVxdWVzdF9mcmFtZV9idWRnZXRfaXNfcmVqZWN0ZWRfYmVmb3JlX2Nvbm5lY3RpbmcpIC4uLiBvawp0ZXN0X292ZXJzaXplZF9jb21wbGV0ZV9mcmFtZV9hbmRfdW5maW5pc2hlZF90YWlsX2FyZV9yZWplY3RlZCAoX19tYWluX18uQ29udHJvbEZyYW1lUGFyc2VyVGVzdHMudGVzdF9vdmVyc2l6ZWRfY29tcGxldGVfZnJhbWVfYW5kX3VuZmluaXNoZWRfdGFpbF9hcmVfcmVqZWN0ZWQpIC4uLiBvawp0ZXN0X3R3b19sZWdhbF9mcmFtZXNfYWNyb3NzX2NodW5rX2JvdW5kYXJ5X2RvX25vdF9zaGFyZV9hX2J1ZGdldCAoX19tYWluX18uQ29udHJvbEZyYW1lUGFyc2VyVGVzdHMudGVzdF90d29fbGVnYWxfZnJhbWVzX2Fjcm9zc19jaHVua19ib3VuZGFyeV9kb19ub3Rfc2hhcmVfYV9idWRnZXQpIC4uLiBFUlJPUgoKPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQpFUlJPUjogdGVzdF90d29fbGVnYWxfZnJhbWVzX2Fjcm9zc19jaHVua19ib3VuZGFyeV9kb19ub3Rfc2hhcmVfYV9idWRnZXQgKF9fbWFpbl9fLkNvbnRyb2xGcmFtZVBhcnNlclRlc3RzLnRlc3RfdHdvX2xlZ2FsX2ZyYW1lc19hY3Jvc3NfY2h1bmtfYm91bmRhcnlfZG9fbm90X3NoYXJlX2FfYnVkZ2V0KQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tClRyYWNlYmFjayAobW9zdCByZWNlbnQgY2FsbCBsYXN0KToKICBGaWxlICI8c3RyaW5nPiIsIGxpbmUgMTUxLCBpbiB0ZXN0X3R3b19sZWdhbF9mcmFtZXNfYWNyb3NzX2NodW5rX2JvdW5kYXJ5X2RvX25vdF9zaGFyZV9hX2J1ZGdldAogICAgZXhlYyhwYXJzZXIsIG5hbWVzcGFjZSkKICAgIH5+fn5eXl5eXl5eXl5eXl5eXl5eXl5eCiAgRmlsZSAiPGFjdHVhbC1ndWVzdC1zdGRpbi1wYXJzZXI+IiwgbGluZSAyNTQsIGluIDxtb2R1bGU+ClZhbHVlRXJyb3I6IGNvbnRyb2wgZnJhbWUgdG9vIGxhcmdlCgotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tClJhbiA1IHRlc3RzIGluIDAuMDY4cwoKRkFJTEVEIChlcnJvcnM9MSkKOiBleHBlY3RlZCAxIHRvIGJlICswIC8vIE9iamVjdC5pcyBlcXVhbGl0eQoKLSBFeHBlY3RlZAorIFJlY2VpdmVkCgotIDAKKyAxCgog4p2vIGFwcHMvc2VydmljZS9zcmMvb2JzZXJ2YXRpb24tc29ja2V0LnRlc3QudHM6MTA6NDAKCgrijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq/ijq9bMS8xXeKOrwoK",
+  "stdout_present": true,
+  "stderr_present": true,
+  "stdout_required": false,
+  "inputs": {},
+  "repo": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+  "cwd_relative": ".",
+  "revision_before": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e1e50700865c0f044342f5245fbd058230bafe9c6ca0cdcd6b5793649db67346:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_after": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e1e50700865c0f044342f5245fbd058230bafe9c6ca0cdcd6b5793649db67346:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision": "patch:9e1df45d9ea42a9bf5df76a1babf451e5cafc530:e1e50700865c0f044342f5245fbd058230bafe9c6ca0cdcd6b5793649db67346:spec:32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version": "INTEGRATION-1",
+  "spec_sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_before": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_after": {
+    "version": "INTEGRATION-1",
+    "sha256": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02"
+  },
+  "spec_version_before": "INTEGRATION-1",
+  "spec_sha256_before": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "spec_version_after": "INTEGRATION-1",
+  "spec_sha256_after": "32c7fa0d9ec9427c93e96eb54be2bb48ad7a00e4293058a3ffacf58ccc286f02",
+  "revision_changed_paths": [],
+  "input_changed_paths": [],
+  "result": "failed"
+}
