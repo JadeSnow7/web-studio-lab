@@ -1,6 +1,7 @@
 # Formal release fails closed in beforePack; root `package:unsigned` is for internal tests.
 appId: dev.webstudiolab.desktop
 productName: Web Studio Lab
+artifactName: 'Web-Studio-Lab-${version}-${arch}.${ext}'
 directories:
   output: release
   buildResources: ../../packaging
