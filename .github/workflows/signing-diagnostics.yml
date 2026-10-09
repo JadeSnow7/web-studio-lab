@@ -1,0 +1,39 @@
+name: Isolated signing identity diagnostics
+on:
+  push:
+    branches: ['codex/signing-diagnostics-20261009']
+permissions:
+  contents: read
+concurrency:
+  group: signing-identity-diagnostics
+  cancel-in-progress: false
+jobs:
+  diagnose:
+    if: github.repository == 'JadeSnow7/web-studio-lab' && github.event_name == 'push' && github.ref == 'refs/heads/codex/signing-diagnostics-20261009'
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24.21.0
+      - name: Test diagnostic redaction
+        run: node --test scripts/packaging/signing-diagnostics.test.mjs
+      # Reuse the release setup and cleanup unchanged. This saves and validates
+      # the existing notary profile; it does not submit a notarization request.
+      - name: Import existing credentials into an ephemeral keychain
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_IDENTITY: ${{ vars.MACOS_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: node scripts/packaging/ci-signing.mjs setup
+      - name: Read public identity and trust metadata
+        run: node scripts/packaging/signing-diagnostics.mjs
+      - name: Remove ephemeral signing material
+        if: always()
+        run: node scripts/packaging/ci-signing.mjs cleanup
