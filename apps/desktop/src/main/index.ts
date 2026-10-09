@@ -1,3 +1,5 @@
+import { SetupManager } from './setup';
+import { NativeSetupAdapter } from './setup-adapter';
 import { WorkbenchApplication } from './workbench/application';
 import { FileWorkbenchRepository } from './workbench/repository';
 import { WorkbenchHost } from './workbench/host';
@@ -20,7 +22,7 @@ function denyAllPermissions(target: Electron.Session): void {
   target.setPermissionCheckHandler(() => false);
 }
 
-function openWorkbench(): BrowserWindow {
+function openWorkbench(setup: SetupManager): BrowserWindow {
   const trusted = rendererSource();
   const window = createMainWindow(trusted);
 
@@ -38,6 +40,9 @@ function openWorkbench(): BrowserWindow {
       workbench?.onTerminal(resourceId, snapshot, binding);
     },
     (hint) => workbench?.onFileHint(hint),
+    !app.isPackaged && ['WSL_SBX_NAME', 'WSL_SBX_BIN', 'WSL_OBSERVATION_ROOT', 'WSL_SSH_HOST'].some((key) => process.env[key])
+      ? undefined
+      : { ...setup.runtimeConfig(), sshAgent: process.env['SSH_AUTH_SOCK'] ?? null },
   );
   const host = new WorkbenchHost(window, chat, demoRoot());
   workbench = new WorkbenchApplication(new FileWorkbenchRepository(path.join(app.getPath('userData'), 'workbench.json')), host, (event) =>
@@ -45,7 +50,8 @@ function openWorkbench(): BrowserWindow {
   );
   host.application = workbench;
   chat.setObservationReader((scope, tool, args, signal) => workbench!.observeForTurn(scope, tool, args, signal));
-  const unregisterIpc = registerIpc({ window, trusted, chat, workbench });
+  const unregisterIpc = registerIpc({ window, trusted, chat, workbench, setup });
+  const unsubscribeSetup = setup.subscribe((snapshot) => sendToRenderer(window, 'setup:status', snapshot));
   installAppMenu(window, host);
 
   // 窗口关闭前释放 Browser 区页面与 IPC 处理器。
@@ -56,8 +62,9 @@ function openWorkbench(): BrowserWindow {
     event.preventDefault();
     if (closing) return;
     closing = true;
-    void chat
+    void setup
       .shutdown()
+      .then(() => chat.shutdown())
       .then(async () => {
         try {
           await workbench?.getSnapshot();
@@ -66,6 +73,7 @@ function openWorkbench(): BrowserWindow {
         }
         host.dispose();
         unregisterIpc();
+        unsubscribeSetup();
         cleaned = true;
         window.close();
       })
@@ -77,9 +85,21 @@ function openWorkbench(): BrowserWindow {
   return window;
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   denyAllPermissions(session.defaultSession);
-  openWorkbench();
+  const resourceRoot = app.isPackaged
+    ? path.join(process.resourcesPath, 'runtime')
+    : path.resolve(app.getAppPath(), '../../packaging/generated/runtime');
+  const setup = await SetupManager.open(
+    path.join(app.getPath('userData'), 'runtime.json'),
+    path.join(resourceRoot, 'python/bin/python3'),
+    new NativeSetupAdapter(
+      resourceRoot,
+      app.isPackaged ? path.resolve(path.dirname(process.execPath), '../..') : app.getAppPath(),
+      app.getPath('userData'),
+    ),
+  );
+  openWorkbench(setup);
   app.on('activate', () => {
     // 本版本只有一个工作台窗口：全部关闭后由 window-all-closed 退出应用。
   });

@@ -1,3 +1,7 @@
+import { mkdtemp, writeFile, access } from 'node:fs/promises';
+import path from 'node:path';
+import { tmpdir } from 'node:os';
+import { vi } from 'vitest';
 import { expect, it, describe } from 'vitest';
 import { LocalTerminal } from './local-terminal';
 describe('local terminal lifecycle', () => {
@@ -126,4 +130,30 @@ it('rejects oversized UTF-8 Chinese input without closing the PTY and still runs
   expect(writeError).toBeInstanceOf(Error);
   expect((writeError as Error).message).toBe('input too large');
   expect(shutdown[0]?.status).toBe('fulfilled');
+}, 15000);
+
+it('bundled Python PTY isolates stdlib imports from cwd and PYTHONPATH', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'wsl-isolated-pty-'));
+  for (const module of ['json', 'pty', 'signal'])
+    await writeFile(path.join(root, module + '.py'), "raise RuntimeError('hostile-module-executed')");
+  const python = path.resolve(process.env['WSL_TEST_PYTHON'] ?? '/usr/bin/python3');
+  await access(python);
+  vi.stubEnv('PYTHONPATH', root);
+  const terminal = new LocalTerminal(
+    root,
+    { workspaceId: 'w', environmentId: 'local', resourceId: 'r', kind: 'terminal', instanceId: 'i', instanceGeneration: 1 },
+    () => undefined,
+    python,
+  );
+  try {
+    const started = await terminal.open(80, 24);
+    await expect.poll(() => terminal.get().state, { timeout: 5000 }).toBe('running');
+    terminal.write(started.sessionId!, "printf 'ISOLATED_PYTHON_OK\\n'\n");
+    await expect.poll(() => terminal.get().output).toContain('ISOLATED_PYTHON_OK');
+    expect(terminal.get().output).not.toContain('hostile-module-executed');
+    await terminal.close(started.sessionId!);
+  } finally {
+    vi.unstubAllEnvs();
+    await terminal.shutdown();
+  }
 }, 15000);

@@ -1,3 +1,4 @@
+import { SetupSnapshotSchema, SetupSettingsSchema, SetupLoginSchema } from './setup';
 import { EnvironmentListSchema } from './environments';
 import { WorkbenchObservationInputSchema, WorkspaceObservationResultSchema } from './observation';
 import { WorkbenchCommandSchema, WorkbenchEventSchema, WorkbenchResultSchema, WorkbenchSnapshotSchema } from './workspace';
@@ -13,6 +14,14 @@ const NoArgs = z.undefined();
  * main 在边界用 request schema 校验参数，校验失败直接抛错。
  */
 export const invokeChannels = {
+  'setup:status': { request: NoArgs, response: SetupSnapshotSchema },
+  'setup:check': { request: NoArgs, response: SetupSnapshotSchema },
+  'setup:prepare': { request: NoArgs, response: SetupSnapshotSchema },
+  'setup:retry': { request: NoArgs, response: SetupSnapshotSchema },
+  'setup:cancel': { request: NoArgs, response: SetupSnapshotSchema },
+  'setup:login': { request: SetupLoginSchema, response: SetupSnapshotSchema },
+  'setup:save': { request: SetupSettingsSchema, response: SetupSnapshotSchema },
+  'setup:choose-root': { request: NoArgs, response: z.string().nullable() },
   'workbench:environments': { request: NoArgs, response: EnvironmentListSchema },
   'workbench:observe': { request: WorkbenchObservationInputSchema, response: WorkspaceObservationResultSchema },
   'workbench:reload': { request: NoArgs, response: WorkbenchSnapshotSchema },
@@ -33,6 +42,7 @@ export type InvokeResponse<C extends InvokeChannel> = z.output<(typeof invokeCha
 
 /** main → renderer 的事件通道。 */
 export const eventChannels = {
+  'setup:status': SetupSnapshotSchema,
   'workbench:event': WorkbenchEventSchema,
   'chat:status': ChatStatusSchema,
   'chat:conversation': ChatConversationSchema,

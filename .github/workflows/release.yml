@@ -1,0 +1,111 @@
+name: Signed competition release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag matching v plus the desktop package version
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: competition-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 120
+    outputs:
+      tag: ${{ steps.source.outputs.tag }}
+      commit: ${{ steps.source.outputs.commit }}
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.34.6
+          run_install: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - name: Validate runner and exact release source
+        id: source
+        run: |
+          node -e 'if(process.platform!=="darwin"||process.arch!=="arm64")throw Error("Release requires macOS ARM64")'
+          node scripts/packaging/release-ci.mjs validate-tag
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm payloads:prepare
+      - name: Type checks and offline regression
+        env:
+          WSL_TEST_PYTHON: ${{ github.workspace }}/packaging/generated/runtime/python/bin/python3
+        run: |
+          pnpm typecheck
+          pnpm test
+          pnpm baseline:selftest
+          pnpm exec eslint apps packages e2e scripts/packaging --ignore-pattern '**/release-internal/**'
+          node scripts/check-docs.mjs
+      - name: Import signing credentials into an ephemeral keychain
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_IDENTITY: ${{ vars.MACOS_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: node scripts/packaging/ci-signing.mjs setup
+      - name: Build and notarize without publishing
+        run: pnpm package
+      - name: Signed installer and local service smoke
+        env:
+          WSL_E2E_TARGET: packaged
+          WSL_E2E_APP_PATH: ${{ github.workspace }}/apps/desktop/release/mac-arm64/Web Studio Lab.app
+        run: |
+          pnpm exec playwright test e2e/installer.spec.ts e2e/workspace-observation.spec.ts --grep '安装设置|无启动变量|本地文件明确绑定|未配置环境明确|本地同一PTY' --workers=1
+          node scripts/packaging/signed-runtime.mjs "$WSL_E2E_APP_PATH"
+      - name: Stage verified Release assets
+        run: node scripts/packaging/release-ci.mjs prepare-assets
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        id: upload
+        with:
+          name: competition-${{ steps.source.outputs.tag }}
+          path: apps/desktop/release/github-assets/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - name: Remove ephemeral signing material
+        if: always()
+        run: node scripts/packaging/ci-signing.mjs cleanup
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.build.outputs.tag }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ needs.build.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24.21.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: release-assets
+          merge-multiple: true
+      - name: Verify assets, upload draft, then publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/packaging/release-ci.mjs publish release-assets

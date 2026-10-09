@@ -1,26 +1,36 @@
-# macOS Apple Silicon 本地试用包。未签名、未公证，只供本机试用。
+# Formal release fails closed in beforePack; root `package:unsigned` is for internal tests.
 appId: dev.webstudiolab.desktop
 productName: Web Studio Lab
 directories:
   output: release
+  buildResources: ../../packaging
+beforePack: ../../scripts/packaging/before-pack.cjs
+forceCodeSigning: true
 files:
   - out/**
   - package.json
 extraResources:
   - from: ../service/out
     to: service
-  # 演示页面单独存放，只由 Browser 区的 wsl-demo 协议读取。
   - from: ../../demo/taskflow
     to: demo/taskflow
+  - from: ../../packaging/generated/runtime
+    to: runtime
 asar: true
 npmRebuild: false
 mac:
   category: public.app-category.developer-tools
-  identity: null
+  minimumSystemVersion: '14.0'
+  hardenedRuntime: true
+  notarize: true
+  # Python is signed in beforePack, before its executable hash is sealed in the manifest.
+  signIgnore:
+    - '/Contents/Resources/runtime/python/'
   target:
     - target: dmg
       arch: [arm64]
     - target: zip
       arch: [arm64]
 dmg:
+  sign: true
   writeUpdateInfo: false

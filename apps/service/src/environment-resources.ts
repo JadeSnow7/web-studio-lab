@@ -6,6 +6,7 @@ import type {
   ObservationResult,
   ResourceInstanceIdentity,
   FileInvalidationHint,
+  ServiceRuntimeConfig,
 } from '@wsl/protocol';
 import { FileObservationProvider, FileObservationError } from './observation-files';
 import { LocalTerminal } from './local-terminal';
@@ -48,20 +49,28 @@ export class EnvironmentResources {
     private readonly onTerminal: (snapshot: TerminalSnapshot, identity: ResourceInstanceIdentity) => void,
     private readonly onHint: (hint: FileInvalidationHint) => void,
     env: NodeJS.ProcessEnv = process.env,
+    private readonly runtime?: ServiceRuntimeConfig,
   ) {
-    const local = env['WSL_OBSERVATION_ROOT'] ? Root.safeParse(env['WSL_OBSERVATION_ROOT']) : null;
+    const localValue = runtime ? runtime.localRoot : env['WSL_OBSERVATION_ROOT'];
+    const local = localValue ? Root.safeParse(localValue) : null;
     this.localRoot = local?.success ? local.data : null;
     if (local && !local.success) this.configurationErrors.set('local', 'WSL_OBSERVATION_ROOT must be an absolute authorized root');
-    const hasSsh = ['WSL_SSH_HOST', 'WSL_SSH_USER', 'WSL_SSH_HOST_KEY_SHA256', 'WSL_SSH_ROOT'].some((key) => env[key]);
+    const hasSsh = runtime
+      ? !!runtime.ssh
+      : ['WSL_SSH_HOST', 'WSL_SSH_USER', 'WSL_SSH_HOST_KEY_SHA256', 'WSL_SSH_ROOT'].some((key) => env[key]);
     const ssh = hasSsh
-      ? SshConfig.safeParse({
-          host: env['WSL_SSH_HOST'],
-          port: env['WSL_SSH_PORT'],
-          username: env['WSL_SSH_USER'],
-          hostKeySha256: env['WSL_SSH_HOST_KEY_SHA256'],
-          agent: env['SSH_AUTH_SOCK'],
-          root: env['WSL_SSH_ROOT'],
-        })
+      ? SshConfig.safeParse(
+          runtime
+            ? { ...runtime.ssh, agent: runtime.sshAgent }
+            : {
+                host: env['WSL_SSH_HOST'],
+                port: env['WSL_SSH_PORT'],
+                username: env['WSL_SSH_USER'],
+                hostKeySha256: env['WSL_SSH_HOST_KEY_SHA256'],
+                agent: env['SSH_AUTH_SOCK'],
+                root: env['WSL_SSH_ROOT'],
+              },
+        )
       : null;
     this.sshConfig = ssh?.success ? ssh.data : null;
     if (ssh && !ssh.success)
@@ -75,7 +84,7 @@ export class EnvironmentResources {
         kind: 'local',
         label: '本设备',
         state: 'configured',
-        reason: this.localRoot ? null : (this.configurationErrors.get('local') ?? '未配置 WSL_OBSERVATION_ROOT；本地文件和终端不可用'),
+        reason: this.localRoot ? null : (this.configurationErrors.get('local') ?? '未授权本地目录；本地文件和终端不可用'),
         capabilities: { browser: true, files: !!this.localRoot, terminal: !!this.localRoot },
       },
       {
@@ -160,7 +169,7 @@ export class EnvironmentResources {
         if (identity.environmentId === 'sandbox') entry.terminal = new Terminal(this.sandbox, terminalIdentity, emit);
         else if (identity.environmentId === 'local') {
           if (!this.localRoot) throw new FileObservationError('unavailable', 'No authorized local root is configured');
-          entry.terminal = new LocalTerminal(this.localRoot, terminalIdentity, emit);
+          entry.terminal = new LocalTerminal(this.localRoot, terminalIdentity, emit, this.runtime?.pythonBinary);
         } else if (identity.environmentId === 'ssh') {
           const connection = await this.sshConnection();
           this.entry(identity);
@@ -217,7 +226,12 @@ export class EnvironmentResources {
     let files: FileObservationProvider;
     if (entry.identity.environmentId === 'local') {
       if (!this.localRoot) throw new FileObservationError('unavailable', 'No authorized local root is configured');
-      files = new FileObservationProvider({ ...entry.identity, root: this.localRoot, onInvalidated: this.onHint });
+      files = new FileObservationProvider({
+        ...entry.identity,
+        root: this.localRoot,
+        pythonBinary: this.runtime?.pythonBinary,
+        onInvalidated: this.onHint,
+      });
     } else if (entry.identity.environmentId === 'ssh' && this.sshConfig) {
       const transport = await (await this.sshConnection()).fileTransport();
       files = new FileObservationProvider({ ...entry.identity, root: this.sshConfig.root, transport });

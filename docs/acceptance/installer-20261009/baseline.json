@@ -1,0 +1,13 @@
+{
+  "baselineCommit": "3e631a9e387190da5a2241945bbf7e14edbd5707",
+  "branch": "codex/competition-installer",
+  "baselineTree": "0a3b88a36ba53053f3cf429da719a4e72070bc1d",
+  "trackedStatus": "",
+  "lockSha256": "ea999b3a5f504d56df752ac5795a46f43f4c3e4d61236c9116fc331d59b43136",
+  "signingPreflight": {
+    "sandboxed": "0 valid identities found",
+    "host": "One Apple Development identity; no Developer ID Application"
+  },
+  "cleanMachineAcceptance": "not_run",
+  "target": "macOS 14+ arm64"
+}

@@ -814,6 +814,10 @@ p {
 .field textarea,
 .composer textarea {
   resize: vertical;
+}
+.field input:not([type='checkbox']),
+.field textarea,
+.composer textarea {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 8px 10px;
@@ -821,6 +825,7 @@ p {
   background: var(--content);
   outline: none;
 }
+.field input:not([type='checkbox']):focus,
 .field textarea:focus,
 .composer textarea:focus {
   border-color: var(--accent);

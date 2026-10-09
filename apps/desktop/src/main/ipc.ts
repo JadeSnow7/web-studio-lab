@@ -1,5 +1,6 @@
+import type { SetupManager } from './setup';
 import type { WorkbenchApplication } from './workbench/application';
-import { app, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+import { app, dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import {
   INVOKE_CHANNEL_NAMES,
   invokeChannels,
@@ -22,6 +23,7 @@ export interface IpcDeps {
   trusted: TrustedRenderer;
   chat: ChatService;
   workbench?: WorkbenchApplication;
+  setup?: SetupManager;
 }
 
 function senderInfo(event: IpcMainInvokeEvent, window: BrowserWindow) {
@@ -37,8 +39,26 @@ function assertLegacySession(id: string) {
   if (id !== 'conv-personal-default') throw new Error('会话必须通过所属空间任务用例访问');
 }
 
-export function registerIpc({ window, trusted, chat, workbench }: IpcDeps): () => void {
+export function registerIpc({ window, trusted, chat, workbench, setup }: IpcDeps): () => void {
+  const requireSetup = () => {
+    if (!setup) throw new Error('安装服务不可用');
+    return setup;
+  };
   const handlers: Handlers = {
+    'setup:status': () => requireSetup().status(),
+    'setup:check': () => requireSetup().check(),
+    'setup:prepare': () => requireSetup().prepare(),
+    'setup:retry': () => requireSetup().retry(),
+    'setup:cancel': () => requireSetup().cancel(),
+    'setup:login': ({ provider, acknowledgeGlobalCredentials }) => requireSetup().login(provider, acknowledgeGlobalCredentials),
+    'setup:save': (settings) => requireSetup().save(settings),
+    'setup:choose-root': async () => {
+      requireSetup();
+      const selected = await dialog.showOpenDialog(window, { properties: ['openDirectory'], title: '授权本地文件与终端目录' });
+      const root = selected.canceled ? null : (selected.filePaths[0] ?? null);
+      if (root) requireSetup().authorizeLocalRoot(root);
+      return root;
+    },
     'workbench:environments': () => {
       if (!workbench) throw new Error('工作台服务不可用');
       return workbench.environments();

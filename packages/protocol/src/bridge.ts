@@ -1,3 +1,4 @@
+import type { SetupSnapshot, RuntimeConfig } from './setup';
 import type { EnvironmentDescription, WorkbenchObservationInput, WorkspaceObservationResult } from './index';
 import type { WorkbenchCommand, WorkbenchEvent, WorkbenchResult, WorkbenchSnapshot } from './workspace';
 import type { ChatConversation, ChatSlot, ChatStatus } from './chat';
@@ -11,6 +12,17 @@ export type Unsubscribe = () => void;
  * 每个方法对应 ipc.ts 中的一个通道；不暴露 ipcRenderer 本身。
  */
 export interface StudioApi {
+  setup: {
+    status(): Promise<SetupSnapshot>;
+    check(): Promise<SetupSnapshot>;
+    prepare(): Promise<SetupSnapshot>;
+    retry(): Promise<SetupSnapshot>;
+    cancel(): Promise<SetupSnapshot>;
+    login(provider: 'docker' | 'openai', acknowledgeGlobalCredentials: boolean): Promise<SetupSnapshot>;
+    save(settings: Pick<RuntimeConfig, 'localRoot' | 'ssh'>): Promise<SetupSnapshot>;
+    chooseRoot(): Promise<string | null>;
+    onStatus(listener: (snapshot: SetupSnapshot) => void): Unsubscribe;
+  };
   workbench: {
     getSnapshot(): Promise<WorkbenchSnapshot>;
     reload(): Promise<WorkbenchSnapshot>;

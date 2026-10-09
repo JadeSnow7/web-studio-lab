@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "formalRelease": false,
+  "sourceRevision": "3e631a9e387190da5a2241945bbf7e14edbd5707 plus recorded working-tree inputs",
+  "unit": {
+    "passed": 449,
+    "skipped": 8
+  },
+  "packaging": {
+    "passed": 13
+  },
+  "packagedFull": {
+    "passed": 62,
+    "skipped": 2,
+    "livePassed": 5,
+    "artifacts": "live-validated-artifacts.json"
+  },
+  "finalFocus": {
+    "passed": 2,
+    "artifacts": "internal-artifacts.json"
+  },
+  "native": {
+    "firstLaunch": "passed with isolated profile via LaunchServices, no WSL env",
+    "directoryCancelFocus": "passed",
+    "pinyinInput": "passed",
+    "candidatePopupVisual": "undetermined"
+  },
+  "offlineGuestDeployment": "passed under sandbox-scoped npm and nodejs download denies",
+  "signing": "blocked: no valid Developer ID identity and no notary profile supplied",
+  "cleanMachine": "not_run",
+  "evidenceStage": "internal-package checkpoint before signing credentials and subsequent fixes",
+  "supersededBy": "SIGNED-RESULTS.md"
+}

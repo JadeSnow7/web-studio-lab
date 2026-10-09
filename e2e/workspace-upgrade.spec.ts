@@ -1,6 +1,6 @@
 import { setWorkspaceTheme } from './helpers';
 import { expect, test } from '@playwright/test';
-import { launchApp, previewInfo, setWindowSize } from './helpers';
+import { launchApp, previewInfo, setWindowSize, target } from './helpers';
 
 test('A01 / A12 空间切换器独立于侧栏，浮层使原生网页让位并恢复焦点', async () => {
   const { app, page } = await launchApp();
@@ -149,6 +149,33 @@ test('A12 三窗格活动PTY关闭切换器后不抢走触发器焦点', async (
 
 test('A12 delayed PTY ready preserves switcher focus after dismissal', async ({ playwright: _playwright }, info) => {
   const { app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx.mjs', import.meta.url).pathname, controlledTerminal: true });
+  if (target === 'packaged') {
+    await app.evaluate(
+      async ({ utilityProcess }, fixture) => {
+        // Obtain the native prototype without exposing a production test hook. The probe exits immediately.
+        const probe = utilityProcess.fork(fixture, ['version'], { stdio: 'ignore' });
+        const prototype = Object.getPrototypeOf(probe) as { postMessage: Electron.UtilityProcess['postMessage'] };
+        const original = prototype.postMessage;
+        const gate = {
+          armed: true,
+          deliveries: [] as (() => void)[],
+          restore: () => {
+            prototype.postMessage = original;
+          },
+        };
+        (globalThis as unknown as { __wslTerminalGate: typeof gate }).__wslTerminalGate = gate;
+        prototype.postMessage = function (message, transfer) {
+          if (gate.armed && typeof message === 'object' && message !== null && 'method' in message && message.method === 'terminal.open') {
+            gate.deliveries.push(() => original.call(this, message, transfer));
+            return;
+          }
+          original.call(this, message, transfer);
+        };
+        await new Promise<void>((resolve) => probe.once('exit', () => resolve()));
+      },
+      new URL('./fixtures/sbx.mjs', import.meta.url).pathname,
+    );
+  }
   const timeline: unknown[] = [];
   const capture = async (label: string) =>
     timeline.push(
@@ -186,6 +213,8 @@ test('A12 delayed PTY ready preserves switcher focus after dismissal', async ({ 
     await capture('running');
     await expect(trigger).toBeFocused();
   } finally {
+    if (target === 'packaged')
+      await app.evaluate(() => (globalThis as unknown as { __wslTerminalGate: { restore(): void } }).__wslTerminalGate.restore());
     await info.attach('focus-timeline', { body: JSON.stringify(timeline, null, 2), contentType: 'application/json' });
     await app.close();
   }

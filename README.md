@@ -89,20 +89,23 @@ WSL_LIVE_RESOURCE=1 WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm exec playwright tes
 
 ## 打包
 
+比赛安装器的构建入口现要求固定离线载荷、Developer ID Application 签名及 Apple 公证。安装方式、构建凭据和失败恢复见[比赛版安装与构建](docs/development/competition-installer.md)，本轮实际验证边界见[安装器验收约定](docs/acceptance/installer-20261009/SPEC.md)。
+
 ```bash
+pnpm payloads:prepare
 pnpm package
 ```
 
-生成 macOS Apple Silicon 试用包，输出到 `apps/desktop/release/`（`.dmg`、`.zip` 与 `mac-arm64/Web Studio Lab.app`）。打包后可以对包内应用重跑同一套检查：
+正式构建输出到 `apps/desktop/release/`（DMG、ZIP、App，以及校验和与版本清单）。缺少正式证书、公证失败或载荷不一致时停止，不降级为正式交付。打包后可以对包内应用重跑同一套检查：
 
 ```bash
 pnpm test:e2e:packaged
 ```
 
-试用包**没有签名，也没有公证**（只有链接器生成的 ad-hoc 签名，Gatekeeper 评估不通过）。从其他机器下载后，macOS 会拦截打开，可以在 Finder 中右键选择“打开”，或者去掉隔离属性：
+仅内部开发验证可生成明确标记的未签名包，输出到独立的 `apps/desktop/release-internal/`。它不能证明 Gatekeeper、首次安装或比赛交付通过：
 
 ```bash
-xattr -dr com.apple.quarantine "/Applications/Web Studio Lab.app"
+pnpm package:unsigned
 ```
 
 ## 目录

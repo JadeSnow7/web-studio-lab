@@ -1,3 +1,4 @@
+import { initializeSetup } from './state/setup';
 import { useEffect } from 'react';
 import { ROUTE_TITLES } from './shell/routes';
 import { useStore } from './lib/store';
@@ -26,6 +27,13 @@ export function App() {
   useEffect(() => {
     initializeShell();
     void initializeWorkspace();
+    const unsubscribe = initializeSetup();
+    void Promise.all([window.studio.app.getInfo(), window.studio.setup.status()])
+      .then(([info, setup]) => {
+        if (info.packaged && (setup.stage !== 'ready' || setup.error)) shellActions.navigate('settings');
+      })
+      .catch((error: unknown) => console.error('安装状态初始化失败', error));
+    return unsubscribe;
   }, []);
   useEffect(() => {
     document.title = `${ROUTE_TITLES[shell.route]} · ${workspace?.name ?? '加载空间'} · Web Studio Lab`;
