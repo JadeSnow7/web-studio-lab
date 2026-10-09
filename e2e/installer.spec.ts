@@ -2,13 +2,17 @@ import { expect, test } from '@playwright/test';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { launchApp, target } from './helpers';
+import { launchApp, target, workshopNavigate, setWindowSize } from './helpers';
 
 test('安装设置：失败恢复、可信目录选择、SSH字段与保存后重启', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'wsl-install-ui-'));
   let { app, page } = await launchApp({ userData: directory, cleanInstall: true });
   try {
-    await page.getByRole('button', { name: '设置', exact: true }).click();
+    await setWindowSize(app, 1000, 720);
+    await expect.poll(() => page.evaluate(() => window.innerWidth)).toBeLessThan(1080);
+    await expect(page.getByRole('navigation', { name: 'Workshop 导航' })).not.toBeVisible();
+    // A fresh packaged install opens Settings itself; build runs use the real navigation.
+    if (target !== 'packaged') await workshopNavigate(page, '设置');
     const section = page.getByRole('region', { name: '比赛环境安装' });
     await expect(section).toContainText('检查设备与安装载荷');
     await section.getByRole('button', { name: '检查安装条件' }).click();
@@ -52,7 +56,7 @@ test('安装设置：失败恢复、可信目录选择、SSH字段与保存后�
     await page.screenshot({ path: path.join(directory, 'installation-settings.png') });
     await app.close();
     ({ app, page } = await launchApp({ userData: directory }));
-    await page.getByRole('button', { name: '设置', exact: true }).click();
+    await workshopNavigate(page, '设置');
     await expect(page.getByLabel('已授权本地目录')).toHaveValue(directory);
     await expect(page.getByLabel('SSH 用户名')).toHaveValue('比赛用户');
     await expect(page.getByRole('region', { name: '比赛环境安装' })).not.toContainText('配置已保存，重启应用后生效');
@@ -67,7 +71,7 @@ test('无启动变量的新配置显示首次安装；损坏记录可见且不�
   await writeFile(path.join(directory, 'runtime.json'), invalid);
   const { app, page } = await launchApp({ userData: directory, cleanInstall: true });
   try {
-    if (target !== 'packaged') await page.getByRole('button', { name: '设置', exact: true }).click();
+    if (target !== 'packaged') await workshopNavigate(page, '设置');
     await expect(page.getByRole('region', { name: '比赛环境安装' })).toContainText('原文件已保留');
     await expect(page.getByRole('button', { name: '开始准备' })).toBeDisabled();
     expect(await readFile(path.join(directory, 'runtime.json'), 'utf8')).toBe(invalid);

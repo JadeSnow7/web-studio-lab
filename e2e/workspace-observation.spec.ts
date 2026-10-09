@@ -1,10 +1,26 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
-import { launchApp, workspaceSnapshot, target } from './helpers';
+import { launchApp, workspaceSnapshot, target, workshopNavigate, setWindowSize } from './helpers';
 
 const fixture = new URL('./fixtures/sbx.mjs', import.meta.url).pathname;
+
+async function useNarrowWindow(app: ElectronApplication, page: Page) {
+  await setWindowSize(app, 1000, 720);
+  await expect.poll(() => page.evaluate(() => window.innerWidth)).toBeLessThan(1080);
+  await expect(page.getByRole('navigation', { name: 'Workshop 导航' })).not.toBeVisible();
+}
+
+async function showSpaceNavigation(page: Page) {
+  const sidebar = page.getByRole('region', { name: '空间导航', exact: true });
+  if (!(await sidebar.isVisible())) {
+    await workshopNavigate(page, '空间');
+    // Selecting a route closes a narrow-window overlay; reopen it for tab actions.
+    if (!(await sidebar.isVisible())) await page.getByRole('button', { name: '展开 Workshop', exact: true }).click();
+  }
+  await expect(sidebar).toBeVisible();
+}
 
 test('本地文件明确绑定、只读读取、续读、后台重开及会话观察归属', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'wsl-ui-files-'));
@@ -15,6 +31,8 @@ test('本地文件明确绑定、只读读取、续读、后台重开及会话�
   );
   const { app, page } = await launchApp({ sbxBin: fixture, observationRoot: root });
   try {
+    await useNarrowWindow(app, page);
+    await showSpaceNavigation(page);
     await page.getByRole('button', { name: '新建标签', exact: true }).click();
     const editor = page.getByRole('dialog', { name: '新建标签' });
     await editor.getByLabel('标签类型').selectOption('file');
@@ -50,8 +68,10 @@ test('本地文件明确绑定、只读读取、续读、后台重开及会话�
     const resource = workspace.resources.find((resource) => resource.title === '本地文件742')!;
     expect(resource.environmentId).toBe('local');
     expect(workspace.observations.every((record) => record.request.sessionId === null && record.request.runId === null)).toBe(true);
+    await showSpaceNavigation(page);
     await page.getByRole('button', { name: '本地文件742操作', exact: true }).click();
     await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）' }).click();
+    await showSpaceNavigation(page);
     await page.getByText('后台资源 / 已关闭标签', { exact: true }).click();
     await page.getByRole('button', { name: '本地文件742 · 重新打开', exact: true }).click();
     expect(
@@ -59,6 +79,7 @@ test('本地文件明确绑定、只读读取、续读、后台重开及会话�
         .find((workspace) => workspace.workspaceId === before.activeWorkspaceId)!
         .resources.find((item) => item.title === '本地文件742')!.resourceId,
     ).toBe(resource.resourceId);
+    await showSpaceNavigation(page);
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
     const session = page.getByRole('region', { name: 'Agent 会话内容' });
     await session.getByRole('button', { name: '上下文', exact: true }).click();
@@ -84,6 +105,8 @@ test('本地文件明确绑定、只读读取、续读、后台重开及会话�
 test('未配置环境明确禁用能力，不创建未授权文件标签', async () => {
   const { app, page } = await launchApp({ observationRoot: '' });
   try {
+    await useNarrowWindow(app, page);
+    await showSpaceNavigation(page);
     await page.getByRole('button', { name: '新建标签', exact: true }).click();
     const editor = page.getByRole('dialog', { name: '新建标签' });
     await editor.getByLabel('标签类型').selectOption('file');
@@ -101,6 +124,7 @@ test('未配置环境明确禁用能力，不创建未授权文件标签', async
 test('历史版本与运行选择联动，对话内容来自同一执行', async () => {
   const { app, page } = await launchApp({ sbxBin: fixture });
   try {
+    await showSpaceNavigation(page);
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
     const session = page.getByRole('region', { name: 'Agent 会话内容' });
     for (const text of ['OLD_HISTORY_742', 'NEW_HISTORY_742']) {
@@ -147,6 +171,7 @@ test('环境目录失败保留新建表单和显式错误，不使用默认环�
         return original(...args);
       });
     });
+    await showSpaceNavigation(page);
     await page.getByRole('button', { name: '新建标签', exact: true }).click();
     const editor = page.getByRole('dialog', { name: '新建标签' });
     await editor.getByLabel('名称', { exact: true }).fill('保留环境失败表单742');
@@ -167,6 +192,7 @@ test('环境目录失败保留新建表单和显式错误，不使用默认环�
 test('标签自落点不改变顺序，正常拖放保持排序入口', async () => {
   const { app, page } = await launchApp();
   try {
+    await showSpaceNavigation(page);
     const before = (await workspaceSnapshot(page)).workspaces[0]!.tabs.map((tab) => tab.tabId);
     const rows = page.locator('.vertical-tab');
     await rows.first().dispatchEvent('dragstart');
@@ -186,6 +212,8 @@ test('本地同一PTY重复输出与保留窗口滚动仍更新终端显示', as
   const root = await mkdtemp(path.join(tmpdir(), 'wsl-ui-terminal-'));
   const { app, page } = await launchApp({ observationRoot: root });
   try {
+    await useNarrowWindow(app, page);
+    await showSpaceNavigation(page);
     await page.getByRole('button', { name: '新建标签', exact: true }).click();
     const editor = page.getByRole('dialog', { name: '新建标签' });
     await editor.getByLabel('标签类型').selectOption('terminal');
@@ -249,6 +277,7 @@ test('受控环境延迟：UI取消不启动Provider，换空间后的迟到观�
       for (const send of gate.deliveries.splice(0)) send();
     });
   try {
+    await showSpaceNavigation(page);
     await page.getByRole('button', { name: '新建标签', exact: true }).click();
     const editor = page.getByRole('dialog', { name: '新建标签' });
     await editor.getByLabel('标签类型').selectOption('file');
@@ -258,6 +287,7 @@ test('受控环境延迟：UI取消不启动Provider，换空间后的迟到观�
     const initial = (await workspaceSnapshot(page)).workspaces[0]!;
     const resource = initial.resources.find((resource) => resource.title === '归属文件742')!;
     const owner = initial.sessions[0]!;
+    await showSpaceNavigation(page);
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
     const session = page.getByRole('region', { name: 'Agent 会话内容' });
     await session.getByRole('button', { name: '上下文', exact: true }).click();
@@ -316,6 +346,7 @@ test('程序IME确认不提交名称、文件路径或观察表单', async () =>
   const root = await mkdtemp(path.join(tmpdir(), 'wsl-ui-ime-'));
   const { app, page } = await launchApp({ observationRoot: root });
   try {
+    await showSpaceNavigation(page);
     await page.getByRole('button', { name: '新建标签', exact: true }).click();
     const editor = page.getByRole('dialog', { name: '新建标签' });
     const name = editor.getByLabel('名称', { exact: true });
@@ -328,13 +359,18 @@ test('程序IME确认不提交名称、文件路径或观察表单', async () =>
     await editor.getByLabel('标签类型').selectOption('file');
     await editor.getByLabel('资源环境').selectOption('local');
     await editor.getByRole('button', { name: '保存', exact: true }).click();
+    await expect(editor).not.toBeVisible();
     const files = page.getByRole('region', { name: '只读文件浏览' });
     const before = (await workspaceSnapshot(page)).workspaces[0]!.observations.length;
     const input = files.getByLabel('文件路径');
+    // Start composition only after the dialog has restored focus and the user selects the input.
+    await input.click();
+    await expect(input).toBeFocused();
     await input.dispatchEvent('compositionstart');
     await input.press('Enter');
     expect((await workspaceSnapshot(page)).workspaces[0]!.observations).toHaveLength(before);
     await input.dispatchEvent('compositionend');
+    await showSpaceNavigation(page);
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
     const session = page.getByRole('region', { name: 'Agent 会话内容' });
     await session.getByRole('button', { name: '上下文', exact: true }).click();
@@ -345,6 +381,8 @@ test('程序IME确认不提交名称、文件路径或观察表单', async () =>
         (await workspaceSnapshot(page)).workspaces[0]!.resources.find((resource) => resource.title === '中文文件742')!.resourceId,
       );
     const query = observation.getByLabel('观察路径');
+    await query.click();
+    await expect(query).toBeFocused();
     await query.dispatchEvent('compositionstart');
     await query.press('Enter');
     expect((await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.observations).toEqual([]);
