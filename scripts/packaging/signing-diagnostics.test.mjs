@@ -95,6 +95,7 @@ test('diagnostic workflow is branch-only, read-only and retains unconditional cl
   assert.match(workflow, /branches: \['codex\/signing-diagnostics-20261009'\]/);
   assert.match(workflow, /github.repository == 'JadeSnow7\/web-studio-lab'/);
   assert.match(workflow, /contents: read/);
+  assert.match(workflow, /package-manager-cache: false/);
   assert.match(workflow, /if: always\(\)/);
   assert.match(workflow, /ci-signing\.mjs cleanup/);
   assert.doesNotMatch(workflow, /workflow_dispatch|pull_request|tags:|contents: write|upload-artifact|pnpm package/);
