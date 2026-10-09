@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "platform": "darwin-arm64",
+  "sources": [
+    {
+      "id": "python",
+      "version": "3.14.4+20260414",
+      "platform": "darwin-arm64",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260414/cpython-3.14.4%2B20260414-aarch64-apple-darwin-install_only_stripped.tar.gz",
+      "sha256": "6f304f4ec30854611f23316578302235fb517cd970519ecdd11a8c4db87fd843",
+      "license": "Python-2.0 and PSF; bundled third-party licenses",
+      "probes": ["python3 --version", "python3 -c \"import pty, ssl, json\""]
+    },
+    {
+      "id": "node",
+      "version": "24.21.0",
+      "platform": "linux-arm64",
+      "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-arm64.tar.gz",
+      "sha256": "724282c3b43aec998aa9527380465b45d229e021b58035f5f4f63095eabfe5d5",
+      "license": "MIT and bundled third-party licenses",
+      "probes": ["node --version", "npm --version"]
+    },
+    {
+      "id": "pnpm",
+      "package": "pnpm",
+      "version": "10.34.6",
+      "platform": "linux-arm64",
+      "url": "https://registry.npmjs.org/pnpm/-/pnpm-10.34.6.tgz",
+      "sha256": "44d7db90fcbb2315b581f85989a913466765421fc656c28e80fac1b7ab5be456",
+      "integrity": "sha512-fhrmaoOpFDwRjMGUTzfMTyuKzd7aSwAc+niQj25G5F4VKSc5ymydAmQmzHV+kxjMmMVVHWoWwWUJewAouoe05g==",
+      "license": "MIT",
+      "probes": ["pnpm --version"]
+    },
+    {
+      "id": "codex",
+      "package": "@openai/codex",
+      "version": "0.160.0",
+      "platform": "linux-arm64",
+      "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.160.0.tgz",
+      "sha256": "373517768e912eeb5054024ae9215e2c90a1420957b66fe134ef745a00948d4a",
+      "integrity": "sha512-kEtVGzjRAYAMOwJxN39bGcna7LT3IDQgq64NNJ/dDTfu4OzZaocJcyNb5/gGJ/IVF/Vj7oK7E2m3nmTan7lpjg==",
+      "license": "Apache-2.0",
+      "probes": ["codex --version"]
+    },
+    {
+      "id": "codex-arm64",
+      "package": "@openai/codex",
+      "version": "0.160.0-linux-arm64",
+      "platform": "linux-arm64",
+      "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.160.0-linux-arm64.tgz",
+      "sha256": "9286a7e01d500ab224c9e5b4b223b7adf5dd901fba23efd6a438316426798b17",
+      "integrity": "sha512-VnVdsS06YlDsL8OwaJjQ3xdqdJNG4i+eBJBV3LytddknzSaF/urijLzVg3ptkwvoj8C7Gn7iWpVE+y8WEaPiCg==",
+      "license": "Apache-2.0",
+      "probes": ["codex --version"],
+      "installAlias": "@openai/codex-linux-arm64"
+    }
+  ],
+  "sbx": {
+    "version": "0.47.0",
+    "platform": "darwin-arm64",
+    "url": "https://github.com/docker/sbx-releases/releases/download/v0.47.0/DockerSandboxes-darwin.tar.gz",
+    "sha256": "947e68826c62b12de2fa0ba5b0a67a953911a2321203c04f7c0982ccfc0f1694",
+    "license": "Docker proprietary; obtain from vendor at first run",
+    "bundled": false,
+    "probes": ["sbx version", "codesign --verify --deep --strict Sbx.app", "spctl --assess --type execute Sbx.app"]
+  },
+  "baseImage": {
+    "reference": "docker.io/docker/sandbox-templates@sha256:8b4cd0a46c8b600bc6b6a64af23c03d4c2807fbfc61f47568092a93fb9dc88b0",
+    "platform": "linux-arm64",
+    "bundled": false,
+    "probes": [
+      "python3 --version",
+      "git --version",
+      "test -s /etc/ssl/certs/ca-certificates.crt",
+      "python3 -c \"import pty; pty.openpty()\""
+    ]
+  },
+  "minimumFreeBytesPolicy": "Estimate: twice extracted host and guest bytes plus 8 GiB sandbox reserve; cold-machine peak remains unmeasured.",
+  "licenseSources": [
+    {
+      "id": "codex-license",
+      "version": "0.160.0",
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.160.0/LICENSE",
+      "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc",
+      "license": "Apache-2.0"
+    },
+    {
+      "id": "xterm-license",
+      "version": "f447274f430fd22513f6adbf9862d19524471c04",
+      "url": "https://raw.githubusercontent.com/xtermjs/xterm.js/f447274f430fd22513f6adbf9862d19524471c04/LICENSE",
+      "sha256": "b569f629d00f2626a8100df2a1798210535621e42164dfd426a6fe5aac7b0ccd",
+      "license": "MIT",
+      "scope": "app",
+      "packages": ["@xterm/headless"]
+    }
+  ]
+}

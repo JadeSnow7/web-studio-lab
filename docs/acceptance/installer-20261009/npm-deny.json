@@ -1,0 +1,16 @@
+{
+  "action": "net:connect:tcp",
+  "allowed": false,
+  "context": "sandbox:wsl-competition-b0a7c880-5148-4cef-b4b5-ca5d4fd10cf0",
+  "deny_kind": "explicit",
+  "governance": {
+    "active": false
+  },
+  "origin": "local",
+  "reason": "Denied by local rule",
+  "resource_type": "net:domain",
+  "resource_value": "registry.npmjs.org:443",
+  "rule": "local:8f877f72-a8e7-4d1b-8695-16bdc9d4efb2",
+  "target": "registry.npmjs.org:443",
+  "type": "network"
+}

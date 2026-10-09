@@ -7,6 +7,7 @@ import { stripVTControlCharacters, promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import {
+  fixtureSandbox,
   launchApp,
   previewInfo,
   setWindowSize,
@@ -81,7 +82,7 @@ test('fixture：终端持久 cwd、Ctrl-C、resize、切标签保留与确认关
   await page.getByRole('button', { name: '开发终端', exact: true }).click();
   const panel = page.getByRole('region', { name: '资源终端' });
   await panel.getByRole('button', { name: '连接终端', exact: true }).click();
-  await expect(panel).toContainText('fixture-sandbox');
+  await expect(panel).toContainText(fixtureSandbox);
   await expect(panel).toContainText('已连接');
   const input = panel.getByLabel('终端输入');
   await input.focus();
@@ -192,10 +193,11 @@ test('live：应用终端与 Codex 共享 guest 文件并确认交互与清理',
       )
       .toBe('running');
     await expect(panel).toContainText('已连接');
-    await expect(panel).toContainText('wsl-sbx-smoke-20261006');
+    const sandboxName = process.env['WSL_SBX_NAME'] ?? 'wsl-sbx-smoke-20261006';
+    await expect(panel).toContainText(sandboxName);
     await expect(panel).toContainText('/home/agent/workspace');
     const connected = await terminalSnapshot(page);
-    expect(connected.sandbox).toBe('wsl-sbx-smoke-20261006');
+    expect(connected.sandbox).toBe(sandboxName);
     expect(connected.cwd).toBe('/home/agent/workspace');
     const connectedSnapshot = await workspaceSnapshot(page);
     expect(

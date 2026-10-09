@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import {
   ObservationRequestSchema,
+  ServiceRuntimeConfigSchema,
   type WorkspaceObservationResult,
   ChatServiceMessageSchema,
   ChatServiceRequestSchema,
   type ChatServiceMessage,
 } from '@wsl/protocol';
+import { SbxConnection } from './sbx';
 import { CodexChat } from './codex-chat';
 import { EnvironmentResources } from './environment-resources';
 import { ResourceStore } from './resource-store';
@@ -20,12 +22,15 @@ if (!parent) throw new Error('缺少执行服务父消息通道');
 const root = process.argv[2];
 if (!root) throw new Error('缺少对话运行目录');
 const send = (message: ChatServiceMessage) => parent.postMessage(ChatServiceMessageSchema.parse(message));
+const runtime = process.argv[3] ? ServiceRuntimeConfigSchema.parse(JSON.parse(process.argv[3])) : undefined;
 const resources = new ResourceStore(root);
-const chat = new CodexChat(root, (conversation) => send({ type: 'event', conversation }), undefined, resources);
+const chat = new CodexChat(root, (conversation) => send({ type: 'event', conversation }), new SbxConnection(runtime), resources);
 const environments = new EnvironmentResources(
   chat.connection,
   (terminal, binding) => send({ type: 'terminal-event', terminal, resourceId: binding.resourceId, binding }),
   (hint) => send({ type: 'file-hint', hint }),
+  process.env,
+  runtime,
 );
 const observationCalls = new Map<
   string,

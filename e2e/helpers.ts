@@ -4,7 +4,7 @@ declare global {
     studio: StudioApi;
   }
 }
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -13,6 +13,8 @@ import { fileURLToPath } from 'node:url';
 import { _electron, type ElectronApplication, type Page } from '@playwright/test';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+export const fixtureSandbox =
+  process.env['WSL_E2E_TARGET'] === 'packaged' ? 'wsl-competition-00000000-0000-4000-8000-000000000001' : 'fixture-sandbox';
 const desktopDir = path.join(root, 'apps/desktop');
 export const screensDir = path.join(root, 'test-results/screens', process.env['WSL_E2E_TARGET'] === 'packaged' ? 'packaged' : 'build');
 
@@ -31,10 +33,11 @@ export async function launchApp(
     live?: boolean;
     userData?: string;
     startupError?: string;
+    cleanInstall?: boolean;
   } = {},
 ): Promise<{ app: ElectronApplication; page: Page; rendererErrors: string[] }> {
   // 默认回归不得消耗模型；真实模型仅在显式 live 模式使用已选 sbx。
-  const env = {
+  const env: NodeJS.ProcessEnv = {
     ...process.env,
     ...(options.sshEnvironment
       ? {
@@ -47,7 +50,7 @@ export async function launchApp(
         }
       : {}),
     ...(options.observationRoot === undefined ? {} : { WSL_OBSERVATION_ROOT: options.observationRoot }),
-    WSL_SBX_NAME: options.live ? (process.env['WSL_SBX_NAME'] ?? 'wsl-sbx-smoke-20261006') : (options.sandbox ?? 'fixture-sandbox'),
+    WSL_SBX_NAME: options.live ? (process.env['WSL_SBX_NAME'] ?? 'wsl-sbx-smoke-20261006') : (options.sandbox ?? fixtureSandbox),
     WSL_SBX_BIN: options.live
       ? (process.env['WSL_SBX_BIN'] ?? '/opt/homebrew/bin/sbx')
       : (options.sbxBin ?? (options.codexBin ? path.join(root, 'e2e/fixtures/sbx.mjs') : '/missing/wsl-e2e-sbx')),
@@ -55,6 +58,41 @@ export async function launchApp(
   };
   // Each run owns a fresh profile; retain it in tmp for failure evidence.
   const userData = options.userData ?? (await mkdtemp(path.join(tmpdir(), 'wsl-e2e-')));
+  if (options.cleanInstall) {
+    for (const key of Object.keys(env)) if (key.startsWith('WSL_')) delete env[key as keyof typeof env];
+    env['PATH'] = '/usr/bin:/bin:/usr/sbin:/sbin';
+  } else if (target === 'packaged') {
+    await mkdir(userData, { recursive: true });
+    const file = path.join(userData, 'runtime.json');
+    try {
+      await readFile(file);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      const ssh = options.sshEnvironment;
+      await writeFile(
+        file,
+        JSON.stringify({
+          schemaVersion: 1,
+          stage: 'ready',
+          busy: false,
+          error: null,
+          restartRequired: false,
+          pendingLogin: null,
+          modelCredentialsConfigured: true,
+          modelConnectionVerified: false,
+          config: {
+            schemaVersion: 1,
+            sbxBinary: env.WSL_SBX_BIN,
+            sandbox: env.WSL_SBX_NAME,
+            pythonBinary: '/bundled/runtime/python/bin/python3',
+            localRoot: options.observationRoot || null,
+            ssh: ssh ? { host: ssh.host, port: ssh.port, username: ssh.username, hostKeySha256: ssh.hostKeySha256, root: ssh.root } : null,
+          },
+        }),
+      );
+    }
+    for (const key of Object.keys(env)) if (key.startsWith('WSL_')) delete env[key as keyof typeof env];
+  }
   // Install the observer before the real entrypoint creates any renderer.
   const bootstrap = path.join(await mkdtemp(path.join(tmpdir(), 'wsl-e2e-bootstrap-')), 'main.cjs');
   await writeFile(
@@ -115,12 +153,15 @@ require(${JSON.stringify(path.join(desktopDir, 'out/main/index.js'))});
   const app =
     target === 'packaged'
       ? await _electron.launch({
-          env,
+          env: Object.fromEntries(Object.entries(env).filter((entry): entry is [string, string] => entry[1] !== undefined)),
           args: [`--user-data-dir=${userData}`],
-          executablePath: path.join(desktopDir, 'release/mac-arm64/Web Studio Lab.app/Contents/MacOS/Web Studio Lab'),
+          executablePath: path.join(
+            process.env['WSL_E2E_APP_PATH'] ?? path.join(desktopDir, 'release/mac-arm64/Web Studio Lab.app'),
+            'Contents/MacOS/Web Studio Lab',
+          ),
         })
       : await _electron.launch({
-          env,
+          env: Object.fromEntries(Object.entries(env).filter((entry): entry is [string, string] => entry[1] !== undefined)),
           executablePath: createRequire(path.join(desktopDir, 'package.json'))('electron') as unknown as string,
           args: [bootstrap, `--user-data-dir=${userData}`],
           cwd: desktopDir,
@@ -155,7 +196,7 @@ require(${JSON.stringify(path.join(desktopDir, 'out/main/index.js'))});
   };
   try {
     await page.waitForSelector('div.app', { timeout: 10000 });
-    await page.waitForSelector('[data-pane-id]', { state: 'attached', timeout: options.live ? 60000 : 10000 });
+    if (!options.cleanInstall) await page.waitForSelector('[data-pane-id]', { state: 'attached', timeout: options.live ? 60000 : 10000 });
   } catch (error) {
     console.error('Renderer startup', rendererErrors, await page.locator('body').innerText());
     await app.close();

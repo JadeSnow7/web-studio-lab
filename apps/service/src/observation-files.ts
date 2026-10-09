@@ -74,7 +74,10 @@ export class LocalFileTransport implements FileTransport {
   available = true;
   watcher?: LocalFileWatch;
   private rootHandle?: Promise<{ handle: FileHandle; canonical: string }>;
-  constructor(private readonly root: string) {}
+  constructor(
+    private readonly root: string,
+    private readonly pythonBinary = 'python3',
+  ) {}
   private pinnedRoot() {
     if (!this.available) throw new FileObservationError('unavailable', 'Workspace root is closed or replaced');
     this.rootHandle ??= (async () => {
@@ -125,7 +128,7 @@ export class LocalFileTransport implements FileTransport {
     if (relative === '..' || relative.startsWith('../') || path.isAbsolute(relative))
       throw new FileObservationError('unauthorized', 'Path outside pinned workspace root');
     return new Promise((resolve, reject) => {
-      const child = spawn('python3', ['-I', '-c', LOCAL_READER, mode, relative, String(budget)], {
+      const child = spawn(this.pythonBinary, ['-I', '-B', '-c', LOCAL_READER, mode, relative, String(budget)], {
         stdio: ['ignore', 'pipe', 'ignore', root.handle.fd],
       });
       const chunks: Buffer[] = [];
@@ -211,6 +214,7 @@ export interface FileProviderOptions {
   instanceGeneration: number;
   root: string;
   transport?: FileTransport;
+  pythonBinary?: string;
   onInvalidated?: (hint: FileInvalidationHint) => void;
 }
 export class FileObservationProvider {
@@ -228,7 +232,7 @@ export class FileObservationProvider {
       instanceId: options.instanceId,
       instanceGeneration: options.instanceGeneration,
     });
-    this.transport = options.transport ?? new LocalFileTransport(options.root);
+    this.transport = options.transport ?? new LocalFileTransport(options.root, options.pythonBinary);
     if (this.transport instanceof LocalFileTransport) {
       const transport = this.transport;
       transport.watcher = new LocalFileWatch(

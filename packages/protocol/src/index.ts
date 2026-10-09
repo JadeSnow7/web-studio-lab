@@ -18,3 +18,5 @@ export * from './workspace';
 export * from './observation';
 
 export * from './environments';
+
+export * from './setup';

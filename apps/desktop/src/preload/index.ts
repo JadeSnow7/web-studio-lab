@@ -19,6 +19,17 @@ function subscribe<C extends EventChannel>(channel: C, listener: (payload: Event
 }
 
 const studio: StudioApi = {
+  setup: {
+    status: () => invoke('setup:status'),
+    check: () => invoke('setup:check'),
+    prepare: () => invoke('setup:prepare'),
+    retry: () => invoke('setup:retry'),
+    cancel: () => invoke('setup:cancel'),
+    login: (provider, acknowledgeGlobalCredentials) => invoke('setup:login', { provider, acknowledgeGlobalCredentials }),
+    save: (settings) => invoke('setup:save', settings),
+    chooseRoot: () => invoke('setup:choose-root'),
+    onStatus: (listener) => subscribe('setup:status', listener),
+  },
   workbench: {
     environments: () => invoke('workbench:environments'),
     observe: (input) => invoke('workbench:observe', input),

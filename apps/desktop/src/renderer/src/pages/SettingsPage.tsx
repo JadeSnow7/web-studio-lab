@@ -1,3 +1,4 @@
+import { SetupSettings } from './SetupSettings';
 import { Notice } from '../components/Badges';
 import { useStore } from '../lib/store';
 import { chatStore } from '../state/chat';
@@ -15,6 +16,9 @@ export function SettingsPage() {
   return (
     <div className="page-columns">
       <nav className="page-sidebar" aria-label="设置分组">
+        <a className="side-item" href="#settings-installation">
+          比赛环境安装
+        </a>
         <a className="side-item" href="#settings-appearance">
           外观与窗口
         </a>
@@ -29,6 +33,7 @@ export function SettingsPage() {
         <h1>应用设置</h1>
         <p className="muted">本设备的应用行为与连接能力。账号资料由首页头像进入（尚未接入）。</p>
 
+        <SetupSettings />
         <h2 id="settings-appearance">外观与窗口</h2>
         <label className="field">
           空间主题 · {workspace?.name ?? '加载空间…'}

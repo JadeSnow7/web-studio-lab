@@ -173,13 +173,14 @@ export class SbxConnection {
   private cleanupUnknown = false;
   private binary: string | null = null;
   private status: ChatStatus = { available: false, reason: '正在检查 sbx…', version: null, sandbox: null, cwd: null };
+  constructor(private readonly config?: { sbxBinary: string | null; sandbox: string | null }) {}
   async initialize(): Promise<ChatStatus> {
-    const sandbox = process.env['WSL_SBX_NAME']?.trim();
+    const sandbox = this.config ? this.config.sandbox : process.env['WSL_SBX_NAME']?.trim();
     this.status.sandbox = sandbox || null;
     this.status.cwd = sandbox ? GUEST_CWD : null;
     try {
-      if (!sandbox) throw new Error('未配置 WSL_SBX_NAME，请选择现有 sbx 沙箱。');
-      this.binary = await resolveSbxBinary();
+      if (!sandbox) throw new Error(this.config ? '尚未完成比赛环境安装' : '未配置 WSL_SBX_NAME，请选择现有 sbx 沙箱。');
+      this.binary = await resolveSbxBinary(this.config ? (this.config.sbxBinary ?? '/missing-sbx') : undefined);
       if (this.closing) throw new Error('sbx 服务正在关闭');
       const inspect = spawnSync(this.binary, ['inspect', '--json', sandbox], { encoding: 'utf8', timeout: 20000 });
       if (inspect.error || inspect.status !== 0) throw new Error(inspect.error?.message ?? (inspect.stderr.trim() || 'sbx inspect 失败'));

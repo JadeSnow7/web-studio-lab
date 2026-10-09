@@ -31,7 +31,7 @@ test('启动：窗口、安全边界与 Browser 区真实加载', async () => {
   ).toEqual({
     require: 'undefined',
     process: 'undefined',
-    studio: ['workbench', 'chat', 'app', 'execution', 'shell'],
+    studio: ['setup', 'workbench', 'chat', 'app', 'execution', 'shell'],
   });
   await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
   const info = await previewInfo(app);

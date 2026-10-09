@@ -25,6 +25,7 @@ export class LocalTerminal {
     private readonly cwd: string,
     private readonly identity: TerminalResource,
     private readonly emit: (snapshot: TerminalSnapshot) => void,
+    private readonly pythonBinary = '/usr/bin/python3',
   ) {
     this.snapshot = {
       seq: 0,
@@ -56,7 +57,7 @@ export class LocalTerminal {
     this.observation?.dispose();
     this.observation = new TerminalObservation(this.identity, sessionId, cols, rows);
     this.snapshot = { ...this.snapshot, sessionId, state: 'starting', output: '', outputOffset: 0, cleanupPending: true, error: null };
-    const child = spawn('/usr/bin/python3', ['-u', '-c', helper], { cwd: this.cwd, stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = spawn(this.pythonBinary, ['-I', '-B', '-u', '-c', helper], { cwd: this.cwd, stdio: ['pipe', 'pipe', 'pipe'] });
     this.child = child;
     child.stdin.on('error', () => {
       this.snapshot.error = 'PTY input transport closed';

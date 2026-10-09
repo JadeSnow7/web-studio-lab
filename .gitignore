@@ -37,3 +37,8 @@ Thumbs.db
 .local/
 playwright-report/
 test-results/
+
+# Competition installer reproducible downloads and assembled payloads
+/packaging/cache/
+/packaging/generated/
+/apps/desktop/release-internal/

@@ -15,14 +15,17 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run",
+    "test": "vitest run && node --test scripts/packaging/*.test.mjs",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
     "test:e2e": "pnpm build && playwright test",
-    "package": "pnpm build:service && pnpm --filter @wsl/desktop package",
+    "package": "node scripts/packaging/package-release.mjs",
     "test:e2e:packaged": "WSL_E2E_TARGET=packaged playwright test",
     "typecheck:baseline": "node node_modules/typescript-baseline/lib/tsc.js -p tsconfig.json --noEmit",
     "baseline:selftest": "tsx --test tests/vertical-slice/selftest.test.ts",
-    "baseline": "tsx tests/vertical-slice/run.ts"
+    "baseline": "tsx tests/vertical-slice/run.ts",
+    "payloads:prepare": "node scripts/packaging/prepare-payloads.mjs",
+    "package:unsigned": "node scripts/packaging/package-release.mjs --unsigned",
+    "test:packaging": "node --test scripts/packaging/*.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

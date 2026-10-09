@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { app, utilityProcess, type UtilityProcess } from 'electron';
 import {
   EnvironmentListSchema,
+  ServiceRuntimeConfigSchema,
+  type ServiceRuntimeConfig,
   ObservationResultSchema,
   type ResourceInstanceIdentity,
   type ObservationRequest,
@@ -66,11 +68,15 @@ export class ChatService {
     private readonly onTerminal: (snapshot: TerminalSnapshot, resourceId: string, binding: ResourceInstanceIdentity) => void = () =>
       undefined,
     private readonly onFileHint: (hint: FileInvalidationHint) => void = () => undefined,
+    runtime?: ServiceRuntimeConfig,
   ) {
     const entry = app.isPackaged
       ? path.join(process.resourcesPath, 'service/index.cjs')
       : path.resolve(app.getAppPath(), '../service/out/index.cjs');
-    this.child = utilityProcess.fork(entry, [path.join(app.getPath('userData'), 'chat')], { serviceName: 'Codex 对话', stdio: 'pipe' });
+    if (app.isPackaged && !runtime) throw new Error('正式包缺少运行配置');
+    const args = [path.join(app.getPath('userData'), 'chat')];
+    if (runtime) args.push(JSON.stringify(ServiceRuntimeConfigSchema.parse(runtime)));
+    this.child = utilityProcess.fork(entry, args, { serviceName: 'Codex 对话', stdio: 'pipe' });
     this.exit = new Promise((resolve) =>
       this.child.once('exit', (code) => {
         this.fail(`对话服务已退出（${code}）`);

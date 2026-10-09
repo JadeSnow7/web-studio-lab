@@ -1,0 +1,43 @@
+{
+  "kind": "internal-unsigned",
+  "formalRelease": false,
+  "dependencies": {
+    "schemaVersion": 1,
+    "platform": "darwin-arm64",
+    "minimumFreeBytes": 9926700956,
+    "python": {
+      "path": "python/bin/python3",
+      "executable": "python/bin/python3",
+      "sha256": "bf4ea26231212e330b8e9b6f24969a30f894fec88665bf42754070d114ac7fc6",
+      "archiveSha256": "6f304f4ec30854611f23316578302235fb517cd970519ecdd11a8c4db87fd843",
+      "expandedBytes": 49076095,
+      "source": "https://github.com/astral-sh/python-build-standalone/releases/download/20260414/cpython-3.14.4%2B20260414-aarch64-apple-darwin-install_only_stripped.tar.gz",
+      "license": "Python-2.0 and PSF; bundled third-party licenses",
+      "version": "3.14.4+20260414"
+    },
+    "guest": {
+      "path": "guest-tools.tar.gz",
+      "sha256": "35597c73108a672d91b28c220685f449552559d7bc980cb0a3a7ff17c6aaa072",
+      "expandedBytes": 619307087,
+      "source": "https://github.com/JadeSnow7/web-studio-lab/blob/main/packaging/dependencies.lock.json",
+      "license": "Node.js MIT and bundled third-party notices; pnpm MIT; Codex Apache-2.0 and bundled third-party notices",
+      "node": "24.21.0",
+      "pnpm": "10.34.6",
+      "codex": "0.160.0"
+    },
+    "baseImage": "docker.io/docker/sandbox-templates@sha256:8b4cd0a46c8b600bc6b6a64af23c03d4c2807fbfc61f47568092a93fb9dc88b0"
+  },
+  "service": {
+    "optionalNativeModules": ["cpu-features", "./crypto/build/Release/sshcrypto.node"]
+  },
+  "artifacts": [
+    {
+      "path": "apps/desktop/release-internal/Web Studio Lab-0.1.0-arm64.dmg",
+      "sha256": "555b5e812e2169d179b7a97f16fc8a2706c279fb8bf881299ad6eb4b06083a9f"
+    },
+    {
+      "path": "apps/desktop/release-internal/Web Studio Lab-0.1.0-arm64-mac.zip",
+      "sha256": "10bebd872ce3e8e1de6f2ced234feb5d68979b95ad1d2ab2d482455b9bf712c5"
+    }
+  ]
+}

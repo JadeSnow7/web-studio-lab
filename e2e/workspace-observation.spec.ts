@@ -88,7 +88,7 @@ test('未配置环境明确禁用能力，不创建未授权文件标签', async
     const editor = page.getByRole('dialog', { name: '新建标签' });
     await editor.getByLabel('标签类型').selectOption('file');
     await editor.getByLabel('名称', { exact: true }).fill('不可用文件');
-    await expect(editor).toContainText('未配置 WSL_OBSERVATION_ROOT');
+    await expect(editor).toContainText('未授权本地目录');
     await expect(editor.getByLabel('资源环境').locator('option[value="local"]')).toHaveAttribute('disabled', '');
     await expect(editor.getByRole('button', { name: '保存', exact: true })).toBeDisabled();
     await editor.getByRole('button', { name: '取消', exact: true }).click();
