@@ -2,7 +2,7 @@ import { expect, test, type ElectronApplication, type Page } from '@playwright/t
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
-import { launchApp, workspaceSnapshot, target, workshopNavigate, setWindowSize } from './helpers';
+import { launchApp, workspaceSnapshot, target, setWindowSize } from './helpers';
 
 const fixture = new URL('./fixtures/sbx.mjs', import.meta.url).pathname;
 
@@ -13,12 +13,31 @@ async function useNarrowWindow(app: ElectronApplication, page: Page) {
 }
 
 async function showSpaceNavigation(page: Page) {
+  const navigation = page.getByRole('navigation', { name: 'Workshop 导航' });
   const sidebar = page.getByRole('region', { name: '空间导航', exact: true });
-  if (!(await sidebar.isVisible())) {
-    await workshopNavigate(page, '空间');
-    // Selecting a route closes a narrow-window overlay; reopen it for tab actions.
-    if (!(await sidebar.isVisible())) await page.getByRole('button', { name: '展开 Workshop', exact: true }).click();
+  const openNavigation = async () => {
+    // The edge also opens on hover; keyboard activation cannot be intercepted by that overlay.
+    if (!(await navigation.isVisible())) {
+      const trigger = page.getByRole('button', { name: '展开 Workshop', exact: true });
+      await trigger.focus();
+      await expect(trigger).toBeFocused();
+      await trigger.press('Enter');
+    }
+    await expect(navigation).toBeVisible();
+  };
+  await openNavigation();
+  const space = navigation.getByRole('button', { name: '空间', exact: true });
+  if ((await space.getAttribute('aria-current')) !== 'page') {
+    const overlay = await page.getByRole('complementary', { name: 'Workshop（临时展开）', exact: true }).isVisible();
+    await space.focus();
+    await expect(space).toBeFocused();
+    await space.press('Enter');
+    await expect(page.getByRole('button', { name: '切换空间', exact: true })).toBeVisible();
+    // Only a real route change closes the overlay; observe its close before reopening.
+    if (overlay) await expect(navigation).not.toBeVisible();
+    await openNavigation();
   }
+  await expect(space).toHaveAttribute('aria-current', 'page');
   await expect(sidebar).toBeVisible();
 }
 
@@ -106,6 +125,9 @@ test('未配置环境明确禁用能力，不创建未授权文件标签', async
   const { app, page } = await launchApp({ observationRoot: '' });
   try {
     await useNarrowWindow(app, page);
+    // Cover returning from another route as well as opening the current space in the file/PTY cases.
+    await page.getByRole('button', { name: /^Codex CLI · / }).click();
+    await expect(page.getByRole('region', { name: '应用设置', exact: true })).toBeVisible();
     await showSpaceNavigation(page);
     await page.getByRole('button', { name: '新建标签', exact: true }).click();
     const editor = page.getByRole('dialog', { name: '新建标签' });
