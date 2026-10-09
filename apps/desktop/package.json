@@ -1,7 +1,7 @@
 {
   "name": "@wsl/desktop",
   "productName": "Web Studio Lab",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "description": "Web Studio Lab 桌面工作台（Electron）",
   "license": "Apache-2.0",
