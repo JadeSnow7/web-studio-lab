@@ -8,9 +8,9 @@
 - 全局保留首页、空间、资源、会话、任务和设置；空间页使用垂直标签与最多四窗格。左右栏是全局展示容器，固定偏好属于本设备，不属于空间业务。主题仍按空间保存，设置页是唯一编辑入口。
 - `apps/service` 提供 sbx 会话、guest PTY、空间资源存储与只读 MCP；`guest-browser-bridge.ts` 与 `guest-browser.cjs` 是隔离浏览器采集切片，尚未完成生产 UI 挂载验证。
 - `packages/protocol` 是跨进程schema来源；空间操作经workbench命令，旧空间/预览/运行/资源/终端renderer控制器随消费者迁移退役。个人会话仍使用窄chat接口。
-- `tests/vertical-slice`、`fixtures/vertical-slice/page` 与 [VS001](../acceptance/README.md) 保留 main 的固定验收与负例。`src/vertical-slice/adapter.ts` 尚不存在；基线自检通过不代表真实 Agent→应用→CDP 闭环通过。
+- `tests/vertical-slice`、`fixtures/vertical-slice/page` 与 [VS001](../acceptance/README.md) 保留 main 的固定验收与负例。`src/vertical-slice/adapter.ts` 已复用 sbx/Codex、Vite 和产品 Browser 接入冻结契约；[本轮记录](../acceptance/integrated-app-installer-public-20261009/README.md)区分最终整合验证与历史离线验证。
 - 空间元数据、草稿、任务版本、历史运行与阅读回执可以恢复；重启不重放任务和PTY。空间运行、取消、检查与审阅为独立事实；独立检查器尚未接入时明确blocked，不能接受结果。
-- 母模板、priority业务API、C1–C3完整固定验收、真实diff/报告产物及VS001产品adapter仍有缺口。独立文件、终端观察和SSH/SFTP Provider、Main/MCP及空间界面已接入，验收仍按本轮阶段记录判断；Provider单元测试不证明可见功能或生产远端验收。演示页面和历史记录不能当作真实闭环证据。
+- 固定母模板与受管App第一工作包已接入，见下文；priority业务API、C1–C3完整固定验收及任务页真实diff/报告产物仍有缺口；VS001 adapter 的代码接入不能替代真实五项复验。独立文件、终端观察和SSH/SFTP Provider、Main/MCP及空间界面已接入，验收仍按本轮阶段记录判断；Provider单元测试不证明可见功能或生产远端验收。演示页面和历史记录不能当作真实闭环证据。
 
 ## 现有契约与目标约束的协调
 
@@ -20,21 +20,21 @@
 
 ## 4. Electron 安全基线
 
-当前 Browser 区承载演示页面和受控的公开 HTTPS 只读文档，统一按不可信内容处理。Agent 生成应用的运行地址及 guest 服务端口预览尚未接入；下面的隔离边界同样约束未来接入。
+当前 Browser 区承载演示页面、受控公开 HTTPS 只读文档和当前空间受管沙箱应用，统一按不可信内容处理。应用运行地址须经服务身份健康检查和 Main 实例租约授权，以下隔离边界保持不变。
 
 ### 4.1 窗口与视图配置
 
-| 配置                   | 工作台 renderer  | Browser 区视图                                                                                                 |
-| ---------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------- |
-| `contextIsolation`     | `true`           | `true`                                                                                                         |
-| `sandbox`              | `true`           | `true`                                                                                                         |
-| `nodeIntegration`      | `false`          | `false`                                                                                                        |
-| `webSecurity`          | `true`           | `true`                                                                                                         |
-| preload                | 仅工作台 preload | **无**                                                                                                         |
-| session                | 默认 session     | 独立内存分区 `preview-<workspaceId>-<instanceId>`，与工作台隔离                                                |
-| 权限请求               | 默认拒绝         | 默认全部拒绝                                                                                                   |
-| `window.open` / 新窗口 | 拒绝             | 拒绝                                                                                                           |
-| 导航                   | 只允许本应用页面 | 当前允许 `wsl-demo://taskflow`；用户授权的公开 HTTPS 采用下述只读文档代理路径。产品未注册 localhost 运行预览源 |
+| 配置                   | 工作台 renderer  | Browser 区视图                                                                                                                           |
+| ---------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `contextIsolation`     | `true`           | `true`                                                                                                                                   |
+| `sandbox`              | `true`           | `true`                                                                                                                                   |
+| `nodeIntegration`      | `false`          | `false`                                                                                                                                  |
+| `webSecurity`          | `true`           | `true`                                                                                                                                   |
+| preload                | 仅工作台 preload | **无**                                                                                                                                   |
+| session                | 默认 session     | 独立内存分区 `preview-<workspaceId>-<instanceId>`，与工作台隔离                                                                          |
+| 权限请求               | 默认拒绝         | 默认全部拒绝                                                                                                                             |
+| `window.open` / 新窗口 | 拒绝             | 拒绝                                                                                                                                     |
+| 导航                   | 只允许本应用页面 | 当前允许 `wsl-demo://taskflow`；用户授权的公开 HTTPS 采用下述只读文档代理路径。受管沙箱应用仅注册本次实例的精确回环 origin，停止立即撤销 |
 
 其他要求：
 
@@ -116,3 +116,19 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 观察证据在用户数据目录的 observations 子目录用新 UUID 和排他创建写入，历史不覆写。近期窗口可移出已归档记录，但不会驱逐仍在请求或归档中的对象。结果完成与取消在第一次 Main 归并时决定先后，稍后的取消不改写已完成证据。存储失败可见，不能冒充成功归档。
 
 空间文件标签通过 `Files` 提供只读列表、搜索、读取和续读；空间会话的上下文通过 `SessionObservation` 选择实际资源并显示范围、结果和历史。新建文件/终端必须选已配置环境，初始检查到就绪的环境投影由 Main 广播刷新，旧异步查询不能覆盖新结果。关闭标签不会清除资源身份，原生浮层和六页外壳继续遵循 SR-1。
+
+## 标准应用与受管服务（2026-10-09 第一工作包）
+
+`templates/standard-app` 是唯一工程母模板，React/TS/Vite、Node/Hono、Drizzle/PGlite、Zod 与 Tailwind 使用独立 npm 锁与版本内容哈希。空白起点只包含健康检查、数据库迁移、开发 A/B 会话与隔离的存储探针，不包含 TaskFlow 业务。正式服务由 Hono 单端口提供构建后的页面和 API，开发命令仍保留 Vite。
+
+空间侧栏通过现有 workbench 命令提交 createApp/startApp/stopApp/exportApp；Main 唯一拥有 workspace/project/App 快照。独立 Node 服务中的 AppService 复用 SbxConnection/GuestProcess 管理持久 guest cwd，应用进程不归单轮 Codex 清理。实际 guest PORT=0 分配端口，服务验证同一 child 的 ready 身份、端口回执与健康身份后，Main 仅给对应 Browser 资源授予当前 origin 的写请求能力。公开文档仍只读，其他 webContents 不能复用授权。
+
+停止先在 guest child 仍存活时核验并删除自己的 loopback 映射，再关闭进程并等清理回执；VM重启导致映射变化或回执缺失时保留未知状态，禁止猜测清理其他映射。注册表绑定真实 sandbox 名称，只恢复项目描述，不自动重放服务。首次准备执行 seed，普通重启只迁移、检查和构建，磁盘 dataDir 保持。源码导出需停服确认，输出实际完整源码目录和同级 manifest，不混入运行数据或 node_modules。
+
+工具链、模板服务、产品窗口与唯一模型调用的证据分别见[本轮记录](../acceptance/integrated-app-installer-public-20261009/README.md)。本包未实现比赛业务验收、正式签名公证发布、全套任务源码写入流程或统一观察中该 sandbox Browser 的额外授权；不能把母模板健康检查视为 AI 生成完整业务。
+
+### 安装包中的标准应用
+
+安装器配置与应用服务共用一个 `SbxConnection`；`runtimeTarget()` 只返回已初始化的 binary/sandbox，App 导入和端口操作不另行搜索 PATH。显式空配置保持不可用，不回退环境变量。Main 从包内 `runtime/dependencies.json` 派生只读模板依赖配置，校验模板源码、独立锁与归档后传给执行服务。损坏载荷在原设置页显示错误并禁止 sandbox 连接。模板存于包内 `templates/standard-app`，Linux ARM64/glibc 依赖包存于 runtime；归档准备审计实际 ELF、外来平台、必需 native 模块和执行位，并收集依赖许可。
+
+窗口退出分别尝试安装操作与工作台服务清理；服务内部先清理受管应用再关闭 sbx 连接。任一所属资源清理未确认时保留失败供核验，不用窗口退出掩盖 guest 状态。公开只读 origin 和受管 App 可写 origin 仍分别按精确实例 lease 校验。

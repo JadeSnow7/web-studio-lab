@@ -2366,3 +2366,16 @@ textarea.resize-none {
 .observation-history {
   margin-block: 16px;
 }
+
+.managed-app-controls {
+  padding: 12px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  max-height: 45%;
+  overflow: auto;
+  flex-shrink: 0;
+}
+.managed-app-controls p {
+  margin: 0;
+}

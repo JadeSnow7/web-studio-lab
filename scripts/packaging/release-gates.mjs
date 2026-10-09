@@ -1,3 +1,4 @@
+import { auditTemplateArchive } from './template-payload.mjs';
 /* global process */
 import { readFile, access } from 'node:fs/promises';
 import path from 'node:path';
@@ -58,6 +59,26 @@ export async function verifyPayloads(directory = runtimeRoot) {
       throw new Error(`Missing or corrupt prepared payload: ${payload.path}`);
   }
   auditGuestArchive(await readFile(path.join(directory, manifest.guest.path)));
+  if (
+    !manifest.template ||
+    manifest.template.path !== 'template-dependencies.tar.gz' ||
+    manifest.template.platform !== 'linux' ||
+    manifest.template.arch !== 'arm64' ||
+    manifest.template.libc !== 'glibc'
+  )
+    throw new Error('Missing template Linux ARM64/glibc payload');
+  const templateRoot = path.join(root, 'templates/standard-app');
+  execFileSync(process.execPath, ['scripts/template-hash.mjs', '--verify'], { cwd: templateRoot });
+  const templateSource = JSON.parse(await readFile(path.join(templateRoot, 'template-manifest.json'), 'utf8'));
+  if (
+    manifest.template.lockSha256 !== (await fileHash(path.join(templateRoot, 'package-lock.json'))) ||
+    manifest.template.contentSha256 !== templateSource.contentSha256
+  )
+    throw new Error('Prepared template does not match source/lock');
+  if ((await fileHash(path.join(directory, manifest.template.path))) !== manifest.template.sha256)
+    throw new Error('Missing or corrupt prepared template payload');
+  auditTemplateArchive(await readFile(path.join(directory, manifest.template.path)));
+  await access(path.join(directory, 'licenses/template/manifest.json'));
   const sourceLock = JSON.parse(await readFile(path.join(directory, 'dependency-sources.json'), 'utf8'));
   if (JSON.stringify(sourceLock) !== JSON.stringify(lock)) throw new Error('Prepared payload source lock differs from tracked lock');
   await access(path.join(directory, 'THIRD-PARTY-NOTICES.md'));
@@ -92,7 +113,7 @@ export async function sourceFingerprint() {
   const inputs = [...new Set(files)]
     .filter(
       (file) =>
-        /^(apps|packages|scripts|packaging|\.github)\//.test(file) ||
+        /^(apps|packages|scripts|packaging|templates|\.github)\//.test(file) ||
         releaseDocuments.some((document) => document.source === file) ||
         file === 'docs/development/github-release.md' ||
         /^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|tsconfig.*\.json|eslint\.config\.js|vitest\.config\.ts|\.gitignore|THIRD-PARTY-NOTICES\.md|LICENSE)$/.test(

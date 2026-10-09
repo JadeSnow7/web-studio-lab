@@ -24,9 +24,20 @@ export const RuntimeConfigSchema = z
   })
   .strict();
 export type RuntimeConfig = z.infer<typeof RuntimeConfigSchema>;
+export const TemplateDependenciesSchema = z
+  .object({
+    archivePath: AbsolutePath,
+    archiveSha256: z.string().regex(/^[a-f0-9]{64}$/),
+    lockSha256: z.string().regex(/^[a-f0-9]{64}$/),
+    platform: z.literal('linux'),
+    arch: z.literal('arm64'),
+    libc: z.literal('glibc'),
+  })
+  .strict();
 export const ServiceRuntimeConfigSchema = RuntimeConfigSchema.extend({
   sandbox: z.string().min(1).max(200).nullable(),
   sshAgent: AbsolutePath.nullable(),
+  templateDependencies: TemplateDependenciesSchema.optional(),
 }).strict();
 export type ServiceRuntimeConfig = z.infer<typeof ServiceRuntimeConfigSchema>;
 export const SetupStageSchema = z.enum(['check', 'sbx', 'docker-login', 'sandbox', 'tools', 'model-login', 'probe', 'ready']);
@@ -72,6 +83,15 @@ export const DependencyManifestSchema = z
       executable: z.string().min(1),
     }).strict(),
     guest: PayloadSchema.extend({ node: z.literal('24.21.0'), pnpm: z.literal('10.34.6'), codex: z.literal('0.160.0') }).strict(),
+    template: PayloadSchema.extend({
+      lockSha256: z.string().regex(/^[a-f0-9]{64}$/),
+      contentSha256: z.string().regex(/^[a-f0-9]{64}$/),
+      platform: z.literal('linux'),
+      arch: z.literal('arm64'),
+      libc: z.literal('glibc'),
+    })
+      .strict()
+      .optional(),
     baseImage: z.literal('docker.io/docker/sandbox-templates@sha256:8b4cd0a46c8b600bc6b6a64af23c03d4c2807fbfc61f47568092a93fb9dc88b0'),
   })
   .strict();

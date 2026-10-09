@@ -112,7 +112,14 @@ export function inspectTar(archive) {
       const target = path.posix.normalize(type === '2' ? path.posix.join(path.posix.dirname(name), link) : link);
       safeRelative(target);
     }
-    entries.push({ name, type, size, link, header: Buffer.from(body.subarray(0, 64)) });
+    entries.push({
+      name,
+      type,
+      size,
+      mode: parseInt(text(header.subarray(100, 108)).trim() || '0', 8),
+      link,
+      header: Buffer.from(body.subarray(0, 64)),
+    });
     pax = {};
     longName = undefined;
     longLink = undefined;

@@ -24,6 +24,7 @@ export function Browser({
   const composing = useRef(false);
   const p = resource.preview;
   const workspace = useStore(workspaceStore, (s) => s.snapshot?.workspaces.find((w) => w.workspaceId === workspaceId));
+  const managedAppInstanceId = resource.appProjectId ? workspace?.managedApp?.appInstanceId : null;
   const [associatedSessionId, setAssociatedSessionId] = useState('');
   const capture = () => captureContext(workspaceId, associatedSessionId, resource.resourceId);
   const [creatingSession, setCreatingSession] = useState(false);
@@ -99,7 +100,7 @@ export function Browser({
         layout: { visible: false, bounds: { x: 0, y: 0, width: 0, height: 0 } },
       });
     };
-  }, [workspaceId, resource.resourceId, visible, occluded]);
+  }, [workspaceId, resource.resourceId, resource.url, managedAppInstanceId, visible, occluded]);
   return (
     <div className="workspace-browser">
       <div className="browser-toolbar">
@@ -192,21 +193,27 @@ export function Browser({
           请在此网页的“关联会话”中明确选择会话，再点击“采集到关联会话”。没有会话时可新建关联会话；采集结果保存在所选会话。
         </p>
       ) : null}
-      <div className="resource-browser-actions row wrap gap-8">
-        <span className="muted small">公开 HTTPS 网页 · 只读参考资源</span>
-        <button
-          type="button"
-          className="btn"
-          disabled={!p?.page.url.startsWith('https://') || saving || p.loading || !!p.loadError || workspaceId !== 'taskflow-demo'}
-          onClick={() => void capturePublic()}
-        >
-          加入空间
-        </button>
-        <button type="button" className="btn btn-ghost" onClick={() => shellActions.navigate('resources')}>
-          查看空间资源
-        </button>
-      </div>
-      {workspace?.publicResourcesError ? (
+      {resource.appProjectId ? (
+        <p className="resource-browser-actions muted small" role="status">
+          沙箱应用 · {workspace?.managedApp?.state === 'running' ? '服务运行中' : '服务未运行'}
+        </p>
+      ) : (
+        <div className="resource-browser-actions row wrap gap-8">
+          <span className="muted small">公开 HTTPS 网页 · 只读参考资源</span>
+          <button
+            type="button"
+            className="btn"
+            disabled={!p?.page.url.startsWith('https://') || saving || p.loading || !!p.loadError || workspaceId !== 'taskflow-demo'}
+            onClick={() => void capturePublic()}
+          >
+            加入空间
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => shellActions.navigate('resources')}>
+            查看空间资源
+          </button>
+        </div>
+      )}
+      {!resource.appProjectId && workspace?.publicResourcesError ? (
         <p className="workspace-inline-error" role="alert">
           公开资源操作失败：{workspace.publicResourcesError}
         </p>
@@ -234,7 +241,7 @@ export function Browser({
         {occluded ? (
           <p className="preview-placeholder">浮层打开期间网页已让位，关闭后恢复</p>
         ) : !resource.instanceId ? (
-          <p className="preview-placeholder">正在恢复网页…</p>
+          <p className="preview-placeholder">{resource.unavailableReason ?? '正在恢复网页…'}</p>
         ) : null}
       </div>
     </div>

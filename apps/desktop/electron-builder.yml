@@ -16,6 +16,13 @@ extraResources:
     to: demo/taskflow
   - from: ../../packaging/generated/runtime
     to: runtime
+  - from: ../../templates/standard-app
+    to: templates/standard-app
+    filter:
+      - '**/*'
+      - '!node_modules/**'
+      - '!dist/**'
+      - '!.data/**'
 asar: true
 npmRebuild: false
 mac:

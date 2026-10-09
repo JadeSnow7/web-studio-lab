@@ -1,5 +1,7 @@
 import type {
   ResourceCollection,
+  ManagedApp,
+  AppTarget,
   EnvironmentDescription,
   ObservationRequest,
   ObservationResult,
@@ -13,6 +15,12 @@ import type {
   WorkbenchResource,
 } from '@wsl/protocol';
 export interface WorkbenchRuntime {
+  appGet?(target: AppTarget): Promise<ManagedApp>;
+  appCreate?(target: AppTarget): Promise<ManagedApp>;
+  appStart?(target: AppTarget): Promise<ManagedApp>;
+  appStop?(target: AppTarget): Promise<ManagedApp>;
+  appExport?(target: AppTarget): Promise<{ path: string; manifestPath?: string; sha256: string }>;
+  releaseAppBrowser?(resourceId: string): void;
   environmentsList(): Promise<EnvironmentDescription[]>;
   registerResource(identity: ResourceInstanceIdentity): Promise<void>;
   observe(request: ObservationRequest, signal: AbortSignal): Promise<ObservationResult>;

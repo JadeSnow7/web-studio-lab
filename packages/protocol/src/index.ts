@@ -1,4 +1,5 @@
 export * from './app';
+export * from './managed-app';
 export * from './chat';
 export * from './execution';
 export * from './ipc';

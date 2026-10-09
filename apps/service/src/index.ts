@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import path from 'node:path';
+import { AppService } from './app-service';
 import {
   ObservationRequestSchema,
   ServiceRuntimeConfigSchema,
@@ -25,6 +27,12 @@ const send = (message: ChatServiceMessage) => parent.postMessage(ChatServiceMess
 const runtime = process.argv[3] ? ServiceRuntimeConfigSchema.parse(JSON.parse(process.argv[3])) : undefined;
 const resources = new ResourceStore(root);
 const chat = new CodexChat(root, (conversation) => send({ type: 'event', conversation }), new SbxConnection(runtime), resources);
+const apps = new AppService(chat.connection, {
+  registryPath: path.join(root, 'app-registry.json'),
+  dependencyArchivePath: runtime ? runtime.templateDependencies?.archivePath : process.env['WSL_APP_DEPENDENCY_ARCHIVE'],
+  dependencyManifest: runtime?.templateDependencies,
+  onSnapshot: (snapshot) => send({ type: 'app-event', snapshot }),
+});
 const environments = new EnvironmentResources(
   chat.connection,
   (terminal, binding) => send({ type: 'terminal-event', terminal, resourceId: binding.resourceId, binding }),
@@ -71,6 +79,25 @@ parent.on('message', ({ data }) => {
       if (['send', 'resources.save', 'resources.remove'].includes(request.method)) await ready;
       let result;
       switch (request.method) {
+        case 'app.get':
+          await ready;
+          result = await apps.restore(request.payload);
+          break;
+        case 'app.create':
+          await ready;
+          result = await apps.create(request.payload);
+          break;
+        case 'app.start':
+          await ready;
+          result = await apps.start(request.payload);
+          break;
+        case 'app.stop':
+          result = await apps.stop(request.payload);
+          break;
+        case 'app.export':
+          await ready;
+          result = await apps.export(request.payload);
+          break;
         case 'observation.reply': {
           const call = observationCalls.get(request.payload.callId);
           if (call) {
@@ -159,6 +186,7 @@ parent.on('message', ({ data }) => {
           break;
         case 'shutdown': {
           for (const controller of observations.values()) controller.abort();
+          await apps.shutdown();
           const results = await Promise.allSettled([chat.shutdown(), environments.shutdown()]);
           const failure = results.find((result) => result.status === 'rejected');
           if (failure?.status === 'rejected') throw failure.reason;
@@ -180,7 +208,9 @@ parent.on('message', ({ data }) => {
 
 process.on('SIGTERM', () => {
   for (const controller of observations.values()) controller.abort();
-  void Promise.all([chat.shutdown(), environments.shutdown()])
+  void apps
+    .shutdown()
+    .then(() => Promise.all([chat.shutdown(), environments.shutdown()]))
     .then(() => process.exit(0))
     .catch((error: unknown) => {
       console.error('guest 清理失败', error);

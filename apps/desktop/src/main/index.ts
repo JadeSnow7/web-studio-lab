@@ -1,3 +1,5 @@
+import { shutdownOwners } from './shutdown';
+import { packagedTemplateRuntime } from './template-runtime';
 import { SetupManager } from './setup';
 import { NativeSetupAdapter } from './setup-adapter';
 import { WorkbenchApplication } from './workbench/application';
@@ -26,6 +28,16 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
   const trusted = rendererSource();
   const window = createMainWindow(trusted);
 
+  let templateDependencies;
+  if (app.isPackaged) {
+    try {
+      templateDependencies = packagedTemplateRuntime(process.resourcesPath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '标准模板载荷校验失败';
+      console.error('Installed template rejected:', message);
+      setup.blockInstalledPayload(message);
+    }
+  }
   let workbench: WorkbenchApplication | null = null;
   const chat = new ChatService(
     (conversation) => {
@@ -42,7 +54,11 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
     (hint) => workbench?.onFileHint(hint),
     !app.isPackaged && ['WSL_SBX_NAME', 'WSL_SBX_BIN', 'WSL_OBSERVATION_ROOT', 'WSL_SSH_HOST'].some((key) => process.env[key])
       ? undefined
-      : { ...setup.runtimeConfig(), sshAgent: process.env['SSH_AUTH_SOCK'] ?? null },
+      : {
+          ...setup.runtimeConfig(),
+          sshAgent: process.env['SSH_AUTH_SOCK'] ?? null,
+          ...(templateDependencies ? { templateDependencies } : {}),
+        },
   );
   const host = new WorkbenchHost(window, chat, demoRoot());
   workbench = new WorkbenchApplication(new FileWorkbenchRepository(path.join(app.getPath('userData'), 'workbench.json')), host, (event) =>
@@ -62,9 +78,7 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
     event.preventDefault();
     if (closing) return;
     closing = true;
-    void setup
-      .shutdown()
-      .then(() => chat.shutdown())
+    void shutdownOwners([() => setup.shutdown(), () => chat.shutdown()])
       .then(async () => {
         try {
           await workbench?.getSnapshot();

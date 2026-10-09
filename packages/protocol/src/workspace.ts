@@ -2,6 +2,7 @@ import { ObservationRecordSchema, FileInvalidationHintSchema } from './observati
 import { EnvironmentListSchema } from './environments';
 import { ResourceCollectionSchema } from './resources';
 import { z } from 'zod';
+import { ManagedAppSchema } from './managed-app';
 import { ChatConversationSchema } from './chat';
 import { PageCaptureSchema, PreviewLayoutSchema, PreviewStateSchema } from './preview';
 import { TerminalWriteSchema, TerminalSnapshotSchema } from './terminal';
@@ -103,6 +104,7 @@ export type WorkbenchSession = z.infer<typeof WorkbenchSessionSchema>;
 export const WorkbenchResourceSchema = z.object({
   resourceId: Id,
   environmentId: z.enum(['local', 'sandbox', 'ssh']).nullable(),
+  appProjectId: z.uuid().optional(),
   kind: TargetRefSchema.shape.kind,
   title: z.string(),
   url: z.string().nullable(),
@@ -114,6 +116,8 @@ export const WorkbenchResourceSchema = z.object({
 });
 export type WorkbenchResource = z.infer<typeof WorkbenchResourceSchema>;
 export const WorkspaceSnapshotSchema = z.object({
+  managedApp: ManagedAppSchema.nullable().optional(),
+  appExport: z.object({ path: z.string(), manifestPath: z.string().optional(), sha256: z.string() }).nullable().optional(),
   workspaceId: Id,
   name: z.string().min(1).max(200),
   revision: z.number().int().nonnegative(),
@@ -156,6 +160,10 @@ const Base = { commandId: Id, workspaceId: Id, expectedRevision: z.number().int(
 const command = <T extends string, S extends z.ZodRawShape>(type: T, shape: S) =>
   z.object({ ...Base, type: z.literal(type), ...shape }).strict();
 export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
+  command('createApp', {}),
+  command('startApp', {}),
+  command('stopApp', {}),
+  command('exportApp', {}),
   command('createWorkspace', { name: z.string().trim().min(1).max(200) }),
   command('renameWorkspace', { name: z.string().trim().min(1).max(200) }),
   command('switchWorkspace', {}),

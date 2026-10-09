@@ -92,6 +92,7 @@ export async function launchApp(
       );
     }
     for (const key of Object.keys(env)) if (key.startsWith('WSL_')) delete env[key as keyof typeof env];
+    if (options.live) env['PATH'] = '/usr/bin:/bin:/usr/sbin:/sbin';
   }
   // Install the observer before the real entrypoint creates any renderer.
   const bootstrap = path.join(await mkdtemp(path.join(tmpdir(), 'wsl-e2e-bootstrap-')), 'main.cjs');

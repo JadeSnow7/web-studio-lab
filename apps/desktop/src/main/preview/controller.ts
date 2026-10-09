@@ -31,6 +31,7 @@ export interface PreviewControllerOptions {
   partition: string;
   homeUrl: string;
   allowedOrigins: readonly string[];
+  managedAppOrigin?(): string | null;
   onState(state: PreviewState): void;
   onCaptured(capture: PageCapture, requestId: string): void;
   onCaptureError?(error: Error, requestId: string, kind: 'failed' | 'cancelled'): void;
@@ -83,6 +84,7 @@ export class PreviewController {
       window.contentView.addChildView(this.view);
       protocol = new PublicDocumentProtocol(this.webContents.session, {
         allowedOrigins: options.allowedOrigins,
+        managedAppOrigin: options.managedAppOrigin,
         webContentsId: this.webContents.id,
         devToolsWebContentsId: () => this.devToolsWindow?.webContents.id,
         epoch: () => this.navigationEpoch,

@@ -37,6 +37,10 @@ export function panes(layout: PaneLayout): Array<Extract<PaneLayout, { kind: 'pa
 }
 const metadataQueues = new Map<string, Promise<unknown>>();
 const runtimeCommands = new Set([
+  'createApp',
+  'startApp',
+  'stopApp',
+  'exportApp',
   'browserLayout',
   'browserAction',
   'terminalOpen',

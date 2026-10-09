@@ -37,7 +37,7 @@ export async function prunePnpmForeignTargets(directory) {
   }
   return removed;
 }
-function inspectLinuxBinary(name, header, elfFiles) {
+export function inspectLinuxBinary(name, header, elfFiles) {
   const kind = format(header);
   if (kind === 'Mach-O' || kind === 'PE') throw new Error(`Foreign ${kind} binary in Linux ARM64 guest: ${name}`);
   if (kind !== 'ELF') return;

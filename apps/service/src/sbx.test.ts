@@ -187,3 +187,19 @@ describe('guest helper 宿主边界', () => {
     expect(workbenchRejected).toBe(true);
   });
 });
+
+it('configured connection ignores contradictory env and exposes the same initialized target to app transport', async () => {
+  vi.stubEnv('WSL_SBX_BIN', '/wrong/environment/sbx');
+  vi.stubEnv('WSL_SBX_NAME', 'wrong-sandbox');
+  const configured = new SbxConnection({ sbxBinary: binary, sandbox: 'fixture-sandbox' });
+  expect(() => configured.runtimeTarget()).toThrow();
+  expect((await configured.initialize()).available).toBe(true);
+  expect(configured.runtimeTarget()).toEqual({ binary, sandbox: 'fixture-sandbox' });
+  await configured.shutdown();
+  expect(() => configured.runtimeTarget()).toThrow();
+});
+it('explicit null configuration never falls back to environment credentials or tools', async () => {
+  const configured = new SbxConnection({ sbxBinary: null, sandbox: null });
+  expect((await configured.initialize()).available).toBe(false);
+  expect(() => configured.runtimeTarget()).toThrow();
+});

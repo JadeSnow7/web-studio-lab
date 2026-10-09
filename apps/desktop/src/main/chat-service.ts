@@ -2,6 +2,11 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { app, utilityProcess, type UtilityProcess } from 'electron';
 import {
+  ManagedAppSchema,
+  AppSourceSchema,
+  type AppTarget,
+  type AppSource,
+  type ManagedApp,
   EnvironmentListSchema,
   ServiceRuntimeConfigSchema,
   type ServiceRuntimeConfig,
@@ -30,6 +35,11 @@ import {
 
 export class ChatService {
   private child: UtilityProcess;
+  private readonly managedApps = new Map<string, ManagedApp>();
+  private appListener: ((snapshot: ManagedApp) => void) | null = null;
+  setAppListener(listener: (snapshot: ManagedApp) => void) {
+    this.appListener = listener;
+  }
   private readonly pending = new Map<
     string,
     {
@@ -86,6 +96,11 @@ export class ChatService {
     this.child.on('message', (raw: unknown) => {
       try {
         const message = ChatServiceMessageSchema.parse(raw);
+        if (message.type === 'app-event') {
+          this.managedApps.set(message.snapshot.projectId, message.snapshot);
+          this.appListener?.(message.snapshot);
+          return;
+        }
         if (message.type === 'initialized') {
           this.initializationPending = message.cleanupPending;
           this.lastStatus = message.status;
@@ -168,6 +183,19 @@ export class ChatService {
   private fail(reason: string) {
     for (const controller of this.observationCalls.values()) controller.abort();
     this.failure ??= reason;
+    for (const current of this.managedApps.values()) {
+      if (current.state === 'running' || current.state === 'starting' || current.state === 'stopping') {
+        const failed: ManagedApp = {
+          ...current,
+          state: 'failed',
+          url: null,
+          error: reason + '；应用进程清理未确认',
+          cleanupConfirmed: false,
+        };
+        this.managedApps.set(current.projectId, failed);
+        this.appListener?.(failed);
+      }
+    }
     for (const request of this.pending.values()) {
       const start = request.start;
       if (!start) continue;
@@ -247,6 +275,31 @@ export class ChatService {
     if (previous && (previous.instanceId !== binding.instanceId || previous.instanceGeneration !== binding.instanceGeneration))
       this.terminals.delete(binding.resourceId);
     this.resourceBindings.set(binding.resourceId, binding);
+  }
+  async appGet(target: AppTarget) {
+    const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.get', payload: target }));
+    this.managedApps.set(target.projectId, snapshot);
+    return snapshot;
+  }
+  async appCreate(target: AppTarget, files: AppSource['files']) {
+    const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.create', payload: { ...target, files } }));
+    this.managedApps.set(target.projectId, snapshot);
+    return snapshot;
+  }
+  async appStart(target: AppTarget) {
+    const previous = this.managedApps.get(target.projectId);
+    if (previous) this.managedApps.set(target.projectId, { ...previous, state: 'starting', cleanupConfirmed: false });
+    const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.start', payload: target }));
+    this.managedApps.set(target.projectId, snapshot);
+    return snapshot;
+  }
+  async appStop(target: AppTarget) {
+    const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.stop', payload: target }));
+    this.managedApps.set(target.projectId, snapshot);
+    return snapshot;
+  }
+  async appExport(target: AppTarget) {
+    return AppSourceSchema.parse(await this.request({ method: 'app.export', payload: target }));
   }
   async observe(request: ObservationRequest) {
     return ObservationResultSchema.parse(await this.request({ method: 'observation.read', payload: request }));

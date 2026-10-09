@@ -8,18 +8,19 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 
 当前工作树按[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)保留升级前的全局布局，本地基准为 `9e1df45`。正在实施[跨分支整合 INTEGRATION-1](docs/acceptance/integration-20261008/SPEC.md)：`331c47f` 已加入统一观察协议与 Provider，`c97b673` 接入环境和终端，`d9beb8a` 接入 Main、持久化与 MCP，`612cde0` 接入空间文件浏览和会话观察；完整验证继续进行。源码、检查、原生窗口与未完成项分别记录在[当前验收](docs/acceptance/integration-20261008/task-summary.md)，历史记录不能替代本轮结果。
 
-| 能力         | 实现与验证边界                                                                   |
-| ------------ | -------------------------------------------------------------------------------- |
-| 全局导航     | 首页、空间、资源、会话、任务和底部设置保持独立入口；空间工作台只装配到空间页     |
-| 空间工作台   | 空间切换、垂直标签、最多四窗格、后台资源重开；关闭标签不停止实例                 |
-| 左右侧栏     | 全局按钮和空间标签整组浮动/固定；右侧仅通知；左右固定偏好分别保存到本设备        |
-| 主题         | 设置页编辑当前空间的白/暗/暖/系统主题，终端同步共享颜色                          |
-| 网页与现场   | 原生WebContentsView、地址与导航、同一页面CDP采集；请求固定接收会话与文档身份     |
-| 对话与终端   | sbx内Codex和Linux PTY；个人会话独立，空间会话由Main工作台管理                    |
-| 任务与通知   | 持久任务版本、运行历史、日志、终态通知与阅读回执；执行、检查和人工接受分别记录   |
-| 恢复         | 恢复元数据、草稿、布局和历史，不自动重放执行或重新连接PTY                        |
-| 完整业务闭环 | 母模板、priority业务API、独立检查器、真实diff/报告产物及VS001产品adapter仍未实现 |
-| 统一观察     | Browser、文件、终端与 SSH 已接 Main、MCP 和空间界面；完整验证进行中              |
+| 能力         | 实现与验证边界                                                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 全局导航     | 首页、空间、资源、会话、任务和底部设置保持独立入口；空间工作台只装配到空间页                                                                             |
+| 空间工作台   | 空间切换、垂直标签、最多四窗格、后台资源重开；关闭标签不停止实例                                                                                         |
+| 左右侧栏     | 全局按钮和空间标签整组浮动/固定；右侧仅通知；左右固定偏好分别保存到本设备                                                                                |
+| 主题         | 设置页编辑当前空间的白/暗/暖/系统主题，终端同步共享颜色                                                                                                  |
+| 网页与现场   | 原生WebContentsView、地址与导航、同一页面CDP采集；请求固定接收会话与文档身份                                                                             |
+| 对话与终端   | sbx内Codex和Linux PTY；个人会话独立，空间会话由Main工作台管理                                                                                            |
+| 任务与通知   | 持久任务版本、运行历史、日志、终态通知与阅读回执；执行、检查和人工接受分别记录                                                                           |
+| 恢复         | 恢复元数据、草稿、布局和历史，不自动重放执行或重新连接PTY                                                                                                |
+| 标准应用     | 独立版本化 React/TS/Vite + Hono + Drizzle/PGlite + Zod 模板；空间内创建、受管启动、Browser接入、停止与源码导出                                           |
+| 完整业务闭环 | priority业务API、独立检查器及任务页真实diff/报告仍未实现；VS001与标准应用的本轮结果见[最小闭环记录](docs/acceptance/integrated-app-installer-public-20261009/README.md) |
+| 统一观察     | Browser、文件、终端与 SSH 已接 Main、MCP 和空间界面；完整验证进行中                                                                                      |
 
 ## 环境
 
@@ -62,7 +63,7 @@ pnpm test:e2e
 
 首页个人对话和会话页支持 Enter 发送、Shift+Enter 换行、取消和开始新对话。空间会话标签分别保存草稿、任务版本与运行，进入新会话使用空间的新建会话入口。界面显示 sandbox 与 guest cwd，运行详情可查看工具结果及警告。Codex 可以使用 guest 工具读写 `/home/agent/workspace`；对话历史分开，但文件系统与终端共享。新对话不会删除 guest 文件，也不承诺删除 CLI 历史。
 
-空间垂直标签中的“开发终端”提供显式连接入口，打开交互shell，支持持续 cwd/环境、Ctrl-C、窗口尺寸变化与关闭。切换标签保留 shell；关闭终端或取消对话须确认所属远端进程退出。应用不会停止整个 sandbox，sandbox 内安装与文件由 sbx 保留。Browser 可加载演示页面和受控公开 HTTPS 只读文档，尚未转发 guest 服务端口。
+空间垂直标签中的“开发终端”提供显式连接入口，打开交互shell，支持持续 cwd/环境、Ctrl-C、窗口尺寸变化与关闭。切换标签保留 shell；关闭终端或取消对话须确认所属远端进程退出。应用不会停止整个 sandbox，sandbox 内安装与文件由 sbx 保留。Browser 可加载演示页面、受控公开 HTTPS 只读文档，以及当前空间明确启动且通过身份健康检查的沙箱应用。
 
 普通 `pnpm test:e2e` 使用缺失配置或确定性 sbx fixture，不调用真实模型。显式真实检查需要本机已准备好的 sandbox、有效的既有 sandbox 认证、网络和原生窗口权限：
 
@@ -126,7 +127,7 @@ pnpm package:unsigned
 
 [Agent 入口](AGENTS.md)、[架构基线](docs/ARCHITECTURE.md)与[开发规范](CONTRIBUTING.md)说明职责和协作要求；[当前运行时](docs/architecture/current-runtime.md)区分真实实现、目标约束与缺口。目标架构的取舍见 [ADR-0001](docs/architecture/adr/0001-modular-monolith.md)。
 
-main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical-slice`、固定 fixture 和实现前失败证据全部保留，包括 PR1 的观察值拒绝和源码类型检查修复。验收基准已有，不代表产品 adapter 或比赛闭环已完成；真实模型调用须另行明确启用。整合后的运行入口以本树 `package.json` 为准。
+main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical-slice`、固定 fixture 和实现前失败证据全部保留，包括 PR1 的观察值拒绝和源码类型检查修复。`src/vertical-slice/adapter.ts` 已接入现有 sbx/Codex、Vite 和 Electron Browser；实现及运行条件见 [VS001 接入记录](docs/acceptance/integrated-app-installer-public-20261009/README.md)。本轮真实五项与标准应用的结果分别记录在[最小闭环记录](docs/acceptance/integrated-app-installer-public-20261009/README.md)，不能据此认定完整比赛业务闭环完成；原验收需显式配置已有 sandbox 与实际模型。整合后的运行入口以本树 `package.json` 为准。
 
 ## 来源与继承边界
 
@@ -152,3 +153,15 @@ main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical
 ## 许可证
 
 本项目采用 [Apache License 2.0](LICENSE)。原项目在上述固定基线下也提供 [Apache-2.0 许可证](https://github.com/JadeSnow7/Web-Studio/blob/f377db874f0ecba3390804146776b5e5786d2f86/LICENSE)。本仓库引入的 npm 依赖适用各自许可证，依赖许可清单在冻结前统一生成（T12）；打包产物中的 Chromium 与 Electron 许可随包附带。
+
+## 沙箱标准应用（第一工作包）
+
+唯一母模板位于 [`templates/standard-app`](templates/standard-app/README.md)，独立维护 npm 锁文件和内容哈希，不修改 VS001 fixture。空间侧栏的“标准应用”支持创建、启动、停止/取消和导出。工作台在已有 sandbox 内创建独占项目目录，应用进程独立于 Codex 任务；正式启动构建静态前端并由 Hono 同端口提供页面和 `/api`。重启保留磁盘 PGlite 数据，普通重启不运行 seed。
+
+应用启动后验证 workspace、environment、project 与 appInstance 身份，再给原生 Browser 授予当前回环 origin 的访问能力。停止先撤销本实例端口映射，再确认所属进程清理；未知映射不自动删除。关闭 Browser 标签仍保留应用，停止请使用“停止应用”。源码导出要求服务已停止并确认清理，生成可运行源码目录及同级 `.manifest.json`，不包含数据或依赖目录。
+
+安装包携带母模板和 Linux ARM64/glibc 离线依赖，Main 从安装资源校验源码、独立锁和归档哈希后传入服务。创建、导入依赖与端口操作共用安装配置中的 Sbx.app，不依赖 PATH 或 WSL 环境注入；缺失或损坏载荷显示设置错误并阻止连接。开发构建仍可通过 `WSL_APP_DEPENDENCY_ARCHIVE=/absolute/archive.tar.gz`（含配套哈希清单）和 `WSL_SBX_NAME` 联调。模板 A/B 会话仅是受控开发设施，统一会话观察该 sandbox Browser 的额外授权仍不在本包内。
+
+显式启用的 `WSL_APP_LIVE=1 pnpm exec playwright test e2e/managed-app-live.spec.ts` 验证产品窗口、API、持久化、导出和取消，不调用模型。运行前须准备上述既有沙箱与依赖；真实验收的公开摘要与限制见[本轮记录](docs/acceptance/integrated-app-installer-public-20261009/README.md)。
+
+整合构建的 `pnpm payloads:prepare` 同时准备工具链和模板依赖；`WSL_PAYLOAD_OFFLINE=1` 只使用已缓存下载与 npm 包，缺缓存即失败。发布 sourceFingerprint 包含 templates，载荷清单记录独立锁、模板内容、归档、平台审计与依赖许可证。打包产品复用上述 live 脚本（`WSL_E2E_TARGET=packaged`）；测试运行器选择 Sbx.app 和已有沙箱，应用进程清除所有 WSL 变量且仅保留系统 PATH。损坏载荷负例见 `e2e/managed-app-packaged-rejection.spec.ts`。最终整合版本的结果见[公开验收摘要](docs/acceptance/integrated-app-installer-public-20261009/README.md)；历史来源树证据不作为本轮通过依据。

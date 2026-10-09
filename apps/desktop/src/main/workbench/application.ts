@@ -203,9 +203,29 @@ export class WorkbenchApplication {
     if (saved) {
       let recoveredExecution = false;
       validateSnapshot(saved);
-      for (const w of saved.workspaces) for (const r of w.resources) if (r.kind === 'web' && r.url) this.runtime.validateBrowserUrl(r.url);
+      for (const w of saved.workspaces)
+        for (const r of w.resources) if (r.kind === 'web' && r.url && !r.appProjectId) this.runtime.validateBrowserUrl(r.url);
       this.snapshot = { ...saved, appInstanceId: this.snapshot.appInstanceId, seq: 0 };
       for (const w of this.snapshot.workspaces) {
+        if (w.managedApp) {
+          const previous = w.managedApp;
+          try {
+            if (!this.runtime.appGet) throw new Error('应用恢复查询不可用');
+            const restored = await this.runtime.appGet({ workspaceId: w.workspaceId, projectId: previous.projectId });
+            if (
+              restored.workspaceId !== w.workspaceId ||
+              restored.projectId !== previous.projectId ||
+              restored.environmentId !== previous.environmentId ||
+              restored.url ||
+              ['running', 'starting', 'stopping'].includes(restored.state)
+            )
+              throw new Error('应用恢复身份或状态不匹配');
+            w.managedApp = restored;
+          } catch (error) {
+            w.managedApp = { ...previous, state: 'failed', url: null, cleanupConfirmed: false, error: `应用恢复未确认：${String(error)}` };
+          }
+        }
+        for (const r of w.resources) if (r.appProjectId) r.unavailableReason = '应用服务未启动';
         for (const session of w.sessions) session.historyRestored = Boolean(session.conversation?.messages.length);
         for (const r of w.resources) {
           r.instanceId = null;
@@ -343,6 +363,8 @@ export class WorkbenchApplication {
     return snapshot;
   }
   command(command: WorkbenchCommand): Promise<WorkbenchResult> {
+    if (command.type === 'createApp' || command.type === 'startApp' || command.type === 'stopApp' || command.type === 'exportApp')
+      return this.appCommand(command);
     if (
       command.type === 'startRun' ||
       command.type === 'terminalOpen' ||
@@ -350,6 +372,140 @@ export class WorkbenchApplication {
     )
       return this.environments().then(() => this.enqueueCommand(command));
     return this.enqueueCommand(command);
+  }
+  async onApp(app: NonNullable<WorkspaceSnapshot['managedApp']>) {
+    await this.serialize(async () => {
+      if (this.appOperations.has(app.workspaceId)) {
+        if (app.state === 'failed') this.pendingAppFailures.set(app.workspaceId, app);
+        return;
+      }
+      const w = this.snapshot.workspaces.find((w) => w.workspaceId === app.workspaceId);
+      if (!w?.managedApp || w.managedApp.projectId !== app.projectId || w.managedApp.appInstanceId !== app.appInstanceId) return;
+      w.managedApp = app;
+      if (app.state !== 'running')
+        for (const r of w.resources.filter((r) => r.appProjectId === app.projectId)) {
+          r.preview = null;
+          r.instanceId = null;
+          r.generation++;
+          r.unavailableReason = app.error ?? '应用服务已停止';
+        }
+      await this.persist(w, app.projectId);
+    });
+  }
+  private readonly pendingAppFailures = new Map<string, NonNullable<WorkspaceSnapshot['managedApp']>>();
+  private readonly appOperations = new Map<string, string>();
+  private readonly appCommands = new Map<string, { fingerprint: string; promise: Promise<WorkbenchResult> }>();
+  private appCommand(c: Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>): Promise<WorkbenchResult> {
+    const fingerprint = createHash('sha256').update(JSON.stringify(c)).digest('hex');
+    const previous = this.appCommands.get(c.commandId);
+    if (previous)
+      return previous.fingerprint === fingerprint
+        ? previous.promise.then((result) => ({ ...result, snapshot: this.publicSnapshot() }))
+        : Promise.resolve({
+            ok: false,
+            error: { code: 'conflict', message: '同一命令身份不能用于不同内容' },
+            snapshot: this.publicSnapshot(),
+          });
+    if (this.commands.has(c.commandId))
+      return Promise.resolve({ ok: false, error: { code: 'conflict', message: '命令身份已使用' }, snapshot: this.publicSnapshot() });
+    const promise = this.executeAppCommand(c);
+    this.appCommands.set(c.commandId, { fingerprint, promise });
+    return promise;
+  }
+  private async executeAppCommand(
+    c: Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>,
+  ): Promise<WorkbenchResult> {
+    let target: { workspaceId: string; projectId: string } | undefined;
+    try {
+      await this.serialize(async () => {
+        const w = this.requireWorkspace(c.workspaceId);
+        if (c.expectedRevision !== undefined && c.expectedRevision !== w.revision) throw new Error('conflict: 空间已有较新修改');
+        const pending = this.appOperations.get(w.workspaceId);
+        if (pending && c.type !== 'stopApp') throw new Error('conflict: 应用操作正在进行');
+        if (c.type === 'createApp') {
+          if (w.managedApp) throw new Error('conflict: 空间已绑定标准应用');
+          if (!this.runtime.appCreate) throw new Error('unsupported: 标准应用服务未配置');
+          const projectId = randomUUID();
+          w.managedApp = {
+            workspaceId: w.workspaceId,
+            projectId,
+            environmentId: 'sandbox',
+            appInstanceId: null,
+            state: 'starting',
+            url: null,
+            guestCwd: '',
+            error: null,
+            cleanupConfirmed: false,
+          };
+        }
+        if (!w.managedApp) throw new Error('not_found: 请先创建标准应用');
+        target = { workspaceId: w.workspaceId, projectId: w.managedApp.projectId };
+        if (c.type === 'startApp' && ['starting', 'running', 'stopping'].includes(w.managedApp.state))
+          throw new Error('conflict: 应用已启动或正在操作');
+        if (c.type !== 'exportApp') {
+          w.managedApp.state = c.type === 'stopApp' ? 'stopping' : 'starting';
+          w.managedApp.error = null;
+          for (const resource of w.resources.filter((r) => r.appProjectId === target!.projectId)) {
+            this.runtime.releaseAppBrowser?.(resource.resourceId);
+            resource.instanceId = null;
+            resource.preview = null;
+            resource.generation++;
+            resource.unavailableReason = '应用服务正在操作';
+          }
+        }
+        this.appOperations.set(w.workspaceId, c.commandId);
+        await this.persist(w, target.projectId);
+      });
+      if (!target) throw new Error('not_found: 应用身份缺失');
+      const result =
+        c.type === 'createApp'
+          ? await this.runtime.appCreate!(target)
+          : c.type === 'startApp'
+            ? await this.runtime.appStart!(target)
+            : c.type === 'stopApp'
+              ? await this.runtime.appStop!(target)
+              : await this.runtime.appExport!(target);
+      await this.serialize(async () => {
+        if (this.appOperations.get(c.workspaceId) !== c.commandId) return;
+        const w = this.requireWorkspace(c.workspaceId);
+        if (c.type === 'exportApp') w.appExport = result as { path: string; manifestPath?: string; sha256: string };
+        else {
+          let app = result as NonNullable<WorkspaceSnapshot['managedApp']>;
+          const interrupted = this.pendingAppFailures.get(c.workspaceId);
+          this.pendingAppFailures.delete(c.workspaceId);
+          if (app.state === 'running' && interrupted?.appInstanceId === app.appInstanceId && interrupted.projectId === app.projectId)
+            app = interrupted;
+          if (app.workspaceId !== w.workspaceId || app.projectId !== target!.projectId) throw new Error('denied: 应用返回身份不一致');
+          w.managedApp = app;
+          if (app.state === 'running' && app.url) {
+            let resource = w.resources.find((r) => r.appProjectId === app.projectId);
+            if (!resource) {
+              const tab = this.createResource(w, 'web', '标准应用', app.url, 'sandbox');
+              resource = this.resource(w, tab.targetRef.resourceId);
+              resource.appProjectId = app.projectId;
+            }
+            resource.url = app.url;
+            resource.unavailableReason = null;
+            this.openResource(w, resource.resourceId);
+          }
+        }
+        this.appOperations.delete(c.workspaceId);
+        await this.persist(w, target!.projectId);
+      });
+      return this.result();
+    } catch (error) {
+      await this.serialize(async () => {
+        if (this.appOperations.get(c.workspaceId) !== c.commandId) return;
+        const w = this.requireWorkspace(c.workspaceId);
+        if (w.managedApp) {
+          w.managedApp.state = 'failed';
+          w.managedApp.error = (error as Error).message;
+        }
+        this.appOperations.delete(c.workspaceId);
+        await this.persist(w, target?.projectId ?? w.workspaceId);
+      });
+      return { ok: false, error: { code: 'execution_failed', message: (error as Error).message }, snapshot: this.publicSnapshot() };
+    }
   }
   private enqueueCommand(command: WorkbenchCommand): Promise<WorkbenchResult> {
     const next = this.queue.then(async () => {
@@ -856,6 +1012,8 @@ export class WorkbenchApplication {
   }
   private async execute(c: WorkbenchCommand): Promise<WorkbenchResult> {
     const fingerprint = createHash('sha256').update(JSON.stringify(c)).digest('hex');
+    if (this.appCommands.has(c.commandId))
+      return { ok: false, error: { code: 'conflict', message: '命令身份已使用' }, snapshot: this.publicSnapshot() };
     const old = this.commands.get(c.commandId);
     if (old)
       return old.fingerprint === fingerprint

@@ -7,6 +7,7 @@ import {
   FileInvalidationHintSchema,
 } from './observation';
 import { z } from 'zod';
+import { AppTargetSchema, AppSourceFileSchema, ManagedAppSchema, AppSourceSchema } from './managed-app';
 const BufferlessBytes = (value: string) => {
   let bytes = 0;
   for (const char of value) {
@@ -63,6 +64,16 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
   z
     .object({
       id: z.string(),
+      method: z.literal('app.create'),
+      payload: AppTargetSchema.extend({ files: z.array(AppSourceFileSchema).min(1).max(256) }),
+    })
+    .strict(),
+  ...(['app.get', 'app.start', 'app.stop', 'app.export'] as const).map((method) =>
+    z.object({ id: z.string(), method: z.literal(method), payload: AppTargetSchema }).strict(),
+  ),
+  z
+    .object({
+      id: z.string(),
       method: z.literal('observation.reply'),
       payload: z.object({ callId: z.string().uuid(), result: WorkspaceObservationResultSchema }).strict(),
     })
@@ -101,6 +112,7 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
 ]);
 export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('initialized'), status: ChatStatusSchema, cleanupPending: z.boolean() }),
+  z.object({ type: z.literal('app-event'), snapshot: ManagedAppSchema }).strict(),
   z.object({ type: z.literal('event'), conversation: ChatConversationSchema }),
   z.object({
     type: z.literal('terminal-event'),
@@ -123,6 +135,8 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
     type: z.literal('response'),
     id: z.string(),
     result: z.union([
+      ManagedAppSchema,
+      AppSourceSchema,
       ChatStatusSchema,
       ChatConversationSchema,
       TerminalSnapshotSchema,

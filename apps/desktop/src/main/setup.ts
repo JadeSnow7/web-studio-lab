@@ -94,6 +94,11 @@ export class SetupManager {
   status() {
     return structuredClone(this.snapshot);
   }
+  blockInstalledPayload(message: string) {
+    this.activeConfig.sbxBinary = null;
+    this.activeConfig.sandbox = null;
+    this.snapshot = { ...this.snapshot, stage: 'check', error: { code: 'payload-corrupt', message }, restartRequired: true };
+  }
   runtimeConfig() {
     return structuredClone(this.activeConfig);
   }

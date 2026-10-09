@@ -4,6 +4,8 @@ import { fetchPublicDocument, parsePublicUrl, READER_HEADERS, renderReaderDocume
 
 interface PublicProtocolOptions {
   allowedOrigins: readonly string[];
+  /** Active, identity-verified application lease; never supplied by renderer content. */
+  managedAppOrigin?(): string | null;
   webContentsId: number;
   devToolsWebContentsId(): number | undefined;
   epoch(): number;
@@ -43,12 +45,16 @@ export class PublicDocumentProtocol {
   ) {
     try {
       session.webRequest.onBeforeRequest((details, callback) => {
+        if (this.disposed) return callback({ cancel: true });
         if (details.webContentsId !== options.webContentsId) {
           // DevTools shares the isolated partition but only its own bundled frontend may bypass the document broker.
           const devTools =
             details.webContentsId === options.devToolsWebContentsId() && details.method === 'GET' && isBundledDevToolsUrl(details.url);
           return callback({ cancel: !devTools });
         }
+        const managedOrigin = options.managedAppOrigin?.();
+        if (managedOrigin && isAllowedPreviewUrl(details.url, [managedOrigin]) && isAllowedPreviewUrl(details.url, options.allowedOrigins))
+          return callback({ cancel: !['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].includes(details.method) });
         if (isAllowedPreviewUrl(details.url, options.allowedOrigins)) return callback({ cancel: details.method !== 'GET' });
         let allowed = details.resourceType === 'mainFrame' && details.method === 'GET';
         try {

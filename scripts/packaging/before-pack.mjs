@@ -41,7 +41,8 @@ export async function beforePack() {
   const manifest = JSON.parse(await readFile(file, 'utf8'));
   manifest.python.sha256 = await fileHash(path.join(runtimeRoot, manifest.python.path));
   manifest.python.expandedBytes = await expandedBytes(path.join(runtimeRoot, 'python'));
-  manifest.minimumFreeBytes = 2 * (manifest.python.expandedBytes + manifest.guest.expandedBytes) + 8 * 1024 ** 3;
+  manifest.minimumFreeBytes =
+    2 * (manifest.python.expandedBytes + manifest.guest.expandedBytes + manifest.template.expandedBytes) + 8 * 1024 ** 3;
   await writeFile(file, JSON.stringify(manifest, null, 2) + '\n');
   await verifyPayloads();
 }

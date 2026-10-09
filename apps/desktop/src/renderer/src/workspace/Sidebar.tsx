@@ -127,6 +127,76 @@ export function Sidebar({
             ))}
         </details>
       </nav>
+      {workspace ? (
+        <section className="managed-app-controls" aria-label="标准应用服务">
+          <strong>标准应用</strong>
+          {workspace.managedApp ? (
+            <>
+              <p className="muted small" role="status">
+                {
+                  {
+                    created: '已创建',
+                    starting: '正在准备应用…',
+                    running: '运行中',
+                    stopping: '正在停止…',
+                    stopped: '已停止',
+                    failed: '操作失败',
+                  }[workspace.managedApp.state]
+                }
+              </p>
+              <div className="row gap-8">
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={
+                    !workspace.managedApp.cleanupConfirmed || ['starting', 'running', 'stopping'].includes(workspace.managedApp.state)
+                  }
+                  onClick={() => void command({ type: 'startApp' })}
+                >
+                  启动应用
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!['starting', 'running', 'failed'].includes(workspace.managedApp.state)}
+                  onClick={() => void command({ type: 'stopApp' })}
+                >
+                  {workspace.managedApp.state === 'starting' ? '取消启动' : '停止应用'}
+                </button>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={
+                  !workspace.managedApp.cleanupConfirmed || ['starting', 'running', 'stopping'].includes(workspace.managedApp.state)
+                }
+                onClick={() => void command({ type: 'exportApp' })}
+              >
+                导出源码
+              </button>
+              {workspace.managedApp.error ? (
+                <p className="small" role="alert">
+                  {workspace.managedApp.error}
+                </p>
+              ) : null}
+              {workspace.appExport ? (
+                <p className="muted small" style={{ overflowWrap: 'anywhere' }}>
+                  源码已导出：{workspace.appExport.path}
+                  <br />
+                  SHA256：{workspace.appExport.sha256}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <p className="muted small">在沙箱创建 React 全栈工程。</p>
+              <button type="button" className="btn" onClick={() => void command({ type: 'createApp' })}>
+                创建标准应用
+              </button>
+            </>
+          )}
+        </section>
+      ) : null}
       <button type="button" className="btn new-tab-button" onClick={() => onCreateTab()}>
         <Icon name="plus" />
         新建标签

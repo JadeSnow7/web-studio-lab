@@ -105,7 +105,10 @@ describe('migration review followup baseline', () => {
     browsers.reloads.length = 0;
     const host = new WorkbenchHost(
       {} as BrowserWindow,
-      { resourcesList: async () => ({ spaceId: 'taskflow-demo', revision: 0, resources: [] }) } as unknown as ChatService,
+      {
+        setAppListener: vi.fn(),
+        resourcesList: async () => ({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
+      } as unknown as ChatService,
       '/fixture',
     );
     const app = new WorkbenchApplication(

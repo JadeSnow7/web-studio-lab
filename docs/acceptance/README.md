@@ -1,5 +1,7 @@
 # 首个 vertical slice 验收基线
 
+> 2026-10-09 当前说明：产品 adapter 已接入，实际运行条件、实现前回执和本轮验证见 [VS001 接入记录](integrated-app-installer-public-20261009/README.md)。最终整合版本真实 B01–B05 已通过；公开摘要明确区分原始证据与脱敏索引。下文保留各历史阶段的入口缺失结论，不代表当前代码状态；冻结 VS001、执行器、fixture 和历史回执均保持原字节。
+
 当前空间页重制的目标、阶段结果和窗口证据见 [SR-1 合同](space-remake/SPEC.md) 与[本轮记录](space-remake/task-summary.md)。本页继续保留 VS001 的历史基线及复验规则，二者分别判定。
 
 > 2026-10-07 整合说明：以下“实现前基线”和回执描述其各自历史版本。当前树已引入 Electron 产品，但 `src/vertical-slice/adapter.ts` 仍未实现。当前安装统一使用 `pnpm install --frozen-lockfile`，离线入口为 `pnpm typecheck` 与 `pnpm baseline:selftest`；`pnpm baseline` 仍是单独授权的真实验收入口。原根 npm 锁文件仅保留为固定指纹输入，不能对当前 manifest 执行 `npm ci`，详见 [工具链说明](toolchain/README.md)。整合改变了根 manifest，所以当前指纹必然不同于旧回执；下文将当前 checkout 与历史 SHA 比较的命令仅适用于对应历史 checkout，不作为本次整合通过条件。历史回执和固定验收源码均保持原字节。

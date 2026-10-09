@@ -136,3 +136,46 @@ describe('隔离公开文档协议', () => {
     expect(session.webRequest.onBeforeRequest).toHaveBeenLastCalledWith(null);
   });
 });
+
+describe('managed app write capability', () => {
+  it('requires an active exact-origin lease and owning webContents; public and demo POST remain denied', () => {
+    const session = {
+      webRequest: { onBeforeRequest: vi.fn() },
+      protocol: { handle: vi.fn(), unhandle: vi.fn() },
+      on: vi.fn(),
+      removeListener: vi.fn(),
+    };
+    let lease: string | null = 'http://127.0.0.1:49152';
+    const protocol = new PublicDocumentProtocol(session as unknown as Session, {
+      allowedOrigins: ['http://127.0.0.1:49152', 'wsl-demo://taskflow'],
+      managedAppOrigin: () => lease,
+      webContentsId: 7,
+      devToolsWebContentsId: () => 9,
+      epoch: () => 0,
+      onDocument: vi.fn(),
+      onError: vi.fn(),
+    });
+    const before = session.webRequest.onBeforeRequest.mock.calls[0]![0] as (
+      details: Record<string, unknown>,
+      callback: (result: { cancel: boolean }) => void,
+    ) => void;
+    const check = (changed: Record<string, unknown>, cancel: boolean) => {
+      const callback = vi.fn();
+      before({ url: 'http://127.0.0.1:49152/api/kv/test', method: 'POST', resourceType: 'xhr', webContentsId: 7, ...changed }, callback);
+      expect(callback).toHaveBeenCalledWith({ cancel });
+    };
+    for (const method of ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']) check({ method }, false);
+    for (const changed of [
+      { webContentsId: 8 },
+      { url: 'http://127.0.0.1:49153/api/kv/test' },
+      { url: 'https://example.com/api' },
+      { url: 'wsl-demo://taskflow/api' },
+      { method: 'CONNECT' },
+    ])
+      check(changed, true);
+    lease = null;
+    check({}, true);
+    protocol.dispose();
+    check({ method: 'GET' }, true);
+  });
+});
