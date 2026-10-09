@@ -4,6 +4,27 @@ import { tmpdir } from 'node:os';
 import { vi } from 'vitest';
 import { expect, it, describe } from 'vitest';
 import { LocalTerminal } from './local-terminal';
+const python = path.resolve(process.env['WSL_TEST_PYTHON'] ?? '/usr/bin/python3');
+async function expectRunning(terminal: LocalTerminal, timeout?: number) {
+  const started = Date.now();
+  try {
+    await expect.poll(() => terminal.get().state, timeout === undefined ? {} : { timeout }).toBe('running');
+  } catch (error) {
+    const snapshot = terminal.get();
+    // State only: shell output, cwd and inherited environment may contain private data.
+    console.error(
+      JSON.stringify({
+        probe: 'local-pty-start',
+        elapsedMs: Date.now() - started,
+        runtime: process.env['WSL_TEST_PYTHON'] ? 'configured' : 'system',
+        state: snapshot.state,
+        error: snapshot.error,
+        cleanupPending: snapshot.cleanupPending,
+      }),
+    );
+    throw error;
+  }
+}
 describe('local terminal lifecycle', () => {
   it('real local PTY: failed command preserves shell, zsh hooks report code, close settles', async () => {
     const terminal = new LocalTerminal(
@@ -17,10 +38,11 @@ describe('local terminal lifecycle', () => {
         instanceGeneration: 1,
       },
       () => undefined,
+      python,
     );
     const opened = await terminal.open(80, 24);
     try {
-      await expect.poll(() => terminal.get().state).toBe('running');
+      await expectRunning(terminal);
       terminal.write(opened.sessionId!, 'false\n');
       await expect.poll(async () => JSON.stringify((await terminal.observation!.readCommand()).data)).toContain('"exitCode":1');
       expect(terminal.get().state).toBe('running');
@@ -43,9 +65,10 @@ describe('local terminal lifecycle', () => {
         instanceGeneration: 1,
       },
       () => undefined,
+      python,
     );
     const opened = await terminal.open(80, 24);
-    await expect.poll(() => terminal.get().state).toBe('running');
+    await expectRunning(terminal);
     terminal.write(opened.sessionId!, "trap '' HUP; sleep 60\n");
     await new Promise((resolve) => setTimeout(resolve, 100));
     const started = Date.now();
@@ -67,6 +90,7 @@ describe('local terminal lifecycle', () => {
           instanceGeneration: 1,
         },
         (snapshot) => states.push(snapshot.state),
+        python,
       );
       const opened = await terminal.open(80, 24);
       expect(opened.state).toBe('starting');
@@ -87,10 +111,10 @@ it('local PTY observation retains the Main identity instead of using the shell s
     instanceId: 'main-instance',
     instanceGeneration: 4,
   };
-  const terminal = new LocalTerminal(process.cwd(), identity, () => undefined);
+  const terminal = new LocalTerminal(process.cwd(), identity, () => undefined, python);
   const opened = await terminal.open(80, 24);
   try {
-    await expect.poll(() => terminal.get().state).toBe('running');
+    await expectRunning(terminal);
     expect(terminal.observation?.resource).toEqual(identity);
     expect(opened.sessionId).not.toBe(identity.resourceId);
   } finally {
@@ -110,9 +134,10 @@ it('rejects oversized UTF-8 Chinese input without closing the PTY and still runs
       instanceGeneration: 1,
     },
     () => {},
+    python,
   );
   const opened = await terminal.open(80, 24);
-  await expect.poll(() => terminal.get().state).toBe('running');
+  await expectRunning(terminal);
   let writeError: unknown;
   try {
     terminal.write(opened.sessionId!, '中'.repeat(30000));
@@ -136,7 +161,6 @@ it('bundled Python PTY isolates stdlib imports from cwd and PYTHONPATH', async (
   const root = await mkdtemp(path.join(tmpdir(), 'wsl-isolated-pty-'));
   for (const module of ['json', 'pty', 'signal'])
     await writeFile(path.join(root, module + '.py'), "raise RuntimeError('hostile-module-executed')");
-  const python = path.resolve(process.env['WSL_TEST_PYTHON'] ?? '/usr/bin/python3');
   await access(python);
   vi.stubEnv('PYTHONPATH', root);
   const terminal = new LocalTerminal(
@@ -147,7 +171,7 @@ it('bundled Python PTY isolates stdlib imports from cwd and PYTHONPATH', async (
   );
   try {
     const started = await terminal.open(80, 24);
-    await expect.poll(() => terminal.get().state, { timeout: 5000 }).toBe('running');
+    await expectRunning(terminal, 5000);
     terminal.write(started.sessionId!, "printf 'ISOLATED_PYTHON_OK\\n'\n");
     await expect.poll(() => terminal.get().output).toContain('ISOLATED_PYTHON_OK');
     expect(terminal.get().output).not.toContain('hostile-module-executed');
