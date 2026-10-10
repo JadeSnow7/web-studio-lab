@@ -16,11 +16,7 @@ import {
   type ObservationTurnScope,
   type WorkspaceObservationResult,
   type FileInvalidationHint,
-  ResourceCollectionSchema,
-  ResourceListRequestSchema,
-  ResourceSaveRequestSchema,
-  ResourceRemoveRequestSchema,
-  type PageResourceSnapshot,
+  type CatalogReferenceSnapshot,
   ChatConversationSchema,
   TerminalSnapshotSchema,
   type TerminalSnapshot,
@@ -276,6 +272,10 @@ export class ChatService {
       this.terminals.delete(binding.resourceId);
     this.resourceBindings.set(binding.resourceId, binding);
   }
+  async releaseResource(binding: ResourceInstanceIdentity) {
+    await this.request({ method: 'resource.release', payload: binding });
+    this.resourceBindings.delete(binding.resourceId);
+  }
   async appGet(target: AppTarget) {
     const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.get', payload: target }));
     this.managedApps.set(target.projectId, snapshot);
@@ -307,21 +307,6 @@ export class ChatService {
   async cancelObservation(requestId: string) {
     await this.request({ method: 'observation.cancel', payload: { requestId } });
   }
-  async resourcesList(spaceId: string) {
-    return ResourceCollectionSchema.parse(
-      await this.request({ method: 'resources.list', payload: ResourceListRequestSchema.parse({ spaceId }) }),
-    );
-  }
-  async resourcesSave(spaceId: string, snapshot: PageResourceSnapshot, resourceId?: string) {
-    return ResourceCollectionSchema.parse(
-      await this.request({ method: 'resources.save', payload: ResourceSaveRequestSchema.parse({ spaceId, snapshot, resourceId }) }),
-    );
-  }
-  async resourcesRemove(spaceId: string, resourceId: string) {
-    return ResourceCollectionSchema.parse(
-      await this.request({ method: 'resources.remove', payload: ResourceRemoveRequestSchema.parse({ spaceId, resourceId }) }),
-    );
-  }
   async status() {
     if (this.failure)
       return {
@@ -340,8 +325,10 @@ export class ChatService {
   async get(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'get', payload: { conversationId: id } }));
   }
-  async send(id: ChatSlot, text: string, observationScope?: ObservationTurnScope) {
-    return ChatConversationSchema.parse(await this.request({ method: 'send', payload: { conversationId: id, text, observationScope } }));
+  async send(id: ChatSlot, text: string, observationScope: ObservationTurnScope | undefined, references: CatalogReferenceSnapshot) {
+    return ChatConversationSchema.parse(
+      await this.request({ method: 'send', payload: { conversationId: id, text, observationScope, references } }),
+    );
   }
   async cancel(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'cancel', payload: { conversationId: id } }));
@@ -393,7 +380,10 @@ export class ChatService {
         }
       }
       await this.exit;
-    })();
+    })().catch((error: unknown) => {
+      this.shutdownResult = null;
+      throw error;
+    });
     return this.shutdownResult;
   }
 }

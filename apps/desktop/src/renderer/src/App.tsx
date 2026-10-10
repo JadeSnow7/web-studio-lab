@@ -75,6 +75,23 @@ export function App() {
   const leftMode = shell.focusMode ? 'collapsed' : panelMode(shell.workshop, narrow);
   const rightMode = shell.focusMode ? 'collapsed' : panelMode(shell.rightPanel, narrow);
   useEffect(() => {
+    const dismiss = (event: MouseEvent) => {
+      const top = occlusion.top();
+      if (top !== 'left' && top !== 'right') return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      // A nested menu/dialog owns dismissal; clicking either pane or its trigger
+      // keeps the other pane open so both can be used together.
+      if (target.closest('dialog, [role="menu"], .workshop, .right-panel, #left-panel-trigger, #right-panel-trigger')) return;
+      const other = top === 'left' ? 'right' : 'left';
+      if (occlusion.store.get()[other]) shellActions.closePanel(other, false);
+      shellActions.closePanel(top, false);
+    };
+    // Bubble after React handlers acquire any nested menu/dialog barrier.
+    document.addEventListener('click', dismiss);
+    return () => document.removeEventListener('click', dismiss);
+  }, []);
+  useEffect(() => {
     const clearLeft = leftMode !== 'overlay' && shell.workshop.peek;
     const clearRight = rightMode !== 'overlay' && shell.rightPanel.peek;
     if (clearLeft) occlusion.close('left');
@@ -91,7 +108,7 @@ export function App() {
   const occluded = Object.keys(barriers).length > 0;
   return (
     <div className="app remake-app">
-      <TitleBar />
+      <TitleBar leftMode={leftMode} rightMode={rightMode} />
       <div className="app-body">
         <Workshop mode={leftMode} />
         <main className="content">

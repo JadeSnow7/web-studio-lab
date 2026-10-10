@@ -1,3 +1,4 @@
+import { emptyReferences } from './reference-test-fixture';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GuestProcess, SbxConnection } from './sbx';
@@ -100,7 +101,7 @@ describe('guest helper 宿主边界', () => {
     const chat = new CodexChat('', () => undefined, connection);
     await chat.initialize();
     vi.stubEnv('WSL_SBX_FIXTURE_CASE', kind);
-    const sent = await chat.send('conv-personal-default', 'fixture');
+    const sent = await chat.send('conv-personal-default', 'fixture', undefined, emptyReferences('conv-personal-default'));
     expect(sent.cleanupPending).toBe(true);
     await expect(chat.cancel('conv-personal-default')).rejects.toThrow();
     expect(chat.get('conv-personal-default').cleanupPending).toBe(true);
@@ -128,13 +129,16 @@ describe('guest helper 宿主边界', () => {
     await expect(terminal.close(opened.sessionId!)).rejects.toThrow();
     expect(connection.getCleanupPending()).toBe(true);
     const chat = new CodexChat('', () => undefined, connection);
-    await expect(chat.send('conv-space-taskflow-demo-impl', 'read')).rejects.toThrow('清理状态未知');
+    chat.register('conv-space-taskflow-demo-impl', 'taskflow-demo');
+    await expect(
+      chat.send('conv-space-taskflow-demo-impl', 'read', undefined, emptyReferences('conv-space-taskflow-demo-impl')),
+    ).rejects.toThrow('清理状态未知');
   });
   it('非致命MCP警告可见、去重，工具输出有界且显式标截断', async () => {
     const chat = new CodexChat('', () => undefined, connection);
     await chat.initialize();
     vi.stubEnv('WSL_SBX_FIXTURE_CASE', 'warnings-tools');
-    await chat.send('conv-personal-default', 'fixture');
+    await chat.send('conv-personal-default', 'fixture', undefined, emptyReferences('conv-personal-default'));
     await expect.poll(() => chat.get('conv-personal-default').state).toBe('idle');
     const state = chat.get('conv-personal-default');
     expect(state.cleanupPending).toBe(false);

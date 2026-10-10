@@ -68,7 +68,7 @@ test('controlled-network fixture：真实 Electron 协议跳转、显示、绑�
   await address.fill('https://example.com/start#section');
   await address.press('Enter');
   await expect.poll(async () => (await previewInfo(app)).url).toBe('https://docs.docker.com/guide');
-  const capture = page.getByRole('button', { name: '加入空间', exact: true });
+  const capture = page.getByRole('button', { name: '保存正文快照', exact: true });
   await expect(capture).toBeEnabled();
   await expect(page.getByLabel('页面地址')).toHaveValue('https://docs.docker.com/guide');
   const previewDocument = await app.evaluate(async ({ BrowserWindow }) => {
@@ -102,7 +102,9 @@ test('controlled-network fixture：真实 Electron 协议跳转、显示、绑�
   });
   await capture.click();
   await expect(capture).toBeEnabled();
-  expect(await resourceCollection(page)).toEqual(collection);
+  const second = await resourceCollection(page);
+  expect(second.resources[0]?.version).toBe(2);
+  expect(second.resources[0]?.text).toBe(resource.text);
   await windowShots(app, page, 'public-document-controlled-redirect-saved');
 
   await address.fill('https://example.com/missing');
@@ -114,16 +116,21 @@ test('controlled-network fixture：真实 Electron 协议跳转、显示、绑�
     const snapshot = await window.studio.workbench.getSnapshot();
     const workspace = snapshot.workspaces.find((w) => w.workspaceId === 'taskflow-demo')!;
     const resource = workspace.resources.find((r) => r.kind === 'web')!;
-    const result = await window.studio.workbench.command({
-      commandId: crypto.randomUUID(),
-      workspaceId: workspace.workspaceId,
-      type: 'capturePublicResource',
-      resourceId: resource.resourceId,
-    });
-    return result.ok ? 'unexpected success' : 'rejected';
+    try {
+      const result = await window.studio.workbench.catalogCommand({
+        commandId: crypto.randomUUID(),
+        expectedCatalogRevision: snapshot.catalog!.revision,
+        workspaceId: workspace.workspaceId,
+        type: 'captureResourceRevision',
+        runtimeResourceId: resource.resourceId,
+      });
+      return result.ok ? 'unexpected success' : 'rejected';
+    } catch {
+      return 'rejected';
+    }
   });
   expect(staleCapture).toBe('rejected');
-  expect(await resourceCollection(page)).toEqual(collection);
+  expect(await resourceCollection(page)).toEqual(second);
   const network = await app.evaluate(() => (globalThis as FixtureGlobal).publicNetworkFixture);
   expect(network.requests.map((request) => request.url)).toEqual([
     'https://example.com/start',

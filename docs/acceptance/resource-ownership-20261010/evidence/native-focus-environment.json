@@ -1,0 +1,6 @@
+{
+  "observedAt": "2026-10-10T16:07:51Z",
+  "command": "ioreg -n Root -d1; extract CGSSessionScreenIsLocked only",
+  "screenLocked": true,
+  "impact": "Native BrowserWindow and all webContents report isFocused=false; R3 system focus acceptance requires an unlocked session. Product/test assertions unchanged."
+}

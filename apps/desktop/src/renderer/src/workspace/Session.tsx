@@ -5,7 +5,7 @@ import { captureContext } from '../state/capture';
 import { SessionObservation } from './Observation';
 import { sessionSelection } from './presentation';
 import { RunDetails } from './RunDetails';
-import { workspaceCommand } from '../state/workspace';
+import { workspaceCommand, workspaceStore, beginNavigation } from '../state/workspace';
 
 export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; session: WorkbenchSession }) {
   const initialLocation = locationStore.get().location;
@@ -100,13 +100,15 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
       await saveTail.current;
       const resource = workspace.resources.find((r) => r.resourceId === target);
       const targetRef: TargetRef | null = resource ? { kind: resource.kind, resourceId: resource.resourceId } : null;
-      await workspaceCommand(workspace.workspaceId, {
+      const result = await workspaceCommand(workspace.workspaceId, {
         type: 'confirmTask',
         sessionId: session.sessionId,
         goal: draftValue.current,
         targetRef,
+        acceptance: criteriaRef.current.acceptance.split('\n').filter((x) => x.trim()),
+        allowedScopes: criteriaRef.current.scopes.split('\n').filter((x) => x.trim()),
       });
-      setView('task');
+      if (result?.ok) setView('task');
     });
   const send = () =>
     perform(async () => {
@@ -119,6 +121,8 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
         sessionId: session.sessionId,
         goal: text,
         targetRef: resource ? { kind: resource.kind, resourceId: resource.resourceId } : null,
+        acceptance: criteriaRef.current.acceptance.split('\n').filter((x) => x.trim()),
+        allowedScopes: criteriaRef.current.scopes.split('\n').filter((x) => x.trim()),
       });
       if (!result?.ok) return;
       const next = result.snapshot.workspaces
@@ -132,8 +136,10 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
         taskVersionId: next.taskVersionId,
       });
       if (!started?.ok) return;
-      const acceptedRun = started.snapshot.workspaces
-        .find((w) => w.workspaceId === workspace.workspaceId)
+      // A delayed start receipt may predate cancellation; only the current Main projection can acknowledge input.
+      const acceptedRun = workspaceStore
+        .get()
+        .snapshot?.workspaces.find((w) => w.workspaceId === workspace.workspaceId)
         ?.runs.find((r) => r.taskVersionId === next.taskVersionId);
       if (acceptedRun && ['starting', 'running', 'completed'].includes(acceptedRun.state) && draftValue.current === text) save('');
     });
@@ -149,7 +155,10 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
             key={v}
             className={`btn ${view === v ? 'btn-active' : ''}`}
             aria-pressed={view === v}
-            onClick={() => setView(v)}
+            onClick={() => {
+              beginNavigation();
+              setView(v);
+            }}
           >
             {['对话', '任务', '上下文', '检查', '日志', 'diff', '报告'][i]}
           </button>

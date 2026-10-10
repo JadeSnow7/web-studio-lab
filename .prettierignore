@@ -20,3 +20,5 @@ docs/acceptance/toolchain/package*.json
 /package-lock.json
 # 固定验收历史回执包含哈希验证的原始页面与命令结果。
 docs/acceptance/preimplementation
+# RESOURCE-OWNERSHIP-1 冻结合同，验收记录登记其 SHA-256，保持原字节。
+docs/acceptance/resource-ownership-20261010/SPEC.md

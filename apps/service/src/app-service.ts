@@ -37,6 +37,8 @@ interface Entry {
   snapshot: AppSnapshot;
   process: Pick<GuestProcess, 'done' | 'close'> | null;
   operation: Promise<AppSnapshot> | null;
+  commandProcess: Pick<GuestProcess, 'done' | 'close'> | null;
+  stopping: Promise<AppSnapshot> | null;
   cancelled: boolean;
   port: Port | null;
   portPending: boolean;
@@ -82,8 +84,10 @@ export function validateAppSources(files: AppSourceFile[]): void {
 export class AppService {
   private entries = new Map<string, Entry>();
   private closing = false;
+  private persistence: Promise<void> = Promise.resolve();
   private options: AppServiceOptions;
   private loaded: Promise<void> | null = null;
+  private registrySandbox: string | null = null;
   constructor(
     private connection: Pick<SbxConnection, 'getStatus' | 'runtimeTarget'> & {
       start: (...args: Parameters<SbxConnection['start']>) => Pick<GuestProcess, 'done' | 'close'>;
@@ -93,7 +97,12 @@ export class AppService {
     this.options = options;
   }
   private ensureLoaded(): Promise<void> {
-    return (this.loaded ??= this.load());
+    return (this.loaded ??= this.load().catch((error: unknown) => {
+      this.loaded = null;
+      throw new Error(`应用注册表读取失败（${this.options.registryPath}）：${error instanceof Error ? error.message : String(error)}`, {
+        cause: error,
+      });
+    }));
   }
   private async load(): Promise<void> {
     if (!this.options.registryPath) return;
@@ -107,7 +116,7 @@ export class AppService {
     const registry = z
       .object({
         version: z.literal(1),
-        sandbox: z.string(),
+        sandbox: z.string().min(1),
         apps: z.array(
           keySchema.extend({
             cleanupConfirmed: z.boolean(),
@@ -118,6 +127,7 @@ export class AppService {
       .strict()
       .parse(data);
     if (registry.sandbox !== this.connection.getStatus().sandbox) throw new Error('应用注册表沙箱身份不匹配');
+    this.registrySandbox = registry.sandbox;
     // Registry restores source ownership only. No process or port is replayed.
     for (const saved of registry.apps) {
       const key = { workspaceId: saved.workspaceId, projectId: saved.projectId };
@@ -136,6 +146,8 @@ export class AppService {
         },
         process: null,
         operation: null,
+        commandProcess: null,
+        stopping: null,
         cancelled: false,
         port: null,
         portPending: false,
@@ -146,26 +158,32 @@ export class AppService {
       });
     }
   }
-  private async persist(): Promise<void> {
-    if (!this.options.registryPath) return;
+  private persist(): Promise<void> {
+    if (!this.options.registryPath) return Promise.resolve();
     const target = this.options.registryPath;
-    await mkdir(path.dirname(target), { recursive: true });
-    const temporary = `${target}.${randomUUID()}.tmp`;
-    await writeFile(
-      temporary,
-      JSON.stringify({
-        version: 1,
-        sandbox: this.connection.getStatus().sandbox,
-        apps: [...this.entries.values()].map(({ snapshot }) => ({
-          workspaceId: snapshot.workspaceId,
-          projectId: snapshot.projectId,
-          state: snapshot.state,
-          cleanupConfirmed: snapshot.cleanupConfirmed,
-        })),
-      }),
-      { mode: 0o600 },
+    // Capture in invocation order, then publish in that order across all projects.
+    const contents = JSON.stringify({
+      version: 1,
+      sandbox: z.string().min(1).parse(this.registrySandbox),
+      apps: [...this.entries.values()].map(({ snapshot }) => ({
+        workspaceId: snapshot.workspaceId,
+        projectId: snapshot.projectId,
+        state: snapshot.state,
+        cleanupConfirmed: snapshot.cleanupConfirmed,
+      })),
+    });
+    const saving = this.persistence.then(async () => {
+      await mkdir(path.dirname(target), { recursive: true });
+      const temporary = `${target}.${randomUUID()}.tmp`;
+      await writeFile(temporary, contents, { mode: 0o600 });
+      await rename(temporary, target);
+    });
+    // A failed publication rejects its owner without poisoning later cleanup writes.
+    this.persistence = saving.then(
+      () => undefined,
+      () => undefined,
     );
-    await rename(temporary, target);
+    return saving;
   }
   private id(key: AppKey) {
     return `${key.workspaceId}\0${key.projectId}`;
@@ -280,6 +298,7 @@ export class AppService {
   }
   private async command(entry: Entry, operation: 'create' | 'export', files?: AppSourceFile[]) {
     const child = this.launch(entry, operation, files);
+    entry.commandProcess = child;
     const timeout = setTimeout(() => {
       entry.cancelled = true;
       void child.close();
@@ -295,11 +314,16 @@ export class AppService {
       return JSON.parse(line.slice('WSL_APP_RESULT:'.length)) as unknown;
     } finally {
       clearTimeout(timeout);
+      entry.commandProcess = null;
     }
   }
   async create(input: AppKey & { files: AppSourceFile[] }): Promise<AppSnapshot> {
     await this.ensureLoaded();
     if (this.closing) throw new Error('应用服务正在关闭');
+    const sandbox = this.connection.getStatus().sandbox;
+    if (!sandbox) throw new Error('应用沙箱身份未初始化');
+    if (this.registrySandbox && this.registrySandbox !== sandbox) throw new Error('应用注册表沙箱身份不匹配');
+    this.registrySandbox = sandbox;
     const { files, ...key } = input;
     keySchema.parse(key);
     validateAppSources(files);
@@ -319,6 +343,8 @@ export class AppService {
       },
       process: null,
       operation: null,
+      commandProcess: null,
+      stopping: null,
       cancelled: false,
       port: null,
       portPending: false,
@@ -335,32 +361,38 @@ export class AppService {
         entry.snapshot.state = 'failed';
         entry.snapshot.error = String(error);
       }
+      await this.persist();
       return { ...entry.snapshot };
     })();
     try {
       return await entry.operation;
     } finally {
       entry.operation = null;
-      await this.persist();
     }
   }
   async start(key: AppKey): Promise<AppSnapshot> {
     await this.ensureLoaded();
     if (this.closing) throw new Error('应用服务正在关闭');
     const entry = this.entry(key);
-    if (entry.operation) throw new Error('应用操作进行中');
+    if (entry.operation || entry.stopping) throw new Error('应用操作进行中');
     if (entry.snapshot.state === 'running') return this.get(key);
     if (!entry.snapshot.cleanupConfirmed || entry.portPending || entry.process) throw new Error('上次应用清理尚未确认');
     if ([...this.entries.values()].some((other) => other !== entry && ['starting', 'running', 'stopping'].includes(other.snapshot.state)))
       throw new Error('首版仅允许一个应用服务运行');
     entry.cancelled = false;
     entry.snapshot = { ...entry.snapshot, appInstanceId: randomUUID(), state: 'starting', error: null, url: null, guestPort: null };
-    entry.operation = this.persist().then(() => this.startEntry(entry));
+    entry.operation = (async () => {
+      try {
+        await this.persist();
+        return await this.startEntry(entry);
+      } finally {
+        await this.persist();
+      }
+    })();
     try {
       return await entry.operation;
     } finally {
       entry.operation = null;
-      await this.persist();
     }
   }
   private async importDependencies(entry: Entry, archivePath: string): Promise<void> {
@@ -582,25 +614,44 @@ export class AppService {
   async stop(key: AppKey): Promise<AppSnapshot> {
     await this.ensureLoaded();
     const entry = this.entry(key);
+    if (entry.stopping) return entry.stopping;
     entry.cancelled = true;
     entry.snapshot.state = 'stopping';
-    if (entry.operation) await entry.operation;
-    await this.cleanup(entry);
-    entry.snapshot.state = entry.snapshot.cleanupConfirmed ? 'stopped' : 'failed';
-    await this.persist();
-    this.options.onSnapshot?.({ ...entry.snapshot });
-    return { ...entry.snapshot };
+    const operation = entry.operation;
+    entry.stopping = (async () => {
+      // Finite create/export helpers own no published mapping. Cancel them now;
+      // a running app must retain its process until cleanup removes that mapping.
+      if (entry.commandProcess) await entry.commandProcess.close();
+      // The operation reports its own failure; stop separately confirms cleanup.
+      if (operation) await Promise.allSettled([operation]);
+      await this.cleanup(entry);
+      entry.snapshot.state = entry.snapshot.cleanupConfirmed ? 'stopped' : 'failed';
+      await this.persist();
+      this.options.onSnapshot?.({ ...entry.snapshot });
+      return { ...entry.snapshot };
+    })();
+    try {
+      return await entry.stopping;
+    } finally {
+      entry.stopping = null;
+    }
   }
   async export(key: AppKey): Promise<{ files: AppSourceFile[]; sha256: string }> {
     await this.ensureLoaded();
+    if (this.closing) throw new Error('应用服务正在关闭');
     const entry = this.entry(key);
-    if (entry.operation || entry.process || !entry.snapshot.cleanupConfirmed) throw new Error('请先停止应用并确认清理，再导出源码');
+    if (entry.operation || entry.stopping || entry.process || !entry.snapshot.cleanupConfirmed)
+      throw new Error('请先停止应用并确认清理，再导出源码');
     entry.cancelled = false;
     let result: { files: AppSourceFile[] } | undefined;
     entry.operation = (async () => {
-      result = z.object({ files: z.array(fileSchema) }).parse(await this.command(entry, 'export'));
-      validateAppSources(result.files);
-      return { ...entry.snapshot };
+      try {
+        result = z.object({ files: z.array(fileSchema) }).parse(await this.command(entry, 'export'));
+        validateAppSources(result.files);
+        return { ...entry.snapshot };
+      } finally {
+        await this.persist();
+      }
     })();
     try {
       await entry.operation;
@@ -608,15 +659,22 @@ export class AppService {
       return { files: result.files, sha256: createHash('sha256').update(JSON.stringify(result.files)).digest('hex') };
     } finally {
       entry.operation = null;
-      await this.persist();
     }
   }
   async shutdown(): Promise<void> {
-    await this.ensureLoaded();
     this.closing = true;
+    await this.ensureLoaded();
+    const errors: unknown[] = [];
+    // Each stop persists the shared registry; settle sequentially to avoid stale writes.
     for (const entry of this.entries.values()) {
-      await this.stop({ workspaceId: entry.snapshot.workspaceId, projectId: entry.snapshot.projectId });
-      if (!entry.snapshot.cleanupConfirmed) throw new Error(entry.snapshot.error ?? '应用清理未确认');
+      try {
+        await this.stop({ workspaceId: entry.snapshot.workspaceId, projectId: entry.snapshot.projectId });
+        if (!entry.snapshot.cleanupConfirmed) throw new Error(entry.snapshot.error ?? '应用清理未确认');
+      } catch (error) {
+        errors.push(error);
+      }
     }
+    if (errors.length)
+      throw new AggregateError(errors, errors.map((error: unknown) => (error instanceof Error ? error.message : String(error))).join('\n'));
   }
 }

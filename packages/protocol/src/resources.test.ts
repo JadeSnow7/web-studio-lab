@@ -1,11 +1,6 @@
+import { ResourceBundleSchema } from './resource-catalog';
 import { describe, expect, it } from 'vitest';
-import {
-  GuestPageResourceSnapshotSchema,
-  PageResourceSnapshotSchema,
-  ResourceBundleSchema,
-  SpaceResourceSchema,
-  type GuestPageResourceSnapshot,
-} from './resources';
+import { GuestPageResourceSnapshotSchema, PageResourceSnapshotSchema, utf8ByteLength, type GuestPageResourceSnapshot } from './resources';
 
 const guest = (): GuestPageResourceSnapshot => ({
   page: {
@@ -48,7 +43,12 @@ describe('strict guest resource provenance', () => {
     expect(PageResourceSnapshotSchema.parse(host())).toEqual(host());
     expect(GuestPageResourceSnapshotSchema.parse(guest())).toEqual(guest());
     const resource = { ...guest(), spaceId: 'taskflow-demo', resourceId: '9a8a972a-497c-49fc-a4f0-7ecf45d6c45d', version: 1 };
-    const parsed = SpaceResourceSchema.parse(resource);
+    const parsed = {
+      ...GuestPageResourceSnapshotSchema.parse(guest()),
+      spaceId: resource.spaceId,
+      resourceId: resource.resourceId,
+      version: resource.version,
+    };
     expect(parsed).toEqual(resource);
     if (parsed.extractionVersion !== 'rendered-dom-text-v1') throw new Error('Wrong resource source');
     expect(parsed.page.kind).toBe('sandbox-chromium');
@@ -56,11 +56,24 @@ describe('strict guest resource provenance', () => {
       conversationId: 'conv-space-taskflow-demo-impl',
       generation: 'g',
       turnId: 't',
-      spaceId: 'taskflow-demo',
-      collectionRevision: 1,
-      resources: [resource],
+      accountId: 'account',
+      workspaceId: 'taskflow-demo',
+      sessionId: 'conv-space-taskflow-demo-impl',
+      catalogRevision: 1,
+      resources: [
+        {
+          resourceId: resource.resourceId,
+          version: 1,
+          capturedAt: resource.capturedAt,
+          text: resource.text,
+          contentSha256: resource.contentSha256,
+          sourceSha256: resource.sourceSha256,
+          truncated: resource.truncated,
+          evidence: { kind: 'web', snapshot: guest() },
+        },
+      ],
     });
-    expect(bundle.resources[0]).toEqual(resource);
+    expect(bundle.resources[0]?.evidence).toEqual({ kind: 'web', snapshot: guest() });
   });
   it('rejects crossed host/guest variants and every unrecognized field', () => {
     for (const candidate of [
@@ -117,24 +130,49 @@ describe('strict guest resource provenance', () => {
 describe('host-registered dynamic conversation capability envelope', () => {
   const bundle = {
     conversationId: 'session-7189a675-2a3d-4ede-b5b5-d615c486aa28',
+    sessionId: 'session-7189a675-2a3d-4ede-b5b5-d615c486aa28',
     generation: 'generation-1',
     turnId: 'turn-1',
-    spaceId: 'taskflow-demo',
-    collectionRevision: 1,
+    accountId: 'account',
+    workspaceId: 'arbitrary-space',
+    catalogRevision: 1,
     resources: [],
   };
-  it('accepts the registered TaskFlow capability and an empty capability for another space', () => {
+  it('accepts dynamic spaces and personal explicit selections', () => {
     expect(ResourceBundleSchema.safeParse(bundle).success).toBe(true);
-    expect(ResourceBundleSchema.safeParse({ ...bundle, spaceId: null, collectionRevision: 0 }).success).toBe(true);
+    expect(
+      ResourceBundleSchema.safeParse({
+        ...bundle,
+        conversationId: 'conv-personal-default',
+        sessionId: 'conv-personal-default',
+        workspaceId: null,
+      }).success,
+    ).toBe(true);
   });
-  it('keeps personal/fixed-space ownership and dynamic identity restrictions aligned with guest validation', () => {
-    for (const value of [
-      { ...bundle, conversationId: 'conv-personal-default' },
-      { ...bundle, spaceId: 'other-space' },
-      { ...bundle, conversationId: 'session-../file' },
-      { ...bundle, spaceId: null },
-      { ...bundle, conversationId: 'conv-space-taskflow-demo-impl', spaceId: null, collectionRevision: 0 },
-    ])
-      expect(ResourceBundleSchema.safeParse(value).success).toBe(false);
+  it('rejects crossed session identities and unsafe identity paths', () => {
+    expect(ResourceBundleSchema.safeParse({ ...bundle, sessionId: 'another-session' }).success).toBe(false);
+    expect(ResourceBundleSchema.safeParse({ ...bundle, conversationId: 'session-../file', sessionId: 'session-../file' }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe('UTF-8 byte budget', () => {
+  it('counts UTF-8 bytes per code point and lone surrogates as replacement characters', () => {
+    const samples: [string, number][] = [
+      ['', 0],
+      ['ascii', 5],
+      ['\u007f\u0080', 3],
+      ['\u07ff\u0800', 5],
+      ['中文正文', 12],
+      ['\uffff', 3],
+      ['😀 emoji', 10],
+      ['a\ud800', 4],
+      ['\udc00b', 4],
+      ['\ud800\ud800\udc00', 7],
+      ['\ud83d', 3],
+    ];
+    for (const [value, bytes] of samples) expect(utf8ByteLength(value), JSON.stringify(value)).toBe(bytes);
+    expect(utf8ByteLength('正文😀x'.repeat(20000))).toBe(11 * 20000);
   });
 });

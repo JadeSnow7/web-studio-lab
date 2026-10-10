@@ -16,7 +16,7 @@ async function showSpaceNavigation(page: Page) {
   const navigation = page.getByRole('navigation', { name: 'Workshop 导航' });
   const sidebar = page.getByRole('region', { name: '空间导航', exact: true });
   const openNavigation = async () => {
-    // The edge also opens on hover; keyboard activation cannot be intercepted by that overlay.
+    // The persistent titlebar trigger supports keyboard activation without relying on hover.
     if (!(await navigation.isVisible())) {
       const trigger = page.getByRole('button', { name: '展开 Workshop', exact: true });
       await trigger.focus();

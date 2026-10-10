@@ -1,0 +1,779 @@
+--- before/apps/desktop/src/renderer/src/pages/SpacePage.tsx
++++ after/apps/desktop/src/renderer/src/pages/SpacePage.tsx
+@@ -5,10 +5,11 @@
+ import { useStore } from '../lib/store';
+ import { useViewportWidth } from '../lib/viewport';
+ import { command, initializeWorkspace, switchWorkspace, workspaceCommand, workspaceStore } from '../state/workspace';
+-import { spaceActions, spaceUiStore } from '../state/space-ui';
++import { spaceActions, spaceUiStore, type Editor } from '../state/space-ui';
+ import { shellActions, shellStore } from '../state/shell';
+ import { occlusion } from '../state/occlusion';
+ import { WorkspaceContent } from '../workspace/Panes';
++import { ManagedAppDialog } from '../workspace/ManagedAppDialog';
+ import { SpaceSwitcher } from '../workspace/SpaceSwitcher';
+ const paneOverlay = async (open: boolean) => {
+   if (open) return occlusion.open('pane-menu');
+@@ -24,6 +25,8 @@
+   const ime = useImeForm();
+   const dialog = useRef<HTMLDialogElement>(null);
+   const [pending, setPending] = useState(false);
++  const [failure, setFailure] = useState<{ editor: Editor; message: string } | null>(null);
++  const error = failure?.editor === ui.editor ? failure?.message : null;
+   const submitting = useRef(false);
+   const { environments, environmentId, environmentError, loadingEnvironments } = ui;
+   const setEnvironmentId = (environmentId: string) => spaceUiStore.set((s) => ({ ...s, environmentId }));
+@@ -53,29 +56,37 @@
+     if (!workspace || !ui.editor || !ui.name.trim() || submitting.current || ime.composing.current) return;
+     submitting.current = true;
+     setPending(true);
++    setFailure(null);
+     try {
+       let result;
+       const editor = ui.editor;
++      const targetId = editor.workspaceId;
++      if (!targetId) throw new Error('没有目标空间');
+       if (editor.kind === 'workspace') {
+         const workspaceId = crypto.randomUUID();
+         result = await workspaceCommand(workspaceId, { type: 'createWorkspace', name: ui.name.trim() });
+         if (result?.ok) await switchWorkspace(workspaceId);
+-      } else if (editor.kind === 'rename-workspace') result = await command({ type: 'renameWorkspace', name: ui.name.trim() });
++      } else if (editor.kind === 'rename-workspace')
++        result = await workspaceCommand(targetId, { type: 'renameWorkspace', name: ui.name.trim() });
+       else if (editor.kind === 'tab') {
+         if (!canCreate) return;
+-        result = await command({
++        result = await workspaceCommand(targetId, {
+           type: 'createTab',
+           kind: ui.kind,
+           title: ui.name.trim(),
++          ...(ui.kind === 'web' && ui.url.trim() ? { url: ui.url.trim() } : {}),
+           ...(requiresEnvironment ? { environmentId: environmentId as EnvironmentDescription['environmentId'] } : {}),
+         });
+       } else if (editor.kind === 'rename-tab' && editor.tabId)
+-        result = await command({ type: 'updateTab', tabId: editor.tabId, title: ui.name.trim() });
+-      else if (editor.tabId) result = await command({ type: 'updateTab', tabId: editor.tabId, group: ui.name.trim() });
++        result = await workspaceCommand(targetId, { type: 'updateTab', tabId: editor.tabId, title: ui.name.trim() });
++      else if (editor.tabId) result = await workspaceCommand(targetId, { type: 'updateTab', tabId: editor.tabId, group: ui.name.trim() });
+       if (result?.ok) {
+         spaceActions.closeEditor();
+         shellActions.navigate('space');
+-      }
++      } else
++        setFailure({ editor: ui.editor, message: result ? result.error.message : (workspaceStore.get().error ?? '保存失败，请重试。') });
++    } catch (error) {
++      setFailure({ editor: ui.editor, message: (error as Error).message });
+     } finally {
+       submitting.current = false;
+       setPending(false);
+@@ -117,6 +128,7 @@
+       ) : null}
+       {createPortal(
+         <>
++          <ManagedAppDialog workspaceId={ui.appWorkspaceId} />
+           <SpaceSwitcher
+             open={ui.switcher}
+             workspaces={state.snapshot?.workspaces ?? []}
+@@ -153,6 +165,7 @@
+                   autoFocus
+                   aria-label="名称"
+                   value={ui.name}
++                  disabled={pending}
+                   maxLength={200}
+                   onChange={(event) => spaceUiStore.set((s) => ({ ...s, name: event.target.value }))}
+                 />
+@@ -163,6 +176,7 @@
+                   <select
+                     aria-label="标签类型"
+                     value={ui.kind}
++                    disabled={pending}
+                     onChange={(event) => {
+                       setEnvironmentId('');
+                       spaceUiStore.set((s) => ({ ...s, kind: event.target.value as typeof ui.kind }));
+@@ -178,6 +192,20 @@
+                       </option>
+                     ))}
+                   </select>
++                </label>
++              ) : null}
++              {ui.editor?.kind === 'tab' && ui.kind === 'web' ? (
++                <label className="field">
++                  网页地址（可选）
++                  <input
++                    aria-label="网页地址"
++                    value={ui.url}
++                    maxLength={2048}
++                    disabled={pending}
++                    placeholder="https://…"
++                    onChange={(event) => spaceUiStore.set((s) => ({ ...s, url: event.target.value }))}
++                  />
++                  <span className="muted small">留空打开演示页；公开网页使用 HTTPS。</span>
+                 </label>
+               ) : null}
+               {ui.editor?.kind === 'tab' && requiresEnvironment ? (
+@@ -216,6 +244,7 @@
+                   <p className="muted small">仅使用已有可信配置；选择不会授予 home 或复制认证。</p>
+                 </>
+               ) : null}
++              {error ? <p role="alert">{error}</p> : null}
+               <div className="row gap-8">
+                 <button type="button" className="btn" disabled={pending} onClick={spaceActions.closeEditor}>
+                   取消
+--- before/apps/desktop/src/renderer/src/shell/Workshop.tsx
++++ after/apps/desktop/src/renderer/src/shell/Workshop.tsx
+@@ -61,7 +61,8 @@
+         <Sidebar
+           workspace={workspace}
+           peek={panel.peek}
+-          onCreateTab={() => void spaceActions.openEditor({ kind: 'tab' })}
++          onCreateTab={(tabKind) => void spaceActions.openEditor({ kind: 'tab', tabKind })}
++          onApp={() => workspace && void spaceActions.openApp(workspace.workspaceId)}
+           onSwitcher={() => void spaceActions.openSwitcher()}
+           onTabMenu={(tabId) => void spaceActions.openTabMenu(tabId)}
+           onClosePeek={() => shellActions.closePanel('left')}
+--- before/apps/desktop/src/renderer/src/state/space-ui.ts
++++ after/apps/desktop/src/renderer/src/state/space-ui.ts
+@@ -1,8 +1,16 @@
+ import type { WorkbenchTab, EnvironmentDescription } from '@wsl/protocol';
+ import { createStore } from '../lib/store';
+ import { occlusion } from './occlusion';
+-export type Editor = { kind: 'workspace' | 'rename-workspace' | 'tab' | 'rename-tab' | 'group'; tabId?: string };
++import { workspaceStore } from './workspace';
++export type Editor = {
++  kind: 'workspace' | 'rename-workspace' | 'tab' | 'rename-tab' | 'group';
++  tabId?: string;
++  tabKind?: 'web' | 'terminal' | 'session';
++  workspaceId?: string;
++};
+ export const spaceUiStore = createStore<{
++  appWorkspaceId: string | null;
++  url: string;
+   switcher: boolean;
+   editor: Editor | null;
+   name: string;
+@@ -13,6 +21,8 @@
+   environmentError: string | null;
+   loadingEnvironments: boolean;
+ }>({
++  appWorkspaceId: null,
++  url: '',
+   switcher: false,
+   editor: null,
+   name: '',
+@@ -60,6 +70,14 @@
+ }
+ 
+ export const spaceActions = {
++  async openApp(workspaceId: string) {
++    if (await acquire('app-dialog')) spaceUiStore.set((s) => ({ ...s, appWorkspaceId: workspaceId }));
++  },
++  closeApp() {
++    document.querySelector<HTMLDialogElement>('dialog.managed-app-dialog')?.close();
++    spaceUiStore.set((s) => ({ ...s, appWorkspaceId: null }));
++    release('app-dialog');
++  },
+   reloadEnvironments() {
+     const state = spaceUiStore.get();
+     if (state.editor?.kind === 'tab' && !state.loadingEnvironments) void loadEnvironments(state.editor);
+@@ -72,11 +90,14 @@
+     release('switcher');
+   },
+   async openEditor(editor: Editor, name = '') {
++    editor = { ...editor, workspaceId: workspaceStore.get().selectedId ?? undefined };
+     if (!(await acquire('editor'))) return;
+     spaceUiStore.set((s) => ({
+       ...s,
+       editor,
+       name,
++      kind: editor.tabKind ?? 'web',
++      url: '',
+       switcher: false,
+       tabMenu: null,
+       environmentId: '',
+@@ -90,7 +111,7 @@
+     previous.delete('tab-menu');
+   },
+   closeEditor() {
+-    document.querySelector<HTMLDialogElement>('dialog.workspace-editor')?.close();
++    document.querySelector<HTMLDialogElement>('dialog.workspace-editor:not(.managed-app-dialog)')?.close();
+     spaceUiStore.set((s) => ({ ...s, editor: null }));
+     release('editor');
+   },
+--- before/apps/desktop/src/renderer/src/styles/app.css
++++ after/apps/desktop/src/renderer/src/styles/app.css
+@@ -2337,15 +2337,37 @@
+   margin-block: 16px;
+ }
+ 
+-.managed-app-controls {
+-  padding: 12px;
+-  border-top: 1px solid var(--line);
++/* Header actions share the existing compact macOS control density. */
++.sidebar-heading > strong {
++  min-width: 0;
++  overflow: hidden;
++  white-space: nowrap;
++  text-overflow: ellipsis;
++}
++.sidebar-create-actions {
++  display: flex;
++  flex-shrink: 0;
++  gap: 2px;
++}
++.sidebar-create-actions .icon-btn {
++  width: 28px;
++  height: 28px;
++  padding: 5px;
++}
++.managed-app-dialog {
++  width: min(520px, calc(100vw - 32px));
++  max-height: calc(100dvh - 48px);
++  overflow: auto;
++}
++.managed-app-content {
+   display: grid;
+-  gap: 8px;
+-  max-height: 45%;
+-  overflow: auto;
+-  flex-shrink: 0;
+-}
+-.managed-app-controls p {
++  gap: 12px;
++  overflow-wrap: anywhere;
++}
++.managed-app-content h2,
++.managed-app-content p {
+   margin: 0;
+ }
++.managed-app-content .row {
++  flex-wrap: wrap;
++}
+--- before/apps/desktop/src/renderer/src/workspace/ManagedAppDialog.tsx
++++ after/apps/desktop/src/renderer/src/workspace/ManagedAppDialog.tsx
+@@ -0,0 +1,115 @@
++import { useEffect, useRef, useState } from 'react';
++import { useStore } from '../lib/store';
++import { workspaceCommand, workspaceStore } from '../state/workspace';
++import { spaceActions } from '../state/space-ui';
++
++export function ManagedAppDialog({ workspaceId }: { workspaceId: string | null }) {
++  const workspace = useStore(workspaceStore, (s) => s.snapshot?.workspaces.find((w) => w.workspaceId === workspaceId));
++  const dialog = useRef<HTMLDialogElement>(null);
++  const busy = useRef(new Set<string>());
++  const [operations, setOperations] = useState<Record<string, string[]>>({});
++  const [errors, setErrors] = useState<Record<string, string | null>>({});
++  const pending = workspaceId ? (operations[workspaceId]?.at(-1) ?? null) : null;
++  const error = workspaceId ? errors[workspaceId] : null;
++  useEffect(() => {
++    if (workspaceId) dialog.current?.showModal();
++    else dialog.current?.close();
++  }, [workspaceId]);
++  const app = workspace?.managedApp;
++  const act = async (type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp') => {
++    if (!workspaceId) return;
++    const targetId = workspaceId;
++    const key = `${targetId}:${type}`;
++    const active = [...busy.current].filter((item) => item.startsWith(`${targetId}:`));
++    if (busy.current.has(key) || (type !== 'stopApp' && active.length)) return;
++    busy.current.add(key);
++    setOperations((s) => ({ ...s, [targetId]: [...(s[targetId] ?? []), type] }));
++    setErrors((s) => ({ ...s, [targetId]: null }));
++    try {
++      const result = await workspaceCommand(targetId, { type });
++      if (!result?.ok)
++        setErrors((s) => ({ ...s, [targetId]: result ? result.error.message : (workspaceStore.get().error ?? '操作失败，请重试。') }));
++    } finally {
++      busy.current.delete(key);
++      setOperations((s) => ({ ...s, [targetId]: (s[targetId] ?? []).filter((item) => item !== type) }));
++    }
++  };
++  const idle = !!app?.cleanupConfirmed && !['starting', 'running', 'stopping'].includes(app.state);
++  return (
++    <dialog
++      ref={dialog}
++      className="workspace-editor managed-app-dialog"
++      aria-label="空间 App"
++      onCancel={(event) => {
++        event.preventDefault();
++        spaceActions.closeApp();
++      }}
++    >
++      <div className="managed-app-content">
++        <div className="row space-between gap-8">
++          <h2>{app ? '管理 App' : '新建 App'}</h2>
++          <button type="button" className="btn" autoFocus onClick={spaceActions.closeApp}>
++            关闭
++          </button>
++        </div>
++        <p className="muted small">{workspace?.name} · 沙箱 React 全栈工程</p>
++        {app ? (
++          <>
++            <p role="status">
++              {
++                {
++                  created: '已创建',
++                  starting: '正在准备应用…',
++                  running: '运行中',
++                  stopping: '正在停止…',
++                  stopped: '已停止',
++                  failed: '操作失败',
++                }[app.state]
++              }
++            </p>
++            <p className="muted small">{app.guestCwd}</p>
++            <div className="row gap-8">
++              <button type="button" className="btn btn-primary" disabled={!idle || !!pending} onClick={() => void act('startApp')}>
++                启动应用
++              </button>
++              <button
++                type="button"
++                className="btn"
++                disabled={
++                  !['starting', 'running', 'failed'].includes(app.state) ||
++                  (workspaceId !== null && operations[workspaceId]?.includes('stopApp')) ||
++                  (!!pending && pending !== 'startApp')
++                }
++                onClick={() => void act('stopApp')}
++              >
++                {app.state === 'starting' ? '取消启动' : '停止应用'}
++              </button>
++              <button type="button" className="btn" disabled={!idle || !!pending} onClick={() => void act('exportApp')}>
++                导出源码
++              </button>
++            </div>
++            {app.error ? <p role="alert">{app.error}</p> : null}
++            {workspace?.appExport ? (
++              <p className="muted small">
++                源码已导出：{workspace.appExport.path}
++                <br />
++                SHA256：{workspace.appExport.sha256}
++              </p>
++            ) : null}
++          </>
++        ) : (
++          <>
++            <p>创建工程后，可在这里启动、停止应用或导出源码。</p>
++            <button type="button" className="btn btn-primary" disabled={!!pending || !workspace} onClick={() => void act('createApp')}>
++              创建标准应用
++            </button>
++          </>
++        )}
++        {pending ? (
++          <p role="status">{pending === 'createApp' ? '正在创建工程…' : pending === 'exportApp' ? '正在导出源码…' : '正在处理…'}</p>
++        ) : null}
++        {error ? <p role="alert">{error}</p> : null}
++      </div>
++    </dialog>
++  );
++}
+--- before/apps/desktop/src/renderer/src/workspace/Sidebar.tsx
++++ after/apps/desktop/src/renderer/src/workspace/Sidebar.tsx
+@@ -9,12 +9,14 @@
+   peek,
+   onCreateTab,
+   onSwitcher,
++  onApp,
+   onTabMenu,
+   onClosePeek,
+ }: {
+   workspace: WorkspaceSnapshot | undefined;
+   peek: boolean;
+-  onCreateTab: () => void;
++  onCreateTab: (kind?: 'web' | 'terminal' | 'session') => void;
++  onApp: () => void;
+   onSwitcher: () => void;
+   onTabMenu: (tabId: string) => void;
+   onClosePeek: () => void;
+@@ -26,8 +28,38 @@
+   return (
+     <section className="workspace-sidebar" aria-label="空间导航">
+       <div className="sidebar-heading">
+-        <strong>{workspace?.name}</strong>
+-        <span className="muted small">空间标签</span>
++        <strong title={workspace?.name}>{workspace?.name}</strong>
++        <div className="sidebar-create-actions" role="group" aria-label="新建空间资源">
++          {(
++            [
++              ['web', 'globe', '新建网页'],
++              ['terminal', 'terminal', '新建终端'],
++              ['session', 'chat', '新建会话'],
++            ] as const
++          ).map(([kind, icon, label]) => (
++            <button
++              key={kind}
++              type="button"
++              className="icon-btn"
++              aria-label={label}
++              title={label}
++              disabled={!workspace}
++              onClick={() => onCreateTab(kind)}
++            >
++              <Icon name={icon} size={16} />
++            </button>
++          ))}
++          <button
++            type="button"
++            className="icon-btn"
++            aria-label={workspace?.managedApp ? '管理 App' : '新建 App'}
++            title={workspace?.managedApp ? '管理 App' : '新建 App'}
++            disabled={!workspace}
++            onClick={onApp}
++          >
++            <Icon name="space" size={16} />
++          </button>
++        </div>
+       </div>
+       <nav aria-label="空间标签" className="vertical-tabs">
+         {ordered.map((tab, index) => {
+@@ -127,76 +159,6 @@
+             ))}
+         </details>
+       </nav>
+-      {workspace ? (
+-        <section className="managed-app-controls" aria-label="标准应用服务">
+-          <strong>标准应用</strong>
+-          {workspace.managedApp ? (
+-            <>
+-              <p className="muted small" role="status">
+-                {
+-                  {
+-                    created: '已创建',
+-                    starting: '正在准备应用…',
+-                    running: '运行中',
+-                    stopping: '正在停止…',
+-                    stopped: '已停止',
+-                    failed: '操作失败',
+-                  }[workspace.managedApp.state]
+-                }
+-              </p>
+-              <div className="row gap-8">
+-                <button
+-                  type="button"
+-                  className="btn"
+-                  disabled={
+-                    !workspace.managedApp.cleanupConfirmed || ['starting', 'running', 'stopping'].includes(workspace.managedApp.state)
+-                  }
+-                  onClick={() => void command({ type: 'startApp' })}
+-                >
+-                  启动应用
+-                </button>
+-                <button
+-                  type="button"
+-                  className="btn"
+-                  disabled={!['starting', 'running', 'failed'].includes(workspace.managedApp.state)}
+-                  onClick={() => void command({ type: 'stopApp' })}
+-                >
+-                  {workspace.managedApp.state === 'starting' ? '取消启动' : '停止应用'}
+-                </button>
+-              </div>
+-              <button
+-                type="button"
+-                className="btn btn-ghost"
+-                disabled={
+-                  !workspace.managedApp.cleanupConfirmed || ['starting', 'running', 'stopping'].includes(workspace.managedApp.state)
+-                }
+-                onClick={() => void command({ type: 'exportApp' })}
+-              >
+-                导出源码
+-              </button>
+-              {workspace.managedApp.error ? (
+-                <p className="small" role="alert">
+-                  {workspace.managedApp.error}
+-                </p>
+-              ) : null}
+-              {workspace.appExport ? (
+-                <p className="muted small" style={{ overflowWrap: 'anywhere' }}>
+-                  源码已导出：{workspace.appExport.path}
+-                  <br />
+-                  SHA256：{workspace.appExport.sha256}
+-                </p>
+-              ) : null}
+-            </>
+-          ) : (
+-            <>
+-              <p className="muted small">在沙箱创建 React 全栈工程。</p>
+-              <button type="button" className="btn" onClick={() => void command({ type: 'createApp' })}>
+-                创建标准应用
+-              </button>
+-            </>
+-          )}
+-        </section>
+-      ) : null}
+       <button type="button" className="btn new-tab-button" onClick={() => onCreateTab()}>
+         <Icon name="plus" />
+         新建标签
+--- before/e2e/fixtures/sbx-app-actions.mjs
++++ after/e2e/fixtures/sbx-app-actions.mjs
+@@ -0,0 +1,55 @@
++#!/usr/bin/env node
++// Deterministic App source receipts only; no sandbox, shell or model is executed.
++import readline from 'node:readline';
++const args = process.argv.slice(2);
++if (args[0] === 'version') {
++  console.log('sbx version: fixture');
++  process.exit(0);
++}
++if (args[0] === 'inspect') {
++  console.log(JSON.stringify({ name: args.at(-1), agent: 'codex', state: 'running', runtime_mounts: [] }));
++  process.exit(0);
++}
++if (args[0] === 'ports') {
++  console.log('[]');
++  process.exit(0);
++}
++if (args[0] !== 'exec' || !args.includes('python3')) process.exit(8);
++const dependencyRequest = args.at(-1);
++if (dependencyRequest?.startsWith('{')) {
++  process.stdin.resume();
++  process.stdin.on('end', () => {
++    console.log('WSL_APP_RESULT:{"dependenciesImported":true}');
++    console.log('WSL_APP_RESULT:{"dependenciesCleanup":true}');
++  });
++} else {
++  const frame = (value) => console.log(`WSL_GUEST_FRAME:${JSON.stringify(value)}`);
++  const finish = (exitCode = 0) => {
++    frame({ type: 'exit', exitCode });
++    frame({ type: 'cleanup', ok: true });
++    process.exit(0);
++  };
++  readline.createInterface({ input: process.stdin }).on('line', (line) => {
++    const value = JSON.parse(line);
++    if (value.type === 'close') return finish();
++    if (value.type !== 'start') return;
++    frame({ type: 'ready', pid: process.pid });
++    if (value.argv.includes('--version') || value.argv[1] === 'login') {
++      frame({ type: 'output', stream: 'stdout', data: 'codex-cli fixture\n' });
++      return finish();
++    }
++    const request = JSON.parse(value.prompt);
++    if (request.operation === 'start') {
++      frame({ type: 'output', stream: 'stderr', data: 'fixture: startup intentionally rejected\n' });
++      return setTimeout(() => finish(7), 1200);
++    }
++    const result =
++      request.operation === 'create'
++        ? { created: true }
++        : { files: [{ path: 'README.md', base64: Buffer.from('fixture source\n').toString('base64') }] };
++    setTimeout(() => {
++      frame({ type: 'output', stream: 'stdout', data: `WSL_APP_RESULT:${JSON.stringify(result)}\n` });
++      finish();
++    }, 1200);
++  });
++}
+--- before/e2e/managed-app-live.spec.ts
++++ after/e2e/managed-app-live.spec.ts
+@@ -77,11 +77,13 @@
+   };
+   try {
+     await workshopNavigate(page, '空间');
++    await page.getByRole('button', { name: '新建 App', exact: true }).click();
+     await page.getByRole('button', { name: '创建标准应用', exact: true }).click();
+     await waitState('created');
+     evidence['created'] = (await state()).managedApp;
+     await page.getByRole('button', { name: '启动应用', exact: true }).click();
+     await waitState('running');
++    await page.getByRole('dialog', { name: '空间 App' }).getByRole('button', { name: '关闭', exact: true }).click();
+     const first = (await state()).managedApp!;
+     evidence['first'] = first;
+     const browser = await expect
+@@ -154,6 +156,7 @@
+     expect(persistence.readB.body.value).toBe('Ready');
+     expect(persistence.writeB.body.value).toBe('B-' + nonce);
+     evidence['storageBefore'] = persistence;
++    await page.getByRole('button', { name: '管理 App', exact: true }).click();
+     await page.getByRole('button', { name: '停止应用', exact: true }).click();
+     await waitState('stopped');
+     expect((await state()).managedApp?.cleanupConfirmed).toBe(true);
+@@ -170,6 +173,7 @@
+       .toBe(true);
+     await page.getByRole('button', { name: '启动应用', exact: true }).click();
+     await waitState('running');
++    await page.getByRole('dialog', { name: '空间 App' }).getByRole('button', { name: '关闭', exact: true }).click();
+     const second = (await state()).managedApp!;
+     expect(second.projectId).toBe(first.projectId);
+     expect(second.appInstanceId).not.toBe(first.appInstanceId);
+@@ -206,8 +210,10 @@
+     expect(restored.state).toBe('stopped');
+     expect(restored.url).toBeNull();
+     expect(restored.projectId).toBe(first.projectId);
++    await page.getByRole('button', { name: '管理 App', exact: true }).click();
+     await page.getByRole('button', { name: '启动应用', exact: true }).click();
+     await waitState('running');
++    await page.getByRole('dialog', { name: '空间 App' }).getByRole('button', { name: '关闭', exact: true }).click();
+     const third = (await state()).managedApp!;
+     expect(third.appInstanceId).not.toBe(second.appInstanceId);
+     await expect.poll(async () => app.windows().some((p) => p.url().startsWith(third.url!)), { timeout: 15000 }).toBe(true);
+@@ -228,6 +234,7 @@
+     });
+     expect(afterWindowClose.map((v) => v.value)).toEqual([nonce, 'B-' + nonce]);
+     evidence['windowRestored'] = { restored, third, persisted: afterWindowClose };
++    await page.getByRole('button', { name: '管理 App', exact: true }).click();
+     await page.getByRole('button', { name: '停止应用', exact: true }).click();
+     await waitState('stopped');
+     const secondStoppedPorts = await portMappings();
+--- before/e2e/workshop-actions.spec.ts
++++ after/e2e/workshop-actions.spec.ts
+@@ -0,0 +1,164 @@
++import { test, expect } from '@playwright/test';
++import { mkdtemp, readFile } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import path from 'node:path';
++import { launchApp, workspaceSnapshot, previewInfo, setWindowSize, setWorkspaceTheme } from './helpers';
++
++test('Workshop typed creation persists resources and restores modal focus', async () => {
++  const { app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx.mjs', import.meta.url).pathname });
++  try {
++    await setWorkspaceTheme(page, 'dark');
++    await page.screenshot({ path: 'test-results/screens/workshop-actions-dark.png' });
++    await expect(page.getByRole('region', { name: '标准应用服务' })).toHaveCount(0);
++    for (const [label, kind, title] of [
++      ['新建网页', 'web', '文档页'],
++      ['新建终端', 'terminal', '实验终端'],
++      ['新建会话', 'session', '实验会话'],
++    ] as const) {
++      const trigger = page.getByRole('button', { name: label, exact: true });
++      await trigger.click();
++      const dialog = page.getByRole('dialog', { name: '新建标签' });
++      await expect(dialog.getByLabel('标签类型')).toHaveValue(kind);
++      await expect.poll(async () => (await previewInfo(app)).visible).toBe(false);
++      await page.keyboard.press('Escape');
++      await expect(trigger).toBeFocused();
++      await trigger.click();
++      await dialog.getByLabel('名称', { exact: true }).fill(title);
++      if (kind === 'web') {
++        await dialog.getByLabel('网页地址', { exact: true }).fill('http://unsafe.invalid');
++        await dialog.getByRole('button', { name: '保存', exact: true }).click();
++        await expect(dialog.getByRole('alert')).toBeVisible();
++        await expect(dialog.getByLabel('名称', { exact: true })).toHaveValue(title);
++        await dialog.getByLabel('网页地址', { exact: true }).fill('wsl-demo://taskflow/index.html');
++      }
++      if (kind === 'terminal') {
++        await expect(dialog.getByRole('button', { name: '保存', exact: true })).toBeDisabled();
++        await dialog.getByLabel('资源环境', { exact: true }).selectOption('sandbox');
++      }
++      await dialog.getByRole('button', { name: '保存', exact: true }).evaluate((node) => {
++        (node as HTMLButtonElement).click();
++        (node as HTMLButtonElement).click();
++      });
++      await expect(dialog).not.toBeVisible();
++      const snapshot = await workspaceSnapshot(page);
++      const workspace = snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)!;
++      const tabs = workspace.tabs.filter((tab) => tab.title === title);
++      expect(tabs).toHaveLength(1);
++      expect(tabs[0]!.targetRef.kind).toBe(kind);
++      if (kind === 'terminal') {
++        await expect(page.getByRole('button', { name: '连接终端', exact: true })).toBeEnabled();
++        expect(workspace.resources.find((r) => r.resourceId === tabs[0]!.targetRef.resourceId)?.terminal?.state).not.toBe('running');
++      }
++      if (kind === 'session') expect(workspace.runs).toHaveLength(0);
++    }
++    await page.getByRole('button', { name: '关闭错误提示', exact: true }).click();
++    await setWindowSize(app, 900, 700);
++    await page.getByRole('button', { name: '展开 Workshop', exact: true }).click();
++    for (const name of ['新建网页', '新建终端', '新建会话', '新建 App'])
++      await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
++    await page.screenshot({ path: 'test-results/screens/workshop-actions-narrow.png' });
++  } finally {
++    await app.close();
++  }
++});
++
++test('Workshop App dialog creates, exports, reports startup failure and restores persisted ownership', async () => {
++  const profile = await mkdtemp(path.join(tmpdir(), 'wsl-workshop-app-'));
++  const options = { userData: profile, sbxBin: new URL('./fixtures/sbx-app-actions.mjs', import.meta.url).pathname };
++  let { app, page } = await launchApp(options);
++  try {
++    await page.getByRole('button', { name: '新建 App', exact: true }).click();
++    const dialog = page.getByRole('dialog', { name: '空间 App' });
++    await expect(dialog.getByRole('button', { name: '关闭', exact: true })).toBeFocused();
++    await expect.poll(async () => (await previewInfo(app)).visible).toBe(false);
++    expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')!.managedApp).toBeUndefined();
++    await dialog.getByRole('button', { name: '创建标准应用', exact: true }).evaluate((node) => {
++      (node as HTMLButtonElement).click();
++      (node as HTMLButtonElement).click();
++    });
++    await expect(dialog.getByRole('status').first()).toHaveText('已创建');
++    const getApp = async () => (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')!.managedApp!;
++    const projectId = (await getApp()).projectId;
++    await page.screenshot({ path: 'test-results/screens/workshop-actions-app.png' });
++    expect((await getApp()).appInstanceId).toBeNull();
++    await dialog.getByRole('button', { name: '导出源码', exact: true }).click();
++    await expect(dialog.getByText(/源码已导出/)).toBeVisible();
++    const exported = (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')!.appExport!;
++    expect(await readFile(path.join(exported.path, 'README.md'), 'utf8')).toBe('fixture source\n');
++    await dialog.getByRole('button', { name: '启动应用', exact: true }).click();
++    await expect(dialog.getByRole('button', { name: '取消启动', exact: true })).toBeEnabled();
++    await dialog.getByRole('button', { name: '取消启动', exact: true }).click();
++    await expect.poll(async () => (await getApp()).state).toBe('stopped');
++    expect((await getApp()).cleanupConfirmed).toBe(true);
++    await expect(dialog.getByRole('button', { name: '启动应用', exact: true })).toBeEnabled();
++    await dialog.getByRole('button', { name: '启动应用', exact: true }).click();
++    await expect.poll(async () => (await getApp()).state).toBe('failed');
++    await expect(dialog.getByRole('alert').first()).toBeVisible();
++    await page.keyboard.press('Escape');
++    await expect(page.getByRole('button', { name: '管理 App', exact: true })).toBeFocused();
++    await app.close();
++    ({ app, page } = await launchApp(options));
++    await page.getByRole('button', { name: '管理 App', exact: true }).click();
++    expect((await getApp()).projectId).toBe(projectId);
++    await expect(page.getByRole('dialog', { name: '空间 App' }).getByRole('button', { name: '启动应用', exact: true })).toBeEnabled();
++  } finally {
++    await app.close();
++  }
++});
++
++test('App operations stay with their workspace after closing and switching', async () => {
++  const { app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx-app-actions.mjs', import.meta.url).pathname });
++  try {
++    await page.evaluate(() =>
++      window.studio.workbench.command({
++        type: 'createWorkspace',
++        workspaceId: 'other-app-space',
++        commandId: crypto.randomUUID(),
++        name: '另一个 App 空间',
++      }),
++    );
++    await page.getByRole('button', { name: '新建 App', exact: true }).click();
++    const dialog = page.getByRole('dialog', { name: '空间 App' });
++    await dialog.getByRole('button', { name: '创建标准应用', exact: true }).click();
++    await expect(dialog.getByText('正在创建工程…')).toBeVisible();
++    await page.keyboard.press('Escape');
++    await page.getByRole('button', { name: '切换空间', exact: true }).click();
++    await page
++      .getByRole('dialog', { name: '切换空间' })
++      .getByRole('button', { name: /另一个 App 空间.*个标签/ })
++      .click();
++    await page.getByRole('button', { name: '新建 App', exact: true }).click();
++    await expect(dialog.getByRole('button', { name: '创建标准应用', exact: true })).toBeEnabled();
++    expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.managedApp?.state).toBe('starting');
++    await expect
++      .poll(async () => (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.managedApp?.state)
++      .toBe('created');
++    await expect(dialog.getByRole('alert')).toHaveCount(0);
++    await expect(dialog.getByRole('button', { name: '创建标准应用', exact: true })).toBeEnabled();
++    expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'other-app-space')?.managedApp).toBeUndefined();
++    await page.keyboard.press('Escape');
++    await page.getByRole('button', { name: '切换空间', exact: true }).click();
++    await page
++      .getByRole('dialog', { name: '切换空间' })
++      .getByRole('button', { name: /TaskFlow.*个标签/ })
++      .click();
++    await page.getByRole('button', { name: '管理 App', exact: true }).click();
++    await dialog.getByRole('button', { name: '启动应用', exact: true }).click();
++    await expect(dialog.getByRole('button', { name: '取消启动', exact: true })).toBeEnabled();
++    await page.keyboard.press('Escape');
++    await page.getByRole('button', { name: '切换空间', exact: true }).click();
++    await page
++      .getByRole('dialog', { name: '切换空间' })
++      .getByRole('button', { name: /另一个 App 空间.*个标签/ })
++      .click();
++    await page.getByRole('button', { name: '新建 App', exact: true }).click();
++    expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.managedApp?.state).toBe('starting');
++    await expect
++      .poll(async () => (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.managedApp?.state)
++      .toBe('failed');
++    await expect(dialog.getByRole('alert')).toHaveCount(0);
++    await expect(dialog.getByRole('button', { name: '创建标准应用', exact: true })).toBeEnabled();
++  } finally {
++    await app.close();
++  }
++});

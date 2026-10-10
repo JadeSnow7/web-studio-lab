@@ -1,0 +1,21 @@
+{
+  "name": "wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1",
+  "agent": "codex",
+  "kits": [],
+  "state": "stopped",
+  "image": "docker.io/docker/sandbox-templates@sha256:8b4cd0a46c8b600bc6b6a64af23c03d4c2807fbfc61f47568092a93fb9dc88b0",
+  "image_digest": "sha256:8b4cd0a46c8b600bc6b6a64af23c03d4c2807fbfc61f47568092a93fb9dc88b0",
+  "cpus": 2,
+  "memory": "4g",
+  "auth_mode": "oauth · openai",
+  "network": "wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1",
+  "network_policy": {
+    "scope": "global"
+  },
+  "proxy": "172.17.0.4:3128",
+  "mcp_gateway": true,
+  "runtime_mounts": [],
+  "sessions": 0,
+  "daemon_version": "v0.47.0",
+  "daemon_uptime": "5s"
+}

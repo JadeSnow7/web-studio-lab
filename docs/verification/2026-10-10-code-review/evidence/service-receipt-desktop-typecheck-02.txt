@@ -1,0 +1,4 @@
+
+> @wsl/desktop@0.1.5 typecheck /Users/huaodong/workspace/web-studio-lab/apps/desktop
+> tsc -p tsconfig.node.json && tsc -p tsconfig.web.json
+

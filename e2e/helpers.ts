@@ -297,9 +297,33 @@ export async function workshopNavigate(page: Page, label: string) {
 
 export async function resourceCollection(page: Page) {
   const snapshot = await workspaceSnapshot(page);
-  const collection = snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)?.publicResources;
-  if (!collection) throw new Error('public resource collection unavailable');
-  return collection;
+  const catalog = snapshot.catalog;
+  if (!catalog) throw new Error('account catalogue unavailable');
+  const spaceId = snapshot.activeWorkspaceId;
+  const resources = await page.evaluate(
+    async ({ links, spaceId }) => {
+      const resources = [];
+      for (const link of links) {
+        const snapshot = await window.studio.workbench.resourceRevision(link.resourceId, link.referenceVersion!);
+        if (snapshot.evidence.kind === 'web')
+          resources.push({ ...snapshot.evidence.snapshot, resourceId: snapshot.resourceId, version: snapshot.version, spaceId });
+      }
+      return resources;
+    },
+    {
+      links: catalog.links
+        .filter(
+          (link) =>
+            link.workspaceId === spaceId && catalog.resources.some((item) => item.resourceId === link.resourceId && item.latestVersion),
+        )
+        .map((link) => ({
+          ...link,
+          referenceVersion: link.referenceVersion ?? catalog.resources.find((item) => item.resourceId === link.resourceId)!.latestVersion,
+        })),
+      spaceId,
+    },
+  );
+  return { spaceId, revision: catalog.revision, resources };
 }
 
 export async function setWorkspaceTheme(page: Page, theme: string) {

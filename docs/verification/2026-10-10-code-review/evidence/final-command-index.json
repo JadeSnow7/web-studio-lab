@@ -1,0 +1,83 @@
+{
+  "workingDirectory": "/Users/huaodong/workspace/web-studio-lab",
+  "commands": [
+    {
+      "scope": "offline-unit",
+      "command": "node node_modules/vitest/vitest.mjs run --maxWorkers=2",
+      "log": "final-unit-host-02.txt",
+      "exitCode": 0
+    },
+    {
+      "scope": "typecheck",
+      "command": "node /Users/huaodong/.npm/_npx/168ca33e231eaaf0/node_modules/pnpm/bin/pnpm.cjs typecheck",
+      "log": "final-typecheck-02.txt",
+      "exitCode": 0
+    },
+    {
+      "scope": "active-lint",
+      "command": "node node_modules/eslint/bin/eslint.js apps/desktop/src apps/service/src packages scripts src e2e apps/desktop/electron.vite.config.ts apps/service/vite.config.ts playwright.config.ts vitest.config.ts",
+      "log": "final-active-lint-03.txt",
+      "exitCode": 0
+    },
+    {
+      "scope": "active-format",
+      "command": "node node_modules/prettier/bin/prettier.cjs --check apps/desktop/src apps/service/src packages scripts src e2e apps/desktop/electron.vite.config.ts apps/service/vite.config.ts playwright.config.ts vitest.config.ts",
+      "log": "final-active-format-03.txt",
+      "exitCode": 0
+    },
+    {
+      "scope": "packaging-unit",
+      "command": "node --test scripts/packaging/*.test.mjs",
+      "log": "final-packaging-tests.txt",
+      "exitCode": 0
+    },
+    {
+      "scope": "baseline-offline-selftest",
+      "command": "node --import tsx --test tests/vertical-slice/selftest.test.ts",
+      "log": "final-selftest.txt",
+      "exitCode": 0
+    },
+    {
+      "scope": "internal-package",
+      "command": "node /Users/huaodong/.npm/_npx/168ca33e231eaaf0/node_modules/pnpm/bin/pnpm.cjs package:unsigned",
+      "log": "final-package-unsigned.txt",
+      "exitCode": 0
+    },
+    {
+      "scope": "electron-build",
+      "command": "node node_modules/@playwright/test/cli.js test --output=docs/verification/2026-10-10-code-review/evidence/e2e-build-results",
+      "log": "final-e2e-build.txt",
+      "exitCode": 0
+    },
+    {
+      "scope": "electron-packaged",
+      "command": "WSL_E2E_TARGET=packaged WSL_E2E_APP_PATH=\"/Users/huaodong/workspace/web-studio-lab/apps/desktop/release-internal/mac-arm64/Web Studio Lab.app\" node node_modules/@playwright/test/cli.js test --output=docs/verification/2026-10-10-code-review/evidence/e2e-packaged-results",
+      "log": "final-e2e-packaged.txt",
+      "exitCode": 0
+    },
+    {
+      "scope": "electron-live",
+      "command": "env -u SSH_AUTH_SOCK WSL_SBX_BIN=/opt/homebrew/bin/sbx WSL_SBX_NAME=wsl-review-20261010-5e83a9 WSL_LIVE_CODEX=1 WSL_LIVE_RESOURCE=1 WSL_LIVE_SBX=1 WSL_LIVE_OBSERVATION=1 WSL_LIVE_WORKSPACE=1 node node_modules/@playwright/test/cli.js test --grep \"live：\" --output=docs/verification/2026-10-10-code-review/evidence/e2e-live-results",
+      "log": "final-e2e-live.txt",
+      "exitCode": 0
+    },
+    {
+      "scope": "final-live-vs001",
+      "command": "env -u SSH_AUTH_SOCK WSL_SBX_BIN=/opt/homebrew/bin/sbx WSL_SBX_NAME=wsl-review-20261010-5e83a9 WSL_VS001_MODEL=gpt-6-astra node --import tsx tests/vertical-slice/run.ts",
+      "log": "final-live-vs001.txt",
+      "exitCode": 0
+    },
+    {
+      "scope": "packaged-payload-rejection",
+      "command": "env -u SSH_AUTH_SOCK WSL_E2E_TARGET=packaged WSL_E2E_APP_PATH=\"/Users/huaodong/workspace/web-studio-lab/apps/desktop/release-internal/mac-arm64/Web Studio Lab.app\" WSL_SBX_BIN=/Users/huaodong/Applications/Sbx.app/Contents/MacOS/sbx WSL_SBX_NAME=wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1 WSL_APP_HASH_REJECTION=1 WSL_APP_EVIDENCE=/private/tmp/wsl-review-package-hash-20261010-final node node_modules/@playwright/test/cli.js test e2e/managed-app-packaged-rejection.spec.ts --output=docs/verification/2026-10-10-code-review/evidence/e2e-package-hash-results",
+      "log": "final-package-hash-rejection.txt",
+      "exitCode": 0
+    },
+    {
+      "scope": "packaged-managed-app-live",
+      "command": "env -u SSH_AUTH_SOCK WSL_E2E_TARGET=packaged WSL_E2E_APP_PATH=\"/Users/huaodong/workspace/web-studio-lab/apps/desktop/release-internal/mac-arm64/Web Studio Lab.app\" WSL_SBX_BIN=/Users/huaodong/Applications/Sbx.app/Contents/MacOS/sbx WSL_SBX_NAME=wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1 WSL_APP_LIVE=1 WSL_APP_EVIDENCE=/private/tmp/wsl-review-packaged-app-20261010-recovered node node_modules/@playwright/test/cli.js test e2e/managed-app-live.spec.ts --output=docs/verification/2026-10-10-code-review/evidence/e2e-packaged-app-recovered-results",
+      "log": "final-e2e-packaged-app-03.txt",
+      "exitCode": 0
+    }
+  ]
+}

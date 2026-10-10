@@ -1,0 +1,48 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts (10 tests | 2 failed) 967ms
+   ❯ review: real service preparation cancellation receipt (2)
+     × settles Main cancellation with prior history=false before resource capture completes 386ms
+     × settles Main cancellation with prior history=true before resource capture completes 449ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: real service preparation cancellation receipt > settles Main cancellation with prior history=false before resource capture completes
+AssertionError: expected 'completed' to be 'cancelled' // Object.is equality
+
+Expected: "cancelled"
+Received: "completed"
+
+ ❯ vi.waitFor.timeout apps/desktop/src/main/workbench/review-lifecycle.test.ts:273:100
+    271|     try {
+    272|       expect((await command({ type: 'cancelRun', runId })).ok).toBe(tr…
+    273|       await vi.waitFor(async () => expect((await app.getSnapshot()).wo…
+       |                                                                                                    ^
+    274|       const run = (await app.getSnapshot()).workspaces[0]!.runs[0]!;
+    275|       expect(run.conversation).toMatchObject({ state: 'cancelled', cle…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: real service preparation cancellation receipt > settles Main cancellation with prior history=true before resource capture completes
+AssertionError: expected 'cancelling' to be 'cancelled' // Object.is equality
+
+Expected: "cancelled"
+Received: "cancelling"
+
+ ❯ vi.waitFor.timeout apps/desktop/src/main/workbench/review-lifecycle.test.ts:273:100
+    271|     try {
+    272|       expect((await command({ type: 'cancelRun', runId })).ok).toBe(tr…
+    273|       await vi.waitFor(async () => expect((await app.getSnapshot()).wo…
+       |                                                                                                    ^
+    274|       const run = (await app.getSnapshot()).workspaces[0]!.runs[0]!;
+    275|       expect(run.conversation).toMatchObject({ state: 'cancelled', cle…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 8 passed (10)
+   Start at  21:17:33
+   Duration  1.20s (tests 85%, transform 10%, import 5%)
+

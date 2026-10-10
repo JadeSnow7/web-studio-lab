@@ -1,4 +1,4 @@
-import { shutdownOwners } from './shutdown';
+import { ExitCoordinator, shutdownOwners } from './shutdown';
 import { packagedTemplateRuntime } from './template-runtime';
 import { SetupManager } from './setup';
 import { NativeSetupAdapter } from './setup-adapter';
@@ -6,7 +6,7 @@ import { WorkbenchApplication } from './workbench/application';
 import { FileWorkbenchRepository } from './workbench/repository';
 import { WorkbenchHost } from './workbench/host';
 import path from 'node:path';
-import { app, session, type BrowserWindow } from 'electron';
+import { app, dialog, session, type BrowserWindow } from 'electron';
 import { ChatService } from './chat-service';
 import { registerIpc, sendToRenderer } from './ipc';
 import { installAppMenu } from './menu';
@@ -70,29 +70,37 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
   const unsubscribeSetup = setup.subscribe((snapshot) => sendToRenderer(window, 'setup:status', snapshot));
   installAppMenu(window, host);
 
-  // 窗口关闭前释放 Browser 区页面与 IPC 处理器。
+  const exit = new ExitCoordinator(
+    async () => {
+      await shutdownOwners([() => setup.shutdown(), () => chat.shutdown()]);
+      // Flush Main's queued cleanup receipts before closing the process.
+      try {
+        await workbench?.getSnapshot();
+      } catch (error) {
+        console.error('工作台状态不可读；guest清理已确认，继续关闭窗口', error);
+      }
+    },
+    async (options) => (await dialog.showMessageBox(window, options)).response,
+  );
   let closing = false;
-  let cleaned = false;
+  let allowed = false;
   window.on('close', (event) => {
-    if (cleaned) return;
+    if (allowed) return;
     event.preventDefault();
     if (closing) return;
     closing = true;
-    void shutdownOwners([() => setup.shutdown(), () => chat.shutdown()])
-      .then(async () => {
-        try {
-          await workbench?.getSnapshot();
-        } catch (error) {
-          console.error('工作台状态不可读；guest清理已确认，继续关闭窗口', error);
-        }
+    void exit
+      .request()
+      .then((shouldClose) => {
+        if (!shouldClose) return;
         host.dispose();
         unregisterIpc();
         unsubscribeSetup();
-        cleaned = true;
+        allowed = true;
         window.close();
       })
-      .catch((error: unknown) => {
-        console.error('对话服务清理失败', error);
+      .catch((error: unknown) => console.error('退出对话框失败', error))
+      .finally(() => {
         closing = false;
       });
   });

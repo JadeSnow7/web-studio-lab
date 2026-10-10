@@ -1,4 +1,4 @@
-import { workspaceCommand, workspaceStore } from './workspace';
+import { workspaceCommand, workspaceStore, beginNavigation, isCurrentNavigation } from './workspace';
 import { locateSession } from './location';
 // Request identity and navigation are presentation state. Main owns results.
 const requests = new Map<string, { workspaceId: string; sessionId: string; requestId: string; unsubscribe: () => void }>();
@@ -18,7 +18,10 @@ export async function captureContext(workspaceId: string, sessionId: string, res
     pending.unsubscribe();
     if (requests.get(identity) === pending) requests.delete(identity);
   };
-  const opened = await workspaceCommand(workspaceId, { type: 'openTab', resourceId });
+  const opening = workspaceCommand(workspaceId, { type: 'openTab', resourceId });
+  // Opening the capture target is our own navigation; later user navigation revokes only auto-location.
+  const navigation = beginNavigation();
+  const opened = await opening;
   if (!opened?.ok || requests.get(identity) !== pending) {
     release();
     return opened;
@@ -36,7 +39,7 @@ export async function captureContext(workspaceId: string, sessionId: string, res
     if (receipt?.requestId !== requestId || receipt.resourceId !== resourceId) return;
     if (receipt.state === 'completed') {
       release();
-      void locateSession({ workspaceId, sessionId, view: 'context' });
+      if (isCurrentNavigation(navigation)) void locateSession({ workspaceId, sessionId, view: 'context' });
     } else if (receipt.state === 'failed' || receipt.state === 'cancelled') release();
   });
   const result = await workspaceCommand(workspaceId, { type: 'captureContext', sessionId, resourceId, requestId });

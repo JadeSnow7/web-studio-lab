@@ -496,6 +496,12 @@ p {
   width: 76px;
   flex: none;
 }
+.brand-logo {
+  display: block;
+  flex: none;
+  pointer-events: none;
+  user-select: none;
+}
 .titlebar-title {
   flex: 1;
   min-width: 0;
@@ -590,28 +596,6 @@ p {
   box-shadow:
     0 0 0 1px var(--line),
     0 18px 48px rgba(29, 29, 31, 0.18);
-}
-.workshop-edge {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 10px;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-}
-.edge-handle {
-  width: 6px;
-  height: 52px;
-  margin-left: 2px;
-  border: 0;
-  border-radius: 3px;
-  background: #b8c0cc;
-  cursor: pointer;
-}
-.edge-handle:hover {
-  background: var(--accent);
 }
 .rail {
   width: var(--rail-w);
@@ -1370,6 +1354,12 @@ p {
 }
 .home h1 {
   font-size: 26px;
+}
+.home-greeting {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 100%;
 }
 .home-card {
   width: 100%;
@@ -2203,7 +2193,7 @@ textarea.resize-none {
 .btn:disabled {
   background: var(--content);
   color: var(--muted);
-  border-color: var(--border);
+  border-color: var(--line);
 }
 
 .workspace-notifications {
@@ -2231,41 +2221,30 @@ textarea.resize-none {
 .remake-app .titlebar {
   height: var(--titlebar-h);
 }
-.remake-app .workshop-edge {
-  position: relative;
-  width: 44px;
-  flex: none;
-}
-.remake-app .edge-handle {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 34px;
-  height: 42px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--content);
-  color: var(--accent);
-  box-shadow: 0 3px 14px #0001;
-}
 .remake-app .workshop-overlay {
   background: var(--glass);
 }
-.notification-edge {
-  width: 44px;
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 20;
+.titlebar-panel-trigger {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 34px;
 }
-.remake-app .notification-trigger {
-  flex-direction: column;
-  height: 52px;
+.titlebar-panel-trigger[aria-expanded='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 15px;
+  padding: 1px 3px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--content);
   font-size: 10px;
+  line-height: 13px;
 }
 .remake-app .right-panel {
   width: 340px;
@@ -2277,7 +2256,7 @@ textarea.resize-none {
 }
 .remake-app .right-panel-overlay {
   position: absolute;
-  inset: 8px 48px 8px auto;
+  inset: 8px 8px 8px auto;
   z-index: 35;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -2329,17 +2308,8 @@ textarea.resize-none {
 .remake-app .workspace-error {
   z-index: 80;
 }
-.remake-app .app-body {
-  padding-right: 44px;
-}
 .remake-app .content {
   margin-right: 0;
-}
-.notification-edge {
-  pointer-events: none;
-}
-.notification-edge button {
-  pointer-events: auto;
 }
 
 .file-panel {
@@ -2367,15 +2337,145 @@ textarea.resize-none {
   margin-block: 16px;
 }
 
-.managed-app-controls {
-  padding: 12px;
-  border-top: 1px solid var(--line);
-  display: grid;
-  gap: 8px;
-  max-height: 45%;
-  overflow: auto;
-  flex-shrink: 0;
+/* Header actions share the existing compact macOS control density. */
+.sidebar-heading > strong {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.managed-app-controls p {
+.sidebar-create-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+}
+.sidebar-create-actions .icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+}
+.managed-app-dialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+}
+.managed-app-content {
+  display: grid;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.managed-app-content h2,
+.managed-app-content p {
   margin: 0;
+}
+.managed-app-content .row {
+  flex-wrap: wrap;
+}
+
+.resource-bookmark-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin-top: 20px;
+}
+.resource-bookmark-form .field {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.resource-filters {
+  margin: 20px 0;
+  align-items: end;
+}
+.resource-search {
+  flex: 1 1 240px;
+}
+.resource-catalog-list {
+  display: grid;
+  border-top: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+.resource-catalog-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.resource-catalog-row > div {
+  min-width: 0;
+}
+.resource-title {
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.resource-location {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.resource-detail {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.resource-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 360px;
+  overflow: auto;
+  font-family: var(--mono);
+}
+.space-resource-section {
+  margin: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.space-resource-section summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.space-resource-section select {
+  width: 100%;
+  min-width: 0;
+}
+.space-resource-row {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+  margin-top: 12px;
+}
+.space-resource-row .btn {
+  padding: 5px 8px;
+}
+.personal-references {
+  margin: 8px 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.personal-references summary {
+  cursor: pointer;
+}
+.personal-references .field {
+  min-width: 0;
+  flex: 1 1 160px;
+}
+@media (max-width: 760px) {
+  .resource-catalog-row {
+    flex-direction: column;
+  }
+  .resource-detail {
+    padding: 12px;
+  }
+}
+
+.space-resource-section {
+  flex: 0 1 auto;
+  max-height: 38%;
+  overflow: auto;
+  min-height: 34px;
+}
+.resource-catalog-row:has([aria-pressed='true']) {
+  background: var(--accent-soft);
 }

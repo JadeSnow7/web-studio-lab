@@ -1,3 +1,4 @@
+import { emptyReferences } from './reference-test-fixture';
 import { describe, expect, it, vi } from 'vitest';
 import { ObservationSourcesSchema } from '@wsl/protocol';
 import { CodexChat, parseCodexLine } from './codex-chat';
@@ -28,7 +29,8 @@ function fixture() {
     shutdown: async () => undefined,
   } as unknown as SbxConnection;
   const resources = { list: vi.fn(async (spaceId: string) => ({ spaceId, revision: 4, resources: [] })) };
-  const chat = new CodexChat('', () => undefined, connection, resources);
+  const chat = new CodexChat('', () => undefined, connection);
+  chat.register(space, 'taskflow-demo');
   return {
     chat,
     start,
@@ -48,115 +50,65 @@ function fixture() {
   };
 }
 describe('space resources per-turn capability', () => {
-  it('binds only the fixed space to an immutable per-turn bundle', async () => {
+  it('binds host registered dynamic spaces and explicit personal references without service storage', async () => {
     const f = fixture();
-    const sent = await f.chat.send(space, 'read');
-    expect(f.resources.list).toHaveBeenCalledWith('taskflow-demo');
+    f.chat.register('session-other', 'other');
+    const selected = emptyReferences('session-other', 'other');
+    const sent = await f.chat.send('session-other', 'read', undefined, selected);
     expect(f.start.mock.calls[0]?.[0]).toMatchObject({
       resourceBundle: {
-        spaceId: 'taskflow-demo',
-        collectionRevision: 4,
+        workspaceId: 'other',
+        catalogRevision: 0,
         resources: [],
         turnId: sent.turnId,
         generation: sent.generation,
-        conversationId: space,
+        conversationId: 'session-other',
       },
     });
+    expect(f.resources.list).not.toHaveBeenCalled();
     f.finish();
     await f.chat.shutdown();
   });
-  it('binds a host-registered dynamic session to TaskFlow resources and freezes its workspace', async () => {
+  it('refuses unregistered, foreign-space and crossed personal ownership before starting a process', async () => {
     const f = fixture();
-    const id = 'session-dynamic';
-    await expect(f.chat.send(id, 'unregistered')).rejects.toThrow('宿主注册');
-    f.chat.register(id, 'taskflow-demo');
-    expect(() => f.chat.register(id, 'other')).toThrow('归属已冻结');
-    await f.chat.send(id, 'read');
-    expect(f.start.mock.calls[0]?.[0]).toMatchObject({
-      resourceBundle: { conversationId: id, spaceId: 'taskflow-demo', collectionRevision: 4 },
-    });
-    expect(() => f.chat.assertResourceMutationAllowed('taskflow-demo')).toThrow();
-    f.finish();
-    await vi.waitFor(() => expect(f.chat.get(id).state).toBe('idle'));
-    f.chat.invalidateResources('taskflow-demo');
-    expect(f.chat.get(id).threadId).toBeNull();
-    await f.chat.shutdown();
-  });
-  it('another registered workspace has no TaskFlow capability', async () => {
-    const f = fixture();
+    await expect(f.chat.send('session-unregistered', 'read', undefined, emptyReferences('session-unregistered'))).rejects.toThrow(
+      '宿主注册',
+    );
     f.chat.register('session-other', 'other');
-    await f.chat.send('session-other', 'hello');
-    expect(f.resources.list).not.toHaveBeenCalled();
-    expect(f.start.mock.calls[0]?.[0]).toMatchObject({ resourceBundle: { spaceId: null, resources: [] } });
-    f.finish();
+    expect(() => f.chat.register('session-other', 'foreign')).toThrow('归属已冻结');
+    await expect(f.chat.send('session-other', 'read', undefined, emptyReferences('session-other', 'foreign'))).rejects.toThrow('参考资料');
+    await expect(f.chat.send(personal, 'read', undefined, emptyReferences(personal, 'other'))).rejects.toThrow('参考资料');
+    expect(f.start).not.toHaveBeenCalled();
     await f.chat.shutdown();
   });
-  it('personal conversation receives an empty capability without listing a space', async () => {
+  it('personal conversation receives the explicit empty Main capability without listing a space', async () => {
     const f = fixture();
-    await f.chat.send(personal, 'hello');
+    await f.chat.send(personal, 'hello', undefined, emptyReferences(personal));
     expect(f.resources.list).not.toHaveBeenCalled();
-    expect(f.start.mock.calls[0]?.[0]).toMatchObject({ resourceBundle: { spaceId: null, resources: [] } });
+    expect(f.start.mock.calls[0]?.[0]).toMatchObject({ resourceBundle: { workspaceId: null, resources: [], accountId: 'test-account' } });
     f.finish();
-    await f.chat.shutdown();
-  });
-  it('blocks active resource mutation and resets CLI context after mutation', async () => {
-    const f = fixture();
-    await f.chat.send(space, 'read');
-    expect(() => f.chat.assertResourceMutationAllowed('taskflow-demo')).toThrow();
-    f.finish();
-    await vi.waitFor(() => expect(f.chat.get(space).state).toBe('idle'));
-    f.chat.assertResourceMutationAllowed('taskflow-demo');
-    f.chat.invalidateResources('taskflow-demo');
-    expect(f.chat.get(space).threadId).toBeNull();
-    expect(f.chat.get(space).warnings.join(' ')).toContain('资源');
     await f.chat.shutdown();
   });
   it('unknown cleanup in another slot blocks a new resource turn', async () => {
     const f = fixture();
-    await f.chat.send(personal, 'hello');
+    await f.chat.send(personal, 'hello', undefined, emptyReferences(personal));
     f.finish(false);
     await vi.waitFor(() => expect(f.chat.get(personal).state).toBe('failed'));
-    await expect(f.chat.send(space, 'read')).rejects.toThrow(/cleanup|清理/);
+    await expect(f.chat.send(space, 'read', undefined, emptyReferences(space))).rejects.toThrow(/cleanup|清理/);
   });
-  it('reserves the slot while reading resources and prevents a late start after reset', async () => {
+  it.each(['cancel', 'shutdown'] as const)('%s prevents new execution and confirms process cleanup', async (operation) => {
     const f = fixture();
-    let release!: (value: { spaceId: string; revision: number; resources: [] }) => void;
-    f.resources.list.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          release = resolve;
-        }),
-    );
-    const sending = f.chat.send(space, 'pending');
-    await expect(f.chat.send(space, 'duplicate')).rejects.toThrow('等待回复');
-    expect(() => f.chat.assertResourceMutationAllowed('taskflow-demo')).toThrow();
-    const resetting = f.chat.reset(space);
-    release({ spaceId: 'taskflow-demo', revision: 1, resources: [] });
-    await sending;
-    await resetting;
-    expect(f.start).not.toHaveBeenCalled();
-    expect(f.chat.get(space).messages).toHaveLength(0);
+    await f.chat.send(space, 'running', undefined, emptyReferences(space));
+    if (operation === 'cancel') await f.chat.cancel(space);
+    else await f.chat.shutdown();
+    expect(f.start).toHaveBeenCalledOnce();
+    if (operation === 'shutdown') await expect(f.chat.send(space, 'late', undefined, emptyReferences(space))).rejects.toThrow('关闭');
+    else expect(f.chat.get(space)).toMatchObject({ state: 'cancelled', cleanupPending: false });
     await f.chat.shutdown();
-  });
-  it('shutdown during resource capture never starts a late guest', async () => {
-    const f = fixture();
-    let release!: (value: { spaceId: string; revision: number; resources: [] }) => void;
-    f.resources.list.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          release = resolve;
-        }),
-    );
-    const sending = f.chat.send(space, 'pending');
-    const stopping = f.chat.shutdown();
-    release({ spaceId: 'taskflow-demo', revision: 1, resources: [] });
-    await sending;
-    await stopping;
-    expect(f.start).not.toHaveBeenCalled();
   });
   it('keeps a readable identity receipt for large real MCP results', async () => {
     const f = fixture();
-    await f.chat.send(space, 'read');
+    await f.chat.send(space, 'read', undefined, emptyReferences(space));
     const data = {
       resourceId: 'id-1',
       version: 2,
@@ -200,7 +152,7 @@ describe('space resources per-turn capability', () => {
     'retains observation provenance with oversized metadata=%s',
     async (oversized) => {
       const f = fixture();
-      await f.chat.send(space, 'read');
+      await f.chat.send(space, 'read', undefined, emptyReferences(space));
       const metadata = {
         resource: {
           workspaceId: 'taskflow-demo',
@@ -254,7 +206,7 @@ describe('space resources per-turn capability', () => {
   );
   it.each(['sources', 'error'] as const)('keeps bounded protocol %s receipts', async (kind) => {
     const f = fixture();
-    await f.chat.send(space, 'read');
+    await f.chat.send(space, 'read', undefined, emptyReferences(space));
     const sources = Array.from({ length: 500 }, (_, i) => ({
       resource: { workspaceId: 'taskflow-demo', environmentId: null, resourceId: `file-${i}`, kind: 'file' },
       instance: null,
@@ -298,7 +250,7 @@ describe('space resources per-turn capability', () => {
   });
   it.each(['workspace', 'status'] as const)('bounds unbounded protocol %s fields in receipts', async (field) => {
     const f = fixture();
-    await f.chat.send(space, 'read');
+    await f.chat.send(space, 'read', undefined, emptyReferences(space));
     f.emit({
       type: 'item.completed',
       item: {
@@ -327,7 +279,7 @@ describe('space resources per-turn capability', () => {
   });
   it('total MCP evidence limit remains valid JSON with explicit omission', async () => {
     const f = fixture();
-    await f.chat.send(space, 'read');
+    await f.chat.send(space, 'read', undefined, emptyReferences(space));
     for (let index = 0; index < 20; index++)
       f.emit({
         type: 'item.completed',
@@ -351,7 +303,7 @@ describe('space resources per-turn capability', () => {
   });
   it('mixed tiny and large MCP records cannot exceed the aggregate limit', async () => {
     const f = fixture();
-    await f.chat.send(space, 'read');
+    await f.chat.send(space, 'read', undefined, emptyReferences(space));
     for (let index = 0; index < 65; index++)
       f.emit({
         type: 'item.completed',

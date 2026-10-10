@@ -1,7 +1,7 @@
 import { ObservationRecordSchema, FileInvalidationHintSchema } from './observation';
 import { EnvironmentListSchema } from './environments';
-import { ResourceCollectionSchema } from './resources';
 import { z } from 'zod';
+import { CatalogSummarySchema, CatalogReferenceSnapshotSchema } from './resource-catalog';
 import { ManagedAppSchema } from './managed-app';
 import { ChatConversationSchema } from './chat';
 import { PageCaptureSchema, PreviewLayoutSchema, PreviewStateSchema } from './preview';
@@ -55,6 +55,8 @@ export const WorkbenchTaskVersionSchema = z.object({
   allowedScopes: z.array(z.string()).default([]),
 });
 export const WorkbenchRunSchema = z.object({
+  referenceSnapshot: CatalogReferenceSnapshotSchema.optional(),
+  referenceSummary: z.array(z.object({ resourceId: Id, version: z.number().int().positive(), contentSha256: z.string() })).optional(),
   runId: Id,
   workspaceId: Id,
   sessionId: Id,
@@ -103,6 +105,7 @@ export const WorkbenchSessionSchema = z.object({
 export type WorkbenchSession = z.infer<typeof WorkbenchSessionSchema>;
 export const WorkbenchResourceSchema = z.object({
   resourceId: Id,
+  catalogResourceId: Id.optional(),
   environmentId: z.enum(['local', 'sandbox', 'ssh']).nullable(),
   appProjectId: z.uuid().optional(),
   kind: TargetRefSchema.shape.kind,
@@ -127,8 +130,6 @@ export const WorkspaceSnapshotSchema = z.object({
   activePaneId: Id,
   sessions: z.array(WorkbenchSessionSchema),
   runs: z.array(WorkbenchRunSchema),
-  publicResources: ResourceCollectionSchema.nullable(),
-  publicResourcesError: z.string().nullable().default(null),
   fileHints: z.array(FileInvalidationHintSchema).max(100).default([]),
   observations: z.array(ObservationRecordSchema).max(200).default([]),
   theme: z.enum(['light', 'dark', 'warm', 'system']),
@@ -146,6 +147,7 @@ export const WorkbenchNotificationSchema = z.object({
 });
 export type WorkbenchNotification = z.infer<typeof WorkbenchNotificationSchema>;
 export const WorkbenchSnapshotSchema = z.object({
+  catalog: CatalogSummarySchema.optional(),
   appInstanceId: Id,
   storageError: z.string().nullable(),
   activeWorkspaceId: Id,
@@ -199,8 +201,6 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
     allowedScopes: WorkbenchSessionSchema.shape.taskAllowedScopes.removeDefault(),
   }),
   command('saveTaskTarget', { sessionId: Id, targetRef: TargetRefSchema.nullable() }),
-  command('capturePublicResource', { resourceId: Id, savedResourceId: Id.optional() }),
-  command('removePublicResource', { savedResourceId: Id }),
   command('captureContext', { sessionId: Id, resourceId: Id, requestId: Id }),
   command('cancelCapture', { resourceId: Id, requestId: Id }),
   command('hideBrowsers', {}),

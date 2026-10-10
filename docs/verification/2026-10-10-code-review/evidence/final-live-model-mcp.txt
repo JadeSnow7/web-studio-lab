@@ -1,0 +1,13 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+stdout | apps/service/src/resource-agent.live.test.ts > 真实 Codex MCP 读取受控内存 fixture；不代表公开网页链路通过 > 真正调用 list_resources/read_resource，读取未放入 prompt 的 nonce 并确认清理
+{"kind":"actual-codex-controlled-fixture-mcp","fetchedWebpage":false,"sandbox":"wsl-review-20261010-5e83a9","codexVersion":"codex-cli 0.160.0","turnId":"7bd81212-5571-4c01-9862-ff1b8f7218f5","resourceId":"ab341385-b36a-4641-b527-6020361ed81f","version":1,"url":"https://example.com/wsl-mcp-integration-fixture","title":"MCP integration fixture, not a fetched webpage","contentSha256":"4aacd9c10a3e29e60921b1e12a3890e845ca7a2c1d7ed290c98a7241579c49fc","observedTools":["mcp:wsl_space.list_resources","mcp:wsl_space.read_resource"],"nonceReadFromTool":true,"cleanupPending":false}
+
+ ✓ apps/service/src/resource-agent.live.test.ts > 真实 Codex MCP 读取受控内存 fixture；不代表公开网页链路通过 > 真正调用 list_resources/read_resource，读取未放入 prompt 的 nonce 并确认清理 46428ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  21:22:11
+   Duration  46.81s (tests 99%)
+

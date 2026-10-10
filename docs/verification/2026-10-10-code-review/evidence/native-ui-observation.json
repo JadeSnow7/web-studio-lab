@@ -1,0 +1,41 @@
+{
+  "observedAt": "2026-10-10T21:31:00+08:00",
+  "method": "CUA native accessibility tree and native compositor screenshot in tool transcript",
+  "appPath": "apps/desktop/release-internal/mac-arm64/Web Studio Lab.app",
+  "profile": "/private/tmp/wsl-review-packaged-app-20261010-1f4709e3/profile",
+  "projectId": "475195f2-7635-4fe5-b2e5-3193dae2d0c6",
+  "observed": {
+    "actualNativeAppContentRendered": true,
+    "appHeading": "从这里开始构建",
+    "healthText": "已连接 · 数据库就绪",
+    "spaceSwitcherOpened": true,
+    "spaceSwitcherSearchFocused": true,
+    "nativeViewYieldedToOverlay": true
+  },
+  "notVerifiedByCUA": [
+    "overlay dismissal and focus restoration before the E2E resumed",
+    "real Chinese IME candidate-window workflow"
+  ],
+  "interference": "CUA opened the space switcher during the E2E pause; it was not closed before automated click. The first packaged live E2E timed out on the blocking dialog; unchanged test rerun uses an independent profile without CUA actions.",
+  "cleanupEvidence": "packaged-app-interference/registry-after-finally.json",
+  "screenshotBoundary": "BrowserWindow.capturePage can omit native child composition; native compositor observation is recorded in the tool transcript, not inferred from workbench-window.png.",
+  "failureExitObservation": {
+    "nativeWarningVisible": true,
+    "text": "运行资源清理未确认，无法安全退出",
+    "actions": [
+      "重试清理",
+      "取消退出",
+      "仍然退出"
+    ],
+    "applicationDidNotClaimCleanup": true,
+    "externalSandboxStoppedConfirmedBeforeForcedLocalExit": true,
+    "ownedHostPidsExited": [
+      59727,
+      59929
+    ]
+  },
+  "postTestObservationSideEffect": {
+    "pid": 59727,
+    "detail": "After the first test exited, native observation of the exact app path auto-launched a default-profile window. No create/send/save UI actions were performed in it; it was subsequently closed. This window is excluded from isolated-profile acceptance."
+  }
+}

@@ -1,0 +1,49 @@
+
+Running 5 tests using 1 worker
+
+(node:59061) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-e2e-aW5bTx ELECTRON_PID 59062
+ELECTRON_STDERR (node:59062) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:57841/3328fa9d-d4aa-46cd-9bf5-43055912b518
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✓  1 e2e/chat.spec.ts:91:1 › live：中文对话、上下文续聊、新会话隔离 (48.9s)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-observation-live-WAKm8k/profile ELECTRON_PID 59137
+ELECTRON_STDERR (node:59137) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:57934/b30ae45b-4113-44b2-8110-6deaf4f398a7
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✓  2 e2e/observation-live.spec.ts:48:1 › live：真实Codex统一观察三来源，运行中换空间仍保持原冻结归属 (50.8s)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-e2e-jJgRpp ELECTRON_PID 59272
+ELECTRON_STDERR (node:59272) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:58038/810c1f60-27a3-499b-9bfe-8f0093ce8f66
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✓  3 e2e/resources-live.spec.ts:34:1 › live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过只读 MCP 枚举和读取 (25.1s)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-e2e-OXDfqg ELECTRON_PID 59304
+ELECTRON_STDERR (node:59304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:58087/6d17ef84-27c2-4e87-849a-dc5056616ac7
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+ELECTRON_STDERR [59304:1010/212935.862431:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
+
+  ✓  4 e2e/sbx.spec.ts:160:1 › live：应用终端与 Codex 共享 guest 文件并确认交互与清理 (27.7s)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-e2e-uNmrLv ELECTRON_PID 59357
+ELECTRON_STDERR (node:59357) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:58206/a615f997-7082-4766-9e82-677431a1513d
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✓  5 e2e/workspace-runtime.spec.ts:59:1 › live：真实PTY与单Agent执行跨空间保持归属，检查和审阅独立 (18.2s)
+
+  5 passed (2.9m)

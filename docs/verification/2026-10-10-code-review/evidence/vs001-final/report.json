@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "runId": "7fac3715-79a1-43f3-9f1a-53962655713a",
+  "taskSha256": "44446f6a8e12957d0ab02f849007212fd52afbf0f1990b4d2b45ab404fd7662d",
+  "baselineSha256": "0bf9ba70a6de80f4bb13d85e10f60ad11424f3980bf39c67122954b67ffa2841",
+  "startedAt": "2026-10-10T13:45:02.877Z",
+  "endedAt": "2026-10-10T13:45:42.909Z",
+  "stage": "B05",
+  "identity": {
+    "pid": 61248,
+    "webContentsId": 2,
+    "targetId": "A72660022EB922430F11A23A6605B70D",
+    "previewUrl": "http://127.0.0.1:61404/?runId=7fac3715-79a1-43f3-9f1a-53962655713a",
+    "cdpEndpoint": "http://127.0.0.1:61407/"
+  },
+  "cleanupErrors": [],
+  "checks": [
+    {
+      "id": "B01",
+      "status": "passed",
+      "performed": true,
+      "code": "ok",
+      "detail": "Harness successfully exited with original output and only the allowed file changed"
+    },
+    {
+      "id": "B02",
+      "status": "passed",
+      "performed": true,
+      "code": "ok",
+      "detail": "Live pid, Electron discovery and the same page target navigated to the current preview URL"
+    },
+    {
+      "id": "B03",
+      "status": "passed",
+      "performed": true,
+      "code": "ok",
+      "detail": "Baseline Runtime.evaluate observed this run with a unique greeting selector"
+    },
+    {
+      "id": "B04",
+      "status": "passed",
+      "performed": true,
+      "code": "ok",
+      "detail": "Unique visible exact title and no observed Runtime.exceptionThrown"
+    },
+    {
+      "id": "B05",
+      "status": "passed",
+      "performed": true,
+      "code": "ok",
+      "detail": "Screenshot came from Page.captureScreenshot on the observed CDP connection"
+    }
+  ]
+}

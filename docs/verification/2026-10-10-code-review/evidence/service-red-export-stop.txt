@@ -1,0 +1,34 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/app-service.test.ts (32 tests | 1 failed) 1877ms
+   ❯ managed app ownership (26)
+     × stop cancels a held export process and still publishes its cleanup receipt 263ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app ownership > stop cancels a held export process and still publishes its cleanup receipt
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ vi.waitFor.timeout apps/service/src/app-service.test.ts:194:52
+    192|     const stopping = test.service.stop(key);
+    193|     try {
+    194|       await vi.waitFor(() => expect(test.closes()).toBe(1), { timeout:…
+       |                                                    ^
+    195|       const stopped = await stopping;
+    196|       expect(stopped).toMatchObject({ state: 'stopped', cleanupConfirm…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 31 passed (32)
+   Start at  21:06:33
+   Duration  2.11s (tests 91%, transform 6%, import 3%)
+

@@ -46,7 +46,7 @@ test('SR01/02/07/09：六个入口、空间专属标签、设置主题、草稿�
   await windowShots(app, page, 'remake-six-sections');
 });
 
-test('SR03/04/06/10：左右气泡、原生遮挡集合、通知不自动固定、关闭恢复焦点', async () => {
+test('SR03/04/06/10：标题栏左右入口、原生遮挡集合、通知不自动固定、关闭恢复焦点', async () => {
   await launch();
   await page.getByRole('button', { name: '取消固定 Workshop', exact: true }).click();
   await expect(tabs()).toHaveCount(0);
@@ -68,7 +68,12 @@ test('SR03/04/06/10：左右气泡、原生遮挡集合、通知不自动固定�
   for (const trigger of [page.getByRole('button', { name: '展开 Workshop', exact: true }), notifications()]) {
     const bounds = await trigger.boundingBox();
     if (!bounds) throw new Error('missing trigger');
-    expect(bounds.x + bounds.width <= native.x || bounds.x >= native.x + native.width).toBe(true);
+    expect(
+      bounds.x + bounds.width <= native.x ||
+        bounds.x >= native.x + native.width ||
+        bounds.y + bounds.height <= native.y ||
+        bounds.y >= native.y + native.height,
+    ).toBe(true);
   }
   await windowShots(app, page, 'remake-floating-panels');
 });
@@ -230,21 +235,77 @@ test('SR10/11：窄窗展开后放宽再缩窄不会留下无屏障浮层', asyn
   });
 });
 
-test('SR03：边缘悬停延迟展开，面板内焦点阻止自动收起，焦点离开后恢复原生网页', async () => {
+test('SR03：标题栏点击展开，悬停与移出不切换，外部点击与Escape收起', async () => {
   await launch();
   await page.getByRole('button', { name: '取消固定 Workshop', exact: true }).click();
-  const edge = page.getByRole('button', { name: '展开 Workshop', exact: true });
-  await edge.hover();
+  const trigger = page.locator('#left-panel-trigger');
+  await expect(trigger).toHaveAccessibleName('展开 Workshop');
+  await expect(trigger).toHaveAttribute('title', '展开 Workshop（⌘B）');
+  await expect(page.locator('.workshop-edge, .notification-edge')).toHaveCount(0);
+  const body = await page.locator('.app-body').boundingBox();
+  const content = await page.locator('main.content').boundingBox();
+  expect(content).toEqual(body);
+  await trigger.hover();
+  await page.waitForTimeout(250);
   const floating = page.getByRole('complementary', { name: 'Workshop（临时展开）' });
+  await expect(floating).toHaveCount(0);
+  await expect.poll(nativeVisible).toBe(true);
+  await trigger.click();
   await expect(floating).toBeVisible();
+  await expect(trigger).toHaveAccessibleName('收起 Workshop');
   await expect.poll(nativeVisible).toBe(false);
-  await floating.getByRole('button', { name: '空间', exact: true }).focus();
+  await floating.hover();
   await page.mouse.move(700, 24);
   await page.waitForTimeout(400);
   await expect(floating).toBeVisible();
-  await notifications().focus();
-  await floating.hover();
-  await page.mouse.move(700, 24);
+  await page.locator('.content').click({ position: { x: 650, y: 20 } });
   await expect(floating).toHaveCount(0);
+  await expect.poll(nativeVisible).toBe(true);
+  await trigger.click();
+  await floating.getByRole('button', { name: '固定 Workshop', exact: true }).focus();
+  await page.keyboard.press('Escape');
+  await expect(floating).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await expect.poll(nativeVisible).toBe(true);
+  await workshopNavigate(page, '首页');
+  await trigger.click();
+  const input = page.getByRole('region', { name: '混合输入' }).getByRole('textbox');
+  await input.click();
+  await expect(floating).toHaveCount(0);
+  await expect(input).toBeFocused();
+  await windowShots(app, page, 'titlebar-panels-collapsed');
+});
+
+test('标题栏触发器在专注模式下恢复可见侧栏，未读0不显示角标', async () => {
+  await launch();
+  await expect(notifications()).toHaveAccessibleName('通知 · 0 条未读');
+  await expect(notifications().locator('.notification-badge')).toHaveCount(0);
+  const toggleFocus = () =>
+    app.evaluate(({ Menu }) => {
+      function find(items: Electron.MenuItem[]): Electron.MenuItem | undefined {
+        for (const item of items) {
+          if (item.accelerator === 'CmdOrCtrl+Shift+F' || item.label === '专注模式') return item;
+          const nested = item.submenu && find(item.submenu.items);
+          if (nested) return nested;
+        }
+        return undefined;
+      }
+      const item = find(Menu.getApplicationMenu()?.items ?? []);
+      if (!item) throw new Error('missing focus menu command');
+      item.click();
+    });
+  await toggleFocus();
+  await expect(page.getByRole('button', { name: '恢复布局', exact: true })).toBeVisible();
+  await page.locator('#left-panel-trigger').click();
+  await expect(page.getByRole('button', { name: '恢复布局', exact: true })).toHaveCount(0);
+  await expect(tabs()).toBeVisible();
+  await expect.poll(nativeVisible).toBe(true);
+  await toggleFocus();
+  await notifications().click();
+  await expect(page.getByRole('button', { name: '恢复布局', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('complementary', { name: '通知栏' })).toBeVisible();
+  await expect.poll(nativeVisible).toBe(false);
+  await page.keyboard.press('Escape');
+  await expect(notifications()).toBeFocused();
   await expect.poll(nativeVisible).toBe(true);
 });

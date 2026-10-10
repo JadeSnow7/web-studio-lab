@@ -1,23 +1,25 @@
 import { z } from 'zod';
-import { ChatSlotSchema } from './chat-slot';
 import { PageIdentitySchema } from './preview';
 
 export const MAX_RESOURCE_TEXT_BYTES = 65536;
 export const MAX_RESOURCE_BUNDLE_BYTES = 524288;
 export const MAX_SPACE_RESOURCES = 16;
-export const RESOURCE_SPACE_ID = 'taskflow-demo';
 
 // 在 Node 与无 Node 的 renderer 之间复用，孤立代理项按 UTF-8 的替换字符计算。
+// 按 UTF-16 码元遍历：每次保存都会校验全部正文，逐码点迭代器在大目录上开销显著。
 export function utf8ByteLength(value: string): number {
   let bytes = 0;
-  for (const char of value) {
-    const point = char.codePointAt(0)!;
-    bytes += point <= 0x7f ? 1 : point <= 0x7ff ? 2 : point <= 0xffff ? 3 : 4;
+  for (let index = 0; index < value.length; index++) {
+    const unit = value.charCodeAt(index);
+    if (unit <= 0x7f) bytes += 1;
+    else if (unit <= 0x7ff) bytes += 2;
+    else if (unit <= 0xdbff && unit >= 0xd800 && (value.charCodeAt(index + 1) & 0xfc00) === 0xdc00) {
+      bytes += 4;
+      index++;
+    } else bytes += 3;
   }
   return bytes;
 }
-const SpaceIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
-const ResourceIdSchema = z.uuid();
 const HashSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const PublicUrlSchema = z
   .url({ protocol: /^https$/ })
@@ -83,84 +85,6 @@ export const GuestPageResourceSnapshotSchema = GuestSnapshotObject.refine(pageMa
 export const PageResourceSnapshotSchema = z
   .discriminatedUnion('extractionVersion', [HostSnapshotObject, GuestSnapshotObject])
   .refine(pageMatchesSnapshot, '页面身份与快照不一致');
-const ResourceIdentityFields = { spaceId: SpaceIdSchema, resourceId: ResourceIdSchema, version: z.number().int().positive() };
-export const SpaceResourceSchema = z
-  .discriminatedUnion('extractionVersion', [
-    HostSnapshotObject.extend(ResourceIdentityFields),
-    GuestSnapshotObject.extend(ResourceIdentityFields),
-  ])
-  .refine(pageMatchesSnapshot, '页面身份与快照不一致');
-const ScopedResourcesSchema = z.array(SpaceResourceSchema).max(MAX_SPACE_RESOURCES);
-export const ResourceCollectionSchema = z
-  .object({
-    spaceId: SpaceIdSchema,
-    revision: z.number().int().nonnegative(),
-    resources: ScopedResourcesSchema,
-  })
-  .strict()
-  .refine((collection) => collection.resources.every((resource) => resource.spaceId === collection.spaceId), '资源不属于当前空间')
-  .refine(
-    (collection) =>
-      new Set(collection.resources.map((resource) => resource.resourceId)).size === collection.resources.length &&
-      new Set(collection.resources.map((resource) => resource.url)).size === collection.resources.length,
-    '资源身份或 URL 重复',
-  )
-  .refine(
-    (collection) =>
-      utf8ByteLength(
-        JSON.stringify({
-          conversationId: 'conv-space-taskflow-demo-impl',
-          generation: '\u0000'.repeat(128),
-          turnId: '\u0000'.repeat(128),
-          spaceId: collection.spaceId,
-          collectionRevision: collection.revision,
-          resources: collection.resources,
-        }),
-      ) <= MAX_RESOURCE_BUNDLE_BYTES,
-    '空间资源超过完整轮次 JSON 字节限制',
-  );
-export const ResourceBundleSchema = z
-  .object({
-    conversationId: ChatSlotSchema,
-    generation: z.string().min(1).max(128),
-    turnId: z.string().min(1).max(128),
-    spaceId: z.literal(RESOURCE_SPACE_ID).nullable(),
-    collectionRevision: z.number().int().nonnegative(),
-    resources: ScopedResourcesSchema,
-  })
-  .strict()
-  .refine(
-    (bundle) =>
-      bundle.spaceId === null
-        ? bundle.resources.length === 0 && bundle.collectionRevision === 0
-        : bundle.spaceId === RESOURCE_SPACE_ID && bundle.resources.every((resource) => resource.spaceId === bundle.spaceId),
-    '会话与资源空间不一致',
-  )
-  .refine(
-    (bundle) =>
-      bundle.conversationId === 'conv-personal-default'
-        ? bundle.spaceId === null
-        : bundle.conversationId === 'conv-space-taskflow-demo-impl'
-          ? bundle.spaceId === RESOURCE_SPACE_ID
-          : true,
-    '固定会话的资源授权不匹配',
-  )
-  .refine((bundle) => new Set(bundle.resources.map((resource) => resource.resourceId)).size === bundle.resources.length, '资源身份重复')
-  .refine((bundle) => utf8ByteLength(JSON.stringify(bundle)) <= MAX_RESOURCE_BUNDLE_BYTES, '资源包超过 JSON 字节限制');
-export const ResourceListRequestSchema = z.object({ spaceId: z.literal(RESOURCE_SPACE_ID) }).strict();
-export const ResourceCaptureRequestSchema = ResourceListRequestSchema.extend({
-  expectedPage: PageIdentitySchema.strict(),
-  resourceId: ResourceIdSchema.optional(),
-}).strict();
-export const ResourceRemoveRequestSchema = ResourceListRequestSchema.extend({ resourceId: ResourceIdSchema }).strict();
-export const ResourceSaveRequestSchema = ResourceListRequestSchema.extend({
-  snapshot: PageResourceSnapshotSchema,
-  resourceId: ResourceIdSchema.optional(),
-}).strict();
-export const ResourceStoreSpaceIdSchema = SpaceIdSchema;
 export type GuestResourcePage = z.infer<typeof GuestResourcePageSchema>;
 export type GuestPageResourceSnapshot = z.infer<typeof GuestPageResourceSnapshotSchema>;
 export type PageResourceSnapshot = z.infer<typeof PageResourceSnapshotSchema>;
-export type SpaceResource = z.infer<typeof SpaceResourceSchema>;
-export type ResourceCollection = z.infer<typeof ResourceCollectionSchema>;
-export type ResourceBundle = z.infer<typeof ResourceBundleSchema>;

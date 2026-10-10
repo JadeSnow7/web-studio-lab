@@ -1,0 +1,165 @@
+
+ RUN  v5.0.3 /private/tmp/wsl-review-corrected-red-kfd872p5
+
+ ❯ apps/desktop/src/main/setup.test.ts (9 tests | 2 failed | 7 skipped) 68ms
+   ❯ persisted installer (9)
+     × rejects new setup actions after shutdown without invoking adapters or changing persisted settings 12ms
+     × keeps admission closed while cleanup is pending and permits repeated shutdown cleanup recovery 55ms
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts (8 tests | 6 failed | 2 skipped) 738ms
+   ❯ review: durable terminal cleanup (4)
+     × persists stop before an immediate repository restart 116ms
+     × persists natural exit before an immediate repository restart 55ms
+     × persists no-process launch failure before an immediate repository restart 3ms
+     × reports lifecycle save failures instead of silently acknowledging durable cleanup 52ms
+   ❯ review: cancellable Main launch I/O (4)
+     × cancels while registration is suspended and ignores its late receipt 256ms
+     × cancels while send preflight is suspended and ignores its late receipt 256ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/setup.test.ts > persisted installer > rejects new setup actions after shutdown without invoking adapters or changing persisted settings
+AssertionError: promise resolved "{ pendingLogin: null, …(8) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "busy": false,
++   "config": {
++     "localRoot": null,
++     "pythonBinary": "/App/runtime/python/bin/python3",
++     "sandbox": null,
++     "sbxBinary": "/Applications/Sbx.app/Contents/MacOS/sbx",
++     "schemaVersion": 1,
++     "ssh": null,
++   },
++   "error": null,
++   "modelConnectionVerified": false,
++   "modelCredentialsConfigured": false,
++   "pendingLogin": null,
++   "restartRequired": true,
++   "schemaVersion": 1,
++   "stage": "docker-login",
+  }
+
+ ❯ apps/desktop/src/main/setup.test.ts:173:50
+    171|       () => manager.authorizeLocalRoot('/new-root'),
+    172|     ])
+    173|       await expect(Promise.resolve().then(action)).rejects.toMatchObje…
+       |                                                  ^
+    174|     expect(implementation.check).not.toHaveBeenCalled();
+    175|     expect(implementation.login).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  apps/desktop/src/main/setup.test.ts > persisted installer > keeps admission closed while cleanup is pending and permits repeated shutdown cleanup recovery
+AssertionError: expected Error: 上次登录进程尚待确认，请重试或取消登录 { code: '…' } to match object { code: 'closing' }
+
+- Expected
++ Received
+
+- {
+-   "code": "closing",
++ SetupError {
++   "code": "login-pending",
+  }
+
+ ❯ apps/desktop/src/main/setup.test.ts:200:27
+    198|     const admission = manager.check();
+    199|     release();
+    200|     await expect(admission).rejects.toMatchObject({ code: 'closing' });
+       |                           ^
+    201|     expect(await shuttingDown).toMatchObject({ message: '退出未确认' });
+    202|     await loggingIn;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: durable terminal cleanup > persists stop before an immediate repository restart
+AssertionError: expected { seq: 1, sessionId: null, …(6) } to match object { state: 'closed', …(1) }
+(6 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "cleanupPending": false,
+-   "state": "closed",
++   "cleanupPending": true,
++   "state": "failed",
+  }
+
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts:117:7
+    115|     expect(
+    116|       (await restarted.getSnapshot()).workspaces[0]!.resources.find((r…
+    117|     ).toMatchObject({ state: 'closed', cleanupPending: false });
+       |       ^
+    118|   });
+    119|   it('reports lifecycle save failures instead of silently acknowledgin…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: durable terminal cleanup > persists natural exit before an immediate repository restart
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: durable terminal cleanup > persists no-process launch failure before an immediate repository restart
+AssertionError: expected { seq: +0, sessionId: null, …(7) } to match object { state: 'closed', …(1) }
+(7 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "cleanupPending": false,
+-   "state": "closed",
++   "cleanupPending": true,
++   "state": "failed",
+  }
+
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts:117:7
+    115|     expect(
+    116|       (await restarted.getSnapshot()).workspaces[0]!.resources.find((r…
+    117|     ).toMatchObject({ state: 'closed', cleanupPending: false });
+       |       ^
+    118|   });
+    119|   it('reports lifecycle save failures instead of silently acknowledgin…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: durable terminal cleanup > reports lifecycle save failures instead of silently acknowledging durable cleanup
+AssertionError: the given combination of arguments (null and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts:135:52
+    133|       vi.mocked(runtime.registerResource).mock.calls[0]![0],
+    134|     );
+    135|     expect((await app.getSnapshot()).storageError).toContain('lifecycl…
+       |                                                    ^
+    136|   });
+    137| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: cancellable Main launch I/O > cancels while registration is suspended and ignores its late receipt
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: cancellable Main launch I/O > cancels while send preflight is suspended and ignores its late receipt
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ vi.waitFor.timeout apps/desktop/src/main/workbench/review-lifecycle.test.ts:223:48
+    221|     });
+    222|     try {
+    223|       await vi.waitFor(() => expect(cancelled).toBe(true), { timeout: …
+       |                                                ^
+    224|     } finally {
+    225|       release.resolve();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  8 failed | 9 skipped (17)
+   Start at  21:05:33
+   Duration  969ms (tests 72%, transform 19%, import 9%)
+

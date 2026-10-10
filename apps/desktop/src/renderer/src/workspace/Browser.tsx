@@ -5,7 +5,8 @@ import { useStore } from '../lib/store';
 import { captureContext, cancelContextCapture } from '../state/capture';
 import { locateSession } from '../state/location';
 import { Icon } from '../components/Icon';
-import { shellActions } from '../state/shell';
+import { spaceActions } from '../state/space-ui';
+import { useCatalogMutation } from '../state/catalog';
 
 export function Browser({
   workspaceId,
@@ -22,6 +23,9 @@ export function Browser({
   const address = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<string | null>(null);
   const composing = useRef(false);
+  const draftVersion = useRef(0);
+  const navigationRequest = useRef(0);
+  const pendingNavigation = useRef<{ version: number; url: string } | null>(null);
   const p = resource.preview;
   const workspace = useStore(workspaceStore, (s) => s.snapshot?.workspaces.find((w) => w.workspaceId === workspaceId));
   const managedAppInstanceId = resource.appProjectId ? workspace?.managedApp?.appInstanceId : null;
@@ -48,20 +52,8 @@ export function Browser({
       setCreatingSession(false);
     }
   };
-  const [saving, setSaving] = useState(false);
+  const resourceAction = useCatalogMutation();
   const [captureGuidance, setCaptureGuidance] = useState(false);
-  const savingRef = useRef(false);
-  const capturePublic = async () => {
-    if (savingRef.current) return;
-    savingRef.current = true;
-    setSaving(true);
-    try {
-      await workspaceCommand(workspaceId, { type: 'capturePublicResource', resourceId: resource.resourceId });
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
-    }
-  };
   const action = (action: 'navigate' | 'reload' | 'back' | 'forward' | 'pick' | 'cancelPick' | 'reattach', url?: string) =>
     workspaceCommand(workspaceId, {
       type: 'browserAction',
@@ -119,9 +111,18 @@ export function Browser({
           onSubmit={(e) => {
             e.preventDefault();
             if (composing.current) return;
-            void action('navigate', draft ?? p?.page.url ?? '');
-            setDraft(null);
-            address.current?.blur();
+            const url = draft ?? p?.page.url ?? '';
+            const version = draftVersion.current;
+            if (pendingNavigation.current?.version === version && pendingNavigation.current.url === url) return;
+            const request = ++navigationRequest.current;
+            const pending = { version, url };
+            pendingNavigation.current = pending;
+            void action('navigate', url).then((result) => {
+              if (pendingNavigation.current === pending) pendingNavigation.current = null;
+              if (!result?.ok || navigationRequest.current !== request || draftVersion.current !== version) return;
+              setDraft(null);
+              address.current?.blur();
+            });
           }}
         >
           <label className="sr-only" htmlFor={`address-${resource.resourceId}`}>
@@ -131,7 +132,10 @@ export function Browser({
             ref={address}
             id={`address-${resource.resourceId}`}
             value={draft ?? p?.page.url ?? resource.url ?? ''}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              draftVersion.current++;
+              setDraft(e.target.value);
+            }}
             onCompositionStart={() => {
               composing.current = true;
             }}
@@ -139,7 +143,10 @@ export function Browser({
               composing.current = false;
             }}
             onKeyDown={(e) => {
-              if (e.key === 'Escape' && !e.nativeEvent.isComposing) setDraft(null);
+              if (e.key === 'Escape' && !e.nativeEvent.isComposing) {
+                draftVersion.current++;
+                setDraft(null);
+              }
             }}
           />
         </form>
@@ -199,23 +206,46 @@ export function Browser({
         </p>
       ) : (
         <div className="resource-browser-actions row wrap gap-8">
-          <span className="muted small">公开 HTTPS 网页 · 只读参考资源</span>
+          <span className="muted small">收藏地址与正文快照分别保存</span>
           <button
             type="button"
             className="btn"
-            disabled={!p?.page.url.startsWith('https://') || saving || p.loading || !!p.loadError || workspaceId !== 'taskflow-demo'}
-            onClick={() => void capturePublic()}
+            disabled={resourceAction.busy}
+            onClick={() =>
+              void resourceAction.mutate(
+                { type: 'bookmarkRuntimeResource', workspaceId, runtimeResourceId: resource.resourceId },
+                '已收藏到我的资源。',
+              )
+            }
           >
-            加入空间
+            收藏到资源
           </button>
-          <button type="button" className="btn btn-ghost" onClick={() => shellActions.navigate('resources')}>
+          <button
+            type="button"
+            className="btn"
+            disabled={resourceAction.busy || !resource.instanceId || !!p?.loading || !!p?.loadError}
+            onClick={() =>
+              void resourceAction.mutate(
+                { type: 'captureResourceRevision', workspaceId, runtimeResourceId: resource.resourceId },
+                '正文快照已保存；请在空间资源中明确选择参考版本。',
+              )
+            }
+          >
+            保存正文快照
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => spaceActions.showResources(workspaceId)}>
             查看空间资源
           </button>
         </div>
       )}
-      {!resource.appProjectId && workspace?.publicResourcesError ? (
+      {resourceAction.error ? (
         <p className="workspace-inline-error" role="alert">
-          公开资源操作失败：{workspace.publicResourcesError}
+          {resourceAction.error}
+        </p>
+      ) : null}
+      {resourceAction.notice ? (
+        <p className="workspace-inline-info" role="status">
+          {resourceAction.notice}
         </p>
       ) : null}
       {p?.pickError ? (

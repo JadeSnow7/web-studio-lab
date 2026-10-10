@@ -14,10 +14,7 @@ export const RuntimeConfigSchema = z
   .object({
     schemaVersion: z.literal(1),
     sbxBinary: AbsolutePath.nullable(),
-    sandbox: z
-      .string()
-      .regex(/^wsl-competition-[a-f0-9-]{36}$/)
-      .nullable(),
+    sandbox: z.string().min(1).max(200).nullable(),
     pythonBinary: AbsolutePath,
     localRoot: AbsolutePath.nullable(),
     ssh: SshSettingsSchema.nullable(),
@@ -35,7 +32,6 @@ export const TemplateDependenciesSchema = z
   })
   .strict();
 export const ServiceRuntimeConfigSchema = RuntimeConfigSchema.extend({
-  sandbox: z.string().min(1).max(200).nullable(),
   sshAgent: AbsolutePath.nullable(),
   templateDependencies: TemplateDependenciesSchema.optional(),
 }).strict();

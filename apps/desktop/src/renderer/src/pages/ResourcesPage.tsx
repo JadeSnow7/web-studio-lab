@@ -1,197 +1,395 @@
 import { useRef, useState } from 'react';
+import { BookmarkUrlSchema, type CatalogSummary, type ResourceRevision } from '@wsl/protocol';
 import { Notice } from '../components/Badges';
 import { useStore } from '../lib/store';
-import { workspaceStore, workspaceCommand, initializeWorkspace } from '../state/workspace';
-import { shellActions } from '../state/shell';
+import { useImeForm } from '../lib/ime';
+import { workspaceStore, initializeWorkspace, beginNavigation, isCurrentNavigation } from '../state/workspace';
+import { useCatalogMutation } from '../state/catalog';
 import { uiActions } from '../state/ui';
-
-/** 仅显示服务保存的网页快照；演示样例不进入真实资源列表。 */
+import { shellActions } from '../state/shell';
+import { catalogCommand, switchWorkspace } from '../state/workspace';
+type Item = CatalogSummary['resources'][number];
+const kindLabel = { web: '网页', development: '开发资源', document: '文档' };
+export function resourceLocation(item: Item) {
+  return item.descriptor.kind === 'web'
+    ? item.descriptor.url
+    : (item.descriptor.path ??
+        (item.descriptor.kind === 'development' && item.descriptor.entryKind === 'project'
+          ? '受管项目'
+          : (item.descriptor.environmentId ?? '未绑定环境')));
+}
 export function ResourcesPage() {
   const state = useStore(workspaceStore, (s) => s);
-  const workspace = state.snapshot?.workspaces.find((w) => w.workspaceId === state.selectedId);
-  const spaceId = workspace?.workspaceId ?? null;
-  const resources = workspace?.publicResources;
-  const [pending, setPending] = useState(false);
-  const loading = !state.snapshot;
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const listHeading = useRef<HTMLHeadingElement>(null);
-  const selected = resources?.resources.find((resource) => resource.resourceId === selectedId) ?? resources?.resources[0];
-  const browser = workspace?.resources.find(
-    (r) =>
-      r.kind === 'web' && !!r.preview && !!selected && r.preview.page.url === selected.url && !r.preview.loading && !r.preview.loadError,
+  const catalog = state.snapshot?.catalog;
+  const [category, setCategory] = useState('all'),
+    [query, setQuery] = useState(''),
+    [page, setPage] = useState(1),
+    [selected, setSelected] = useState<string | null>(null);
+  const [title, setTitle] = useState(''),
+    [url, setUrl] = useState(''),
+    [validation, setValidation] = useState<string | null>(null);
+  const search = useRef<HTMLInputElement>(null),
+    titleInput = useRef<HTMLInputElement>(null),
+    urlInput = useRef<HTMLInputElement>(null);
+  const ime = useImeForm();
+  const action = useCatalogMutation();
+  const favorites = catalog?.resources.filter((item) => catalog.library.some((entry) => entry.resourceId === item.resourceId)) ?? [];
+  const filtered = favorites.filter(
+    (item) =>
+      (category === 'all' || item.descriptor.kind === category) &&
+      `${item.title} ${resourceLocation(item)}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
   );
-  const block = workspace?.runs.some((r) => r.state === 'running' || r.state === 'cancelling' || r.state === 'starting')
-    ? '任务运行或清理中，暂不能修改参考资源。'
-    : spaceId !== 'taskflow-demo'
-      ? '此空间尚未接入公开资源适配器。'
-      : null;
-  const matchingPage = !!browser;
-  const openSpace = () => shellActions.navigate('space');
-  const mutate = async (payload: Parameters<typeof workspaceCommand>[1]) => {
-    if (!spaceId) return false;
-    setPending(true);
-    try {
-      return (await workspaceCommand(spaceId, payload))?.ok ?? false;
-    } finally {
-      setPending(false);
-    }
-  };
-
+  const pages = Math.max(1, Math.ceil(filtered.length / 10)),
+    current = Math.min(page, pages),
+    items = filtered.slice((current - 1) * 10, current * 10);
+  const detail = favorites.find((item) => item.resourceId === selected);
   return (
-    <section className="page-main resources-page" aria-label="空间网页资源">
-      <div className="row space-between gap-12 wrap">
-        <div className="stack-8">
-          <h1 ref={listHeading} tabIndex={-1}>
-            空间资源
-          </h1>
-          <p className="muted small">{spaceId ? (workspace?.name ?? '未选择空间') : '个人作用域'}</p>
-        </div>
-        <button type="button" className="btn" onClick={openSpace}>
-          打开空间页面
+    <section className="page-main resources-page" aria-label="我的资源">
+      <div className="stack-8">
+        <h1 id="resource-list-heading" tabIndex={-1}>
+          我的资源
+        </h1>
+        <p className="muted">保存开发资源、网页和文档，在需要时连接到空间。</p>
+      </div>
+      <form
+        className="resource-bookmark-form"
+        noValidate
+        {...ime.handlers}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (ime.composing.current || action.busy) return;
+          setValidation(null);
+          if (!title.trim()) {
+            setValidation('请填写资源名称');
+            titleInput.current?.focus();
+            return;
+          }
+          if (!BookmarkUrlSchema.safeParse(url).success) {
+            setValidation('请填写无凭据的 HTTP 或 HTTPS 链接');
+            urlInput.current?.focus();
+            return;
+          }
+          if (await action.mutate({ type: 'bookmarkLink', title, url }, '已收藏链接，尚未保存正文快照。')) {
+            setTitle('');
+            setUrl('');
+            titleInput.current?.focus();
+          }
+        }}
+      >
+        <label className="field">
+          资源名称
+          <input
+            ref={titleInput}
+            value={title}
+            maxLength={4096}
+            disabled={action.busy}
+            aria-invalid={!!validation && !title.trim()}
+            aria-describedby={validation ? 'bookmark-validation' : undefined}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          网页链接
+          <input
+            ref={urlInput}
+            value={url}
+            maxLength={2048}
+            disabled={action.busy}
+            aria-invalid={!!validation && !!title.trim()}
+            aria-describedby={validation ? 'bookmark-validation' : undefined}
+            placeholder="https://"
+            onChange={(e) => setUrl(e.target.value)}
+          />
+        </label>
+        <button className="btn btn-primary" type="submit" disabled={action.busy || !catalog}>
+          收藏链接
+        </button>
+      </form>
+      {validation ? (
+        <p id="bookmark-validation" role="alert">
+          {validation}
+        </p>
+      ) : null}
+      <p className="muted small">收藏链接只保存地址，不访问网页，不自动连接空间或加入会话。</p>
+      <div className="row wrap gap-12 resource-filters">
+        <label className="field">
+          资源分类
+          <select
+            aria-label="资源分类"
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="all">全部</option>
+            <option value="development">开发资源</option>
+            <option value="web">网页</option>
+            <option value="document">文档</option>
+          </select>
+        </label>
+        <label className="field resource-search">
+          搜索收藏
+          <input
+            ref={search}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
+          />
+        </label>
+        {query ? (
+          <button
+            className="btn"
+            onClick={() => {
+              setQuery('');
+              setPage(1);
+              search.current?.focus();
+            }}
+          >
+            清除搜索
+          </button>
+        ) : null}
+        <button type="button" className="btn" disabled={action.busy} onClick={() => void initializeWorkspace(true)}>
+          重新读取资源
         </button>
       </div>
-      {!spaceId ? (
-        <Notice>个人会话不提供空间网页资源。进入空间后，可加入公开网页并在该空间会话中读取。</Notice>
+      {state.error ? <Notice tone="warn">{state.error}</Notice> : null}
+      {action.error ? <p role="alert">{action.error}</p> : null}
+      {action.notice ? <p role="status">{action.notice}</p> : null}
+      {!catalog ? (
+        <p role="status">正在读取资源…</p>
+      ) : !favorites.length ? (
+        <Notice>还没有收藏资源。可收藏网页链接，或在空间资源区收藏已有内容。</Notice>
+      ) : !filtered.length ? (
+        <Notice>没有符合条件的收藏。请清除搜索或更换分类。</Notice>
       ) : (
         <>
-          <Notice>
-            这里是你加入当前空间的真实网页快照。每空间最多 16 条；正文作为非可信参考资料，只通过只读资源工具提供给下一轮空间会话。
-          </Notice>
-          <div className="row space-between gap-8">
-            <p className="muted small" role="status">
-              {loading ? '正在读取资源…' : `共 ${resources?.resources.length ?? 0} 条 · 集合版本 ${resources?.revision ?? 0}`}
-            </p>
-            <button type="button" className="btn" disabled={loading || pending} onClick={() => void initializeWorkspace(true)}>
-              刷新列表
-            </button>
-          </div>
-          {state.error ? <p role="alert">{state.error}</p> : null}
-          {workspace?.publicResourcesError ? <p role="alert">公开资源刷新失败：{workspace.publicResourcesError}</p> : null}
-          {block ? <Notice tone="warn">{block}</Notice> : null}
-          <div className="resource-list" aria-busy={loading || pending}>
-            {resources?.resources.length ? (
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>网页</th>
-                    <th>版本</th>
-                    <th>正文</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resources.resources.map((resource) => (
-                    <tr
-                      key={resource.resourceId}
-                      className={selected?.resourceId === resource.resourceId ? 'resource-selected' : undefined}
-                    >
-                      <td>
-                        <button
-                          type="button"
-                          className="link-btn resource-title"
-                          aria-pressed={selected?.resourceId === resource.resourceId}
-                          onClick={() => setSelectedId(resource.resourceId)}
-                        >
-                          {resource.title || '无标题网页'}
-                        </button>
-                        <p className="muted small resource-url">{resource.url}</p>
-                      </td>
-                      <td>v{resource.version}</td>
-                      <td>{resource.truncated ? '已截断' : '完整'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="muted resource-empty">
-                {loading ? '正在读取已保存的网页。' : '当前空间还没有网页资源。在空间页面打开公开 HTTPS 网页，再点击“加入空间”。'}
-              </p>
-            )}
-          </div>
-          {selected ? (
-            <section className="resource-detail stack-8" aria-label="资源详情">
-              <div className="row space-between gap-12 wrap">
-                <h2>{selected.title || '无标题网页'}</h2>
-                <span className="chip">只读快照 · v{selected.version}</span>
-              </div>
-              <dl className="kv">
-                <dt>来源 URL</dt>
-                <dd>{selected.url}</dd>
-                <dt>抓取时间</dt>
-                <dd>
-                  <time dateTime={selected.capturedAt}>
-                    {new Date(selected.capturedAt).toLocaleString('zh-CN', { timeZoneName: 'short' })}
-                  </time>
-                </dd>
-                <dt>资源身份</dt>
-                <dd>
-                  <code>{selected.resourceId}</code>
-                </dd>
-                <dt>空间</dt>
-                <dd>{selected.spaceId}</dd>
-                <dt>正文摘要</dt>
-                <dd>
-                  <code>{selected.contentSha256}</code>
-                </dd>
-                <dt>响应摘要</dt>
-                <dd>
-                  <code>{selected.sourceSha256}</code>
-                </dd>
-                <dt>页面身份</dt>
-                <dd>
-                  {selected.extractionVersion === 'rendered-dom-text-v1' ? (
-                    <>
-                      沙箱浏览器 · {selected.page.sandboxName} · 页面 {selected.page.targetId} · 导航 {selected.page.navigationEpoch}
-                    </>
-                  ) : (
-                    <>
-                      webContents #{selected.page.webContentsId} · 文档 {selected.page.documentGeneration}
-                    </>
-                  )}
-                </dd>
-              </dl>
-              <div className="row wrap gap-8 resource-actions">
+          <p className="muted small" role="status">
+            共 {filtered.length} 条收藏 · 第 {current} / {pages} 页
+          </p>
+          <div className="resource-catalog-list" aria-busy={action.busy}>
+            {items.map((item) => (
+              <article className="resource-catalog-row" key={item.resourceId}>
+                <div className="stack-8">
+                  <button
+                    type="button"
+                    className="link-btn resource-title"
+                    aria-pressed={selected === item.resourceId}
+                    onClick={() => setSelected(item.resourceId)}
+                  >
+                    {item.title}
+                  </button>
+                  <p className="muted small resource-location">{resourceLocation(item)}</p>
+                  <span className="muted small">
+                    {kindLabel[item.descriptor.kind]} · {item.versions.length ? `${item.versions.length} 个正文版本` : '未保存正文快照'} ·{' '}
+                    {catalog.links.filter((link) => link.resourceId === item.resourceId).length} 个空间连接
+                  </span>
+                </div>
                 <button
                   type="button"
                   className="btn"
-                  disabled={pending || !!block || !matchingPage}
-                  onClick={() => {
-                    if (browser)
-                      void mutate({ type: 'capturePublicResource', resourceId: browser.resourceId, savedResourceId: selected.resourceId });
-                  }}
+                  disabled={action.busy}
+                  onClick={() =>
+                    void action
+                      .mutate({ type: 'unbookmarkResource', resourceId: item.resourceId }, '已取消收藏，空间连接仍保留。')
+                      .then((ok) => {
+                        if (ok) document.getElementById('resource-list-heading')?.focus();
+                      })
+                  }
                 >
-                  用当前页面更新
+                  取消收藏
                 </button>
-                <button
-                  type="button"
-                  className="btn text-bad"
-                  disabled={pending || !!block}
-                  onClick={() => {
-                    const resource = selected;
-                    uiActions.openConfirm({
-                      title: '从空间移除网页',
-                      description: `将“${resource.title || resource.url}”从 ${workspace?.name ?? '未选择空间'} 移除。下一轮空间会话将无法通过资源工具读取它；已有对话和 Agent 已保存的副本不会被删除。可重新打开网页加入空间。`,
-                      confirmLabel: '移除网页',
-                      onConfirm: async () => {
-                        const removed = await mutate({ type: 'removePublicResource', savedResourceId: resource.resourceId });
-                        if (removed) {
-                          setSelectedId(null);
-                          requestAnimationFrame(() => listHeading.current?.focus());
-                        }
-                        return removed;
-                      },
-                    });
-                  }}
-                >
-                  移除资源
-                </button>
-              </div>
-              {!matchingPage ? <p className="muted small">更新前，请在空间页面打开相同 URL 并等待加载完成。</p> : null}
-              <h3 className="resource-body-heading">正文快照{selected.truncated ? '（已截断至保存上限）' : ''}</h3>
-              <pre className="resource-text">{selected.text}</pre>
-            </section>
-          ) : null}
+              </article>
+            ))}
+          </div>
+          <nav className="row gap-8" aria-label="资源分页">
+            <button type="button" className="btn" disabled={current === 1} onClick={() => setPage(current - 1)}>
+              上一页
+            </button>
+            <button type="button" className="btn" disabled={current === pages} onClick={() => setPage(current + 1)}>
+              下一页
+            </button>
+          </nav>
         </>
       )}
+      {detail ? <ResourceDetail key={detail.resourceId} item={detail} catalog={catalog!} action={action} /> : null}
+    </section>
+  );
+}
+function ResourceDetail({ item, catalog, action }: { item: Item; catalog: CatalogSummary; action: ReturnType<typeof useCatalogMutation> }) {
+  const [title, setTitle] = useState(item.title),
+    [workspaceId, setWorkspaceId] = useState(''),
+    [version, setVersion] = useState(item.versions.at(-1) ?? 0),
+    [body, setBody] = useState<ResourceRevision | null>(null),
+    [reading, setReading] = useState(false),
+    [error, setError] = useState<string | null>(null);
+  const request = useRef(0),
+    input = useRef<HTMLInputElement>(null),
+    ime = useImeForm();
+  const workspaces = useStore(workspaceStore, (s) => s.snapshot?.workspaces ?? []);
+  const connected = catalog.links.some((link) => link.workspaceId === workspaceId && link.resourceId === item.resourceId);
+  return (
+    <section className="resource-detail stack-12" aria-label="资源详情">
+      <h2>{item.title}</h2>
+      <p className="resource-location muted">{resourceLocation(item)}</p>
+      <form
+        noValidate
+        {...ime.handlers}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (ime.composing.current) return;
+          if (!title.trim()) {
+            setError('请填写资源名称');
+            input.current?.focus();
+            return;
+          }
+          setError(null);
+          await action.mutate({ type: 'updateResource', resourceId: item.resourceId, title }, '资源名称已更新。');
+        }}
+      >
+        <label className="field">
+          修改资源名称
+          <input
+            ref={input}
+            value={title}
+            maxLength={4096}
+            aria-invalid={!!error && !title.trim()}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </label>
+        <button className="btn" disabled={action.busy}>
+          保存名称
+        </button>
+      </form>
+      <div className="row wrap gap-8">
+        <label className="field">
+          目标空间
+          <select value={workspaceId} disabled={action.busy} onChange={(e) => setWorkspaceId(e.target.value)}>
+            <option value="">选择空间</option>
+            {workspaces.map((workspace) => (
+              <option key={workspace.workspaceId} value={workspace.workspaceId}>
+                {workspace.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="btn"
+          disabled={!workspaceId || connected || action.busy}
+          onClick={() =>
+            void action.mutate(
+              { type: 'connectResource', workspaceId, resourceId: item.resourceId },
+              '已连接空间；尚未打开，也未选择为会话参考。',
+            )
+          }
+        >
+          {connected ? '已连接空间' : '连接到空间'}
+        </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={!connected || action.busy}
+          onClick={async () => {
+            const token = beginNavigation();
+            if (
+              (await action.mutate({ type: 'openCatalogResource', workspaceId, resourceId: item.resourceId }, '已在空间打开。')) &&
+              isCurrentNavigation(token)
+            ) {
+              if (await switchWorkspace(workspaceId)) shellActions.navigate('space');
+            }
+          }}
+        >
+          在空间打开
+        </button>
+      </div>
+      {item.versions.length ? (
+        <>
+          <div className="row wrap gap-8">
+            <label>
+              正文版本{' '}
+              <select
+                aria-label="正文版本"
+                value={version}
+                onChange={(e) => {
+                  request.current++;
+                  setVersion(Number(e.target.value));
+                  setBody(null);
+                  setReading(false);
+                }}
+              >
+                {item.versions.map((value) => (
+                  <option key={value} value={value}>
+                    v{value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="btn"
+              disabled={reading}
+              onClick={async () => {
+                const token = ++request.current;
+                setReading(true);
+                setError(null);
+                try {
+                  const result = await window.studio.workbench.resourceRevision(item.resourceId, version);
+                  if (token === request.current) setBody(result);
+                } catch (failure) {
+                  if (token === request.current) setError((failure as Error).message);
+                } finally {
+                  if (token === request.current) setReading(false);
+                }
+              }}
+            >
+              读取正文
+            </button>
+          </div>
+          {reading ? <p role="status">正在读取正文…</p> : null}
+          {body ? (
+            <>
+              <Notice>正文是非可信参考资料；查看不会加入会话。</Notice>
+              <pre className="resource-body">{body.text}</pre>
+              <details>
+                <summary>来源与版本</summary>
+                <p>
+                  v{body.version} · {new Date(body.capturedAt).toLocaleString()} · {body.truncated ? '正文已截断' : '正文完整'}
+                </p>
+                <p className="resource-location">正文摘要 {body.contentSha256}</p>
+                <p className="resource-location">来源摘要 {body.sourceSha256}</p>
+              </details>
+            </>
+          ) : null}
+        </>
+      ) : (
+        <p className="muted">
+          {item.descriptor.kind === 'web' ? '未保存正文快照，可在空间网页中主动保存。' : '此资源保存入口描述，可在已授权环境中重新打开。'}
+        </p>
+      )}
+      {error ? <p role="alert">{error}</p> : null}
+      <button
+        type="button"
+        className="btn btn-danger"
+        disabled={action.busy}
+        onClick={() =>
+          void uiActions.openConfirm({
+            title: '删除资源',
+            description: `删除“${item.title}”及其收藏和正文版本。已有空间连接或活动使用时会拒绝删除；历史任务证据保留。`,
+            confirmLabel: '删除资源',
+            onConfirm: async () => {
+              const result = await catalogCommand({ type: 'deleteResource', resourceId: item.resourceId });
+              if (!result.ok) throw new Error(result.error.message);
+              requestAnimationFrame(() => document.getElementById('resource-list-heading')?.focus());
+              return true;
+            },
+          })
+        }
+      >
+        删除资源
+      </button>
     </section>
   );
 }

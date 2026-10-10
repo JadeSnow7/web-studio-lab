@@ -2,34 +2,74 @@ import { reorderTabIds } from './presentation';
 import { useState } from 'react';
 import type { WorkspaceSnapshot } from '@wsl/protocol';
 import { Icon } from '../components/Icon';
-import { command, panes } from '../state/workspace';
+import { command, panes, workspaceStore } from '../state/workspace';
+import { useStore } from '../lib/store';
+import { useCatalogMutation } from '../state/catalog';
+import { spaceUiStore } from '../state/space-ui';
 import { resourceIcons as icons } from './icons';
 export function Sidebar({
   workspace,
   peek,
   onCreateTab,
   onSwitcher,
+  onApp,
   onTabMenu,
   onClosePeek,
 }: {
   workspace: WorkspaceSnapshot | undefined;
   peek: boolean;
-  onCreateTab: () => void;
+  onCreateTab: (kind?: 'web' | 'terminal' | 'session') => void;
+  onApp: () => void;
   onSwitcher: () => void;
   onTabMenu: (tabId: string) => void;
   onClosePeek: () => void;
 }) {
   const [dragged, setDragged] = useState<string | null>(null),
     [drop, setDrop] = useState<string | null>(null);
+  const catalog = useStore(workspaceStore, (s) => s.snapshot?.catalog);
+  const expanded = useStore(spaceUiStore, (s) => s.resourcesWorkspaceId === workspace?.workspaceId);
+  const [choice, setChoice] = useState('');
+  const action = useCatalogMutation();
   const items = workspace?.tabs ?? [];
   const ordered = [...items.filter((t) => t.pinned), ...items.filter((t) => !t.pinned)];
   return (
     <section className="workspace-sidebar" aria-label="空间导航">
       <div className="sidebar-heading">
-        <strong>{workspace?.name}</strong>
-        <span className="muted small">空间标签</span>
+        <strong title={workspace?.name}>{workspace?.name}</strong>
+        <div className="sidebar-create-actions" role="group" aria-label="新建空间资源">
+          {(
+            [
+              ['web', 'globe', '新建网页'],
+              ['terminal', 'terminal', '新建终端'],
+              ['session', 'chat', '新建会话'],
+            ] as const
+          ).map(([kind, icon, label]) => (
+            <button
+              key={kind}
+              type="button"
+              className="icon-btn"
+              aria-label={label}
+              title={label}
+              disabled={!workspace}
+              onClick={() => onCreateTab(kind)}
+            >
+              <Icon name={icon} size={16} />
+            </button>
+          ))}
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label={workspace?.managedApp ? '管理 App' : '新建 App'}
+            title={workspace?.managedApp ? '管理 App' : '新建 App'}
+            disabled={!workspace}
+            onClick={onApp}
+          >
+            <Icon name="space" size={16} />
+          </button>
+        </div>
       </div>
       <nav aria-label="空间标签" className="vertical-tabs">
+        <p className="muted small">活跃标签</p>
         {ordered.map((tab, index) => {
           const p = workspace ? panes(workspace.layout).find((p) => p.tabId === tab.tabId) : undefined;
           const active = p?.paneId === workspace?.activePaneId;
@@ -116,86 +156,171 @@ export function Sidebar({
           {workspace?.resources
             .filter((r) => !items.some((t) => t.targetRef.resourceId === r.resourceId))
             .map((r) => (
-              <button
-                type="button"
-                className="btn"
-                key={r.resourceId}
-                onClick={() => void command({ type: 'openTab', resourceId: r.resourceId })}
-              >
-                {r.title} · 重新打开
-              </button>
+              <div key={r.resourceId} className="stack-8">
+                <span className="resource-location">
+                  {r.title} · {r.instanceId ? '实例保留' : '无运行实例'}
+                </span>
+                <div className="row wrap gap-8">
+                  <button
+                    type="button"
+                    className="btn"
+                    aria-label={`${r.title} · 重新打开`}
+                    onClick={() => void command({ type: 'openTab', resourceId: r.resourceId })}
+                  >
+                    重新打开
+                  </button>
+                  {r.instanceId ? (
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => void command({ type: 'stopInstance', resourceId: r.resourceId, instanceId: r.instanceId! })}
+                    >
+                      {r.kind === 'web' ? '关闭网页实例' : r.kind === 'file' ? '关闭文件观察' : '停止实例'}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
             ))}
         </details>
       </nav>
-      {workspace ? (
-        <section className="managed-app-controls" aria-label="标准应用服务">
-          <strong>标准应用</strong>
-          {workspace.managedApp ? (
-            <>
-              <p className="muted small" role="status">
-                {
-                  {
-                    created: '已创建',
-                    starting: '正在准备应用…',
-                    running: '运行中',
-                    stopping: '正在停止…',
-                    stopped: '已停止',
-                    failed: '操作失败',
-                  }[workspace.managedApp.state]
-                }
-              </p>
-              <div className="row gap-8">
-                <button
-                  type="button"
-                  className="btn"
-                  disabled={
-                    !workspace.managedApp.cleanupConfirmed || ['starting', 'running', 'stopping'].includes(workspace.managedApp.state)
-                  }
-                  onClick={() => void command({ type: 'startApp' })}
-                >
-                  启动应用
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  disabled={!['starting', 'running', 'failed'].includes(workspace.managedApp.state)}
-                  onClick={() => void command({ type: 'stopApp' })}
-                >
-                  {workspace.managedApp.state === 'starting' ? '取消启动' : '停止应用'}
-                </button>
-              </div>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                disabled={
-                  !workspace.managedApp.cleanupConfirmed || ['starting', 'running', 'stopping'].includes(workspace.managedApp.state)
-                }
-                onClick={() => void command({ type: 'exportApp' })}
-              >
-                导出源码
-              </button>
-              {workspace.managedApp.error ? (
-                <p className="small" role="alert">
-                  {workspace.managedApp.error}
-                </p>
-              ) : null}
-              {workspace.appExport ? (
-                <p className="muted small" style={{ overflowWrap: 'anywhere' }}>
-                  源码已导出：{workspace.appExport.path}
-                  <br />
-                  SHA256：{workspace.appExport.sha256}
-                </p>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <p className="muted small">在沙箱创建 React 全栈工程。</p>
-              <button type="button" className="btn" onClick={() => void command({ type: 'createApp' })}>
-                创建标准应用
-              </button>
-            </>
-          )}
-        </section>
+      {workspace && catalog ? (
+        <details
+          className="space-resource-section"
+          open={expanded}
+          onToggle={(event) => {
+            const open = event.currentTarget.open;
+            spaceUiStore.set((s) => ({
+              ...s,
+              resourcesWorkspaceId: open
+                ? workspace.workspaceId
+                : s.resourcesWorkspaceId === workspace.workspaceId
+                  ? null
+                  : s.resourcesWorkspaceId,
+            }));
+          }}
+        >
+          <summary id="space-resources-summary" tabIndex={0}>
+            空间资源 · {catalog.links.filter((link) => link.workspaceId === workspace.workspaceId).length}
+          </summary>
+          <p className="muted small">连接不打开页面，不自动提供给会话。</p>
+          <label className="field">
+            连接收藏
+            <select aria-label="连接收藏" disabled={action.busy} value={choice} onChange={(e) => setChoice(e.target.value)}>
+              <option value="">选择已有收藏</option>
+              {catalog.resources
+                .filter(
+                  (item) =>
+                    catalog.library.some((entry) => entry.resourceId === item.resourceId) &&
+                    !catalog.links.some((link) => link.workspaceId === workspace.workspaceId && link.resourceId === item.resourceId),
+                )
+                .map((item) => (
+                  <option key={item.resourceId} value={item.resourceId}>
+                    {item.title}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="btn"
+            disabled={!choice || action.busy}
+            onClick={async () => {
+              if (
+                await action.mutate(
+                  { type: 'connectResource', workspaceId: workspace.workspaceId, resourceId: choice },
+                  '已连接，尚未打开。',
+                )
+              )
+                setChoice('');
+            }}
+          >
+            连接到本空间
+          </button>
+          {catalog.links
+            .filter((link) => link.workspaceId === workspace.workspaceId)
+            .map((link) => {
+              const item = catalog.resources.find((item) => item.resourceId === link.resourceId)!;
+              const saved = catalog.library.some((entry) => entry.resourceId === item.resourceId);
+              return (
+                <article key={item.resourceId} className="space-resource-row">
+                  <strong className="resource-location">{item.title}</strong>
+                  <p className="muted small">
+                    {saved ? '收藏连接' : '本空间资源 · 未收藏'} ·{' '}
+                    {item.descriptor.kind === 'web' ? '网页' : item.descriptor.kind === 'document' ? '文档' : '开发资源'}
+                  </p>
+                  <div className="row wrap gap-8">
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={action.busy}
+                      onClick={() =>
+                        void action.mutate(
+                          { type: 'openCatalogResource', workspaceId: workspace.workspaceId, resourceId: item.resourceId },
+                          '已打开空间标签。',
+                        )
+                      }
+                    >
+                      打开
+                    </button>
+                    {!saved ? (
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={action.busy}
+                        onClick={() =>
+                          void action.mutate({ type: 'bookmarkResource', resourceId: item.resourceId }, '已收藏，空间连接保留。')
+                        }
+                      >
+                        收藏
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={action.busy}
+                      onClick={() =>
+                        void action.mutate(
+                          { type: 'disconnectResource', workspaceId: workspace.workspaceId, resourceId: item.resourceId },
+                          '已解除空间连接，账户资源保留。',
+                        )
+                      }
+                    >
+                      解除连接
+                    </button>
+                  </div>
+                  <label className="field">
+                    会话参考
+                    <select
+                      aria-label={`${item.title}会话参考`}
+                      disabled={action.busy}
+                      value={link.referenceVersion ?? ''}
+                      onChange={(e) =>
+                        void action.mutate(
+                          {
+                            type: 'selectReference',
+                            workspaceId: workspace.workspaceId,
+                            resourceId: item.resourceId,
+                            version: e.target.value ? Number(e.target.value) : null,
+                          },
+                          '空间会话参考已更新，仅影响之后的任务。',
+                        )
+                      }
+                    >
+                      <option value="">不作为参考</option>
+                      {item.versions.map((version) => (
+                        <option key={version} value={version}>
+                          v{version}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {!item.versions.length ? <p className="muted small">未保存正文快照</p> : null}
+                </article>
+              );
+            })}
+          {action.error ? <p role="alert">{action.error}</p> : null}
+          {action.notice ? <p role="status">{action.notice}</p> : null}
+        </details>
       ) : null}
       <button type="button" className="btn new-tab-button" onClick={() => onCreateTab()}>
         <Icon name="plus" />

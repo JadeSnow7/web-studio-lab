@@ -1,0 +1,9 @@
+dd1be3e9846ab38725370d22dc05cd3e83acfd2518505208cfcbdc7b25069782  apps/desktop/src/renderer/src/workspace/Sidebar.tsx
+ec3ab38cb3b0dbb99fdb22a77e6a94cfef2bc226ba146fc727547d1c31b38d46  apps/desktop/src/renderer/src/workspace/ManagedAppDialog.tsx
+255ff18c74e0055aba5d45c4b484c4f36b89006686933f42fb17a1f255e8dedf  apps/desktop/src/renderer/src/shell/Workshop.tsx
+413167a4f7c68263ff546c9a0c2bafec8993baae4ed8347f04d9ecb5930a3e29  apps/desktop/src/renderer/src/pages/SpacePage.tsx
+a9ca58f885cfb04743e14794c428ee8f3486a75089a30ef6fe62b72d595344ac  apps/desktop/src/renderer/src/state/space-ui.ts
+38e572d0800a5ef31a25bee464324a686ab86cff82107c1f9c9568fc445505a5  apps/desktop/src/renderer/src/styles/app.css
+c756b50fe981cea5e5105f8fbbf74e5feb41ce81a84e09d7ebb89bb5f4247543  e2e/workshop-actions.spec.ts
+87a563e6b549a0277f361850b5a9aa9e58f15278c1ecf7462e7586ce08c44dee  e2e/fixtures/sbx-app-actions.mjs
+24a35cdd18858008444e35146ed0acc7525fb070dc030809908818d0fdd82e26  e2e/managed-app-live.spec.ts

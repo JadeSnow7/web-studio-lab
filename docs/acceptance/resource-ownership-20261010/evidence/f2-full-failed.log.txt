@@ -1,0 +1,63 @@
+
+> web-studio-lab@ test /Users/huaodong/workspace/web-studio-lab
+> vitest run && node --test scripts/packaging/*.test.mjs
+
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/resource-chat.test.ts (18 tests | 1 failed) 83ms
+   ❯ space resources per-turn capability (18)
+     × bounds unbounded protocol workspace fields in receipts 4ms
+ ❯ apps/desktop/src/main/workbench/resource-catalog-repository.test.ts (11 tests | 1 failed) 56ms
+   ❯ RESOURCE-OWNERSHIP-1 migration/persistence R09 (11)
+     × preserves the committed file when a complete schema3 candidate is invalid 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/resource-chat.test.ts > space resources per-turn capability > bounds unbounded protocol workspace fields in receipts
+AssertionError: expected { truncated: true, …(1) } to deeply equal { status: 'completed', …(3) }
+
+- Expected
++ Received
+
+  {
+-   "receipt": {},
+-   "status": "completed",
++   "receiptUnavailable": "MCP metadata exceeded the record limit",
+    "truncated": true,
+-   "untrusted": true,
+  }
+
+ ❯ apps/service/src/resource-chat.test.ts:277:41
+    275|     if (field === 'workspace') {
+    276|       expect(ObservationSourcesSchema.safeParse({ kind: 'sources', wor…
+    277|       expect(JSON.parse(record.output)).toEqual({ status: 'completed',…
+       |                                         ^
+    278|     } else expect(JSON.parse(record.output)).toEqual({ truncated: true…
+    279|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/main/workbench/resource-catalog-repository.test.ts > RESOURCE-OWNERSHIP-1 migration/persistence R09 > preserves the committed file when a complete schema3 candidate is invalid
+Error: fixture item missing
+ ❯ itemAt apps/desktop/src/main/workbench/resource-catalog-repository.test.ts:12:33
+     10| const itemAt = <T>(items: T[], index = 0): T => {
+     11|   const item = items[index];
+     12|   if (item === undefined) throw new Error('fixture item missing');
+       |                                 ^
+     13|   return item;
+     14| };
+ ❯ apps/desktop/src/main/workbench/resource-catalog-repository.test.ts:212:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 73 passed | 6 skipped (81)
+      Tests  2 failed | 582 passed | 15 skipped (599)
+   Start at  23:30:07
+   Duration  4.95s (tests 83%, import 11%, transform 6%, worker 1%)
+
+    Isolate  81 workers spawned · ~78ms startup each (spawn + environment, per file)
+             at least ~626ms faster with isolate: false — reuses workers across files instead of one per file
+
+ ELIFECYCLE  Test failed. See above for more details.

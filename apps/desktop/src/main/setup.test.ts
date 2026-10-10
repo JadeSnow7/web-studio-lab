@@ -2,7 +2,7 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import type { DependencyManifest } from '@wsl/protocol';
+import { RuntimeConfigSchema, ServiceRuntimeConfigSchema, type DependencyManifest } from '@wsl/protocol';
 import { SetupManager, SetupError, type SetupAdapter } from './setup';
 
 const manifest: DependencyManifest = {
@@ -50,6 +50,43 @@ async function open(implementation = adapter()) {
   return { manager: await SetupManager.open(file, '/App/runtime/python/bin/python3', implementation), file, implementation };
 }
 describe('persisted installer', () => {
+  it.each(['wsl-sbx-smoke-20261006', 'wsl-competition-01234567-89ab-cdef-0123-456789abcdef', 'a', 'a'.repeat(200)])(
+    'restores and saves sandbox %s with existing settings across restart',
+    async (sandbox) => {
+      const { manager, file, implementation } = await open();
+      const config = {
+        ...manager.status().config,
+        sbxBinary: '/opt/homebrew/bin/sbx',
+        sandbox,
+        localRoot: '/existing-project',
+        ssh: { host: 'example.com', port: 2222, username: 'agent', hostKeySha256: 'a'.repeat(64), root: '/project' },
+      };
+      await writeFile(file, JSON.stringify({ ...manager.status(), stage: 'ready', config }));
+      const restored = await SetupManager.open(file, config.pythonBinary, implementation);
+      expect(restored.status().error).toBeNull();
+      expect(restored.runtimeConfig()).toEqual(config);
+      expect(ServiceRuntimeConfigSchema.parse({ ...config, sshAgent: null }).sandbox).toBe(sandbox);
+      await restored.save({ localRoot: config.localRoot, ssh: config.ssh });
+      const restarted = await SetupManager.open(file, config.pythonBinary, implementation);
+      expect(restarted.runtimeConfig()).toEqual(config);
+      expect(restarted.status().stage).toBe('ready');
+      expect(restarted.status().modelConnectionVerified).toBe(false);
+      expect(implementation.probe).not.toHaveBeenCalled();
+      expect(implementation.createSandbox).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['', 'a'.repeat(201), 42])('rejects invalid persisted sandbox %s and preserves the file', async (sandbox) => {
+    const { manager, file, implementation } = await open();
+    const config = { ...manager.status().config, sandbox };
+    expect(RuntimeConfigSchema.safeParse(config).success).toBe(false);
+    expect(ServiceRuntimeConfigSchema.safeParse({ ...config, sshAgent: null }).success).toBe(false);
+    const bytes = JSON.stringify({ ...manager.status(), config });
+    await writeFile(file, bytes);
+    const restored = await SetupManager.open(file, config.pythonBinary, implementation);
+    expect(restored.status().error?.code).toBe('configuration-invalid');
+    await expect(restored.save({ localRoot: null, ssh: null })).rejects.toMatchObject({ code: 'configuration-invalid' });
+    expect(await readFile(file, 'utf8')).toBe(bytes);
+  });
   it('stops for explicit Docker action, then completes probes with existing model credential metadata', async () => {
     const { manager, implementation } = await open();
     const states: string[] = [];
@@ -154,6 +191,57 @@ describe('persisted installer', () => {
     const restored = resumed.status();
     expect(restored.pendingLogin).toBeNull();
     expect(implementation.login).toHaveBeenCalledWith(expect.any(String), 'docker', expect.any(AbortSignal), expect.any(String), true);
+  });
+  it('rejects new setup actions after shutdown without invoking adapters or changing persisted settings', async () => {
+    const { manager, file, implementation } = await open();
+    await manager.prepare();
+    await manager.shutdown();
+    const bytes = await readFile(file, 'utf8');
+    vi.mocked(implementation.check).mockClear();
+    for (const action of [
+      () => manager.check(),
+      () => manager.prepare(),
+      () => manager.retry(),
+      () => manager.login('docker', false),
+      () => manager.login('openai', true),
+      () => manager.save({ localRoot: null, ssh: null }),
+      () => manager.authorizeLocalRoot('/new-root'),
+    ])
+      await expect(Promise.resolve().then(action)).rejects.toMatchObject({ code: 'closing' });
+    expect(implementation.check).not.toHaveBeenCalled();
+    expect(implementation.login).not.toHaveBeenCalled();
+    expect(await readFile(file, 'utf8')).toBe(bytes);
+  });
+  it('keeps admission closed while cleanup is pending and permits repeated shutdown cleanup recovery', async () => {
+    const { manager, implementation } = await open();
+    await manager.prepare();
+    let release!: () => void;
+    const cleanup = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    implementation.login = vi.fn(async (_binary, _provider, signal) => {
+      await new Promise<void>((resolve) => {
+        signal.addEventListener('abort', () => resolve());
+      });
+      await cleanup;
+      throw new SetupError('cleanup-unconfirmed', '退出未确认');
+    });
+    const loggingIn = manager.login('docker', false);
+    await vi.waitFor(() => expect(implementation.login).toHaveBeenCalledOnce());
+    const shuttingDown = manager.shutdown().then(
+      () => null,
+      (error: unknown) => error,
+    );
+    const admission = manager.check();
+    release();
+    await expect(admission).rejects.toMatchObject({ code: 'closing' });
+    expect(await shuttingDown).toMatchObject({ message: '退出未确认' });
+    await loggingIn;
+    implementation.login = vi.fn(async () => undefined);
+    await manager.shutdown();
+    expect(manager.status().pendingLogin).toBeNull();
+    expect(implementation.login).toHaveBeenCalledWith(expect.any(String), 'docker', expect.any(AbortSignal), expect.any(String), true);
+    await expect(manager.prepare()).rejects.toMatchObject({ code: 'closing' });
   });
   it('preserves interrupted state without replaying installation', async () => {
     const { manager, file, implementation } = await open();

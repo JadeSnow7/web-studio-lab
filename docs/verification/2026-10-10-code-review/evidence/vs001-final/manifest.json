@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "runId": "7fac3715-79a1-43f3-9f1a-53962655713a",
+  "taskSha256": "44446f6a8e12957d0ab02f849007212fd52afbf0f1990b4d2b45ab404fd7662d",
+  "baseline": {
+    "sha256": "0bf9ba70a6de80f4bb13d85e10f60ad11424f3980bf39c67122954b67ffa2841",
+    "files": [
+      {
+        "path": "docs/acceptance/VS001.md",
+        "sha256": "6fadef2edeb1c7667464dcae582bf06d01258d3d1ab50a252bf94303fbcc4c9e"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/index.html",
+        "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/package.json",
+        "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/src/App.tsx",
+        "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+      },
+      {
+        "path": "fixtures/vertical-slice/page/src/main.tsx",
+        "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "f9494aa9639637b438929aee8061429ea123879607d5ad63319f7a8e5eb9cd37"
+      },
+      {
+        "path": "package.json",
+        "sha256": "0518e13054c5932167458e9daa658850a472075f89619ff5d1cce4d820cf6578"
+      },
+      {
+        "path": "tests/vertical-slice/cdp.ts",
+        "sha256": "08f7eb8bb48cb0f4cb344f25246e2f733df0019c06bd8a34611f8547ece85da0"
+      },
+      {
+        "path": "tests/vertical-slice/contracts.ts",
+        "sha256": "4f4e47294f2e2650db775a78674a85099e3a7da34e020045b945b63f58193e00"
+      },
+      {
+        "path": "tests/vertical-slice/evidence.ts",
+        "sha256": "89637e2a6aeacc9d4c0ea384e1aedb5f375ef27f47658cd7e502da4afd171aa1"
+      },
+      {
+        "path": "tests/vertical-slice/postcondition.ts",
+        "sha256": "20920d99eb9280ec6fd62a025eea6489ff893a863095cb977d4a52f4e3d5627c"
+      },
+      {
+        "path": "tests/vertical-slice/run.ts",
+        "sha256": "f335a3439e293372ab645810398644a1d211cec314c53982ee69a9316b5fdde4"
+      },
+      {
+        "path": "tests/vertical-slice/selftest.test.ts",
+        "sha256": "8476ca90b1bff6cebfe41edc59e7bb00112809eeddf2f9d7323b129d582acfee"
+      },
+      {
+        "path": "tsconfig.json",
+        "sha256": "4a7a58e5cdf40cf08aee0aa74b4a60693c73232b4df58a7fad075788325c426a"
+      }
+    ]
+  },
+  "identity": {
+    "pid": 61248,
+    "webContentsId": 2,
+    "targetId": "A72660022EB922430F11A23A6605B70D",
+    "previewUrl": "http://127.0.0.1:61404/?runId=7fac3715-79a1-43f3-9f1a-53962655713a",
+    "cdpEndpoint": "http://127.0.0.1:61407/"
+  },
+  "startedAt": "2026-10-10T13:45:02.877Z",
+  "endedAt": "2026-10-10T13:45:42.909Z",
+  "checks": [
+    {
+      "id": "B01",
+      "status": "passed",
+      "performed": true,
+      "code": "ok",
+      "detail": "Harness successfully exited with original output and only the allowed file changed"
+    },
+    {
+      "id": "B02",
+      "status": "passed",
+      "performed": true,
+      "code": "ok",
+      "detail": "Live pid, Electron discovery and the same page target navigated to the current preview URL"
+    },
+    {
+      "id": "B03",
+      "status": "passed",
+      "performed": true,
+      "code": "ok",
+      "detail": "Baseline Runtime.evaluate observed this run with a unique greeting selector"
+    },
+    {
+      "id": "B04",
+      "status": "passed",
+      "performed": true,
+      "code": "ok",
+      "detail": "Unique visible exact title and no observed Runtime.exceptionThrown"
+    },
+    {
+      "id": "B05",
+      "status": "passed",
+      "performed": true,
+      "code": "ok",
+      "detail": "Screenshot came from Page.captureScreenshot on the observed CDP connection"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "after/index.html",
+      "size": 200,
+      "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+    },
+    {
+      "path": "after/package.json",
+      "size": 121,
+      "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+    },
+    {
+      "path": "after/src/App.tsx",
+      "size": 106,
+      "sha256": "036d69462b21a76419d5a9fc88138d760c4c1e498d9c2238f9aeda2e22d78a4f"
+    },
+    {
+      "path": "after/src/main.tsx",
+      "size": 202,
+      "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+    },
+    {
+      "path": "after-files.json",
+      "size": 540,
+      "sha256": "fcdf9c12cdcecb6a2595b802689fe74fc38c58ae2e50a7daeafa72df3743dd17"
+    },
+    {
+      "path": "app.ndjson",
+      "size": 1042,
+      "sha256": "adc93dcb6b8235107f6a23eae76d3ca577d06ab6e9656b07372433bc398d2cf3"
+    },
+    {
+      "path": "before/index.html",
+      "size": 200,
+      "sha256": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f"
+    },
+    {
+      "path": "before/package.json",
+      "size": 121,
+      "sha256": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc"
+    },
+    {
+      "path": "before/src/App.tsx",
+      "size": 104,
+      "sha256": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630"
+    },
+    {
+      "path": "before/src/main.tsx",
+      "size": 202,
+      "sha256": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36"
+    },
+    {
+      "path": "before-files.json",
+      "size": 540,
+      "sha256": "41542cfe2fc14022aa0aeb00141bda4c542f64b3ff60aa920db0dc4a3798dd07"
+    },
+    {
+      "path": "cdp.ndjson",
+      "size": 40001,
+      "sha256": "aeeb5e44b124f676bee18db68dbe50a3ddcd48718c2c38ffaee3bce0d49a6abf"
+    },
+    {
+      "path": "diff.json",
+      "size": 1454,
+      "sha256": "388ba5b33a7f02a7b9fd3591d6bb574b54d11ac0e01586e84eb4453a9689bfac"
+    },
+    {
+      "path": "environment.json",
+      "size": 29143,
+      "sha256": "5116e5f3aec6e5cac88c0d651b784b29a71dd18cdfcc7646167e9aa0d7a53848"
+    },
+    {
+      "path": "events.ndjson",
+      "size": 1805,
+      "sha256": "7cbeecddfc0785e328350e1711fcf7a74e1f25eebbf82905944047d310ab73b7"
+    },
+    {
+      "path": "harness.ndjson",
+      "size": 11453,
+      "sha256": "54a6957f9fc46406a9c82f6f62e9190c2d43b6460734188b2d80ab7fe802cc0f"
+    },
+    {
+      "path": "observation.json",
+      "size": 711,
+      "sha256": "758d9311f650ca65bc9187912c0b941165827d626a1f18f15d92d99ba9fa0d2b"
+    },
+    {
+      "path": "postcondition.json",
+      "size": 176,
+      "sha256": "c2d73a04147303377b349b67f412f6e1e2e24ea52741e5aa495c42fb26738e09"
+    },
+    {
+      "path": "product-diagnostics.ndjson",
+      "size": 31596,
+      "sha256": "c515748414d5459a16fcabf6b584407aa076d7b20154bc4cc40937c55e8cbd9d"
+    },
+    {
+      "path": "report.json",
+      "size": 1636,
+      "sha256": "2a8ba89ce92244631d914e3fed26fb0971dfe0019356639275bacb87ca52fa08"
+    },
+    {
+      "path": "runner.ndjson",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "screenshot.png",
+      "size": 19174,
+      "sha256": "be5d56d419889f82a47b67ce34bd019d62e700c42ef957ac4088a9a2d9ab486c"
+    },
+    {
+      "path": "task.json",
+      "size": 418,
+      "sha256": "44446f6a8e12957d0ab02f849007212fd52afbf0f1990b4d2b45ab404fd7662d"
+    }
+  ]
+}

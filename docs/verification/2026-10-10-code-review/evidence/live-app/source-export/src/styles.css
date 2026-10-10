@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', sans-serif;
+}
+:root {
+  font-family: var(--font-sans);
+  color: #1d1d1f;
+  background: #fafafa;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+}
+button {
+  font: inherit;
+}

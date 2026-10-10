@@ -1,8 +1,18 @@
 import type { WorkbenchTab, EnvironmentDescription } from '@wsl/protocol';
 import { createStore } from '../lib/store';
 import { occlusion } from './occlusion';
-export type Editor = { kind: 'workspace' | 'rename-workspace' | 'tab' | 'rename-tab' | 'group'; tabId?: string };
+import { shellActions } from './shell';
+import { workspaceStore } from './workspace';
+export type Editor = {
+  kind: 'workspace' | 'rename-workspace' | 'tab' | 'rename-tab' | 'group';
+  tabId?: string;
+  tabKind?: 'web' | 'terminal' | 'session';
+  workspaceId?: string;
+};
 export const spaceUiStore = createStore<{
+  appWorkspaceId: string | null;
+  resourcesWorkspaceId: string | null;
+  url: string;
   switcher: boolean;
   editor: Editor | null;
   name: string;
@@ -13,6 +23,9 @@ export const spaceUiStore = createStore<{
   environmentError: string | null;
   loadingEnvironments: boolean;
 }>({
+  appWorkspaceId: null,
+  resourcesWorkspaceId: null,
+  url: '',
   switcher: false,
   editor: null,
   name: '',
@@ -60,6 +73,19 @@ async function loadEnvironments(editor: Editor) {
 }
 
 export const spaceActions = {
+  async showResources(workspaceId: string) {
+    await shellActions.setPeek(true);
+    spaceUiStore.set((s) => ({ ...s, resourcesWorkspaceId: workspaceId }));
+    requestAnimationFrame(() => document.getElementById('space-resources-summary')?.focus());
+  },
+  async openApp(workspaceId: string) {
+    if (await acquire('app-dialog')) spaceUiStore.set((s) => ({ ...s, appWorkspaceId: workspaceId }));
+  },
+  closeApp() {
+    document.querySelector<HTMLDialogElement>('dialog.managed-app-dialog')?.close();
+    spaceUiStore.set((s) => ({ ...s, appWorkspaceId: null }));
+    release('app-dialog');
+  },
   reloadEnvironments() {
     const state = spaceUiStore.get();
     if (state.editor?.kind === 'tab' && !state.loadingEnvironments) void loadEnvironments(state.editor);
@@ -72,11 +98,14 @@ export const spaceActions = {
     release('switcher');
   },
   async openEditor(editor: Editor, name = '') {
+    editor = { ...editor, workspaceId: workspaceStore.get().selectedId ?? undefined };
     if (!(await acquire('editor'))) return;
     spaceUiStore.set((s) => ({
       ...s,
       editor,
       name,
+      kind: editor.tabKind ?? 'web',
+      url: '',
       switcher: false,
       tabMenu: null,
       environmentId: '',
@@ -90,7 +119,7 @@ export const spaceActions = {
     previous.delete('tab-menu');
   },
   closeEditor() {
-    document.querySelector<HTMLDialogElement>('dialog.workspace-editor')?.close();
+    document.querySelector<HTMLDialogElement>('dialog.workspace-editor:not(.managed-app-dialog)')?.close();
     spaceUiStore.set((s) => ({ ...s, editor: null }));
     release('editor');
   },

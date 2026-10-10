@@ -1,0 +1,108 @@
+
+> web-studio-lab@ package:unsigned /Users/huaodong/workspace/web-studio-lab
+> node scripts/packaging/package-release.mjs --unsigned
+
+
+> web-studio-lab@ build /Users/huaodong/workspace/web-studio-lab
+> pnpm build:service && pnpm --filter @wsl/desktop build
+
+$ pnpm --filter @wsl/desktop exec vite build --config ../service/vite.config.ts
+vite v7.3.6 building ssr environment for production...
+transforming...
+../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js (74:0): A comment
+
+"/** Anchors a pattern source. The interpolation lives here rather than at the call site because
+ * esbuild will not drop a `@__PURE__` call whose own argument interpolates a variable, but it
+ * will drop `anchor(dateSource)`. Keeping it inline pinned `date` into every bundle. */"
+
+in "../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js (400:0): A comment
+
+"// Wrapped in a `@__PURE__` IIFE: esbuild never tree-shakes a top-level initializer that contains a member access on `Number`, so the bare object literal survived into every bundle."
+
+in "../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 192 modules transformed.
+rendering chunks...
+../service/out/index.cjs  1,412.51 kB
+✓ built in 916ms
+$ electron-vite build
+vite v7.3.6 building ssr environment for production...
+transforming...
+../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js (74:0): A comment
+
+"/** Anchors a pattern source. The interpolation lives here rather than at the call site because
+ * esbuild will not drop a `@__PURE__` call whose own argument interpolates a variable, but it
+ * will drop `anchor(dateSource)`. Keeping it inline pinned `date` into every bundle. */"
+
+in "../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js (400:0): A comment
+
+"// Wrapped in a `@__PURE__` IIFE: esbuild never tree-shakes a top-level initializer that contains a member access on `Number`, so the bare object literal survived into every bundle."
+
+in "../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 158 modules transformed.
+rendering chunks...
+out/main/index.js  715.36 kB
+✓ built in 426ms
+vite v7.3.6 building ssr environment for production...
+transforming...
+../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js (74:0): A comment
+
+"/** Anchors a pattern source. The interpolation lives here rather than at the call site because
+ * esbuild will not drop a `@__PURE__` call whose own argument interpolates a variable, but it
+ * will drop `anchor(dateSource)`. Keeping it inline pinned `date` into every bundle. */"
+
+in "../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js (400:0): A comment
+
+"// Wrapped in a `@__PURE__` IIFE: esbuild never tree-shakes a top-level initializer that contains a member access on `Number`, so the bare object literal survived into every bundle."
+
+in "../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 114 modules transformed.
+rendering chunks...
+out/preload/index.js  237.41 kB
+✓ built in 178ms
+vite v7.3.6 building client environment for production...
+transforming...
+../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js (400:0): A comment
+
+"// Wrapped in a `@__PURE__` IIFE: esbuild never tree-shakes a top-level initializer that contains a member access on `Number`, so the bare object literal survived into every bundle."
+
+in "../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js (74:0): A comment
+
+"/** Anchors a pattern source. The interpolation lives here rather than at the call site because
+ * esbuild will not drop a `@__PURE__` call whose own argument interpolates a variable, but it
+ * will drop `anchor(dateSource)`. Keeping it inline pinned `date` into every bundle. */"
+
+in "../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 196 modules transformed.
+rendering chunks...
+../../out/renderer/index.html                          0.66 kB
+../../out/renderer/assets/logo-small-CQUwV1yR.svg      3.47 kB
+../../out/renderer/assets/logo-4zP3d_OM.svg            4.79 kB
+../../out/renderer/assets/index-BnPfVZvG.css          49.47 kB
+../../out/renderer/assets/index-By8wvdOK.js        1,524.88 kB
+✓ built in 1.13s
+  • electron-builder  version=26.15.3 os=25.6.0
+  • loaded configuration  file=/Users/huaodong/workspace/web-studio-lab/apps/desktop/electron-builder.yml
+  • packageManager not detected by file, falling back to environment detection  resolvedPackageManager=pnpm detected=/Users/huaodong/workspace/web-studio-lab
+  • detected workspace root for project using packageManager field  pm=pnpm config=pnpm@10.34.6 resolved=/Users/huaodong/workspace/web-studio-lab projectDir=/Users/huaodong/workspace/web-studio-lab/apps/desktop
+  • skipped dependencies rebuild  reason=npmRebuild is set to false
+  • packaging       platform=darwin arch=arm64 electron=44.5.1 appOutDir=release-internal/mac-arm64
+  • downloaded      label=electron progress=100%
+  • downloaded electron zip extracted successfully  output=/Users/huaodong/workspace/web-studio-lab/apps/desktop/release-internal/mac-arm64
+  • searching for node modules  pm=pnpm searchDir=/Users/huaodong/workspace/web-studio-lab/apps/desktop
+  • no node modules found in collection, trying next search directory  searchDir=/Users/huaodong/workspace/web-studio-lab/apps/desktop attempt=0
+  • searching for node modules  pm=pnpm searchDir=/Users/huaodong/workspace/web-studio-lab
+  • searching for node modules  pm=traversal searchDir=/Users/huaodong/workspace/web-studio-lab/apps/desktop
+  • using manual traversal of node_modules to build dependency tree
+  • no node modules found in collection, trying next search directory  searchDir=/Users/huaodong/workspace/web-studio-lab/apps/desktop attempt=0
+  • searching for node modules  pm=traversal searchDir=/Users/huaodong/workspace/web-studio-lab
+  • using manual traversal of node_modules to build dependency tree
+  • no node modules returned while searching directories  searchDirectories=["","/Users/huaodong/workspace/web-studio-lab"]
+  • skipped macOS code signing  reason=identity explicitly is set to null
+  • building        target=macOS zip arch=arm64 file=release-internal/Web-Studio-Lab-0.1.5-arm64.zip
+  • building        target=DMG arch=arm64 file=release-internal/Web-Studio-Lab-0.1.5-arm64.dmg
+  • building block map  blockMapFile=release-internal/Web-Studio-Lab-0.1.5-arm64.zip.blockmap
+Internal unsigned test artifacts only: apps/desktop/release-internal. This is not a competition release.

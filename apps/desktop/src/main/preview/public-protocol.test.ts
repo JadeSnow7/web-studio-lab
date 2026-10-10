@@ -138,6 +138,20 @@ describe('隔离公开文档协议', () => {
 });
 
 describe('managed app write capability', () => {
+  it('preserves read-only GET for a fixed trusted origin without a revocable lease provider', () => {
+    const { session, protocol, options } = setup();
+    options.allowedOrigins.push('http://127.0.0.1:49152');
+    const before = session.webRequest.onBeforeRequest.mock.calls[0]![0] as (
+      details: Record<string, unknown>,
+      callback: (result: { cancel: boolean }) => void,
+    ) => void;
+    for (const method of ['GET', 'POST']) {
+      const callback = vi.fn();
+      before({ url: 'http://127.0.0.1:49152/api', method, resourceType: 'xhr', webContentsId: 7 }, callback);
+      expect(callback).toHaveBeenCalledWith({ cancel: method !== 'GET' });
+    }
+    protocol.dispose();
+  });
   it('requires an active exact-origin lease and owning webContents; public and demo POST remain denied', () => {
     const session = {
       webRequest: { onBeforeRequest: vi.fn() },
@@ -173,8 +187,12 @@ describe('managed app write capability', () => {
       { method: 'CONNECT' },
     ])
       check(changed, true);
-    lease = null;
-    check({}, true);
+    for (const replacement of [null, 'http://127.0.0.1:49153']) {
+      lease = replacement;
+      for (const method of ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
+        for (const resourceType of ['mainFrame', 'subFrame', 'xhr', 'image', 'script']) check({ method, resourceType }, true);
+      check({ url: 'wsl-demo://taskflow/index.html', method: 'GET', resourceType: 'mainFrame' }, false);
+    }
     protocol.dispose();
     check({ method: 'GET' }, true);
   });

@@ -1,3 +1,4 @@
+import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import type { ManagedApp, WorkbenchCommand } from '@wsl/protocol';
@@ -7,7 +8,6 @@ import type { WorkbenchRuntime } from './ports';
 async function setup() {
   let instance: ManagedApp | null = null;
   const runtime = {
-    publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
     appCreate: vi.fn(
       async (target) =>
         (instance = {
@@ -36,7 +36,13 @@ async function setup() {
     releaseAppBrowser: vi.fn(),
   } as unknown as WorkbenchRuntime;
   const app = new WorkbenchApplication(
-    { load: async () => null, save: async () => undefined, appendObservation: async () => '' },
+    {
+      migrationPending: false,
+      loadCatalog: catalogForTestSnapshot,
+      load: async () => null,
+      save: async () => undefined,
+      appendObservation: async () => '',
+    },
     runtime,
     vi.fn(),
   );
@@ -168,7 +174,13 @@ it.each(['confirmed', 'unknown', 'wrong-project'] as const)('restores app cleanu
     cleanupConfirmed: kind !== 'unknown',
   }));
   const restored = new WorkbenchApplication(
-    { load: async () => saved, save: async () => undefined, appendObservation: async () => '' },
+    {
+      migrationPending: false,
+      loadCatalog: catalogForTestSnapshot,
+      load: async () => saved,
+      save: async () => undefined,
+      appendObservation: async () => '',
+    },
     runtime,
     vi.fn(),
   );

@@ -1,0 +1,12 @@
+WARN: docker hub refresh lock held by another process: context deadline exceeded
+WARN: docker hub refresh lock held by another process: context deadline exceeded
+
+sandbox    wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1
+agent      codex
+workspace  none · no workspace bind mount
+image      docker/sandbox-templates:codex-docker
+cpu        2
+memory     4g
+
+Pulling image
+error: encode registry auth: registry credentials for "docker/sandbox-templates:codex-docker": get Docker Hub access token: token is unverifiable: error while executing keyfunc: Get "https://login.docker.com/.well-known/jwks.json": net/http: request canceled (Client.Timeout exceeded while awaiting headers)

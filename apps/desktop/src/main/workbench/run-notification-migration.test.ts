@@ -1,3 +1,4 @@
+import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -23,6 +24,8 @@ async function setup() {
   let saved: WorkbenchSnapshot | null = null;
   const repository = {
     appendObservation: vi.fn(async () => crypto.randomUUID()),
+    migrationPending: false,
+    loadCatalog: catalogForTestSnapshot,
     load: async () => saved,
     save: async (snapshot: WorkbenchSnapshot) => {
       saved = structuredClone(snapshot);
@@ -56,8 +59,8 @@ async function setup() {
       },
     ]),
     registerResource: vi.fn(),
+    releaseResource: vi.fn(),
     observe: vi.fn(),
-    publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
     validateBrowserUrl: vi.fn(),
     registerSession: vi.fn(),
     send: vi.fn(),
@@ -125,7 +128,7 @@ describe('run and notification identity', () => {
     expect(after.workspaces.find((w) => w.workspaceId === 'taskflow-demo')!.runs).toEqual(before.workspaces[0]!.runs);
     const file = path.join(await mkdtemp(path.join(os.tmpdir(), 'wsl-notification-')), 'workbench.json');
     const repository = new FileWorkbenchRepository(file);
-    await repository.save(after);
+    await repository.save(after, await catalogForTestSnapshot(after));
     const persisted = JSON.parse(await readFile(file, 'utf8')) as { snapshot: Record<string, unknown> };
     expect(persisted.snapshot).not.toHaveProperty('notifications');
     expect(persisted.snapshot.notificationReadReceipts).toEqual(after.notificationReadReceipts);
@@ -181,7 +184,7 @@ describe('preserved acceptance and persisted log boundary', () => {
     snapshot.workspaces[0]!.runs[0]!.conversation!.conversationId = 'session-other';
     const file = path.join(await mkdtemp(path.join(os.tmpdir(), 'wsl-corrupt-run-')), 'workbench.json');
     const repository = new FileWorkbenchRepository(file);
-    await repository.save(snapshot);
+    await repository.save(snapshot, await catalogForTestSnapshot(snapshot));
     const before = await readFile(file, 'utf8');
     const restored = new WorkbenchApplication(repository, runtime, vi.fn());
     await expect(restored.getSnapshot()).rejects.toThrow('日志');

@@ -1,3 +1,4 @@
+import { emptyReferences } from '../../../service/src/reference-test-fixture';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatConversation, ChatStatus, ResourceInstanceIdentity, TerminalSnapshot } from '@wsl/protocol';
 const mock = vi.hoisted(() => ({
@@ -67,7 +68,7 @@ describe('对话服务宿主故障', () => {
       (state) => states.push(state),
       (status) => statuses.push(status),
     );
-    const sending = service.send('conv-personal-default', 'hello');
+    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'));
     const request = mock.postMessage.mock.calls[0]?.[0];
     mock.callbacks.get('message')?.({ type: 'response', id: request.id, result: snapshot });
     await sending;
@@ -166,7 +167,10 @@ describe('对话服务宿主故障', () => {
       () => undefined,
       () => undefined,
     );
-    const request = method === 'send' ? service.send('conv-personal-default', 'hello') : service.terminalOpen(80, 24, 'terminal-resource');
+    const request =
+      method === 'send'
+        ? service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'))
+        : service.terminalOpen(80, 24, 'terminal-resource');
     const rejection = expect(request).rejects.toThrow('退出');
     mock.callbacks.get('exit')?.(1);
     await rejection;
@@ -202,7 +206,7 @@ describe('对话服务宿主故障', () => {
       () => undefined,
       () => undefined,
     );
-    const sending = service.send('conv-personal-default', 'hello');
+    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'));
     const rejection = expect(sending).rejects.toThrow('退出');
     mock.callbacks.get('message')?.({
       type: 'event',
@@ -274,21 +278,27 @@ describe('对话服务宿主故障', () => {
     expect(mock.kill).not.toHaveBeenCalled();
     await expect(service.shutdown()).rejects.toThrow('退出');
   });
-  it('shutdown 清理失败在重复关闭时仍显式拒绝，不等待未发生的 exit', async () => {
+  it('shutdown failure can be retried after repair and only kills utility after success', async () => {
     const service = new ChatService(
-      () => {},
-      () => {},
+      () => undefined,
+      () => undefined,
     );
     const stopping = service.shutdown();
-    const request = mock.postMessage.mock.calls[0]?.[0];
-    mock.callbacks.get('message')?.({ type: 'error', id: request.id, error: 'fixture 清理失败' });
+    const first = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({ type: 'error', id: first.id, error: 'fixture 清理失败' });
     await expect(stopping).rejects.toThrow('fixture 清理失败');
-    expect(service.shutdown()).toBe(stopping);
-    await expect(service.shutdown()).rejects.toThrow('fixture 清理失败');
-    await expect(service.send('conv-personal-default', 'late')).rejects.toThrow('关闭');
-    expect(mock.postMessage).toHaveBeenCalledOnce();
     expect(mock.kill).not.toHaveBeenCalled();
+    const retry = service.shutdown();
+    const second = mock.postMessage.mock.calls.at(-1)![0];
+    expect(second.id).not.toBe(first.id);
+    expect(service.shutdown()).toBe(retry);
+    mock.callbacks.get('message')?.({ type: 'response', id: second.id, result: null });
+    await Promise.resolve();
+    expect(mock.kill).toHaveBeenCalledOnce();
+    mock.callbacks.get('exit')?.(0);
+    await expect(retry).resolves.toBeUndefined();
   });
+
   it('坏消息拒绝等待请求并通知界面，不抛出未捕获的主进程错误', async () => {
     const statuses: ChatStatus[] = [];
     const service = new ChatService(

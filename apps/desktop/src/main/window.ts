@@ -12,6 +12,12 @@ export function rendererSource(): TrustedRenderer {
 }
 
 export function createMainWindow(trusted: TrustedRenderer): BrowserWindow {
+  // appPath resolves the same shipped asset in the checkout and inside app.asar.
+  const icon = path.join(app.getAppPath(), 'resources/branding/icon.png');
+  if (process.platform === 'darwin' && !app.isPackaged) {
+    if (!app.dock) throw new Error('macOS Dock is unavailable');
+    app.dock.setIcon(icon);
+  }
   const window = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -19,6 +25,7 @@ export function createMainWindow(trusted: TrustedRenderer): BrowserWindow {
     minHeight: MIN_WINDOW.height,
     show: false,
     title: 'Web Studio Lab',
+    icon,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 15 },
     backgroundColor: '#F6F7F9',

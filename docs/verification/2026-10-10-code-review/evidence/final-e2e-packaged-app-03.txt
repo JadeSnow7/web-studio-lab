@@ -1,0 +1,23 @@
+
+Running 1 test using 1 worker
+
+(node:61646) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /private/tmp/wsl-review-packaged-app-20261010-recovered/profile ELECTRON_PID 61647
+ELECTRON_STDERR (node:61647) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Web Studio Lab --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:61570/e993947b-1ab1-434a-816b-de13782fc4a8
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+LIVE_PROFILE /private/tmp/wsl-review-packaged-app-20261010-recovered/profile ELECTRON_PID 62293
+ELECTRON_STDERR (node:62293) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Web Studio Lab --trace-warnings ...` to show where the warning was created)
+
+MANAGED_APP_EVIDENCE /private/tmp/wsl-review-packaged-app-20261010-recovered
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:61960/22f661a6-1b44-4941-adae-6cf9f7693519
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✓  1 e2e/managed-app-live.spec.ts:9:1 › real sbx standard app through product Browser, persistence, export and cancellation (2.7m)
+
+  1 passed (2.7m)

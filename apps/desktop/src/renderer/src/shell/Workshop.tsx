@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { occlusion } from '../state/occlusion';
 import { Icon } from '../components/Icon';
 import { useStore } from '../lib/store';
@@ -7,9 +7,6 @@ import { Sidebar } from '../workspace/Sidebar';
 import { workspaceStore } from '../state/workspace';
 import { spaceActions } from '../state/space-ui';
 import { ROUTES } from './routes';
-
-const PEEK_OPEN_DELAY = 160;
-const PEEK_CLOSE_DELAY = 300;
 
 function Rail() {
   const route = useStore(shellStore, (s) => s.route);
@@ -34,7 +31,7 @@ function Rail() {
         className="icon-btn rail-pin"
         aria-pressed={pinned}
         aria-label={pinned ? '取消固定 Workshop' : '固定 Workshop'}
-        title={pinned ? '取消固定：收起后从左边缘悬停或点击把手展开' : '固定：Workshop 占据布局'}
+        title={pinned ? '取消固定：收起后点击标题栏标识展开' : '固定：Workshop 占据布局'}
         onClick={() => shellActions.setPinned(!pinned)}
       >
         <Icon name="pin" size={17} />
@@ -62,9 +59,11 @@ function WorkshopContent() {
       <Rail />
       {route === 'space' ? (
         <Sidebar
+          key={workspace?.workspaceId}
           workspace={workspace}
           peek={panel.peek}
-          onCreateTab={() => void spaceActions.openEditor({ kind: 'tab' })}
+          onCreateTab={(tabKind) => void spaceActions.openEditor({ kind: 'tab', tabKind })}
+          onApp={() => workspace && void spaceActions.openApp(workspace.workspaceId)}
           onSwitcher={() => void spaceActions.openSwitcher()}
           onTabMenu={(tabId) => void spaceActions.openTabMenu(tabId)}
           onClosePeek={() => shellActions.closePanel('left')}
@@ -75,12 +74,6 @@ function WorkshopContent() {
 }
 
 function OverlayWorkshop({ children }: { children: ReactNode }) {
-  const ref = useRef<HTMLElement>(null);
-  const closeTimer = useRef<number | null>(null);
-  const cancelClose = () => {
-    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
-    closeTimer.current = null;
-  };
   useEffect(() => {
     const escape = (event: KeyboardEvent) => {
       if (!event.defaultPrevented && event.key === 'Escape' && occlusion.top() === 'left' && !document.querySelector('dialog[open]')) {
@@ -91,61 +84,10 @@ function OverlayWorkshop({ children }: { children: ReactNode }) {
     window.addEventListener('keydown', escape);
     return () => window.removeEventListener('keydown', escape);
   }, []);
-  useEffect(() => cancelClose, []);
   return (
-    <aside
-      ref={ref}
-      className="workshop workshop-overlay"
-      aria-label="Workshop（临时展开）"
-      onMouseEnter={cancelClose}
-      onMouseLeave={() => {
-        cancelClose();
-        closeTimer.current = window.setTimeout(() => {
-          // 焦点仍在面板内（例如正在输入）时不收起。
-          if (ref.current?.contains(document.activeElement)) return;
-          shellActions.setPeek(false);
-        }, PEEK_CLOSE_DELAY);
-      }}
-      onKeyDown={(event) => {
-        if (!event.defaultPrevented && event.key === 'Escape' && occlusion.top() === 'left') {
-          event.preventDefault();
-          event.stopPropagation();
-          shellActions.closePanel('left');
-        }
-      }}
-    >
+    <aside className="workshop workshop-overlay" aria-label="Workshop（临时展开）">
       {children}
     </aside>
-  );
-}
-
-function CollapsedEdge() {
-  const openTimer = useRef<number | null>(null);
-  const clear = () => {
-    if (openTimer.current !== null) window.clearTimeout(openTimer.current);
-    openTimer.current = null;
-  };
-  useEffect(() => clear, []);
-  return (
-    <div
-      className="workshop-edge"
-      onMouseEnter={() => {
-        clear();
-        openTimer.current = window.setTimeout(() => shellActions.setPeek(true), PEEK_OPEN_DELAY);
-      }}
-      onMouseLeave={clear}
-    >
-      <button
-        type="button"
-        className="edge-handle"
-        id="left-panel-trigger"
-        aria-label="展开 Workshop"
-        title="展开 Workshop（⌘B）"
-        onClick={() => shellActions.setPeek(true)}
-      >
-        ☰
-      </button>
-    </div>
   );
 }
 
@@ -159,13 +101,10 @@ export function Workshop({ mode }: { mode: WorkshopMode }) {
   }
   if (mode === 'overlay') {
     return (
-      <>
-        <CollapsedEdge />
-        <OverlayWorkshop>
-          <WorkshopContent />
-        </OverlayWorkshop>
-      </>
+      <OverlayWorkshop>
+        <WorkshopContent />
+      </OverlayWorkshop>
     );
   }
-  return <CollapsedEdge />;
+  return null;
 }

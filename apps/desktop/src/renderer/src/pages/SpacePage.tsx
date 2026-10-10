@@ -5,10 +5,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../lib/store';
 import { useViewportWidth } from '../lib/viewport';
 import { command, initializeWorkspace, switchWorkspace, workspaceCommand, workspaceStore } from '../state/workspace';
-import { spaceActions, spaceUiStore } from '../state/space-ui';
+import { spaceActions, spaceUiStore, type Editor } from '../state/space-ui';
 import { shellActions, shellStore } from '../state/shell';
 import { occlusion } from '../state/occlusion';
 import { WorkspaceContent } from '../workspace/Panes';
+import { ManagedAppDialog } from '../workspace/ManagedAppDialog';
 import { SpaceSwitcher } from '../workspace/SpaceSwitcher';
 const paneOverlay = async (open: boolean) => {
   if (open) return occlusion.open('pane-menu');
@@ -24,6 +25,8 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
   const ime = useImeForm();
   const dialog = useRef<HTMLDialogElement>(null);
   const [pending, setPending] = useState(false);
+  const [failure, setFailure] = useState<{ editor: Editor; message: string } | null>(null);
+  const error = failure?.editor === ui.editor ? failure?.message : null;
   const submitting = useRef(false);
   const { environments, environmentId, environmentError, loadingEnvironments } = ui;
   const setEnvironmentId = (environmentId: string) => spaceUiStore.set((s) => ({ ...s, environmentId }));
@@ -53,29 +56,37 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
     if (!workspace || !ui.editor || !ui.name.trim() || submitting.current || ime.composing.current) return;
     submitting.current = true;
     setPending(true);
+    setFailure(null);
     try {
       let result;
       const editor = ui.editor;
+      const targetId = editor.workspaceId;
+      if (!targetId) throw new Error('没有目标空间');
       if (editor.kind === 'workspace') {
         const workspaceId = crypto.randomUUID();
         result = await workspaceCommand(workspaceId, { type: 'createWorkspace', name: ui.name.trim() });
         if (result?.ok) await switchWorkspace(workspaceId);
-      } else if (editor.kind === 'rename-workspace') result = await command({ type: 'renameWorkspace', name: ui.name.trim() });
+      } else if (editor.kind === 'rename-workspace')
+        result = await workspaceCommand(targetId, { type: 'renameWorkspace', name: ui.name.trim() });
       else if (editor.kind === 'tab') {
         if (!canCreate) return;
-        result = await command({
+        result = await workspaceCommand(targetId, {
           type: 'createTab',
           kind: ui.kind,
           title: ui.name.trim(),
+          ...(ui.kind === 'web' && ui.url.trim() ? { url: ui.url.trim() } : {}),
           ...(requiresEnvironment ? { environmentId: environmentId as EnvironmentDescription['environmentId'] } : {}),
         });
       } else if (editor.kind === 'rename-tab' && editor.tabId)
-        result = await command({ type: 'updateTab', tabId: editor.tabId, title: ui.name.trim() });
-      else if (editor.tabId) result = await command({ type: 'updateTab', tabId: editor.tabId, group: ui.name.trim() });
+        result = await workspaceCommand(targetId, { type: 'updateTab', tabId: editor.tabId, title: ui.name.trim() });
+      else if (editor.tabId) result = await workspaceCommand(targetId, { type: 'updateTab', tabId: editor.tabId, group: ui.name.trim() });
       if (result?.ok) {
         spaceActions.closeEditor();
         shellActions.navigate('space');
-      }
+      } else
+        setFailure({ editor: ui.editor, message: result ? result.error.message : (workspaceStore.get().error ?? '保存失败，请重试。') });
+    } catch (error) {
+      setFailure({ editor: ui.editor, message: (error as Error).message });
     } finally {
       submitting.current = false;
       setPending(false);
@@ -117,6 +128,7 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
       ) : null}
       {createPortal(
         <>
+          <ManagedAppDialog workspaceId={ui.appWorkspaceId} />
           <SpaceSwitcher
             open={ui.switcher}
             workspaces={state.snapshot?.workspaces ?? []}
@@ -153,6 +165,7 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
                   autoFocus
                   aria-label="名称"
                   value={ui.name}
+                  disabled={pending}
                   maxLength={200}
                   onChange={(event) => spaceUiStore.set((s) => ({ ...s, name: event.target.value }))}
                 />
@@ -163,6 +176,7 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
                   <select
                     aria-label="标签类型"
                     value={ui.kind}
+                    disabled={pending}
                     onChange={(event) => {
                       setEnvironmentId('');
                       spaceUiStore.set((s) => ({ ...s, kind: event.target.value as typeof ui.kind }));
@@ -178,6 +192,20 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
                       </option>
                     ))}
                   </select>
+                </label>
+              ) : null}
+              {ui.editor?.kind === 'tab' && ui.kind === 'web' ? (
+                <label className="field">
+                  网页地址（可选）
+                  <input
+                    aria-label="网页地址"
+                    value={ui.url}
+                    maxLength={2048}
+                    disabled={pending}
+                    placeholder="https://…"
+                    onChange={(event) => spaceUiStore.set((s) => ({ ...s, url: event.target.value }))}
+                  />
+                  <span className="muted small">留空打开演示页；公开网页使用 HTTPS。</span>
                 </label>
               ) : null}
               {ui.editor?.kind === 'tab' && requiresEnvironment ? (
@@ -216,6 +244,7 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
                   <p className="muted small">仅使用已有可信配置；选择不会授予 home 或复制认证。</p>
                 </>
               ) : null}
+              {error ? <p role="alert">{error}</p> : null}
               <div className="row gap-8">
                 <button type="button" className="btn" disabled={pending} onClick={spaceActions.closeEditor}>
                   取消

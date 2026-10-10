@@ -1,3 +1,4 @@
+import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { BrowserWindow } from 'electron';
 import type { WorkbenchResource } from '@wsl/protocol';
@@ -14,6 +15,8 @@ const mocks = vi.hoisted(() => ({
     captureResource: ReturnType<typeof vi.fn>;
   }>,
   appendObservation: vi.fn(async () => crypto.randomUUID()),
+  migrationPending: false,
+  loadCatalog: vi.fn(),
   load: vi.fn(),
   page: { webContentsId: 42, documentGeneration: 1, url: 'https://example.com/', title: 'fixture', partition: 'fixture' },
 }));
@@ -54,6 +57,7 @@ const resource = (id: string): WorkbenchResource => ({
   unavailableReason: null,
 });
 beforeEach(() => {
+  mocks.loadCatalog.mockImplementation(catalogForTestSnapshot);
   mocks.controllers.length = 0;
   mocks.load.mockReset();
 });
@@ -121,21 +125,21 @@ describe('public resource Host page identity', () => {
           finish = resolve;
         }),
     );
-    const pending = host.publicResourcesCapture('a', 'saved-resource');
+    const pending = host.captureResource('a');
     expect(controller.captureResource).toHaveBeenCalledWith(page);
     mocks.page = { ...page, documentGeneration: page.documentGeneration + 1 };
     expect(resourcesSave).not.toHaveBeenCalled();
     const captured = { text: 'original page snapshot' };
     finish(captured);
-    await pending;
-    expect(resourcesSave).toHaveBeenCalledWith('taskflow-demo', captured, 'saved-resource');
+    expect(await pending).toEqual(captured);
+    expect(resourcesSave).not.toHaveBeenCalled();
   });
   it('does not save when the native controller rejects the page identity after navigation', async () => {
     const resourcesSave = vi.fn();
     const host = new WorkbenchHost({} as BrowserWindow, { resourcesSave, setAppListener: vi.fn() } as unknown as ChatService, '/fixture');
     host.ensureBrowser('taskflow-demo', resource('a'));
     mocks.controllers[0]!.captureResource.mockRejectedValue(new Error('页面已经变化，请重新采集'));
-    await expect(host.publicResourcesCapture('a')).rejects.toThrow('页面已经变化');
+    await expect(host.captureResource('a')).rejects.toThrow('页面已经变化');
     expect(resourcesSave).not.toHaveBeenCalled();
   });
 });

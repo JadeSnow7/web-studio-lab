@@ -55,7 +55,10 @@ export class PublicDocumentProtocol {
         const managedOrigin = options.managedAppOrigin?.();
         if (managedOrigin && isAllowedPreviewUrl(details.url, [managedOrigin]) && isAllowedPreviewUrl(details.url, options.allowedOrigins))
           return callback({ cancel: !['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].includes(details.method) });
-        if (isAllowedPreviewUrl(details.url, options.allowedOrigins)) return callback({ cancel: details.method !== 'GET' });
+        if (isAllowedPreviewUrl(details.url, options.allowedOrigins)) {
+          // Bundled demo and fixed trusted reads are permanent; managed application access requires its current lease.
+          return callback({ cancel: (!!options.managedAppOrigin && !details.url.startsWith('wsl-demo:')) || details.method !== 'GET' });
+        }
         let allowed = details.resourceType === 'mainFrame' && details.method === 'GET';
         try {
           parsePublicUrl(details.url);

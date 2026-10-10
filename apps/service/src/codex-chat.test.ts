@@ -1,3 +1,4 @@
+import { emptyReferences } from './reference-test-fixture';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -19,6 +20,7 @@ beforeEach(async () => {
   events = [];
   expectedCleanupFailure = false;
   chat = new CodexChat(root, (event) => events.push(event));
+  chat.register(space, 'taskflow-demo');
   await chat.initialize();
 });
 afterEach(async () => {
@@ -45,21 +47,21 @@ describe('外部 CLI 协议', () => {
 });
 describe('真实子进程生命周期（fixture）', () => {
   it('同会话恢复身份，个人与空间隔离，reset 清除上下文', async () => {
-    await chat.send(personal, '记住晴川742');
+    await chat.send(personal, '记住晴川742', undefined, emptyReferences(personal));
     expect((await finish()).state).toBe('idle');
     const first = chat.get(personal);
-    await chat.send(personal, '回忆');
+    await chat.send(personal, '回忆', undefined, emptyReferences(personal));
     expect((await finish()).messages.at(-1)?.text).toBe('记住晴川742');
-    await chat.send(space, '回忆');
+    await chat.send(space, '回忆', undefined, emptyReferences(space));
     expect((await finish(space)).messages.at(-1)?.text).toBe('没有之前内容');
     expect(chat.get(personal).threadId).toBe(first.threadId);
     await chat.reset(personal);
-    await chat.send(personal, '回忆');
+    await chat.send(personal, '回忆', undefined, emptyReferences(personal));
     expect((await finish()).messages.at(-1)?.text).toBe('没有之前内容');
     expect(chat.get(personal).generation).not.toBe(first.generation);
   });
   it.each(['[bad-json]', '[exit]', '[no-completion]', '[empty-reply]'])('%s 必须失败且保留用户消息', async (text) => {
-    await chat.send(personal, text);
+    await chat.send(personal, text, undefined, emptyReferences(personal));
     const result = await finish();
     expect(result.state).toBe('failed');
     expect(result.error).toBeTruthy();
@@ -76,7 +78,7 @@ describe('真实子进程生命周期（fixture）', () => {
       return remote;
     });
     expectedCleanupFailure = true;
-    await chat.send(personal, mode === '取消' ? '[slow]' : '[no-completion]');
+    await chat.send(personal, mode === '取消' ? '[slow]' : '[no-completion]', undefined, emptyReferences(personal));
     const generation = chat.get(personal).generation;
     if (mode === '取消') await expect(chat.cancel(personal)).rejects.toThrow('fixture 清理失败');
     else await finish();
@@ -85,21 +87,21 @@ describe('真实子进程生命周期（fixture）', () => {
     await expect(chat.reset(personal)).rejects.toThrow('fixture 清理失败');
     expect(chat.get(personal).generation).toBe(generation);
     expect(chat.get(personal).messages).toHaveLength(1 + (mode === '协议失败' ? 1 : 0));
-    await expect(chat.send(personal, '不能开始新轮')).rejects.toThrow('fixture 清理失败');
+    await expect(chat.send(personal, '不能开始新轮', undefined, emptyReferences(personal))).rejects.toThrow('fixture 清理失败');
     await expect(chat.shutdown()).rejects.toThrow('fixture 清理失败');
     expect(chat.get(personal).state).toBe('failed');
   });
   it('shutdown 同步关闭接收入口，清理立即发送的请求', async () => {
-    const sending = chat.send(personal, '[slow]');
+    const sending = chat.send(personal, '[slow]', undefined, emptyReferences(personal));
     const stopping = chat.shutdown();
-    await expect(chat.send(space, 'late')).rejects.toThrow('关闭');
+    await expect(chat.send(space, 'late', undefined, emptyReferences(space))).rejects.toThrow('关闭');
     await sending;
     await stopping;
     expect(chat.get(personal).state).toBe('cancelled');
     expect(chat.get(space).messages).toHaveLength(0);
   });
   it('发送后立即 reset 不会启动旧轮次或污染新会话', async () => {
-    const sending = chat.send(personal, '[slow]');
+    const sending = chat.send(personal, '[slow]', undefined, emptyReferences(personal));
     const resetting = chat.reset(personal);
     await sending;
     await resetting;
@@ -107,15 +109,15 @@ describe('真实子进程生命周期（fixture）', () => {
     expect(chat.get(personal).messages).toHaveLength(0);
   });
   it('拒绝重复发送，取消等待进程 close，迟到消息不污染 reset', async () => {
-    await chat.send(personal, '[slow]');
-    await expect(chat.send(personal, 'duplicate')).rejects.toThrow('等待回复');
+    await chat.send(personal, '[slow]', undefined, emptyReferences(personal));
+    await expect(chat.send(personal, 'duplicate', undefined, emptyReferences(personal))).rejects.toThrow('等待回复');
     await expect.poll(() => events.length).toBeGreaterThan(1);
     await chat.cancel(personal);
     expect(chat.get(personal).state).toBe('cancelled');
     const cancelled = events.findIndex((event) => event.state === 'cancelling');
     expect(events.slice(cancelled).some((event) => event.messages.some((message) => message.text === '迟到回复'))).toBe(false);
     await chat.reset(personal);
-    await chat.send(personal, 'fresh');
+    await chat.send(personal, 'fresh', undefined, emptyReferences(personal));
     expect((await finish()).messages.map((message) => message.text)).toEqual(['fresh', 'fixture 回复：fresh']);
   });
 });

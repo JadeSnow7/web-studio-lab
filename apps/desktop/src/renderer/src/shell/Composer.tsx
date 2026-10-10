@@ -2,6 +2,7 @@ import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import { useStore } from '../lib/store';
 import { draftActions, draftsStore, type ComposerTarget } from '../state/drafts';
 import { chatActions, chatBlockedReason, chatStore } from '../state/chat';
+import { PersonalReferences } from './PersonalReferences';
 import { Icon } from '../components/Icon';
 
 interface ComposerProps {
@@ -59,6 +60,7 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,
       <label htmlFor={inputId} className="composer-target">
         发送到 · {target.conversation.scopeLabel} / {target.conversation.title} / {harnessLabel}
       </label>
+      <PersonalReferences disabled={!!blocked} />
       <textarea
         className="resize-none"
         ref={input}

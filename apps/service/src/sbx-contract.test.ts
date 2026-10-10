@@ -1,3 +1,4 @@
+import { emptyReferences } from './reference-test-fixture';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -21,7 +22,9 @@ describe('sbx 唯一路由的配置边界', () => {
       const status = await chat.initialize();
       expect(status.available).toBe(false);
       expect(status.reason).toMatch(/sbx|sandbox|沙箱/i);
-      await expect(chat.send('conv-personal-default', '不得在 host 执行')).rejects.toThrow();
+      await expect(
+        chat.send('conv-personal-default', '不得在 host 执行', undefined, emptyReferences('conv-personal-default')),
+      ).rejects.toThrow();
     } finally {
       await chat.shutdown();
       await rm(root, { recursive: true, force: true });

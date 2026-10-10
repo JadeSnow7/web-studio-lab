@@ -1,0 +1,25 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/desktop/src/main/workbench/resource-catalog-repository.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/workbench/resource-catalog-repository.test.ts [ apps/desktop/src/main/workbench/resource-catalog-repository.test.ts ]
+Error: Cannot find module './resource-catalog-repository' imported from /Users/huaodong/workspace/web-studio-lab/apps/desktop/src/main/workbench/resource-catalog-repository.test.ts
+ ❯ apps/desktop/src/main/workbench/resource-catalog-repository.test.ts:7:1
+      5| import { WorkbenchSnapshotSchema, type SpaceResource } from '@wsl/prot…
+      6| import { createResourceCatalog, catalogSha256 } from './resource-catal…
+      7| import { FileResourceCatalogRepository, migrateLegacyCatalog } from '.…
+       | ^
+      8|
+      9| const now = '2026-10-10T00:00:00.000Z';
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  22:58:35
+   Duration  226ms (worker 97%, environment 3%)
+

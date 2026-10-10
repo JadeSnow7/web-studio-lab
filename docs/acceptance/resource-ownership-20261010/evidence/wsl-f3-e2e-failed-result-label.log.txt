@@ -1,0 +1,79 @@
+
+Running 5 tests using 1 worker
+
+(node:99874) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/resources.spec.ts:30:1 › account favorite→A/B connections→explicit frozen personal reference→restart, using real Main (3.6s)
+  ✓  2 e2e/resources.spec.ts:187:1 › collection search, paging, IME, deletion recovery, focus and narrow dark UI (2.0s)
+  ✘  3 e2e/resources.spec.ts:231:1 › file and development entries can be explicitly favorited, classified and reopened in their authorized environment (6.1s)
+(node:99942) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 e2e/resources.spec.ts:272:1 › a delayed space switch after opening a favorite cannot steal a newer route (1.0s)
+  ✓  5 e2e/resources.spec.ts:304:1 › legacy sparse v4 is the only selectable body version after import (962ms)
+
+
+  1) e2e/resources.spec.ts:231:1 › file and development entries can be explicitly favorited, classified and reopened in their authorized environment 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('region', { name: '当前文件结果' })
+    Timeout: 5000ms
+    - Expected substring  -  1
+    + Received string     + 16
+
+    - files.list
+    + 来源 本地文件 · 环境 本设备 · 2026/10/10 23:58:07覆盖 部分 · directory_snapshot_not_atomic范围 {"returned":0}版本 / 散列 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945结果详情{
+    +   "entries": [],
+    +   "policy": "credential_paths_excluded; symlinks_listed_not_followed",
+    +   "watch": {
+    +     "supported": true,
+    +     "state": "watching",
+    +     "watchGeneration": 1,
+    +     "watchedDirectories": 1,
+    +     "maxDirectories": 32,
+    +     "scope": "observed-directories",
+    +     "recursive": false,
+    +     "lossy": true,
+    +     "coverage": "partial",
+    +     "watched": true
+    +   }
+    + }观察证据observations/6fad957d-f1f5-4e7c-86b0-382e8ff07e02.json
+
+    Call log:
+      - Expect "toContainText" getByRole('region', { name: '当前文件结果' }) with timeout 5000ms
+      - waiting for getByRole('region', { name: '当前文件结果' })
+        2 × locator resolved to <div role="region" aria-label="当前文件结果">…</div>
+          - unexpected value "尚未读取。"
+        12 × locator resolved to <div role="region" aria-label="当前文件结果">…</div>
+           - unexpected value "来源 本地文件 · 环境 本设备 · 2026/10/10 23:58:07覆盖 部分 · directory_snapshot_not_atomic范围 {"returned":0}版本 / 散列 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945结果详情{
+      "entries": [],
+      "policy": "credential_paths_excluded; symlinks_listed_not_followed",
+      "watch": {
+        "supported": true,
+        "state": "watching",
+        "watchGeneration": 1,
+        "watchedDirectories": 1,
+        "maxDirectories": 32,
+        "scope": "observed-directories",
+        "recursive": false,
+        "lossy": true,
+        "coverage": "partial",
+        "watched": true
+      }
+    }观察证据observations/6fad957d-f1f5-4e7c-86b0-382e8ff07e02.json"
+
+
+      248 |     await section.locator('article').filter({ hasText: title }).getByRole('button', { name: '收藏', exact: true }).click();
+      249 |   }
+    > 250 |   await page.getByRole('navigation',{name:'空间标签'}).getByRole('button',{name:'我的文件入口',exact:true}).click();await page.getByRole('button',{name:'列出目录',exact:true}).click();await expect(page.getByRole('region',{name:'当前文件结果'})).toContainText('files.list');await page.getByRole('button',{name:'我的文件入口操作',exact:true}).click();await page.getByRole('menuitem',{name:'关闭标签（保留后台执行）',exact:true}).click();await page.getByText('后台资源 / 已关闭标签',{exact:true}).click();const stoppedFile=page.locator('.background-resources .stack-8').filter({hasText:'我的文件入口'});await stoppedFile.getByRole('button',{name:'关闭文件观察',exact:true}).click();await expect(stoppedFile).toContainText('无运行实例');
+          |                                                                                                                                                                                                                                  ^
+      251 |   await workshopNavigate(page, '资源');
+      252 |   await page.getByLabel('资源分类').selectOption('document');
+      253 |   await expect(page.getByRole('button', { name: '我的文件入口', exact: true })).toBeVisible();
+        at /Users/huaodong/workspace/web-studio-lab/e2e/resources.spec.ts:250:226
+
+    Error Context: test-results/e2e/resources-file-and-develop-d0d69-heir-authorized-environment/error-context.md
+
+  1 failed
+    e2e/resources.spec.ts:231:1 › file and development entries can be explicitly favorited, classified and reopened in their authorized environment 
+  4 passed (14.1s)

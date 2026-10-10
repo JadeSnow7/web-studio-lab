@@ -6,8 +6,8 @@ import { ObservationHistory, ObservationResult, useObservation } from './Observa
 export function Files({ workspace, resource }: { workspace: WorkspaceSnapshot; resource: WorkbenchResource }) {
   const ime = useImeForm();
   const searchInput = useRef<HTMLInputElement>(null);
-  const [capturedPath, setCapturedPath] = useState('.');
-  const [path, setPath] = useState('.'),
+  const [capturedPath, setCapturedPath] = useState(resource.url ?? '.');
+  const [path, setPath] = useState(resource.url ?? '.'),
     [query, setQuery] = useState('');
   const { result, pending, observe, cancel } = useObservation(workspace.workspaceId, null);
   const available = !!resource.environmentId && !resource.unavailableReason;

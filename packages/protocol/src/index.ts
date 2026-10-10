@@ -21,3 +21,5 @@ export * from './observation';
 export * from './environments';
 
 export * from './setup';
+
+export * from './resource-catalog';

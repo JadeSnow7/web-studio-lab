@@ -67,17 +67,19 @@ def run(request):
         archive = root / '.wsl-deps.tar.gz'
         digest = hashlib.sha256()
         total = 0
-        with archive.open('xb') as target:
-            while True:
-                chunk = sys.stdin.buffer.read(1024 * 1024)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > 256 * 1024 * 1024:
-                    raise ValueError('dependency archive exceeds budget')
-                digest.update(chunk)
-                target.write(chunk)
+        created_archive = False
         try:
+            with archive.open('xb') as target:
+                created_archive = True
+                while True:
+                    chunk = sys.stdin.buffer.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > 256 * 1024 * 1024:
+                        raise ValueError('dependency archive exceeds budget')
+                    digest.update(chunk)
+                    target.write(chunk)
             if digest.hexdigest() != request['sha256']:
                 raise ValueError('dependency archive hash mismatch')
             with tarfile.open(archive, 'r:gz') as source:
@@ -94,7 +96,8 @@ def run(request):
             (root / '.wsl-dependency-lock').write_text(hashlib.sha256((root / 'package-lock.json').read_bytes()).hexdigest())
             output({'dependenciesImported': True, 'sha256': digest.hexdigest()})
         finally:
-            archive.unlink()
+            if created_archive:
+                archive.unlink()
         return
     if request['operation'] == 'export':
         files = []

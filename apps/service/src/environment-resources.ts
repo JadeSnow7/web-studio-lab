@@ -145,6 +145,14 @@ export class EnvironmentResources {
     }
     this.entries.set(identity.resourceId, { identity: Object.freeze({ ...identity }), retired: false });
   }
+  async release(identity: ResourceInstanceIdentity) {
+    if (identity.kind !== 'file') throw new FileObservationError('unsupported', 'Only file observation leases can be released here');
+    if (!this.entries.has(identity.resourceId)) return;
+    const entry = this.entry(identity);
+    entry.retired = true;
+    await entry.filesOpening;
+    await entry.files?.close();
+  }
   private entry(identity: ResourceInstanceIdentity) {
     const entry = this.entries.get(identity.resourceId);
     if (

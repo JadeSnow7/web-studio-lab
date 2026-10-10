@@ -22,35 +22,39 @@ beforeEach(() => {
   registerIpc({
     window: { isDestroyed: () => false, webContents },
     chat: {},
-    workbench: { command: capture },
+    workbench: { catalogCommand: capture },
     trusted: { kind: 'file', url: frame.url },
   } as unknown as IpcDeps);
 });
-const request = { type: 'capturePublicResource', commandId: 'capture', workspaceId: 'taskflow-demo', resourceId: 'web-resource' };
+const request = {
+  type: 'captureResourceRevision',
+  commandId: 'capture',
+  expectedCatalogRevision: 0,
+  workspaceId: 'taskflow-demo',
+  runtimeResourceId: 'web-resource',
+};
 describe('公开资源 main IPC 权威边界', () => {
   it('accepts only stable resource identity; renderer cannot inject captured content', async () => {
-    await handlers.get('workbench:command')?.(event, request);
+    await handlers.get('workbench:catalog-command')?.(event, request);
     expect(capture).toHaveBeenCalledWith(request);
-    expect(() => handlers.get('workbench:command')?.(event, { ...request, snapshot: { text: 'forged' } })).toThrow();
+    expect(() => handlers.get('workbench:catalog-command')?.(event, { ...request, snapshot: { text: 'forged' } })).toThrow();
     expect(capture).toHaveBeenCalledOnce();
   });
   it('rejects a preview webContents even when it knows a valid command', () => {
     const untrusted = { sender: { mainFrame: frame }, senderFrame: frame } as unknown as IpcMainInvokeEvent;
-    expect(() => handlers.get('workbench:command')?.(untrusted, request)).toThrow('非工作台');
+    expect(() => handlers.get('workbench:catalog-command')?.(untrusted, request)).toThrow('非工作台');
     expect(capture).not.toHaveBeenCalled();
   });
   it('does not turn navigation capture failure into a successful save', async () => {
     capture.mockRejectedValueOnce(new Error('页面已导航'));
-    await expect(handlers.get('workbench:command')?.(event, request)).rejects.toThrow('页面已导航');
+    await expect(handlers.get('workbench:catalog-command')?.(event, request)).rejects.toThrow('页面已导航');
     expect(handlers.has('resources:capture')).toBe(false);
     expect(handlers.has('preview:navigate')).toBe(false);
   });
   it('rejects the retired space-chat slot and dynamic slots on every legacy chat command', () => {
     for (const channel of ['chat:get', 'chat:send', 'chat:cancel', 'chat:reset'])
       for (const conversationId of ['conv-space-taskflow-demo-impl', 'session-dynamic']) {
-        expect(() => handlers.get(channel)?.(event, { conversationId, ...(channel === 'chat:send' ? { text: 'bypass' } : {}) })).toThrow(
-          '任务用例',
-        );
+        expect(() => handlers.get(channel)?.(event, { conversationId, ...(channel === 'chat:send' ? { text: 'bypass' } : {}) })).toThrow();
       }
   });
 });

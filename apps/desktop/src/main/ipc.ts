@@ -79,6 +79,18 @@ export function registerIpc({ window, trusted, chat, workbench, setup }: IpcDeps
       if (!workbench) throw new Error('工作台服务不可用');
       return workbench.command(command);
     },
+    'workbench:catalog-command': (command) => {
+      if (!workbench) throw new Error('工作台服务不可用');
+      return workbench.catalogCommand(command);
+    },
+    'workbench:resource-revision': ({ resourceId, version }) => {
+      if (!workbench) throw new Error('工作台服务不可用');
+      return workbench.catalogRevision(resourceId, version);
+    },
+    'workbench:run-references': ({ workspaceId, runId }) => {
+      if (!workbench) throw new Error('工作台服务不可用');
+      return workbench.runReferences(workspaceId, runId);
+    },
     'app:get-info': () => ({
       appVersion: app.getVersion(),
       electron: process.versions.electron,
@@ -93,9 +105,10 @@ export function registerIpc({ window, trusted, chat, workbench, setup }: IpcDeps
       assertLegacySession(conversationId);
       return chat.get(conversationId);
     },
-    'chat:send': ({ conversationId, text }) => {
+    'chat:send': async ({ conversationId, text, references }) => {
       assertLegacySession(conversationId);
-      return chat.send(conversationId, text);
+      if (!workbench) throw new Error('工作台服务不可用');
+      return chat.send(conversationId, text, undefined, await workbench.personalReferences(references ?? []));
     },
     'chat:cancel': ({ conversationId }) => {
       assertLegacySession(conversationId);

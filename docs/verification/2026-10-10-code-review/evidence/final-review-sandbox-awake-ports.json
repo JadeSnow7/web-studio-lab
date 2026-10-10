@@ -1,0 +1,7 @@
+{
+  "sandbox": "wsl-review-20261010-5e83a9",
+  "ready": "WSL_PORT_CHECK_ACTIVE",
+  "awakePorts": [],
+  "keeperExitCode": 0,
+  "keeperStderr": "Sandbox wsl-review-20261010-5e83a9 started successfully\n"
+}

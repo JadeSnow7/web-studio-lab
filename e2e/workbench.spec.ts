@@ -157,16 +157,18 @@ test('导航与草稿：个人作用域不沿用空间输入，回空间恢复�
 });
 
 test('侧栏：隐藏和临时展开使网页让位，按钮路径可固定恢复', async () => {
-  await page.getByRole('button', { name: '显示或隐藏 Workshop（⌘B）', exact: true }).click();
+  await page.getByRole('button', { name: '收起 Workshop', exact: true }).click();
   await expect(page.getByRole('navigation', { name: '空间标签' })).toHaveCount(0);
   const edge = page.getByRole('button', { name: '展开 Workshop', exact: true });
   await edge.click();
   await expect(page.getByRole('navigation', { name: '空间标签' })).toBeVisible();
-  await expect.poll(async () => (await previewInfo(app)).visible).toBe(false);
+  await expect.poll(async () => (await previewInfo(app)).visible).toBe(true);
   await expect(page.getByRole('button', { name: '取消固定 Workshop', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: '取消固定 Workshop', exact: true }).click();
   await expect(page.getByRole('navigation', { name: '空间标签' })).toHaveCount(0);
   await edge.click();
+  await expect.poll(async () => (await previewInfo(app)).visible).toBe(false);
+  await expect(page.getByRole('complementary', { name: 'Workshop（临时展开）' })).toBeVisible();
   await page.getByRole('button', { name: '固定 Workshop', exact: true }).click();
   await expect(page.getByRole('button', { name: '取消固定 Workshop', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(async () => (await previewInfo(app)).visible).toBe(true);

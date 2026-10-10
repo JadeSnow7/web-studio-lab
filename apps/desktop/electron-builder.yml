@@ -9,6 +9,7 @@ beforePack: ../../scripts/packaging/before-pack.cjs
 forceCodeSigning: true
 files:
   - out/**
+  - resources/branding/**
   - package.json
 extraResources:
   - from: ../service/out
@@ -27,6 +28,7 @@ extraResources:
 asar: true
 npmRebuild: false
 mac:
+  icon: ../../packaging/icon.icns
   category: public.app-category.developer-tools
   minimumSystemVersion: '14.0'
   hardenedRuntime: true

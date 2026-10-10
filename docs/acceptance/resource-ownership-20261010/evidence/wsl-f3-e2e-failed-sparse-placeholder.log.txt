@@ -1,0 +1,79 @@
+
+Running 14 tests using 1 worker
+
+(node:99589) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/public-document.spec.ts:17:1 › controlled-network fixture：真实 Electron 协议跳转、显示、绑定与空间持久化 (1.2s)
+  ✓   2 e2e/resources.spec.ts:30:1 › account favorite→A/B connections→explicit frozen personal reference→restart, using real Main (3.5s)
+  ✓   3 e2e/resources.spec.ts:187:1 › collection search, paging, IME, deletion recovery, focus and narrow dark UI (1.9s)
+  ✘   4 e2e/resources.spec.ts:231:1 › file and development entries can be explicitly favorited, classified and reopened in their authorized environment (6.1s)
+(node:99670) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 e2e/resources.spec.ts:272:1 › a delayed space switch after opening a favorite cannot steal a newer route (1.1s)
+  ✘   6 e2e/resources.spec.ts:304:1 › legacy sparse v4 is the only selectable body version after import (1.0s)
+(node:99690) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   7 e2e/workspace-observation.spec.ts:44:1 › 本地文件明确绑定、只读读取、续读、后台重开及会话观察归属 (1.7s)
+  ✓   8 e2e/workspace-observation.spec.ts:124:1 › 未配置环境明确禁用能力，不创建未授权文件标签 (836ms)
+  ✓   9 e2e/workspace-observation.spec.ts:146:1 › 历史版本与运行选择联动，对话内容来自同一执行 (1.1s)
+  ✓  10 e2e/workspace-observation.spec.ts:180:1 › 环境目录失败保留新建表单和显式错误，不使用默认环境 (755ms)
+  ✓  11 e2e/workspace-observation.spec.ts:214:1 › 标签自落点不改变顺序，正常拖放保持排序入口 (677ms)
+  ✓  12 e2e/workspace-observation.spec.ts:233:1 › 本地同一PTY重复输出与保留窗口滚动仍更新终端显示 (4.0s)
+  ✓  13 e2e/workspace-observation.spec.ts:285:1 › 受控环境延迟：UI取消不启动Provider，换空间后的迟到观察仍归原会话 (1.2s)
+  ✓  14 e2e/workspace-observation.spec.ts:367:1 › 程序IME确认不提交名称、文件路径或观察表单 (926ms)
+
+
+  1) e2e/resources.spec.ts:231:1 › file and development entries can be explicitly favorited, classified and reopened in their authorized environment 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  getByRole('list', { name: '目录条目' })
+    Expected: visible
+    Received: hidden
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeVisible" getByRole('list', { name: '目录条目' }) with timeout 5000ms
+      - waiting for getByRole('list', { name: '目录条目' })
+        12 × locator resolved to <ul aria-label="目录条目"></ul>
+           - unexpected value "hidden"
+
+
+      248 |     await section.locator('article').filter({ hasText: title }).getByRole('button', { name: '收藏', exact: true }).click();
+      249 |   }
+    > 250 |   await page.getByRole('navigation',{name:'空间标签'}).getByRole('button',{name:'我的文件入口',exact:true}).click();await page.getByRole('button',{name:'列出目录',exact:true}).click();await expect(page.getByRole('list',{name:'目录条目'})).toBeVisible();await page.getByRole('button',{name:'我的文件入口操作',exact:true}).click();await page.getByRole('menuitem',{name:'关闭标签（保留后台执行）',exact:true}).click();await page.getByText('后台资源 / 已关闭标签',{exact:true}).click();const stoppedFile=page.locator('.background-resources .stack-8').filter({hasText:'我的文件入口'});await stoppedFile.getByRole('button',{name:'关闭文件观察',exact:true}).click();await expect(stoppedFile).toContainText('无运行实例');
+          |                                                                                                                                                                                                                              ^
+      251 |   await workshopNavigate(page, '资源');
+      252 |   await page.getByLabel('资源分类').selectOption('document');
+      253 |   await expect(page.getByRole('button', { name: '我的文件入口', exact: true })).toBeVisible();
+        at /Users/huaodong/workspace/web-studio-lab/e2e/resources.spec.ts:250:222
+
+    Error Context: test-results/e2e/resources-file-and-develop-d0d69-heir-authorized-environment/error-context.md
+
+  2) e2e/resources.spec.ts:304:1 › legacy sparse v4 is the only selectable body version after import 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Array [
+    +   "选择明确版本",
+        "v4",
+      ]
+
+      351 |   await page.locator('.personal-references:visible summary').click();
+      352 |   await page.getByLabel('收藏参考', { exact: true }).filter({ visible: true }).selectOption(resourceId);
+    > 353 |   expect(await page.getByLabel('个人参考版本', { exact: true }).filter({ visible: true }).locator('option').allTextContents()).toEqual([
+          |                                                                                                                          ^
+      354 |     'v4',
+      355 |   ]);
+      356 | });
+        at /Users/huaodong/workspace/web-studio-lab/e2e/resources.spec.ts:353:122
+
+    Error Context: test-results/e2e/resources-legacy-sparse-v4-6160f-e-body-version-after-import/error-context.md
+
+  2 failed
+    e2e/resources.spec.ts:231:1 › file and development entries can be explicitly favorited, classified and reopened in their authorized environment 
+    e2e/resources.spec.ts:304:1 › legacy sparse v4 is the only selectable body version after import 
+  12 passed (26.8s)

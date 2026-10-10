@@ -1,0 +1,61 @@
+ M DESIGN.md
+ M UX-CONTRACT.md
+ M apps/desktop/electron-builder.yml
+ M apps/desktop/src/main/chat-service.test.ts
+ M apps/desktop/src/main/chat-service.ts
+ M apps/desktop/src/main/index.ts
+ M apps/desktop/src/main/preview/public-protocol.test.ts
+ M apps/desktop/src/main/preview/public-protocol.ts
+ M apps/desktop/src/main/setup.test.ts
+ M apps/desktop/src/main/setup.ts
+ M apps/desktop/src/main/shutdown.test.ts
+ M apps/desktop/src/main/shutdown.ts
+ M apps/desktop/src/main/window-close.test.ts
+ M apps/desktop/src/main/window.ts
+ M apps/desktop/src/main/workbench/application.ts
+ M apps/desktop/src/renderer/index.html
+ M apps/desktop/src/renderer/src/App.tsx
+ M apps/desktop/src/renderer/src/components/Icon.tsx
+ M apps/desktop/src/renderer/src/pages/HomePage.tsx
+ M apps/desktop/src/renderer/src/shell/RightPanel.tsx
+ M apps/desktop/src/renderer/src/shell/TitleBar.tsx
+ M apps/desktop/src/renderer/src/shell/Workshop.tsx
+ M apps/desktop/src/renderer/src/state/capture.test.ts
+ M apps/desktop/src/renderer/src/state/capture.ts
+ M apps/desktop/src/renderer/src/state/shell.test.ts
+ M apps/desktop/src/renderer/src/state/shell.ts
+ M apps/desktop/src/renderer/src/state/workspace.test.ts
+ M apps/desktop/src/renderer/src/state/workspace.ts
+ M apps/desktop/src/renderer/src/styles/app.css
+ M apps/desktop/src/renderer/src/workspace/Browser.tsx
+ M apps/desktop/src/renderer/src/workspace/Session.tsx
+ M apps/service/src/app-helper.py
+ M apps/service/src/app-service.test.ts
+ M apps/service/src/app-service.ts
+ M apps/service/src/codex-chat.ts
+ M apps/service/src/index.ts
+ M apps/service/src/resource-chat.test.ts
+ M apps/service/src/resource-dispatch.test.ts
+ M docs/architecture/current-runtime.md
+ M e2e/space-remake.spec.ts
+ M e2e/workbench.spec.ts
+ M e2e/workspace-observation.spec.ts
+ M e2e/workspace-upgrade.spec.ts
+?? apps/desktop/resources/
+?? apps/desktop/src/main/workbench/review-lifecycle.test.ts
+?? apps/desktop/src/renderer/src/components/BrandLogo.tsx
+?? apps/service/src/index.test.ts
+?? apps/service/src/shutdown.test.ts
+?? apps/service/src/shutdown.ts
+?? docs/verification/2026-10-10-branding-evidence/
+?? docs/verification/2026-10-10-branding.md
+?? docs/verification/2026-10-10-code-review/
+?? docs/verification/2026-10-10-shutdown-evidence/
+?? docs/verification/2026-10-10-shutdown.md
+?? docs/verification/2026-10-10-titlebar-panels-evidence/
+?? docs/verification/2026-10-10-titlebar-panels.md
+?? e2e/branding.spec.ts
+?? e2e/review-regressions.spec.ts
+?? e2e/shutdown.spec.ts
+?? packaging/icon.icns
+?? scripts/branding/

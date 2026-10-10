@@ -32,6 +32,7 @@ export interface SetupAdapter {
 /** Main is the only writer. Configuration changes are staged for the next app launch. */
 export class SetupManager {
   private snapshot: SetupSnapshot;
+  private closing = false;
   private operation: AbortController | null = null;
   private idle: Promise<void> = Promise.resolve();
   private readonly listeners = new Set<(snapshot: SetupSnapshot) => void>();
@@ -86,7 +87,8 @@ export class SetupManager {
     };
   }
   async shutdown() {
-    if (!this.operation && this.snapshot.pendingLogin) await this.resumeLogin(true);
+    this.closing = true;
+    if (!this.operation && this.snapshot.pendingLogin) await this.resumeLogin(true, true);
     this.operation?.abort();
     await this.idle;
     if (this.snapshot.error?.code === 'cleanup-unconfirmed') throw new Error(this.snapshot.error.message);
@@ -109,7 +111,11 @@ export class SetupManager {
     await rename(temporary, this.file);
     for (const listener of this.listeners) listener(this.status());
   }
-  private async run(action: (signal: AbortSignal) => Promise<void>, recoveringLogin = false) {
+  private requireOpen() {
+    if (this.closing) throw new SetupError('closing', '应用正在关闭，不能开始新的安装操作');
+  }
+  private async run(action: (signal: AbortSignal) => Promise<void>, recoveringLogin = false, shutdownCleanup = false) {
+    if (!shutdownCleanup) this.requireOpen();
     if (this.snapshot.error?.code === 'configuration-invalid') throw new SetupError('configuration-invalid', this.snapshot.error.message);
     if (this.snapshot.pendingLogin && !recoveringLogin) throw new SetupError('login-pending', '上次登录进程尚待确认，请重试或取消登录');
     if (this.operation) throw new SetupError('busy', '安装操作正在进行');
@@ -185,6 +191,7 @@ export class SetupManager {
     });
   }
   retry() {
+    this.requireOpen();
     return this.snapshot.pendingLogin ? this.resumeLogin(false) : this.prepare();
   }
   cancel() {
@@ -192,15 +199,19 @@ export class SetupManager {
     this.operation?.abort();
     return Promise.resolve(this.status());
   }
-  private resumeLogin(cancel: boolean) {
+  private resumeLogin(cancel: boolean, shutdownCleanup = false) {
     const pending = this.snapshot.pendingLogin;
     const binary = this.snapshot.config.sbxBinary;
     if (!pending || !binary) throw new SetupError('login-pending', '登录记录不完整，请保留记录并检查');
-    return this.run(async (signal) => {
-      const controller = new AbortController();
-      if (cancel) controller.abort();
-      await this.completeLogin(binary, pending.provider, AbortSignal.any([signal, controller.signal]), pending.id, true);
-    }, true);
+    return this.run(
+      async (signal) => {
+        const controller = new AbortController();
+        if (cancel) controller.abort();
+        await this.completeLogin(binary, pending.provider, AbortSignal.any([signal, controller.signal]), pending.id, true);
+      },
+      true,
+      shutdownCleanup,
+    );
   }
   private async completeLogin(binary: string, provider: 'docker' | 'openai', signal: AbortSignal, id: string, resume = false) {
     try {
@@ -212,6 +223,7 @@ export class SetupManager {
     }
   }
   login(provider: 'docker' | 'openai', acknowledgeGlobalCredentials: boolean) {
+    this.requireOpen();
     const binary = this.snapshot.config.sbxBinary;
     if (!binary) throw new SetupError('sbx-missing', '请先准备 sbx');
     if (provider === 'openai' && !acknowledgeGlobalCredentials)
@@ -227,9 +239,11 @@ export class SetupManager {
     });
   }
   authorizeLocalRoot(root: string) {
+    this.requireOpen();
     this.selectedLocalRoot = root;
   }
   async save(raw: unknown) {
+    this.requireOpen();
     if (this.snapshot.error?.code === 'configuration-invalid') throw new SetupError('configuration-invalid', this.snapshot.error.message);
     if (this.operation) throw new SetupError('busy', '安装操作正在进行');
     const settings = SetupSettingsSchema.parse(raw);

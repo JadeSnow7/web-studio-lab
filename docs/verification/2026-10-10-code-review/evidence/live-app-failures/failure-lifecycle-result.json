@@ -1,0 +1,286 @@
+{
+  "key": {
+    "workspaceId": "minimal-loop-live",
+    "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc"
+  },
+  "startedAt": "2026-10-10T13:12:50.536Z",
+  "tests": [
+    {
+      "phase": "cancel-import",
+      "startedAt": "2026-10-10T13:13:02.732Z",
+      "snapshotEvents": [
+        {
+          "at": "2026-10-10T13:13:02.771Z",
+          "snapshot": {
+            "workspaceId": "minimal-loop-live",
+            "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "environmentId": "sandbox",
+            "appInstanceId": "3326b431-f715-4975-83eb-626d80e8a292",
+            "state": "starting",
+            "url": null,
+            "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "guestPort": null,
+            "error": null,
+            "cleanupConfirmed": false
+          }
+        },
+        {
+          "at": "2026-10-10T13:13:06.772Z",
+          "snapshot": {
+            "workspaceId": "minimal-loop-live",
+            "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "environmentId": "sandbox",
+            "appInstanceId": "3326b431-f715-4975-83eb-626d80e8a292",
+            "state": "stopped",
+            "url": null,
+            "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "guestPort": null,
+            "error": "Error: 应用启动已取消或超时（依赖导入已结束）",
+            "cleanupConfirmed": true
+          }
+        },
+        {
+          "at": "2026-10-10T13:13:06.773Z",
+          "snapshot": {
+            "workspaceId": "minimal-loop-live",
+            "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "environmentId": "sandbox",
+            "appInstanceId": "3326b431-f715-4975-83eb-626d80e8a292",
+            "state": "stopped",
+            "url": null,
+            "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "guestPort": null,
+            "error": "Error: 应用启动已取消或超时（依赖导入已结束）",
+            "cleanupConfirmed": false
+          }
+        },
+        {
+          "at": "2026-10-10T13:13:12.237Z",
+          "snapshot": {
+            "workspaceId": "minimal-loop-live",
+            "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "environmentId": "sandbox",
+            "appInstanceId": "3326b431-f715-4975-83eb-626d80e8a292",
+            "state": "stopped",
+            "url": null,
+            "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "guestPort": null,
+            "error": "Error: 应用启动已取消或超时（依赖导入已结束）",
+            "cleanupConfirmed": true
+          }
+        }
+      ],
+      "startupResult": {
+        "workspaceId": "minimal-loop-live",
+        "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+        "environmentId": "sandbox",
+        "appInstanceId": "3326b431-f715-4975-83eb-626d80e8a292",
+        "state": "failed",
+        "url": null,
+        "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+        "guestPort": null,
+        "error": "Error: 应用启动已取消或超时（依赖导入已结束）",
+        "cleanupConfirmed": true
+      },
+      "observedOwnedProcess": true,
+      "snapshot": {
+        "workspaceId": "minimal-loop-live",
+        "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+        "environmentId": "sandbox",
+        "appInstanceId": "3326b431-f715-4975-83eb-626d80e8a292",
+        "state": "stopped",
+        "url": null,
+        "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+        "guestPort": null,
+        "error": "Error: 应用启动已取消或超时（依赖导入已结束）",
+        "cleanupConfirmed": true
+      },
+      "sourceSha256": "0e202ad48842669c5b721295ec4a42328425adabfcc48f92ccb8d9f36245e5cc",
+      "sourceCount": 26
+    },
+    {
+      "phase": "cancel-guest",
+      "startedAt": "2026-10-10T13:13:12.237Z",
+      "snapshotEvents": [
+        {
+          "at": "2026-10-10T13:13:12.238Z",
+          "snapshot": {
+            "workspaceId": "minimal-loop-live",
+            "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "environmentId": "sandbox",
+            "appInstanceId": "e1dd382a-dc5c-41ec-bfa2-4604aebfece2",
+            "state": "starting",
+            "url": null,
+            "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "guestPort": null,
+            "error": null,
+            "cleanupConfirmed": false
+          }
+        },
+        {
+          "at": "2026-10-10T13:13:17.450Z",
+          "snapshot": {
+            "workspaceId": "minimal-loop-live",
+            "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "environmentId": "sandbox",
+            "appInstanceId": "e1dd382a-dc5c-41ec-bfa2-4604aebfece2",
+            "state": "stopped",
+            "url": null,
+            "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "guestPort": null,
+            "error": "Error: 应用启动已取消",
+            "cleanupConfirmed": true
+          }
+        },
+        {
+          "at": "2026-10-10T13:13:17.451Z",
+          "snapshot": {
+            "workspaceId": "minimal-loop-live",
+            "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "environmentId": "sandbox",
+            "appInstanceId": "e1dd382a-dc5c-41ec-bfa2-4604aebfece2",
+            "state": "stopped",
+            "url": null,
+            "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "guestPort": null,
+            "error": "Error: 应用启动已取消",
+            "cleanupConfirmed": false
+          }
+        },
+        {
+          "at": "2026-10-10T13:13:22.626Z",
+          "snapshot": {
+            "workspaceId": "minimal-loop-live",
+            "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "environmentId": "sandbox",
+            "appInstanceId": "e1dd382a-dc5c-41ec-bfa2-4604aebfece2",
+            "state": "stopped",
+            "url": null,
+            "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "guestPort": null,
+            "error": "Error: 应用启动已取消",
+            "cleanupConfirmed": true
+          }
+        }
+      ],
+      "startupResult": {
+        "workspaceId": "minimal-loop-live",
+        "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+        "environmentId": "sandbox",
+        "appInstanceId": "e1dd382a-dc5c-41ec-bfa2-4604aebfece2",
+        "state": "failed",
+        "url": null,
+        "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+        "guestPort": null,
+        "error": "Error: 应用启动已取消",
+        "cleanupConfirmed": true
+      },
+      "observedOwnedProcess": true,
+      "snapshot": {
+        "workspaceId": "minimal-loop-live",
+        "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+        "environmentId": "sandbox",
+        "appInstanceId": "e1dd382a-dc5c-41ec-bfa2-4604aebfece2",
+        "state": "stopped",
+        "url": null,
+        "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+        "guestPort": null,
+        "error": "Error: 应用启动已取消",
+        "cleanupConfirmed": true
+      },
+      "sourceSha256": "0e202ad48842669c5b721295ec4a42328425adabfcc48f92ccb8d9f36245e5cc",
+      "sourceCount": 26
+    },
+    {
+      "phase": "timeout-guest",
+      "startedAt": "2026-10-10T13:13:22.626Z",
+      "snapshotEvents": [
+        {
+          "at": "2026-10-10T13:13:22.630Z",
+          "snapshot": {
+            "workspaceId": "minimal-loop-live",
+            "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "environmentId": "sandbox",
+            "appInstanceId": "243a5d4f-d704-4510-8aa7-77cb6846a9b9",
+            "state": "starting",
+            "url": null,
+            "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "guestPort": null,
+            "error": null,
+            "cleanupConfirmed": false
+          }
+        },
+        {
+          "at": "2026-10-10T13:14:37.967Z",
+          "snapshot": {
+            "workspaceId": "minimal-loop-live",
+            "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "environmentId": "sandbox",
+            "appInstanceId": "243a5d4f-d704-4510-8aa7-77cb6846a9b9",
+            "state": "failed",
+            "url": null,
+            "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "guestPort": 44429,
+            "error": "Error: 应用启动超时",
+            "cleanupConfirmed": false
+          }
+        },
+        {
+          "at": "2026-10-10T13:14:43.248Z",
+          "snapshot": {
+            "workspaceId": "minimal-loop-live",
+            "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "environmentId": "sandbox",
+            "appInstanceId": "243a5d4f-d704-4510-8aa7-77cb6846a9b9",
+            "state": "stopped",
+            "url": null,
+            "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+            "guestPort": 44429,
+            "error": "Error: 应用启动超时",
+            "cleanupConfirmed": true
+          }
+        }
+      ],
+      "healthProbeURL": "http://127.0.0.1:49162/api/health",
+      "healthProbeCalls": 165,
+      "healthProbeObservedAt": "2026-10-10T13:13:49.501Z",
+      "startupResult": {
+        "workspaceId": "minimal-loop-live",
+        "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+        "environmentId": "sandbox",
+        "appInstanceId": "243a5d4f-d704-4510-8aa7-77cb6846a9b9",
+        "state": "failed",
+        "url": null,
+        "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+        "guestPort": 44429,
+        "error": "Error: 应用启动超时",
+        "cleanupConfirmed": true
+      },
+      "observedOwnedProcess": true,
+      "snapshot": {
+        "workspaceId": "minimal-loop-live",
+        "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+        "environmentId": "sandbox",
+        "appInstanceId": "243a5d4f-d704-4510-8aa7-77cb6846a9b9",
+        "state": "failed",
+        "url": null,
+        "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+        "guestPort": 44429,
+        "error": "Error: 应用启动超时",
+        "cleanupConfirmed": true
+      },
+      "sourceSha256": "0e202ad48842669c5b721295ec4a42328425adabfcc48f92ccb8d9f36245e5cc",
+      "sourceCount": 26,
+      "fault": "Host health probe deliberately reports unavailable; actual guest process and owned mapping cleanup are exercised."
+    }
+  ],
+  "runtimeSourceSha256": "c9f666d6fcfe47d2c08fe26320c0edfc955fd91ba8e86a4b4c2a8a0d2e6697e3",
+  "helperSourceSha256": "e0f6b8be535f9c79cc99ebf57328d37af6266c255be66ec4395c5c63595f92dc",
+  "dependencyConfiguration": {
+    "dependencyArchivePath": "/Users/huaodong/workspace/web-studio-lab/packaging/generated/runtime/template-dependencies.tar.gz"
+  },
+  "runtimeConfigFile": null,
+  "currentPhase": "timeout-guest",
+  "result": "passed",
+  "endedAt": "2026-10-10T13:14:43.248Z"
+}

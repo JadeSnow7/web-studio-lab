@@ -1,0 +1,12 @@
+[
+  {
+    "pid": 59727,
+    "signal": "SIGTERM",
+    "identity": "/Users/huaodong/workspace/web-studio-lab/apps/desktop/release-internal/mac-arm64/Web Studio Lab.app/Contents/MacOS/Web Studio Lab"
+  },
+  {
+    "pid": 59929,
+    "signal": "SIGTERM",
+    "identity": "/Users/huaodong/workspace/web-studio-lab/apps/desktop/release-internal/mac-arm64/Web Studio Lab.app/Contents/MacOS/Web Studio Lab --inspect=0 --remote-debugging-port=0 --user-data-dir=/private/tmp/wsl-review-packaged-app-20261010-final/profile"
+  }
+]

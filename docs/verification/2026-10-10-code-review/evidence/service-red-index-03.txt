@@ -1,0 +1,36 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/index.test.ts (2 tests | 2 failed) 753ms
+   ❯ service request cancellation admission (2)
+     × cancel bypasses pending send preflight without allowing resource mutation to race capture 431ms
+     × shutdown bypasses pending send preflight without allowing resource mutation to race capture 320ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/index.test.ts > service request cancellation admission > cancel bypasses pending send preflight without allowing resource mutation to race capture
+ FAIL  apps/service/src/index.test.ts > service request cancellation admission > shutdown bypasses pending send preflight without allowing resource mutation to race capture
+AssertionError: expected undefined to be 'response' // Object.is equality
+
+- Expected:
+"response"
+
++ Received:
+undefined
+
+ ❯ vi.waitFor.timeout apps/service/src/index.test.ts:64:61
+     62|     test.request({ id: 'remove', method: 'resources.remove', payload: …
+     63|     try {
+     64|       await vi.waitFor(() => expect(response('stop')?.type).toBe('resp…
+       |                                                             ^
+     65|       expect(fixture.remove).not.toHaveBeenCalled();
+     66|       expect(fixture.start).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  21:03:51
+   Duration  847ms (tests 96%, transform 3%, import 1%)
+

@@ -19,7 +19,6 @@ const makeSnapshot = () =>
         activePaneId: 'pane',
         theme: 'light',
         runs: [],
-        publicResources: null,
         resources: [
           {
             resourceId: 'web',
@@ -220,4 +219,26 @@ it('a different page replacing the same receiver releases the old subscription a
   } finally {
     spy.mockRestore();
   }
+});
+
+it.each(['space', 'route', 'tab'])('retains late capture evidence without navigating after user changes %s', async (navigation) => {
+  await captureContext('space', 'owner', 'web');
+  if (navigation === 'space') {
+    const { switchWorkspace } = await import('./workspace');
+    await switchWorkspace('other');
+  } else if (navigation === 'route') {
+    const { shellActions } = await import('./shell');
+    shellActions.navigate('tasks');
+  } else {
+    const { workspaceCommand } = await import('./workspace');
+    await workspaceCommand('space', { type: 'activateTab', tabId: 'other' });
+  }
+  const completed = structuredClone(workspaceStore.get().snapshot!);
+  completed.seq++;
+  completed.workspaces[0]!.sessions[0]!.captureRequest!.state = 'completed';
+  completed.workspaces[0]!.sessions[0]!.context = capture;
+  projectSnapshot(completed);
+  await Promise.resolve();
+  expect(calls.map((c) => c.type)).not.toContain('locateSession');
+  expect(workspaceStore.get().snapshot!.workspaces[0]!.sessions[0]!.context).toEqual(capture);
 });

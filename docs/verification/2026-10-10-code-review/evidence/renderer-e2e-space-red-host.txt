@@ -1,0 +1,28 @@
+
+Running 1 test using 1 worker
+
+(node:51794) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from space (1.6s)
+
+
+  1) e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from space 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      193 |     expect(
+      194 |       await app.evaluate(() => (globalThis as ReviewGlobal).reviewGate.commands.filter((c) => c.type === 'locateSession').length),
+    > 195 |     ).toBe(0);
+          |       ^
+      196 |     if (destination === 'route') await expect(page.getByRole('heading', { name: '任务历史' })).toBeVisible();
+      197 |     else if (destination === 'space')
+      198 |       await expect(page.getByRole('button', { name: '切换空间', exact: true })).toContainText('Review 其它空间');
+        at /Users/huaodong/workspace/web-studio-lab/e2e/review-regressions.spec.ts:195:7
+
+    Error Context: test-results/e2e/review-regressions-late-sc-93623-ithout-returning-from-space/error-context.md
+
+  1 failed
+    e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from space 

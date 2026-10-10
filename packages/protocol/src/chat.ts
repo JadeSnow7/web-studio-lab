@@ -20,7 +20,7 @@ import { TerminalOpenSchema, TerminalWriteSchema, TerminalResizeSchema, Terminal
 
 import { ChatSlotSchema } from './chat-slot';
 export { ChatSlotSchema } from './chat-slot';
-import { ResourceCollectionSchema, ResourceListRequestSchema, ResourceRemoveRequestSchema, ResourceSaveRequestSchema } from './resources';
+import { CatalogReferenceSnapshotSchema } from './resource-catalog';
 export const ChatStatusSchema = z.object({
   available: z.boolean(),
   reason: z.string().nullable(),
@@ -54,11 +54,14 @@ export const ChatConversationSchema = z.object({
   cleanupPending: z.boolean(),
   error: z.string().nullable(),
 });
-export const ChatSendSchema = z.object({
-  conversationId: ChatSlotSchema,
-  text: z.string().trim().min(1).max(32000),
-  observationScope: ObservationTurnScopeSchema.optional(),
-});
+export const ChatSendSchema = z
+  .object({
+    conversationId: ChatSlotSchema,
+    text: z.string().trim().min(1).max(32000),
+    observationScope: ObservationTurnScopeSchema.optional(),
+    references: CatalogReferenceSnapshotSchema,
+  })
+  .strict();
 export const ChatTargetSchema = z.object({ conversationId: ChatSlotSchema });
 export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
   z
@@ -81,6 +84,7 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
   z.object({ id: z.string(), method: z.literal('status') }),
   z.object({ id: z.string(), method: z.literal('environments.list') }).strict(),
   z.object({ id: z.string(), method: z.literal('resource.register'), payload: RuntimeResourceIdentitySchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('resource.release'), payload: RuntimeResourceIdentitySchema }).strict(),
   z.object({ id: z.string(), method: z.literal('observation.read'), payload: ObservationRequestSchema }).strict(),
   z
     .object({
@@ -105,9 +109,6 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
   z.object({ id: z.string(), method: z.literal('terminal.write'), payload: TerminalWriteSchema }),
   z.object({ id: z.string(), method: z.literal('terminal.resize'), payload: TerminalResizeSchema }),
   z.object({ id: z.string(), method: z.literal('terminal.close'), payload: TerminalTargetSchema }),
-  z.object({ id: z.string(), method: z.literal('resources.list'), payload: ResourceListRequestSchema }).strict(),
-  z.object({ id: z.string(), method: z.literal('resources.save'), payload: ResourceSaveRequestSchema }).strict(),
-  z.object({ id: z.string(), method: z.literal('resources.remove'), payload: ResourceRemoveRequestSchema }).strict(),
   z.object({ id: z.string(), method: z.literal('shutdown') }),
 ]);
 export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
@@ -140,7 +141,6 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
       ChatStatusSchema,
       ChatConversationSchema,
       TerminalSnapshotSchema,
-      ResourceCollectionSchema,
       EnvironmentListSchema,
       ObservationResultSchema,
       z.null(),

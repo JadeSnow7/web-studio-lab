@@ -4,9 +4,17 @@ import { WorkbenchObservationInputSchema, WorkspaceObservationResultSchema } fro
 import { WorkbenchCommandSchema, WorkbenchEventSchema, WorkbenchResultSchema, WorkbenchSnapshotSchema } from './workspace';
 import { z } from 'zod';
 import { AppInfoSchema, ShellCommandSchema } from './app';
-import { ChatConversationSchema, ChatSendSchema, ChatStatusSchema, ChatTargetSchema } from './chat';
+import { ChatConversationSchema, ChatStatusSchema, ChatTargetSchema } from './chat';
 import { ExecutionStatusSchema } from './execution';
 
+import {
+  CatalogActionSchema,
+  CatalogQuerySchema,
+  RunReferenceQuerySchema,
+  ResourceRevisionSchema,
+  CatalogReferenceSnapshotSchema,
+  PersonalChatSendSchema,
+} from './resource-catalog';
 const NoArgs = z.undefined();
 
 /**
@@ -26,11 +34,14 @@ export const invokeChannels = {
   'workbench:observe': { request: WorkbenchObservationInputSchema, response: WorkspaceObservationResultSchema },
   'workbench:reload': { request: NoArgs, response: WorkbenchSnapshotSchema },
   'workbench:get-snapshot': { request: NoArgs, response: WorkbenchSnapshotSchema },
+  'workbench:catalog-command': { request: CatalogActionSchema, response: WorkbenchResultSchema },
+  'workbench:resource-revision': { request: CatalogQuerySchema, response: ResourceRevisionSchema },
+  'workbench:run-references': { request: RunReferenceQuerySchema, response: CatalogReferenceSnapshotSchema.nullable() },
   'workbench:command': { request: WorkbenchCommandSchema, response: WorkbenchResultSchema },
   'app:get-info': { request: NoArgs, response: AppInfoSchema },
   'chat:get-status': { request: NoArgs, response: ChatStatusSchema },
   'chat:get': { request: ChatTargetSchema, response: ChatConversationSchema },
-  'chat:send': { request: ChatSendSchema, response: ChatConversationSchema },
+  'chat:send': { request: PersonalChatSendSchema, response: ChatConversationSchema },
   'chat:cancel': { request: ChatTargetSchema, response: ChatConversationSchema },
   'chat:reset': { request: ChatTargetSchema, response: ChatConversationSchema },
   'execution:get-status': { request: NoArgs, response: ExecutionStatusSchema },

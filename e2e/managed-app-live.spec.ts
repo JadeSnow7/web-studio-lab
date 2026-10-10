@@ -77,11 +77,13 @@ test('real sbx standard app through product Browser, persistence, export and can
   };
   try {
     await workshopNavigate(page, '空间');
+    await page.getByRole('button', { name: '新建 App', exact: true }).click();
     await page.getByRole('button', { name: '创建标准应用', exact: true }).click();
     await waitState('created');
     evidence['created'] = (await state()).managedApp;
     await page.getByRole('button', { name: '启动应用', exact: true }).click();
     await waitState('running');
+    await page.getByRole('dialog', { name: '空间 App' }).getByRole('button', { name: '关闭', exact: true }).click();
     const first = (await state()).managedApp!;
     evidence['first'] = first;
     const browser = await expect
@@ -154,6 +156,7 @@ test('real sbx standard app through product Browser, persistence, export and can
     expect(persistence.readB.body.value).toBe('Ready');
     expect(persistence.writeB.body.value).toBe('B-' + nonce);
     evidence['storageBefore'] = persistence;
+    await page.getByRole('button', { name: '管理 App', exact: true }).click();
     await page.getByRole('button', { name: '停止应用', exact: true }).click();
     await waitState('stopped');
     expect((await state()).managedApp?.cleanupConfirmed).toBe(true);
@@ -170,6 +173,7 @@ test('real sbx standard app through product Browser, persistence, export and can
       .toBe(true);
     await page.getByRole('button', { name: '启动应用', exact: true }).click();
     await waitState('running');
+    await page.getByRole('dialog', { name: '空间 App' }).getByRole('button', { name: '关闭', exact: true }).click();
     const second = (await state()).managedApp!;
     expect(second.projectId).toBe(first.projectId);
     expect(second.appInstanceId).not.toBe(first.appInstanceId);
@@ -206,8 +210,10 @@ test('real sbx standard app through product Browser, persistence, export and can
     expect(restored.state).toBe('stopped');
     expect(restored.url).toBeNull();
     expect(restored.projectId).toBe(first.projectId);
+    await page.getByRole('button', { name: '管理 App', exact: true }).click();
     await page.getByRole('button', { name: '启动应用', exact: true }).click();
     await waitState('running');
+    await page.getByRole('dialog', { name: '空间 App' }).getByRole('button', { name: '关闭', exact: true }).click();
     const third = (await state()).managedApp!;
     expect(third.appInstanceId).not.toBe(second.appInstanceId);
     await expect.poll(async () => app.windows().some((p) => p.url().startsWith(third.url!)), { timeout: 15000 }).toBe(true);
@@ -228,6 +234,7 @@ test('real sbx standard app through product Browser, persistence, export and can
     });
     expect(afterWindowClose.map((v) => v.value)).toEqual([nonce, 'B-' + nonce]);
     evidence['windowRestored'] = { restored, third, persisted: afterWindowClose };
+    await page.getByRole('button', { name: '管理 App', exact: true }).click();
     await page.getByRole('button', { name: '停止应用', exact: true }).click();
     await waitState('stopped');
     const secondStoppedPorts = await portMappings();

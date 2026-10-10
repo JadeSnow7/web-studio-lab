@@ -1,0 +1,27 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts (6 tests | 1 failed) 169ms
+   ❯ review: cancellable Main launch I/O (2)
+     × cancels while registration is suspended and ignores its late receipt 64ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: cancellable Main launch I/O > cancels while registration is suspended and ignores its late receipt
+AssertionError: expected 'running' not to be 'running' // Object.is equality
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts:180:91
+    178|     app.onConversation(conversation(sessionId, 'running', 3));
+    179|     expect((await app.getSnapshot()).workspaces[0]!.runs[0]!.conversat…
+    180|     expect((await app.getSnapshot()).workspaces[0]!.sessions[0]!.conve…
+       |                                                                                           ^
+    181|   });
+    182| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 14 passed (15)
+      Tests  1 failed | 110 passed (111)
+   Start at  21:02:26
+   Duration  2.36s (tests 51%, transform 27%, import 20%, worker 1%)
+

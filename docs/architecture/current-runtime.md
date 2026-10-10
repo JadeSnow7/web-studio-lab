@@ -6,7 +6,7 @@
 
 - `apps/desktop/src/main/workbench` 持有空间、标签、资源、窗格、会话、任务版本、运行、阅读回执及持久快照。Host将应用端口接到原生网页和服务；renderer只持有快照投影与展示状态。
 - 全局保留首页、空间、资源、会话、任务和设置；空间页使用垂直标签与最多四窗格。左右栏是全局展示容器，固定偏好属于本设备，不属于空间业务。主题仍按空间保存，设置页是唯一编辑入口。
-- `apps/service` 提供 sbx 会话、guest PTY、空间资源存储与只读 MCP；`guest-browser-bridge.ts` 与 `guest-browser.cjs` 是隔离浏览器采集切片，尚未完成生产 UI 挂载验证。
+- `apps/service` 提供 sbx 会话、guest PTY、捕获适配与只读 MCP；账户资源目录由 Main 单点写入；`guest-browser-bridge.ts` 与 `guest-browser.cjs` 是隔离浏览器采集切片，尚未完成生产 UI 挂载验证。
 - `packages/protocol` 是跨进程schema来源；空间操作经workbench命令，旧空间/预览/运行/资源/终端renderer控制器随消费者迁移退役。个人会话仍使用窄chat接口。
 - `tests/vertical-slice`、`fixtures/vertical-slice/page` 与 [VS001](../acceptance/README.md) 保留 main 的固定验收与负例。`src/vertical-slice/adapter.ts` 已复用 sbx/Codex、Vite 和产品 Browser 接入冻结契约；[本轮记录](../acceptance/integrated-app-installer-public-20261009/README.md)区分最终整合验证与历史离线验证。
 - 空间元数据、草稿、任务版本、历史运行与阅读回执可以恢复；重启不重放任务和PTY。空间运行、取消、检查与审阅为独立事实；独立检查器尚未接入时明确blocked，不能接受结果。
@@ -85,19 +85,23 @@ Codex 首轮使用 `exec --json`，续轮显式 `exec resume <threadId>`，采�
 
 连接检查不调用模型；普通测试使用确定性sbx fixture，真实模型和真实guest生命周期须显式启用。该接入不等于完整业务闭环或固定验收完成。
 
-### 公开网页与空间资源（2026-10-06 授权实现）
+### 账户资源、空间连接与固定参考（2026-10-10）
 
-公开页面使用单独的 HTTPS 获取与只读文档路径：main 对全部 DNS 地址和每次跳转校验公网范围，连接固定到已验证 IP，保留 TLS 证书校验。解析响应后仅把转义后的标题和正文放入固定模板；原站脚本、属性、样式、Cookie、网络提示和子资源不会进入 Browser。界面明确标注只读文档，真实页面快照含原始字节和正文散列，不宣称原站布局或动态交互。
+Main 的 `resource-catalog` 管理本地账户拥有的资源、主动收藏、空间连接和不可变内容版本。账户身份在首次初始化时创建并持久化，renderer 不能指定所有者。`WorkbenchResource.resourceId` 继续标识原空间运行绑定，`catalogResourceId` 指向账户资源；标签和运行实例保留独立生命周期。文档分类目前提供已有授权环境的文件入口收藏与重开；浏览目录是展示状态，不自动写账户描述，本轮不含将任意当前文件另存为收藏、文件导入或正文归档。页面实现及本轮验证边界见[资源归属验证记录](../acceptance/resource-ownership-20261010/README.md)。
 
-用户主动加入的公开文档由服务保存在固定空间资源文件中。renderer 只传空间和预览页面身份；main 捕获已显示的同一代文档，服务验证快照并提供幂等新增、版本更新与删除。该旧合同仅向TaskFlow demo空间授权，其他空间为空且拒绝保存，不得继承demo集合；统一观察使用独立的Main空间/资源授权。入口为workbench命令与快照，资源结构权威在 `packages/protocol/src/resources.ts`。
+`workbench.json` schema 3 同时保存工作台和账户目录，完整格式、摘要和关系校验通过后原子替换。schema 1/2 及旧 `chat/space-resources.json` 仅作迁移来源：旧工作台另存不可覆盖的只读备份，旧资源文件原样保留；导入为账户资源与原空间连接，默认不收藏。迁移不启动实例；损坏或未来格式拒绝覆盖。正常 schema 3 重启不因读取而额外保存。
 
-空间会话由Main注册所属空间，服务在调用开始时冻结有界资源包；个人会话是空包。guest helper把资源包放入sealed memfd，单次Codex调用加载有限stdio MCP，仅枚举与按资源身份/版本读取。没有host mount、Docker socket、新凭据或持久MCP配置。资源内容是非可信数据，不授予写权限。活动回复期间禁止变更，变更后切断旧CLI thread，下一轮获得新资源包。共享guest的既有同UID文件系统不提供OS级空间保密，已进入历史的内容也无法撤回。
+公开页面仍使用受控 HTTPS 获取与只读文档路径：Main 校验 DNS 地址与每次跳转的公网范围，固定已验证 IP 并校验证书，只把转义标题和正文放入固定模板。原站脚本、属性、样式、Cookie 和子资源不进入 Browser。收藏 HTTP/HTTPS 链接只保存描述，不访问网络；实际打开和正文捕获继续服从现有能力限制。
 
-实现和验收边界见 [公开资源合同](../verification/2026-10-06-public-resources/SPEC.md)。完成状态只能依据该轮实测证据，MCP 客户端通过不能代替真实模型工具调用。
+账户命令使用独立目录 revision 与幂等 commandId。收藏、连接、打开、捕获正文、选择参考、关闭标签、停止实例和解除连接分别执行。捕获由 Main 核对真实页面身份并追加版本；浏览器从 A 导航到 B 后保存的内容不会覆盖 A。列表事件只含摘要，正文和历史运行的固定引用按需查询。旧 service `ResourceStore` 及空间集合写入接口退役，不保留第二个写入者。
+
+Main 在发送前冻结已选的 resourceId/version：空间会话读取该空间连接上明确选择的版本；个人会话读取明确选择的收藏版本，默认空包。service 核验注册会话归属后附加 generation/turnId，再交只读 MCP。每轮最多 16 项、单正文 64 KiB、完整 JSON 包 512 KiB；收藏数量不受 16 项约束，预算超限在启动执行前拒绝。新版本与新选择只影响后续轮次，历史固定证据保留。
+
+资源内容属于非可信数据，不授予工具或环境权限。guest sealed memfd、有限 stdio MCP、无 host mount 和既有认证边界继续有效；共享 guest 的同 UID 文件系统不提供操作系统级空间保密，已有模型历史内容也不能撤回。[旧公开资源合同](../verification/2026-10-06-public-resources/SPEC.md)保留历史来源与隔离证据，其旧空间归属及固定 demo 范围已由[新合同](../acceptance/resource-ownership-20261010/SPEC.md)替代。
 
 ## Guest 浏览器与验证边界
 
-[Guest 浏览器合同](../verification/2026-10-07-sandbox-browser/SPEC.md)保留 Chromium sandbox、资源身份及同版本散列读取要求。历史 final-code-live-03 只证明当时版本的单次链路；本次整合已获真实模型与sandbox live授权，将串行使用既有独立测试sandbox；是否运行及结果见本轮记录。授权、代码存在和历史通过均不能替代本轮实测，也不推导生产UI挂载或外部SSH验收。
+[Guest 浏览器合同](../verification/2026-10-07-sandbox-browser/SPEC.md)保留 Chromium sandbox、资源身份及同版本散列读取要求。历史 final-code-live-03 只证明当时版本的单次链路；2026-10-08 整合曾获真实模型与 sandbox live 授权，是否运行及结果见该轮记录；这不构成 2026-10-10 账户资源改造的 live 授权。授权、代码存在和历史通过均不能替代本轮实测，也不推导生产UI挂载或外部SSH验收。
 
 系统Node要求见根 `.nvmrc` 和 `package.json`，产品计划期望主版本24。当前验证的实际版本和打包边界见本轮执行记录；构建通过不能替代未运行的平台或打包验证。固定依赖保持来源声明，不升级。
 
@@ -121,7 +125,7 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 
 `templates/standard-app` 是唯一工程母模板，React/TS/Vite、Node/Hono、Drizzle/PGlite、Zod 与 Tailwind 使用独立 npm 锁与版本内容哈希。空白起点只包含健康检查、数据库迁移、开发 A/B 会话与隔离的存储探针，不包含 TaskFlow 业务。正式服务由 Hono 单端口提供构建后的页面和 API，开发命令仍保留 Vite。
 
-空间侧栏通过现有 workbench 命令提交 createApp/startApp/stopApp/exportApp；Main 唯一拥有 workspace/project/App 快照。独立 Node 服务中的 AppService 复用 SbxConnection/GuestProcess 管理持久 guest cwd，应用进程不归单轮 Codex 清理。实际 guest PORT=0 分配端口，服务验证同一 child 的 ready 身份、端口回执与健康身份后，Main 仅给对应 Browser 资源授予当前 origin 的写请求能力。公开文档仍只读，其他 webContents 不能复用授权。
+空间侧栏顶部的 App 图标打开创建与管理对话框，通过现有 workbench 命令提交 createApp/startApp/stopApp/exportApp；原侧栏底部“标准应用”区域移除。Main 唯一拥有 workspace/project/App 快照。独立 Node 服务中的 AppService 复用 SbxConnection/GuestProcess 管理持久 guest cwd，应用进程不归单轮 Codex 清理。实际 guest PORT=0 分配端口，服务验证同一 child 的 ready 身份、端口回执与健康身份后，Main 仅给对应 Browser 资源授予当前 origin 的写请求能力。公开文档仍只读，其他 webContents 不能复用授权。
 
 停止先在 guest child 仍存活时核验并删除自己的 loopback 映射，再关闭进程并等清理回执；VM重启导致映射变化或回执缺失时保留未知状态，禁止猜测清理其他映射。注册表绑定真实 sandbox 名称，只恢复项目描述，不自动重放服务。首次准备执行 seed，普通重启只迁移、检查和构建，磁盘 dataDir 保持。源码导出需停服确认，输出实际完整源码目录和同级 manifest，不混入运行数据或 node_modules。
 
@@ -131,4 +135,4 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 
 安装器配置与应用服务共用一个 `SbxConnection`；`runtimeTarget()` 只返回已初始化的 binary/sandbox，App 导入和端口操作不另行搜索 PATH。显式空配置保持不可用，不回退环境变量。Main 从包内 `runtime/dependencies.json` 派生只读模板依赖配置，校验模板源码、独立锁与归档后传给执行服务。损坏载荷在原设置页显示错误并禁止 sandbox 连接。模板存于包内 `templates/standard-app`，Linux ARM64/glibc 依赖包存于 runtime；归档准备审计实际 ELF、外来平台、必需 native 模块和执行位，并收集依赖许可。
 
-窗口退出分别尝试安装操作与工作台服务清理；服务内部先清理受管应用再关闭 sbx 连接。任一所属资源清理未确认时保留失败供核验，不用窗口退出掩盖 guest 状态。公开只读 origin 和受管 App 可写 origin 仍分别按精确实例 lease 校验。
+窗口退出分别尝试安装操作与工作台服务清理；服务内部先逐项尝试受管应用清理，再尝试对话与环境资源清理，单一失败不会跳过其他所有者。成功后等待 Main 持久化队列回执再关闭。清理失败或等待超过 30 秒时，原生对话框显示具体原因，提供“重试清理”“取消退出”“仍然退出”，默认取消；取消保留窗口，但服务已进入关闭状态，不能继续新操作。超时不代表清理停止，重试等待在途尝试；实际失败后可重新尝试。只有明确选择“仍然退出”才允许未确认时退出本地应用，提示未确认进程可能继续运行，不把清理状态改成成功。异常注册表保留原文件并报错，不自动迁移或丢弃历史资源；持久化使用已验证的非空 sandbox 身份。实现与回归证据见[退出问题验证](../verification/2026-10-10-shutdown.md)。公开只读 origin 和受管 App 可写 origin 仍分别按精确实例 lease 校验。

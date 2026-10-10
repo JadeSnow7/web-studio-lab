@@ -1,3 +1,4 @@
+import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -11,6 +12,8 @@ const make = async () => {
   let saved: WorkbenchSnapshot | null = null;
   const repository: WorkbenchRepository = {
     appendObservation: vi.fn(async () => crypto.randomUUID()),
+    migrationPending: false,
+    loadCatalog: catalogForTestSnapshot,
     load: async () => saved,
     save: vi.fn(async (s) => {
       saved = structuredClone(s);
@@ -45,10 +48,9 @@ const make = async () => {
       },
     ]),
     registerResource: vi.fn(),
+    releaseResource: vi.fn(),
     observe: vi.fn(),
-    publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
-    publicResourcesCapture: vi.fn(),
-    publicResourcesRemove: vi.fn(),
+    captureResource: vi.fn(),
     validateBrowserUrl: vi.fn(),
     ensureBrowser: vi.fn(),
     browserState: vi.fn(),
@@ -109,7 +111,13 @@ describe('workbench authoritative commands', () => {
       }),
     );
     const loaded = await repository.load();
-    expect(loaded).toEqual(expected);
+    expect(loaded).toEqual({
+      ...expected,
+      workspaces: expected.workspaces.map((workspace) => ({
+        ...workspace,
+        resources: workspace.resources.map((resource) => ({ ...resource, catalogResourceId: undefined })),
+      })),
+    });
     expect(loaded?.workspaces[0]).not.toHaveProperty('sidebarMode');
     const restored = new WorkbenchApplication(repository, runtime, vi.fn());
     const workspace = (await restored.getSnapshot()).workspaces[0];
@@ -120,7 +128,7 @@ describe('workbench authoritative commands', () => {
     );
     expect(workspace?.sessions[0]?.draft).toBe('保留中文草稿');
     expect(workspace?.theme).toBe('warm');
-    await repository.save(await restored.getSnapshot());
+    await repository.save(await restored.getSnapshot(), await catalogForTestSnapshot(await restored.getSnapshot()));
     expect(await readFile(file, 'utf8')).not.toContain('sidebarMode');
   });
   it('rejects stale draft revision and does not overwrite newer text', async () => {
@@ -310,7 +318,7 @@ describe('workbench authoritative commands', () => {
       taskVersionId: version.taskVersionId,
     });
     const fileRepository = new FileWorkbenchRepository(path.join(await mkdtemp(path.join(os.tmpdir(), 'wsl-restore-')), 'workbench.json'));
-    await fileRepository.save(await app.getSnapshot());
+    await fileRepository.save(await app.getSnapshot(), await catalogForTestSnapshot(await app.getSnapshot()));
     const restored = new WorkbenchApplication(fileRepository, runtime, vi.fn());
     const after = await restored.getSnapshot();
     expect(after.appInstanceId).not.toBe(before.appInstanceId);
@@ -416,12 +424,43 @@ describe('workbench authoritative commands', () => {
     });
     expect(confirmed.snapshot.workspaces[0]?.sessions[0]?.taskVersions[0]?.capture).toBeNull();
   });
+  it('normalizes omitted or empty browser creation addresses to the explicit demo entry before validation and catalogue creation', async () => {
+    const { app, runtime } = await make();
+    for (const url of [undefined, '', 'https://example.com/doc']) {
+      const title = 'new browser ' + String(url);
+      const result = await app.command({
+        type: 'createTab',
+        commandId: crypto.randomUUID(),
+        workspaceId: 'taskflow-demo',
+        kind: 'web',
+        title,
+        ...(url === undefined ? {} : { url }),
+      });
+      expect(result.ok).toBe(true);
+      const expected = url === undefined || url === '' ? 'wsl-demo://taskflow/index.html' : url;
+      const resource = result.snapshot.workspaces[0]!.resources.find((resource) => resource.title === title)!;
+      expect(resource.url).toBe(expected);
+      expect(runtime.validateBrowserUrl).toHaveBeenCalledWith(expected);
+      expect(result.snapshot.catalog!.resources.find((item) => item.resourceId === resource.catalogResourceId)!.descriptor).toEqual({
+        kind: 'web',
+        url: expected,
+      });
+    }
+    expect(runtime.ensureBrowser).not.toHaveBeenCalled();
+  });
   it('validates a new browser URL before adding a tab or creating a native view', async () => {
     const { app, runtime } = await make();
     vi.mocked(runtime.validateBrowserUrl).mockImplementation(() => {
       throw new Error('invalid_input: 禁止私有或危险地址');
     });
-    for (const url of ['file:///etc/passwd', 'javascript:alert(1)', 'https://user:password@example.com/', 'https://127.0.0.1/']) {
+    for (const url of [
+      ' ',
+      'not a url',
+      'file:///etc/passwd',
+      'javascript:alert(1)',
+      'https://user:password@example.com/',
+      'https://127.0.0.1/',
+    ]) {
       const before = await app.getSnapshot();
       const result = await app.command({
         type: 'createTab',
@@ -584,7 +623,7 @@ describe('workbench authoritative commands', () => {
     for (const corrupt of corruptions) {
       const saved = structuredClone(original);
       corrupt(saved);
-      await repository.save(saved);
+      await repository.save(saved, await catalogForTestSnapshot(saved));
       const before = await readFile(file, 'utf8');
       const restored = new WorkbenchApplication(repository, runtime, vi.fn());
       await expect(restored.getSnapshot()).rejects.toThrow(/denied|conflict/);
@@ -627,6 +666,8 @@ describe('workbench authoritative commands', () => {
     session.contextApplicability = 'current';
     const repository: WorkbenchRepository = {
       appendObservation: vi.fn(async () => crypto.randomUUID()),
+      migrationPending: false,
+      loadCatalog: catalogForTestSnapshot,
       load: async () => saved,
       save: vi.fn(),
     };
@@ -690,7 +731,7 @@ describe('workbench authoritative commands', () => {
     });
     const file = path.join(await mkdtemp(path.join(os.tmpdir(), 'wsl-criteria-')), 'workbench.json');
     const repository = new FileWorkbenchRepository(file);
-    await repository.save(await app.getSnapshot());
+    await repository.save(await app.getSnapshot(), await catalogForTestSnapshot(await app.getSnapshot()));
     const restored = new WorkbenchApplication(repository, runtime, vi.fn());
     const loaded = await restored.getSnapshot();
     expect(loaded.workspaces[0]?.sessions[0]?.taskAcceptance).toEqual(['刷新后保留优先级']);
@@ -979,7 +1020,7 @@ describe('workbench authoritative commands', () => {
     expect(saved.workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.tabs).toEqual(initialTabs);
     const file = path.join(await mkdtemp(path.join(os.tmpdir(), 'wsl-mru-')), 'workbench.json');
     const repository = new FileWorkbenchRepository(file);
-    await repository.save(saved);
+    await repository.save(saved, await catalogForTestSnapshot(saved));
     const restored = new WorkbenchApplication(repository, runtime, vi.fn());
     const loaded = await restored.getSnapshot();
     expect(loaded.workspaces.map((w) => w.workspaceId)).toEqual(['taskflow-demo', 'b', 'c']);

@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { z } from 'zod';
 import {
   ObservationTurnScopeSchema,
@@ -12,7 +12,7 @@ import {
   type ChatConversation,
   type ChatSlot,
   type ChatStatus,
-  type ResourceCollection,
+  type CatalogReferenceSnapshot,
 } from '@wsl/protocol';
 import { SbxConnection, type GuestProcess } from './sbx';
 
@@ -140,7 +140,7 @@ function boundedMcpOutput(item: { status?: string; result?: unknown; error?: unk
     };
   }
   const receipt: Record<string, unknown> = {};
-  for (const key of ['resourceId', 'version', 'spaceId', 'url', 'title', 'contentSha256', 'sourceSha256', 'truncated']) {
+  for (const key of ['resourceId', 'version', 'url', 'title', 'contentSha256', 'sourceSha256', 'truncated']) {
     if (data?.[key] !== undefined) receipt[key] = data[key];
   }
   if (typeof data?.['text'] === 'string') receipt['textExcerpt'] = data['text'].slice(0, 2000);
@@ -169,7 +169,6 @@ interface Turn {
 interface Slot {
   conversation: ChatConversation;
   active: Turn | null;
-  preparing: { done: Promise<void>; finish(): void; cancelled: boolean } | null;
 }
 export class CodexChat {
   private observationReader:
@@ -186,6 +185,7 @@ export class CodexChat {
   private readonly slots = new Map<ChatSlot, Slot>();
   private readonly workspaceBySession = new Map<ChatSlot, string>();
   register(id: ChatSlot, workspaceId: string) {
+    if (id === 'conv-personal-default') throw new Error('个人会话不能注册为空间会话');
     const previous = this.workspaceBySession.get(id);
     if (previous && previous !== workspaceId) throw new Error('会话归属已冻结');
     this.workspaceBySession.set(id, workspaceId);
@@ -197,7 +197,6 @@ export class CodexChat {
     _root: string,
     private readonly emit: (conversation: ChatConversation) => void,
     connection = new SbxConnection(),
-    private readonly resources?: { list(spaceId: string): Promise<ResourceCollection> },
   ) {
     this.connection = connection;
   }
@@ -225,7 +224,6 @@ export class CodexChat {
           error: null,
         },
         active: null,
-        preparing: null,
       };
       this.slots.set(id, slot);
     }
@@ -246,28 +244,14 @@ export class CodexChat {
       if (slot.active?.cleanupError) throw new Error(slot.active.cleanupError);
     }
   }
-  assertResourceMutationAllowed(spaceId: string): void {
-    this.assertCleanupKnown();
-    if (spaceId !== 'taskflow-demo') throw new Error('未知资源空间');
-    for (const [id, slot] of this.slots)
-      if ((id === 'conv-space-taskflow-demo-impl' || this.workspaceBySession.get(id) === spaceId) && (slot.active || slot.preparing))
-        throw new Error('空间对话正在运行，请先停止回复再修改资源');
-  }
-  invalidateResources(spaceId: string): void {
-    this.assertResourceMutationAllowed(spaceId);
-    for (const [id, slot] of this.slots) {
-      if (id !== 'conv-space-taskflow-demo-impl' && this.workspaceBySession.get(id) !== spaceId) continue;
-      slot.conversation.threadId = null;
-      const warning = '空间资源已变更；下一轮使用新资源快照，历史消息保留为旧记录。';
-      if (!slot.conversation.warnings.includes(warning)) slot.conversation.warnings.push(warning);
-      slot.conversation.warnings = slot.conversation.warnings.slice(-20);
-      this.publish(slot);
-    }
-  }
-  async send(id: ChatSlot, text: string, observationScope?: ObservationTurnScope): Promise<ChatConversation> {
+  async send(
+    id: ChatSlot,
+    text: string,
+    observationScope: ObservationTurnScope | undefined,
+    references: CatalogReferenceSnapshot,
+  ): Promise<ChatConversation> {
     if (this.closing) throw new Error('对话服务正在关闭');
-    if (id !== 'conv-personal-default' && id !== 'conv-space-taskflow-demo-impl' && !this.workspaceBySession.has(id))
-      throw new Error('会话尚未由宿主注册');
+    if (id !== 'conv-personal-default' && !this.workspaceBySession.has(id)) throw new Error('会话尚未由宿主注册');
     if (observationScope) {
       observationScope = ObservationTurnScopeSchema.parse(observationScope);
       if (observationScope.sessionId !== id || this.workspaceBySession.get(id) !== observationScope.workspaceId)
@@ -276,38 +260,20 @@ export class CodexChat {
     const status = this.getStatus();
     if (!status.available) throw new Error(status.reason ?? 'sbx 不可用');
     const slot = this.slot(id);
-    if (slot.active || slot.preparing) throw new Error(slot.active?.cleanupError ?? '当前会话正在等待回复');
-    const spaceId = id === 'conv-space-taskflow-demo-impl' || this.workspaceBySession.get(id) === 'taskflow-demo' ? 'taskflow-demo' : null;
+    if (slot.active) throw new Error(slot.active?.cleanupError ?? '当前会话正在等待回复');
+    const spaceId = this.workspaceBySession.get(id) ?? null;
     if (spaceId) this.assertCleanupKnown();
-    let collection: ResourceCollection = { spaceId: 'taskflow-demo', revision: 0, resources: [] };
-    if (spaceId && this.resources) {
-      let finish!: () => void;
-      const preparing = {
-        done: new Promise<void>((resolve) => {
-          finish = resolve;
-        }),
-        finish: () => finish(),
-        cancelled: false,
-      };
-      slot.preparing = preparing;
-      try {
-        collection = await this.resources.list(spaceId);
-        if (preparing.cancelled || this.closing) return this.get(id);
-        this.assertCleanupKnown();
-      } finally {
-        slot.preparing = null;
-        preparing.finish();
-      }
-    }
     const turnId = randomUUID();
+    if (references.sessionId !== id || references.workspaceId !== spaceId) throw new Error('参考资料不属于已注册会话');
     const resourceBundle = ResourceBundleSchema.parse({
+      ...references,
       conversationId: id,
       generation: slot.conversation.generation,
       turnId,
-      spaceId,
-      collectionRevision: spaceId ? collection.revision : 0,
-      resources: spaceId ? collection.resources : [],
     });
+    for (const resource of resourceBundle.resources)
+      if (createHash('sha256').update(resource.text, 'utf8').digest('hex') !== resource.contentSha256)
+        throw new Error('参考资料正文摘要不匹配');
     Object.assign(slot.conversation, { turnId, state: 'running', error: null, cleanupPending: true });
     slot.conversation.messages.push({ id: turnId, role: 'user', text });
     this.publish(slot);
@@ -522,14 +488,15 @@ export class CodexChat {
     });
     return this.get(id);
   }
-  async cancel(id: ChatSlot): Promise<ChatConversation> {
+  private cancelUnstarted(slot: Slot, turnId: string): ChatConversation {
+    if (slot.conversation.turnId === turnId && slot.conversation.state === 'cancelled') return structuredClone(slot.conversation);
+    Object.assign(slot.conversation, { turnId, state: 'cancelled', error: null, cleanupPending: false });
+    return this.publish(slot);
+  }
+  async cancel(id: ChatSlot, queuedSend = false): Promise<ChatConversation> {
     const slot = this.slot(id);
-    if (slot.preparing) {
-      slot.preparing.cancelled = true;
-      await slot.preparing.done;
-    }
     const turn = slot.active;
-    if (!turn) return this.get(id);
+    if (!turn) return queuedSend ? this.cancelUnstarted(slot, randomUUID()) : this.get(id);
     if (turn.cleanupError) throw new Error(turn.cleanupError);
     turn.cancel = true;
     turn.observation.abort();
@@ -545,8 +512,13 @@ export class CodexChat {
     this.slots.delete(id);
     return this.publish(this.slot(id));
   }
-  async shutdown(): Promise<void> {
+  beginShutdown(): void {
+    // Apps still need the shared connection while their mappings are removed.
+    // Admission can close independently of that connection's cleanup.
     this.closing = true;
+  }
+  async shutdown(): Promise<void> {
+    this.beginShutdown();
     const outcomes = await Promise.allSettled([this.connection.shutdown(), ...[...this.slots.keys()].map((id) => this.cancel(id))]);
     const failure = outcomes.find((outcome) => outcome.status === 'rejected');
     if (failure?.status === 'rejected') throw failure.reason;

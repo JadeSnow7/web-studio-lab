@@ -8,7 +8,7 @@ function AppDialog({ modal }: { modal: NonNullable<Modal> }) {
   const ref = useRef<HTMLDialogElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   useEffect(() => {
     const dialog = ref.current!;
     const previous = document.activeElement as HTMLElement | null;
@@ -44,7 +44,7 @@ function AppDialog({ modal }: { modal: NonNullable<Modal> }) {
         <>
           <p id="modal-description">{modal.description}</p>
           <p className={failed ? 'small text-bad' : 'small muted'} role={failed ? 'alert' : 'status'}>
-            {failed ? '未移除资源。请先停止当前空间回复，再重试；取消后可在资源页查看具体错误。' : busy ? '正在移除资源…' : ''}
+            {failed ?? (busy ? '正在执行…' : '')}
           </p>
           <div className="row gap-8 modal-actions">
             <button type="button" ref={cancel} className="btn" disabled={busy} onClick={uiActions.closeModal}>
@@ -58,10 +58,12 @@ function AppDialog({ modal }: { modal: NonNullable<Modal> }) {
               onClick={async () => {
                 if (busy) return;
                 setBusy(true);
-                setFailed(false);
+                setFailed(null);
                 try {
                   if (await modal.onConfirm()) uiActions.closeModal();
-                  else setFailed(true);
+                  else setFailed('操作未完成，请处理页面提示后重试。');
+                } catch (error) {
+                  setFailed((error as Error).message);
                 } finally {
                   setBusy(false);
                 }

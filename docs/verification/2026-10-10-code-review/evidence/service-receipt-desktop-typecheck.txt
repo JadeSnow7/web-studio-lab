@@ -1,0 +1,10 @@
+
+> @wsl/desktop@0.1.5 typecheck /Users/huaodong/workspace/web-studio-lab/apps/desktop
+> tsc -p tsconfig.node.json && tsc -p tsconfig.web.json
+
+../service/src/sbx.ts(8,20): error TS2307: Cannot find module './guest-helper.py?raw' or its corresponding type declarations.
+../service/src/sbx.ts(9,25): error TS2307: Cannot find module './resource_mcp.py?raw' or its corresponding type declarations.
+../service/src/sbx.ts(10,24): error TS2307: Cannot find module './terminal-bash-integration.sh?raw' or its corresponding type declarations.
+/Users/huaodong/workspace/web-studio-lab/apps/desktop:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @wsl/desktop@0.1.5 typecheck: `tsc -p tsconfig.node.json && tsc -p tsconfig.web.json`
+Exit status 2

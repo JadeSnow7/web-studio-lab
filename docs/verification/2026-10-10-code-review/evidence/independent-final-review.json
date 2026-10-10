@@ -1,0 +1,11 @@
+{
+  "reviewer": "review_final_service",
+  "scope": "F01-F11 source positions, conclusion, severity; frozen source manifest",
+  "filesChecked": 256,
+  "sha256Mismatches": 0,
+  "corrections": [
+    "F05 workspace.ts line 37 -> 40",
+    "F03 shell.ts line 65"
+  ],
+  "otherConclusions": "F01-F11 match current source"
+}

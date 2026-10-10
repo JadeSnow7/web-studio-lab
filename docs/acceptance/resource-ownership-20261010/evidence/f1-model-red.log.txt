@@ -1,0 +1,25 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/desktop/src/main/workbench/resource-catalog.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/workbench/resource-catalog.test.ts [ apps/desktop/src/main/workbench/resource-catalog.test.ts ]
+Error: Cannot find module './resource-catalog' imported from /Users/huaodong/workspace/web-studio-lab/apps/desktop/src/main/workbench/resource-catalog.test.ts
+ ❯ apps/desktop/src/main/workbench/resource-catalog.test.ts:4:1
+      2| import { describe, expect, it } from 'vitest';
+      3| import { CatalogCommandSchema, ResourceDescriptorSchema } from '@wsl/p…
+      4| import { applyCatalogCommand, appendResourceRevision, createResourceCa…
+       | ^
+      5|
+      6| const sha = (text: string) => createHash('sha256').update(text).digest…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  22:56:15
+   Duration  194ms (worker 96%, environment 4%)
+

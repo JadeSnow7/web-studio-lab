@@ -35,13 +35,19 @@ const studio: StudioApi = {
     observe: (input) => invoke('workbench:observe', input),
     reload: () => invoke('workbench:reload'),
     getSnapshot: () => invoke('workbench:get-snapshot'),
+    catalogCommand: (command) => invoke('workbench:catalog-command', command),
+    resourceRevision: (resourceId, version) => invoke('workbench:resource-revision', { resourceId, version }),
+    runReferences: (workspaceId, runId) => invoke('workbench:run-references', { workspaceId, runId }),
     command: (command) => invoke('workbench:command', command),
     onEvent: (listener) => subscribe('workbench:event', listener),
   },
   chat: {
     getStatus: () => invoke('chat:get-status'),
     get: (conversationId) => invoke('chat:get', { conversationId }),
-    send: (conversationId, text) => invoke('chat:send', { conversationId, text }),
+    send: (conversationId, text, references = []) => {
+      if (conversationId !== 'conv-personal-default') throw new Error('空间会话必须使用所属任务用例');
+      return invoke('chat:send', { conversationId, text, references });
+    },
     cancel: (conversationId) => invoke('chat:cancel', { conversationId }),
     reset: (conversationId) => invoke('chat:reset', { conversationId }),
     onStatus: (listener) => subscribe('chat:status', listener),

@@ -1,0 +1,86 @@
+
+Running 8 tests using 1 worker
+
+(node:50049) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/review-regressions.spec.ts:68:1 › rejected address navigation preserves the typed URL and focus (387ms)
+(node:50051) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/review-regressions.spec.ts:82:1 › navigation deduplicates pending submits, honors IME, and retains newer edits after success (274ms)
+(node:50063) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 e2e/review-regressions.spec.ts:116:3 › confirm freezes visible criteria despite autosave failure and keeps failed input (247ms)
+(node:50065) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 e2e/review-regressions.spec.ts:116:3 › send freezes visible criteria despite autosave failure and keeps failed input (232ms)
+(node:50067) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 e2e/review-regressions.spec.ts:136:1 › failed confirmation does not navigate away from the view chosen during the pending request (236ms)
+(node:50069) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from tab (235ms)
+(node:50071) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  7 e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from route (234ms)
+(node:50073) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  8 e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from space (258ms)
+
+
+  1) e2e/review-regressions.spec.ts:68:1 › rejected address navigation preserves the typed URL and focus 
+
+    Error: Process failed to launch!
+
+    Error Context: test-results/e2e/review-regressions-rejecte-09042-ves-the-typed-URL-and-focus/error-context.md
+
+  2) e2e/review-regressions.spec.ts:82:1 › navigation deduplicates pending submits, honors IME, and retains newer edits after success 
+
+    Error: Process failed to launch!
+
+    Error Context: test-results/e2e/review-regressions-navigat-1ab13-s-newer-edits-after-success/error-context.md
+
+  3) e2e/review-regressions.spec.ts:116:3 › confirm freezes visible criteria despite autosave failure and keeps failed input 
+
+    Error: Process failed to launch!
+
+    Error Context: test-results/e2e/review-regressions-confirm-d0492-lure-and-keeps-failed-input/error-context.md
+
+  4) e2e/review-regressions.spec.ts:116:3 › send freezes visible criteria despite autosave failure and keeps failed input 
+
+    Error: Process failed to launch!
+
+    Error Context: test-results/e2e/review-regressions-send-fr-85f0e-lure-and-keeps-failed-input/error-context.md
+
+  5) e2e/review-regressions.spec.ts:136:1 › failed confirmation does not navigate away from the view chosen during the pending request 
+
+    Error: Process failed to launch!
+
+    Error Context: test-results/e2e/review-regressions-failed--1d7be--during-the-pending-request/error-context.md
+
+  6) e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from tab 
+
+    Error: Process failed to launch!
+
+    Error Context: test-results/e2e/review-regressions-late-sc-670c5--without-returning-from-tab/error-context.md
+
+  7) e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from route 
+
+    Error: Process failed to launch!
+
+    Error Context: test-results/e2e/review-regressions-late-sc-935db-ithout-returning-from-route/error-context.md
+
+  8) e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from space 
+
+    Error: Process failed to launch!
+
+    Error Context: test-results/e2e/review-regressions-late-sc-93623-ithout-returning-from-space/error-context.md
+
+  8 failed
+    e2e/review-regressions.spec.ts:68:1 › rejected address navigation preserves the typed URL and focus 
+    e2e/review-regressions.spec.ts:82:1 › navigation deduplicates pending submits, honors IME, and retains newer edits after success 
+    e2e/review-regressions.spec.ts:116:3 › confirm freezes visible criteria despite autosave failure and keeps failed input 
+    e2e/review-regressions.spec.ts:116:3 › send freezes visible criteria despite autosave failure and keeps failed input 
+    e2e/review-regressions.spec.ts:136:1 › failed confirmation does not navigate away from the view chosen during the pending request 
+    e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from tab 
+    e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from route 
+    e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from space 

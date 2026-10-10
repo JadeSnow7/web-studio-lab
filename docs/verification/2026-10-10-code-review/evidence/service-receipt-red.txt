@@ -1,0 +1,25 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts [ apps/desktop/src/main/workbench/review-lifecycle.test.ts ]
+Error: Cannot find module '../../../../../service/src/codex-chat' imported from /Users/huaodong/workspace/web-studio-lab/apps/desktop/src/main/workbench/review-lifecycle.test.ts
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts:6:1
+      4| import { describe, expect, it, vi } from 'vitest';
+      5| import type { ChatConversation, TerminalSnapshot, WorkbenchCommand } f…
+      6| import { CodexChat } from '../../../../../service/src/codex-chat';
+       | ^
+      7| import { SbxConnection } from '../../../../../service/src/sbx';
+      8| import { WorkbenchApplication } from './application';
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  21:17:25
+   Duration  91ms (worker 96%, environment 4%)
+

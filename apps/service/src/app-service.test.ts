@@ -1,3 +1,4 @@
+import * as fs from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm, mkdir, writeFile, symlink } from 'node:fs/promises';
@@ -8,10 +9,14 @@ import { AppService, validateAppSources, type AppKey } from './app-service';
 import appHelper from './app-helper.py?raw';
 import type { GuestFrame, GuestOutcome, GuestStart } from './sbx';
 
+vi.mock('node:fs/promises', async (original) => ({ ...(await original<typeof fs>()) }));
+
 const key: AppKey = { workspaceId: 'space-test', projectId: 'project-test' };
 const files = [{ path: 'package.json', base64: Buffer.from('{}').toString('base64') }];
 function fixture(
   settings: {
+    closeGate?: Promise<void>;
+    exportGate?: Promise<void>;
     wrongIdentity?: boolean;
     wrongReadyIdentity?: boolean;
     guestPort?: number;
@@ -60,7 +65,8 @@ function fixture(
           }),
         );
       if (input.operation !== 'start')
-        queueMicrotask(() => {
+        queueMicrotask(async () => {
+          if (input.operation === 'export' && settings.exportGate) await settings.exportGate;
           onFrame({
             type: 'output',
             stream: 'stdout',
@@ -70,8 +76,9 @@ function fixture(
         });
       return {
         done,
-        close: () => {
+        close: async () => {
           closes++;
+          if (settings.closeGate) await settings.closeGate;
           commands.push(['child-close']);
           finish?.({
             confirmed: settings.cleanup !== false,
@@ -141,6 +148,192 @@ function fixture(
 }
 
 describe('managed app ownership', () => {
+  it('rejects export after shutdown and closes admission before loading settles', async () => {
+    const test = fixture();
+    await test.service.create({ ...key, files });
+    await test.service.shutdown();
+    await expect(test.service.export(key)).rejects.toThrow('关闭');
+    const other = fixture();
+    const creation = other.service.create({ ...key, files });
+    const closing = other.service.shutdown();
+    await expect(creation).rejects.toThrow('关闭');
+    await closing;
+    expect(other.starts()).toBe(0);
+  });
+  it('shares stop cleanup and rejects new operations until its receipt settles', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const test = fixture({ closeGate: gate });
+    await test.service.create({ ...key, files });
+    await test.service.start(key);
+    const first = test.service.stop(key);
+    const second = test.service.stop(key);
+    try {
+      await vi.waitFor(() => expect(test.closes()).toBeGreaterThan(0));
+      await expect(test.service.start(key)).rejects.toThrow(/进行中|清理/);
+      await expect(test.service.export(key)).rejects.toThrow(/停止|进行中/);
+      expect(test.closes()).toBe(1);
+    } finally {
+      release();
+      await Promise.all([first, second]);
+    }
+    expect(test.closes()).toBe(1);
+  });
+  it('stop cancels a held export process and still publishes its cleanup receipt', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const test = fixture({ exportGate: gate });
+    await test.service.create({ ...key, files });
+    const exporting = test.service.export(key);
+    const rejected = expect(exporting).rejects.toThrow('取消');
+    await vi.waitFor(() => expect(test.starts()).toBe(2));
+    const stopping = test.service.stop(key);
+    try {
+      await vi.waitFor(() => expect(test.closes()).toBe(1), { timeout: 200 });
+      const stopped = await stopping;
+      expect(stopped).toMatchObject({ state: 'stopped', cleanupConfirmed: true });
+      await rejected;
+    } finally {
+      release();
+      await Promise.allSettled([exporting, stopping, rejected]);
+    }
+  });
+  it('serializes registry publication across projects so an older write cannot win', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-registry-order-'));
+    const target = path.join(root, 'registry.json');
+    const originalWrite = fs.writeFile;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let writes = 0;
+    const writing = vi.spyOn(fs, 'writeFile').mockImplementation(async (...args) => {
+      writes++;
+      if (writes === 1) await gate;
+      return originalWrite(...args);
+    });
+    const test = fixture();
+    const service = new AppService(test.connection, { ...test.options, registryPath: target });
+    try {
+      const first = service.create({ ...key, files });
+      await vi.waitFor(() => expect(writes).toBe(1));
+      const second = service.create({ ...key, projectId: 'project-second', files });
+      // Both guest commands complete while the first registry publication is held.
+      await vi.waitFor(() => expect(test.starts()).toBe(2));
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(writes).toBe(1);
+      release();
+      await Promise.all([first, second]);
+      const registry = JSON.parse(await readFile(target, 'utf8'));
+      expect(registry.apps).toHaveLength(2);
+    } finally {
+      release();
+      writing.mockRestore();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it.each([
+    '{broken',
+    JSON.stringify({ version: 1, sandbox: null, apps: [] }),
+    JSON.stringify({ version: 2, sandbox: 'sandbox-test', apps: [] }),
+  ])('preserves an invalid registry and retries reading after external repair: %s', async (original) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-invalid-'));
+    try {
+      const test = fixture();
+      const registryPath = path.join(root, 'registry.json');
+      await writeFile(registryPath, original);
+      const service = new AppService(test.connection, { ...test.options, registryPath });
+      await expect(service.shutdown()).rejects.toThrow();
+      expect(await readFile(registryPath, 'utf8')).toBe(original);
+      expect(test.starts()).toBe(0);
+      await writeFile(registryPath, JSON.stringify({ version: 1, sandbox: 'sandbox-test', apps: [] }));
+      await expect(service.shutdown()).resolves.toBeUndefined();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('rejects missing sandbox identity before guest or registry effects', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-null-'));
+    try {
+      const test = fixture();
+      const registryPath = path.join(root, 'registry.json');
+      const connection = { ...test.connection, getStatus: () => ({ ...test.connection.getStatus(), sandbox: null }) };
+      const service = new AppService(connection, { ...test.options, registryPath });
+      await expect(service.create({ ...key, files })).rejects.toThrow('沙箱身份');
+      expect(test.starts()).toBe(0);
+      await expect(readFile(registryPath)).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('keeps validated registry identity when runtime status becomes unavailable during cleanup', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-identity-'));
+    try {
+      const test = fixture();
+      let sandbox: string | null = 'sandbox-test';
+      const connection = { ...test.connection, getStatus: () => ({ ...test.connection.getStatus(), sandbox }) };
+      const registryPath = path.join(root, 'registry.json');
+      const service = new AppService(connection, { ...test.options, registryPath });
+      await service.create({ ...key, files });
+      sandbox = null;
+      await service.shutdown();
+      expect(JSON.parse(await readFile(registryPath, 'utf8')).sandbox).toBe('sandbox-test');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('does not certify an interrupted historical app as cleaned', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-unknown-'));
+    try {
+      const test = fixture();
+      const registryPath = path.join(root, 'registry.json');
+      await writeFile(
+        registryPath,
+        JSON.stringify({ version: 1, sandbox: 'sandbox-test', apps: [{ ...key, state: 'running', cleanupConfirmed: false }] }),
+      );
+      const service = new AppService(test.connection, { ...test.options, registryPath });
+      await expect(service.shutdown()).rejects.toThrow('核对');
+      expect(JSON.parse(await readFile(registryPath, 'utf8')).apps[0].cleanupConfirmed).toBe(false);
+      expect(test.starts()).toBe(0);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('attempts later historical entries after the first cleanup remains unknown', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-multiple-'));
+    try {
+      const test = fixture();
+      const registryPath = path.join(root, 'registry.json');
+      const second = { workspaceId: 'space-other', projectId: 'project-other' };
+      await writeFile(
+        registryPath,
+        JSON.stringify({
+          version: 1,
+          sandbox: 'sandbox-test',
+          apps: [
+            { ...key, state: 'running', cleanupConfirmed: false },
+            { ...second, state: 'stopped', cleanupConfirmed: true },
+          ],
+        }),
+      );
+      const onSnapshot = vi.fn();
+      const service = new AppService(test.connection, { ...test.options, registryPath, onSnapshot });
+      await expect(service.shutdown()).rejects.toThrow('核对');
+      expect(onSnapshot).toHaveBeenCalledTimes(2);
+      expect(onSnapshot).toHaveBeenLastCalledWith(expect.objectContaining({ ...second, state: 'stopped', cleanupConfirmed: true }));
+      expect(JSON.parse(await readFile(registryPath, 'utf8')).apps).toEqual([
+        { ...key, state: 'failed', cleanupConfirmed: false },
+        { ...second, state: 'stopped', cleanupConfirmed: true },
+      ]);
+      expect(test.starts()).toBe(0);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
   it('shutdown publishes the same instance cleanup receipt for Main persistence before returning', async () => {
     const test = fixture();
     const onSnapshot = vi.fn();
@@ -347,6 +540,71 @@ scope['run'](json.loads(sys.argv[2]))`,
       await rm(test.root, { recursive: true, force: true });
     }
   });
+  it.each(['read', 'write', 'existing'])(
+    'dependency import %s failure removes only its own temporary archive and permits retry',
+    async (failure) => {
+      const test = await setup();
+      try {
+        const result = execFileSync(
+          'python3',
+          [
+            '-c',
+            `import sys,json,io,hashlib,types
+from pathlib import Path
+scope={'__name__':'wsl_test'}
+exec(sys.argv[3],scope)
+scope['ROOT']=Path(sys.argv[1])
+scope['sys']=types.SimpleNamespace(platform='linux',stdin=types.SimpleNamespace(buffer=io.BytesIO(b'partial')))
+scope['os']=types.SimpleNamespace(uname=lambda:types.SimpleNamespace(machine='aarch64'))
+root=Path(sys.argv[1])/json.loads(sys.argv[2])['projectId']
+(root/'package-lock.json').write_bytes(b'lock')
+archive=root/'.wsl-deps.tar.gz'
+request=dict(json.loads(sys.argv[2]),operation='dependencies',platform='linux',arch='arm64',lockSha256=hashlib.sha256(b'lock').hexdigest(),sha256='0'*64)
+mode=sys.argv[4]
+original=Path.open
+class Writer:
+    def __init__(self,handle): self.handle=handle
+    def __enter__(self): self.handle.__enter__(); return self
+    def __exit__(self,*args): return self.handle.__exit__(*args)
+    def write(self,data): self.handle.write(data); raise OSError('injected write failure')
+class Reader:
+    def read(self,size): raise OSError('injected read failure')
+if mode=='existing': archive.write_bytes(b'foreign')
+if mode=='read': scope['sys'].stdin.buffer=Reader()
+if mode=='write': Path.open=lambda self,*args,**kwargs: Writer(original(self,*args,**kwargs)) if self==archive else original(self,*args,**kwargs)
+error=None
+try: scope['run'](request)
+except Exception as failure: error=str(failure)
+finally: Path.open=original
+exists=archive.exists()
+foreign=archive.read_bytes().decode() if mode=='existing' and exists else None
+if mode!='existing':
+    scope['sys'].stdin.buffer=io.BytesIO(b'retry')
+    try: scope['run'](request)
+    except Exception as retry: retry_error=str(retry)
+else: retry_error=None
+print(json.dumps(dict(error=error,exists=exists,foreign=foreign,retry_error=retry_error)))`,
+            test.root,
+            JSON.stringify(key),
+            appHelper,
+            failure,
+          ],
+          { encoding: 'utf8', timeout: 2000 },
+        );
+        const receipt = JSON.parse(result.trim().split('\n').at(-1) ?? '');
+        expect(receipt.error).toBeTruthy();
+        if (failure === 'existing') {
+          expect(receipt.exists).toBe(true);
+          expect(receipt.foreign).toBe('foreign');
+        } else {
+          expect(receipt.exists).toBe(false);
+          expect(receipt.retry_error).toBe('dependency archive hash mismatch');
+        }
+      } finally {
+        await rm(test.root, { recursive: true, force: true });
+      }
+    },
+  );
   it('exports source bytes while excluding persistent data, dependencies and build output', async () => {
     const test = await setup();
     try {

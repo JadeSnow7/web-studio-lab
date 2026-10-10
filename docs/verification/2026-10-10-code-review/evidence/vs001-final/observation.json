@@ -1,0 +1,23 @@
+{
+  "runId": "7fac3715-79a1-43f3-9f1a-53962655713a",
+  "taskSha256": "44446f6a8e12957d0ab02f849007212fd52afbf0f1990b4d2b45ab404fd7662d",
+  "identity": {
+    "pid": 61248,
+    "webContentsId": 2,
+    "targetId": "A72660022EB922430F11A23A6605B70D",
+    "previewUrl": "http://127.0.0.1:61404/?runId=7fac3715-79a1-43f3-9f1a-53962655713a",
+    "cdpEndpoint": "http://127.0.0.1:61407/"
+  },
+  "observedAt": "2026-10-10T13:45:42.582Z",
+  "value": {
+    "url": "http://127.0.0.1:61404/?runId=7fac3715-79a1-43f3-9f1a-53962655713a",
+    "runId": "7fac3715-79a1-43f3-9f1a-53962655713a",
+    "readyState": "complete",
+    "matches": [
+      {
+        "text": "Hello Web Studio",
+        "visible": true
+      }
+    ]
+  }
+}

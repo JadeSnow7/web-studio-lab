@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Notice } from '../components/Badges';
 import { Icon } from '../components/Icon';
+import { BrandLogo } from '../components/BrandLogo';
 import { useStore } from '../lib/store';
 import { homeTarget } from '../state/drafts';
 import { shellActions } from '../state/shell';
@@ -31,7 +32,10 @@ export function HomePage({ onCreateWorkspace }: { onCreateWorkspace?: () => void
 
   return (
     <div className="home">
-      <h1>今天从哪里开始？</h1>
+      <div className="home-greeting">
+        <BrandLogo size={64} />
+        <h1>今天从哪里开始？</h1>
+      </div>
       <section className="home-card" aria-label="混合输入">
         <div className="row gap-8">
           <div className="segmented" role="radiogroup" aria-label="输入模式">
@@ -47,6 +51,7 @@ export function HomePage({ onCreateWorkspace }: { onCreateWorkspace?: () => void
           <span className="muted small">不读取其他空间</span>
         </div>
         {mode === 'chat' ? <ChatMessages conversationId={'conv-personal-default'} /> : null}
+        <p className="muted small">可从个人收藏中选择明确的正文版本作为参考。</p>
         <Composer
           target={homeTarget()}
           sendBlockedReason={blocked}

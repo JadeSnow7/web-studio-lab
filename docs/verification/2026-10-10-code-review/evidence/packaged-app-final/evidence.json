@@ -1,0 +1,246 @@
+{
+  "startedAt": "2026-10-10T13:46:39.387Z",
+  "profile": "/private/tmp/wsl-review-packaged-app-20261010-recovered/profile",
+  "sandbox": "wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1",
+  "launchEnvironment": {
+    "path": "/usr/bin:/bin:/usr/sbin:/sbin",
+    "injected": []
+  },
+  "runtimeConfig": {
+    "schemaVersion": 1,
+    "sbxBinary": "/Users/huaodong/Applications/Sbx.app/Contents/MacOS/sbx",
+    "sandbox": "wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1",
+    "pythonBinary": "/bundled/runtime/python/bin/python3",
+    "localRoot": null,
+    "ssh": null
+  },
+  "created": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "9f7be20d-679d-4924-9a72-ad537b04bbc4",
+    "environmentId": "sandbox",
+    "appInstanceId": null,
+    "state": "created",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/9f7be20d-679d-4924-9a72-ad537b04bbc4",
+    "guestPort": null,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "first": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "9f7be20d-679d-4924-9a72-ad537b04bbc4",
+    "environmentId": "sandbox",
+    "appInstanceId": "01dd5970-ff00-407a-9b56-1e3810173805",
+    "state": "running",
+    "url": "http://127.0.0.1:49152",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/9f7be20d-679d-4924-9a72-ad537b04bbc4",
+    "guestPort": 45125,
+    "error": null,
+    "cleanupConfirmed": false
+  },
+  "nativeBrowser": {
+    "resource": {
+      "resourceId": "14562986-2c4a-45f3-bb71-2a0fb733567e",
+      "environmentId": "sandbox",
+      "appProjectId": "9f7be20d-679d-4924-9a72-ad537b04bbc4",
+      "kind": "web",
+      "title": "标准应用",
+      "url": "http://127.0.0.1:49152/",
+      "instanceId": "bdb339df-6e4a-43f8-b857-37ffc4d58612",
+      "generation": 1,
+      "preview": {
+        "page": {
+          "webContentsId": 3,
+          "documentGeneration": 1,
+          "url": "http://127.0.0.1:49152/",
+          "title": "标准应用 · Web Studio Lab",
+          "partition": "preview-taskflow-demo-bdb339df-6e4a-43f8-b857-37ffc4d58612"
+        },
+        "loading": false,
+        "canGoBack": false,
+        "canGoForward": false,
+        "picking": false,
+        "cdp": {
+          "state": "idle"
+        },
+        "consoleIssueCount": 0,
+        "loadError": null,
+        "blockedNavigation": null,
+        "pickError": null
+      },
+      "terminal": null,
+      "unavailableReason": null
+    },
+    "health": {
+      "ok": true,
+      "templateId": "wsl-standard-app",
+      "templateVersion": "1.0.0",
+      "identity": {
+        "workspaceId": "taskflow-demo",
+        "environmentId": "sandbox",
+        "projectId": "9f7be20d-679d-4924-9a72-ad537b04bbc4",
+        "appInstanceId": "01dd5970-ff00-407a-9b56-1e3810173805"
+      }
+    },
+    "geometry": {
+      "visible": true,
+      "bounds": {
+        "x": 310,
+        "y": 199,
+        "width": 1129,
+        "height": 657
+      },
+      "webContentsId": 3,
+      "url": "http://127.0.0.1:49152/"
+    },
+    "activePane": {
+      "kind": "pane",
+      "paneId": "6052dffe-3fb2-40fd-bb7e-0626becbc995",
+      "tabId": "5fc390c8-02ea-4a63-b961-7f04c2b5df51"
+    }
+  },
+  "storageBefore": {
+    "a": {
+      "status": 200,
+      "body": {
+        "userId": "A"
+      }
+    },
+    "writeA": {
+      "status": 200,
+      "body": {
+        "userId": "A",
+        "key": "welcome",
+        "value": "4506e334-aed9-44d4-a24b-e65f22aa45cf"
+      }
+    },
+    "b": {
+      "status": 200,
+      "body": {
+        "userId": "B"
+      }
+    },
+    "readB": {
+      "status": 200,
+      "body": {
+        "userId": "B",
+        "key": "welcome",
+        "value": "Ready"
+      }
+    },
+    "writeB": {
+      "status": 200,
+      "body": {
+        "userId": "B",
+        "key": "welcome",
+        "value": "B-4506e334-aed9-44d4-a24b-e65f22aa45cf"
+      }
+    }
+  },
+  "firstStoppedPorts": [],
+  "restartedPorts": [
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49153,
+      "sandbox_port": 36921,
+      "protocol": "tcp4"
+    }
+  ],
+  "restart": {
+    "second": {
+      "workspaceId": "taskflow-demo",
+      "projectId": "9f7be20d-679d-4924-9a72-ad537b04bbc4",
+      "environmentId": "sandbox",
+      "appInstanceId": "57cefbbc-74fd-44db-89a6-1c4228a5e0d2",
+      "state": "running",
+      "url": "http://127.0.0.1:49153",
+      "guestCwd": "/home/agent/workspace/.wsl-apps/9f7be20d-679d-4924-9a72-ad537b04bbc4",
+      "guestPort": 36921,
+      "error": null,
+      "cleanupConfirmed": false
+    },
+    "persisted": [
+      {
+        "userId": "A",
+        "key": "welcome",
+        "value": "4506e334-aed9-44d4-a24b-e65f22aa45cf"
+      },
+      {
+        "userId": "B",
+        "key": "welcome",
+        "value": "B-4506e334-aed9-44d4-a24b-e65f22aa45cf"
+      }
+    ]
+  },
+  "windowClosedPorts": [],
+  "windowRestored": {
+    "restored": {
+      "workspaceId": "taskflow-demo",
+      "projectId": "9f7be20d-679d-4924-9a72-ad537b04bbc4",
+      "environmentId": "sandbox",
+      "appInstanceId": null,
+      "state": "stopped",
+      "url": null,
+      "guestCwd": "/home/agent/workspace/.wsl-apps/9f7be20d-679d-4924-9a72-ad537b04bbc4",
+      "guestPort": null,
+      "error": null,
+      "cleanupConfirmed": true
+    },
+    "third": {
+      "workspaceId": "taskflow-demo",
+      "projectId": "9f7be20d-679d-4924-9a72-ad537b04bbc4",
+      "environmentId": "sandbox",
+      "appInstanceId": "68e1bdda-f08f-495d-b11f-ea8e0450fd78",
+      "state": "running",
+      "url": "http://127.0.0.1:49154",
+      "guestCwd": "/home/agent/workspace/.wsl-apps/9f7be20d-679d-4924-9a72-ad537b04bbc4",
+      "guestPort": 33157,
+      "error": null,
+      "cleanupConfirmed": false
+    },
+    "persisted": [
+      {
+        "userId": "A",
+        "key": "welcome",
+        "value": "4506e334-aed9-44d4-a24b-e65f22aa45cf"
+      },
+      {
+        "userId": "B",
+        "key": "welcome",
+        "value": "B-4506e334-aed9-44d4-a24b-e65f22aa45cf"
+      }
+    ]
+  },
+  "secondStoppedPorts": [],
+  "export": {
+    "path": "/private/tmp/wsl-review-packaged-app-20261010-recovered/profile/exports/9f7be20d-679d-4924-9a72-ad537b04bbc4-811e7484-e27a-42b4-b4dd-e8faa07e45e1",
+    "manifestPath": "/private/tmp/wsl-review-packaged-app-20261010-recovered/profile/exports/9f7be20d-679d-4924-9a72-ad537b04bbc4-811e7484-e27a-42b4-b4dd-e8faa07e45e1.manifest.json",
+    "sha256": "0e202ad48842669c5b721295ec4a42328425adabfcc48f92ccb8d9f36245e5cc"
+  },
+  "cancelled": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "9f7be20d-679d-4924-9a72-ad537b04bbc4",
+    "environmentId": "sandbox",
+    "appInstanceId": "e4532bbd-8f34-4574-acd4-8328bc6b1918",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/9f7be20d-679d-4924-9a72-ad537b04bbc4",
+    "guestPort": null,
+    "error": "Error: 应用启动已取消或超时（依赖导入已结束）",
+    "cleanupConfirmed": true
+  },
+  "finalAwakePorts": [],
+  "passed": true,
+  "final": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "9f7be20d-679d-4924-9a72-ad537b04bbc4",
+    "environmentId": "sandbox",
+    "appInstanceId": "e4532bbd-8f34-4574-acd4-8328bc6b1918",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/9f7be20d-679d-4924-9a72-ad537b04bbc4",
+    "guestPort": null,
+    "error": "Error: 应用启动已取消或超时（依赖导入已结束）",
+    "cleanupConfirmed": true
+  }
+}

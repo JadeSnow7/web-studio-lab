@@ -4,7 +4,7 @@ import { app, session, type BrowserWindow } from 'electron';
 import { readFile, readdir, lstat, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
-import type { AppTarget, ManagedApp, AppSource } from '@wsl/protocol';
+import type { AppTarget, ManagedApp, AppSource, CatalogReferenceSnapshot } from '@wsl/protocol';
 import type { ObservationRequest, ObservationTurnScope, ResourceInstanceIdentity, WorkbenchResource } from '@wsl/protocol';
 import type { ChatService } from '../chat-service';
 import { BrowserObservation } from '../preview/observation';
@@ -98,6 +98,13 @@ export class WorkbenchHost implements WorkbenchRuntime {
   application: WorkbenchApplication | null = null;
   environmentsList() {
     return this.chat.environmentsList();
+  }
+  async releaseResource(identity: ResourceInstanceIdentity) {
+    if (identity.kind === 'browser') {
+      this.releaseAppBrowser(identity.resourceId);
+      return;
+    }
+    await this.chat.releaseResource(identity);
   }
   registerResource(identity: ResourceInstanceIdentity) {
     return this.chat.registerResource(identity);
@@ -260,18 +267,12 @@ export class WorkbenchHost implements WorkbenchRuntime {
   registerSession(sessionId: string, workspaceId: string) {
     return this.chat.register(sessionId, workspaceId);
   }
-  publicResourcesList() {
-    return this.chat.resourcesList('taskflow-demo');
+  async captureResource(resourceId: string) {
+    const preview = this.browser(resourceId);
+    return preview.captureResource(preview.getState().page);
   }
-  async publicResourcesCapture(resourceId: string, savedResourceId?: string) {
-    const p = this.browser(resourceId);
-    return this.chat.resourcesSave('taskflow-demo', await p.captureResource(p.getState().page), savedResourceId);
-  }
-  publicResourcesRemove(savedResourceId: string) {
-    return this.chat.resourcesRemove('taskflow-demo', savedResourceId);
-  }
-  send(sessionId: string, text: string, scope?: ObservationTurnScope) {
-    return this.chat.send(sessionId, text, scope);
+  send(sessionId: string, text: string, scope: ObservationTurnScope | undefined, references: CatalogReferenceSnapshot) {
+    return this.chat.send(sessionId, text, scope, references);
   }
   cancel(sessionId: string) {
     return this.chat.cancel(sessionId);

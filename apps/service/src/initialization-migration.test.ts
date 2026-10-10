@@ -29,11 +29,6 @@ vi.mock('./codex-chat', () => ({
     });
   },
 }));
-vi.mock('./resource-store', () => ({
-  ResourceStore: class {
-    list = async (spaceId: string) => ({ spaceId, revision: 1, resources: [] });
-  },
-}));
 vi.mock('./terminal', () => ({
   Terminal: class {
     get = () => ({ sessionId: null, seq: 0, state: 'idle', output: '', cleanupPending: false, sandbox: null, cwd: null, error: null });
@@ -68,7 +63,6 @@ describe('R6 service boundary initialization', () => {
       { id: 'register', method: 'register', payload: { conversationId: 'session-fixture', workspaceId: 'taskflow-demo' } },
       { id: 'status', method: 'status' },
       { id: 'get', method: 'get', payload: { conversationId: 'session-fixture' } },
-      { id: 'resources', method: 'resources.list', payload: { spaceId: 'taskflow-demo' } },
       {
         id: 'lease',
         method: 'resource.register',
@@ -91,7 +85,7 @@ describe('R6 service boundary initialization', () => {
             .filter(([message]) => message.type === 'response')
             .map(([message]) => message.id)
             .sort(),
-        ).toEqual(['get', 'lease', 'register', 'resources', 'status', 'terminal']),
+        ).toEqual(['get', 'lease', 'register', 'status', 'terminal']),
       { timeout: 100 },
     );
   });

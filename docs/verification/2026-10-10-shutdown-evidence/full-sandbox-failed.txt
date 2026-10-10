@@ -1,0 +1,179 @@
+
+> web-studio-lab@ test /Users/huaodong/workspace/web-studio-lab
+> vitest run && node --test scripts/packaging/*.test.mjs
+
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+(node:77939) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 4)
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ apps/service/src/observation-files.test.ts (15 tests | 1 failed) 714ms
+   ❯ real local file observations (8)
+     × does not deliver invalidation hints for an actual filesystem change after close 34ms
+ ❯ apps/service/src/observation-ssh.test.ts (1 test | 1 failed) 96ms
+   × real loopback SSH handshake rejects bad host pin and reads filesystem through SFTP; shell channel survives false 94ms
+ ❯ apps/service/src/local-file-watch.test.ts (4 tests | 3 failed) 151ms
+   × real nested change rename delete invalidate bounded hints; reread hashes and close stops events 56ms
+   × directory budget is explicit and root replacement revokes the generation 5ms
+   × rereading a replaced observed subdirectory refreshes its watch generation 88ms
+ ❯ apps/service/src/vertical-slice/adapter.test.ts (20 tests | 1 failed) 4428ms
+   ❯ offline VS001 inventory and lifecycle rejection tests (no model) (20)
+     × serves the unchanged fixed page and resolves React and App.js to TSX through the real Vite component 57ms
+ ❯ apps/service/src/observation-socket.test.ts (1 test | 1 failed) 153ms
+   × uses a real Unix socket for bounded observation calls and releases its own client/server paths 152ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/local-file-watch.test.ts > real nested change rename delete invalidate bounded hints; reread hashes and close stops events
+AssertionError: expected { supported: true, …(9) } to match object { watched: true, …(2) }
+(7 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "lossy": true,
+    "recursive": false,
+-   "watched": true,
++   "watched": false,
+  }
+
+ ❯ apps/service/src/local-file-watch.test.ts:38:29
+     36|   cleanup.push(() => provider.close());
+     37|   const before = await provider.read({ path: 'src/a.txt' });
+     38|   expect(before.data.watch).toMatchObject({ watched: true, recursive: …
+       |                             ^
+     39|   await writeFile(file, 'after');
+     40|   await until(() => hints.some((h) => h.change === 'change' || h.chang…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  apps/service/src/local-file-watch.test.ts > directory budget is explicit and root replacement revokes the generation
+AssertionError: expected { supported: true, …(9) } to match object { watched: false, …(3) }
+(6 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "maxDirectories": 2,
+    "state": "partial",
+-   "watched": false,
+-   "watchedDirectories": 2,
++   "watched": true,
++   "watchedDirectories": 1,
+  }
+
+ ❯ apps/service/src/local-file-watch.test.ts:71:50
+     69|   await watcher.observe(path.join(root, 'one'));
+     70|   await watcher.observe(path.join(root, 'two'));
+     71|   expect(watcher.status(path.join(root, 'two'))).toMatchObject({
+       |                                                  ^
+     72|     watched: false,
+     73|     watchedDirectories: 2,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  apps/service/src/local-file-watch.test.ts > rereading a replaced observed subdirectory refreshes its watch generation
+AssertionError: expected { supported: true, …(10) } to match object { watched: true, watchGeneration: 2 }
+(13 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "watchGeneration": 2,
+-   "watched": true,
++   "watchGeneration": 1,
++   "watched": false,
+  }
+
+ ❯ apps/service/src/local-file-watch.test.ts:122:27
+    120|   await writeFile(path.join(folder, 'a.txt'), 'new');
+    121|   const next = await provider.read({ path: 'src/a.txt' });
+    122|   expect(next.data.watch).toMatchObject({ watched: true, watchGenerati…
+       |                           ^
+    123|   const count = hints.length;
+    124|   await writeFile(path.join(folder, 'a.txt'), 'changed');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  apps/service/src/observation-files.test.ts > real local file observations > does not deliver invalidation hints for an actual filesystem change after close
+Error: EMFILE: too many open files, watch
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  apps/service/src/observation-socket.test.ts > uses a real Unix socket for bounded observation calls and releases its own client/server paths
+AssertionError: test_actual_unix_socket_bounded_read_and_scoped_source_list (__main__.ObservationSocketTests.test_actual_unix_socket_bounded_read_and_scoped_source_list) ... ERROR
+test_disconnected_guest_client_emits_cancel_and_leaves_other_client_usable (__main__.ObservationSocketTests.test_disconnected_guest_client_emits_cancel_and_leaves_other_client_usable) ... ok
+test_full_request_frame_budget_is_rejected_before_connecting (__main__.ObservationSocketTests.test_full_request_frame_budget_is_rejected_before_connecting) ... ERROR
+test_oversized_complete_frame_and_unfinished_tail_are_rejected (__main__.ControlFrameParserTests.test_oversized_complete_frame_and_unfinished_tail_are_rejected) ... ok
+test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget (__main__.ControlFrameParserTests.test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget) ... ok
+
+======================================================================
+ERROR: test_actual_unix_socket_bounded_read_and_scoped_source_list (__main__.ObservationSocketTests.test_actual_unix_socket_bounded_read_and_scoped_source_list)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<string>", line 22, in test_actual_unix_socket_bounded_read_and_scoped_source_list
+    server.bind(path)
+    ~~~~~~~~~~~^^^^^^
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_full_request_frame_budget_is_rejected_before_connecting (__main__.ObservationSocketTests.test_full_request_frame_budget_is_rejected_before_connecting)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<string>", line 93, in test_full_request_frame_budget_is_rejected_before_connecting
+    server.bind(path)
+    ~~~~~~~~~~~^^^^^^
+PermissionError: [Errno 1] Operation not permitted
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.023s
+
+FAILED (errors=2)
+: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ apps/service/src/observation-socket.test.ts:10:40
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  apps/service/src/observation-ssh.test.ts > real loopback SSH handshake rejects bad host pin and reads filesystem through SFTP; shell channel survives false
+ FAIL  apps/service/src/vertical-slice/adapter.test.ts > offline VS001 inventory and lifecycle rejection tests (no model) > serves the unchanged fixed page and resolves React and App.js to TSX through the real Vite component
+Error: listen EPERM: operation not permitted 127.0.0.1
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: EMFILE: too many open files, watch
+ ❯ FSEvent.FSWatcher._handle.onchange node:internal/fs/watchers:269:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -24, syscall: 'watch', code: 'EMFILE', filename: null }
+This error originated in "apps/service/src/observation-files.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The last test to run before this error was "does not deliver invalidation hints for an actual filesystem change after close". This means either:
+- the error was thrown while Vitest was running this test, or
+- the error was thrown after the test completed, and this was the most recent test at that point.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  5 failed | 66 passed | 6 skipped (77)
+      Tests  7 failed | 519 passed | 15 skipped (541)
+     Errors  1 error
+   Start at  13:06:27
+   Duration  6.70s (tests 83%, import 11%, transform 6%, worker 1%)
+
+    Isolate  77 workers spawned · ~88ms startup each (spawn + environment, per file)
+             at least ~669ms faster with isolate: false — reuses workers across files instead of one per file
+
+ ELIFECYCLE  Test failed. See above for more details.

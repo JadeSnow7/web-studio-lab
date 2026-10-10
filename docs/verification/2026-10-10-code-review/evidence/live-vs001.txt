@@ -1,0 +1,9 @@
+(node:54175) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+run: /Users/huaodong/workspace/web-studio-lab/records/vertical-slice/dbfc7bde-cf9e-47bc-a4db-dd58b388745e
+1..5
+ok B01 - passed / ok / performed=true
+ok B02 - passed / ok / performed=true
+ok B03 - passed / ok / performed=true
+ok B04 - passed / ok / performed=true
+ok B05 - passed / ok / performed=true

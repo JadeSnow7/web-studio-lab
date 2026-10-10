@@ -1,0 +1,31 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/index.test.ts (2 tests | 2 failed) 119ms
+   ❯ service request cancellation admission (2)
+     × cancel bypasses pending send preflight without allowing resource mutation to race capture 111ms
+     × shutdown bypasses pending send preflight without allowing resource mutation to race capture 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/index.test.ts > service request cancellation admission > cancel bypasses pending send preflight without allowing resource mutation to race capture
+ FAIL  apps/service/src/index.test.ts > service request cancellation admission > shutdown bypasses pending send preflight without allowing resource mutation to race capture
+Error: 缺少对话运行目录
+ ❯ apps/service/src/index.ts:26:18
+     24| if (!parent) throw new Error('缺少执行服务父消息通道');
+     25| const root = process.argv[2];
+     26| if (!root) throw new Error('缺少对话运行目录');
+       |                  ^
+     27| const send = (message: ChatServiceMessage) => parent.postMessage(ChatS…
+     28| const runtime = process.argv[3] ? ServiceRuntimeConfigSchema.parse(JSO…
+ ❯ host apps/service/src/index.test.ts:43:3
+ ❯ apps/service/src/index.test.ts:54:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  21:03:32
+   Duration  205ms (tests 82%, transform 11%, import 6%, worker 1%)
+

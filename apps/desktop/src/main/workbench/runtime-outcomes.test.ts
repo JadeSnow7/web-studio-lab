@@ -1,3 +1,4 @@
+import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { describe, expect, it, vi } from 'vitest';
 import type { PageCapture, PreviewState, TerminalSnapshot, WorkbenchCommand, WorkbenchSnapshot } from '@wsl/protocol';
 import { WorkbenchApplication } from './application';
@@ -44,8 +45,8 @@ async function setup() {
       },
     ]),
     registerResource: vi.fn(),
+    releaseResource: vi.fn(),
     observe: vi.fn(),
-    publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
     ensureBrowser: vi.fn(),
     browserState: vi.fn(() => state),
     browserAction: vi.fn(),
@@ -54,6 +55,8 @@ async function setup() {
   const app = new WorkbenchApplication(
     {
       appendObservation: vi.fn(async () => crypto.randomUUID()),
+      migrationPending: false,
+      loadCatalog: catalogForTestSnapshot,
       load: async () => saved,
       save: async (snapshot) => {
         saved = structuredClone(snapshot);

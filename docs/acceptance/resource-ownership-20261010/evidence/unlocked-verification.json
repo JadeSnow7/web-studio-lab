@@ -1,0 +1,14 @@
+{
+  "verifiedAt": "2026-10-11T00:15:05.634103+08:00",
+  "userConfirmedUnlocked": true,
+  "sourceFingerprintCount": 80,
+  "sourceFingerprintDifferences": [],
+  "otherSourceChangesAgainstFrozenBaseline": [],
+  "head": "cf62dc74f49e7f9e81598be7b9e5109cf5946e9c",
+  "command": "pnpm exec playwright test e2e/workspace-migration.spec.ts --grep 'R3 双网页原生focus'",
+  "result": "1 passed (2.5s)",
+  "testAssertionsChanged": false,
+  "productFocusLogicChanged": false,
+  "remainingEnabledOfflineElectronFailures": 0,
+  "scope": "Same source as prior full run (81 passed, R3 blocked by lock screen, 7 skipped); this is a targeted supplemental pass, not a new full-suite green run."
+}

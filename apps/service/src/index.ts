@@ -1,3 +1,4 @@
+import { shutdownServiceOwners } from './shutdown';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { AppService } from './app-service';
@@ -12,7 +13,6 @@ import {
 import { SbxConnection } from './sbx';
 import { CodexChat } from './codex-chat';
 import { EnvironmentResources } from './environment-resources';
-import { ResourceStore } from './resource-store';
 
 // utilityProcess 的消息接口由宿主提供，核心模块不依赖 Electron。
 const parent = (
@@ -25,8 +25,7 @@ const root = process.argv[2];
 if (!root) throw new Error('缺少对话运行目录');
 const send = (message: ChatServiceMessage) => parent.postMessage(ChatServiceMessageSchema.parse(message));
 const runtime = process.argv[3] ? ServiceRuntimeConfigSchema.parse(JSON.parse(process.argv[3])) : undefined;
-const resources = new ResourceStore(root);
-const chat = new CodexChat(root, (conversation) => send({ type: 'event', conversation }), new SbxConnection(runtime), resources);
+const chat = new CodexChat(root, (conversation) => send({ type: 'event', conversation }), new SbxConnection(runtime));
 const apps = new AppService(chat.connection, {
   registryPath: path.join(root, 'app-registry.json'),
   dependencyArchivePath: runtime ? runtime.templateDependencies?.archivePath : process.env['WSL_APP_DEPENDENCY_ARCHIVE'],
@@ -70,13 +69,25 @@ const ready = chat.initialize().then((status) => {
   send({ type: 'initialized', status, cleanupPending: chat.connection.getCleanupPending() });
   return status;
 });
-// 对话入口与资源提交共享顺序，防止持久化中插入旧快照轮次；send 不等待模型完成。
-let resourceOperations: Promise<unknown> = Promise.resolve();
+// Capture and resource writes share ordering. Cancellation must bypass a held
+// capture so it can revoke CodexChat.preparing before any guest is launched.
+let sendOperations: Promise<unknown> = Promise.resolve();
+const pendingSends = new Map<string, Set<{ cancelled: boolean }>>();
 parent.on('message', ({ data }) => {
   const request = ChatServiceRequestSchema.parse(data);
+  if (request.method === 'shutdown') chat.beginShutdown();
+  if (request.method === 'cancel' || request.method === 'reset') {
+    for (const pending of pendingSends.get(request.payload.conversationId) ?? []) pending.cancelled = true;
+  }
+  const admission = request.method === 'send' ? { cancelled: false } : null;
+  if (request.method === 'send' && admission) {
+    const pending = pendingSends.get(request.payload.conversationId) ?? new Set();
+    pending.add(admission);
+    pendingSends.set(request.payload.conversationId, pending);
+  }
   const execute = async () => {
     try {
-      if (['send', 'resources.save', 'resources.remove'].includes(request.method)) await ready;
+      if (request.method === 'send') await ready;
       let result;
       switch (request.method) {
         case 'app.get':
@@ -115,6 +126,10 @@ parent.on('message', ({ data }) => {
           await environments.register(request.payload);
           result = null;
           break;
+        case 'resource.release':
+          await environments.release(request.payload);
+          result = null;
+          break;
         case 'observation.read': {
           if (observations.has(request.payload.requestId)) throw new Error('Duplicate observation request');
           const controller = new AbortController();
@@ -130,21 +145,6 @@ parent.on('message', ({ data }) => {
           observations.get(request.payload.requestId)?.abort();
           result = null;
           break;
-        case 'resources.list':
-          result = await resources.list(request.payload.spaceId);
-          break;
-        case 'resources.save': {
-          chat.assertResourceMutationAllowed(request.payload.spaceId);
-          const before = await resources.list(request.payload.spaceId);
-          result = await resources.save(request.payload.spaceId, request.payload.snapshot, request.payload.resourceId);
-          if (result.revision !== before.revision) chat.invalidateResources(request.payload.spaceId);
-          break;
-        }
-        case 'resources.remove':
-          chat.assertResourceMutationAllowed(request.payload.spaceId);
-          result = await resources.remove(request.payload.spaceId, request.payload.resourceId);
-          chat.invalidateResources(request.payload.spaceId);
-          break;
         case 'register':
           chat.register(request.payload.conversationId, request.payload.workspaceId);
           result = null;
@@ -156,10 +156,17 @@ parent.on('message', ({ data }) => {
           result = chat.get(request.payload.conversationId);
           break;
         case 'send':
-          result = await chat.send(request.payload.conversationId, request.payload.text, request.payload.observationScope);
+          result = admission?.cancelled
+            ? chat.get(request.payload.conversationId)
+            : await chat.send(
+                request.payload.conversationId,
+                request.payload.text,
+                request.payload.observationScope,
+                request.payload.references,
+              );
           break;
         case 'cancel':
-          result = await chat.cancel(request.payload.conversationId);
+          result = await chat.cancel(request.payload.conversationId, pendingSends.has(request.payload.conversationId));
           break;
         case 'reset':
           result = await chat.reset(request.payload.conversationId);
@@ -186,10 +193,11 @@ parent.on('message', ({ data }) => {
           break;
         case 'shutdown': {
           for (const controller of observations.values()) controller.abort();
-          await apps.shutdown();
-          const results = await Promise.allSettled([chat.shutdown(), environments.shutdown()]);
-          const failure = results.find((result) => result.status === 'rejected');
-          if (failure?.status === 'rejected') throw failure.reason;
+          await shutdownServiceOwners(
+            () => apps.shutdown(),
+            () => chat.shutdown(),
+            () => environments.shutdown(),
+          );
 
           result = null;
           break;
@@ -199,18 +207,27 @@ parent.on('message', ({ data }) => {
       // ACK须由宿主收到后再结束utility，立即exit会丢失仍在传输的消息。
     } catch (error) {
       send({ type: 'error', id: request.id, error: (error as Error).message });
+    } finally {
+      if (request.method === 'send' && admission) {
+        const pending = pendingSends.get(request.payload.conversationId);
+        pending?.delete(admission);
+        if (!pending?.size) pendingSends.delete(request.payload.conversationId);
+      }
     }
   };
-  if (['send', 'cancel', 'reset', 'shutdown', 'resources.save', 'resources.remove'].includes(request.method)) {
-    resourceOperations = resourceOperations.then(execute);
+  if (request.method === 'send') {
+    sendOperations = sendOperations.then(execute);
   } else void execute();
 });
 
 process.on('SIGTERM', () => {
+  chat.beginShutdown();
   for (const controller of observations.values()) controller.abort();
-  void apps
-    .shutdown()
-    .then(() => Promise.all([chat.shutdown(), environments.shutdown()]))
+  void shutdownServiceOwners(
+    () => apps.shutdown(),
+    () => chat.shutdown(),
+    () => environments.shutdown(),
+  )
     .then(() => process.exit(0))
     .catch((error: unknown) => {
       console.error('guest 清理失败', error);

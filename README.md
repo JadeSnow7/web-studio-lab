@@ -4,23 +4,25 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 
 范围、排期与验收以[任务计划](docs/plans/2026-10-os2026-task-plan.md)为准，实现约束见[架构文档](docs/ARCHITECTURE.md)。
 
+移动端扩展已形成[Expo Android 第一阶段设计](docs/design/2026-10-11-expo-android-phase1.md)和[实施与验收计划](docs/plans/2026-10-11-expo-android-phase1.md)：拟支持固定 Expo 项目、工作台 Web 预览、Android USB 真机连接和本地 APK 导出。当前仅完成设计，尚未修改移动端源码或执行移动端验收；不计入既有比赛闭环已实现能力。
+
 ## 当前状态
 
 当前工作树按[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)保留升级前的全局布局，本地基准为 `9e1df45`。正在实施[跨分支整合 INTEGRATION-1](docs/acceptance/integration-20261008/SPEC.md)：`331c47f` 已加入统一观察协议与 Provider，`c97b673` 接入环境和终端，`d9beb8a` 接入 Main、持久化与 MCP，`612cde0` 接入空间文件浏览和会话观察；完整验证继续进行。源码、检查、原生窗口与未完成项分别记录在[当前验收](docs/acceptance/integration-20261008/task-summary.md)，历史记录不能替代本轮结果。
 
-| 能力         | 实现与验证边界                                                                                                                                           |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 全局导航     | 首页、空间、资源、会话、任务和底部设置保持独立入口；空间工作台只装配到空间页                                                                             |
-| 空间工作台   | 空间切换、垂直标签、最多四窗格、后台资源重开；关闭标签不停止实例                                                                                         |
-| 左右侧栏     | 全局按钮和空间标签整组浮动/固定；右侧仅通知；左右固定偏好分别保存到本设备                                                                                |
-| 主题         | 设置页编辑当前空间的白/暗/暖/系统主题，终端同步共享颜色                                                                                                  |
-| 网页与现场   | 原生WebContentsView、地址与导航、同一页面CDP采集；请求固定接收会话与文档身份                                                                             |
-| 对话与终端   | sbx内Codex和Linux PTY；个人会话独立，空间会话由Main工作台管理                                                                                            |
-| 任务与通知   | 持久任务版本、运行历史、日志、终态通知与阅读回执；执行、检查和人工接受分别记录                                                                           |
-| 恢复         | 恢复元数据、草稿、布局和历史，不自动重放执行或重新连接PTY                                                                                                |
-| 标准应用     | 独立版本化 React/TS/Vite + Hono + Drizzle/PGlite + Zod 模板；空间内创建、受管启动、Browser接入、停止与源码导出                                           |
+| 能力         | 实现与验证边界                                                                                                                                                          |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 全局导航     | 首页、空间、资源、会话、任务和底部设置保持独立入口；空间工作台只装配到空间页                                                                                            |
+| 空间工作台   | 空间切换、垂直标签、最多四窗格、后台资源重开；关闭标签不停止实例                                                                                                        |
+| 左右侧栏     | 全局按钮和空间标签整组浮动/固定；右侧仅通知；左右固定偏好分别保存到本设备                                                                                               |
+| 主题         | 设置页编辑当前空间的白/暗/暖/系统主题，终端同步共享颜色                                                                                                                 |
+| 网页与现场   | 原生WebContentsView、地址与导航、同一页面CDP采集；请求固定接收会话与文档身份                                                                                            |
+| 对话与终端   | sbx内Codex和Linux PTY；个人会话独立，空间会话由Main工作台管理                                                                                                           |
+| 任务与通知   | 持久任务版本、运行历史、日志、终态通知与阅读回执；执行、检查和人工接受分别记录                                                                                          |
+| 恢复         | 恢复元数据、草稿、布局和历史，不自动重放执行或重新连接PTY                                                                                                               |
+| 标准应用     | 独立版本化 React/TS/Vite + Hono + Drizzle/PGlite + Zod 模板；空间内创建、受管启动、Browser接入、停止与源码导出                                                          |
 | 完整业务闭环 | priority业务API、独立检查器及任务页真实diff/报告仍未实现；VS001与标准应用的本轮结果见[最小闭环记录](docs/acceptance/integrated-app-installer-public-20261009/README.md) |
-| 统一观察     | Browser、文件、终端与 SSH 已接 Main、MCP 和空间界面；完整验证进行中                                                                                      |
+| 统一观察     | Browser、文件、终端与 SSH 已接 Main、MCP 和空间界面；完整验证进行中                                                                                                     |
 
 ## 环境
 
@@ -74,11 +76,15 @@ WSL_LIVE_SBX=1 WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm exec playwright test e2e
 
 固定范围见 [sbx 应用 SPEC](docs/verification/2026-10-06-sbx-app/SPEC.md)，执行结果见[验证记录](docs/verification/2026-10-06-sbx-app/README.md)。原来的 [host 对话记录](docs/verification/2026-10-06-codex-chat/README.md)保留为历史证据。
 
-## 公开网页与空间快照
+## 我的资源与空间连接
 
-公开文档沿用既有只读路径：在地址栏输入公开 HTTPS URL，成功加载后点击“加入空间”。资源页可查看 URL、标题、正文、资源身份、版本与摘要，并用当前同 URL 页面更新或移除。外部脚本、子资源和登录状态不进入该文档视图；不支持的响应会明确失败。
+资源归属用户账户，个人收藏、空间连接、正文版本与运行实例分别记录。全局“资源”定位为个人收藏；空间资源在空间页独立折叠区访问，活跃标签和后台实例保留各自状态。本轮实现、验收证据及未决项见[账户资源改造记录](docs/acceptance/resource-ownership-20261010/README.md)，目标约定见[冻结合同](docs/acceptance/resource-ownership-20261010/SPEC.md)。
 
-此既有公开快照合同仅服务 `taskflow-demo` 的对应空间会话，其他空间和个人会话没有该资源范围；不能据此宣称任意空间已获得公开快照权限。资源更新或删除后下一轮读取新集合，历史消息保留。本次统一观察使用独立的 Main 资源绑定，不扩展旧公开快照合同。该功能不创建 host mount，不改变已有沙箱认证。真实网络与模型结果、DNS 阻塞和受控 fixture 必须分别判断，见[公开快照合同](docs/verification/2026-10-06-public-resources/SPEC.md)。
+收藏网页链接只保存地址，不访问网络；公开 HTTPS 文档继续沿用受控只读路径，外部脚本、子资源和登录状态不进入文档视图。保存正文快照追加不可变版本，与收藏、连接空间分别执行；不支持捕获的链接仍可收藏。文档/文件入口和开发入口沿用已有授权环境能力。
+
+空间会话只读取本空间明确选择的连接版本，个人会话只读取明确选择的收藏版本，默认不附带。每轮最多 16 个参考，收藏数量不继承这个限制；新版本不改变在途与历史任务的固定证据。Main 是目录唯一写入者，schema 3 持久化账户目录与工作台；旧空间资源迁移为账户资源和原空间连接，默认不收藏，旧文件保留且不自动启动进程。
+
+真实网络、模型结果和受控 fixture 分别记录。历史[公开快照合同](docs/verification/2026-10-06-public-resources/SPEC.md)保留来源隔离证据，旧空间所有权与 TaskFlow 专用集合由新合同替代。本轮未运行真实模型或 sandbox live。
 
 普通测试默认不调用模型。以下分别是实际 Codex 读取明确标识的内存测试资料，以及真实公网到 UI 空间再到模型的链路；需显式运行并保留实际结果，不能相互替代：
 
@@ -89,6 +95,8 @@ WSL_LIVE_RESOURCE=1 WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm exec playwright tes
 ```
 
 ## 打包
+
+本机可按 [外置构建产物说明](docs/development/external-builds.md) 将构建输出与载荷缓存放到外置盘。
 
 比赛安装器的构建入口现要求固定离线载荷、Developer ID Application 签名及 Apple 公证。安装方式、构建凭据和失败恢复见[比赛版安装与构建](docs/development/competition-installer.md)，本轮实际验证边界见[安装器验收约定](docs/acceptance/installer-20261009/SPEC.md)。
 
@@ -114,7 +122,7 @@ pnpm package:unsigned
 | 路径                 | 内容                                                                                                |
 | -------------------- | --------------------------------------------------------------------------------------------------- |
 | `apps/desktop`       | Electron：`src/main`（窗口、IPC、Browser 区控制）、`src/preload`（窄 API）、`src/renderer`（React） |
-| `apps/service`       | 独立Node对话、资源和PTY服务；Main工作台协调空间任务                                                 |
+| `apps/service`       | 独立Node对话、捕获、只读MCP和PTY服务；Main拥有账户目录并协调空间任务                                |
 | `packages/protocol`  | Zod schema：页面现场、任务版本、run / attempt / 审阅、IPC 通道                                      |
 | `demo/`              | 演示页面，只供 Browser 区演示加载，与真实运行数据分开                                               |
 | `e2e/`               | Playwright 驱动 Electron 的端到端检查                                                               |
@@ -156,7 +164,7 @@ main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical
 
 ## 沙箱标准应用（第一工作包）
 
-唯一母模板位于 [`templates/standard-app`](templates/standard-app/README.md)，独立维护 npm 锁文件和内容哈希，不修改 VS001 fixture。空间侧栏的“标准应用”支持创建、启动、停止/取消和导出。工作台在已有 sandbox 内创建独占项目目录，应用进程独立于 Codex 任务；正式启动构建静态前端并由 Hono 同端口提供页面和 `/api`。重启保留磁盘 PGlite 数据，普通重启不运行 seed。
+唯一母模板位于 [`templates/standard-app`](templates/standard-app/README.md)，独立维护 npm 锁文件和内容哈希，不修改 VS001 fixture。空间侧栏顶部提供网页、终端、会话和 App 图标入口；App 按钮打开创建与管理界面，支持创建、启动、停止/取消和导出。工作台在已有 sandbox 内创建独占项目目录，应用进程独立于 Codex 任务；正式启动构建静态前端并由 Hono 同端口提供页面和 `/api`。重启保留磁盘 PGlite 数据，普通重启不运行 seed。
 
 应用启动后验证 workspace、environment、project 与 appInstance 身份，再给原生 Browser 授予当前回环 origin 的访问能力。停止先撤销本实例端口映射，再确认所属进程清理；未知映射不自动删除。关闭 Browser 标签仍保留应用，停止请使用“停止应用”。源码导出要求服务已停止并确认清理，生成可运行源码目录及同级 `.manifest.json`，不包含数据或依赖目录。
 
