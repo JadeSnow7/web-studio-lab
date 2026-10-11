@@ -29,3 +29,14 @@
 ## 决策 1 的细化（2026-10-11 已确认）
 
 决策 1 原为「仅开发构建 + `WSL_DEBUG_STATUS=1`」。为了不让 E2E 使用的 `pnpm build` 产物（未打包，但不是开发服务器）默认开启诊断，「开发构建」现在具体定义为 **`pnpm dev` 的开发服务器**。按这个定义，build 产物与正式包都需要显式设置 `WSL_DEBUG_STATUS=1`。如果你希望本地 build 产物也默认开启，需要另找办法让现有的六键测试成立，例如由测试显式关闭。
+
+## 实施期修订（2026-10-11，用户已确认）
+
+P0 独立审查发现两处设计与源码事实的冲突，经用户确认后修订：
+
+| 审查项 | 问题 | 修订 | 位置 |
+| ------ | ---- | ---- | ---- |
+| P0 审查 P2-1 | `app-cleanup` 仅在执行器已确认停止时产出；Main 重启恢复（`main/workbench/application.ts` 恢复分支）时执行器状态缺失或未确认，现有 `Session.tsx` 仍显示「重新核对」，按原设计会丢失该动作 | 只要 `appCleanupPending` 就产出；按执行器状态切换文案，动作条件不变 | status-interface.md §4.5 |
+| P0 审查 P2-3 | context 三个 facet 共用 `sessionId:requestId` 令牌，已确认的「历史已恢复」在每次新采集后重现 | history-restored 令牌改为 `sessionId` | status-interface.md §6.3 |
+
+另：观察错误标签沿用现有 `Observation.tsx` 文案（如 `unauthorized`「未获授权」、`stale_ref`「引用已失效」），因为 §4.8 引用的修订 1 对照表不在仓库中，且 `e2e/ssh-product.spec.ts` 断言「未获授权」。

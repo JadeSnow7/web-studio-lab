@@ -25,3 +25,5 @@ export * from './setup';
 export * from './resource-catalog';
 
 export * from './app-control';
+
+export * from './status';

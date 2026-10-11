@@ -165,7 +165,7 @@ problem 内优先级：load-error > pick-error > cdp > blocked-nav > unavailable
 | | `failed` | failed | problem | 执行失败（detail：error） | — |
 | | `interrupted` | failed | problem | 执行中断 | — |
 | `run:<id>:process-cleanup` | `cleanupPending` | unknown | unresolved | 正在核实所属进程退出… | — |
-| `run:<id>:app-cleanup` | `appCleanupPending` 且 `executorState.cleanupPending === false` | unknown | unresolved | 模型已停止，App 数据操作仍待确认 | 重新核对（`cleanupRetryAvailable` 时出现，`cleanupReconciling` 时禁用） |
+| `run:<id>:app-cleanup` | `appCleanupPending` | unknown | unresolved | `executorState.cleanupPending === false` 时「模型已停止，App 数据操作仍待确认」；否则（含重启恢复时执行器状态缺失或未确认）「App 数据操作结果待确认」 | 重新核对（`cleanupRetryAvailable` 时出现，`cleanupReconciling` 时禁用） |
 
 `run:<id>:state` 为 `cancelling` 与 `run:<id>:app-cleanup` 可同时成立，两条都显示，对应合同「会话保持取消中，行内显示模型已停止…」。
 
@@ -258,7 +258,7 @@ Browser 的采集指引、收藏结果、保存快照结果、Files 首次说明
 ### 6.3 确认与失效
 
 - `confirmation` 事实在用户与所在窗格交互（pointerdown、keydown、标签激活）时记录 `acks[key] = fact.instanceToken`。
-- `instanceToken` 由第 ①层给出：终端为 `instanceId:sessionId`，运行为 `runId`，网页为 `instanceId:documentGeneration`，上下文为 `sessionId:captureRequest.requestId`。实例更换后 token 变化，旧确认自动失效，新的确认事实重新显示。
+- `instanceToken` 由第 ①层给出：终端为 `instanceId:sessionId`，运行为 `runId`，网页为 `instanceId:documentGeneration`，上下文的 applicability / capture 为 `sessionId:captureRequest.requestId`，history-restored 为 `sessionId`（与采集无关，确认后不因新采集重现）。实例更换后 token 变化，旧确认自动失效，新的确认事实重新显示。
 - 切换空间清除不属于新空间的 `until: 'navigation'` hint；会话从快照消失时删除其 `selections`；终端实例或 PTY 会话变化时删除 `terminalGaps` 项（与现有 `terminalDelta` 重建同时发生）。
 
 ### 6.4 接口
