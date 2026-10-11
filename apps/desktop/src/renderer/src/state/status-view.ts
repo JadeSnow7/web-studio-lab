@@ -164,6 +164,21 @@ export const statusPresentationActions = {
     statusPresentationStore.set((state) => ({ ...state, hints: [...state.hints.filter((h) => h.key !== hint.key), { ...hint }] }));
   },
 
+  /**
+   * 首次使用说明：同一 key 只登记一次。登记时在 acks 里留下 'shown' 标记，之后即使 hint 已被关闭或随窗格交互清除，
+   * 重新打开同一标签也不会再出现（实体消失时标记随 pruneForSnapshot 一并清理）。返回本次是否登记。
+   * hint 视图不走 acks 判定（见 presentStatus），所以标记不影响显示。
+   */
+  hintOnce(hint: Hint): boolean {
+    if (hint.key in statusPresentationStore.get().acks) return false;
+    statusPresentationStore.set((state) => ({
+      ...state,
+      acks: { ...state.acks, [hint.key]: 'shown' },
+      hints: [...state.hints.filter((h) => h.key !== hint.key), { ...hint }],
+    }));
+    return true;
+  },
+
   dismissHint(key: string) {
     statusPresentationStore.set((state) =>
       state.hints.some((h) => h.key === key) ? { ...state, hints: state.hints.filter((h) => h.key !== key) } : state,
@@ -782,28 +797,15 @@ export interface StatusViewResult {
 
 const EMPTY_VIEWS: StatusView[] = [];
 
-export interface StatusViewOptions {
-  /**
-   * 排除不属于该窗格状态槽的视图（同 scope 里另有自己呈现方式的域，例如会话页里自带结果区的观察）。
-   * 排除后问题通道在剩余视图里重新选「最高优先级一条 + 其余」，不会因被排除的问题占着唯一的可见名额而让剩下的问题全部折叠。
-   * 传入的函数需有稳定引用（模块级常量）。
-   */
-  exclude?: (view: StatusView) => boolean;
-}
-
 /** 把某个 scope 的视图分入三条通道。输入已按 compareViews 排序。 */
-export function groupForScope(views: readonly StatusView[], options: StatusViewOptions = {}): StatusViewResult {
-  const { exclude } = options;
-  const kept = exclude ? views.filter((view) => !exclude(view)) : views;
-  const problems = kept.filter((view) => view.channel === 'problem');
-  // 排除时：非历史的问题按已排好的顺序，第一条可见，其余进「另有 N 项」（与 presentStatus 的选择一致）。
-  const current = exclude ? problems.filter((view) => !view.historical) : null;
+export function groupForScope(views: readonly StatusView[]): StatusViewResult {
+  const problems = views.filter((view) => view.channel === 'problem');
   return {
-    persistent: kept.filter((view) => view.channel === 'persistent' && view.visible),
-    problem: current ? (current[0] ?? null) : (problems.find((view) => view.visible) ?? null),
-    more: current ? current.slice(1) : problems.filter((view) => !view.visible && !view.historical),
-    notice: kept.find((view) => view.channel === 'notice' && view.visible) ?? null,
-    ambient: kept.filter((view) => view.channel === 'ambient' && view.visible),
+    persistent: views.filter((view) => view.channel === 'persistent' && view.visible),
+    problem: problems.find((view) => view.visible) ?? null,
+    more: problems.filter((view) => !view.visible && !view.historical),
+    notice: views.find((view) => view.channel === 'notice' && view.visible) ?? null,
+    ambient: views.filter((view) => view.channel === 'ambient' && view.visible),
   };
 }
 
@@ -866,12 +868,11 @@ function useDerivedStatus(): DerivedStatus {
 }
 
 /** 某个窗格 / 会话 / 空间的状态：常驻通道、问题通道（一条 + more）、提示通道、环境级。 */
-export function useStatusView(scope: StatusScope, options: StatusViewOptions = {}): StatusViewResult {
+export function useStatusView(scope: StatusScope): StatusViewResult {
   const { byScope } = useDerivedStatus();
   const key = scopeKey(scope);
   const views = byScope.get(key) ?? EMPTY_VIEWS;
-  const { exclude } = options;
-  return useMemo(() => groupForScope(views, { exclude }), [views, exclude]);
+  return useMemo(() => groupForScope(views), [views]);
 }
 
 /** 某个 scope 内指定 key 的视图（不论通道与是否可见）；窗格工具栏的环境级 StatusDot 用它，确认后提示消失而圆点仍在。 */

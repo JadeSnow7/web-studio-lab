@@ -215,6 +215,25 @@ describe('确认与提示（提示通道）', () => {
     expect(store.get().hints).toEqual([]);
   });
 
+  it('hintOnce：同一 key 只登记一次，关闭或窗格交互后重新登记也不再出现', () => {
+    const h: Hint = { key: 'ui:file-1:first-use', scope: resource('file-1'), label: '首次说明', source: 'first-use', until: 'ack' };
+    expect(actions.hintOnce(h)).toBe(true);
+    expect(store.get().hints.map((x) => x.key)).toEqual([h.key]);
+    // 已在场：不重复登记。
+    expect(actions.hintOnce({ ...h, label: '二' })).toBe(false);
+    expect(store.get().hints.map((x) => x.label)).toEqual(['首次说明']);
+    // 提示通道可见；acks 里的标记不影响 hint 视图。
+    expect(forScope(present([], store.get()), resource('file-1')).notice).toMatchObject({ key: h.key, label: '首次说明' });
+    // 窗格交互清除后，再次登记（如重新打开同一标签）不会再出现。
+    actions.ackFacts(resource('file-1'), []);
+    expect(store.get().hints).toEqual([]);
+    expect(actions.hintOnce(h)).toBe(false);
+    expect(store.get().hints).toEqual([]);
+    expect(forScope(present([], store.get()), resource('file-1')).notice).toBeNull();
+    // 其他标签互不影响。
+    expect(actions.hintOnce({ ...h, key: 'ui:file-2:first-use', scope: resource('file-2') })).toBe(true);
+  });
+
   it('hint until:navigation：交互不清除，切换空间时清除不属于新空间的', () => {
     const inWs = (workspaceId: string, name: string): Hint => ({
       key: `ui:${name}`,
@@ -680,39 +699,6 @@ describe('会话页的历史选择与状态槽取用', () => {
     // 历史选择下，非所选运行的视图仍可按 key 取到 label。
     actions.selectHistory('s1', { runId: 'gone' });
     expect(statusLabel(present(facts, store.get(), snapshot), 'run:r1:state')).toBe('执行完成');
-  });
-
-  it('groupForScope 排除观察类：被排除的问题不再占唯一的可见名额，剩余问题重新选「一条 + 另有 N 项」', () => {
-    const observationFailure = fact({
-      domain: 'observation',
-      entity: 'req-1',
-      facet: 'state',
-      scope: S,
-      kind: 'problem',
-      priority: 200,
-      label: '读取失败',
-    });
-    const views = present([observationFailure, ...facts]);
-    // 未排除：观察失败优先级最高，占住唯一的可见名额，检查类问题进「另有 N 项」。
-    const all = forScope(views, S);
-    expect(all.problem?.domain).toBe('observation');
-    // 排除后：检查无法执行成为可见的那一条，现场失效进「另有 1 项」；历史项不计入。
-    const exclude = (view: StatusView) => view.domain === 'observation';
-    const group = groupForScope(
-      views.filter((v) => scopeKey(v.scope) === scopeKey(S)),
-      { exclude },
-    );
-    expect(group.problem?.key).toBe('validation:r1:state');
-    expect(group.more.map((v) => v.key)).toEqual(['context:s1:applicability']);
-    expect([group.problem, ...group.more].some((v) => v?.domain === 'observation')).toBe(false);
-    // 没有可排除的视图时与不传 exclude 一致。
-    const plain = forScope(present(facts, {}, snapshot), S);
-    const same = groupForScope(
-      present(facts, {}, snapshot).filter((v) => scopeKey(v.scope) === scopeKey(S)),
-      { exclude },
-    );
-    expect(same.problem?.key).toBe(plain.problem?.key);
-    expect(same.more.map((v) => v.key)).toEqual(plain.more.map((v) => v.key));
   });
 
   it('run.cancel / run.reconcileCleanup 的视图带冻结的动作：取消中不再提供取消，清理未确认可核对', () => {

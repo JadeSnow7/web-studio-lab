@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -13,6 +13,7 @@ import {
   setWindowSize,
   setWorkspaceTheme,
   shot,
+  target,
   workshopNavigate,
   workspaceSnapshot,
 } from './helpers';
@@ -1681,6 +1682,470 @@ test('首页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（发送被
       }
     } finally {
       await app.close();
+    }
+  }
+});
+
+/* ---------- 观察与文件 ---------- */
+
+const filesPanel = (page: Page) => page.getByRole('region', { name: '只读文件浏览', exact: true });
+const filesSlot = (page: Page) => filesPanel(page).locator('.status-slot');
+const filesSlotItems = (page: Page) => filesSlot(page).locator('.status-item');
+const filesResult = (page: Page) => filesPanel(page).getByRole('region', { name: '当前文件结果', exact: true });
+const FIRST_USE = '仅访问已授权根内的文件，浏览不加入 Agent 会话。';
+
+async function fileRoot() {
+  const root = await mkdtemp(path.join(tmpdir(), 'wsl-status-files-'));
+  // 大文件：单次读取只覆盖一部分（coverage partial，带续读游标）；小文件：完整覆盖。
+  await writeFile(path.join(root, 'big.txt'), 'FILE_STATUS_NONCE_901\n' + '中'.repeat(12000));
+  await writeFile(path.join(root, 'small.txt'), 'SMALL_FILE_OK\n');
+  return root;
+}
+
+async function createFileTab(page: Page, title: string) {
+  await page.getByRole('button', { name: '新建标签', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: '新建标签' });
+  await editor.getByLabel('标签类型').selectOption('file');
+  await editor.getByLabel('名称', { exact: true }).fill(title);
+  await editor.getByLabel('资源环境').selectOption('local');
+  await editor.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(filesPanel(page)).toBeVisible();
+}
+
+/** 首次说明已关闭后：说明文字不再出现在可见内容里，只剩标题区视觉隐藏的描述（悬停 title / aria-describedby）。 */
+async function expectNotesOnlyDescribed(page: Page) {
+  await expect(filesPanel(page).getByText('变化提示只覆盖已观察目录')).toHaveClass(/sr-only/);
+  await expect(filesPanel(page).getByText('SFTP 不提供 watch')).toHaveCount(0);
+  await expect(filesSlotItems(page)).toHaveCount(0);
+}
+
+async function readFile(page: Page, name: string) {
+  await filesPanel(page).getByLabel('文件路径').fill(name);
+  await filesPanel(page).getByRole('button', { name: '读取文件', exact: true }).click();
+}
+
+test('文件：首次打开说明是提示通道的 hint，「知道了」（键盘）或窗格交互后消失，重新打开同一标签不再出现', async () => {
+  const root = await fileRoot();
+  const { app, page } = await launchApp({ observationRoot: root });
+  try {
+    await resize(app, page, 1440, 900);
+    await createFileTab(page, '首次说明文件');
+    const panel = filesPanel(page);
+    const hint = filesSlotItems(page).filter({ hasText: FIRST_USE });
+    await expect(hint).toBeVisible();
+    await expect(hint).toHaveAttribute('data-status-channel', 'notice');
+    await expect(hint.getByRole('status')).toBeVisible();
+    // 变化提示的覆盖范围说明也是同一条 hint 的一部分，不再另起一行常驻。
+    await expect(hint).toContainText('变化提示只覆盖已观察目录，未提示不代表内容未变。');
+    // 环境名只是标题元数据，不是状态文字。
+    await expect(panel.locator('.file-panel-header')).toContainText('本设备');
+    // 键盘：Tab 到「知道了」，Enter 关闭。
+    const ack = hint.getByRole('button', { name: '知道了', exact: true });
+    await ack.focus();
+    await expect(ack).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(hint).toHaveCount(0);
+    await expectNotesOnlyDescribed(page);
+    // 关闭标签（保留后台执行）后重新打开同一标签：说明不再出现。
+    const resourceId = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((item) => item.title === '首次说明文件')!.resourceId;
+    await page.getByRole('button', { name: '首次说明文件操作', exact: true }).click();
+    await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）' }).click();
+    await page.getByText('后台资源 / 已关闭标签', { exact: true }).click();
+    await page.getByRole('button', { name: '首次说明文件 · 重新打开', exact: true }).click();
+    await expect(panel).toBeVisible();
+    await expect(page.locator(`[data-status-key="ui:${resourceId}:first-use"]`)).toHaveCount(0);
+    await expect(filesSlotItems(page)).toHaveCount(0);
+    await expectNotesOnlyDescribed(page);
+
+    // 另一个标签：不点「知道了」，与窗格交互（点击「列出目录」）后同样消失。
+    await createFileTab(page, '交互消除文件');
+    const second = filesSlotItems(page).filter({ hasText: FIRST_USE });
+    await expect(second).toBeVisible();
+    await filesPanel(page).getByRole('button', { name: '列出目录', exact: true }).click();
+    await expect(second).toHaveCount(0);
+    await expect(filesResult(page)).toContainText('small.txt');
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('文件：从窗格外真实 Tab 进入，首次说明仍在且「知道了」获得焦点；Enter 关闭后焦点落在路径输入框；说明常在描述中可得', async () => {
+  const root = await fileRoot();
+  const { app, page } = await launchApp({ observationRoot: root });
+  try {
+    await resize(app, page, 1440, 900);
+    await createFileTab(page, '键盘确认文件');
+    const hint = filesSlotItems(page).filter({ hasText: FIRST_USE });
+    await expect(hint).toBeVisible();
+    // 从窗格外（窗格标题栏的最后一个控件）按 Tab 进入：槽内的焦点不算与窗格交互，说明必须仍在。
+    await page.getByRole('button', { name: '窗格操作', exact: true }).focus();
+    await page.keyboard.press('Tab');
+    const ack = hint.getByRole('button', { name: '知道了', exact: true });
+    await expect(ack).toBeFocused();
+    await expect(hint).toBeVisible();
+    // Enter 关闭后焦点落到可预期位置（路径输入框），不落 body。
+    await page.keyboard.press('Enter');
+    await expect(hint).toHaveCount(0);
+    await expect(filesPanel(page).getByLabel('文件路径')).toBeFocused();
+    // 同一次 Enter 不会顺势提交路径表单（没有产生任何观察）。
+    expect((await workspaceSnapshot(page)).workspaces[0]!.observations).toHaveLength(0);
+    // 不变量说明不再常驻，但始终可得：环境名元数据的悬停 title 与 aria-describedby。
+    await expectNotesOnlyDescribed(page);
+    const env = filesPanel(page).locator('.file-panel-header [aria-describedby]');
+    await expect(env).toHaveAttribute('title', /变化提示只覆盖已观察目录，未提示不代表内容未变。/);
+    await expect(env).toHaveAccessibleDescription(/仅访问已授权根内的文件，浏览不加入 Agent 会话。.*变化提示只覆盖已观察目录/);
+    // SSH 分支（「SFTP 不提供 watch」）与本地分支走同一代码路径（firstUseLabel），只是文案不同；SSH 回环 fixture 成本高，这里不重复建。
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('文件观察结果：来源折叠区默认收起，Enter / 空格可展开，展开后版本 / 散列可见；覆盖完整只有形状 + 视觉隐藏文字', async () => {
+  const root = await fileRoot();
+  const { app, page } = await launchApp({ observationRoot: root });
+  try {
+    await resize(app, page, 1440, 900);
+    await createFileTab(page, '来源折叠文件');
+    await filesPanel(page).getByRole('button', { name: '列出目录', exact: true }).click();
+    await filesPanel(page).getByRole('button', { name: 'small.txt · file', exact: true }).click();
+    const current = filesResult(page);
+    await expect(current).toContainText('SMALL_FILE_OK');
+    // 合同：版本 / 散列可见——折叠区内的文字仍在结果内（textContent），展开即可见。
+    await expect(current).toContainText('版本 / 散列');
+    const source = current.locator('details.observation-source');
+    await expect(source).toBeVisible();
+    await expect(source).not.toHaveAttribute('open', '');
+    await expect(current.getByText('版本 / 散列')).toBeHidden();
+    // 覆盖完整：形状可见，文字只在视觉隐藏文本与悬停里。
+    const dot = current.locator('[data-status="observation:ok"]');
+    await expect(dot).toBeVisible();
+    await expect(dot).toHaveAttribute('title', '覆盖完整');
+    await expect(dot.locator('.sr-only')).toHaveText('覆盖完整');
+    await expect(current.locator('.status-label')).toHaveCount(0);
+    // 稳态不占状态槽：槽里没有这一条（首次说明已被前面的点击确认）。
+    await expect(filesSlotItems(page)).toHaveCount(0);
+    // 键盘展开 / 收起。
+    const summary = source.locator('summary');
+    await expect(summary).toHaveText('来源');
+    await summary.focus();
+    await page.keyboard.press('Enter');
+    await expect(source).toHaveAttribute('open', '');
+    await expect(current.getByText('版本 / 散列')).toBeVisible();
+    await expect(source).toContainText('本地文件');
+    await expect(source).toContainText('环境 本设备');
+    await page.keyboard.press('Space');
+    await expect(source).not.toHaveAttribute('open', '');
+    await expect(current.getByText('版本 / 散列')).toBeHidden();
+    await page.keyboard.press('Space');
+    await expect(source).toHaveAttribute('open', '');
+    await expect(current.getByText('版本 / 散列')).toBeVisible();
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('文件观察结果：覆盖不完整在问题通道可见（含 reasons detail），「来源」展开后可见读取范围', async () => {
+  const root = await fileRoot();
+  const { app, page } = await launchApp({ observationRoot: root });
+  try {
+    await resize(app, page, 1440, 900);
+    await createFileTab(page, '覆盖不完整文件');
+    await readFile(page, 'big.txt');
+    const current = filesResult(page);
+    await expect(current).toContainText('FILE_STATUS_NONCE_901');
+    await expect(filesPanel(page).getByRole('button', { name: '继续读取', exact: true })).toBeVisible();
+    const problem = filesSlot(page).locator('.status-item[data-status="observation:degraded"]');
+    await expect(problem).toBeVisible();
+    await expect(problem).toHaveAttribute('data-status-channel', 'problem');
+    await expect(problem.getByRole('alert')).toContainText('覆盖不完整');
+    // reasons 作为 detail 可见（不只在悬停里）。
+    await expect(problem.locator('.status-detail')).toBeVisible();
+    await expect(problem.locator('.status-detail')).not.toHaveText('');
+    // 结果内不再自拼「覆盖 部分」；范围在「来源」折叠区。
+    await expect(current.getByText(/^覆盖/)).toBeHidden();
+    await current.getByText('来源', { exact: true }).click();
+    await expect(current.getByText(/^范围 \{/)).toBeVisible();
+    await expect(current.getByText('版本 / 散列')).toBeVisible();
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('文件观察：读取失败在问题通道 alert 可见（错误标签 + message），结果区只留一行说明且不重复播报', async () => {
+  const root = await fileRoot();
+  const { app, page } = await launchApp({ observationRoot: root });
+  try {
+    await resize(app, page, 1440, 900);
+    await createFileTab(page, '读取失败文件');
+    await readFile(page, '../outside.txt');
+    const failure = filesSlot(page).locator('.status-item[data-status="observation:failed"]');
+    await expect(failure).toBeVisible();
+    await expect(failure).toHaveAttribute('data-status-channel', 'problem');
+    await expect(failure.getByRole('alert')).toContainText('读取失败：未获授权');
+    // message 可见（detail 外露）。
+    await expect(failure.locator('.status-detail')).toBeVisible();
+    await expect(failure.locator('.status-detail')).not.toHaveText('');
+    // 结果区保留错误行（合同：当前文件结果含「未获授权」），但不再是第二个 alert。
+    await expect(filesResult(page)).toContainText('未获授权');
+    await expect(filesResult(page).getByRole('alert')).toHaveCount(0);
+    // 读取结束后焦点不落 body：仍停在触发读取的按钮上，或（丢失时）交给路径输入框。
+    await expect.poll(() => page.evaluate(() => document.activeElement !== document.body)).toBe(true);
+    await expect(filesPanel(page).locator(':focus')).toHaveCount(1);
+    // 再次成功读取后，失败条目消失。
+    await readFile(page, 'small.txt');
+    await expect(filesResult(page)).toContainText('SMALL_FILE_OK');
+    await expect(filesSlot(page).locator('.status-item[data-status="observation:failed"]')).toHaveCount(0);
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('文件可能变化：观察过的目录里出现变化后，问题通道显示中文变化标签，原始枚举不外露', async () => {
+  const root = await fileRoot();
+  const { app, page } = await launchApp({ observationRoot: root });
+  try {
+    await resize(app, page, 1440, 900);
+    await createFileTab(page, '文件变化提示');
+    await filesPanel(page).getByRole('button', { name: '列出目录', exact: true }).click();
+    await expect(filesResult(page)).toContainText('small.txt');
+    // 变化提示来自真实的目录监视（只覆盖已观察目录）：在已列出的目录里新增文件。
+    await expect
+      .poll(async () => {
+        await writeFile(path.join(root, `changed-${Date.now()}.txt`), 'changed\n');
+        return (await workspaceSnapshot(page)).workspaces[0]!.fileHints.length;
+      })
+      .toBeGreaterThan(0);
+    const hint = filesSlot(page).locator('.status-item[data-status-key^="file:"]');
+    await expect(hint).toBeVisible();
+    await expect(hint).toHaveAttribute('data-status-channel', 'problem');
+    await expect(hint.getByRole('alert')).toContainText(/^文件可能变化 · .+；请重新读取$/);
+    for (const raw of ['rename', 'change', 'unknown']) await expect(hint).not.toContainText(raw);
+    // 旧的常驻行不存在。
+    await expect(filesPanel(page)).not.toContainText('续读可能失效');
+    // 窗格交互不会让问题消失（只有事实消失才消失）。
+    await filesPanel(page).getByRole('button', { name: '列出目录', exact: true }).click();
+    await expect(hint).toBeVisible();
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('会话观察：进行中在会话状态槽常驻通道可见，「取消读取」可 Tab 到达并用 Enter 取消；已取消的结果行仍是区域内唯一的 alert', async () => {
+  test.skip(target !== 'build', '此受控传输用例仅依赖 build bootstrap');
+  const root = await mkdtemp(path.join(tmpdir(), 'wsl-status-observe-'));
+  await writeFile(path.join(root, 'nonce.txt'), 'STATUS_OBSERVE_NONCE');
+  const { app, page } = await launchApp({ observationRoot: root, controlledObservation: true });
+  const arm = () =>
+    app.evaluate(() => {
+      (globalThis as unknown as { __wslObservationGate: { armed: boolean } }).__wslObservationGate.armed = true;
+    });
+  const release = () =>
+    app.evaluate(() => {
+      const gate = (globalThis as unknown as { __wslObservationGate: { armed: boolean; deliveries: Array<() => void> } })
+        .__wslObservationGate;
+      gate.armed = false;
+      for (const send of gate.deliveries.splice(0)) send();
+    });
+  try {
+    await resize(app, page, 1440, 900);
+    await createFileTab(page, '会话观察文件');
+    const resourceId = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((item) => item.title === '会话观察文件')!.resourceId;
+    await openSessionTab(page);
+    await sessionViews(page).getByRole('button', { name: '上下文', exact: true }).click();
+    const observation = sessionRegion(page).getByRole('region', { name: '会话统一观察', exact: true });
+    await observation.getByLabel('观察来源').selectOption(resourceId);
+    await observation.getByLabel('读取动作').selectOption('files.read');
+    await observation.getByLabel('观察路径').fill('nonce.txt');
+    await arm();
+    await observation.getByRole('button', { name: '读取观察', exact: true }).click();
+    // 状态槽（面板之外）显示进行中与「取消读取」；面板内不再另拼「正在读取，归属已冻结…」。
+    const progress = sessionSlotItems(page).filter({ hasText: '正在读取…' });
+    await expect(progress).toBeVisible();
+    await expect(progress).toHaveAttribute('data-status-channel', 'persistent');
+    await expect(observation).not.toContainText('归属已冻结');
+    const cancel = progress.getByRole('button', { name: '取消读取', exact: true });
+    await expect(cancel).toBeVisible();
+    await expect(cancel).toBeEnabled();
+    // 键盘：从面板内的「取消观察」出发，真实 Tab 走到槽内的「取消读取」，Enter 取消。
+    await observation.getByRole('button', { name: '取消观察', exact: true }).focus();
+    let reached = false;
+    for (let i = 0; i < 15 && !reached; i++) {
+      await page.keyboard.press('Tab');
+      reached = await cancel.evaluate((node) => node === document.activeElement);
+    }
+    expect(reached).toBe(true);
+    await expect(cancel).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(progress).toHaveCount(0);
+    // 按钮随状态卸载：焦点交给会话输入框，不落 body。
+    await expect(sessionMessageBox(page)).toBeFocused();
+    await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.observations.at(-1)?.state).toBe('cancelled');
+    // 已取消不产出事实：结果行是区域内唯一的 alert（原有合同）。
+    await expect(observation.getByRole('alert')).toContainText('已取消');
+    await expect(observation.getByRole('alert')).toHaveCount(1);
+    await release();
+  } finally {
+    // 释放闸门失败不能掩盖用例本身的错误。
+    await release().catch(() => undefined);
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('会话观察：读取失败与覆盖不完整进入会话状态槽的问题通道，观察面板只留结果', async () => {
+  const root = await fileRoot();
+  const { app, page } = await launchApp({ observationRoot: root });
+  try {
+    await resize(app, page, 1440, 900);
+    await createFileTab(page, '会话问题文件');
+    const resourceId = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((item) => item.title === '会话问题文件')!.resourceId;
+    await openSessionTab(page);
+    await sessionViews(page).getByRole('button', { name: '上下文', exact: true }).click();
+    const observation = sessionRegion(page).getByRole('region', { name: '会话统一观察', exact: true });
+    await observation.getByLabel('观察来源').selectOption(resourceId);
+    await observation.getByLabel('读取动作').selectOption('files.read');
+    await observation.getByLabel('观察路径').fill('../outside.txt');
+    await observation.getByRole('button', { name: '读取观察', exact: true }).click();
+    const failure = sessionSlotItems(page).filter({ hasText: '读取失败：未获授权' });
+    await expect(failure).toBeVisible();
+    await expect(failure.getByRole('alert')).toBeVisible();
+    await expect(observation.getByRole('region', { name: '当前观察结果' })).toContainText('未获授权');
+    await expect(observation.getByRole('alert')).toHaveCount(0);
+    // 新的读取（大文件，覆盖不完整）取代旧的失败。
+    await observation.getByLabel('观察路径').fill('big.txt');
+    await observation.getByRole('button', { name: '读取观察', exact: true }).click();
+    const partial = sessionSlotItems(page).filter({ hasText: '覆盖不完整' });
+    await expect(partial).toBeVisible();
+    await expect(sessionSlotItems(page).filter({ hasText: '读取失败' })).toHaveCount(0);
+    const result = observation.getByRole('region', { name: '当前观察结果' });
+    await expect(result).toContainText('FILE_STATUS_NONCE_901');
+    await expect(result.getByText(/^覆盖/)).toBeHidden();
+    await expect(result.getByText('来源', { exact: true })).toBeVisible();
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('文件：进行中在资源槽常驻通道可见，「取消读取」真实 Tab 可达，Enter 取消后焦点回到路径输入框', async () => {
+  test.skip(target !== 'build', '此受控传输用例仅依赖 build bootstrap');
+  const root = await fileRoot();
+  const { app, page } = await launchApp({ observationRoot: root, controlledObservation: true });
+  const gate = (armed: boolean) =>
+    app.evaluate((_electron, value) => {
+      const g = (globalThis as unknown as { __wslObservationGate: { armed: boolean; deliveries: Array<() => void> } }).__wslObservationGate;
+      g.armed = value;
+      if (!value) for (const send of g.deliveries.splice(0)) send();
+    }, armed);
+  try {
+    await resize(app, page, 1440, 900);
+    await createFileTab(page, '文件取消读取');
+    // 先确认首次说明，避免它影响 Tab 顺序。
+    await filesSlotItems(page).getByRole('button', { name: '知道了', exact: true }).click();
+    await gate(true);
+    await filesPanel(page).getByRole('button', { name: '读取文件', exact: true }).click();
+    await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.observations.at(-1)?.state).toBe('pending');
+    const progress = filesSlotItems(page).filter({ hasText: '正在读取…' });
+    await expect(progress).toBeVisible();
+    await expect(progress).toHaveAttribute('data-status-channel', 'persistent');
+    const cancel = progress.getByRole('button', { name: '取消读取', exact: true });
+    await expect(cancel).toBeEnabled();
+    // 读取期间窗格内没有第二处进行中文字。
+    await expect(filesPanel(page).getByText('正在读取…')).toHaveCount(1);
+    // 真实 Tab：从窗格标题栏进入，槽内按钮先于表单控件。
+    await page.getByRole('button', { name: '窗格操作', exact: true }).focus();
+    let reached = false;
+    for (let i = 0; i < 6 && !reached; i++) {
+      await page.keyboard.press('Tab');
+      reached = await cancel.evaluate((node) => node === document.activeElement);
+    }
+    expect(reached).toBe(true);
+    await page.keyboard.press('Enter');
+    await expect(progress).toHaveCount(0);
+    await expect(filesResult(page)).toContainText('已取消');
+    await expect(filesPanel(page).getByLabel('文件路径')).toBeFocused();
+  } finally {
+    await gate(false).catch(() => undefined);
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('会话最新执行失败时读取越权路径：执行失败仍可见，读取失败恰有一个 alert（折叠在「另有 1 项」时由结果行播报）', async () => {
+  const root = await fileRoot();
+  const { app, page } = await launchApp({ observationRoot: root });
+  try {
+    await resize(app, page, 1440, 900);
+    await createFileTab(page, '失败叠加文件');
+    const resourceId = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((item) => item.title === '失败叠加文件')!.resourceId;
+    await failSessionRun(page);
+    await sessionViews(page).getByRole('button', { name: '上下文', exact: true }).click();
+    const observation = sessionRegion(page).getByRole('region', { name: '会话统一观察', exact: true });
+    await observation.getByLabel('观察来源').selectOption(resourceId);
+    await observation.getByLabel('读取动作').selectOption('files.read');
+    await observation.getByLabel('观察路径').fill('../outside.txt');
+    await observation.getByRole('button', { name: '读取观察', exact: true }).click();
+    const result = observation.getByRole('region', { name: '当前观察结果' });
+    await expect(result).toContainText('未获授权');
+    // 执行失败（优先级更高）占住槽里唯一可见的问题位，仍可见；读取失败折叠进「另有 1 项」。
+    await expect(sessionSlotItems(page).filter({ hasText: '执行失败' })).toBeVisible();
+    await expect(sessionRegion(page).getByRole('button', { name: '另有 1 项', exact: true })).toBeVisible();
+    // 读取失败只被播报一次：折叠时由结果行播报，不能因折叠而完全没有 alert，也不能有两个。
+    const readFailure = sessionRegion(page).getByRole('alert').filter({ hasText: '未获授权' });
+    await expect(readFailure).toHaveCount(1);
+    await expect(observation.getByRole('alert')).toHaveCount(1);
+    // 执行失败本身的 alert 仍在槽里。
+    await expect(sessionSlotItems(page).filter({ hasText: '执行失败' }).getByRole('alert')).toBeVisible();
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('文件截图：白 / 暗 / 暖 × 1440 / 960，正常（小文件读取完成）与异常（读取失败）', async () => {
+  test.setTimeout(240000);
+  const dir = path.join(screensDir, 'status-surface');
+  await mkdir(dir, { recursive: true });
+  for (const state of ['normal', 'abnormal'] as const) {
+    const root = await fileRoot();
+    const { app, page } = await launchApp({ observationRoot: root });
+    try {
+      await resize(app, page, 1440, 900);
+      await createFileTab(page, '截图文件');
+      for (const theme of ['light', 'dark', 'warm'] as const) {
+        await resize(app, page, 1440, 900);
+        await expect(page.getByRole('navigation', { name: 'Workshop 导航' })).toBeVisible();
+        await setWorkspaceTheme(page, theme);
+        await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '截图文件', exact: true }).click();
+        for (const width of [1440, 960]) {
+          await resize(app, page, width, width === 1440 ? 900 : 700);
+          await expect(filesPanel(page)).toBeVisible();
+          // 读取结果是窗格的本地状态，换主题时会随页面重建，这里每次重新读取。
+          if (state === 'normal') {
+            await filesPanel(page).getByLabel('文件路径').fill('.');
+            await filesPanel(page).getByRole('button', { name: '列出目录', exact: true }).click();
+            await filesPanel(page).getByRole('button', { name: 'small.txt · file', exact: true }).click();
+            await expect(filesResult(page)).toContainText('SMALL_FILE_OK');
+            await expect(filesResult(page).locator('[data-status="observation:ok"]')).toBeVisible();
+            const source = filesResult(page).locator('details.observation-source');
+            if (!(await source.getAttribute('open'))) await source.locator('summary').click();
+            await expect(filesResult(page).getByText('版本 / 散列')).toBeVisible();
+          } else {
+            await readFile(page, '../outside.txt');
+            await expect(filesSlot(page).locator('.status-item[data-status="observation:failed"]')).toBeVisible();
+          }
+          await shot(page, `status-surface/files-${state}-${theme}-${width}`);
+        }
+      }
+    } finally {
+      await app.close();
+      await rm(root, { recursive: true, force: true });
     }
   }
 });

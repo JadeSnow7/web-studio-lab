@@ -2319,10 +2319,35 @@ textarea.resize-none {
   margin-right: 0;
 }
 
+/* 文件窗格：状态槽与标题固定在顶部，内容区单独滚动（与网页 / 终端窗格一致，状态不会被滚出视野）。 */
 .file-panel {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  overflow: hidden;
+}
+.file-panel-header {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 20px 8px;
+}
+.file-panel-header h2 {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.file-panel .status-slot {
+  flex: none;
+  padding: 0 20px 8px;
+}
+.file-panel-body {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
-  padding: 20px;
+  padding: 8px 20px 20px;
 }
 .file-panel pre,
 .observation-result pre {
@@ -2342,6 +2367,30 @@ textarea.resize-none {
 }
 .observation-history {
   margin-block: 16px;
+}
+/* 观察结果顶部：覆盖稳态的形状 + 「来源」折叠区（来源、环境、时间、范围、版本 / 散列）。 */
+.observation-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.observation-coverage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  min-height: 1.6em;
+}
+.observation-source {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.observation-source summary {
+  cursor: pointer;
+}
+.observation-source p {
+  margin: 4px 0;
 }
 
 /* Header actions share the existing compact macOS control density. */

@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { StatusPhase, StatusScope } from '@wsl/protocol';
 import { occlusion } from '../state/occlusion';
 import { reportError } from '../state/errors';
-import { statusPresentationActions, useStatusView, scopeKey, type StatusView, type StatusViewOptions } from '../state/status-view';
+import { statusPresentationActions, useStatusView, scopeKey, type StatusView } from '../state/status-view';
 
 /* 形状沿用 Badges.tsx 的约定（形状 + 颜色，不只靠颜色）；配色由 .status-dot[data-phase] 给出。 */
 const SHAPE: Record<StatusPhase, string> = {
@@ -196,7 +196,6 @@ export function StatusSlot({
   onAction,
   omitActions,
   itemTestId,
-  exclude,
 }: {
   scope: StatusScope;
   onAction: (view: StatusView) => void;
@@ -204,10 +203,8 @@ export function StatusSlot({
   omitActions?: readonly string[];
   /** 按条目附加 data-testid（既有合同用例按它定位）；返回 undefined 则不加。 */
   itemTestId?: (view: StatusView) => string | undefined;
-  /** 同 scope 里已有自己呈现方式的视图（如会话页自带结果区的观察）；见 StatusViewOptions.exclude，需稳定引用。 */
-  exclude?: StatusViewOptions['exclude'];
 }) {
-  const { persistent, problem, more, notice } = useStatusView(scope, { exclude });
+  const { persistent, problem, more, notice } = useStatusView(scope);
   if (!persistent.length && !problem && !notice) return null;
   return (
     <div className="status-slot">

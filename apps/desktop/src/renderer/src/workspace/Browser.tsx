@@ -307,12 +307,17 @@ export function Browser({
   // 与窗格交互（指针、按键、焦点）后确认其中的 hint / confirmation；control / progress / problem 不受影响。
   // 原生网页区域的点击不会到达 DOM，不在此处理。
   const acknowledge = () => ackScope(scope);
+  // 状态槽内的按键不算与窗格交互：槽内按钮由 Enter / 空格触发的 click 自行处理，避免按钮在 keydown 时被卸载。
+  const acknowledgeKey = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (!(event.target as HTMLElement).closest('.status-slot')) acknowledge();
+  };
   // 点击在 click 里确认（pointerdown 时确认会让槽高度变化、点击落空）；鼠标点按钮引起的焦点不算，键盘 / 文本输入的焦点才算。
+  // 状态槽内的焦点不算：槽里的提示要让键盘用户先读到、再自己确认。
   const acknowledgeFocus = (event: React.FocusEvent<HTMLElement>) => {
-    if (event.target.matches(':focus-visible')) acknowledge();
+    if (event.target.matches(':focus-visible') && !event.target.closest('.status-slot')) acknowledge();
   };
   return (
-    <div className="workspace-browser" onClickCapture={acknowledge} onKeyDownCapture={acknowledge} onFocusCapture={acknowledgeFocus}>
+    <div className="workspace-browser" onClickCapture={acknowledge} onKeyDownCapture={acknowledgeKey} onFocusCapture={acknowledgeFocus}>
       <div className="browser-toolbar">
         <button type="button" className="icon-btn" aria-label="后退" disabled={!p?.canGoBack} onClick={() => void action('back')}>
           <Icon name="back" />

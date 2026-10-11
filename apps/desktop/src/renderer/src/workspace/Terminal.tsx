@@ -145,9 +145,14 @@ export function Terminal({
   };
   // 与窗格交互（点击、按键、终端获得焦点）后确认其中的 confirmation；unresolved / progress 不受影响。
   const acknowledge = () => ackScope(scope);
+  // 状态槽内的按键不算与窗格交互：槽内按钮由 Enter / 空格触发的 click 自行处理，避免按钮在 keydown 时被卸载。
+  const acknowledgeKey = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (!(event.target as HTMLElement).closest('.status-slot')) acknowledge();
+  };
   // 鼠标点击按钮引起的焦点不算（会在 click 里确认；mousedown 时确认会让槽高度变化、点击落空）；键盘 / 文本输入的焦点才算。
+  // 状态槽内的焦点（Tab 进入「知道了」等）也不算：槽里的提示要让键盘用户先读到、再自己确认。
   const acknowledgeFocus = (event: React.FocusEvent<HTMLElement>) => {
-    if (!programmaticFocus.current && event.target.matches(':focus-visible')) acknowledge();
+    if (!programmaticFocus.current && event.target.matches(':focus-visible') && !event.target.closest('.status-slot')) acknowledge();
   };
   const cwd = resource.terminal?.cwd ?? null;
   const cwdTail = cwd ? (cwd.split('/').filter(Boolean).at(-1) ?? cwd) : null;
@@ -157,7 +162,7 @@ export function Terminal({
       className="terminal-panel"
       aria-label="资源终端"
       onClickCapture={acknowledge}
-      onKeyDownCapture={acknowledge}
+      onKeyDownCapture={acknowledgeKey}
       onFocusCapture={acknowledgeFocus}
     >
       <div className="terminal-toolbar row space-between gap-8">

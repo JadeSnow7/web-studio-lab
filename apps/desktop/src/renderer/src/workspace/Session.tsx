@@ -17,7 +17,7 @@ import {
   useStatusViewByKey,
   type StatusView,
 } from '../state/status-view';
-import { SessionObservation } from './Observation';
+import { SessionObservation, cancelObservationRequest } from './Observation';
 import { sessionSelection } from './presentation';
 import { RunDetails, RunStatusFields, type RunView } from './RunDetails';
 import { workspaceCommand, workspaceStore, beginNavigation } from '../state/workspace';
@@ -30,8 +30,6 @@ const RUN_VIEWS: ReadonlyArray<readonly [RunView, string]> = [
   ['report', '报告'],
 ];
 
-/** 会话页的状态槽不呈现观察类事实：观察结果区（SessionObservation）自带进行中 / 失败 / 覆盖的呈现。 */
-const outsideSessionSlot = (view: StatusView) => view.domain === 'observation';
 const GLOBAL_SCOPE: StatusScope = { kind: 'global' };
 
 /**
@@ -248,7 +246,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
   // 对话的版本 · 沙箱 · cwd（不可用时为原因）：不常驻正文，并入对话视图顶部状态点的悬停（合同 A3 chat 段）。
   const chatStatus = useStatusViewByKey(GLOBAL_SCOPE, 'chat:global:state');
   // 状态槽与上下文页内联的「现场适用性」用同一份分组结果，槽里已是问题的不再在页内重复。
-  const slot = useStatusView(scope, { exclude: outsideSessionSlot });
+  const slot = useStatusView(scope);
   const composerInput = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (!dirty.current) {
@@ -347,6 +345,10 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
           reportError('取消采集', error);
         }
       })();
+    } else if (id === 'observation.cancel') {
+      void cancelObservationRequest(workspace.workspaceId, sessionId, entityOf(item));
+      // 取消后「取消读取」按钮随状态卸载：先把焦点交给输入框，避免落到 body（同 run.cancel）。
+      composerInput.current?.focus();
     } else if (id === 'run.reconcileCleanup')
       void workspaceCommand(workspace.workspaceId, { type: 'reconcileRunCleanup', runId: entityOf(item) });
     else if (id === 'context.recapture' && session.taskTargetRef)
@@ -358,8 +360,12 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
   // 用 click 而不是 pointerdown：确认会让提示消失、槽高度变化，pointerdown 时位移会让同一次点击落空。
   // 不监听焦点：通知栏打开会话时会程序性聚焦标题，那不是用户与会话的交互。
   const acknowledge = () => ackScope(scope);
+  // 状态槽内的按键不算与窗格交互：槽内按钮由 Enter / 空格触发的 click 自行处理，避免按钮在 keydown 时被卸载。
+  const acknowledgeKey = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (!(event.target as HTMLElement).closest('.status-slot')) acknowledge();
+  };
   return (
-    <section className="session-workspace" aria-label="Agent 会话内容" onClickCapture={acknowledge} onKeyDownCapture={acknowledge}>
+    <section className="session-workspace" aria-label="Agent 会话内容" onClickCapture={acknowledge} onKeyDownCapture={acknowledgeKey}>
       <h2 className="sr-only" tabIndex={-1} id={`session-heading-${session.sessionId}`}>
         {session.title}
       </h2>
@@ -682,8 +688,8 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
           </p>
         ) : null}
       </div>
-      {/* 会话的状态槽：取消（执行中 / 取消中）与「App 数据操作待确认 · 重新核对」在常驻通道，可同时出现；问题与提示在其下。 */}
-      <StatusSlot scope={scope} onAction={onAction} omitActions={omitActions} exclude={outsideSessionSlot} />
+      {/* 会话的状态槽：取消（执行中 / 取消中）、「App 数据操作待确认 · 重新核对」与观察进行中（取消读取）在常驻通道，可同时出现；问题（含读取失败、覆盖不完整）与提示在其下。 */}
+      <StatusSlot scope={scope} onAction={onAction} omitActions={omitActions} />
       <div className="workspace-composer">
         <span className="sr-only" id={`draft-hint-${sessionId}`}>
           发送到 · {workspace.name} / {session.title} / Codex CLI
