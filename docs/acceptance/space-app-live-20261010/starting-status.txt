@@ -1,0 +1,19 @@
+ M README.md
+ M UX-CONTRACT.md
+ M apps/desktop/src/main/workbench/application.ts
+ M apps/desktop/src/main/workbench/managed-app.test.ts
+ M apps/desktop/src/main/workbench/observation-persistence.test.ts
+ M apps/desktop/src/main/workbench/repository.ts
+ M apps/desktop/src/renderer/src/pages/SpacePage.tsx
+ M apps/desktop/src/renderer/src/shell/Overlays.tsx
+ M apps/desktop/src/renderer/src/state/space-ui.ts
+ M apps/desktop/src/renderer/src/workspace/Sidebar.tsx
+ M docs/architecture/current-runtime.md
+ M e2e/managed-app-live.spec.ts
+ M packages/protocol/src/managed-app.ts
+ M packages/protocol/src/workspace.ts
+?? apps/desktop/src/main/workbench/space-app-persistence.test.ts
+?? apps/desktop/src/renderer/src/workspace/AppEditor.tsx
+?? docs/acceptance/space-app-live-20261010/
+?? docs/acceptance/space-app-model-20261010/
+?? e2e/space-app.spec.ts

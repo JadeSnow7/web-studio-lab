@@ -22,3 +22,8 @@ docs/acceptance/toolchain/package*.json
 docs/acceptance/preimplementation
 # RESOURCE-OWNERSHIP-1 冻结合同，验收记录登记其 SHA-256，保持原字节。
 docs/acceptance/resource-ownership-20261010/SPEC.md
+
+# 模板构建导出的 Agent 描述须与生成器输出逐字节一致（agent-cli manifest --check 比较字节）。
+templates/standard-app/agent
+# 受管 App 控制面验证的原始证据（轨迹、截图索引、命令输出）保持采集原样。
+docs/verification/2026-10-11-app-control-plane/round-*

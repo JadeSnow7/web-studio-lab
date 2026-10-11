@@ -1,0 +1,113 @@
+[
+  {
+    "case": "automatic",
+    "evidence": "http-live-final/automatic",
+    "builtFrom": "build-05",
+    "outcome": "passed",
+    "operationId": "c4c30c9c-889b-47a9-bf07-06cc1d313bfa",
+    "operation": "seed",
+    "state": "succeeded",
+    "appInstanceId": "28dc40e3-62fa-460d-ab6b-d56fbbb23e86",
+    "pidBefore": 510,
+    "pidAtOperationStart": 510,
+    "pidAtTerminal": 510,
+    "automaticBudgetElapsedMs": null,
+    "blockedStart": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "blockedExport": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "database": {
+      "columns": [
+        "n"
+      ],
+      "rows": [
+        {
+          "n": 2
+        }
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "cleanupErrors": [],
+    "appExited": true,
+    "retainedOwnedProject": "/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686"
+  },
+  {
+    "case": "manual",
+    "evidence": "http-live-final/manual",
+    "builtFrom": "build-05",
+    "outcome": "passed",
+    "operationId": "f621c406-48b3-470f-a5be-9a622a7fc82d",
+    "operation": "reset",
+    "state": "succeeded",
+    "appInstanceId": "9c15dab8-d403-495a-93af-96494990bb25",
+    "pidBefore": 1097,
+    "pidAtOperationStart": 1097,
+    "pidAtTerminal": 1097,
+    "automaticBudgetElapsedMs": 30353,
+    "blockedStart": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "blockedExport": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "database": {
+      "columns": [
+        "n"
+      ],
+      "rows": [
+        {
+          "n": 2
+        }
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "cleanupErrors": [],
+    "appExited": true,
+    "retainedOwnedProject": "/home/agent/workspace/.wsl-apps/0974397f-d0a0-43a1-9ef7-7ae8393b9fe3"
+  },
+  {
+    "case": "failure",
+    "evidence": "http-live-final/failure",
+    "builtFrom": "build-05",
+    "outcome": "passed",
+    "operationId": "5b709f1b-b024-4d05-b757-52926393019c",
+    "operation": "seed",
+    "state": "failed",
+    "appInstanceId": "a08703cc-fc23-43b4-9d37-c33634d78426",
+    "pidBefore": 1704,
+    "pidAtOperationStart": 1704,
+    "pidAtTerminal": 1704,
+    "automaticBudgetElapsedMs": null,
+    "blockedStart": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "blockedExport": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "database": {
+      "columns": [
+        "table_name"
+      ],
+      "rows": [
+        {
+          "table_name": null
+        }
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "cleanupErrors": [],
+    "appExited": true,
+    "retainedOwnedProject": "/home/agent/workspace/.wsl-apps/18c199b3-3bff-4c00-8d35-69b89403db6f"
+  }
+]

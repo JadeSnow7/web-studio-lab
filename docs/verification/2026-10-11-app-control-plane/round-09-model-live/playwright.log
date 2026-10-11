@@ -1,0 +1,17 @@
+
+Running 1 test using 1 worker
+
+(node:56836) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-app-control-model-CgSj3j ELECTRON_PID 56848
+ELECTRON_STDERR (node:56848) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:54449/cc586fc4-d1a4-4e48-8771-da5ad16204aa
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✓  1 e2e/app-control-model-live.spec.ts:124:1 › A11: real guest Codex implements and self-verifies the frozen welcome task (5.1m)
+
+  Slow test file: e2e/app-control-model-live.spec.ts (5.1m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 passed (5.1m)

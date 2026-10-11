@@ -76,6 +76,14 @@ test('Workshop App dialog creates, exports, reports startup failure and restores
       (node as HTMLButtonElement).click();
       (node as HTMLButtonElement).click();
     });
+    const form = page.getByRole('dialog', { name: '创建 App', exact: true });
+    await form.getByLabel('App 名称').fill('Workshop 测试应用');
+    await form.getByRole('button', { name: '保存 App' }).evaluate((node) => {
+      (node as HTMLButtonElement).click();
+      (node as HTMLButtonElement).click();
+    });
+    await expect(form).not.toBeVisible();
+    await page.getByRole('button', { name: '管理 App', exact: true }).click();
     await expect(dialog.getByRole('status').first()).toHaveText('已创建');
     const getApp = async () => (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')!.managedApp!;
     const projectId = (await getApp()).projectId;
@@ -120,8 +128,25 @@ test('App operations stay with their workspace after closing and switching', asy
     await page.getByRole('button', { name: '新建 App', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: '空间 App' });
     await dialog.getByRole('button', { name: '创建标准应用', exact: true }).click();
-    await expect(dialog.getByText('正在创建工程…')).toBeVisible();
+    const form = page.getByRole('dialog', { name: '创建 App', exact: true });
+    await form.getByLabel('App 名称').fill('固定原空间的 App');
+    await form.getByRole('button', { name: '保存 App' }).click();
+    await expect(form.getByRole('status')).toHaveText('正在保存 App…');
     await page.keyboard.press('Escape');
+    await expect(form).toBeVisible();
+    // Navigation may arrive from another window while saving; it cannot redirect the frozen recipient.
+    await page.evaluate(() =>
+      window.studio.workbench.command({
+        type: 'switchWorkspace',
+        commandId: crypto.randomUUID(),
+        workspaceId: 'other-app-space',
+      }),
+    );
+    expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.managedApp?.state).toBe('starting');
+    await expect(form).not.toBeVisible();
+    expect((await workspaceSnapshot(page)).activeWorkspaceId).toBe('other-app-space');
+    // Another window's navigation preserves this window's selected space.
+    await expect(page.getByRole('button', { name: '管理 App', exact: true })).toBeVisible();
     await page.getByRole('button', { name: '切换空间', exact: true }).click();
     await page
       .getByRole('dialog', { name: '切换空间' })
@@ -129,10 +154,7 @@ test('App operations stay with their workspace after closing and switching', asy
       .click();
     await page.getByRole('button', { name: '新建 App', exact: true }).click();
     await expect(dialog.getByRole('button', { name: '创建标准应用', exact: true })).toBeEnabled();
-    expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.managedApp?.state).toBe('starting');
-    await expect
-      .poll(async () => (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.managedApp?.state)
-      .toBe('created');
+    expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.managedApp?.state).toBe('created');
     await expect(dialog.getByRole('alert')).toHaveCount(0);
     await expect(dialog.getByRole('button', { name: '创建标准应用', exact: true })).toBeEnabled();
     expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'other-app-space')?.managedApp).toBeUndefined();

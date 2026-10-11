@@ -1,0 +1,202 @@
+{
+  "traceVersion": 1,
+  "scenarioRunId": "8b70c617-0df5-45f7-b7ab-cf1e07645a16",
+  "scenarioName": "fixed-welcome-v1",
+  "scenarioSha256": "5ce797d0d169998901a6bcd9b5c3428b7bd4ac42c221c54cf8ef64d609913a48",
+  "runId": "harness-run-1",
+  "workspaceId": "harness-space",
+  "appInstanceId": "harness-app-1",
+  "sourceRevision": "297699b867b275fd820b676ac07c16f38bfab9fc4c4cd7afb5fe5d6339984d75",
+  "startedAt": "2026-10-11T04:00:22.765Z",
+  "endedAt": "2026-10-11T04:00:23.606Z",
+  "outcome": "passed",
+  "steps": [
+    {
+      "index": 0,
+      "type": "act",
+      "summary": "act navigate /",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 124,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 1,
+      "type": "act",
+      "summary": "act waitFor testid=welcome-value visible",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 2,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 2,
+      "type": "assert",
+      "summary": "assert text testid=welcome-value equals",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 2,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 3,
+      "type": "act",
+      "summary": "act type testid=welcome-input len=3",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 124,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 4,
+      "type": "act",
+      "summary": "act click testid=welcome-save",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 125,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 5,
+      "type": "assert",
+      "summary": "assert text testid=welcome-error equals",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 1,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 6,
+      "type": "assert",
+      "summary": "assert state welcome/value",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 1,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 7,
+      "type": "act",
+      "summary": "act type testid=welcome-input len=9",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 126,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 8,
+      "type": "act",
+      "summary": "act click testid=welcome-save",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 126,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 9,
+      "type": "assert",
+      "summary": "assert text testid=welcome-value equals",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 2,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 10,
+      "type": "assert",
+      "summary": "assert testid=welcome-error detached",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 1,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 11,
+      "type": "assert",
+      "summary": "assert state welcome/value",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 1,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 12,
+      "type": "act",
+      "summary": "act navigate /",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 126,
+      "documentGeneration": 5,
+      "screenshot": null
+    },
+    {
+      "index": 13,
+      "type": "assert",
+      "summary": "assert text testid=welcome-value equals",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 1,
+      "documentGeneration": 5,
+      "screenshot": null
+    },
+    {
+      "index": 14,
+      "type": "assert",
+      "summary": "assert console-no-error",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": 5,
+      "screenshot": null
+    },
+    {
+      "index": 15,
+      "type": "screenshot",
+      "summary": "screenshot fixed-welcome-saved",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 45,
+      "documentGeneration": 5,
+      "screenshot": {
+        "file": "15-fixed-welcome-saved.png",
+        "sha256": "98ea1694bbdf80f17c2833de86c72b0a202c39e2901a7c0af59f202d9345c5f0"
+      }
+    }
+  ],
+  "stateDiff": [
+    {
+      "path": "/db/records/sha256",
+      "before": "1470948736a4929db8cdfe3d2a06f3db04dc67e5be62e218604d424f489f9ac7",
+      "after": "a4cd642df566b871df485fe0330cffadf9987cbbbaf7d3ad29aedbee47ddff37"
+    },
+    {
+      "path": "/db/sessions/rowCount",
+      "before": 0,
+      "after": 2
+    },
+    {
+      "path": "/db/sessions/sha256",
+      "before": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "after": "1491cdcba7e0c15b8fec72d5b338137338c1ede4f35e8742049eb285b8b6d8f2"
+    },
+    {
+      "path": "/state/welcome/value",
+      "before": "取消前已保存",
+      "after": "固定验收 2026"
+    }
+  ],
+  "inFlight": null,
+  "cleanupConfirmed": true
+}

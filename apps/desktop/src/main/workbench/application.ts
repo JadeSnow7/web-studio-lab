@@ -35,6 +35,8 @@ import {
   type WorkbenchRun,
   type WorkbenchSnapshot,
   type WorkspaceSnapshot,
+  APP_DATA_RESET_SCOPE,
+  type AppControlResult,
 } from '@wsl/protocol';
 import {
   applyCatalogCommand,
@@ -47,6 +49,8 @@ import { parseResourceCatalog } from './resource-catalog-repository';
 import { activateTab, closePane, closeTab, panes, setRatio, splitPane } from './layout';
 import type { WorkbenchRepository } from './repository';
 import type { WorkbenchRuntime } from './ports';
+import type { AppControl, AppControlContext } from './app-control';
+import { AppControlFailure } from './app-control-failure';
 
 const activeStates = ['starting', 'running', 'cancelling'];
 function workspace(workspaceId: string, name: string): WorkspaceSnapshot {
@@ -55,6 +59,7 @@ function workspace(workspaceId: string, name: string): WorkspaceSnapshot {
     workspaceId,
     name,
     revision: 0,
+    app: null,
     tabs: [],
     resources: [],
     layout: { kind: 'pane', paneId, tabId: null },
@@ -71,6 +76,7 @@ export function validateSnapshot(snapshot: WorkbenchSnapshot): void {
   for (const item of snapshot.workspaces) {
     for (const id of [
       item.workspaceId,
+      ...(item.app ? [item.app.appId] : []),
       ...item.tabs.map((t) => t.tabId),
       ...item.resources.map((r) => r.resourceId),
       ...item.sessions.map((s) => s.sessionId),
@@ -79,6 +85,9 @@ export function validateSnapshot(snapshot: WorkbenchSnapshot): void {
       if (allIds.has(id)) throw new Error('conflict: 持久记录包含重复身份');
       allIds.add(id);
     }
+    if (item.managedApp && item.managedApp.workspaceId !== item.workspaceId) throw new Error('denied: 应用运行状态不属于空间');
+    if (item.app && (item.app.workspaceId !== item.workspaceId || item.app.projectId !== item.managedApp?.projectId))
+      throw new Error('denied: App 描述与空间工程身份不一致');
     const leaves = panes(item.layout);
     if (leaves.length > 4 || !leaves.some((p) => p.paneId === item.activePaneId)) throw new Error('conflict: 持久布局无效');
     const visible = leaves.flatMap((p) => (p.tabId ? [p.tabId] : []));
@@ -124,6 +133,16 @@ export function validateSnapshot(snapshot: WorkbenchSnapshot): void {
         if (version.workspaceId !== item.workspaceId || version.sessionId !== session.sessionId || !targetBelongs(version.targetRef))
           throw new Error('denied: 任务版本归属无效');
         if (version.capture && version.targetRef?.kind !== 'web') throw new Error('denied: 任务页面采集与目标不匹配');
+        if (
+          version.appTarget &&
+          (version.appTarget.workspaceId !== item.workspaceId ||
+            version.appTarget.appId !== item.app?.appId ||
+            version.appTarget.projectId !== item.app?.projectId ||
+            !item.resources.some(
+              (resource) => resource.resourceId === version.targetRef?.resourceId && resource.appProjectId === version.appTarget?.projectId,
+            ))
+        )
+          throw new Error('denied: 任务 App 工程与目标不匹配');
       }
       if (item.runs.filter((run) => run.sessionId === session.sessionId && activeStates.includes(run.state)).length > 1)
         throw new Error('conflict: 会话存在重复活动执行');
@@ -215,6 +234,7 @@ export class WorkbenchApplication {
   }
   private async initialize() {
     const saved = await this.repository.load();
+    await this.appControl?.ready();
     const migrateOwnership = this.repository.migrationPending;
     let recoveredExecution = false;
     this.catalog = await this.repository.loadCatalog(saved);
@@ -266,17 +286,41 @@ export class WorkbenchApplication {
           if (s.conversation && activeStates.includes(s.conversation.state))
             s.conversation = {
               ...s.conversation,
-              state: 'failed',
-              cleanupPending: false,
+              state: w.runs.some((run) => run.sessionId === s.sessionId && this.appControl?.hasPending(w.workspaceId, run.runId))
+                ? 'cancelling'
+                : 'failed',
+              cleanupPending: w.runs.some((run) => run.sessionId === s.sessionId && this.appControl?.hasPending(w.workspaceId, run.runId)),
               error: '应用重启；历史执行已中断',
               threadId: null,
             };
         for (const run of w.runs)
           if (activeStates.includes(run.state)) {
             recoveredExecution = true;
-            run.state = 'interrupted';
-            run.endedAt = new Date().toISOString();
-            run.error = '应用重启；未重放执行';
+            run.appCleanupPending = this.appControl?.hasPending(w.workspaceId, run.runId) ?? false;
+            run.cleanupRetryAvailable = this.appControl?.canRetryCleanup(run.runId) ?? false;
+            run.cleanupPending = run.appCleanupPending;
+            run.state = run.cleanupPending ? 'cancelling' : 'interrupted';
+            run.endedAt = run.cleanupPending ? null : new Date().toISOString();
+            const modelCleanupUnknown =
+              !run.executorState || run.executorState.cleanupPending || activeStates.includes(run.executorState.state);
+            run.error = run.appCleanupPending
+              ? modelCleanupUnknown
+                ? '应用重启；旧模型进程清理未确认，App 数据操作结果待确认；未重放执行'
+                : '应用重启；App 数据操作结果待确认；未重放执行'
+              : '应用重启；未重放执行';
+            if (run.appCleanupPending) {
+              if (run.conversation) run.conversation = { ...run.conversation, state: 'cancelling', cleanupPending: true, error: run.error };
+              const session = w.sessions.find((item) => item.sessionId === run.sessionId);
+              const binding = run.executionBinding;
+              if (
+                session &&
+                session.conversation &&
+                binding &&
+                session.conversation.generation === binding.generation &&
+                session.conversation.turnId === binding.turnId
+              )
+                session.conversation = { ...session.conversation, state: 'cancelling', cleanupPending: true, error: run.error };
+            }
           }
         for (const record of w.observations)
           if (record.state === 'pending') {
@@ -379,6 +423,7 @@ export class WorkbenchApplication {
     return snapshot;
   }
   command(command: WorkbenchCommand): Promise<WorkbenchResult> {
+    if (command.type === 'reconcileRunCleanup') return this.reconcileRunCleanup(command.workspaceId, command.runId);
     if (command.type === 'createApp' || command.type === 'startApp' || command.type === 'stopApp' || command.type === 'exportApp')
       return this.appCommand(command);
     if (
@@ -398,6 +443,8 @@ export class WorkbenchApplication {
       const w = this.snapshot.workspaces.find((w) => w.workspaceId === app.workspaceId);
       if (!w?.managedApp || w.managedApp.projectId !== app.projectId || w.managedApp.appInstanceId !== app.appInstanceId) return;
       w.managedApp = app;
+      if (app.cleanupConfirmed && app.state === 'stopped')
+        await this.appControl?.confirmStopped(w.workspaceId, app.projectId, app.appInstanceId);
       if (app.state !== 'running')
         for (const r of w.resources.filter((r) => r.appProjectId === app.projectId)) {
           r.preview = null;
@@ -411,7 +458,10 @@ export class WorkbenchApplication {
   private readonly pendingAppFailures = new Map<string, NonNullable<WorkspaceSnapshot['managedApp']>>();
   private readonly appOperations = new Map<string, string>();
   private readonly appCommands = new Map<string, { fingerprint: string; promise: Promise<WorkbenchResult> }>();
-  private appCommand(c: Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>): Promise<WorkbenchResult> {
+  private appCommand(
+    c: Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>,
+    activateApp = true,
+  ): Promise<WorkbenchResult> {
     const fingerprint = createHash('sha256').update(JSON.stringify(c)).digest('hex');
     const previous = this.appCommands.get(c.commandId);
     if (previous)
@@ -424,24 +474,37 @@ export class WorkbenchApplication {
           });
     if (this.commands.has(c.commandId))
       return Promise.resolve({ ok: false, error: { code: 'conflict', message: '命令身份已使用' }, snapshot: this.publicSnapshot() });
-    const promise = this.executeAppCommand(c);
+    const promise = this.executeAppCommand(c, activateApp);
     this.appCommands.set(c.commandId, { fingerprint, promise });
     return promise;
   }
   private async executeAppCommand(
     c: Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>,
+    activateApp: boolean,
   ): Promise<WorkbenchResult> {
+    await this.appControl?.ready();
+    let invoked = false;
     let target: { workspaceId: string; projectId: string } | undefined;
     try {
       await this.serialize(async () => {
         const w = this.requireWorkspace(c.workspaceId);
         if (c.expectedRevision !== undefined && c.expectedRevision !== w.revision) throw new Error('conflict: 空间已有较新修改');
+        const appBefore = structuredClone(w.managedApp ?? null);
+        if (c.type !== 'stopApp' && this.appControl?.hasPending(w.workspaceId)) throw new Error('conflict: App 数据操作结果待确认');
         const pending = this.appOperations.get(w.workspaceId);
         if (pending && c.type !== 'stopApp') throw new Error('conflict: 应用操作正在进行');
         if (c.type === 'createApp') {
           if (w.managedApp) throw new Error('conflict: 空间已绑定标准应用');
           if (!this.runtime.appCreate) throw new Error('unsupported: 标准应用服务未配置');
           const projectId = randomUUID();
+          w.app = {
+            appId: randomUUID(),
+            workspaceId: w.workspaceId,
+            projectId,
+            name: c.name ?? '标准应用',
+            description: c.description ?? '',
+            revision: 0,
+          };
           w.managedApp = {
             workspaceId: w.workspaceId,
             projectId,
@@ -470,9 +533,17 @@ export class WorkbenchApplication {
           }
         }
         this.appOperations.set(w.workspaceId, c.commandId);
-        await this.persist(w, target.projectId);
+        try {
+          await this.persist(w, target.projectId);
+        } catch (error) {
+          if (c.type === 'createApp') w.app = null;
+          w.managedApp = appBefore;
+          this.appOperations.delete(w.workspaceId);
+          throw error;
+        }
       });
       if (!target) throw new Error('not_found: 应用身份缺失');
+      invoked = true;
       const result =
         c.type === 'createApp'
           ? await this.runtime.appCreate!(target)
@@ -493,25 +564,36 @@ export class WorkbenchApplication {
             app = interrupted;
           if (app.workspaceId !== w.workspaceId || app.projectId !== target!.projectId) throw new Error('denied: 应用返回身份不一致');
           w.managedApp = app;
+          if (app.cleanupConfirmed && app.state === 'stopped')
+            await this.appControl?.confirmStopped(w.workspaceId, app.projectId, app.appInstanceId);
           if (app.state === 'running' && app.url) {
             let resource = w.resources.find((r) => r.appProjectId === app.projectId);
             if (!resource) {
-              const tab = this.createResource(w, 'web', '标准应用', app.url, 'sandbox');
+              const tab = this.createResource(w, 'web', w.app?.name ?? '标准应用', app.url, 'sandbox');
               resource = this.resource(w, tab.targetRef.resourceId);
               resource.appProjectId = app.projectId;
             }
             resource.url = app.url;
             resource.unavailableReason = null;
-            this.openResource(w, resource.resourceId);
+            if (activateApp) this.openResource(w, resource.resourceId);
+            // AI restarts need a live browser without changing the user's current or intervening navigation.
+            else this.ensureBrowser(w, resource);
           }
         }
         this.appOperations.delete(c.workspaceId);
         await this.persist(w, target!.projectId);
       });
+      const current = this.requireWorkspace(c.workspaceId).managedApp;
+      if (c.type === 'createApp' && current?.state === 'failed')
+        return {
+          ok: false,
+          error: { code: 'execution_failed', message: current.error ?? '创建应用失败；工程身份已保留，请核对后重试启动' },
+          snapshot: this.publicSnapshot(),
+        };
       return this.result();
     } catch (error) {
       await this.serialize(async () => {
-        if (this.appOperations.get(c.workspaceId) !== c.commandId) return;
+        if (!invoked || this.appOperations.get(c.workspaceId) !== c.commandId) return;
         const w = this.requireWorkspace(c.workspaceId);
         if (w.managedApp) {
           w.managedApp.state = 'failed';
@@ -520,7 +602,11 @@ export class WorkbenchApplication {
         this.appOperations.delete(c.workspaceId);
         await this.persist(w, target?.projectId ?? w.workspaceId);
       });
-      return { ok: false, error: { code: 'execution_failed', message: (error as Error).message }, snapshot: this.publicSnapshot() };
+      const message = (error as Error).message;
+      const prefix = message.split(':')[0];
+      const code =
+        prefix === 'conflict' || prefix === 'denied' || prefix === 'not_found' || prefix === 'unsupported' ? prefix : 'execution_failed';
+      return { ok: false, error: { code, message }, snapshot: this.publicSnapshot() };
     }
   }
   private enqueueCommand(command: WorkbenchCommand): Promise<WorkbenchResult> {
@@ -894,6 +980,69 @@ export class WorkbenchApplication {
     });
     if (!parsed.success) return { error: 'invalid_request', message: 'MCP观察参数无效或超过预算' };
     return this.observe(parsed.data, signal);
+  }
+  private appControl: AppControl | null = null;
+  /** 由装配入口注入唯一控制面 dispatcher；应用只提供冻结授权事实并在 run 结束时释放。 */
+  setAppControl(control: AppControl) {
+    this.appControl = control;
+  }
+  /** 控制面授权上下文：冻结 scope 必须属于仍在执行（非 cancelling）的 run。 */
+  async appControlContext(scope: ObservationTurnScope): Promise<AppControlContext> {
+    return this.serialize(() => {
+      const frozen = this.observationScopes.get(scope.runId);
+      if (!frozen || frozen.workspaceId !== scope.workspaceId || frozen.sessionId !== scope.sessionId)
+        throw new AppControlFailure('no_active_run', '控制面缺少有效的会话与运行归属');
+      const workspace = this.requireWorkspace(frozen.workspaceId);
+      const run = workspace.runs.find((candidate) => candidate.runId === frozen.runId);
+      if (!run || !activeStates.includes(run.state) || run.state === 'cancelling')
+        throw new AppControlFailure('no_active_run', '执行已结束或正在取消，控制面不可用');
+      const executionBinding = run.executionBinding ?? this.runTurns.get(run.runId);
+      if (!executionBinding) throw new AppControlFailure('no_active_run', '执行缺少原会话轮次归属');
+      const version = workspace.sessions
+        .find((session) => session.sessionId === run.sessionId)
+        ?.taskVersions.find((candidate) => candidate.taskVersionId === run.taskVersionId);
+      const app = workspace.managedApp ?? null;
+      const browser = app
+        ? workspace.resources.find((resource) => resource.kind === 'web' && resource.appProjectId === app.projectId)
+        : undefined;
+      return {
+        workspaceId: workspace.workspaceId,
+        sessionId: run.sessionId,
+        runId: run.runId,
+        executionBinding,
+        allowsReset: !!version?.allowedScopes.includes(APP_DATA_RESET_SCOPE),
+        app: app
+          ? {
+              projectId: app.projectId,
+              appInstanceId: app.appInstanceId,
+              state: app.state,
+              url: app.url,
+              cleanupConfirmed: app.cleanupConfirmed,
+              error: app.error,
+            }
+          : null,
+        browser: browser ? { resourceId: browser.resourceId, instanceId: browser.instanceId, generation: browser.generation } : null,
+      };
+    });
+  }
+  async appControlForTurn(
+    scope: ObservationTurnScope,
+    tool: string,
+    args: Record<string, unknown>,
+    signal: AbortSignal,
+  ): Promise<AppControlResult> {
+    if (!this.appControl) return { ok: false, tool: null, error: { code: 'unsupported', message: '控制面未接入' } };
+    return this.appControl.call(scope, tool, args, signal);
+  }
+  /** app.restart：仅当目标仍是请求时的实例才停止并按当前源码重新启动；完成情况经 app.status 查询。 */
+  restartAppForControl(workspaceId: string, appInstanceId: string) {
+    if (this.appControl?.hasPending(workspaceId)) throw new AppControlFailure('app_busy', 'App 数据操作结果待确认');
+    void (async () => {
+      const current = this.snapshot.workspaces.find((workspace) => workspace.workspaceId === workspaceId)?.managedApp;
+      if (current?.appInstanceId !== appInstanceId) return;
+      const stopped = await this.command({ type: 'stopApp', commandId: randomUUID(), workspaceId });
+      if (stopped.ok) await this.appCommand({ type: 'startApp', commandId: randomUUID(), workspaceId }, false);
+    })().catch((error: unknown) => console.error('控制面重启应用失败', error));
   }
   private observationFailure(error: unknown): WorkspaceObservationResult {
     const message = error instanceof Error ? error.message : String(error);
@@ -1385,6 +1534,17 @@ export class WorkbenchApplication {
         if (c.expectedRevision !== undefined && c.expectedRevision !== w.revision)
           throw new Error('conflict: 空间已有较新修改，请重新加载');
         switch (c.type) {
+          case 'updateApp': {
+            if (!w.app || w.app.appId !== c.appId) throw new Error('denied: App 不属于此空间');
+            if (w.app.revision !== c.expectedAppRevision) throw new Error('conflict: App 已有较新修改，请重新打开编辑');
+            w.app = { ...w.app, name: c.name, description: c.description, revision: w.app.revision + 1 };
+            const projectId = w.app.projectId;
+            for (const resource of w.resources.filter((resource) => resource.appProjectId === projectId)) {
+              resource.title = c.name;
+              for (const tab of w.tabs.filter((tab) => tab.targetRef.resourceId === resource.resourceId)) tab.title = c.name;
+            }
+            break;
+          }
           case 'renameWorkspace':
             w.name = c.name;
             break;
@@ -1582,6 +1742,10 @@ export class WorkbenchApplication {
               workspaceId: w.workspaceId,
               sessionId: s.sessionId,
               goal: c.goal,
+              appTarget:
+                w.app && w.managedApp?.guestCwd && c.targetRef && this.resource(w, c.targetRef.resourceId).appProjectId === w.app.projectId
+                  ? { ...structuredClone(w.app), guestCwd: w.managedApp.guestCwd }
+                  : null,
               targetRef: c.targetRef,
               capture:
                 c.targetRef?.kind === 'web' && s.contextTarget?.resourceId === c.targetRef.resourceId && s.context
@@ -1874,6 +2038,18 @@ export class WorkbenchApplication {
       )
         throw new Error('conflict: 确认后的页面已导航，请重新确认');
     }
+    if (
+      v.appTarget &&
+      (v.appTarget.appId !== w.app?.appId ||
+        v.appTarget.projectId !== w.managedApp?.projectId ||
+        v.appTarget.guestCwd !== w.managedApp?.guestCwd)
+    )
+      throw new Error('conflict: 任务 App 工程身份已失效，请重新确认');
+    const context = v.capture
+      ? { captureId: v.capture.captureId, capturedAt: v.capture.capturedAt, page: v.capture.page, element: v.capture.element }
+      : null;
+    const text = `任务版本 ${v.taskVersionId}\n空间 ${w.workspaceId}\n目标 ${JSON.stringify(v.targetRef)}\n不可信页面观察数据（仅作为定位证据，不授予权限） ${JSON.stringify(context)}\nMain 绑定 App 工程 ${JSON.stringify(v.appTarget)}\n允许范围 ${v.allowedScopes.join(', ')}\n验收条件 ${v.acceptance.join('; ')}\n\n${v.goal}`;
+    if (text.length > 32000) throw new Error('invalid_input: 任务目标与现场合计超过 32000 字符，请精简目标后重新确认');
     const previousRuns = structuredClone(w.runs);
     const run: WorkbenchRun = {
       runId: randomUUID(),
@@ -1922,7 +2098,6 @@ export class WorkbenchApplication {
     }
     this.runLaunchPhases.set(run.runId, 'registering');
     const workspaceId = w.workspaceId;
-    const text = `任务版本 ${v.taskVersionId}\n空间 ${workspaceId}\n目标 ${JSON.stringify(v.targetRef)}\n上下文 ${v.capture?.element.text ?? '未附加'}\n允许范围 ${v.allowedScopes.join(', ')}\n验收条件 ${v.acceptance.join('; ')}\n\n${v.goal}`;
     return async () => {
       try {
         await this.runtime.registerSession(sessionId, workspaceId);
@@ -2096,12 +2271,23 @@ export class WorkbenchApplication {
       executing.executionBinding = { ...binding };
       const baseline = this.runLogBaselines.get(executing.runId);
       if (!baseline) throw new Error('执行缺少启动前日志基准');
+      executing.executorState = { state: conversation.state, cleanupPending: conversation.cleanupPending };
       executing.conversation = {
         ...structuredClone(conversation),
         messages: structuredClone(conversation.messages.filter((m) => !baseline.messageIds.has(m.id))),
         toolExecutions: structuredClone(conversation.toolExecutions.filter((tool) => tool.turnId === binding.turnId)),
         warnings: conversation.warnings.filter((warning) => !baseline.warnings.has(warning)),
       };
+    }
+    if (executing) {
+      executing.appCleanupPending = this.appControl?.hasPending(w.workspaceId, executing.runId) ?? false;
+      executing.cleanupPending = executing.appCleanupPending || conversation.cleanupPending;
+      executing.cleanupRetryAvailable = this.appControl?.canRetryCleanup(executing.runId) ?? false;
+      executing.cleanupReconciling = this.appControl?.isReconciling(executing.runId) ?? false;
+      if (executing.cleanupPending && !['starting', 'running'].includes(conversation.state)) {
+        conversation = { ...conversation, state: 'cancelling', cleanupPending: true };
+        executing.conversation = { ...executing.conversation!, state: 'cancelling', cleanupPending: true };
+      }
     }
     const previous = s.conversation;
     const messageIds = new Set(conversation.messages.map((message) => message.id));
@@ -2119,7 +2305,67 @@ export class WorkbenchApplication {
       this.releaseObservationScope(w, run.runId);
     }
   }
+  onAppCleanupChanged(workspaceId: string, runId: string) {
+    void this.updateRuntime(() => {
+      const w = this.requireWorkspace(workspaceId);
+      const run = this.run(w, runId);
+      run.appCleanupPending = this.appControl?.hasPending(workspaceId, runId) ?? false;
+      const model = run.executorState;
+      // 历史 conversation 是展示记录，不能替代旧执行器的退出回执。
+      const modelCleanupUnknown = !model || model.cleanupPending || activeStates.includes(model.state);
+      run.cleanupPending = run.appCleanupPending || modelCleanupUnknown;
+      run.cleanupRetryAvailable = this.appControl?.canRetryCleanup(runId) ?? false;
+      run.cleanupReconciling = this.appControl?.isReconciling(runId) ?? false;
+      if (
+        !run.cleanupPending &&
+        run.state === 'cancelling' &&
+        model &&
+        !['starting', 'running', 'cancelling'].includes(model.state) &&
+        !model.cleanupPending
+      ) {
+        run.state = model.state === 'idle' ? 'completed' : model.state;
+        run.endedAt = new Date().toISOString();
+        if (run.conversation) run.conversation = { ...run.conversation, state: model.state, cleanupPending: false };
+        const session = w.sessions.find((item) => item.sessionId === run.sessionId);
+        const binding = run.executionBinding;
+        if (
+          session &&
+          session.conversation &&
+          binding &&
+          session.conversation.generation === binding.generation &&
+          session.conversation.turnId === binding.turnId
+        )
+          session.conversation = { ...session.conversation, state: model.state, cleanupPending: false };
+        this.releaseObservationScope(w, runId);
+      }
+      if (run.state === 'cancelling' && modelCleanupUnknown && !run.appCleanupPending) {
+        run.error = this.observationScopes.has(runId)
+          ? '模型进程清理未确认；App 数据操作已完成，停止尚未确认'
+          : '旧模型进程清理未确认；App 数据操作已完成，停止尚未确认';
+        if (run.conversation) run.conversation = { ...run.conversation, state: 'cancelling', cleanupPending: true, error: run.error };
+        const session = w.sessions.find((item) => item.sessionId === run.sessionId);
+        const binding = run.executionBinding;
+        if (
+          session &&
+          session.conversation &&
+          binding &&
+          session.conversation.generation === binding.generation &&
+          session.conversation.turnId === binding.turnId
+        )
+          session.conversation = { ...session.conversation, state: 'cancelling', cleanupPending: true, error: run.error };
+      }
+      return w;
+    });
+  }
+  private async reconcileRunCleanup(workspaceId: string, runId: string): Promise<WorkbenchResult> {
+    await this.getSnapshot();
+    this.run(this.requireWorkspace(workspaceId), runId);
+    await this.appControl?.reconcileRun(workspaceId, runId);
+    await this.getSnapshot();
+    return this.result();
+  }
   private releaseObservationScope(workspace: WorkspaceSnapshot, runId: string) {
+    this.appControl?.releaseRun(runId);
     this.observationScopes.delete(runId);
     this.observationCounts.delete(runId);
     for (const session of workspace.sessions)

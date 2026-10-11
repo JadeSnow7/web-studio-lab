@@ -1,5 +1,12 @@
 import { z } from 'zod';
 export const AppTargetSchema = z.object({ workspaceId: z.string().min(1).max(200), projectId: z.uuid() }).strict();
+export const SpaceAppSchema = AppTargetSchema.extend({
+  appId: z.uuid(),
+  name: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(2000),
+  revision: z.number().int().nonnegative(),
+}).strict();
+export type SpaceApp = z.infer<typeof SpaceAppSchema>;
 export const AppSourceFileSchema = z.object({ path: z.string().min(1).max(500), base64: z.string().max(4_000_000) }).strict();
 export const AppSourceSchema = z
   .object({ files: z.array(AppSourceFileSchema).min(1).max(256), sha256: z.string().regex(/^[a-f0-9]{64}$/) })

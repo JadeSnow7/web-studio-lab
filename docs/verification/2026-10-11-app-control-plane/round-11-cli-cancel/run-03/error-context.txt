@@ -1,0 +1,321 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: app-control-cancel-live.spec.ts >> real CLI cancellation stops owned processes and isolates a delayed reply from the next run
+- Location: e2e/app-control-cancel-live.spec.ts:127:1
+
+# Error details
+
+```
+Error: expect(locator).toContainText(expected) failed
+
+Locator: getByRole('region', { name: 'Agent 会话内容' })
+Timeout: 5000ms
+- Expected substring  -  1
++ Received string     + 28
+
+- 回复已取消，进程已退出。
++ Agent 会话对话任务上下文检查日志diff报告运行 391f7a60-f477-4f21-9f22-140d9316e98eCodex CLI · cancelled · 沙箱由服务决定任务版本 eac04400-c5a9-4f51-885e-f547da7b0a59
++ 空间 taskflow-demo
++ 目标 null
++ 上下文 未附加
++ 允许范围 src/components/cli-cancel-retained.txt, src/components/cli-cancel-after-return.txt, agent/**
++ 验收条件 本轮真实 CLI 取消与隔离验证
++
++ 这是已授权的真实取消测试，不是欢迎语任务。仅操作新建项目 /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa。先用普通命令工具 mkdir -p /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components，然后在 /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components/cli-cancel-retained.txt 写入精确内容 e529e76d-7433-4fb9-aefb-cf617618372a，不要末尾换行；运行 npm run agent:manifest。然后调用 MCP app_restart 一次，查询 app_status 前每次 shell sleep 15 秒，最多12次（总等待不超过3分钟），确认新实例 running。不要改其他源码，不读凭据、不联网、不安装依赖、不提升现有权限。app.*总预算64/并发4，MCP总调用少于20。接着立即用普通命令工具原样运行下面的 Python脚本，所有 wsl-app 必须在普通workspace-write命令沙箱运行，不能由MCP代替、不能重试。脚本将等待随机不存在元素，Host会从产品按钮取消整个任务；不要自行取消、不要绕过等待、不要提前创建 after-return 文件。10分钟内一次run。
++ python3 - <<'PY'
++ import json,subprocess,pathlib,os
++ os.chdir("/home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa")
++ s=subprocess.run(['wsl-app','ui.snapshot','{}'],capture_output=True,text=True,timeout=65)
++ assert s.returncode==0,s.stdout
++ r=json.loads(s.stdout);assert r['ok'];b=r['data']
++ a={'appInstanceId':b['appInstanceId'],'documentGeneration':b['documentGeneration'],'action':{'type':'waitFor','target':{'testid':'cancel-wait-e529e76d-7433-4fb9-aefb-cf617618372a'},'state':'visible','timeoutMs':10000}}
++ p=subprocess.run(['wsl-app','ui.act',json.dumps(a)],capture_output=True,text=True,timeout=65)
++ pathlib.Path('src/components/cli-cancel-after-return.txt').write_text('e529e76d-7433-4fb9-aefb-cf617618372a')
++ subprocess.run(['wsl-app','status','{}'],check=True)
++ print('WSL_UNEXPECTED_AFTER_RETURN',p.returncode)
++ PY你我会按指定顺序写入文件、生成 manifest 并重启确认 running，然后原样运行 Python 脚本，等待 Host 从产品按钮取消任务。Codex CLI新实例已确认 running。现在原样执行脚本一次，等待 Host 取消。Codex CLI工具执行 · 11 条/bin/bash -lc 'mkdir -p /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components'退出码 0/bin/bash -lc 'printf %s e529e76d-7433-4fb9-aefb-cf617618372a > src/components/cli-cancel-retained.txt
++ npm run agent:manifest'
++ > @wsl/standard-app@1.1.0 agent:manifest
++ > node --import tsx server/agent-cli.ts manifest --write
++
++ {"ok":true,"data":{"written":true,"sourceRevision":"9130fd7d21eb6b677d295efd0854318412559e49476ad10bb8416fd3a7c5bb25","checks":[]}}
++ 退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"state\": \"running\", \"url\": \"http://127.0.0.1:49228\", \"cleanupConfirmed\": false, \"error\": null}, \"browser\": {\"resourceId\": \"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e\", \"documentGeneration\": 1, \"url\": \"http://127.0.0.1:49228/\", \"cdp\": {\"state\": \"idle\"}, \"agentControl\": {\"state\": \"idle\", \"runId\": null, \"since\": null, \"lastAction\": null}}, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","state":"running","url":"http://127.0.0.1:49228","cleanupConfirmed":false,"error":null},"browser":{"resourceId":"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e","documentGeneration":1,"url":"http://127.0.0.1:49228/","cdp":{"state":"idle"},"agentControl":{"state":"idle","runId":null,"since":null,"lastAction":null}},"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0mcp:wsl_space.app_restart {"appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5"}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.restart\", \"data\": {\"accepted\": true, \"previousAppInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"next\": \"用 app.status 等待新实例 running；旧引用与 appInstanceId 均失效\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.restart","data":{"accepted":true,"previousAppInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","next":"用 app.status 等待新实例 running；旧引用与 appInstanceId 均失效"}}}},"error":null}退出码 0/bin/bash -lc 'sleep 15'退出码 0/bin/bash -lc 'sleep 15'退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"state\": \"starting\", \"url\": null, \"cleanupConfirmed\": true, \"error\": null}, \"browser\": null, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","state":"starting","url":null,"cleanupConfirmed":true,"error":null},"browser":null,"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0/bin/bash -lc 'sleep 15'退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"state\": \"starting\", \"url\": null, \"cleanupConfirmed\": true, \"error\": null}, \"browser\": null, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","state":"starting","url":null,"cleanupConfirmed":true,"error":null},"browser":null,"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0/bin/bash -lc 'sleep 15'退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"7a392eb9-b647-43e3-a217-a8a66233ea6a\", \"state\": \"running\", \"url\": \"http://127.0.0.1:49229\", \"cleanupConfirmed\": false, \"error\": null}, \"browser\": {\"resourceId\": \"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e\", \"documentGeneration\": 1, \"url\": \"http://127.0.0.1:49229/\", \"cdp\": {\"state\": \"idle\"}, \"agentControl\": {\"state\": \"idle\", \"runId\": null, \"since\": null, \"lastAction\": null}}, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"7a392eb9-b647-43e3-a217-a8a66233ea6a","state":"running","url":"http://127.0.0.1:49229","cleanupConfirmed":false,"error":null},"browser":{"resourceId":"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e","documentGeneration":1,"url":"http://127.0.0.1:49229/","cdp":{"state":"idle"},"agentControl":{"state":"idle","runId":null,"since":null,"lastAction":null}},"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.
++   user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.
++   user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored.发送到 · TaskFlow / Agent 会话 / Codex CLIEnter 发送 · Shift+Enter 换行 · 草稿按会话保存发送
+
+Call log:
+  - Expect "toContainText" getByRole('region', { name: 'Agent 会话内容' }) with timeout 5000ms
+  - waiting for getByRole('region', { name: 'Agent 会话内容' })
+    14 × locator resolved to <section aria-label="Agent 会话内容" class="session-workspace">…</section>
+       - unexpected value "Agent 会话对话任务上下文检查日志diff报告运行 391f7a60-f477-4f21-9f22-140d9316e98eCodex CLI · cancelled · 沙箱由服务决定任务版本 eac04400-c5a9-4f51-885e-f547da7b0a59
+空间 taskflow-demo
+目标 null
+上下文 未附加
+允许范围 src/components/cli-cancel-retained.txt, src/components/cli-cancel-after-return.txt, agent/**
+验收条件 本轮真实 CLI 取消与隔离验证
+
+这是已授权的真实取消测试，不是欢迎语任务。仅操作新建项目 /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa。先用普通命令工具 mkdir -p /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components，然后在 /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components/cli-cancel-retained.txt 写入精确内容 e529e76d-7433-4fb9-aefb-cf617618372a，不要末尾换行；运行 npm run agent:manifest。然后调用 MCP app_restart 一次，查询 app_status 前每次 shell sleep 15 秒，最多12次（总等待不超过3分钟），确认新实例 running。不要改其他源码，不读凭据、不联网、不安装依赖、不提升现有权限。app.*总预算64/并发4，MCP总调用少于20。接着立即用普通命令工具原样运行下面的 Python脚本，所有 wsl-app 必须在普通workspace-write命令沙箱运行，不能由MCP代替、不能重试。脚本将等待随机不存在元素，Host会从产品按钮取消整个任务；不要自行取消、不要绕过等待、不要提前创建 after-return 文件。10分钟内一次run。
+python3 - <<'PY'
+import json,subprocess,pathlib,os
+os.chdir("/home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa")
+s=subprocess.run(['wsl-app','ui.snapshot','{}'],capture_output=True,text=True,timeout=65)
+assert s.returncode==0,s.stdout
+r=json.loads(s.stdout);assert r['ok'];b=r['data']
+a={'appInstanceId':b['appInstanceId'],'documentGeneration':b['documentGeneration'],'action':{'type':'waitFor','target':{'testid':'cancel-wait-e529e76d-7433-4fb9-aefb-cf617618372a'},'state':'visible','timeoutMs':10000}}
+p=subprocess.run(['wsl-app','ui.act',json.dumps(a)],capture_output=True,text=True,timeout=65)
+pathlib.Path('src/components/cli-cancel-after-return.txt').write_text('e529e76d-7433-4fb9-aefb-cf617618372a')
+subprocess.run(['wsl-app','status','{}'],check=True)
+print('WSL_UNEXPECTED_AFTER_RETURN',p.returncode)
+PY你我会按指定顺序写入文件、生成 manifest 并重启确认 running，然后原样运行 Python 脚本，等待 Host 从产品按钮取消任务。Codex CLI新实例已确认 running。现在原样执行脚本一次，等待 Host 取消。Codex CLI工具执行 · 11 条/bin/bash -lc 'mkdir -p /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components'退出码 0/bin/bash -lc 'printf %s e529e76d-7433-4fb9-aefb-cf617618372a > src/components/cli-cancel-retained.txt
+npm run agent:manifest'
+> @wsl/standard-app@1.1.0 agent:manifest
+> node --import tsx server/agent-cli.ts manifest --write
+
+{"ok":true,"data":{"written":true,"sourceRevision":"9130fd7d21eb6b677d295efd0854318412559e49476ad10bb8416fd3a7c5bb25","checks":[]}}
+退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"state\": \"running\", \"url\": \"http://127.0.0.1:49228\", \"cleanupConfirmed\": false, \"error\": null}, \"browser\": {\"resourceId\": \"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e\", \"documentGeneration\": 1, \"url\": \"http://127.0.0.1:49228/\", \"cdp\": {\"state\": \"idle\"}, \"agentControl\": {\"state\": \"idle\", \"runId\": null, \"since\": null, \"lastAction\": null}}, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","state":"running","url":"http://127.0.0.1:49228","cleanupConfirmed":false,"error":null},"browser":{"resourceId":"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e","documentGeneration":1,"url":"http://127.0.0.1:49228/","cdp":{"state":"idle"},"agentControl":{"state":"idle","runId":null,"since":null,"lastAction":null}},"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0mcp:wsl_space.app_restart {"appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5"}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.restart\", \"data\": {\"accepted\": true, \"previousAppInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"next\": \"用 app.status 等待新实例 running；旧引用与 appInstanceId 均失效\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.restart","data":{"accepted":true,"previousAppInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","next":"用 app.status 等待新实例 running；旧引用与 appInstanceId 均失效"}}}},"error":null}退出码 0/bin/bash -lc 'sleep 15'退出码 0/bin/bash -lc 'sleep 15'退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"state\": \"starting\", \"url\": null, \"cleanupConfirmed\": true, \"error\": null}, \"browser\": null, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","state":"starting","url":null,"cleanupConfirmed":true,"error":null},"browser":null,"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0/bin/bash -lc 'sleep 15'退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"state\": \"starting\", \"url\": null, \"cleanupConfirmed\": true, \"error\": null}, \"browser\": null, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","state":"starting","url":null,"cleanupConfirmed":true,"error":null},"browser":null,"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0/bin/bash -lc 'sleep 15'退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"7a392eb9-b647-43e3-a217-a8a66233ea6a\", \"state\": \"running\", \"url\": \"http://127.0.0.1:49229\", \"cleanupConfirmed\": false, \"error\": null}, \"browser\": {\"resourceId\": \"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e\", \"documentGeneration\": 1, \"url\": \"http://127.0.0.1:49229/\", \"cdp\": {\"state\": \"idle\"}, \"agentControl\": {\"state\": \"idle\", \"runId\": null, \"since\": null, \"lastAction\": null}}, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"7a392eb9-b647-43e3-a217-a8a66233ea6a","state":"running","url":"http://127.0.0.1:49229","cleanupConfirmed":false,"error":null},"browser":{"resourceId":"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e","documentGeneration":1,"url":"http://127.0.0.1:49229/","cdp":{"state":"idle"},"agentControl":{"state":"idle","runId":null,"since":null,"lastAction":null}},"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.
+  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.
+  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored.发送到 · TaskFlow / Agent 会话 / Codex CLIEnter 发送 · Shift+Enter 换行 · 草稿按会话保存发送"
+
+```
+
+```yaml
+- region "Agent 会话内容":
+  - heading "Agent 会话" [level=2]
+  - navigation "会话视图":
+    - button "对话" [pressed]
+    - button "任务"
+    - button "上下文"
+    - button "检查"
+    - button "日志"
+    - button "diff"
+    - button "报告"
+  - paragraph: 运行 391f7a60-f477-4f21-9f22-140d9316e98e
+  - paragraph: Codex CLI · cancelled · 沙箱由服务决定
+  - log "Codex 对话消息":
+    - paragraph: "任务版本 eac04400-c5a9-4f51-885e-f547da7b0a59 空间 taskflow-demo 目标 null 上下文 未附加 允许范围 src/components/cli-cancel-retained.txt, src/components/cli-cancel-after-return.txt, agent/** 验收条件 本轮真实 CLI 取消与隔离验证 这是已授权的真实取消测试，不是欢迎语任务。仅操作新建项目 /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa。先用普通命令工具 mkdir -p /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components，然后在 /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components/cli-cancel-retained.txt 写入精确内容 e529e76d-7433-4fb9-aefb-cf617618372a，不要末尾换行；运行 npm run agent:manifest。然后调用 MCP app_restart 一次，查询 app_status 前每次 shell sleep 15 秒，最多12次（总等待不超过3分钟），确认新实例 running。不要改其他源码，不读凭据、不联网、不安装依赖、不提升现有权限。app.*总预算64/并发4，MCP总调用少于20。接着立即用普通命令工具原样运行下面的 Python脚本，所有 wsl-app 必须在普通workspace-write命令沙箱运行，不能由MCP代替、不能重试。脚本将等待随机不存在元素，Host会从产品按钮取消整个任务；不要自行取消、不要绕过等待、不要提前创建 after-return 文件。10分钟内一次run。 python3 - <<'PY' import json,subprocess,pathlib,os os.chdir(\"/home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa\") s=subprocess.run(['wsl-app','ui.snapshot','{}'],capture_output=True,text=True,timeout=65) assert s.returncode==0,s.stdout r=json.loads(s.stdout);assert r['ok'];b=r['data'] a={'appInstanceId':b['appInstanceId'],'documentGeneration':b['documentGeneration'],'action':{'type':'waitFor','target':{'testid':'cancel-wait-e529e76d-7433-4fb9-aefb-cf617618372a'},'state':'visible','timeoutMs':10000}} p=subprocess.run(['wsl-app','ui.act',json.dumps(a)],capture_output=True,text=True,timeout=65) pathlib.Path('src/components/cli-cancel-after-return.txt').write_text('e529e76d-7433-4fb9-aefb-cf617618372a') subprocess.run(['wsl-app','status','{}'],check=True) print('WSL_UNEXPECTED_AFTER_RETURN',p.returncode) PY"
+    - text: 你
+    - paragraph: 我会按指定顺序写入文件、生成 manifest 并重启确认 running，然后原样运行 Python 脚本，等待 Host 从产品按钮取消任务。
+    - text: Codex CLI
+    - paragraph: 新实例已确认 running。现在原样执行脚本一次，等待 Host 取消。
+    - text: Codex CLI
+  - group: 工具执行 · 11 条
+  - status: "Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings. user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored. user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored."
+  - text: 发送到 · TaskFlow / Agent 会话 / Codex CLI
+  - textbox "会话消息":
+    - /placeholder: 继续描述想修改的内容…
+  - text: Enter 发送 · Shift+Enter 换行 · 草稿按会话保存
+  - button "发送" [disabled]
+```
+
+# Test source
+
+```ts
+  252 |     await waitApp('running');
+  253 |     await page.getByRole('dialog', { name: '空间 App' }).getByRole('button', { name: '关闭', exact: true }).click();
+  254 |     sessionId = (await space()).sessions[0]!.sessionId;
+  255 |     await command({ type: 'locateSession', sessionId });
+  256 |     const session = page.getByRole('region', { name: 'Agent 会话内容' });
+  257 |     const initialNavigation = await observe();
+  258 |     results['navigationBeforeRun'] = { layout: initialNavigation.layout, activePaneId: initialNavigation.activePaneId };
+  259 |     const initialHashes = await sourceHashes();
+  260 |     results['sourceHashesInitial'] = initialHashes;
+  261 |     await save();
+  262 |     const firstScript = `import json,subprocess,pathlib,os
+  263 | os.chdir(${JSON.stringify(cwd)})
+  264 | s=subprocess.run(['wsl-app','ui.snapshot','{}'],capture_output=True,text=True,timeout=65)
+  265 | assert s.returncode==0,s.stdout
+  266 | r=json.loads(s.stdout);assert r['ok'];b=r['data']
+  267 | a={'appInstanceId':b['appInstanceId'],'documentGeneration':b['documentGeneration'],'action':{'type':'waitFor','target':{'testid':'${missing}'},'state':'visible','timeoutMs':10000}}
+  268 | p=subprocess.run(['wsl-app','ui.act',json.dumps(a)],capture_output=True,text=True,timeout=65)
+  269 | pathlib.Path('${forbidden}').write_text('${nonce}')
+  270 | subprocess.run(['wsl-app','status','{}'],check=True)
+  271 | print('WSL_UNEXPECTED_AFTER_RETURN',p.returncode)`;
+  272 |     const first = await start(
+  273 |       `这是已授权的真实取消测试，不是欢迎语任务。仅操作新建项目 ${cwd}。先用普通命令工具 mkdir -p ${cwd}/src/components，然后在 ${cwd}/${retained} 写入精确内容 ${nonce}，不要末尾换行；运行 npm run agent:manifest。然后调用 MCP app_restart 一次，查询 app_status 前每次 shell sleep 15 秒，最多12次（总等待不超过3分钟），确认新实例 running。不要改其他源码，不读凭据、不联网、不安装依赖、不提升现有权限。app.*总预算64/并发4，MCP总调用少于20。接着立即用普通命令工具原样运行下面的 Python脚本，所有 wsl-app 必须在普通workspace-write命令沙箱运行，不能由MCP代替、不能重试。脚本将等待随机不存在元素，Host会从产品按钮取消整个任务；不要自行取消、不要绕过等待、不要提前创建 after-return 文件。10分钟内一次run。\npython3 - <<'PY'\n${firstScript}\nPY`,
+  274 |     );
+  275 |     await expect(session.getByRole('button', { name: '取消回复', exact: true })).toBeVisible();
+  276 |     await expect
+  277 |       .poll(
+  278 |         async () => {
+  279 |           const target = (await gate()).target;
+  280 |           if (target) return target;
+  281 |           const current = await observe();
+  282 |           const run = current.runs.find((run) => run.runId === first)!;
+  283 |           if (!['starting', 'running', 'cancelling'].includes(run.state)) {
+  284 |             results['preflightTerminal'] = {
+  285 |               runId: first,
+  286 |               state: run.state,
+  287 |               cleanupPending: run.conversation?.cleanupPending,
+  288 |               appState: current.managedApp?.state,
+  289 |               toolExecutions: run.conversation?.toolExecutions.length,
+  290 |             };
+  291 |             await save();
+  292 |             throw new Error(`First model run ended in ${run.state} before issuing the required in-flight CLI call`);
+  293 |           }
+  294 |           return null;
+  295 |         },
+  296 |         { timeout: 600_000, intervals: [100, 250] },
+  297 |       )
+  298 |       .not.toBeNull();
+  299 |     const entered = (await gate()).target!;
+  300 |     expect(entered.runId).toBe(first);
+  301 |     expect(entered.tool).toBe('app.ui.act');
+  302 |     const targetArgs = AppToolInputSchemas['app.ui.act'].parse(entered.args);
+  303 |     expect(targetArgs.action).toEqual({ type: 'waitFor', target: { testid: missing }, state: 'visible', timeoutMs: 10000 });
+  304 |     ownership = OwnershipSchema.parse(
+  305 |       JSON.parse((await guest(['python3', '-I', '-c', ownershipScript, missing, cwd, retained, forbidden])).stdout),
+  306 |     );
+  307 |     results['inflightOwnership'] = ownership;
+  308 |     results['gateBeforeCancel'] = await gate();
+  309 |     results['sourceBeforeCancel'] = ownership.markers;
+  310 |     results['sourceHashesBeforeCancel'] = ownership.sourceHashes;
+  311 |     const changedPaths = [...new Set([...Object.keys(initialHashes), ...Object.keys(ownership.sourceHashes)])].filter(
+  312 |       (file) => initialHashes[file] !== ownership!.sourceHashes[file],
+  313 |     );
+  314 |     results['changedSourcePaths'] = changedPaths;
+  315 |     expect(changedPaths).toContain(retained);
+  316 |     expect(
+  317 |       changedPaths.filter((file) => file !== retained && !file.startsWith('agent/')),
+  318 |       'Model source changes must stay inside the frozen scope',
+  319 |     ).toEqual([]);
+  320 |     await save();
+  321 |     expect(results['sourceBeforeCancel']).toEqual({ retained: nonce, forbidden: null });
+  322 |     expect(
+  323 |       ownership.tree.some((p) => /codex/i.test(p.comm)),
+  324 |       'Owned helper subtree must include real Codex',
+  325 |     ).toBe(true);
+  326 |     expect((await gate()).held, 'Cancel must precede the real waitFor reply').toBeNull();
+  327 |     expect(
+  328 |       (await gate()).events.some((e) => e.type === 'abort'),
+  329 |       'CLI must still be active before the product cancel',
+  330 |     ).toBe(false);
+  331 |     expect(Date.now() - entered.at, 'Evidence collection must finish while waitFor is genuinely in flight').toBeLessThan(8000);
+  332 |     const beforeCancel = await observe();
+  333 |     const navigationBeforeCancel = {
+  334 |       layout: beforeCancel.layout,
+  335 |       activePaneId: beforeCancel.activePaneId,
+  336 |       sessionVisible: await session.isVisible(),
+  337 |       cancelVisible: await session.getByRole('button', { name: '取消回复', exact: true }).isVisible(),
+  338 |       at: Date.now(),
+  339 |     };
+  340 |     results['navigationBeforeCancel'] = navigationBeforeCancel;
+  341 |     expect(navigationBeforeCancel.sessionVisible, 'AI restart must keep the real session visible').toBe(true);
+  342 |     expect(navigationBeforeCancel.cancelVisible, 'The product cancel button must remain visible without navigating back').toBe(true);
+  343 |     expect(beforeCancel.layout).toEqual(initialNavigation.layout);
+  344 |     expect(beforeCancel.activePaneId).toBe(initialNavigation.activePaneId);
+  345 |     results['cancelButtonClickedAt'] = Date.now();
+  346 |     await session
+  347 |       .getByRole('button', { name: '取消回复', exact: true })
+  348 |       .click({ timeout: Math.max(1, 10_000 - (Date.now() - entered.at)) });
+  349 |     results['cancelButtonClickFinishedAt'] = Date.now();
+  350 |     expect(Date.now() - entered.at, 'The actual product click must finish inside the in-flight waitFor window').toBeLessThan(10_000);
+  351 |     const cancelled = await waitTerminal(first, 'cancelled', 60_000);
+> 352 |     await expect(session).toContainText('回复已取消，进程已退出。');
+      |                           ^ Error: expect(locator).toContainText(expected) failed
+  353 |     await expect(session.getByRole('button', { name: '取消回复', exact: true })).toHaveCount(0);
+  354 |     await page.screenshot({ path: path.join(evidence, 'product-after-cancel.png') });
+  355 |     results['firstRun'] = { runId: cancelled.runId, state: cancelled.state, cleanupPending: cancelled.conversation?.cleanupPending };
+  356 |     await expect.poll(async () => (await gate()).held, { timeout: 20_000 }).not.toBeNull();
+  357 |     const held = (await gate()).held!;
+  358 |     expect(held.id).toBe(entered.id);
+  359 |     expect(held.result.ok).toBe(false);
+  360 |     if (held.result.ok) throw new Error('Real cancellation reply expected');
+  361 |     expect(held.result.error.code).toBe('cancelled');
+  362 |     const firstAudit = await audit(first);
+  363 |     results['firstAudit'] = firstAudit;
+  364 |     expect(
+  365 |       firstAudit.some((r) => r.tool === entered.tool && r.args.sha256 === hash(JSON.stringify(entered.args)) && r.outcome === 'cancelled'),
+  366 |     ).toBe(true);
+  367 |     await expect
+  368 |       .poll(async () => JSON.parse((await guest(['python3', '-I', '-c', stoppedScript, JSON.stringify(ownership)])).stdout), {
+  369 |         timeout: 30_000,
+  370 |       })
+  371 |       .toEqual({ remaining: [], channelExists: false });
+  372 |     results['stoppedOwnership'] = JSON.parse((await guest(['python3', '-I', '-c', stoppedScript, JSON.stringify(ownership)])).stdout);
+  373 |     expect(await markerFiles()).toEqual({ retained: nonce, forbidden: null });
+  374 |     results['sourceAfterCancel'] = await markerFiles();
+  375 |     const afterCancelHashes = await sourceHashes();
+  376 |     results['sourceHashesAfterCancel'] = afterCancelHashes;
+  377 |     expect(afterCancelHashes, 'Cancellation must retain every source file from the in-flight baseline').toEqual(ownership.sourceHashes);
+  378 |     const running = (await observe()).managedApp!;
+  379 |     expect(running.state, 'Task cancellation leaves the managed App running for the user').toBe('running');
+  380 |     results['appAfterCancel'] = running;
+  381 |     await save();
+  382 |     await app.evaluate(() => {
+  383 |       (globalThis as GateGlobal).__wslAppCancelGate.releaseOnSecond = true;
+  384 |     });
+  385 |     const secondScript = `import json,subprocess,os
+  386 | os.chdir(${JSON.stringify(cwd)})
+  387 | calls=[]
+  388 | for tool in ['status','describe']:
+  389 |  p=subprocess.run(['wsl-app',tool,'{}'],capture_output=True,text=True,timeout=65)
+  390 |  r=json.loads(p.stdout);calls.append({'tool':'app.'+tool,'exitCode':p.returncode,'result':r})
+  391 |  assert p.returncode==0 and r['ok'],r
+  392 | print('${secondMarker}'+json.dumps({'version':1,'calls':calls},ensure_ascii=False))`;
+  393 |     const second = await start(
+  394 |       `这是同会话新的真实CLI隔离验证。不要修改任何文件，不要重启或停止应用。仅在 ${cwd} 用普通命令工具原样执行下面Python脚本，真实 wsl-app 必须在现有workspace-write命令沙箱运行，不调用MCP，不提权、不联网、不重试；脚本完成即简短结束，一次run最多10分钟。\npython3 - <<'PY'\n${secondScript}\nPY`,
+  395 |     );
+  396 |     const completed = await waitTerminal(second, 'completed', 600_000);
+  397 |     const finalGate = await gate();
+  398 |     results['gateAfterSecond'] = finalGate;
+  399 |     expect(finalGate.second?.runId).toBe(second);
+  400 |     expect(finalGate.second?.tool).toBe('app.status');
+  401 |     expect(finalGate.second?.args).toEqual({});
+  402 |     expect(finalGate.second?.id).not.toBe(entered.id);
+  403 |     const cancelForwarded = finalGate.events.find((e) => e.type === 'cancel-forwarded');
+  404 |     expect(cancelForwarded).toBeDefined();
+  405 |     expect(
+  406 |       finalGate.calls.filter((c) => c.runId === first && c.at >= cancelForwarded!.at),
+  407 |       'Cancelled run cannot start any new control action',
+  408 |     ).toEqual([]);
+  409 |     expect(finalGate.events.filter((e) => e.type === 'released')).toEqual([
+  410 |       { type: 'released', reason: 'second-real-request', at: expect.any(Number), callId: entered.id },
+  411 |     ]);
+  412 |     expect(finalGate.events.some((e) => e.type === 'cancel-forwarded')).toBe(true);
+  413 |     expect(
+  414 |       completed.conversation!.toolExecutions.filter((t) => t.command.startsWith('mcp:')),
+  415 |       'Second run must use only the genuine CLI transport',
+  416 |     ).toEqual([]);
+  417 |     expect(finalGate.calls.filter((c) => c.runId === second).map((c) => c.tool)).toEqual(['app.status', 'app.describe']);
+  418 |     const cliTools = completed.conversation!.toolExecutions.filter(
+  419 |       (t) => !t.command.startsWith('mcp:') && t.command.includes(secondMarker),
+  420 |     );
+  421 |     results['secondCliCommands'] = cliTools.map((t) => ({
+  422 |       id: t.id,
+  423 |       turnId: t.turnId,
+  424 |       exitCode: t.exitCode,
+  425 |       truncated: t.truncated,
+  426 |       outputSha256: hash(t.output),
+  427 |     }));
+  428 |     const receipts = cliTools.flatMap((t) =>
+  429 |       t.output
+  430 |         .split('\n')
+  431 |         .filter((line) => line.startsWith(secondMarker))
+  432 |         .map((line) => ({
+  433 |           tool: t,
+  434 |           receipt: z
+  435 |             .object({
+  436 |               version: z.literal(1),
+  437 |               calls: z
+  438 |                 .array(
+  439 |                   z
+  440 |                     .object({ tool: z.enum(['app.status', 'app.describe']), exitCode: z.literal(0), result: AppControlResultSchema })
+  441 |                     .strict(),
+  442 |                 )
+  443 |                 .length(2),
+  444 |             })
+  445 |             .strict()
+  446 |             .parse(JSON.parse(line.slice(secondMarker.length))),
+  447 |         })),
+  448 |     );
+  449 |     expect(receipts).toHaveLength(1);
+  450 |     const receipt = receipts[0]!;
+  451 |     expect(receipt.tool.exitCode).toBe(0);
+  452 |     expect(receipt.tool.truncated).toBe(false);
+```

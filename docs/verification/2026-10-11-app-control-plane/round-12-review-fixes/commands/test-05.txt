@@ -1,0 +1,36 @@
+
+> web-studio-lab@ test /Users/huaodong/workspace/web-studio-lab
+> vitest run && node --test scripts/packaging/*.test.mjs && pnpm test:external-builds
+
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/desktop/src/main/workbench/observation-application.test.ts (24 tests | 1 failed) 15608ms
+   ❯ Main observation ownership and lifecycle (16)
+     × keeps the 64-request run budget independent of the rolling session history 7257ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/workbench/observation-application.test.ts > Main observation ownership and lifecycle > keeps the 64-request run budget independent of the rolling session history
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/desktop/src/main/workbench/observation-application.test.ts:318:3
+    316|     expect(await settled).not.toHaveProperty('error');
+    317|   });
+    318|   it('keeps the 64-request run budget independent of the rolling sessi…
+       |   ^
+    319|     const { app, runtime, command } = await setup();
+    320|     const w = (await app.getSnapshot()).workspaces[0]!;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 80 passed | 6 skipped (87)
+      Tests  1 failed | 699 passed | 15 skipped (715)
+   Start at  15:45:49
+   Duration  19.19s (tests 68%, import 22%, transform 9%, worker 1%)
+
+    Isolate  87 workers spawned · ~275ms startup each (spawn + environment, per file)
+             at least ~2.38s faster with isolate: false — reuses workers across files instead of one per file
+
+ ELIFECYCLE  Test failed. See above for more details.

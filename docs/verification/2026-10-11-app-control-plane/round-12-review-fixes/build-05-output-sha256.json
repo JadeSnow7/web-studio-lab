@@ -1,0 +1,8 @@
+{
+  "apps/desktop/out/renderer/index.html": "c0e6e8555afafc3e8de8e97236cd64640290f9ebad2abb2a5e6e4455036ff7eb",
+  "apps/desktop/out/main/index.js": "ee3d0fab9c9de6df382a86060bb6a8b05b4ac6d22cfdbab7c2c4ab007f65946b",
+  "apps/desktop/out/preload/index.js": "0ea9fa49fd2036402ecbd1115cd230e640a87cd96f9075acb103d7752e3c493f",
+  "apps/desktop/out/renderer/assets/index-CI_GMZ3c.js": "78053d0ab4e025c2fd31c4d3ddc14a8a2c5776e9e1886f9bf0aafffaab70672d",
+  "apps/desktop/out/renderer/assets/index-D2pDDGF0.css": "47b2f9fd98839e1d1e514422474983000266ab7219c45fd444034f5ab55ecfd0",
+  "apps/service/out/index.cjs": "429431f6e98a72d852d906ef835b96a6f5f0b726e80dbbe7561e06d28b5e0543"
+}

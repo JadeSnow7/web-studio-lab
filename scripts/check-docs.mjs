@@ -23,6 +23,7 @@ const documents = [
   'docs/acceptance/integration-20261008/acceptance-matrix.md',
   'docs/acceptance/integration-20261008/integration-disposition.md',
   'docs/architecture/adr/0001-modular-monolith.md',
+  'docs/architecture/adr/0002-app-control-plane.md',
   'docs/architecture/task-priority-walkthrough.md',
   'docs/architecture/baseline-2026-10-06.md',
 ];

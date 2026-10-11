@@ -235,11 +235,30 @@ def main(start):
     resource_fd = None
     observer = None
     observer_dir = None
+    cli_channel = None
     observer_clients = {}
     observation_count = 0
     terminal_rc = None
     workspace = None
     streams = {}
+    def close_observers():
+        nonlocal cli_channel, observer, observer_dir
+        for call_id, (client, _, _) in observer_clients.items():
+            emit("observation-cancel", id=call_id)
+            client.close()
+        observer_clients.clear()
+        if cli_channel is not None:
+            for call_id in list(cli_channel.active):
+                emit("observation-cancel", id=call_id)
+            cli_channel.close()
+            cli_channel = None
+        if observer is not None:
+            observer.close()
+            observer = None
+        if observer_dir is not None:
+            observer_dir.cleanup()
+            observer_dir = None
+
     try:
         if terminal:
             master, slave = pty.openpty()
@@ -279,6 +298,18 @@ def main(start):
                     observer.listen(4)
                     observer.setblocking(False)
                     observation_args = [observation_path, "images" if start.get("observationImages") is True else "text"]
+                    # CLI uses filesystem IPC inside the unchanged command sandbox.
+                    cli_channel_path = observer_dir.name + "/app-channel"
+                    cli_channel = module["AppCliSlots"](cli_channel_path)
+                    cli_source = observer_dir.name + "/wsl_app.py"
+                    with open(cli_source, "w", encoding="utf-8") as target:
+                        target.write(source)
+                    cli = observer_dir.name + "/wsl-app"
+                    with open(cli, "w", encoding="utf-8") as target:
+                        target.write("#!/bin/sh\nexec python3 -I -u '" + cli_source + "' --cli \"$@\"\n")
+                    os.chmod(cli, 0o755)
+                    env["WSL_APP_CHANNEL"] = cli_channel_path
+                    env["PATH"] = observer_dir.name + ":" + env["PATH"]
                 # TOML basic strings/arrays use the same escaping used here by JSON.
                 config = ["-c", 'mcp_servers.wsl_space.command="python3"', "-c",
                           "mcp_servers.wsl_space.args=" + json.dumps(["-I", "-u", "-c", source, descriptor, *observation_args]),
@@ -302,6 +333,13 @@ def main(start):
         pending_input = b""
         leader_cleaned = False
         while (streams or child.poll() is None) and not closing:
+            if cli_channel is not None:
+                calls, cancelled, admitted = cli_channel.poll(4 - len(observer_clients) - len(cli_channel.active), 64 - observation_count)
+                observation_count += admitted
+                for call_id in cancelled:
+                    emit("observation-cancel", id=call_id)
+                for call_id, request in calls:
+                    emit("observation-call", id=call_id, tool=request["tool"], args=request["args"])
             readable, writable, _ = select.select([stdin, *streams, *([observer.fileno()] if observer else []), *[client.fileno() for client, pending, _ in observer_clients.values()]], [master] if pending_input else [], [], 0.1)
             if writable:
                 written = os.write(master, pending_input)
@@ -316,7 +354,7 @@ def main(start):
                 if observer and fd == observer.fileno():
                     client, _ = observer.accept()
                     client.setblocking(False)
-                    if len(observer_clients) >= 4 or observation_count >= 64:
+                    if len(observer_clients) + (len(cli_channel.active) if cli_channel else 0) >= 4 or observation_count >= 64:
                         client.close()
                     else:
                         observer_clients[str(uuid.uuid4())] = (client, b"", time.monotonic() + 20)
@@ -351,6 +389,9 @@ def main(start):
                             del observer_clients[observer_id]
                             continue
                         emit("observation-call", id=observer_id, tool=request["tool"], args=request["args"])
+                        # Control-plane calls (scenario/waitFor) may run up to Codex's 60s MCP limit.
+                        if request["tool"].startswith("app."):
+                            deadline += 40
                         observer_clients[observer_id] = (client, None, deadline)
                     else:
                         observer_clients[observer_id] = (client, pending, deadline)
@@ -372,6 +413,8 @@ def main(start):
                         keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "input": {"type", "data"}, "resize": {"type", "cols", "rows"}}
                         if kind not in keys or set(frame) != keys[kind]:
                             raise ValueError("invalid control fields")
+                        if cli_channel is not None:
+                            cli_channel.receive(frame)
                         if kind == "observation-result" and not terminal:
                             pending = observer_clients.pop(frame["id"], None)
                             if pending:
@@ -431,10 +474,7 @@ def main(start):
             snapshot_workspace(workspace.name, start["workspace"]["runId"])
             workspace.cleanup()
             workspace = None
-        for call_id, (client, _, _) in observer_clients.items():
-            emit("observation-cancel", id=call_id)
-            client.close()
-        observer_clients.clear()
+        close_observers()
         emit("cleanup", ok=True)
     except BaseException as error:
         emit("error", error=str(error))
@@ -458,18 +498,19 @@ def main(start):
                 report_retained_workspace(workspace, start, cleanup_error)
                 emit("cleanup", ok=False, error=str(cleanup_error))
                 return
-        for call_id, (client, _, _) in observer_clients.items():
-            emit("observation-cancel", id=call_id)
-            client.close()
-        observer_clients.clear()
+        try:
+            close_observers()
+        except BaseException as cleanup_error:
+            emit("error", error=str(cleanup_error))
+            emit("cleanup", ok=False, error=str(cleanup_error))
+            return
         emit("cleanup", ok=True)
     finally:
-        for client, _, _ in observer_clients.values():
-            client.close()
-        if observer is not None:
-            observer.close()
-        if observer_dir is not None:
-            observer_dir.cleanup()
+        try:
+            close_observers()
+        except BaseException as cleanup_error:
+            emit("error", error=str(cleanup_error))
+            emit("cleanup", ok=False, error=str(cleanup_error))
         if terminal_rc is not None:
             terminal_rc.close()
         if master is not None:

@@ -6,6 +6,7 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Database } from './db.js';
 import { records, sessions } from './schema.js';
+import { mountAgentRoutes, type AgentRouteOptions } from './agent/routes.js';
 
 export const identitySchema = z.object({
   workspaceId: z.string().min(1),
@@ -17,7 +18,9 @@ export type Identity = z.infer<typeof identitySchema>;
 const userSchema = z.enum(['A', 'B']);
 const keySchema = z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/);
 
-export function createApp(database: Database, identity: Identity, devSessions: boolean) {
+export const TEMPLATE_VERSION = '1.1.0';
+
+export function createApp(database: Database, identity: Identity, devSessions: boolean, agent?: Omit<AgentRouteOptions, 'appInstanceId'>) {
   const app = new Hono<{ Variables: { userId: 'A' | 'B' } }>();
   // Cookies share a host across ports; bind the cookie name to this application instance.
   const cookieName = `wsl_${createHash('sha256').update(identity.appInstanceId).digest('hex').slice(0, 16)}`;
@@ -33,7 +36,7 @@ export function createApp(database: Database, identity: Identity, devSessions: b
   });
   app.get('/api/health', async (c) => {
     await database.client.query('SELECT 1');
-    return c.json({ ok: true, templateId: 'wsl-standard-app', templateVersion: '1.0.0', identity });
+    return c.json({ ok: true, templateId: 'wsl-standard-app', templateVersion: TEMPLATE_VERSION, identity });
   });
   app.post('/api/dev/session', async (c) => {
     if (!devSessions) return c.json({ error: 'Development sessions disabled' }, 404);
@@ -80,6 +83,8 @@ export function createApp(database: Database, identity: Identity, devSessions: b
       .onConflictDoUpdate({ target: [records.userId, records.key], set: { value: record.value } });
     return c.json(record);
   });
+  // 受管开发实例的控制面端点必须先于兜底 404 挂载。
+  if (agent) mountAgentRoutes(app, database, { ...agent, appInstanceId: identity.appInstanceId });
   app.all('/api/*', (c) => c.json({ error: 'API route not found' }, 404));
   return app;
 }

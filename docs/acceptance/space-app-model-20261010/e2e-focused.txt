@@ -1,0 +1,42 @@
+
+Running 2 tests using 1 worker
+
+(node:45695) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Downloading Electron binary...
+(node:45702) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/space-app.spec.ts:7:1 › App form validates, cancels, creates and edits within its space; missing sandbox keeps draft and registered identity (11.0s)
+(node:45747) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 e2e/space-app.spec.ts:50:1 › controlled UI transport fixture: successful App creation and edit, duplicate prevention and revision conflict (1.7s)
+
+
+  1) e2e/space-app.spec.ts:7:1 › App form validates, cancels, creates and edits within its space; missing sandbox keeps draft and registered identity 
+
+    Error: expect(locator).toBeInViewport() failed
+
+    Locator: getByRole('dialog', { name: '编辑 App', exact: true }).getByRole('button', { name: '保存 App' })
+    Expected: in viewport
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeInViewport" getByRole('dialog', { name: '编辑 App', exact: true }).getByRole('button', { name: '保存 App' }) with timeout 5000ms
+      - waiting for getByRole('dialog', { name: '编辑 App', exact: true }).getByRole('button', { name: '保存 App' })
+
+
+      38 |     await expect(dialog.getByLabel('App 说明')).toHaveValue('用于验证名称和说明的持久化');
+      39 |     await setWindowSize(app, 900, 700);
+    > 40 |     await expect(dialog.getByRole('button', { name: '保存 App' })).toBeInViewport();
+         |                                                                  ^
+      41 |     await mkdir(screensDir, { recursive: true });
+      42 |     await page.screenshot({ path: path.join(screensDir, 'space-app-editor-narrow.png') });
+      43 |     await page.keyboard.press('Escape');
+        at /private/tmp/web-studio-lab-space-app-model/e2e/space-app.spec.ts:40:66
+
+    Error Context: test-results/e2e/space-app-App-form-validat-df9f6-aft-and-registered-identity/error-context.md
+
+  1 failed
+    e2e/space-app.spec.ts:7:1 › App form validates, cancels, creates and edits within its space; missing sandbox keeps draft and registered identity 
+  1 passed (13.6s)

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';
 import { Button } from './components/Button';
+import { useAgentCommand, useAgentState } from './agent/registry';
 
 const healthSchema = z.object({
   ok: z.literal(true),
@@ -33,6 +34,18 @@ export default function App() {
     void refresh(controller.signal);
     return () => controller.abort();
   }, [refresh]);
+  // 只读观察：Agent 通过 app.state.read / health.refresh 佐证 UI 结果，不代替用户操作。
+  const healthState = {
+    status: error ? 'error' : health ? 'ok' : 'loading',
+    busy,
+    error: error || null,
+    identity: health?.identity ?? null,
+  };
+  useAgentState('app.health', healthState);
+  useAgentCommand('health.refresh', async () => {
+    await refresh();
+    return null;
+  });
   return (
     <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
       <p className="mb-8 text-sm font-medium tracking-wide text-slate-500">WEB STUDIO LAB / 标准应用</p>
@@ -44,11 +57,12 @@ export default function App() {
             <h2 id="service-heading" className="font-semibold text-slate-900">
               应用服务
             </h2>
-            <p role="status" aria-live="polite" className="mt-2 text-sm text-slate-600">
+            <p role="status" aria-live="polite" className="mt-2 text-sm text-slate-600" data-testid="health-status">
               {error || (health ? '已连接 · 数据库就绪' : '正在连接…')}
             </p>
           </div>
           <Button
+            data-testid="health-refresh"
             disabled={busy}
             onClick={() => {
               void refresh();
@@ -74,7 +88,7 @@ export default function App() {
           </dl>
         )}
       </section>
-      <p className="mt-6 text-xs leading-6 text-slate-500">标准模板 1.0.0 · 页面与 API 由同一个应用服务提供</p>
+      <p className="mt-6 text-xs leading-6 text-slate-500">标准模板 1.1.0 · 页面与 API 由同一个应用服务提供</p>
     </main>
   );
 }

@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /private/tmp/web-studio-lab-space-app-model
+
+
+ Test Files  2 passed (2)
+      Tests  35 passed (35)
+   Start at  01:04:26
+   Duration  734ms (tests 63%, transform 22%, import 14%)
+

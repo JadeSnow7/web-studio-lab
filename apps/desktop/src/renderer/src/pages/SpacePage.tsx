@@ -1,3 +1,4 @@
+import { AppEditor } from '../workspace/AppEditor';
 import type { EnvironmentDescription } from '@wsl/protocol';
 import { useImeForm } from '../lib/ime';
 import { createPortal } from 'react-dom';
@@ -128,6 +129,9 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
       ) : null}
       {createPortal(
         <>
+          {ui.appEditor ? (
+            <AppEditor key={ui.appEditor.overlayId} workspace={ui.appEditor.workspace} overlayId={ui.appEditor.overlayId} />
+          ) : null}
           <ManagedAppDialog workspaceId={ui.appWorkspaceId} />
           <SpaceSwitcher
             open={ui.switcher}

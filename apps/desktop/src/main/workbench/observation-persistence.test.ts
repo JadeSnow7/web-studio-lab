@@ -78,7 +78,7 @@ it('writes schema3 business descriptors without runtime handles and rejects futu
   };
   await repository.save(loaded, await catalogForTestSnapshot(loaded));
   const content = await readFile(file, 'utf8');
-  expect(JSON.parse(content).schemaVersion).toBe(3);
+  expect(JSON.parse(content).schemaVersion).toBe(4);
   expect(content).not.toContain('runtime-secret-handle');
   expect(content).not.toContain('-old-instance');
   const restored = await repository.load();

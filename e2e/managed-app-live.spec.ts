@@ -79,6 +79,11 @@ test('real sbx standard app through product Browser, persistence, export and can
     await workshopNavigate(page, '空间');
     await page.getByRole('button', { name: '新建 App', exact: true }).click();
     await page.getByRole('button', { name: '创建标准应用', exact: true }).click();
+    const createForm = page.getByRole('dialog', { name: '创建 App', exact: true });
+    await createForm.getByLabel('App 名称').fill('Live 标准应用');
+    await createForm.getByRole('button', { name: '保存 App' }).click();
+    await expect(createForm).not.toBeVisible();
+    await page.getByRole('button', { name: '管理 App', exact: true }).click();
     await waitState('created');
     evidence['created'] = (await state()).managedApp;
     await page.getByRole('button', { name: '启动应用', exact: true }).click();

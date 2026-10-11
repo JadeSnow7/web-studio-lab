@@ -1,0 +1,65 @@
+{
+  "recordedAt": "2026-10-11T04:16:26.534591+00:00",
+  "head": "ea3bad9e6602ccec3484cc55b247bae5815975b4",
+  "branch": "codex/app-control-plane",
+  "sourceFilesChecked": 353,
+  "sourceDrift": [],
+  "runtimeInputsChecked": 6,
+  "runtimeInputDrift": [],
+  "stagedPaths": [],
+  "commands": [
+    {
+      "command": [
+        "node",
+        "scripts/check-docs.mjs"
+      ],
+      "exitCode": 0,
+      "output": "Documentation check passed (19 normative files; local link targets and trailing whitespace). Anchors and external URLs are not checked.\n"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "node",
+        "/Users/huaodong/.npm/_npx/168ca33e231eaaf0/node_modules/pnpm/bin/pnpm.cjs",
+        "exec",
+        "prettier",
+        "--check",
+        "README.md",
+        "docs/architecture/current-runtime.md"
+      ],
+      "exitCode": 0,
+      "output": "Checking formatting...\nAll matched files use Prettier code style!\n"
+    }
+  ],
+  "formatBaselineComparison": {
+    "command": "pnpm format:check",
+    "exitCode": 1,
+    "baselineFileCount": 794,
+    "finalFileCount": 794,
+    "added": [],
+    "removed": [],
+    "log": "format-check-closing.log",
+    "intermediateLog": "format-check-final.log",
+    "intermediateExtraFile": "docs/verification/2026-10-11-app-control-plane/acceptance-matrix.md",
+    "intermediateIssueResolvedBy": "pnpm exec prettier --write docs/verification/2026-10-11-app-control-plane/acceptance-matrix.md"
+  },
+  "completedAt": "2026-10-11T04:18:13.746050+00:00"
+}

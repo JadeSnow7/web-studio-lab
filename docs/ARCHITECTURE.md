@@ -2,7 +2,7 @@
 
 本项目采用按业务职责组织的模块化单体：Electron Main 的 WorkbenchApplication 唯一拥有工作台业务事实，独立 Node 服务承载 Harness、PTY 和文件等适配器，renderer 呈现投影。五个业务模块是责任划分，四个代码层次是依赖约束，进程是运行与权限边界，三者不能互相替代。
 
-本文区分当前实现与后续目标。2026-10-08 的[本地整合合同](acceptance/integration-20261008/SPEC.md)以空间重制提交 `9e1df45` 为基准；实际接线、验证状态与缺口见[当前运行时](architecture/current-runtime.md)和[整合记录](acceptance/integration-20261008/task-summary.md)。2026-10-06 无应用源码的结论仅适用于[当时的基线](architecture/baseline-2026-10-06.md)，不能用于当前树。“必须/建议/可选”的强度见[开发规范](../CONTRIBUTING.md)；模块化单体的历史取舍见[ADR-0001](architecture/adr/0001-modular-monolith.md)。
+本文区分当前实现与后续目标。2026-10-08 的[本地整合合同](acceptance/integration-20261008/SPEC.md)以空间重制提交 `9e1df45` 为基准；实际接线、验证状态与缺口见[当前运行时](architecture/current-runtime.md)和[整合记录](acceptance/integration-20261008/task-summary.md)。2026-10-06 无应用源码的结论仅适用于[当时的基线](architecture/baseline-2026-10-06.md)，不能用于当前树。“必须/建议/可选”的强度见[开发规范](../CONTRIBUTING.md)；模块化单体的历史取舍见[ADR-0001](architecture/adr/0001-modular-monolith.md)；受管 App 控制面的唯一 dispatcher 位于 Main 应用层，见 [ADR-0002](architecture/adr/0002-app-control-plane.md)。
 
 2026-10-10 用户已授权[账户资源归属改造](acceptance/resource-ownership-20261010/SPEC.md)：资源由本地用户账户拥有，个人收藏、空间连接、内容版本、运行实例和页面展示分别建模。该合同替代旧的“空间拥有公开资源集合”目标；阶段实现与实际验证见[改造记录](acceptance/resource-ownership-20261010/README.md)，不得仅凭合同认定迁移或界面已完成。
 
@@ -10,7 +10,7 @@
 
 全局首页、空间、资源、会话、任务和设置直接可达。空间页内的资源窗格展示网页、文件和终端，会话标签承载对话、现场、目标与运行记录；任务页展示同一 Main 快照中的历史。Workspace 组织资源、会话、上下文和布局。导航入口不是业务模块；同一个任务可以在多个视图中展示，但只有一个业务状态所有者。
 
-首版围绕一个固定 TypeScript 全栈模板，完成“提出需求 → 修改代码 → 运行 → 验证 → 审阅”，一个项目、一个 Agent 串行执行。优先接现成 Codex CLI Harness；有效版本、参数、模型和工具组合须在接入时实测。本次整合不补做尚未实现的母模板、业务 API、独立检查器或产品验收 adapter，不增加云账号、好友、订阅、多 Agent 调度、实时协作、第二模板或生成 App 部署。现有资源在切换视图后继续运行，不等于实现后台任务调度器。
+首版围绕一个固定 TypeScript 全栈模板，完成“提出需求 → 修改代码 → 运行 → 验证 → 审阅”，一个项目、一个 Agent 串行执行。优先接现成 Codex CLI Harness；有效版本、参数、模型和工具组合须在接入时实测。当前已接入标准全栈模板、受管 App 生命周期、App 控制面与 VS001 adapter；本次整合不补做尚未实现的比赛 priority 业务 API、独立产品检查器或完整 C1–C3 验收，不增加云账号、好友、订阅、多 Agent 调度、实时协作、第二模板或生成 App 部署。现有资源在切换视图后继续运行，不等于实现后台任务调度器。
 
 长期分工：Rein 提供单 Agent Harness/runtime；Veriflow 负责任务编排、验收、修复策略与证据组织；Web Studio 提供工作环境、浏览器、终端、文件和交互。当前 Lab 用最小本地应用用例承接所需编排，不要求依赖三个仓库。后续接 Rein/Veriflow 时通过能力接口替换相应实现，必须保持一个任务权威写入者，不在 Main、服务和外部编排器各做一份流程。
 
@@ -95,7 +95,7 @@ flowchart LR
 
 ## 4. 进程、通信与权限
 
-当前运行关系如下；箭头为消息方向。AppInstance、独立验证器和固定模板闭环尚未接入，不能从该图推导它们可用。
+当前运行关系如下；箭头为消息方向。受管 AppInstance 与标准模板已有接线，Main 经同一服务管理；图中省略其内部 HTTP/数据库细节。独立产品验证器和完整比赛闭环尚未接入。
 
 ```mermaid
 flowchart TB
@@ -121,7 +121,7 @@ flowchart TB
 
 ## 5. 生命周期与一致性约束
 
-本节区分已有运行事实与完整闭环约束。Main 已持有任务版本、执行、取消与历史；项目统一写入许可、AppInstance 和独立检查器仍未实现。检查方式同时作为接入时的验收输入。
+本节区分已有运行事实与完整闭环约束。Main 已持有任务版本、执行、取消与历史，以及受管 AppInstance 的身份、租约和清理事实；完整项目统一写入许可与独立产品检查器仍未实现。检查方式同时作为接入时的验收输入。
 
 | 操作/不变量          | 责任与语义                                                                                                                         | 接入验收                                                                                   |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -152,4 +152,4 @@ SourceSnapshot 必须覆盖实际参与验证/交付的完整代码内容，包�
 
 当前落点是 Main 工作台、窄 IPC、原生预览、独立服务、恢复与测试；完整比赛业务闭环仍有明确缺口。具体源码路径、配置和验证入口集中在[当前运行时](architecture/current-runtime.md)、[README](../README.md)与[开发依赖](development/dependencies.md)。
 
-跨分支整合保留历史证据，以[INTEGRATION-1](acceptance/integration-20261008/SPEC.md)的来源台账和逐阶段检查为依据。原始 architecture/VS001 记录保留当时结论；不把旧文档中的 service 权威建议当作恢复第二套状态的指令。每项新能力先明确 Main 身份与权限来源，接 Provider、生命周期和持久化，再接 renderer 与 MCP 消费者，最后在同一最终源码复验。
+跨分支整合保留历史证据；当前来源裁决与最终验证见[2026-10-11 整合记录](acceptance/consolidation-20261011/README.md)，[INTEGRATION-1](acceptance/integration-20261008/SPEC.md)的来源台账和逐阶段检查作为历史依据。原始 architecture/VS001 记录保留当时结论；不把旧文档中的 service 权威建议当作恢复第二套状态的指令。每项新能力先明确 Main 身份与权限来源，接 Provider、生命周期和持久化，再接 renderer 与 MCP 消费者，最后在同一最终源码复验。

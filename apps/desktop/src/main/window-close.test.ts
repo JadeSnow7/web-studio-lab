@@ -15,12 +15,14 @@ vi.mock('electron', () => ({
 vi.mock('./chat-service', () => ({
   ChatService: class {
     setObservationReader = vi.fn();
+    setAppControlReader = vi.fn();
     shutdown = fixture.shutdown;
   },
 }));
 vi.mock('./workbench/application', () => ({
   WorkbenchApplication: class {
     getSnapshot = fixture.getSnapshot;
+    setAppControl = vi.fn();
   },
 }));
 vi.mock('./workbench/repository', () => ({ FileWorkbenchRepository: class {} }));

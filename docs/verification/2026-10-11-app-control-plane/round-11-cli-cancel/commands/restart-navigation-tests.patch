@@ -1,0 +1,118 @@
+--- apps/desktop/src/main/workbench/app-control-application.test.ts before round-11 fix
++++ apps/desktop/src/main/workbench/app-control-application.test.ts after round-11 fix
+@@ -25,6 +25,7 @@
+ 
+ async function setup(allowedScopes: string[]) {
+   let instance: ManagedApp | null = null;
++  let starts = 0;
+   const runtime = {
+     environmentsList: vi.fn().mockResolvedValue([]),
+     registerResource: vi.fn(),
+@@ -34,7 +35,18 @@
+     captureResource: vi.fn(),
+     validateBrowserUrl: vi.fn(),
+     ensureBrowser: vi.fn(),
+-    browserState: vi.fn(),
++    browserState: vi.fn(() => ({
++      page: { webContentsId: 1, documentGeneration: 0, url: 'http://127.0.0.1:49152', title: 'App', partition: 'test' },
++      loading: false,
++      canGoBack: false,
++      canGoForward: false,
++      picking: false,
++      cdp: { state: 'attached' },
++      consoleIssueCount: 0,
++      loadError: null,
++      blockedNavigation: null,
++      pickError: null,
++    })),
+     browserLayout: vi.fn(),
+     browserAction: vi.fn(),
+     hideBrowsers: vi.fn(),
+@@ -58,11 +70,20 @@
+           cleanupConfirmed: true,
+         }),
+     ),
++    appStop: vi.fn(
++      async () =>
++        (instance = {
++          ...instance!,
++          state: 'stopped',
++          url: null,
++          cleanupConfirmed: true,
++        }),
++    ),
+     appStart: vi.fn(
+       async () =>
+         (instance = {
+           ...instance!,
+-          appInstanceId: 'app-instance-1',
++          appInstanceId: 'app-instance-' + ++starts,
+           state: 'running',
+           url: 'http://127.0.0.1:49152',
+           cleanupConfirmed: false,
+@@ -138,3 +159,65 @@
+     await pending;
+   });
+ });
++
++describe('control-plane restart preserves user navigation', () => {
++  it('does not replace the active session pane when the App restarts', async () => {
++    const { app, command, sessionId } = await setup([]);
++    expect((await command({ type: 'locateSession', sessionId })).ok).toBe(true);
++    const before = (await app.getSnapshot()).workspaces[0]!;
++    app.restartAppForControl(before.workspaceId, before.managedApp!.appInstanceId!);
++    await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]!.managedApp?.appInstanceId).toBe('app-instance-2'));
++    const after = (await app.getSnapshot()).workspaces[0]!;
++    expect(after.layout).toEqual(before.layout);
++    expect(after.activePaneId).toBe(before.activePaneId);
++  });
++
++  it('keeps navigation made by the user while the restart is pending', async () => {
++    const { app, command, runtime, sessionId } = await setup([]);
++    expect((await command({ type: 'locateSession', sessionId })).ok).toBe(true);
++    const before = (await app.getSnapshot()).workspaces[0]!;
++    let complete!: (app: ManagedApp) => void;
++    vi.mocked(runtime.appStart!).mockImplementationOnce(
++      () =>
++        new Promise<ManagedApp>((resolve) => {
++          complete = resolve;
++        }),
++    );
++    app.restartAppForControl(before.workspaceId, before.managedApp!.appInstanceId!);
++    await vi.waitFor(() => expect(runtime.appStart).toHaveBeenCalledTimes(2));
++    expect((await command({ type: 'createTab', kind: 'session', title: '用户中途打开的会话' })).ok).toBe(true);
++    const navigated = (await app.getSnapshot()).workspaces[0]!;
++    complete({ ...before.managedApp!, appInstanceId: 'app-instance-2' });
++    await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]!.managedApp?.appInstanceId).toBe('app-instance-2'));
++    const after = (await app.getSnapshot()).workspaces[0]!;
++    expect(after.layout).toEqual(navigated.layout);
++    expect(after.activePaneId).toBe(navigated.activePaneId);
++  });
++
++  it('recreates the browser through the runtime without activating its tab', async () => {
++    const { app, command, runtime, sessionId } = await setup([]);
++    expect((await command({ type: 'locateSession', sessionId })).ok).toBe(true);
++    const before = (await app.getSnapshot()).workspaces[0]!;
++    app.restartAppForControl(before.workspaceId, before.managedApp!.appInstanceId!);
++    await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]!.managedApp?.appInstanceId).toBe('app-instance-2'));
++    const resource = (await app.getSnapshot()).workspaces[0]!.resources.find((r) => r.appProjectId === before.managedApp!.projectId)!;
++    expect(resource.instanceId).toEqual(expect.any(String));
++    expect(runtime.ensureBrowser).toHaveBeenCalledWith(
++      before.workspaceId,
++      expect.objectContaining({ resourceId: resource.resourceId, instanceId: resource.instanceId }),
++    );
++  });
++
++  it('still opens the App tab for an explicit user start', async () => {
++    const { app, command, sessionId } = await setup([]);
++    expect((await command({ type: 'stopApp' })).ok).toBe(true);
++    expect((await command({ type: 'locateSession', sessionId })).ok).toBe(true);
++    const before = (await app.getSnapshot()).workspaces[0]!;
++    expect((await command({ type: 'startApp' })).ok).toBe(true);
++    const after = (await app.getSnapshot()).workspaces[0]!;
++    const resource = after.resources.find((r) => r.appProjectId === after.managedApp!.projectId)!;
++    const tab = after.tabs.find((t) => t.targetRef.resourceId === resource.resourceId)!;
++    expect(after.layout).not.toEqual(before.layout);
++    expect(JSON.stringify(after.layout)).toContain(tab.tabId);
++  });
++});

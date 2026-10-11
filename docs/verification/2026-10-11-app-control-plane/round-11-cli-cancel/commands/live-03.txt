@@ -1,0 +1,101 @@
+
+Running 1 test using 1 worker
+
+(node:87576) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-cli-cancel-KUMIsg ELECTRON_PID 87579
+ELECTRON_STDERR (node:87579) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:55339/aaaefcca-51c4-451d-87ae-fef02e57e6a8
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✘  1 e2e/app-control-cancel-live.spec.ts:127:1 › real CLI cancellation stops owned processes and isolates a delayed reply from the next run (3.1m)
+
+
+  1) e2e/app-control-cancel-live.spec.ts:127:1 › real CLI cancellation stops owned processes and isolates a delayed reply from the next run 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('region', { name: 'Agent 会话内容' })
+    Timeout: 5000ms
+    - Expected substring  -  1
+    + Received string     + 28
+
+    - 回复已取消，进程已退出。
+    + Agent 会话对话任务上下文检查日志diff报告运行 391f7a60-f477-4f21-9f22-140d9316e98eCodex CLI · cancelled · 沙箱由服务决定任务版本 eac04400-c5a9-4f51-885e-f547da7b0a59
+    + 空间 taskflow-demo
+    + 目标 null
+    + 上下文 未附加
+    + 允许范围 src/components/cli-cancel-retained.txt, src/components/cli-cancel-after-return.txt, agent/**
+    + 验收条件 本轮真实 CLI 取消与隔离验证
+    +
+    + 这是已授权的真实取消测试，不是欢迎语任务。仅操作新建项目 /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa。先用普通命令工具 mkdir -p /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components，然后在 /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components/cli-cancel-retained.txt 写入精确内容 e529e76d-7433-4fb9-aefb-cf617618372a，不要末尾换行；运行 npm run agent:manifest。然后调用 MCP app_restart 一次，查询 app_status 前每次 shell sleep 15 秒，最多12次（总等待不超过3分钟），确认新实例 running。不要改其他源码，不读凭据、不联网、不安装依赖、不提升现有权限。app.*总预算64/并发4，MCP总调用少于20。接着立即用普通命令工具原样运行下面的 Python脚本，所有 wsl-app 必须在普通workspace-write命令沙箱运行，不能由MCP代替、不能重试。脚本将等待随机不存在元素，Host会从产品按钮取消整个任务；不要自行取消、不要绕过等待、不要提前创建 after-return 文件。10分钟内一次run。
+    + python3 - <<'PY'
+    + import json,subprocess,pathlib,os
+    + os.chdir("/home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa")
+    + s=subprocess.run(['wsl-app','ui.snapshot','{}'],capture_output=True,text=True,timeout=65)
+    + assert s.returncode==0,s.stdout
+    + r=json.loads(s.stdout);assert r['ok'];b=r['data']
+    + a={'appInstanceId':b['appInstanceId'],'documentGeneration':b['documentGeneration'],'action':{'type':'waitFor','target':{'testid':'cancel-wait-e529e76d-7433-4fb9-aefb-cf617618372a'},'state':'visible','timeoutMs':10000}}
+    + p=subprocess.run(['wsl-app','ui.act',json.dumps(a)],capture_output=True,text=True,timeout=65)
+    + pathlib.Path('src/components/cli-cancel-after-return.txt').write_text('e529e76d-7433-4fb9-aefb-cf617618372a')
+    + subprocess.run(['wsl-app','status','{}'],check=True)
+    + print('WSL_UNEXPECTED_AFTER_RETURN',p.returncode)
+    + PY你我会按指定顺序写入文件、生成 manifest 并重启确认 running，然后原样运行 Python 脚本，等待 Host 从产品按钮取消任务。Codex CLI新实例已确认 running。现在原样执行脚本一次，等待 Host 取消。Codex CLI工具执行 · 11 条/bin/bash -lc 'mkdir -p /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components'退出码 0/bin/bash -lc 'printf %s e529e76d-7433-4fb9-aefb-cf617618372a > src/components/cli-cancel-retained.txt
+    + npm run agent:manifest'
+    + > @wsl/standard-app@1.1.0 agent:manifest
+    + > node --import tsx server/agent-cli.ts manifest --write
+    +
+    + {"ok":true,"data":{"written":true,"sourceRevision":"9130fd7d21eb6b677d295efd0854318412559e49476ad10bb8416fd3a7c5bb25","checks":[]}}
+    + 退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"state\": \"running\", \"url\": \"http://127.0.0.1:49228\", \"cleanupConfirmed\": false, \"error\": null}, \"browser\": {\"resourceId\": \"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e\", \"documentGeneration\": 1, \"url\": \"http://127.0.0.1:49228/\", \"cdp\": {\"state\": \"idle\"}, \"agentControl\": {\"state\": \"idle\", \"runId\": null, \"since\": null, \"lastAction\": null}}, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","state":"running","url":"http://127.0.0.1:49228","cleanupConfirmed":false,"error":null},"browser":{"resourceId":"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e","documentGeneration":1,"url":"http://127.0.0.1:49228/","cdp":{"state":"idle"},"agentControl":{"state":"idle","runId":null,"since":null,"lastAction":null}},"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0mcp:wsl_space.app_restart {"appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5"}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.restart\", \"data\": {\"accepted\": true, \"previousAppInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"next\": \"用 app.status 等待新实例 running；旧引用与 appInstanceId 均失效\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.restart","data":{"accepted":true,"previousAppInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","next":"用 app.status 等待新实例 running；旧引用与 appInstanceId 均失效"}}}},"error":null}退出码 0/bin/bash -lc 'sleep 15'退出码 0/bin/bash -lc 'sleep 15'退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"state\": \"starting\", \"url\": null, \"cleanupConfirmed\": true, \"error\": null}, \"browser\": null, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","state":"starting","url":null,"cleanupConfirmed":true,"error":null},"browser":null,"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0/bin/bash -lc 'sleep 15'退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"state\": \"starting\", \"url\": null, \"cleanupConfirmed\": true, \"error\": null}, \"browser\": null, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","state":"starting","url":null,"cleanupConfirmed":true,"error":null},"browser":null,"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0/bin/bash -lc 'sleep 15'退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"7a392eb9-b647-43e3-a217-a8a66233ea6a\", \"state\": \"running\", \"url\": \"http://127.0.0.1:49229\", \"cleanupConfirmed\": false, \"error\": null}, \"browser\": {\"resourceId\": \"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e\", \"documentGeneration\": 1, \"url\": \"http://127.0.0.1:49229/\", \"cdp\": {\"state\": \"idle\"}, \"agentControl\": {\"state\": \"idle\", \"runId\": null, \"since\": null, \"lastAction\": null}}, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"7a392eb9-b647-43e3-a217-a8a66233ea6a","state":"running","url":"http://127.0.0.1:49229","cleanupConfirmed":false,"error":null},"browser":{"resourceId":"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e","documentGeneration":1,"url":"http://127.0.0.1:49229/","cdp":{"state":"idle"},"agentControl":{"state":"idle","runId":null,"since":null,"lastAction":null}},"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.
+    +   user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.
+    +   user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored.发送到 · TaskFlow / Agent 会话 / Codex CLIEnter 发送 · Shift+Enter 换行 · 草稿按会话保存发送
+
+    Call log:
+      - Expect "toContainText" getByRole('region', { name: 'Agent 会话内容' }) with timeout 5000ms
+      - waiting for getByRole('region', { name: 'Agent 会话内容' })
+        14 × locator resolved to <section aria-label="Agent 会话内容" class="session-workspace">…</section>
+           - unexpected value "Agent 会话对话任务上下文检查日志diff报告运行 391f7a60-f477-4f21-9f22-140d9316e98eCodex CLI · cancelled · 沙箱由服务决定任务版本 eac04400-c5a9-4f51-885e-f547da7b0a59
+    空间 taskflow-demo
+    目标 null
+    上下文 未附加
+    允许范围 src/components/cli-cancel-retained.txt, src/components/cli-cancel-after-return.txt, agent/**
+    验收条件 本轮真实 CLI 取消与隔离验证
+    
+    这是已授权的真实取消测试，不是欢迎语任务。仅操作新建项目 /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa。先用普通命令工具 mkdir -p /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components，然后在 /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components/cli-cancel-retained.txt 写入精确内容 e529e76d-7433-4fb9-aefb-cf617618372a，不要末尾换行；运行 npm run agent:manifest。然后调用 MCP app_restart 一次，查询 app_status 前每次 shell sleep 15 秒，最多12次（总等待不超过3分钟），确认新实例 running。不要改其他源码，不读凭据、不联网、不安装依赖、不提升现有权限。app.*总预算64/并发4，MCP总调用少于20。接着立即用普通命令工具原样运行下面的 Python脚本，所有 wsl-app 必须在普通workspace-write命令沙箱运行，不能由MCP代替、不能重试。脚本将等待随机不存在元素，Host会从产品按钮取消整个任务；不要自行取消、不要绕过等待、不要提前创建 after-return 文件。10分钟内一次run。
+    python3 - <<'PY'
+    import json,subprocess,pathlib,os
+    os.chdir("/home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa")
+    s=subprocess.run(['wsl-app','ui.snapshot','{}'],capture_output=True,text=True,timeout=65)
+    assert s.returncode==0,s.stdout
+    r=json.loads(s.stdout);assert r['ok'];b=r['data']
+    a={'appInstanceId':b['appInstanceId'],'documentGeneration':b['documentGeneration'],'action':{'type':'waitFor','target':{'testid':'cancel-wait-e529e76d-7433-4fb9-aefb-cf617618372a'},'state':'visible','timeoutMs':10000}}
+    p=subprocess.run(['wsl-app','ui.act',json.dumps(a)],capture_output=True,text=True,timeout=65)
+    pathlib.Path('src/components/cli-cancel-after-return.txt').write_text('e529e76d-7433-4fb9-aefb-cf617618372a')
+    subprocess.run(['wsl-app','status','{}'],check=True)
+    print('WSL_UNEXPECTED_AFTER_RETURN',p.returncode)
+    PY你我会按指定顺序写入文件、生成 manifest 并重启确认 running，然后原样运行 Python 脚本，等待 Host 从产品按钮取消任务。Codex CLI新实例已确认 running。现在原样执行脚本一次，等待 Host 取消。Codex CLI工具执行 · 11 条/bin/bash -lc 'mkdir -p /home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa/src/components'退出码 0/bin/bash -lc 'printf %s e529e76d-7433-4fb9-aefb-cf617618372a > src/components/cli-cancel-retained.txt
+    npm run agent:manifest'
+    > @wsl/standard-app@1.1.0 agent:manifest
+    > node --import tsx server/agent-cli.ts manifest --write
+    
+    {"ok":true,"data":{"written":true,"sourceRevision":"9130fd7d21eb6b677d295efd0854318412559e49476ad10bb8416fd3a7c5bb25","checks":[]}}
+    退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"state\": \"running\", \"url\": \"http://127.0.0.1:49228\", \"cleanupConfirmed\": false, \"error\": null}, \"browser\": {\"resourceId\": \"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e\", \"documentGeneration\": 1, \"url\": \"http://127.0.0.1:49228/\", \"cdp\": {\"state\": \"idle\"}, \"agentControl\": {\"state\": \"idle\", \"runId\": null, \"since\": null, \"lastAction\": null}}, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","state":"running","url":"http://127.0.0.1:49228","cleanupConfirmed":false,"error":null},"browser":{"resourceId":"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e","documentGeneration":1,"url":"http://127.0.0.1:49228/","cdp":{"state":"idle"},"agentControl":{"state":"idle","runId":null,"since":null,"lastAction":null}},"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0mcp:wsl_space.app_restart {"appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5"}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.restart\", \"data\": {\"accepted\": true, \"previousAppInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"next\": \"用 app.status 等待新实例 running；旧引用与 appInstanceId 均失效\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.restart","data":{"accepted":true,"previousAppInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","next":"用 app.status 等待新实例 running；旧引用与 appInstanceId 均失效"}}}},"error":null}退出码 0/bin/bash -lc 'sleep 15'退出码 0/bin/bash -lc 'sleep 15'退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"state\": \"starting\", \"url\": null, \"cleanupConfirmed\": true, \"error\": null}, \"browser\": null, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","state":"starting","url":null,"cleanupConfirmed":true,"error":null},"browser":null,"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0/bin/bash -lc 'sleep 15'退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5\", \"state\": \"starting\", \"url\": null, \"cleanupConfirmed\": true, \"error\": null}, \"browser\": null, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"e54dd3dd-b341-4caf-b3d5-7d67df2c3ae5","state":"starting","url":null,"cleanupConfirmed":true,"error":null},"browser":null,"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0/bin/bash -lc 'sleep 15'退出码 0mcp:wsl_space.app_status {}{"status":"completed","result":{"content":[{"type":"text","text":"{\"untrusted\": true, \"data\": {\"ok\": true, \"tool\": \"app.status\", \"data\": {\"app\": {\"projectId\": \"662be925-2d04-4fed-a8a5-69bb9b673baa\", \"appInstanceId\": \"7a392eb9-b647-43e3-a217-a8a66233ea6a\", \"state\": \"running\", \"url\": \"http://127.0.0.1:49229\", \"cleanupConfirmed\": false, \"error\": null}, \"browser\": {\"resourceId\": \"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e\", \"documentGeneration\": 1, \"url\": \"http://127.0.0.1:49229/\", \"cdp\": {\"state\": \"idle\"}, \"agentControl\": {\"state\": \"idle\", \"runId\": null, \"since\": null, \"lastAction\": null}}, \"runId\": \"391f7a60-f477-4f21-9f22-140d9316e98e\"}}}"}],"structured_content":{"untrusted":true,"data":{"ok":true,"tool":"app.status","data":{"app":{"projectId":"662be925-2d04-4fed-a8a5-69bb9b673baa","appInstanceId":"7a392eb9-b647-43e3-a217-a8a66233ea6a","state":"running","url":"http://127.0.0.1:49229","cleanupConfirmed":false,"error":null},"browser":{"resourceId":"4b70d391-a22c-43e4-ad69-d2bc0b8e1e8e","documentGeneration":1,"url":"http://127.0.0.1:49229/","cdp":{"state":"idle"},"agentControl":{"state":"idle","runId":null,"since":null,"lastAction":null}},"runId":"391f7a60-f477-4f21-9f22-140d9316e98e"}}}},"error":null}退出码 0Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.
+      user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.
+      user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored.发送到 · TaskFlow / Agent 会话 / Codex CLIEnter 发送 · Shift+Enter 换行 · 草稿按会话保存发送"
+
+
+      350 |     expect(Date.now() - entered.at, 'The actual product click must finish inside the in-flight waitFor window').toBeLessThan(10_000);
+      351 |     const cancelled = await waitTerminal(first, 'cancelled', 60_000);
+    > 352 |     await expect(session).toContainText('回复已取消，进程已退出。');
+          |                           ^
+      353 |     await expect(session.getByRole('button', { name: '取消回复', exact: true })).toHaveCount(0);
+      354 |     await page.screenshot({ path: path.join(evidence, 'product-after-cancel.png') });
+      355 |     results['firstRun'] = { runId: cancelled.runId, state: cancelled.state, cleanupPending: cancelled.conversation?.cleanupPending };
+        at /Users/huaodong/workspace/web-studio-lab/e2e/app-control-cancel-live.spec.ts:352:27
+
+    Error Context: test-results/e2e/app-control-cancel-live-re-25775-yed-reply-from-the-next-run/error-context.md
+
+  1 failed
+    e2e/app-control-cancel-live.spec.ts:127:1 › real CLI cancellation stops owned processes and isolates a delayed reply from the next run 

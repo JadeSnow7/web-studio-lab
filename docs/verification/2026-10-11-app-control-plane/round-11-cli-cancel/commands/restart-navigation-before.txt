@@ -1,0 +1,82 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts (8 tests | 3 failed) 213ms
+   ❯ control-plane restart preserves user navigation (4)
+     × does not replace the active session pane when the App restarts 65ms
+     × keeps navigation made by the user while the restart is pending 57ms
+     × recreates the browser through the runtime without activating its tab 56ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > control-plane restart preserves user navigation > does not replace the active session pane when the App restarts
+AssertionError: expected { kind: 'pane', …(2) } to deeply equal { kind: 'pane', …(2) }
+
+- Expected
++ Received
+
+  {
+    "kind": "pane",
+    "paneId": "098a46f9-d7f4-4276-b2a0-dbe8aa4e258e",
+-   "tabId": "61cc6b1c-5434-4eb8-ab13-a52a780d38d0",
++   "tabId": "78daf1d5-c60e-454b-99c9-08962e03ebc2",
+  }
+
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:171:26
+    169|     await vi.waitFor(async () => expect((await app.getSnapshot()).work…
+    170|     const after = (await app.getSnapshot()).workspaces[0]!;
+    171|     expect(after.layout).toEqual(before.layout);
+       |                          ^
+    172|     expect(after.activePaneId).toBe(before.activePaneId);
+    173|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > control-plane restart preserves user navigation > keeps navigation made by the user while the restart is pending
+AssertionError: expected { kind: 'pane', …(2) } to deeply equal { kind: 'pane', …(2) }
+
+- Expected
++ Received
+
+  {
+    "kind": "pane",
+    "paneId": "fa342570-b3cb-4b5d-8692-23b8738f6119",
+-   "tabId": "ef2f417d-a9e1-4c9f-a028-199b3b883c35",
++   "tabId": "0d0bed78-49a9-4d02-8ed6-5d1193a393fc",
+  }
+
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:193:26
+    191|     await vi.waitFor(async () => expect((await app.getSnapshot()).work…
+    192|     const after = (await app.getSnapshot()).workspaces[0]!;
+    193|     expect(after.layout).toEqual(navigated.layout);
+       |                          ^
+    194|     expect(after.activePaneId).toBe(navigated.activePaneId);
+    195|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > control-plane restart preserves user navigation > recreates the browser through the runtime without activating its tab
+AssertionError: expected null to deeply equal Any<String>
+
+- Expected:
+Any<String>
+
++ Received:
+null
+
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:204:33
+    202|     await vi.waitFor(async () => expect((await app.getSnapshot()).work…
+    203|     const resource = (await app.getSnapshot()).workspaces[0]!.resource…
+    204|     expect(resource.instanceId).toEqual(expect.any(String));
+       |                                 ^
+    205|     expect(runtime.ensureBrowser).toHaveBeenCalledWith(
+    206|       before.workspaceId,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 5 passed (8)
+   Start at  13:41:51
+   Duration  741ms (transform 45%, tests 35%, import 19%, worker 1%)
+

@@ -1,0 +1,192 @@
+[
+  {
+    "source": "source-00",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 986,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-01",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 76,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-02",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-03",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-04",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 227,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-05",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-06",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-07",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 320,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-08",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-09",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 1,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-11",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 458,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-12",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-13",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-14",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": []
+  },
+  {
+    "source": "source-15",
+    "head_unchanged": true,
+    "status_unchanged": null,
+    "status_limitation": "git status timed out after 30s; subsequent hashing blocked at apps/service/src/observation-ssh.test.ts; original checkout was never written",
+    "untracked_paths_unchanged": true,
+    "dirty_paths_checked": 48,
+    "content_mismatches": [],
+    "unverified_paths": ["apps/service/src/ssh-terminal.test.ts"],
+    "index_unchanged": true
+  },
+  {
+    "source": "source-16",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 336,
+    "content_mismatches": [],
+    "unverified_paths": [],
+    "index_unchanged": true
+  },
+  {
+    "source": "source-17",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": [],
+    "unverified_paths": [],
+    "index_unchanged": true
+  },
+  {
+    "source": "source-18",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": [],
+    "unverified_paths": [],
+    "index_unchanged": true
+  },
+  {
+    "source": "source-19",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 57,
+    "content_mismatches": [],
+    "unverified_paths": [],
+    "index_unchanged": true
+  },
+  {
+    "source": "source-20",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 159,
+    "content_mismatches": [],
+    "unverified_paths": [],
+    "index_unchanged": true
+  },
+  {
+    "source": "source-21",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": [],
+    "unverified_paths": [],
+    "index_unchanged": true
+  },
+  {
+    "source": "source-22",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": [],
+    "unverified_paths": [],
+    "index_unchanged": true
+  },
+  {
+    "source": "source-23",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": [],
+    "unverified_paths": [],
+    "index_unchanged": true
+  },
+  {
+    "source": "source-24",
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "dirty_paths_checked": 0,
+    "content_mismatches": [],
+    "unverified_paths": [],
+    "index_unchanged": true
+  }
+]

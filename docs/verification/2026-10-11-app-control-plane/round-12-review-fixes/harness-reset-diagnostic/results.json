@@ -1,0 +1,212 @@
+{
+  "A01.describe": {
+    "stale": {
+      "manifest": false,
+      "build": false
+    },
+    "revisions": [
+      "c7e18e31ecd91837749d4a6343ad0b6de308d54e9de6e8528e6752a575db95e5",
+      "c7e18e31ecd91837749d4a6343ad0b6de308d54e9de6e8528e6752a575db95e5",
+      "c7e18e31ecd91837749d4a6343ad0b6de308d54e9de6e8528e6752a575db95e5"
+    ],
+    "testids": 8,
+    "commands": [
+      "health.refresh"
+    ],
+    "states": [
+      "app.health",
+      "welcome"
+    ],
+    "routes": [
+      {
+        "method": "POST",
+        "path": "/api/dev/session"
+      },
+      {
+        "method": "GET",
+        "path": "/api/health"
+      },
+      {
+        "method": "GET",
+        "path": "/api/kv/:key"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/kv/:key"
+      }
+    ],
+    "tables": [
+      "records",
+      "sessions"
+    ]
+  },
+  "A03.refFlow": {
+    "elements": 7,
+    "query": [
+      {
+        "value": "UI 引用写入"
+      }
+    ]
+  },
+  "A03.sameDocumentSnapshot": {
+    "first": "3781d552-54fc-469d-a4e6-fd727c57ab6b",
+    "second": "4ab8218e-00f0-4df7-886d-fab13cbe0c2d",
+    "oldOutcome": "stale_ref",
+    "counts": {
+      "save": 1,
+      "delete": 0
+    }
+  },
+  "A04.rejections": {
+    "staleDocument": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "stale_document",
+        "message": "页面文档代次已从 1 变为 2，请重新快照"
+      }
+    },
+    "staleRef": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "stale_ref",
+        "message": "引用 e7 已失效，请重新调用 app.ui.snapshot"
+      }
+    },
+    "staleLease": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "stale_lease",
+        "message": "实例租约已失效（已停止或正在重启）"
+      }
+    },
+    "noRun": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "no_active_run",
+        "message": "执行已结束"
+      }
+    },
+    "oldInstance": {
+      "ok": false,
+      "tool": "app.data.seed",
+      "error": {
+        "code": "stale_instance",
+        "message": "请求绑定的实例 harness-app-0 已不是当前实例 harness-app-1"
+      }
+    }
+  },
+  "A05.schema": {
+    "invoked": {
+      "ok": true,
+      "tool": "app.command.invoke",
+      "data": {
+        "result": null,
+        "documentGeneration": 2
+      }
+    },
+    "badInput": {
+      "ok": false,
+      "tool": "app.command.invoke",
+      "error": {
+        "code": "command_invalid_input",
+        "message": "命令 health.refresh 的输入不符合 schema",
+        "details": {
+          "issues": [
+            {
+              "path": "(root)",
+              "message": "Unrecognized key: \"extra\""
+            }
+          ]
+        }
+      }
+    },
+    "unknown": {
+      "ok": false,
+      "tool": "app.command.invoke",
+      "error": {
+        "code": "command_not_found",
+        "message": "命令 welcome.forceSave 未在 manifest 登记；可用：health.refresh"
+      }
+    },
+    "script": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "invalid_request",
+        "message": "app.ui.act 参数不符合 schema",
+        "details": [
+          {
+            "path": "action.type",
+            "message": "Invalid discriminator value. Expected 'click' | 'type' | 'press' | 'select' | 'scroll' | 'navigate' | 'waitFor'"
+          }
+        ]
+      }
+    },
+    "coordinates": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "invalid_request",
+        "message": "app.ui.act 参数不符合 schema",
+        "details": [
+          {
+            "path": "action.target",
+            "message": "Invalid input"
+          },
+          {
+            "path": "action",
+            "message": "Unrecognized keys: \"x\", \"y\""
+          }
+        ]
+      }
+    },
+    "tool": {
+      "ok": false,
+      "tool": null,
+      "error": {
+        "code": "unsupported",
+        "message": "未知控制面工具：app.eval"
+      }
+    }
+  },
+  "A06.data": {
+    "write": {
+      "ok": false,
+      "tool": "app.data.query",
+      "error": {
+        "code": "write_rejected",
+        "message": "只允许 SELECT/WITH/VALUES/EXPLAIN/TABLE/SHOW 查询",
+        "details": {
+          "backendCode": "write_rejected",
+          "mode": "http",
+          "cleanupConfirmed": true
+        }
+      }
+    },
+    "unauthorized": {
+      "ok": false,
+      "tool": "app.data.reset",
+      "error": {
+        "code": "authorization_required",
+        "message": "重置需要用户在任务允许范围中写明 app.data.reset"
+      }
+    },
+    "reset": {
+      "ok": false,
+      "tool": "app.data.reset",
+      "error": {
+        "code": "unavailable",
+        "message": "Unexpected token '<', \"<!doctype \"... is not valid JSON"
+      }
+    }
+  },
+  "environment": {
+    "node": "v26.5.0",
+    "platform": "darwin-arm64",
+    "finishedAt": "2026-10-11T07:20:36.272Z"
+  }
+}

@@ -27,6 +27,10 @@ import {
   type ChatServiceRequest,
   type ChatSlot,
   type ChatStatus,
+  AppAgentResultSchema,
+  AppLogsSchema,
+  type AppAgentOperation,
+  type AppControlResult,
 } from '@wsl/protocol';
 
 export class ChatService {
@@ -67,6 +71,13 @@ export class ChatService {
   setObservationReader(reader: NonNullable<ChatService['observationReader']>) {
     this.observationReader = reader;
   }
+  private appControlReader:
+    ((scope: ObservationTurnScope, tool: string, args: Record<string, unknown>, signal: AbortSignal) => Promise<AppControlResult>) | null =
+    null;
+  private readonly appCalls = new Map<string, AbortController>();
+  setAppControlReader(reader: NonNullable<ChatService['appControlReader']>) {
+    this.appControlReader = reader;
+  }
   private lastStatus: ChatStatus | null = null;
   constructor(
     private readonly onConversation: (conversation: ChatConversation) => void,
@@ -101,6 +112,40 @@ export class ChatService {
           this.initializationPending = message.cleanupPending;
           this.lastStatus = message.status;
           this.onStatus(message.status);
+          return;
+        }
+        if (message.type === 'app-abort') {
+          this.appCalls.get(message.id)?.abort();
+          return;
+        }
+        if (message.type === 'app-call') {
+          if (this.appCalls.has(message.id)) throw new Error('控制面调用身份重复');
+          const controller = new AbortController();
+          this.appCalls.set(message.id, controller);
+          const call: Promise<AppControlResult> = this.appControlReader
+            ? this.appControlReader(message.scope, message.tool, message.args, controller.signal)
+            : Promise.resolve({ ok: false, tool: message.tool, error: { code: 'unsupported', message: 'Main控制面未接入' } });
+          void call
+            .then(
+              (result) => this.request({ method: 'app.reply', payload: { callId: message.id, result } }),
+              (error) =>
+                this.request({
+                  method: 'app.reply',
+                  payload: {
+                    callId: message.id,
+                    result: { ok: false, tool: message.tool, error: { code: 'unavailable', message: (error as Error).message } },
+                  },
+                }),
+            )
+            .then(
+              () => {
+                this.appCalls.delete(message.id);
+              },
+              (error) => {
+                this.appCalls.delete(message.id);
+                this.fail('控制面返回通道失败：' + (error as Error).message);
+              },
+            );
           return;
         }
         if (message.type === 'observation-abort') {
@@ -178,6 +223,7 @@ export class ChatService {
   }
   private fail(reason: string) {
     for (const controller of this.observationCalls.values()) controller.abort();
+    for (const controller of this.appCalls.values()) controller.abort();
     this.failure ??= reason;
     for (const current of this.managedApps.values()) {
       if (current.state === 'running' || current.state === 'starting' || current.state === 'stopping') {
@@ -300,6 +346,27 @@ export class ChatService {
   }
   async appExport(target: AppTarget) {
     return AppSourceSchema.parse(await this.request({ method: 'app.export', payload: target }));
+  }
+  /** 控制面后端操作；取消时通知 service 关闭所属 guest 进程并等待其回执。 */
+  async appAgent(target: AppTarget, appInstanceId: string | null, operation: AppAgentOperation, signal: AbortSignal) {
+    if (signal.aborted)
+      return {
+        mode: 'http' as const,
+        cleanupConfirmed: true,
+        ...(operation.op !== 'reconcile' && operation.op !== 'reconcile-cli' ? { operationDispatched: false as const } : {}),
+        envelope: { ok: false as const, error: { code: 'cancelled', message: '控制面请求已取消' } },
+      };
+    const callId = randomUUID();
+    const cancel = () => void this.request({ method: 'app.agent.cancel', payload: { callId } }).catch(() => undefined);
+    signal.addEventListener('abort', cancel, { once: true });
+    try {
+      return AppAgentResultSchema.parse(await this.request({ method: 'app.agent', payload: { callId, target, appInstanceId, operation } }));
+    } finally {
+      signal.removeEventListener('abort', cancel);
+    }
+  }
+  async appLogs(target: AppTarget, maxBytes: number) {
+    return AppLogsSchema.parse(await this.request({ method: 'app.logs', payload: { target, maxBytes } }));
   }
   async observe(request: ObservationRequest) {
     return ObservationResultSchema.parse(await this.request({ method: 'observation.read', payload: request }));

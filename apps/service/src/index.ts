@@ -6,6 +6,8 @@ import {
   ObservationRequestSchema,
   ServiceRuntimeConfigSchema,
   type WorkspaceObservationResult,
+  type AppControlResult,
+  AppToolNameSchema,
   ChatServiceMessageSchema,
   ChatServiceRequestSchema,
   type ChatServiceMessage,
@@ -63,6 +65,29 @@ chat.setObservationReader(
       send({ type: 'observation-call', id, scope, tool: validatedTool, args });
     }),
 );
+// 控制面调用沿与观察相同的具名消息转给 Main dispatcher；service 不持有 run 或授权状态。
+const appCalls = new Map<string, { resolve: (result: AppControlResult) => void; abort: () => void; signal: AbortSignal }>();
+chat.setAppControlReader(
+  (scope, tool, args, signal) =>
+    new Promise((resolve) => {
+      const validatedTool = AppToolNameSchema.parse(tool);
+      const id = randomUUID();
+      const abort = () => {
+        signal.removeEventListener('abort', abort);
+        send({ type: 'app-abort', id });
+        appCalls.delete(id);
+        resolve({ ok: false, tool: validatedTool, error: { code: 'cancelled', message: '控制面调用已取消' } });
+      };
+      appCalls.set(id, { resolve, abort, signal });
+      signal.addEventListener('abort', abort, { once: true });
+      if (signal.aborted) {
+        abort();
+        return;
+      }
+      send({ type: 'app-call', id, scope, tool: validatedTool, args });
+    }),
+);
+const agentCalls = new Map<string, AbortController>();
 const observations = new Map<string, AbortController>();
 const terminalFor = (resourceId: string) => environments.terminal(environments.identity(resourceId));
 const ready = chat.initialize().then((status) => {
@@ -108,6 +133,36 @@ parent.on('message', ({ data }) => {
         case 'app.export':
           await ready;
           result = await apps.export(request.payload);
+          break;
+        case 'app.reply': {
+          const call = appCalls.get(request.payload.callId);
+          if (call) {
+            appCalls.delete(request.payload.callId);
+            call.signal.removeEventListener('abort', call.abort);
+            call.resolve(request.payload.result);
+          }
+          result = null;
+          break;
+        }
+        case 'app.agent': {
+          await ready;
+          if (agentCalls.has(request.payload.callId)) throw new Error('Duplicate app agent call');
+          const controller = new AbortController();
+          agentCalls.set(request.payload.callId, controller);
+          try {
+            result = await apps.agent(request.payload.target, request.payload.appInstanceId, request.payload.operation, controller.signal);
+          } finally {
+            agentCalls.delete(request.payload.callId);
+          }
+          break;
+        }
+        case 'app.agent.cancel':
+          agentCalls.get(request.payload.callId)?.abort();
+          result = null;
+          break;
+        case 'app.logs':
+          await ready;
+          result = await apps.logs(request.payload.target, request.payload.maxBytes);
           break;
         case 'observation.reply': {
           const call = observationCalls.get(request.payload.callId);
@@ -193,6 +248,7 @@ parent.on('message', ({ data }) => {
           break;
         case 'shutdown': {
           for (const controller of observations.values()) controller.abort();
+          for (const controller of agentCalls.values()) controller.abort();
           await shutdownServiceOwners(
             () => apps.shutdown(),
             () => chat.shutdown(),

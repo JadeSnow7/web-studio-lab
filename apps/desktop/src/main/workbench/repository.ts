@@ -6,6 +6,7 @@ import {
   WorkbenchSnapshotSchema,
   WorkbenchResourceSchema,
   WorkspaceSnapshotSchema,
+  SpaceAppSchema,
   ObservationRecordSchema,
   type ObservationRecord,
   type WorkbenchSnapshot,
@@ -22,10 +23,18 @@ import { assertResourceDigest, createResourceCatalog } from './resource-catalog'
 const LegacySnapshot = WorkbenchSnapshotSchema.extend({
   workspaces: z.array(LegacyWorkspaceSnapshotSchema.extend({ resources: z.array(WorkbenchResourceSchema.omit({ environmentId: true })) })),
 });
-const FileSchema = z.discriminatedUnion('schemaVersion', [
+// The App metadata branch and the resource catalog branch both persisted version 3.
+// An explicit App field on every workspace identifies the catalog-free branch;
+// missing catalog bytes alone must not make a damaged catalog file migratable.
+const SpaceAppV3Snapshot = LegacyWorkbenchSnapshotSchema.extend({
+  workspaces: z.array(LegacyWorkspaceSnapshotSchema.extend({ app: SpaceAppSchema.nullable() })).min(1),
+});
+const FileSchema = z.union([
   z.object({ schemaVersion: z.literal(1), snapshot: LegacySnapshot }).strict(),
   z.object({ schemaVersion: z.literal(2), snapshot: LegacyWorkbenchSnapshotSchema }).strict(),
   z.object({ schemaVersion: z.literal(3), snapshot: WorkbenchSnapshotSchema, catalog: ResourceCatalogStateSchema }).strict(),
+  z.object({ schemaVersion: z.literal(3), snapshot: SpaceAppV3Snapshot }).strict(),
+  z.object({ schemaVersion: z.literal(4), snapshot: WorkbenchSnapshotSchema, catalog: ResourceCatalogStateSchema }).strict(),
 ]);
 /** Digests are verified where bodies enter: capture, migration and file load. Saves of Main-owned state skip rehashing. */
 export function assertCatalogBindings(snapshot: WorkbenchSnapshot, catalog: ResourceCatalogState, verifyDigests = true): void {
@@ -55,6 +64,27 @@ export function assertCatalogBindings(snapshot: WorkbenchSnapshot, catalog: Reso
         throw new Error('invalid_input: 运行绑定的账户资源或空间连接不存在');
     }
 }
+/** Legacy Apps already have a stable project identity; derive metadata without creating or starting a project. */
+function migrateAppDescriptions(snapshot: WorkbenchSnapshot): WorkbenchSnapshot {
+  return {
+    ...snapshot,
+    workspaces: snapshot.workspaces.map((workspace) => ({
+      ...workspace,
+      app:
+        workspace.app ??
+        (workspace.managedApp
+          ? {
+              appId: workspace.managedApp.projectId,
+              workspaceId: workspace.workspaceId,
+              projectId: workspace.managedApp.projectId,
+              name: workspace.resources.find((resource) => resource.appProjectId === workspace.managedApp?.projectId)?.title ?? '标准应用',
+              description: '',
+              revision: 0,
+            }
+          : null),
+    })),
+  };
+}
 export interface WorkbenchRepository {
   readonly migrationPending: boolean;
   load(): Promise<WorkbenchSnapshot | null>;
@@ -66,7 +96,7 @@ export class FileWorkbenchRepository implements WorkbenchRepository {
   private loadedFile: z.infer<typeof FileSchema> | null | undefined;
   constructor(private readonly file: string) {}
   get migrationPending(): boolean {
-    return this.loadedFile != null && this.loadedFile.schemaVersion !== 3;
+    return this.loadedFile != null && this.loadedFile.schemaVersion !== 4;
   }
   async load(): Promise<WorkbenchSnapshot | null> {
     let contents: string;
@@ -81,38 +111,40 @@ export class FileWorkbenchRepository implements WorkbenchRepository {
     }
     const stored = FileSchema.parse(JSON.parse(contents));
     this.loadedFile = stored;
-    if (stored.schemaVersion === 3) {
+    if ('catalog' in stored) {
       parseResourceCatalog(stored.catalog);
       assertCatalogBindings(stored.snapshot, stored.catalog);
-      return stored.snapshot;
+      return stored.schemaVersion === 4 ? stored.snapshot : migrateAppDescriptions(stored.snapshot);
     }
-    if (stored.schemaVersion === 2)
-      return {
+    if (stored.schemaVersion === 2 || stored.schemaVersion === 3)
+      return migrateAppDescriptions({
         ...WorkbenchSnapshotSchema.parse(stored.snapshot),
         workspaces: stored.snapshot.workspaces.map((workspace) => ({
           ...WorkspaceSnapshotSchema.parse(workspace),
           resources: workspace.resources.map(({ catalogResourceId: _catalogResourceId, ...resource }) => resource),
         })),
-      };
-    return WorkbenchSnapshotSchema.parse({
-      ...stored.snapshot,
-      workspaces: stored.snapshot.workspaces.map((workspace) => ({
-        ...workspace,
-        resources: workspace.resources.map((resource) => ({
-          ...resource,
-          catalogResourceId: undefined,
-          environmentId: resource.kind === 'web' ? 'local' : resource.kind === 'terminal' ? 'sandbox' : null,
-          unavailableReason: ['file', 'ssh'].includes(resource.kind)
-            ? '旧占位资源未绑定授权环境，请新建已配置资源'
-            : resource.unavailableReason,
+      });
+    return migrateAppDescriptions(
+      WorkbenchSnapshotSchema.parse({
+        ...stored.snapshot,
+        workspaces: stored.snapshot.workspaces.map((workspace) => ({
+          ...workspace,
+          resources: workspace.resources.map((resource) => ({
+            ...resource,
+            catalogResourceId: undefined,
+            environmentId: resource.kind === 'web' ? 'local' : resource.kind === 'terminal' ? 'sandbox' : null,
+            unavailableReason: ['file', 'ssh'].includes(resource.kind)
+              ? '旧占位资源未绑定授权环境，请新建已配置资源'
+              : resource.unavailableReason,
+          })),
         })),
-      })),
-    });
+      }),
+    );
   }
   async loadCatalog(snapshot: WorkbenchSnapshot | null): Promise<ResourceCatalogState> {
     if (this.loadedFile === undefined) await this.load();
     const file = this.loadedFile;
-    if (file?.schemaVersion === 3) {
+    if (file && 'catalog' in file) {
       assertCatalogBindings(file.snapshot, file.catalog);
       return parseResourceCatalog(file.catalog);
     }
@@ -158,10 +190,10 @@ export class FileWorkbenchRepository implements WorkbenchRepository {
         })),
       })),
     };
-    const validated = FileSchema.parse({ schemaVersion: 3, snapshot: business, catalog });
+    const validated = FileSchema.parse({ schemaVersion: 4, snapshot: business, catalog });
     let previous: string | undefined;
-    // A schema3 file this repository loaded or wrote needs no backup; only unknown or legacy bytes are re-read.
-    if (this.loadedFile?.schemaVersion !== 3)
+    // A schema4 file this repository loaded or wrote needs no backup; only unknown or legacy bytes are re-read.
+    if (this.loadedFile?.schemaVersion !== 4)
       try {
         previous = await readFile(this.file, 'utf8');
       } catch (error) {
@@ -169,7 +201,7 @@ export class FileWorkbenchRepository implements WorkbenchRepository {
       }
     if (previous !== undefined) {
       const old = FileSchema.parse(JSON.parse(previous));
-      if (old.schemaVersion !== 3) {
+      if (old.schemaVersion !== 4) {
         const backup = this.file + '.legacy-schema-' + old.schemaVersion + '.json';
         try {
           await writeFile(backup, previous, { flag: 'wx', mode: 0o400 });
@@ -181,7 +213,7 @@ export class FileWorkbenchRepository implements WorkbenchRepository {
     }
     await mkdir(path.dirname(this.file), { recursive: true });
     const pending = this.file + '.pending';
-    await writeFile(pending, JSON.stringify({ schemaVersion: 3, snapshot: business, catalog }), { mode: 0o600 });
+    await writeFile(pending, JSON.stringify({ schemaVersion: 4, snapshot: business, catalog }), { mode: 0o600 });
     await rename(pending, this.file);
     this.loadedFile = validated;
   }

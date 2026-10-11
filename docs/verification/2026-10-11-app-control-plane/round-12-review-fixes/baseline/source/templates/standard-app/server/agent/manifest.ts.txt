@@ -1,0 +1,286 @@
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, join, relative } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import ts from 'typescript';
+import { z } from 'zod';
+import { is } from 'drizzle-orm';
+import { PgTable, getTableConfig } from 'drizzle-orm/pg-core';
+import { BUILD_STAMP_PATH, MANIFEST_PATH } from './describe.js';
+import { revisionOf, sourceFiles } from './revision.js';
+
+/**
+ * L3 自描述：从命令目录、Hono 路由、Drizzle schema 与 src 中的 JSX 导出 agent/app.manifest.json
+ * 和 agent/AGENTS.md。输出不含时间戳，同一源码得到同一字节。只在 tsx 下运行（构建与 agent-cli），
+ * 不被生产服务端导入。
+ */
+export const AGENTS_FRAGMENT_PATH = 'agent/AGENTS.md';
+const INTERACTIVE_TAGS = new Set(['button', 'a', 'input', 'select', 'textarea', 'Button']);
+const HANDLERS = new Set(['onClick', 'onChange', 'onInput', 'onKeyDown', 'onKeyUp', 'onDoubleClick']);
+const COMMAND_BINDERS = new Set(['defineCommand', 'useAgentCommand']);
+const STATE_BINDERS = new Set(['exposeState', 'useAgentState']);
+// 注册表实现本身转发非字面量名称，不属于应用注册点。
+const FRAMEWORK_FILES = new Set(['src/agent/registry.ts', 'src/agent/bridge.ts', 'src/agent/commands.ts']);
+
+type Check = { code: string; message: string; source: string };
+type Manifest = {
+  schemaVersion: 1;
+  templateId: string;
+  templateVersion: string;
+  sourceRevision: string;
+  pages: { path: string; source: string; testids: string[] }[];
+  routes: { method: string; path: string }[];
+  dataModel: { table: string; columns: { name: string; type: string; notNull: boolean; primaryKey: boolean }[]; primaryKey: string[] }[];
+  commands: { name: string; description: string; inputSchema: Record<string, unknown>; sources: string[] }[];
+  states: { name: string; sources: string[] }[];
+  testids: { testid: string; element: string; source: string }[];
+  checks: Check[];
+};
+
+function literal(node: ts.Expression | undefined): string | null {
+  while (
+    node &&
+    (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node) || ts.isTypeAssertionExpression(node))
+  )
+    node = node.expression;
+  if (!node) return null;
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  return null;
+}
+
+function attributeValue(attribute: ts.JsxAttribute): string | null | undefined {
+  const value = attribute.initializer;
+  if (!value) return undefined;
+  if (ts.isStringLiteral(value)) return value.text;
+  if (ts.isJsxExpression(value)) return literal(value.expression);
+  return null;
+}
+
+/** 用 TypeScript 解析器扫描 JSX 与注册调用，不执行组件代码。 */
+export function scanSource(path: string, text: string) {
+  const file = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const testids: Manifest['testids'] = [];
+  const commandSites: { name: string | null; source: string }[] = [];
+  const stateSites: { name: string | null; source: string }[] = [];
+  const checks: Check[] = [];
+  const where = (node: ts.Node) => `${path}:${file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1}`;
+  const visit = (node: ts.Node) => {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const tag = node.tagName.getText(file);
+      let testid: string | null | undefined;
+      let spread = false;
+      let handler = false;
+      let hidden = false;
+      for (const property of node.attributes.properties) {
+        if (ts.isJsxSpreadAttribute(property)) {
+          spread = true;
+          continue;
+        }
+        const name = property.name.getText(file);
+        if (name === 'data-testid') testid = attributeValue(property);
+        if (HANDLERS.has(name)) handler = true;
+        if (name === 'type' && attributeValue(property) === 'hidden') hidden = true;
+      }
+      if (testid) testids.push({ testid, element: tag, source: where(node) });
+      else if (testid === null)
+        checks.push({ code: 'dynamic_testid', message: `${tag} 的 data-testid 不是字面量，无法导出`, source: where(node) });
+      // 透传 props 的封装组件（如 Button 本身）由调用方提供 testid。
+      const interactive = (INTERACTIVE_TAGS.has(tag) || handler) && !hidden && !spread;
+      if (interactive && testid === undefined)
+        checks.push({ code: 'missing_testid', message: `可交互元素 <${tag}> 缺少 data-testid`, source: where(node) });
+    }
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+      const callee = node.expression.text;
+      if (COMMAND_BINDERS.has(callee) || STATE_BINDERS.has(callee)) {
+        const name = literal(node.arguments[0]);
+        (COMMAND_BINDERS.has(callee) ? commandSites : stateSites).push({ name, source: where(node) });
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  return { testids, commandSites, stateSites, checks };
+}
+
+async function load<T>(root: string, path: string): Promise<T> {
+  return (await import(pathToFileURL(join(root, path)).href)) as T;
+}
+
+export async function generateManifest(root: string): Promise<{ manifest: Manifest; agentsMd: string }> {
+  const files = await sourceFiles(root);
+  const sourceRevision = revisionOf(files);
+  const checks: Check[] = [];
+  const testids: Manifest['testids'] = [];
+  const commandSites = new Map<string, string[]>();
+  const stateSites = new Map<string, string[]>();
+  for (const path of [...files.keys()]
+    .filter((path) => /^src\/.*\.tsx?$/.test(path) && !path.endsWith('.d.ts') && !FRAMEWORK_FILES.has(path))
+    .sort()) {
+    const scanned = scanSource(path, await readFile(join(root, path), 'utf8'));
+    testids.push(...scanned.testids);
+    checks.push(...scanned.checks);
+    for (const [sites, target, kind] of [
+      [scanned.commandSites, commandSites, '命令'],
+      [scanned.stateSites, stateSites, '状态'],
+    ] as const)
+      for (const site of sites) {
+        if (!site.name) checks.push({ code: 'dynamic_registration', message: `${kind}注册名不是字面量`, source: site.source });
+        else target.set(site.name, [...(target.get(site.name) ?? []), site.source]);
+      }
+  }
+  for (const [kind, sites] of [
+    ['命令', commandSites],
+    ['状态', stateSites],
+  ] as const)
+    for (const [name, sources] of sites)
+      if (sources.length > 1)
+        checks.push({ code: 'duplicate_registration', message: `${kind} ${name} 被注册 ${sources.length} 次`, source: sources.join(', ') });
+
+  const { agentCommands } = await load<{ agentCommands: Record<string, { description?: unknown; input?: unknown }> }>(
+    root,
+    'src/agent/commands.ts',
+  );
+  const commands: Manifest['commands'] = [];
+  for (const [name, entry] of Object.entries(agentCommands).sort(([a], [b]) => (a < b ? -1 : 1))) {
+    if (typeof entry.description !== 'string' || !entry.description.trim() || !(entry.input instanceof z.ZodType)) {
+      checks.push({ code: 'command_without_schema', message: `命令 ${name} 缺少说明或 zod 输入 schema`, source: 'src/agent/commands.ts' });
+      continue;
+    }
+    commands.push({
+      name,
+      description: entry.description,
+      inputSchema: z.toJSONSchema(entry.input) as Record<string, unknown>,
+      sources: (commandSites.get(name) ?? []).sort(),
+    });
+  }
+  for (const [name, sources] of commandSites)
+    if (!(name in agentCommands))
+      checks.push({
+        code: 'command_without_schema',
+        message: `命令 ${name} 未在 src/agent/commands.ts 登记 schema`,
+        source: sources.join(', '),
+      });
+
+  const { createApp, TEMPLATE_VERSION } = await load<{
+    createApp: (database: unknown, identity: unknown, devSessions: boolean) => { routes: { method: string; path: string }[] };
+    TEMPLATE_VERSION: string;
+  }>(root, 'server/app.ts');
+  // 路由表只读取注册信息，桩数据库永远不会被调用。
+  const app = createApp({}, { workspaceId: 'x', environmentId: 'x', projectId: 'x', appInstanceId: 'x' }, true);
+  const routes = [
+    ...new Map(
+      app.routes
+        .filter((route) => !route.path.includes('*') && !route.path.startsWith('/api/__agent') && route.method !== 'ALL')
+        .map((route) => [`${route.method} ${route.path}`, { method: route.method, path: route.path }]),
+    ).values(),
+  ].sort((a, b) => (a.path === b.path ? (a.method < b.method ? -1 : 1) : a.path < b.path ? -1 : 1));
+
+  const schema = await load<Record<string, unknown>>(root, 'server/schema.ts');
+  const dataModel: Manifest['dataModel'] = Object.values(schema)
+    .filter((value): value is PgTable => is(value, PgTable))
+    .map((table) => {
+      const config = getTableConfig(table);
+      const keys = config.primaryKeys.flatMap((key) => key.columns.map((column) => column.name));
+      return {
+        table: config.name,
+        columns: config.columns.map((column) => ({
+          name: column.name,
+          type: column.getSQLType(),
+          notNull: column.notNull,
+          primaryKey: column.primary || keys.includes(column.name),
+        })),
+        primaryKey: [...config.columns.filter((column) => column.primary).map((column) => column.name), ...keys],
+      };
+    })
+    .sort((a, b) => (a.table < b.table ? -1 : 1));
+
+  testids.sort((a, b) => (a.testid === b.testid ? (a.source < b.source ? -1 : 1) : a.testid < b.testid ? -1 : 1));
+  checks.sort((a, b) => (a.source === b.source ? (a.code < b.code ? -1 : 1) : a.source < b.source ? -1 : 1));
+  const manifest: Manifest = {
+    schemaVersion: 1,
+    templateId: 'wsl-standard-app',
+    templateVersion: TEMPLATE_VERSION,
+    sourceRevision,
+    pages: [{ path: '/', source: 'src/App.tsx', testids: [...new Set(testids.map((item) => item.testid))] }],
+    routes,
+    dataModel,
+    commands,
+    states: [...stateSites.entries()]
+      .map(([name, sources]) => ({ name, sources: sources.sort() }))
+      .sort((a, b) => (a.name < b.name ? -1 : 1)),
+    testids,
+    checks,
+  };
+  return { manifest, agentsMd: renderAgentsMd(manifest) };
+}
+
+function renderAgentsMd(manifest: Manifest): string {
+  const list = (items: string[]) => (items.length ? items.map((item) => `- ${item}`).join('\n') : '- （无）');
+  return `# 本项目的 Agent 控制面（自动生成，勿手改）
+
+源码修订 \`${manifest.sourceRevision}\`。由 \`npm run agent:manifest\` 或受管启动的 \`build:agent\` 生成；源码变化后本文件与 \`app.manifest.json\` 即过期（stale），依赖它的写操作会被拒绝，需重新生成并重启实例。
+
+## 分工规则
+
+- 语义命令只用于准备数据与观察状态：seed、读 state、读日志、读库。
+- 判定“用户能完成某操作”必须经 \`app.ui.act\` 的 UI 动作，再用状态断言佐证；禁止用语义命令直接制造被验收的行为结果。
+- 固定验收基准在你的写入范围之外；自己写的场景只是开发辅助，不算验收通过。
+- 新增可交互元素必须带唯一 \`data-testid\`；新增命令先在 \`src/agent/commands.ts\` 登记 zod 输入。提交前运行 \`npm run agent:check\`。
+
+## 工具
+
+MCP 工具 \`app_describe\`、\`app_status\`、\`app_logs\`、\`app_restart\`、\`app_state_read\`、\`app_command_list\`、\`app_command_invoke\`、\`app_ui_snapshot\`、\`app_ui_act\`、\`app_data_query\`、\`app_data_seed\`、\`app_data_reset\`、\`app_scenario_run\`；shell 中同名 \`wsl-app <tool> '<JSON参数>'\`。写操作需携带 \`appInstanceId\`，UI 写动作还需快照返回的 \`documentGeneration\`；导航后旧引用失效，须重新快照。
+
+## 页面与 testid
+
+${list(manifest.testids.map((item) => `\`${item.testid}\`（${item.element}，${item.source}）`))}
+
+## 命令
+
+${list(manifest.commands.map((command) => `\`${command.name}\`：${command.description}`))}
+
+## 状态
+
+${list(manifest.states.map((state) => `\`${state.name}\``))}
+
+## API 路由
+
+${list(manifest.routes.map((route) => `\`${route.method} ${route.path}\``))}
+
+## 数据模型
+
+${list(manifest.dataModel.map((table) => `\`${table.table}\`：${table.columns.map((column) => `${column.name} ${column.type}${column.notNull ? ' not null' : ''}`).join('，')}`))}
+
+## 检查结果
+
+${list(manifest.checks.map((check) => `${check.code}：${check.message}（${check.source}）`))}
+`;
+}
+
+async function writeIfChanged(path: string, content: string) {
+  await mkdir(dirname(path), { recursive: true });
+  const previous = await readFile(path, 'utf8').catch(() => null);
+  if (previous !== content) await writeFile(path, content);
+}
+
+export async function writeManifest(root: string, options: { buildStamp?: boolean } = {}) {
+  const { manifest, agentsMd } = await generateManifest(root);
+  await writeIfChanged(join(root, MANIFEST_PATH), JSON.stringify(manifest, null, 2) + '\n');
+  await writeIfChanged(join(root, AGENTS_FRAGMENT_PATH), agentsMd);
+  if (options.buildStamp)
+    await writeIfChanged(join(root, BUILD_STAMP_PATH), JSON.stringify({ sourceRevision: manifest.sourceRevision }) + '\n');
+  return manifest;
+}
+
+/** 门禁：违规或已写入的 manifest 与当前源码不一致都失败。 */
+export async function checkManifest(root: string) {
+  const { manifest } = await generateManifest(root);
+  const existing = await readFile(join(root, MANIFEST_PATH), 'utf8').catch(() => null);
+  const failures = [...manifest.checks];
+  if (existing !== JSON.stringify(manifest, null, 2) + '\n')
+    failures.push({
+      code: 'manifest_stale',
+      message: `${MANIFEST_PATH} 与当前源码不一致，运行 npm run agent:manifest`,
+      source: relative(root, join(root, MANIFEST_PATH)),
+    });
+  return { ok: failures.length === 0, sourceRevision: manifest.sourceRevision, failures };
+}

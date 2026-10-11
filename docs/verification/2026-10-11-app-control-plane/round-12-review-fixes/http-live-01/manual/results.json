@@ -1,0 +1,12 @@
+{
+  "nonce": "7bf4ccd8-1ecd-4b98-9848-256668d02551",
+  "mode": "manual",
+  "profile": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-R0VddJ",
+  "sandbox": "wsl-sbx-smoke-20261006",
+  "gateDir": "/tmp/wsl-data-cancel-7bf4ccd8-1ecd-4b98-9848-256668d02551",
+  "fixtureOperationsSha256": "c842b574d32ba1a4d2ebd797f8ae44c4b78f82afc2483a1807ce6f0d80231aed",
+  "failure": "Error: Command failed: /opt/homebrew/bin/sbx exec wsl-sbx-smoke-20261006 sh -c cd \"$1\" && npm run agent:manifest sh /home/agent/workspace/.wsl-apps/85fd7272-3873-4ffc-a6ab-b6e32b8a96de\nnode:internal/modules/package_json_reader:331\n  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);\n        ^\n\nError [ERR_MODULE_NOT_FOUND]: Cannot find package 'tsx' imported from /home/agent/workspace/.wsl-apps/85fd7272-3873-4ffc-a6ab-b6e32b8a96de/\n    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:331:9)\n    at packageResolve (node:internal/modules/esm/resolve:784:25)\n    at moduleResolve (node:internal/modules/esm/resolve:873:18)\n    at defaultResolve (node:internal/modules/esm/resolve:1006:11)\n    at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)\n    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)\n    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)\n    at #resolve (node:internal/modules/esm/loader:687:17)\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)\n    at node:internal/modules/esm/loader:636:32 {\n  code: 'ERR_MODULE_NOT_FOUND'\n}\n\nNode.js v24.21.0\n",
+  "appExited": true,
+  "retainedOwnedProject": "/home/agent/workspace/.wsl-apps/85fd7272-3873-4ffc-a6ab-b6e32b8a96de",
+  "cleanupErrors": []
+}

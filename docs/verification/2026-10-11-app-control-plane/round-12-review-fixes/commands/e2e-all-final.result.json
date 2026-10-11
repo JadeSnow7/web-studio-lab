@@ -1,0 +1,13 @@
+{
+  "command": [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "--output",
+    "test-results/round-12-e2e-final"
+  ],
+  "exitCode": 0,
+  "seconds": 590.5580060482025,
+  "sourceFingerprint": "final-runtime-input-sha256.json"
+}

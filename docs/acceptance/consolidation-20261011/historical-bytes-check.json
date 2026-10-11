@@ -1,0 +1,22 @@
+[
+  {
+    "source": "source-00",
+    "checked_history_files": 881,
+    "missing": [],
+    "changed": [],
+    "excluded_cache_artifacts": [
+      "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/source/apps/service/src/__pycache__/app_cli_transport_tests.cpython-314.pyc.txt",
+      "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/source/apps/service/src/__pycache__/app_control_mcp_tests.cpython-314.pyc.txt",
+      "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/source/apps/service/src/__pycache__/guest-helper.cpython-314.pyc.txt",
+      "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/source/apps/service/src/__pycache__/observation_mcp_tests.cpython-314.pyc.txt",
+      "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/source/apps/service/src/__pycache__/resource_mcp.cpython-314.pyc.txt"
+    ]
+  },
+  {
+    "source": "source-01",
+    "checked_history_files": 58,
+    "missing": [],
+    "changed": [],
+    "excluded_cache_artifacts": []
+  }
+]

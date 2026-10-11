@@ -1,0 +1,15 @@
+
+Running 1 test using 1 worker
+
+(node:29382) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-7NlrtO ELECTRON_PID 29412
+ELECTRON_STDERR (node:29412) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:52764/4450a2dd-7b23-4b7a-a3d7-34f8b6294def
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✓  1 e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend automatic cancellation keeps App alive until operation termination is reconciled (2.3m)
+
+  1 passed (2.3m)

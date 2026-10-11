@@ -1,0 +1,20 @@
+[
+  {
+    "name": "test",
+    "command": ["pnpm", "test"],
+    "exit_code": 0,
+    "seconds": 18.65
+  },
+  {
+    "name": "typecheck-final",
+    "command": ["pnpm", "typecheck"],
+    "exit_code": 0,
+    "seconds": 17.8
+  },
+  {
+    "name": "e2e",
+    "command": ["pnpm", "test:e2e"],
+    "exit_code": 1,
+    "seconds": 296.32
+  }
+]

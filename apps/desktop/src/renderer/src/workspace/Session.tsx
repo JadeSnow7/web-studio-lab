@@ -470,7 +470,23 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
       </div>
       {busy ? (
         <div className="row space-between session-status" role="status">
-          <span>{currentRun!.state === 'cancelling' ? '正在取消并核实退出…' : '正在执行…'}</span>
+          <span>
+            {currentRun!.appCleanupPending && currentRun!.executorState?.cleanupPending === false
+              ? '模型已停止，App 数据操作仍待确认'
+              : currentRun!.state === 'cancelling'
+                ? '正在取消并核实退出…'
+                : '正在执行…'}
+          </span>
+          {currentRun!.appCleanupPending && currentRun!.cleanupRetryAvailable ? (
+            <button
+              type="button"
+              className="btn"
+              disabled={currentRun!.cleanupReconciling}
+              onClick={() => void workspaceCommand(workspace.workspaceId, { type: 'reconcileRunCleanup', runId: currentRun!.runId })}
+            >
+              重新核对
+            </button>
+          ) : null}
           <button
             type="button"
             className="btn"

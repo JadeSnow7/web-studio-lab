@@ -1,0 +1,181 @@
+{
+  "traceVersion": 1,
+  "scenarioRunId": "bd0039bd-730d-42e6-93e6-40f796f2f49e",
+  "scenarioName": "fixed-welcome-v1",
+  "scenarioSha256": "5ce797d0d169998901a6bcd9b5c3428b7bd4ac42c221c54cf8ef64d609913a48",
+  "runId": "24a9b056-fb28-48a4-9677-304a562a3b00",
+  "workspaceId": "taskflow-demo",
+  "appInstanceId": "7eecac36-398f-4a79-b811-23933316b246",
+  "sourceRevision": "e14c3dfa2b8099529b2a86361848e58a32b1a410f56538f35d3ccbccb3f0d9b1",
+  "startedAt": "2026-10-11T03:39:05.642Z",
+  "endedAt": "2026-10-11T03:39:13.817Z",
+  "outcome": "failed",
+  "steps": [
+    {
+      "index": 0,
+      "type": "act",
+      "summary": "act navigate /",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 129,
+      "documentGeneration": 2,
+      "screenshot": null
+    },
+    {
+      "index": 1,
+      "type": "act",
+      "summary": "act waitFor testid=welcome-value visible",
+      "outcome": "failed",
+      "error": {
+        "code": "wait_timeout",
+        "message": "等待 {\"testid\":\"welcome-value\"} 达到 visible 超时"
+      },
+      "durationMs": 8023,
+      "documentGeneration": 2,
+      "screenshot": null
+    },
+    {
+      "index": 2,
+      "type": "assert",
+      "summary": "assert text testid=welcome-value equals",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 3,
+      "type": "act",
+      "summary": "act type testid=welcome-input len=3",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 4,
+      "type": "act",
+      "summary": "act click testid=welcome-save",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 5,
+      "type": "assert",
+      "summary": "assert text testid=welcome-error equals",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 6,
+      "type": "assert",
+      "summary": "assert state welcome/value",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 7,
+      "type": "act",
+      "summary": "act type testid=welcome-input len=9",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 8,
+      "type": "act",
+      "summary": "act click testid=welcome-save",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 9,
+      "type": "assert",
+      "summary": "assert text testid=welcome-value equals",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 10,
+      "type": "assert",
+      "summary": "assert testid=welcome-error detached",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 11,
+      "type": "assert",
+      "summary": "assert state welcome/value",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 12,
+      "type": "act",
+      "summary": "act navigate /",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 13,
+      "type": "assert",
+      "summary": "assert text testid=welcome-value equals",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 14,
+      "type": "assert",
+      "summary": "assert console-no-error",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 15,
+      "type": "screenshot",
+      "summary": "screenshot fixed-welcome-saved",
+      "outcome": "skipped",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    }
+  ],
+  "stateDiff": [],
+  "inFlight": null,
+  "cleanupConfirmed": true
+}

@@ -37,7 +37,8 @@ rl.on('line', (line) => {
     for (let index = 0; index < count; index++) {
       const id = randomUUID();
       calls.push(id);
-      emit({ type: 'observation-call', id, tool: 'files.read', args: { resourceId: 'resource-a', path: 'note.txt' } });
+      if (mode === 'app') emit({ type: 'observation-call', id, tool: 'app.ui.snapshot', args: { limit: 5 } });
+      else emit({ type: 'observation-call', id, tool: 'files.read', args: { resourceId: 'resource-a', path: 'note.txt' } });
     }
     if (mode === 'disconnect') emit({ type: 'observation-cancel', id: calls[0] });
   }
@@ -57,7 +58,7 @@ rl.on('line', (line) => {
           item: { id: String(replies), type: 'agent_message', text: JSON.stringify(frame.result) },
         }) + '\n',
     });
-    if (mode === 'single' || mode === 'large' || mode === 'disconnect' || (mode === 'budget' && replies === 65)) {
+    if (mode === 'single' || mode === 'large' || mode === 'disconnect' || mode === 'app' || (mode === 'budget' && replies === 65)) {
       emit({ type: 'output', stream: 'stdout', data: '{"type":"turn.completed"}\n' });
       finish();
     }

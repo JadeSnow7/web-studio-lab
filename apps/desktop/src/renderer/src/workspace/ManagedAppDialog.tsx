@@ -16,7 +16,7 @@ export function ManagedAppDialog({ workspaceId }: { workspaceId: string | null }
     else dialog.current?.close();
   }, [workspaceId]);
   const app = workspace?.managedApp;
-  const act = async (type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp') => {
+  const act = async (type: 'startApp' | 'stopApp' | 'exportApp') => {
     if (!workspaceId) return;
     const targetId = workspaceId;
     const key = `${targetId}:${type}`;
@@ -53,6 +53,23 @@ export function ManagedAppDialog({ workspaceId }: { workspaceId: string | null }
           </button>
         </div>
         <p className="muted small">{workspace?.name} · 沙箱 React 全栈工程</p>
+        {workspace?.app ? (
+          <>
+            <p>{workspace.app.name}</p>
+            <p className="muted small">{workspace.app.description || '暂无 App 说明'}</p>
+            <button
+              type="button"
+              className="btn"
+              disabled={!!pending}
+              onClick={() => {
+                spaceActions.closeApp();
+                void spaceActions.openAppEditor(workspace);
+              }}
+            >
+              编辑 App
+            </button>
+          </>
+        ) : null}
         {app ? (
           <>
             <p role="status">
@@ -100,14 +117,22 @@ export function ManagedAppDialog({ workspaceId }: { workspaceId: string | null }
         ) : (
           <>
             <p>创建工程后，可在这里启动、停止应用或导出源码。</p>
-            <button type="button" className="btn btn-primary" disabled={!!pending || !workspace} onClick={() => void act('createApp')}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!!pending || !workspace}
+              onClick={() => {
+                if (workspace) {
+                  spaceActions.closeApp();
+                  void spaceActions.openAppEditor(workspace);
+                }
+              }}
+            >
               创建标准应用
             </button>
           </>
         )}
-        {pending ? (
-          <p role="status">{pending === 'createApp' ? '正在创建工程…' : pending === 'exportApp' ? '正在导出源码…' : '正在处理…'}</p>
-        ) : null}
+        {pending ? <p role="status">{pending === 'exportApp' ? '正在导出源码…' : '正在处理…'}</p> : null}
         {error ? <p role="alert">{error}</p> : null}
       </div>
     </dialog>

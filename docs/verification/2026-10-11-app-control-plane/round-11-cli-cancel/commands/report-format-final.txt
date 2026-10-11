@@ -1,0 +1,3 @@
+docs/verification/2026-10-11-app-control-plane/README.md 64ms (unchanged)
+docs/verification/2026-10-11-app-control-plane/acceptance-matrix.md 19ms (unchanged)
+docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/README.md 44ms (unchanged)

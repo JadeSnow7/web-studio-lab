@@ -4,10 +4,13 @@ import { app, session, type BrowserWindow } from 'electron';
 import { readFile, readdir, lstat, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
-import type { AppTarget, ManagedApp, AppSource, CatalogReferenceSnapshot } from '@wsl/protocol';
+import type { AppTarget, ManagedApp, AppSource, CatalogReferenceSnapshot, AppAgentOperation } from '@wsl/protocol';
 import type { ObservationRequest, ObservationTurnScope, ResourceInstanceIdentity, WorkbenchResource } from '@wsl/protocol';
 import type { ChatService } from '../chat-service';
 import { BrowserObservation } from '../preview/observation';
+import { AppUiDriver } from '../preview/app-ui';
+import type { AppUiPort } from './app-control';
+import { AppControlFailure } from './app-control-failure';
 import { PreviewController } from '../preview/controller';
 import { DEMO_ORIGIN, installDemoProtocol } from '../preview/demo-protocol';
 import type { WorkbenchRuntime } from './ports';
@@ -84,7 +87,55 @@ export class WorkbenchHost implements WorkbenchRuntime {
     });
     return { path: exported, manifestPath: `${exported}.manifest.json`, sha256: source.sha256 };
   }
+  private readonly appUis = new Map<string, AppUiDriver>();
+  /** 只为受管 App 的 Browser 资源提供控制面端口；演示页与公开只读文档永远不可写。 */
+  appUi(resourceId: string): AppUiPort {
+    const projectId = this.appBrowserProjects.get(resourceId);
+    const lease = projectId ? this.appLeases.get(projectId) : undefined;
+    if (!projectId || !lease || lease.state !== 'running')
+      throw new AppControlFailure('browser_unavailable', '不是当前运行的受管 App 网页');
+    const preview = this.browser(resourceId);
+    let driver = this.appUis.get(resourceId);
+    if (!driver) {
+      driver = new AppUiDriver(
+        preview.observationTarget,
+        { identity: () => preview.pageIdentity(), cdp: () => preview.getCdpState(), picking: () => preview.isPicking() },
+        preview.agentControl,
+      );
+      this.appUis.set(resourceId, driver);
+    }
+    const ui = driver;
+    return {
+      identity: () => ({
+        documentGeneration: preview.pageIdentity().documentGeneration,
+        url: preview.pageIdentity().url,
+        cdp: preview.getCdpState(),
+        agentControl: preview.agentControl.state(),
+      }),
+      snapshot: (appInstanceId, options, signal) => ui.snapshot(appInstanceId, options, signal),
+      act: (action, binding, signal) => ui.act(action, binding, signal),
+      query: (target, signal) => ui.query(target, signal),
+      bridge: (request, signal) => ui.bridge(request, signal),
+      screenshot: () => ui.screenshot(),
+      consoleMark: () => ui.consoleMark(),
+      consoleErrorsSince: (mark) => ui.consoleErrorsSince(mark),
+      beginControl: (runId, label) => preview.agentControl.begin(runId, label),
+      releaseRun: (runId) => preview.agentControl.release(runId),
+    };
+  }
+  appAgent(target: AppTarget, appInstanceId: string | null, operation: AppAgentOperation, signal: AbortSignal) {
+    return this.chat.appAgent(target, appInstanceId, operation, signal);
+  }
+  appLogs(target: AppTarget, maxBytes: number) {
+    return this.chat.appLogs(target, maxBytes);
+  }
+  appLeaseValid(projectId: string, appInstanceId: string) {
+    const lease = this.appLeases.get(projectId);
+    return lease?.state === 'running' && lease.appInstanceId === appInstanceId;
+  }
   releaseAppBrowser(resourceId: string) {
+    this.appUis.get(resourceId)?.dispose();
+    this.appUis.delete(resourceId);
     this.observers.get(resourceId)?.dispose();
     this.observers.delete(resourceId);
     this.browsers.get(resourceId)?.dispose();
@@ -245,6 +296,8 @@ export class WorkbenchHost implements WorkbenchRuntime {
         return p.cancelPick(requestId);
       case 'reattach':
         return p.reattachCdp();
+      case 'resumeAgent':
+        return p.agentControl.resume();
       default:
         throw new Error('invalid_input: 未知网页操作');
     }
@@ -278,6 +331,8 @@ export class WorkbenchHost implements WorkbenchRuntime {
     return this.chat.cancel(sessionId);
   }
   dispose() {
+    for (const driver of this.appUis.values()) driver.dispose();
+    this.appUis.clear();
     for (const observer of this.observers.values()) observer.dispose();
     this.observers.clear();
     this.browserBindings.clear();

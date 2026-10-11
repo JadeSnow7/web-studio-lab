@@ -1,0 +1,16 @@
+{
+  "modified": [
+    "apps/desktop/src/main/chat-service.test.ts",
+    "apps/desktop/src/main/chat-service.ts",
+    "apps/desktop/src/main/preview/app-ui.test.ts",
+    "apps/desktop/src/main/preview/app-ui.ts",
+    "apps/desktop/src/main/workbench/app-control.test.ts",
+    "apps/desktop/src/main/workbench/app-control.ts",
+    "apps/service/src/app-service.test.ts",
+    "apps/service/src/app-service.ts"
+  ],
+  "added": [
+    "e2e/app-control-model-live.spec.ts"
+  ],
+  "removed": []
+}

@@ -7,6 +7,7 @@ const fixture = vi.hoisted(() => ({
 vi.mock('./codex-chat', () => ({
   CodexChat: class {
     setObservationReader = vi.fn();
+    setAppControlReader = vi.fn();
     connection = {
       getCleanupPending: () => false,
       getStatus: () => ({ available: false, reason: 'initializing', sandbox: null, version: null, cwd: null }),

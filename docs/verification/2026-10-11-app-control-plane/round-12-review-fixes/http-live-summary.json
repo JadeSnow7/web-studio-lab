@@ -1,0 +1,107 @@
+[
+  {
+    "case": "automatic",
+    "evidence": "http-live-03/automatic",
+    "outcome": "passed",
+    "operationId": "627f46d1-3ecc-45ca-a3c9-f13573a8a5ba",
+    "operation": "seed",
+    "state": "succeeded",
+    "appInstanceId": "a5381896-1fed-4756-ab01-f2aba6fd2a6f",
+    "pidBefore": 530,
+    "pidAtOperationStart": 530,
+    "pidAtTerminal": 530,
+    "automaticBudgetElapsedMs": null,
+    "blockedStart": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "blockedExport": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "database": {
+      "columns": [
+        "n"
+      ],
+      "rows": [
+        {
+          "n": 2
+        }
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "cleanupErrors": [],
+    "appExited": true
+  },
+  {
+    "case": "manual",
+    "evidence": "http-live-04/manual",
+    "outcome": "passed",
+    "operationId": "c96cd322-b23c-45bb-bb9f-34f51da3c068",
+    "operation": "reset",
+    "state": "succeeded",
+    "appInstanceId": "b066c27d-bfcd-4ae7-b80d-7be35868fcb7",
+    "pidBefore": 510,
+    "pidAtOperationStart": 510,
+    "pidAtTerminal": 510,
+    "automaticBudgetElapsedMs": 30274,
+    "blockedStart": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "blockedExport": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "database": {
+      "columns": [
+        "n"
+      ],
+      "rows": [
+        {
+          "n": 2
+        }
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "cleanupErrors": [],
+    "appExited": true
+  },
+  {
+    "case": "failure",
+    "evidence": "http-live-04/failure",
+    "outcome": "passed",
+    "operationId": "7a087abd-9a8f-4f19-bbfc-4aedad52b15b",
+    "operation": "seed",
+    "state": "failed",
+    "appInstanceId": "092efc54-1056-4e2c-b88a-4fc5d8710037",
+    "pidBefore": 1120,
+    "pidAtOperationStart": 1120,
+    "pidAtTerminal": 1120,
+    "automaticBudgetElapsedMs": null,
+    "blockedStart": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "blockedExport": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "database": {
+      "columns": [
+        "table_name"
+      ],
+      "rows": [
+        {
+          "table_name": null
+        }
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "cleanupErrors": [],
+    "appExited": true
+  }
+]

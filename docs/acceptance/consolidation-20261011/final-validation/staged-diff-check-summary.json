@@ -1,0 +1,952 @@
+{
+  "full_exit_code": 2,
+  "findings": [
+    {
+      "path": "docs/acceptance/consolidation-20261011/coder-validation/schema3-dual-source-green.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/coder-validation/schema3-dual-source-red.txt",
+      "line": 38,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/coder-validation/workshop-actions-final.txt",
+      "line": 15,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/coder-validation/workshop-actions-final.txt",
+      "line": 21,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/coder-validation/workshop-actions-final.txt",
+      "line": 27,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/coder-validation/workshop-actions-final.txt",
+      "line": 34,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/coder-validation/workshop-actions-final.txt",
+      "line": 35,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/coder-validation/workshop-actions-final.txt",
+      "line": 36,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/final-validation/e2e-first-error-context.txt",
+      "line": 41,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/final-validation/e2e-first-error-context.txt",
+      "line": 93,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/final-validation/e2e-first-error-context.txt",
+      "line": 157,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/final-validation/e2e-first.txt",
+      "line": 223,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/final-validation/e2e-first.txt",
+      "line": 242,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/final-validation/typecheck-final.txt",
+      "line": 15,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/acceptance/consolidation-20261011/final-validation/typecheck.txt",
+      "line": 15,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/acceptance/space-app-live-20261010/focused-regression.log",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/acceptance/space-app-live-20261010/model-01.log",
+      "line": 17,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/space-app-live-20261010/model-01.log",
+      "line": 39,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/space-app-live-20261010/model-02.log",
+      "line": 22,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/space-app-live-20261010/model-02.log",
+      "line": 39,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/space-app-live-20261010/starting-tracked.patch",
+      "line": 7,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/space-app-live-20261010/starting-tracked.patch",
+      "line": 17,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/space-app-live-20261010/starting-tracked.patch",
+      "line": 231,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/space-app-live-20261010/starting-tracked.patch",
+      "line": 623,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/space-app-live-20261010/starting-tracked.patch",
+      "line": 686,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/space-app-live-20261010/typecheck.log",
+      "line": 15,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/acceptance/space-app-model-20261010/baseline-tests-direct.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/acceptance/space-app-model-20261010/e2e-focused.txt",
+      "line": 15,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/space-app-model-20261010/e2e-focused.txt",
+      "line": 41,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/acceptance/space-app-model-20261010/test-focused-final.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/acceptance/space-app-model-20261010/typecheck-final.txt",
+      "line": 15,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-04-live/playwright.log",
+      "line": 11,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-04-live/playwright.log",
+      "line": 33,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 8,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 39,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 44,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 46,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 48,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 50,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 62,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 65,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 67,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 70,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 72,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 78,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 80,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 86,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 154,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 288,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 306,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 310,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 360,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 662,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 663,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 884,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1191,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1367,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1368,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1478,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1479,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1559,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1561,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1564,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1566,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1573,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1596,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1693,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1704,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1715,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1748,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1750,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1754,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1757,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1759,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1762,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1764,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1766,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1777,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1833,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1839,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1945,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 1995,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch",
+      "line": 2077,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-10-cli/commands/model-live-01.txt",
+      "line": 16,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-10-cli/commands/model-live-01.txt",
+      "line": 39,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-10-cli/commands/transport-after-unrestricted.txt",
+      "line": 48,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-10-cli/commands/transport-after.txt",
+      "line": 105,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-10-cli/commands/transport-focused-final.txt",
+      "line": 48,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-10-cli/commands/transport-focused-pass.txt",
+      "line": 48,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-10-cli/commands/transport-focused.txt",
+      "line": 48,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-10-cli/commands/transport-frozen-regression.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-10-cli/commands/transport-regression.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-10-cli/commands/typecheck.txt",
+      "line": 15,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/commands/live-01.txt",
+      "line": 18,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/commands/live-02.txt",
+      "line": 16,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/commands/live-02.txt",
+      "line": 35,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/commands/live-03.txt",
+      "line": 16,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/commands/live-03.txt",
+      "line": 65,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/commands/live-03.txt",
+      "line": 82,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/commands/live-03.txt",
+      "line": 101,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/commands/restart-navigation-after.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/commands/restart-navigation-before.txt",
+      "line": 82,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/commands/restart-navigation-regression.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/commands/restart-navigation-tests.patch",
+      "line": 4,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/commands/typecheck.txt",
+      "line": 15,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 8,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 39,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 44,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 46,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 48,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 50,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 62,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 65,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 67,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 70,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 72,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 78,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 80,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 88,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 164,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 304,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 322,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 326,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 376,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 716,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 717,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 951,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 1259,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 1556,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 1570,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 1574,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 1575,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 1945,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 1946,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2026,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2028,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2031,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2033,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2040,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2066,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2166,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2177,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2188,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2221,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2223,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2227,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2230,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2232,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2235,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2237,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2239,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2250,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2306,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2312,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2418,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2468,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/baseline/tracked.patch",
+      "line": 2550,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/e2e-all-01.txt",
+      "line": 127,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/e2e-all-01.txt",
+      "line": 148,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/http-live-01.txt",
+      "line": 36,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/http-live-01.txt",
+      "line": 62,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/http-live-01.txt",
+      "line": 88,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/http-live-01.txt",
+      "line": 115,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/http-live-01.txt",
+      "line": 116,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/http-live-01.txt",
+      "line": 117,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/http-live-02.txt",
+      "line": 26,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/http-live-02.txt",
+      "line": 49,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/http-live-02.txt",
+      "line": 51,
+      "issue": "trailing whitespace."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/observation-final.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/p1-baseline-red.txt",
+      "line": 141,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/p1-existing-regressions.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/p1-initial-tests.txt",
+      "line": 181,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/p1-lifecycle-read-green.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/p1-lifecycle-read-red.txt",
+      "line": 36,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/p1-pre-dispatch-cli-green.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/p1-pre-dispatch-cli-red.txt",
+      "line": 93,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/p1-read-transport-green.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/p1-read-transport-red.txt",
+      "line": 36,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/p1-recovered-model-green.txt",
+      "line": 9,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/p1-recovered-model-red.txt",
+      "line": 68,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/p1-tests.txt",
+      "line": 13,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/typecheck-02.txt",
+      "line": 15,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/typecheck-03.txt",
+      "line": 15,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/typecheck-04.txt",
+      "line": 15,
+      "issue": "new blank line at EOF."
+    },
+    {
+      "path": "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/commands/typecheck-05.txt",
+      "line": 15,
+      "issue": "new blank line at EOF."
+    }
+  ],
+  "active_paths_check_exit_code": 0,
+  "active_paths_command": [
+    "git",
+    "diff",
+    "--cached",
+    "--check",
+    "--",
+    "apps",
+    "packages",
+    "e2e",
+    "templates",
+    "scripts",
+    "tests",
+    "README.md",
+    "UX-CONTRACT.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".gitignore",
+    ".prettierignore",
+    "docs/ARCHITECTURE.md",
+    "docs/architecture/current-runtime.md"
+  ]
+}

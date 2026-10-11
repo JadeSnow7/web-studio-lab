@@ -1,0 +1,5 @@
+README.md 144ms
+UX-CONTRACT.md 56ms (unchanged)
+docs/architecture/current-runtime.md 81ms (unchanged)
+docs/verification/2026-10-11-app-control-plane/README.md 29ms (unchanged)
+docs/verification/2026-10-11-app-control-plane/acceptance-matrix.md 18ms

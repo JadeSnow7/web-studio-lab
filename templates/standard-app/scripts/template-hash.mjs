@@ -21,7 +21,8 @@ for (const path of await entries())
     .update(await readFile(path))
     .digest('hex');
 const contentSha256 = createHash('sha256').update(JSON.stringify(files)).digest('hex');
-const manifest = { templateId: 'wsl-standard-app', version: '1.0.0', algorithm: 'sha256', contentSha256, files };
+const { version } = JSON.parse(await readFile('package.json', 'utf8'));
+const manifest = { templateId: 'wsl-standard-app', version, algorithm: 'sha256', contentSha256, files };
 if (process.argv.includes('--verify')) {
   if (JSON.stringify(JSON.parse(await readFile('template-manifest.json', 'utf8'))) !== JSON.stringify(manifest))
     throw new Error('Template source hash mismatch');

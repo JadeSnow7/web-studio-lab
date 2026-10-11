@@ -4,6 +4,7 @@ import { SetupManager } from './setup';
 import { NativeSetupAdapter } from './setup-adapter';
 import { WorkbenchApplication } from './workbench/application';
 import { FileWorkbenchRepository } from './workbench/repository';
+import { AppControl, FileAppControlStore } from './workbench/app-control';
 import { WorkbenchHost } from './workbench/host';
 import path from 'node:path';
 import { app, dialog, session, type BrowserWindow } from 'electron';
@@ -66,6 +67,18 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
   );
   host.application = workbench;
   chat.setObservationReader((scope, tool, args, signal) => workbench!.observeForTurn(scope, tool, args, signal));
+  const control = new AppControl({
+    context: (scope) => workbench!.appControlContext(scope),
+    ui: (resourceId) => host.appUi(resourceId),
+    agent: (target, appInstanceId, operation, signal) => host.appAgent(target, appInstanceId, operation, signal),
+    logs: (target, maxBytes) => host.appLogs(target, maxBytes),
+    leaseValid: (projectId, appInstanceId) => host.appLeaseValid(projectId, appInstanceId),
+    restart: (workspaceId, appInstanceId) => workbench!.restartAppForControl(workspaceId, appInstanceId),
+    pendingChanged: (workspaceId, runId) => workbench!.onAppCleanupChanged(workspaceId, runId),
+    store: new FileAppControlStore(path.join(app.getPath('userData'), 'app-control')),
+  });
+  workbench.setAppControl(control);
+  chat.setAppControlReader((scope, tool, args, signal) => workbench!.appControlForTurn(scope, tool, args, signal));
   const unregisterIpc = registerIpc({ window, trusted, chat, workbench, setup });
   const unsubscribeSetup = setup.subscribe((snapshot) => sendToRenderer(window, 'setup:status', snapshot));
   installAppMenu(window, host);

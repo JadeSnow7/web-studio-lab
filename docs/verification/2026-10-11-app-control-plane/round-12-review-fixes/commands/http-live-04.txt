@@ -1,0 +1,25 @@
+
+Running 2 tests using 1 worker
+
+(node:31279) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-aTO3zN ELECTRON_PID 31287
+ELECTRON_STDERR (node:31287) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:53111/30b66bb8-2bf8-44d8-a1bd-6b29b4e50c0f
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✓  1 e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend manual cancellation keeps App alive until operation termination is reconciled (2.6m)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-cK8sEZ ELECTRON_PID 32193
+ELECTRON_STDERR (node:32193) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:53486/7be19f9b-9237-4c5e-a669-5989a59d5a37
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✓  2 e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend failure cancellation keeps App alive until operation termination is reconciled (2.4m)
+
+  Slow test file: e2e/app-control-data-cancel-live.spec.ts (5.0m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  2 passed (5.0m)

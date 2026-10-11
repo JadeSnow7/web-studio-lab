@@ -8,7 +8,7 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 
 ## 当前状态
 
-当前工作树按[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)保留升级前的全局布局，本地基准为 `9e1df45`。正在实施[跨分支整合 INTEGRATION-1](docs/acceptance/integration-20261008/SPEC.md)：`331c47f` 已加入统一观察协议与 Provider，`c97b673` 接入环境和终端，`d9beb8a` 接入 Main、持久化与 MCP，`612cde0` 接入空间文件浏览和会话观察；完整验证继续进行。源码、检查、原生窗口与未完成项分别记录在[当前验收](docs/acceptance/integration-20261008/task-summary.md)，历史记录不能替代本轮结果。
+当前候选树整合 Electron 工作台、统一观察、受管标准 App、账户资源目录、App 控制面，以及 App 名称/说明和任务目标绑定。六板块布局继续遵循[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)。2026-10-11 的来源去向、审查修复、最终验证与未完成项统一见[本轮整合记录](docs/acceptance/consolidation-20261011/README.md)；[2026-10-08 整合记录](docs/acceptance/integration-20261008/task-summary.md)保留为历史，不能替代本轮结果。
 
 | 能力         | 实现与验证边界                                                                                                                                                          |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -23,6 +23,7 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 | 标准应用     | 独立版本化 React/TS/Vite + Hono + Drizzle/PGlite + Zod 模板；空间内创建、受管启动、Browser接入、停止与源码导出                                                          |
 | 完整业务闭环 | priority业务API、独立检查器及任务页真实diff/报告仍未实现；VS001与标准应用的本轮结果见[最小闭环记录](docs/acceptance/integrated-app-installer-public-20261009/README.md) |
 | 统一观察     | Browser、文件、终端与 SSH 已接 Main、MCP 和空间界面；完整验证进行中                                                                                                     |
+| App 控制面   | 阶段 A：真实 guest Codex 经 MCP 与命令沙箱 `wsl-app` 文件通道验证通过，Host 独立固定复验通过；产品检查器尚未接入，见下文                                                |
 
 ## 环境
 
@@ -67,7 +68,7 @@ pnpm test:e2e
 
 空间垂直标签中的“开发终端”提供显式连接入口，打开交互shell，支持持续 cwd/环境、Ctrl-C、窗口尺寸变化与关闭。切换标签保留 shell；关闭终端或取消对话须确认所属远端进程退出。应用不会停止整个 sandbox，sandbox 内安装与文件由 sbx 保留。Browser 可加载演示页面、受控公开 HTTPS 只读文档，以及当前空间明确启动且通过身份健康检查的沙箱应用。
 
-普通 `pnpm test:e2e` 使用缺失配置或确定性 sbx fixture，不调用真实模型。显式真实检查需要本机已准备好的 sandbox、有效的既有 sandbox 认证、网络和原生窗口权限：
+普通 `pnpm test:e2e` 使用缺失配置或确定性 sbx fixture，不调用真实模型。App 名称/说明、失败草稿、键盘和窄窗流程由 `e2e/space-app.spec.ts` 验证。显式真实检查需要本机已准备好的 sandbox、有效的既有 sandbox 认证、网络和原生窗口权限：
 
 ```bash
 pnpm build
@@ -75,6 +76,18 @@ WSL_LIVE_SBX=1 WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm exec playwright test e2e
 ```
 
 固定范围见 [sbx 应用 SPEC](docs/verification/2026-10-06-sbx-app/SPEC.md)，执行结果见[验证记录](docs/verification/2026-10-06-sbx-app/README.md)。原来的 [host 对话记录](docs/verification/2026-10-06-codex-chat/README.md)保留为历史证据。
+
+## 受管 App 的 Agent 控制面（阶段 A）
+
+标准模板 1.1.0 内建 Agent 控制面：前端 `defineCommand`/`exposeState` 注册表、仅 agent 构建挂载的 `window.__WSL_AGENT__`、后端 `server/agent-cli.ts` 与构建导出的 `agent/app.manifest.json`。guest Codex 在 TaskRun 内通过 `app_*` MCP 工具或 `wsl-app` CLI 读取自描述、快照并以结构化动作操控页面、读写本实例数据和回放场景；Main 统一授权、审计并在用户点击 Browser 区时暂停 AI。设计见[控制面设计](docs/design/2026-10-11-app-control-plane.md)，取舍见 [ADR-0002](docs/architecture/adr/0002-app-control-plane.md)，计划与验收矩阵见[实施计划](docs/plans/2026-10-11-app-control-plane.md)，本轮结果见[验证记录](docs/verification/2026-10-11-app-control-plane/README.md)。真实 Electron 与 CDP 的集成检查（本机构建的模板服务，无 sandbox、无模型）：
+
+```bash
+pnpm exec playwright test e2e/app-control-harness.spec.ts
+```
+
+产品窗口 + 真实 sandbox 的 A03/A07 在修复后复验通过（`WSL_APP_CONTROL_LIVE=1 pnpm exec playwright test e2e/app-control-live.spec.ts`，guest 侧由测试引导代替）。获得真实模型授权后，[A11](docs/verification/2026-10-11-app-control-plane/round-09-model-live/README.md) 通过正常 TaskRun 调用真实 guest Codex 与 MCP，Host 独立重放固定场景 16 步并核对数据库成功；默认测试仍不调用模型，A11 需显式 `WSL_APP_CONTROL_MODEL_LIVE=1`。[round-10 CLI 修复](docs/verification/2026-10-11-app-control-plane/round-10-cli/README.md) 将被命令沙箱拒绝的 Unix socket 改为每轮有界文件通道；真实 Codex 命令沙箱中 11 项 CLI 检查、MCP 及 Host 固定 16 步通过，旧实例和未授权 reset 正确拒绝，原权限与 64/4 预算不变。[round-11](docs/verification/2026-10-11-app-control-plane/round-11-cli-cancel/README.md) 补齐真实模型在途 CLI 的产品按钮取消：停止新动作、所属进程/通道清理、保留源码和下一轮迟到响应隔离通过；同时修复 AI 重启自动切走用户会话。独立 Host 测试不改变产品的 validation 或用户接受状态。
+
+[round-12 审查修复](docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/README.md) 增加 HTTP 操作身份与终态核对、持久写入保护及“重新核对”，修复 CLI 清理归属、快照引用复用和嵌套 JSON 散列。取消数据操作时 App 保持运行；旧模板不具备操作追踪能力时拒绝写入。引用目标必须携带 `snapshotId`。本轮自动检查、真实运行、失败记录和用户接受边界分别见该轮记录。
 
 ## 我的资源与空间连接
 
@@ -133,7 +146,7 @@ pnpm package:unsigned
 
 ## 架构与固定验收入口
 
-[Agent 入口](AGENTS.md)、[架构基线](docs/ARCHITECTURE.md)与[开发规范](CONTRIBUTING.md)说明职责和协作要求；[当前运行时](docs/architecture/current-runtime.md)区分真实实现、目标约束与缺口。目标架构的取舍见 [ADR-0001](docs/architecture/adr/0001-modular-monolith.md)。
+[Agent 入口](AGENTS.md)、[架构基线](docs/ARCHITECTURE.md)与[开发规范](CONTRIBUTING.md)说明职责和协作要求；[当前运行时](docs/architecture/current-runtime.md)区分真实实现、目标约束与缺口。目标架构的取舍见 [ADR-0001](docs/architecture/adr/0001-modular-monolith.md)，受管 App 控制面的命名空间与 dispatcher 落点见 [ADR-0002](docs/architecture/adr/0002-app-control-plane.md)。
 
 main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical-slice`、固定 fixture 和实现前失败证据全部保留，包括 PR1 的观察值拒绝和源码类型检查修复。`src/vertical-slice/adapter.ts` 已接入现有 sbx/Codex、Vite 和 Electron Browser；实现及运行条件见 [VS001 接入记录](docs/acceptance/integrated-app-installer-public-20261009/README.md)。本轮真实五项与标准应用的结果分别记录在[最小闭环记录](docs/acceptance/integrated-app-installer-public-20261009/README.md)，不能据此认定完整比赛业务闭环完成；原验收需显式配置已有 sandbox 与实际模型。整合后的运行入口以本树 `package.json` 为准。
 
@@ -164,7 +177,7 @@ main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical
 
 ## 沙箱标准应用（第一工作包）
 
-唯一母模板位于 [`templates/standard-app`](templates/standard-app/README.md)，独立维护 npm 锁文件和内容哈希，不修改 VS001 fixture。空间侧栏顶部提供网页、终端、会话和 App 图标入口；App 按钮打开创建与管理界面，支持创建、启动、停止/取消和导出。工作台在已有 sandbox 内创建独占项目目录，应用进程独立于 Codex 任务；正式启动构建静态前端并由 Hono 同端口提供页面和 `/api`。重启保留磁盘 PGlite 数据，普通重启不运行 seed。
+唯一母模板位于 [`templates/standard-app`](templates/standard-app/README.md)，独立维护 npm 锁文件和内容哈希，不修改 VS001 fixture。空间侧栏顶部提供网页、终端、会话和 App 图标入口；App 按钮打开创建与管理界面，支持名称/说明编辑、创建、启动、停止/取消和导出。名称和说明由 Main 持久保存，编辑不改变运行实例；确认任务时固定 App、项目工作目录与页面上下文，切空间不会重定向已有任务。工作台在已有 sandbox 内创建独占项目目录，应用进程独立于 Codex 任务；正式启动构建静态前端并由 Hono 同端口提供页面和 `/api`。重启保留磁盘 PGlite 数据，普通重启不运行 seed。
 
 应用启动后验证 workspace、environment、project 与 appInstance 身份，再给原生 Browser 授予当前回环 origin 的访问能力。停止先撤销本实例端口映射，再确认所属进程清理；未知映射不自动删除。关闭 Browser 标签仍保留应用，停止请使用“停止应用”。源码导出要求服务已停止并确认清理，生成可运行源码目录及同级 `.manifest.json`，不包含数据或依赖目录。
 

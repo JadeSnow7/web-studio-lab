@@ -1,6 +1,6 @@
 # 当前运行时与目标架构的边界
 
-本记录跟踪2026-10-08[本地整合 INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)。空间重制基准为本地提交 `9e1df45`，Provider工作包为 `331c47f`，环境/终端为 `c97b673`，Main/持久化/MCP为 `d9beb8a`，空间文件与会话观察为 `612cde0`；最终验证尚在进行，当前完成边界见[阶段记录](../acceptance/integration-20261008/task-summary.md)。[SR-1](../acceptance/space-remake/SPEC.md)的来源与历史窗口证据原样保留；历史通过不能替代最终源码复验。
+本记录描述2026-10-11候选树的实际接线；来源去向、审查修复、最终验证与未运行项见[本轮整合记录](../acceptance/consolidation-20261011/README.md)。2026-10-08[INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)和[SR-1](../acceptance/space-remake/SPEC.md)保留各自源码基线与历史窗口证据，历史通过不能替代当前版本复验。
 
 ## 已有能力和缺口
 
@@ -89,7 +89,7 @@ Codex 首轮使用 `exec --json`，续轮显式 `exec resume <threadId>`，采�
 
 Main 的 `resource-catalog` 管理本地账户拥有的资源、主动收藏、空间连接和不可变内容版本。账户身份在首次初始化时创建并持久化，renderer 不能指定所有者。`WorkbenchResource.resourceId` 继续标识原空间运行绑定，`catalogResourceId` 指向账户资源；标签和运行实例保留独立生命周期。文档分类目前提供已有授权环境的文件入口收藏与重开；浏览目录是展示状态，不自动写账户描述，本轮不含将任意当前文件另存为收藏、文件导入或正文归档。页面实现及本轮验证边界见[资源归属验证记录](../acceptance/resource-ownership-20261010/README.md)。
 
-`workbench.json` schema 3 同时保存工作台和账户目录，完整格式、摘要和关系校验通过后原子替换。schema 1/2 及旧 `chat/space-resources.json` 仅作迁移来源：旧工作台另存不可覆盖的只读备份，旧资源文件原样保留；导入为账户资源与原空间连接，默认不收藏。迁移不启动实例；损坏或未来格式拒绝覆盖。正常 schema 3 重启不因读取而额外保存。
+`workbench.json` schema 4 同时保存工作台、空间 App 描述和账户目录，完整格式、摘要和关系校验通过后原子替换。schema 1/2/3 及旧 `chat/space-resources.json` 仅作迁移来源：旧工作台另存不可覆盖的备份，旧资源文件原样保留；带 catalog 的 schema 3 保持原账户、收藏、连接及版本；空间 App 分支的无 catalog schema 3 以每个空间显式合法的 app 字段识别，保全 App 元数据与 publicResources 后按既有规则迁移目录。缺少这组来源标记的损坏文件拒绝迁移。App 元数据迁移不启动实例；损坏或未来格式拒绝覆盖。正常 schema 4 重启不因读取而额外保存。
 
 公开页面仍使用受控 HTTPS 获取与只读文档路径：Main 校验 DNS 地址与每次跳转的公网范围，固定已验证 IP 并校验证书，只把转义标题和正文放入固定模板。原站脚本、属性、样式、Cookie 和子资源不进入 Browser。收藏 HTTP/HTTPS 链接只保存描述，不访问网络；实际打开和正文捕获继续服从现有能力限制。
 
@@ -125,7 +125,7 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 
 `templates/standard-app` 是唯一工程母模板，React/TS/Vite、Node/Hono、Drizzle/PGlite、Zod 与 Tailwind 使用独立 npm 锁与版本内容哈希。空白起点只包含健康检查、数据库迁移、开发 A/B 会话与隔离的存储探针，不包含 TaskFlow 业务。正式服务由 Hono 单端口提供构建后的页面和 API，开发命令仍保留 Vite。
 
-空间侧栏顶部的 App 图标打开创建与管理对话框，通过现有 workbench 命令提交 createApp/startApp/stopApp/exportApp；原侧栏底部“标准应用”区域移除。Main 唯一拥有 workspace/project/App 快照。独立 Node 服务中的 AppService 复用 SbxConnection/GuestProcess 管理持久 guest cwd，应用进程不归单轮 Codex 清理。实际 guest PORT=0 分配端口，服务验证同一 child 的 ready 身份、端口回执与健康身份后，Main 仅给对应 Browser 资源授予当前 origin 的写请求能力。公开文档仍只读，其他 webContents 不能复用授权。
+空间侧栏顶部的 App 图标打开创建与管理对话框，通过现有 workbench 命令提交 createApp/updateApp/startApp/stopApp/exportApp；原侧栏底部“标准应用”区域移除。Main 唯一拥有 workspace/project/App 快照。空间 App 描述持久保存稳定 appId、projectId、名称、说明和 revision；编辑带版本条件且不调用运行时。任务版本固定 App/project/guestCwd 及完整非截图页面/元素上下文，执行前校验身份及组合 prompt 的 32000 字符预算；旧任务缺少绑定时不猜测当前焦点。独立 Node 服务中的 AppService 复用 SbxConnection/GuestProcess 管理持久 guest cwd，应用进程不归单轮 Codex 清理。实际 guest PORT=0 分配端口，服务验证同一 child 的 ready 身份、端口回执与健康身份后，Main 仅给对应 Browser 资源授予当前 origin 的写请求能力。公开文档仍只读，其他 webContents 不能复用授权。
 
 停止先在 guest child 仍存活时核验并删除自己的 loopback 映射，再关闭进程并等清理回执；VM重启导致映射变化或回执缺失时保留未知状态，禁止猜测清理其他映射。注册表绑定真实 sandbox 名称，只恢复项目描述，不自动重放服务。首次准备执行 seed，普通重启只迁移、检查和构建，磁盘 dataDir 保持。源码导出需停服确认，输出实际完整源码目录和同级 manifest，不混入运行数据或 node_modules。
 
@@ -136,3 +136,20 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 安装器配置与应用服务共用一个 `SbxConnection`；`runtimeTarget()` 只返回已初始化的 binary/sandbox，App 导入和端口操作不另行搜索 PATH。显式空配置保持不可用，不回退环境变量。Main 从包内 `runtime/dependencies.json` 派生只读模板依赖配置，校验模板源码、独立锁与归档后传给执行服务。损坏载荷在原设置页显示错误并禁止 sandbox 连接。模板存于包内 `templates/standard-app`，Linux ARM64/glibc 依赖包存于 runtime；归档准备审计实际 ELF、外来平台、必需 native 模块和执行位，并收集依赖许可。
 
 窗口退出分别尝试安装操作与工作台服务清理；服务内部先逐项尝试受管应用清理，再尝试对话与环境资源清理，单一失败不会跳过其他所有者。成功后等待 Main 持久化队列回执再关闭。清理失败或等待超过 30 秒时，原生对话框显示具体原因，提供“重试清理”“取消退出”“仍然退出”，默认取消；取消保留窗口，但服务已进入关闭状态，不能继续新操作。超时不代表清理停止，重试等待在途尝试；实际失败后可重新尝试。只有明确选择“仍然退出”才允许未确认时退出本地应用，提示未确认进程可能继续运行，不把清理状态改成成功。异常注册表保留原文件并报错，不自动迁移或丢弃历史资源；持久化使用已验证的非空 sandbox 身份。实现与回归证据见[退出问题验证](../verification/2026-10-10-shutdown.md)。公开只读 origin 和受管 App 可写 origin 仍分别按精确实例 lease 校验。
+
+## 受管 App 控制面（2026-10-11 阶段 A）
+
+设计、计划与取舍见[控制面设计](../design/2026-10-11-app-control-plane.md)、[实施计划](../plans/2026-10-11-app-control-plane.md)与 [ADR-0002](adr/0002-app-control-plane.md)；本轮验证结果见[验证记录](../verification/2026-10-11-app-control-plane/README.md)。
+
+- 通道：guest MCP 的 `app_*` 保留观察的临时 Unix socket；每轮安装的 `wsl-app` CLI 通过 `WSL_APP_CHANNEL` 使用私有临时目录内四槽文件 IPC，适配仍禁止 socket 连接的 Codex 命令沙箱。两者合计共享 64 次/4 在途预算，CLI 只承载既有 `app.*`，不重试或回退，不调整沙箱权限。service `CodexChat` 把 `app.` 开头的调用改发 `app-call`，Main `ChatService` 交 `WorkbenchApplication.appControlForTurn`，唯一 dispatcher 为 `workbench/app-control.ts`。观察工具的路径与 `ObservationRecord` 不变。轮次清理先取消在途调用并释放通道、删除临时目录，再确认成功。
+- 授权：`appControlContext` 只认 Main 冻结的轮次 scope，run 须为 `starting/running` 且非 `cancelling`；写操作另需请求 `appInstanceId` 等于当前运行实例、host 租约有效、未被用户暂停。除用于恢复的 `app.restart` 外，还需 manifest 与运行构建均不 stale；UI 写还需当前文档代次；`app.data.reset` 需任务版本 `allowedScopes` 含 `app.data.reset`。出队与异步修订读取后复核归属及取消；run 结束时 dispatcher 中止该 run 的在途调用并解除 Browser 操控指示。
+- 执行：L1 与前端 L2 由 `preview/app-ui.ts` 在受管 App 的同一 Browser `webContents` 上经 CDP 执行，页面函数固定、参数仅作 JSON 值；`WorkbenchHost.appUi` 只给 `appBrowserProjects` 中当前租约有效的资源。L0/后端 L2 由 service `AppService.agent/logs` 执行：运行实例走回环 HTTP 与每次启动随机生成的实例令牌，停止时经 `app-helper.py` 的只读 `agent` 操作在 guest cwd 执行 agent-cli。
+- 数据写入完成事实：Main 在派发 seed/reset 前持久保存 operationId、实例及原任务归属；模板声明 `operationTrackingVersion: 1`，按实例登记、去重和查询终态，记录最多 1024 条且不驱逐。取消先到留下墓碑，已开始的操作继续到真实终态；取消回执、断线或 not_found 不证明结束。取消保持 App 运行，立即及每秒核对，单轮最多 30 秒，未知继续阻止控制面写入、启动、重启和导出。原任务的 `reconcileRunCleanup` 可在无模型 scope 时再核对。
+- 清理投影：TaskRun 保存独立模型执行事实，Conversation 与 TaskRun 合并模型、App 清理占用，全部确认前保持 `cancelling / cleanupPending`。CLI 未确认或异常保留句柄，应用进程或端口的成功不能覆盖它。`app-control/pending.json` 只持久保存身份、不保存令牌；重启不重放操作。旧模型进程缺少停止证据时，即使 App 已结清仍保留未知，不能借 App 终态宣称模型退出。
+- 快照身份：元素引用必须为 `{ref, snapshotId}`，`{testid}` 形状不变。新成功快照原子替换引用表；失败、取消不覆盖旧成功表，导航、detach、实例更换使引用失效。数据库快照递归排序对象键并保留嵌套值与数组顺序，全部行参与散列，样本最多 20 行。
+- 用户接管：`PreviewController.agentControl` 由 `input-event` 判定用户点击/输入并锁存 `paused_by_user`，经 `PreviewState.agentControl` 投影到 Browser 区指示；只有 renderer 的 `browserAction: resumeAgent` 能恢复。
+- 重启导航：Main 内部 AI 重启完成后通过既有 `ensureBrowser` 重建受管网页实例，不激活 App 标签，也不恢复旧布局覆盖等待期间的新导航；用户显式 `startApp` 仍打开 App 网页。用户留在会话时可继续使用原“取消回复”按钮。
+- 证据：审计与场景轨迹写在用户数据目录 `app-control/<runId>/`（追加 `audit.jsonl`，场景 `scenarios/<id>/trace.json`、`revision-check.json` 与截图排他创建）。轨迹固定起始 manifest 修订；结束时源码变化或无法核对，不能报告 passed。证据不进入 `workbench.json` 快照，不改变 TaskRun 的 validation 状态。
+- 模板：standard-app 1.1.0 内建 registry/bridge、agent-cli、`/api/__agent` 与 manifest；受管启动对含 `build:agent` 的项目改用 agent 构建，旧 1.0.0 项目照旧生产构建并返回 `unsupported`。健康检查接受 1.0.0 与 1.1.0。
+- 验证：修复后的 A03/A07 无模型 live 通过；[A11 真实模型与 Host 固定复验](../verification/2026-10-11-app-control-plane/round-09-model-live/README.md) 通过，真实 MCP describe、UI、state、query 链路已运行。[round-10](../verification/2026-10-11-app-control-plane/round-10-cli/README.md) 在保持 `workspace-write` 与 Main 权限不变的前提下改用 CLI 文件通道，真实命令沙箱 11 项检查（含两项 Main 拒绝）、MCP 及 Host 固定 16 步通过；所属进程、映射和通道清理确认。[round-11](../verification/2026-10-11-app-control-plane/round-11-cli-cancel/README.md) 通过实际产品按钮取消真实在途 CLI，核对 11 个所属进程退出、通道删除、45 个源码文件保留及下一轮真实 CLI 的迟到响应隔离；按钮为 Playwright 自动点击，返回帧延迟由测试启动层控制。
+- 缺口：独立产品检查器仍未接入，测试内 Host 复验不写入 TaskRun 的 validation，也不构成用户接受；真人输入、安装包复验未在本轮执行；Expo（阶段 B）与 Android（阶段 C）未实现。

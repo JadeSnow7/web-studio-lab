@@ -1,0 +1,19 @@
+(node:14260) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ 只读事务是第二道防线：绕过静态检查的写函数仍被拒绝 (2992.87475ms)
+✔ /api/__agent 端点只在提供令牌时挂载，并要求同值令牌 (2066.760917ms)
+✔ real JSONB snapshot retains nested content, stabilizes keys/rows, hashes beyond sample (1929.865792ms)
+(node:14261) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ seed: registered work remains running after cancel and executes once on replay (3047.85125ms)
+✔ reset: registered work remains running after cancel and executes once on replay (1940.452708ms)
+✔ cancel before admission blocks late POST, validates auth/input, retains capacity identities (2040.700917ms)
+✔ database failure is a retained terminal result, no replay of side effects (1486.944833ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9641.925375

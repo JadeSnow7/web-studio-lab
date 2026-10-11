@@ -1,11 +1,19 @@
 import { execFile, spawn } from 'node:child_process';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { promisify } from 'node:util';
 import { createReadStream } from 'node:fs';
 import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { z } from 'zod';
+import {
+  AgentCliEnvelopeSchema,
+  AppOperationReceiptSchema,
+  type AgentCliEnvelope,
+  type AppAgentOperation,
+  type AppAgentResult,
+  type AppLogs,
+} from '@wsl/protocol';
 import { type GuestProcess, type SbxConnection } from './sbx';
 import helper from './app-helper.py?raw';
 
@@ -46,12 +54,18 @@ interface Entry {
   readyPort: number | null;
   readyError: string | null;
   processExited: boolean;
+  /** 每次启动随机生成，仅经 guest 进程环境传给受管开发实例的 /api/__agent；停止即作废。 */
+  agentToken: string | null;
+  agentProcess: Pick<GuestProcess, 'done' | 'close'> | null;
+  agentAdmission?: Promise<void>;
+  httpOperation: { operationId: string; operation: 'seed' | 'reset'; appInstanceId: string } | null;
 }
 export interface AppServiceOptions {
   /** Trusted service wiring, never populated from renderer input. */
   ports?: (args: string[]) => Promise<string>;
   fetch?: typeof fetch;
   startupTimeoutMs?: number;
+  reconciliationTimeoutMs?: number;
   registryPath?: string;
   dependencyArchivePath?: string;
   dependencyManifest?: { archiveSha256: string; lockSha256: string; platform: 'linux'; arch: 'arm64'; libc: 'glibc' };
@@ -155,6 +169,9 @@ export class AppService {
         readyPort: null,
         readyError: null,
         processExited: false,
+        agentToken: null,
+        agentProcess: null,
+        httpOperation: null,
       });
     }
   }
@@ -240,7 +257,14 @@ export class AppService {
         type: 'start',
         mode: 'codex',
         argv: ['python3', '-u', '-c', helper],
-        prompt: JSON.stringify({ operation, workspaceId, projectId, appInstanceId, ...(files ? { files } : {}) }),
+        prompt: JSON.stringify({
+          operation,
+          workspaceId,
+          projectId,
+          appInstanceId,
+          ...(files ? { files } : {}),
+          ...(operation === 'start' && entry.agentToken ? { agentToken: entry.agentToken } : {}),
+        }),
       },
       (frame) => {
         if (frame.type === 'output') {
@@ -352,6 +376,9 @@ export class AppService {
       readyPort: null,
       readyError: null,
       processExited: false,
+      agentToken: null,
+      agentProcess: null,
+      httpOperation: null,
     };
     this.entries.set(this.id(key), entry);
     entry.operation = (async () => {
@@ -375,11 +402,13 @@ export class AppService {
     if (this.closing) throw new Error('应用服务正在关闭');
     const entry = this.entry(key);
     if (entry.operation || entry.stopping) throw new Error('应用操作进行中');
+    if (entry.agentProcess || entry.httpOperation) throw new Error('应用控制面操作或结果待确认');
     if (entry.snapshot.state === 'running') return this.get(key);
     if (!entry.snapshot.cleanupConfirmed || entry.portPending || entry.process) throw new Error('上次应用清理尚未确认');
     if ([...this.entries.values()].some((other) => other !== entry && ['starting', 'running', 'stopping'].includes(other.snapshot.state)))
       throw new Error('首版仅允许一个应用服务运行');
     entry.cancelled = false;
+    entry.agentToken = randomBytes(32).toString('hex');
     entry.snapshot = { ...entry.snapshot, appInstanceId: randomUUID(), state: 'starting', error: null, url: null, guestPort: null };
     entry.operation = (async () => {
       try {
@@ -537,7 +566,8 @@ export class AppService {
               .object({
                 ok: z.literal(true),
                 templateId: z.literal('wsl-standard-app'),
-                templateVersion: z.literal('1.0.0'),
+                // 1.1.0 增加 Agent 控制面；既有 1.0.0 项目按原身份恢复，不强制升级。
+                templateVersion: z.enum(['1.0.0', '1.1.0']),
                 identity: z
                   .object({
                     workspaceId: z.literal(entry.snapshot.workspaceId),
@@ -578,7 +608,19 @@ export class AppService {
   }
   private async cleanup(entry: Entry): Promise<void> {
     entry.snapshot.url = null;
-    let confirmed = entry.process !== null || entry.snapshot.cleanupConfirmed;
+    entry.agentToken = null;
+    let confirmed = entry.process !== null || entry.snapshot.cleanupConfirmed || entry.agentProcess !== null;
+    let agentConfirmed = entry.agentProcess === null;
+    if (entry.agentProcess) {
+      try {
+        const outcome = await entry.agentProcess.close();
+        agentConfirmed = outcome.confirmed;
+        if (outcome.confirmed) entry.agentProcess = null;
+        else entry.snapshot.error = [entry.snapshot.error, outcome.error ?? 'agent-cli 清理未确认'].filter(Boolean).join('; ');
+      } catch (error) {
+        entry.snapshot.error = [entry.snapshot.error, String(error)].filter(Boolean).join('; ');
+      }
+    }
     // Keep the guest session alive while removing its published mapping. Closing
     // the last session first can stop/restart the VM and rebind an ephemeral port.
     if (entry.portPending) {
@@ -603,13 +645,19 @@ export class AppService {
       }
     }
     if (entry.process) {
-      const outcome = await entry.process.close();
-      confirmed = confirmed && outcome.confirmed;
-      if (outcome.confirmed) entry.process = null;
-      if (!outcome.confirmed)
-        entry.snapshot.error = [entry.snapshot.error, outcome.error ?? '应用进程清理未确认'].filter(Boolean).join('; ');
+      try {
+        const outcome = await entry.process.close();
+        confirmed = confirmed && outcome.confirmed;
+        if (outcome.confirmed) entry.process = null;
+        if (!outcome.confirmed)
+          entry.snapshot.error = [entry.snapshot.error, outcome.error ?? '应用进程清理未确认'].filter(Boolean).join('; ');
+      } catch (error) {
+        confirmed = false;
+        entry.snapshot.error = [entry.snapshot.error, String(error)].filter(Boolean).join('; ');
+      }
     }
-    entry.snapshot.cleanupConfirmed = confirmed;
+    entry.snapshot.cleanupConfirmed = confirmed && agentConfirmed;
+    if (entry.snapshot.cleanupConfirmed) entry.httpOperation = null;
   }
   async stop(key: AppKey): Promise<AppSnapshot> {
     await this.ensureLoaded();
@@ -624,6 +672,7 @@ export class AppService {
       if (entry.commandProcess) await entry.commandProcess.close();
       // The operation reports its own failure; stop separately confirms cleanup.
       if (operation) await Promise.allSettled([operation]);
+      if (entry.agentAdmission) await Promise.allSettled([entry.agentAdmission]);
       await this.cleanup(entry);
       entry.snapshot.state = entry.snapshot.cleanupConfirmed ? 'stopped' : 'failed';
       await this.persist();
@@ -636,11 +685,260 @@ export class AppService {
       entry.stopping = null;
     }
   }
+  /** 当前或最近一次启动进程的 stdout/stderr 尾部（按 UTF-8 字节截断）。 */
+  async logs(key: AppKey, maxBytes: number): Promise<AppLogs> {
+    await this.ensureLoaded();
+    const log = this.entry(key).log;
+    const bytes = Buffer.from(log, 'utf8');
+    const tail = bytes.subarray(Math.max(0, bytes.length - Math.min(maxBytes, 65536))).toString('utf8');
+    return { text: tail.replace(/^\uFFFD+/, ''), truncated: bytes.length > maxBytes, totalBytes: bytes.length };
+  }
+
+  /**
+   * 控制面后端操作。运行中的受管开发实例走回环 HTTP（实例令牌）；应用停止且清理已确认时，
+   * 只读操作经 app-helper 在 guest cwd 内执行 agent-cli。与 start/stop/export 互斥；写操作要求
+   * 请求的 appInstanceId 仍是当前运行实例（Main 已核对，此处防止迟到请求越过实例更换）。
+   */
+  async agent(key: AppKey, appInstanceId: string | null, operation: AppAgentOperation, signal: AbortSignal): Promise<AppAgentResult> {
+    await this.ensureLoaded();
+    if (this.closing) throw new Error('应用服务正在关闭');
+    const entry = this.entry(key);
+    const fail = (code: string, message: string, mode: 'http' | 'cli' = 'http'): AppAgentResult => ({
+      mode,
+      cleanupConfirmed: true,
+      envelope: { ok: false, error: { code, message } },
+    });
+    if (signal.aborted)
+      return {
+        ...fail('cancelled', '控制面请求已取消'),
+        ...(operation.op !== 'reconcile' && operation.op !== 'reconcile-cli' ? { operationDispatched: false as const } : {}),
+      };
+    const write = operation.op === 'seed' || operation.op === 'reset';
+    if (operation.op === 'reconcile-cli')
+      return {
+        ...fail('unavailable', 'agent-cli 清理仍待确认', 'cli'),
+        cleanupConfirmed: !entry.agentProcess && entry.snapshot.cleanupConfirmed,
+      };
+    if (operation.op === 'reconcile') return this.reconcileAgent(entry, appInstanceId, operation.operationId, operation.operation);
+    if (entry.operation || entry.stopping || (write && entry.httpOperation))
+      return { ...fail('app_busy', '应用操作进行中'), operationDispatched: false };
+    if (entry.snapshot.state === 'running') {
+      if (appInstanceId !== null && appInstanceId !== entry.snapshot.appInstanceId)
+        return {
+          ...fail('stale_instance', '请求绑定的应用实例已不是当前运行实例'),
+          ...(write ? { operationDispatched: false as const } : {}),
+        };
+      if (!entry.snapshot.url || !entry.agentToken)
+        return { ...fail('unsupported', '运行实例未开启 Agent 控制面'), ...(write ? { operationDispatched: false as const } : {}) };
+      if (write) {
+        const capability = await this.agent(key, appInstanceId, { op: 'describe' }, signal);
+        if (!capability.envelope.ok || capability.envelope.data.operationTrackingVersion !== 1)
+          return { ...fail('unsupported', '项目不支持操作追踪协议，拒绝数据写入'), operationDispatched: false };
+      }
+      if (write) {
+        if (
+          signal.aborted ||
+          entry.stopping ||
+          entry.snapshot.state !== 'running' ||
+          entry.snapshot.appInstanceId !== appInstanceId ||
+          !entry.agentToken ||
+          !entry.snapshot.url
+        )
+          return { ...fail('cancelled', '数据写入派发前实例已停止或取消'), operationDispatched: false };
+        if (entry.httpOperation) return { ...fail('app_busy', '数据操作结果仍待确认'), operationDispatched: false };
+        entry.httpOperation = { operationId: operation.operationId, operation: operation.op, appInstanceId: appInstanceId! };
+      }
+      const [method, path, body] =
+        operation.op === 'describe'
+          ? (['GET', '/api/__agent/describe', undefined] as const)
+          : operation.op === 'query'
+            ? (['POST', '/api/__agent/db/query', { sql: operation.sql, limit: operation.limit }] as const)
+            : operation.op === 'snapshot'
+              ? (['GET', '/api/__agent/db/snapshot', undefined] as const)
+              : (['POST', `/api/__agent/db/${operation.op}`, {}] as const);
+      try {
+        const response = await (this.options.fetch ?? fetch)(entry.snapshot.url + path, {
+          method,
+          headers: {
+            'x-wsl-agent-token': entry.agentToken,
+            ...(body ? { 'content-type': 'application/json' } : {}),
+            ...(write ? { 'x-wsl-agent-operation-id': operation.operationId } : {}),
+          },
+          body: body ? JSON.stringify(body) : undefined,
+          redirect: 'error',
+          signal: AbortSignal.any([signal, AbortSignal.timeout(20000)]),
+        });
+        if (response.status === 404) {
+          if (write) return this.reconcileAgent(entry, appInstanceId, operation.operationId, operation.op);
+          return fail('unsupported', '项目未包含 Agent 控制面（模板 1.0.0）');
+        }
+        const text = await response.text();
+        if (Buffer.byteLength(text, 'utf8') > 1048576) {
+          if (write) return this.reconcileAgent(entry, appInstanceId, operation.operationId, operation.op);
+          return fail('budget_exceeded', '控制面结果超过 1 MiB');
+        }
+        const envelope = AgentCliEnvelopeSchema.parse(JSON.parse(text));
+        if (write && !envelope.ok && envelope.error.code === 'operation_capacity') {
+          entry.httpOperation = null;
+          return { mode: 'http', cleanupConfirmed: true, envelope, operationDispatched: false };
+        }
+        if (write) return this.reconcileAgent(entry, appInstanceId, operation.operationId, operation.op, false);
+        return { mode: 'http', cleanupConfirmed: true, envelope };
+      } catch (error) {
+        if (write) return this.reconcileAgent(entry, appInstanceId, operation.operationId, operation.op);
+        if (signal.aborted) return fail('cancelled', '控制面请求已取消');
+        return fail('unavailable', error instanceof Error ? error.message : String(error));
+      }
+    }
+    if (write) return { ...fail('app_not_running', '数据写操作只允许作用于当前运行的受管实例'), operationDispatched: false };
+    if (entry.process || entry.agentProcess || !entry.snapshot.cleanupConfirmed || entry.portPending)
+      return { ...fail('app_busy', '应用进程或清理尚未确认', 'cli'), cleanupConfirmed: false };
+    const args =
+      operation.op === 'describe'
+        ? ['describe']
+        : operation.op === 'query'
+          ? ['db', 'query', operation.sql, '--limit', String(operation.limit)]
+          : ['db', 'snapshot'];
+    let stdout = '';
+    let admitted!: () => void;
+    // Stop must wait until the reserved CLI either registers its process or cancels before launch.
+    entry.agentAdmission = new Promise<void>((resolve) => {
+      admitted = resolve;
+    });
+    entry.snapshot.cleanupConfirmed = false;
+    let child: Pick<GuestProcess, 'done' | 'close'>;
+    try {
+      await this.persist();
+      if (signal.aborted || entry.stopping || this.closing) {
+        entry.snapshot.cleanupConfirmed = true;
+        await this.persist();
+        return { ...fail('cancelled', 'CLI 启动前已停止或取消', 'cli'), operationDispatched: false };
+      }
+      child = this.connection.start(
+        {
+          type: 'start',
+          mode: 'codex',
+          argv: ['python3', '-u', '-c', helper],
+          prompt: JSON.stringify({ operation: 'agent', workspaceId: key.workspaceId, projectId: key.projectId, args }),
+        },
+        (frame) => {
+          if (frame.type === 'output' && frame.stream === 'stdout') stdout = (stdout + frame.data).slice(-2 * 1024 * 1024);
+        },
+      );
+      entry.agentProcess = child;
+    } finally {
+      entry.agentAdmission = undefined;
+      admitted();
+    }
+    let cliConfirmed = false;
+    let closeFailed!: (outcome: Awaited<GuestProcess['done']>) => void;
+    const closeFailure = new Promise<Awaited<GuestProcess['done']>>((resolve) => {
+      closeFailed = resolve;
+    });
+    const abort = () => {
+      void child.close().then(
+        (outcome) => {
+          if (!outcome.confirmed) closeFailed(outcome);
+        },
+        (error) => closeFailed({ confirmed: false, exitCode: null, error: String(error) }),
+      );
+    };
+    signal.addEventListener('abort', abort, { once: true });
+    if (signal.aborted) abort();
+    const timer = setTimeout(abort, 30000);
+    try {
+      const outcome = await Promise.race([child.done, closeFailure]);
+      cliConfirmed = outcome.confirmed;
+      if (!outcome.confirmed) entry.snapshot.error = outcome.error ?? 'agent-cli 清理未确认';
+      if (signal.aborted) return { ...fail('cancelled', '控制面请求已取消', 'cli'), cleanupConfirmed: outcome.confirmed };
+      const line = stdout.split('\n').find((item) => item.startsWith('WSL_APP_RESULT:'));
+      if (!outcome.confirmed || outcome.error || !line)
+        return { ...fail('unavailable', outcome.error ?? 'agent-cli 未返回回执', 'cli'), cleanupConfirmed: outcome.confirmed };
+      const receipt = z
+        .union([
+          z.object({ unsupported: z.string() }).strict(),
+          z.object({ exitCode: z.number().int(), stdout: z.string(), stderr: z.string() }).strict(),
+        ])
+        .parse(JSON.parse(line.slice('WSL_APP_RESULT:'.length)));
+      if ('unsupported' in receipt) return fail('unsupported', receipt.unsupported, 'cli');
+      const last = receipt.stdout.trim().split('\n').at(-1) ?? '';
+      let envelope: AgentCliEnvelope;
+      try {
+        envelope = AgentCliEnvelopeSchema.parse(JSON.parse(last));
+      } catch {
+        return fail('unavailable', `agent-cli 输出无效（退出码 ${receipt.exitCode}）：${receipt.stderr.slice(-1000)}`, 'cli');
+      }
+      return { mode: 'cli', cleanupConfirmed: true, envelope };
+    } finally {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', abort);
+      if (cliConfirmed && entry.agentProcess === child) entry.agentProcess = null;
+      entry.snapshot.cleanupConfirmed = cliConfirmed;
+      await this.persist();
+    }
+  }
+
+  private async reconcileAgent(
+    entry: Entry,
+    appInstanceId: string | null,
+    operationId: string,
+    operation: 'seed' | 'reset',
+    cancel = true,
+  ): Promise<AppAgentResult> {
+    let lastFailure = '操作没有匹配的终态回执';
+    const unknown = (): AppAgentResult => ({
+      mode: 'http',
+      cleanupConfirmed: false,
+      envelope: { ok: false, error: { code: 'unavailable', message: 'App 数据操作结果待确认：' + lastFailure } },
+    });
+    if (!entry.agentToken || !entry.snapshot.url || appInstanceId !== entry.snapshot.appInstanceId) return unknown();
+    const url = entry.snapshot.url + '/api/__agent/operations/' + operationId;
+    const headers = { 'x-wsl-agent-token': entry.agentToken, 'content-type': 'application/json' };
+    const deadline = Date.now() + (this.options.reconciliationTimeoutMs ?? 30000);
+    const request = async (method: 'GET' | 'POST') => {
+      const response = await (this.options.fetch ?? fetch)(url + (method === 'POST' ? '/cancel' : ''), {
+        method,
+        headers,
+        ...(method === 'POST' ? { body: JSON.stringify({ operation }) } : {}),
+        redirect: 'error',
+        signal: AbortSignal.timeout(Math.max(1, Math.min(1000, deadline - Date.now()))),
+      });
+      const text = await response.text();
+      if (Buffer.byteLength(text) > 1048576) throw new Error('操作回执超过预算');
+      const envelope = AgentCliEnvelopeSchema.parse(JSON.parse(text));
+      if (!envelope.ok) return null;
+      const receipt = AppOperationReceiptSchema.parse(envelope.data);
+      if (receipt.operationId !== operationId || receipt.appInstanceId !== appInstanceId || receipt.operation !== operation) return null;
+      return receipt;
+    };
+    if (cancel) {
+      try {
+        await request('POST');
+      } catch (error) {
+        lastFailure = String(error);
+      }
+    }
+    do {
+      try {
+        const receipt = await request('GET');
+        if (receipt && receipt.state !== 'running' && receipt.envelope) {
+          if (entry.httpOperation?.operationId === operationId) entry.httpOperation = null;
+          return { mode: 'http', cleanupConfirmed: true, envelope: receipt.envelope, operation: receipt };
+        }
+      } catch (error) {
+        lastFailure = String(error);
+      }
+      if (Date.now() >= deadline) break;
+      await delay(Math.min(1000, deadline - Date.now()));
+    } while (Date.now() < deadline);
+    return unknown();
+  }
+
   async export(key: AppKey): Promise<{ files: AppSourceFile[]; sha256: string }> {
     await this.ensureLoaded();
     if (this.closing) throw new Error('应用服务正在关闭');
     const entry = this.entry(key);
-    if (entry.operation || entry.stopping || entry.process || !entry.snapshot.cleanupConfirmed)
+    if (entry.operation || entry.stopping || entry.process || entry.agentProcess || entry.httpOperation || !entry.snapshot.cleanupConfirmed)
       throw new Error('请先停止应用并确认清理，再导出源码');
     entry.cancelled = false;
     let result: { files: AppSourceFile[] } | undefined;

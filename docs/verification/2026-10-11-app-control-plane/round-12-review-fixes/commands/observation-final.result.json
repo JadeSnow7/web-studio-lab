@@ -1,0 +1,12 @@
+{
+  "command": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/desktop/src/main/workbench/observation-application.test.ts"
+  ],
+  "exitCode": 0,
+  "seconds": 5.677151203155518,
+  "sourceFingerprint": "final-runtime-input-sha256.json"
+}

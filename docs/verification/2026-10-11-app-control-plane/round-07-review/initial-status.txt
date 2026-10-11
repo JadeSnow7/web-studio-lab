@@ -1,0 +1,140 @@
+ M .gitignore
+ M .prettierignore
+ M README.md
+ M UX-CONTRACT.md
+ M apps/desktop/src/main/chat-service.test.ts
+ M apps/desktop/src/main/chat-service.ts
+ M apps/desktop/src/main/index.ts
+ M apps/desktop/src/main/preview/controller.ts
+ M apps/desktop/src/main/window-close.test.ts
+ M apps/desktop/src/main/workbench/application.ts
+ M apps/desktop/src/main/workbench/host.ts
+ M apps/desktop/src/main/workbench/ports.ts
+ M apps/desktop/src/renderer/src/workspace/Browser.tsx
+ M apps/service/src/app-helper.py
+ M apps/service/src/app-service.test.ts
+ M apps/service/src/app-service.ts
+ M apps/service/src/codex-chat.ts
+ M apps/service/src/fixtures/observation-sbx.mjs
+ M apps/service/src/guest-helper.py
+ M apps/service/src/index.ts
+ M apps/service/src/initialization-migration.test.ts
+ M apps/service/src/resource_mcp.py
+ M apps/service/src/sbx.ts
+ M docs/ARCHITECTURE.md
+ M docs/architecture/current-runtime.md
+ M e2e/helpers.ts
+ M packages/protocol/src/chat.ts
+ M packages/protocol/src/index.ts
+ M packages/protocol/src/preview.ts
+ M packages/protocol/src/workspace.ts
+ M scripts/check-docs.mjs
+ M templates/standard-app/README.md
+ M templates/standard-app/package.json
+ M templates/standard-app/scripts/template-hash.mjs
+ M templates/standard-app/server/app.ts
+ D templates/standard-app/server/db-cli.ts
+ M templates/standard-app/server/index.ts
+ M templates/standard-app/src/App.tsx
+ M templates/standard-app/src/main.tsx
+ M templates/standard-app/template-manifest.json
+ M templates/standard-app/vite.config.ts
+?? apps/desktop/src/main/preview/app-ui.test.ts
+?? apps/desktop/src/main/preview/app-ui.ts
+?? apps/desktop/src/main/workbench/app-control-application.test.ts
+?? apps/desktop/src/main/workbench/app-control-failure.ts
+?? apps/desktop/src/main/workbench/app-control.test.ts
+?? apps/desktop/src/main/workbench/app-control.ts
+?? apps/service/src/app-control-mcp.test.ts
+?? apps/service/src/app-control-routing.test.ts
+?? apps/service/src/app_control_mcp_tests.py
+?? docs/architecture/adr/0002-app-control-plane.md
+?? docs/design/2026-10-11-app-control-plane.md
+?? docs/plans/2026-10-11-app-control-plane.md
+?? docs/verification/2026-10-11-app-control-plane/README.md
+?? docs/verification/2026-10-11-app-control-plane/acceptance-matrix.md
+?? docs/verification/2026-10-11-app-control-plane/round-01/commands/exit-codes.txt
+?? docs/verification/2026-10-11-app-control-plane/round-01/harness/original/harness-run-1/audit.jsonl
+?? docs/verification/2026-10-11-app-control-plane/round-01/harness/original/harness-run-1/scenarios/85c7a90d-f5a6-40c0-871e-1f74ba002e2d/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-01/harness/reference/harness-run-1/audit.jsonl
+?? docs/verification/2026-10-11-app-control-plane/round-01/harness/reference/harness-run-1/scenarios/0e96aaaf-fca2-400a-befd-b12c639461c0/15-fixed-welcome-saved.png
+?? docs/verification/2026-10-11-app-control-plane/round-01/harness/reference/harness-run-1/scenarios/0e96aaaf-fca2-400a-befd-b12c639461c0/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-01/harness/reference/harness-run-1/scenarios/4a8d72b3-527e-475b-8d56-c0a323831aec/15-fixed-welcome-saved.png
+?? docs/verification/2026-10-11-app-control-plane/round-01/harness/reference/harness-run-1/scenarios/4a8d72b3-527e-475b-8d56-c0a323831aec/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-01/harness/reference/harness-run-1/scenarios/d8a938e9-b3d1-4043-99b3-8889b0959123/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-01/harness/results.json
+?? docs/verification/2026-10-11-app-control-plane/round-02/commands/exit-codes.txt
+?? docs/verification/2026-10-11-app-control-plane/round-02/commands/final-checks.txt
+?? docs/verification/2026-10-11-app-control-plane/round-02/harness/original/harness-run-1/audit.jsonl
+?? docs/verification/2026-10-11-app-control-plane/round-02/harness/original/harness-run-1/scenarios/73f4ca68-5d07-4953-8c8b-d3d981d94586/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-02/harness/reference/harness-run-1/audit.jsonl
+?? docs/verification/2026-10-11-app-control-plane/round-02/harness/reference/harness-run-1/scenarios/8fbf5a0e-d14a-469b-a408-fd96c04b4f88/15-fixed-welcome-saved.png
+?? docs/verification/2026-10-11-app-control-plane/round-02/harness/reference/harness-run-1/scenarios/8fbf5a0e-d14a-469b-a408-fd96c04b4f88/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-02/harness/reference/harness-run-1/scenarios/98aac862-9a08-455e-a2d0-a4378082ecd9/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-02/harness/reference/harness-run-1/scenarios/a6c21999-d5a0-48f5-8f71-6999fdea506d/15-fixed-welcome-saved.png
+?? docs/verification/2026-10-11-app-control-plane/round-02/harness/reference/harness-run-1/scenarios/a6c21999-d5a0-48f5-8f71-6999fdea506d/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-02/harness/results.json
+?? docs/verification/2026-10-11-app-control-plane/round-03-live/A03-product-window-after-scenario.png
+?? docs/verification/2026-10-11-app-control-plane/round-03-live/A07-paused-indicator.png
+?? docs/verification/2026-10-11-app-control-plane/round-03-live/A07-resumed.png
+?? docs/verification/2026-10-11-app-control-plane/round-03-live/app-control/039feb1c-700e-4b23-b497-d7945f1c9466/audit.jsonl
+?? docs/verification/2026-10-11-app-control-plane/round-03-live/app-control/039feb1c-700e-4b23-b497-d7945f1c9466/scenarios/0a220952-0876-4aee-8aa3-a59b6a53f967/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-03-live/app-control/039feb1c-700e-4b23-b497-d7945f1c9466/scenarios/ae9c5675-f879-4c31-a1e9-11f9d70f6411/15-fixed-welcome-saved.png
+?? docs/verification/2026-10-11-app-control-plane/round-03-live/app-control/039feb1c-700e-4b23-b497-d7945f1c9466/scenarios/ae9c5675-f879-4c31-a1e9-11f9d70f6411/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-03-live/app-control/039feb1c-700e-4b23-b497-d7945f1c9466/scenarios/c0536f6f-2c39-41ac-98cd-a9add5b99365/15-fixed-welcome-saved.png
+?? docs/verification/2026-10-11-app-control-plane/round-03-live/app-control/039feb1c-700e-4b23-b497-d7945f1c9466/scenarios/c0536f6f-2c39-41ac-98cd-a9add5b99365/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-03-live/results.json
+?? docs/verification/2026-10-11-app-control-plane/round-05-live/A03-product-window-after-scenario.png
+?? docs/verification/2026-10-11-app-control-plane/round-05-live/A07-paused-indicator.png
+?? docs/verification/2026-10-11-app-control-plane/round-05-live/A07-resumed.png
+?? docs/verification/2026-10-11-app-control-plane/round-05-live/app-control/8fd63165-5632-404b-aa1c-304ae8756716/audit.jsonl
+?? docs/verification/2026-10-11-app-control-plane/round-05-live/app-control/8fd63165-5632-404b-aa1c-304ae8756716/scenarios/ae5f1314-ced3-4d96-94d0-e51c98a13857/15-fixed-welcome-saved.png
+?? docs/verification/2026-10-11-app-control-plane/round-05-live/app-control/8fd63165-5632-404b-aa1c-304ae8756716/scenarios/ae5f1314-ced3-4d96-94d0-e51c98a13857/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-05-live/app-control/8fd63165-5632-404b-aa1c-304ae8756716/scenarios/c706e819-a7a6-41a5-96ff-b6960eb23302/15-fixed-welcome-saved.png
+?? docs/verification/2026-10-11-app-control-plane/round-05-live/app-control/8fd63165-5632-404b-aa1c-304ae8756716/scenarios/c706e819-a7a6-41a5-96ff-b6960eb23302/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-05-live/app-control/8fd63165-5632-404b-aa1c-304ae8756716/scenarios/d9a79548-9ac3-4c71-a2c8-97957b56ec25/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-05-live/head-baseline-R3.txt
+?? docs/verification/2026-10-11-app-control-plane/round-05-live/results.json
+?? docs/verification/2026-10-11-app-control-plane/round-06-live/A03-product-window-after-scenario.png
+?? docs/verification/2026-10-11-app-control-plane/round-06-live/A07-paused-indicator.png
+?? docs/verification/2026-10-11-app-control-plane/round-06-live/A07-resumed.png
+?? docs/verification/2026-10-11-app-control-plane/round-06-live/app-control/24a9b056-fb28-48a4-9677-304a562a3b00/audit.jsonl
+?? docs/verification/2026-10-11-app-control-plane/round-06-live/app-control/24a9b056-fb28-48a4-9677-304a562a3b00/scenarios/257750f4-3ff2-4cdc-9e69-e012d7b0f48a/15-fixed-welcome-saved.png
+?? docs/verification/2026-10-11-app-control-plane/round-06-live/app-control/24a9b056-fb28-48a4-9677-304a562a3b00/scenarios/257750f4-3ff2-4cdc-9e69-e012d7b0f48a/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-06-live/app-control/24a9b056-fb28-48a4-9677-304a562a3b00/scenarios/5fce1381-a1df-4bc9-befc-570ebb75f701/15-fixed-welcome-saved.png
+?? docs/verification/2026-10-11-app-control-plane/round-06-live/app-control/24a9b056-fb28-48a4-9677-304a562a3b00/scenarios/5fce1381-a1df-4bc9-befc-570ebb75f701/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-06-live/app-control/24a9b056-fb28-48a4-9677-304a562a3b00/scenarios/bd0039bd-730d-42e6-93e6-40f796f2f49e/trace.json
+?? docs/verification/2026-10-11-app-control-plane/round-06-live/exit-codes.txt
+?? docs/verification/2026-10-11-app-control-plane/round-06-live/final-checks.txt
+?? docs/verification/2026-10-11-app-control-plane/round-06-live/results.json
+?? docs/verification/2026-10-11-app-control-plane/round-07-review/initial-status.txt
+?? docs/verification/2026-10-11-app-control-plane/round-07-review/initial-tracked.patch
+?? e2e/app-control-harness.spec.ts
+?? e2e/app-control-live.spec.ts
+?? e2e/fixtures/app-control-harness-main.ts
+?? e2e/fixtures/app-control-injection.ts
+?? packages/protocol/src/app-control.test.ts
+?? packages/protocol/src/app-control.ts
+?? templates/standard-app/AGENTS.md
+?? templates/standard-app/agent/AGENTS.md
+?? templates/standard-app/agent/app.manifest.json
+?? templates/standard-app/scripts/agent-exclusion-check.mjs
+?? templates/standard-app/server/agent-cli.ts
+?? templates/standard-app/server/agent/data.ts
+?? templates/standard-app/server/agent/describe.ts
+?? templates/standard-app/server/agent/manifest.ts
+?? templates/standard-app/server/agent/revision.ts
+?? templates/standard-app/server/agent/routes.ts
+?? templates/standard-app/src/agent/bridge.ts
+?? templates/standard-app/src/agent/commands.ts
+?? templates/standard-app/src/agent/env.d.ts
+?? templates/standard-app/src/agent/registry.ts
+?? templates/standard-app/tests/agent-data.test.ts
+?? templates/standard-app/tests/agent-registry.test.ts
+?? templates/standard-app/tests/agent/build-exclusion.test.ts
+?? templates/standard-app/tests/agent/cli.test.ts
+?? templates/standard-app/tests/agent/manifest.test.ts
+?? tests/app-control/fixed-task/README.md
+?? tests/app-control/fixed-task/reference/App.tsx
+?? tests/app-control/fixed-task/scenario.json
+?? tests/app-control/fixed-task/task.json

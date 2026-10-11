@@ -1,0 +1,962 @@
+{
+  "sandbox": "wsl-sbx-smoke-20261006",
+  "taskSha256": "21f44e2e39162ae876b3a5f84c820cafed78ced0729dd90e50ffcdde6293102c",
+  "scenarioSha256": "47045475157bf4e7ecfdb76c1cff742b7a549a3a69dbbbff803a3bf36ea86b91",
+  "profile": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-app-control-model-CgSj3j",
+  "modelBudgetMs": 600000,
+  "modelToolChainObserved": true,
+  "modelFullSelfVerification": "not_proven_by_tool_presence",
+  "hostFixedOutcome": "passed",
+  "portsBefore": [],
+  "project": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "61988490-8a35-43ba-83cb-b9f633d1c275",
+    "environmentId": "sandbox",
+    "appInstanceId": null,
+    "state": "created",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/61988490-8a35-43ba-83cb-b9f633d1c275",
+    "guestPort": null,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "ownedInstances": [
+    "0ed79c78-7836-47bd-b40f-8e44f67889ab",
+    "f2400296-3122-40e7-bace-5805f4db7fd8",
+    "cfcb6b13-89bf-46ea-b374-a9e2ae1d8dea"
+  ],
+  "ownedGuestPorts": [
+    41547,
+    39751,
+    34143
+  ],
+  "taskVersion": {
+    "taskVersionId": "dd8c0ab2-4790-41b2-991e-5433c647cf69",
+    "version": 1,
+    "workspaceId": "taskflow-demo",
+    "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+    "goal": "在首页“应用服务”区块下方新增“欢迎语”卡片：以开发会话 A 读取 kv 键 welcome 显示于 data-testid=\"welcome-value\"；提供输入框 data-testid=\"welcome-input\" 与“保存欢迎语”按钮 data-testid=\"welcome-save\"；点击后经 PUT /api/kv/welcome 保存并显示新值；去除首尾空白后为空时显示“请输入欢迎语”（data-testid=\"welcome-error\"）且不发请求；刷新页面后仍显示已保存值；用 exposeState('welcome', …) 暴露 {value, saving, error}。不修改其他 API 与测试基准。\n\n这是已授权的真实控制面验证；只允许修改新建项目 /home/agent/workspace/.wsl-apps/61988490-8a35-43ba-83cb-b9f633d1c275 内允许范围。先实际调用 wsl_space.app_describe，再用工具完成修改。不得读取凭据、其他项目或 Host 文件；不联网、不安装依赖。不要修改测试基准、锁文件和其他 API。修改后 npm run agent:manifest，调用 app_restart 并等待新实例，使用 app_ui_snapshot/app_ui_act 实际完成空白校验、保存和刷新后的持久化自验，以 app_state_read 和 app_data_query 确认。实际执行 npm run agent:check 与 npm run check。还须在你的真实命令沙箱内执行一次 wsl-app describe；若 socket 被命令沙箱拒绝，保留原错误并继续使用 MCP，不得称 MCP 失败。最终简要报告工具/检查结果并结束，不等待 Host。全程限一次 run、10 分钟。",
+    "targetRef": null,
+    "capture": null,
+    "captureBinding": null,
+    "confirmedAt": "2026-10-11T04:05:28.918Z",
+    "acceptance": [
+      "真实 MCP describe/UI 自验与两个 npm 检查；Host 独立固定验收"
+    ],
+    "allowedScopes": [
+      "src/App.tsx",
+      "src/components/**",
+      "agent/**"
+    ]
+  },
+  "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+  "run": {
+    "referenceSummary": [],
+    "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+    "workspaceId": "taskflow-demo",
+    "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+    "taskVersionId": "dd8c0ab2-4790-41b2-991e-5433c647cf69",
+    "targetRef": null,
+    "state": "completed",
+    "startedAt": "2026-10-11T04:05:28.940Z",
+    "endedAt": "2026-10-11T04:07:57.841Z",
+    "error": null,
+    "candidateId": "727806eb-05cd-4b1c-95ef-4f289bdaddf5",
+    "validation": {
+      "state": "not_run",
+      "applicability": "unknown",
+      "reason": null
+    },
+    "conversation": {
+      "conversationId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "generation": "4c520bbc-5378-4abe-bd5a-eb37e0621d0b",
+      "seq": 49,
+      "threadId": "01a12923-26f9-7f32-a751-da05630c60ca",
+      "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+      "state": "idle",
+      "messages": [],
+      "toolExecutions": [
+        {
+          "id": "item_3",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_describe {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_4",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "/bin/bash -lc 'wsl-app describe'",
+          "exitCode": 3,
+          "truncated": false
+        },
+        {
+          "id": "item_5",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "/bin/bash -lc \"pwd && rg --files -g 'AGENTS.md' -g 'package.json' -g 'App.tsx' -g '*agent*' -g '*session*' -g '*api*' -g 'manifest*' src agent .\"",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_6",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "/bin/bash -lc \"cat AGENTS.md agent/AGENTS.md src/App.tsx package.json && rg -n 'dev/session|Authorization|kv/:key|userId|user_id|token' server/index.ts server/routes* src/lib/*\"",
+          "exitCode": 2,
+          "truncated": false
+        },
+        {
+          "id": "item_7",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "/bin/bash -lc \"rg -n 'dev/session|kv/:key|exposeState|authorization' server src/agent && cat src/agent/registry.ts && rg --files server\"",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_8",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "/bin/bash -lc \"sed -n '1,110p' server/app.ts && cat src/components/Button.tsx\"",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_10",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "lue] = useState('');\n  const [welcomeInput, setWelcomeInput] = useState('');\n  const [welcomeSaving, setWelcomeSaving] = useState(false);\n  const [welcomeError, setWelcomeError] = useState('');\n  const [welcomeReady, setWelcomeReady] = useState(false);\n  const welcomeState = useRef({ value: welcomeValue, saving: welcomeSaving, error: welcomeError });\n  welcomeState.current = { value: welcomeValue, saving: welcomeSaving, error: welcomeError };\n  useEffect(() => exposeState('welcome', () => welcomeState.current), []);\n  useEffect(() => {\n    const controller = new AbortController();\n    async function loadWelcome() {\n      try {\n        const session = await fetch('/api/dev/session', {\n          method: 'POST',\n          headers: { 'Content-Type': 'application/json' },\n          body: JSON.stringify({ userId: 'A' }),\n          signal: controller.signal,\n        });\n        if (\"'!session.ok) throw new Error('\"'无法建立开发会话');\n        const response = await fetch('/api/kv/welcome', { signal: controller.signal, cache: 'no-store' });\n        if (\"'!response.ok && response.status !== 404) throw new Error('\"'无法读取欢迎语');\n        const value = response.ok ? z.object({ value: z.string() }).parse(await response.json()).value : '';\n        if (controller.signal.aborted) return;\n        setWelcomeValue(value);\n        setWelcomeInput(value);\n        setWelcomeReady(true);\n      } catch (cause) {\n        if (\"'!controller.signal.aborted) setWelcomeError(cause instanceof Error ? cause.message : '\"'无法读取欢迎语');\n      }\n    }\n    void loadWelcome();\n    return () => controller.abort();\n  }, []);\n  async function saveWelcome() {\n    const value = welcomeInput.trim();\n    if (\"'!value) {\n      setWelcomeError('\"'请输入欢迎语');\n      return;\n    }\n    if (\"'!welcomeReady || welcomeSaving) return;\n    setWelcomeSaving(true);\n    setWelcomeError('\"'');\n    try {\n      const response = await fetch('/api/kv/welcome', {\n        method: 'PUT',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ value }),\n      });\n      if (\"'!response.ok) throw new Error('\"'保存欢迎语失败');\n      const saved = z.object({ value: z.string() }).parse(await response.json());\n      setWelcomeValue(saved.value);\n      setWelcomeInput(saved.value);\n    } catch (cause) {\n      setWelcomeError(cause instanceof Error ? cause.message : '保存欢迎语失败');\n    } finally {\n      setWelcomeSaving(false);\n    }\n  }\\\"\\\"\\\")\ns=s.replace('      <p className=\\\"mt-6 text-xs', '''      <section aria-labelledby=\\\"welcome-heading\\\" className=\\\"mt-6 rounded-xl border border-slate-200 bg-white p-6\\\">\n        <h2 id=\\\"welcome-heading\\\" className=\\\"font-semibold text-slate-900\\\">欢迎语</h2>\n        <p data-testid=\\\"welcome-value\\\" aria-live=\\\"polite\\\" className=\\\"mt-2 whitespace-pre-wrap break-words text-sm text-slate-600\\\">{welcomeValue}</p>\n        <form className=\\\"mt-4 flex flex-wrap items-end gap-3\\\" onSubmit={(event) => { event.preventDefault(); void saveWelcome(); }}>\n          <div className=\\\"min-w-0 flex-1\\\">\n            <label htmlFor=\\\"welcome-input\\\" className=\\\"block text-sm text-slate-600\\\">欢迎语内容</label>\n            <input id=\\\"welcome-input\\\" data-testid=\\\"welcome-input\\\" value={welcomeInput}\n              onChange={(event) => setWelcomeInput(event.target.value)} disabled={\"'!welcomeReady || welcomeSaving}\n              aria-invalid={Boolean(welcomeError)} aria-describedby={welcomeError ? '\"'welcome-error' : undefined}\n              className=\\\"mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus-visible:outline-blue-600\\\" />\n          </div>\n          <Button type=\\\"submit\\\" data-testid=\\\"welcome-save\\\" disabled={\"'!welcomeReady || welcomeSaving}>{welcomeSaving ? '\"'保存中…' : '保存欢迎语'}</Button>\n        </form>\n        {welcomeError && <p id=\\\"welcome-error\\\" data-testid=\\\"welcome-error\\\" role=\\\"alert\\\" className=\\\"mt-3 text-sm text-red-600\\\">{welcomeError}</p>}\n      </section>\n      <p className=\\\"mt-6 text-xs''')\np.write_text(s)\nPY\nnpm run agent:manifest\"",
+          "exitCode": 0,
+          "truncated": true
+        },
+        {
+          "id": "item_11",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_restart {\"appInstanceId\":\"0ed79c78-7836-47bd-b40f-8e44f67889ab\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_12",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_14",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_13",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "/bin/bash -lc 'npm run agent:check && npm run check'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_15",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_16",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_ui_snapshot {}",
+          "exitCode": 1,
+          "truncated": false
+        },
+        {
+          "id": "item_18",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_19",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_ui_snapshot {}",
+          "exitCode": 1,
+          "truncated": false
+        },
+        {
+          "id": "item_20",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_21",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_ui_snapshot {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_22",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_data_query {\"sql\":\"SELECT user_id, key, value FROM records WHERE key = 'welcome'\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_23",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"f2400296-3122-40e7-bace-5805f4db7fd8\",\"documentGeneration\":1,\"action\":{\"type\":\"type\",\"target\":{\"testid\":\"welcome-input\"},\"text\":\"   \",\"clear\":true}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_24",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"f2400296-3122-40e7-bace-5805f4db7fd8\",\"documentGeneration\":1,\"action\":{\"type\":\"click\",\"target\":{\"testid\":\"welcome-save\"}}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_25",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_ui_snapshot {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_26",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_state_read {\"names\":[\"welcome\"]}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_27",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_data_query {\"sql\":\"SELECT user_id, key, value FROM records WHERE key = 'welcome'\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_28",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"f2400296-3122-40e7-bace-5805f4db7fd8\",\"documentGeneration\":1,\"action\":{\"type\":\"type\",\"target\":{\"testid\":\"welcome-input\"},\"text\":\"  欢迎来到 Taskflow  \",\"clear\":true}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_29",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"f2400296-3122-40e7-bace-5805f4db7fd8\",\"documentGeneration\":1,\"action\":{\"type\":\"click\",\"target\":{\"testid\":\"welcome-save\"}}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_30",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"f2400296-3122-40e7-bace-5805f4db7fd8\",\"documentGeneration\":1,\"action\":{\"type\":\"waitFor\",\"target\":{\"testid\":\"welcome-save\"},\"state\":\"enabled\"}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_31",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_state_read {\"names\":[\"welcome\"]}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_32",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_data_query {\"sql\":\"SELECT user_id, key, value FROM records WHERE key = 'welcome'\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_33",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_ui_snapshot {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_34",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"f2400296-3122-40e7-bace-5805f4db7fd8\",\"documentGeneration\":1,\"action\":{\"type\":\"navigate\",\"path\":\"/\"}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_35",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_ui_snapshot {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_36",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_state_read {\"names\":[\"welcome\"]}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_37",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_data_query {\"sql\":\"SELECT user_id, key, value FROM records WHERE key = 'welcome'\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_38",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "mcp:wsl_space.app_describe {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_39",
+          "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+          "command": "/bin/bash -lc 'git diff --name-only && git status --short'",
+          "exitCode": 129,
+          "truncated": false
+        }
+      ],
+      "warnings": [
+        "Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored."
+      ],
+      "cleanupPending": false,
+      "error": null
+    },
+    "executionBinding": {
+      "generation": "4c520bbc-5378-4abe-bd5a-eb37e0621d0b",
+      "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62"
+    },
+    "review": null
+  },
+  "changedSourcePaths": [
+    "agent/AGENTS.md",
+    "agent/app.manifest.json",
+    "src/App.tsx"
+  ],
+  "modelAudit": [
+    {
+      "recordId": "421cdc3c-446b-4f65-951a-e24634ae31c4",
+      "at": "2026-10-11T04:05:42.231Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.describe",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "0ed79c78-7836-47bd-b40f-8e44f67889ab",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 30
+    },
+    {
+      "recordId": "eb4eca77-fe95-4194-9595-cc1dc253d919",
+      "at": "2026-10-11T04:06:23.342Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.restart",
+      "level": "write",
+      "args": {
+        "sha256": "0ea6c98b5723fee94b2c4e2e69b0be52eee5528f2f9b4abd87f83ffa2fdf0602",
+        "summary": {
+          "appInstanceId": "0ed79c78-7836-47bd-b40f-8e44f67889ab"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "0ed79c78-7836-47bd-b40f-8e44f67889ab",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 6
+    },
+    {
+      "recordId": "8e9673f8-08aa-4999-87c4-494b2ede8687",
+      "at": "2026-10-11T04:06:28.716Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "0ed79c78-7836-47bd-b40f-8e44f67889ab",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "940e49f4-6a0a-4d7f-96be-eb0b719e35cc",
+      "at": "2026-10-11T04:06:42.204Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "0ed79c78-7836-47bd-b40f-8e44f67889ab",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 1
+    },
+    {
+      "recordId": "7fa6850a-de0c-4ecc-a4a1-57564b8a60e5",
+      "at": "2026-10-11T04:06:49.542Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "0ed79c78-7836-47bd-b40f-8e44f67889ab",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "5056171b-65b5-4869-9554-07d982285915",
+      "at": "2026-10-11T04:06:49.553Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "app_not_running",
+      "appInstanceId": "0ed79c78-7836-47bd-b40f-8e44f67889ab",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 1
+    },
+    {
+      "recordId": "88090e83-8660-4b7f-bbc3-e3bacf4ab2a8",
+      "at": "2026-10-11T04:07:07.096Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "0ed79c78-7836-47bd-b40f-8e44f67889ab",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "75b31402-f427-49ed-b5ef-e090ab0f1008",
+      "at": "2026-10-11T04:07:07.121Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "app_not_running",
+      "appInstanceId": "0ed79c78-7836-47bd-b40f-8e44f67889ab",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "d0d5a054-cd48-4790-9ceb-2e47a785b57b",
+      "at": "2026-10-11T04:07:32.147Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 1
+    },
+    {
+      "recordId": "96c4a881-2e54-466a-9c2e-92e83bc077ab",
+      "at": "2026-10-11T04:07:38.091Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 14
+    },
+    {
+      "recordId": "7628c424-b332-4d7c-82f9-2e9c171138b6",
+      "at": "2026-10-11T04:07:38.109Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "13723d0b99b98fe86d84bfd624d649404f088e31ded9efb5d44fd307ac6fa500",
+        "summary": {
+          "sql": "len:61 sha256:f90c3c2bcf4ae581"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 9
+    },
+    {
+      "recordId": "78bead26-327b-418b-b3e4-d75145a42de7",
+      "at": "2026-10-11T04:07:38.322Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "ac9a18a4dd4f6c6b2988580555e229520486a4c62992c365568412a7a07b9eb7",
+        "summary": {
+          "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+          "documentGeneration": 1,
+          "action.type": "type",
+          "action.target.testid": "welcome-input",
+          "action.text": "len:3 sha256:0aad7da77d2ed59c",
+          "action.clear": true
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 167
+    },
+    {
+      "recordId": "ca90baa9-606a-41bf-99b8-efd9acef4dc9",
+      "at": "2026-10-11T04:07:38.484Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "238a0feebfc6a1fad215a79ff4474d5013d4a4bbe0e488a05b9d0a90fa06bdbd",
+        "summary": {
+          "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+          "documentGeneration": 1,
+          "action.type": "click",
+          "action.target.testid": "welcome-save"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 155
+    },
+    {
+      "recordId": "f8cd733d-8f8a-40de-83a7-d65224b78e06",
+      "at": "2026-10-11T04:07:38.496Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 5
+    },
+    {
+      "recordId": "12bec570-36bb-402f-89a6-658138f23957",
+      "at": "2026-10-11T04:07:38.506Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "e2b3f9dad989022ad535e979f3c99da18ae7e25911a4d30841eb8c8b394a4f3b",
+        "summary": {
+          "names": "array:1 sha256:24066947f78216e7"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 2
+    },
+    {
+      "recordId": "cabf8843-266a-4ce1-b1e3-ada47e660fcf",
+      "at": "2026-10-11T04:07:38.519Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "13723d0b99b98fe86d84bfd624d649404f088e31ded9efb5d44fd307ac6fa500",
+        "summary": {
+          "sql": "len:61 sha256:f90c3c2bcf4ae581"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 7
+    },
+    {
+      "recordId": "3c65ab03-12ad-4b86-a90c-2a290564e1db",
+      "at": "2026-10-11T04:07:45.913Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "b5dcc081b62c2d3064c0f5aa5f478ea1995c5118535313b01c66d9c7261c83ec",
+        "summary": {
+          "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+          "documentGeneration": 1,
+          "action.type": "type",
+          "action.target.testid": "welcome-input",
+          "action.text": "len:17 sha256:dac57c7e6462d98b",
+          "action.clear": true
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 147
+    },
+    {
+      "recordId": "793975d4-3190-4558-b8c3-42069ae98090",
+      "at": "2026-10-11T04:07:46.068Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "238a0feebfc6a1fad215a79ff4474d5013d4a4bbe0e488a05b9d0a90fa06bdbd",
+        "summary": {
+          "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+          "documentGeneration": 1,
+          "action.type": "click",
+          "action.target.testid": "welcome-save"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 148
+    },
+    {
+      "recordId": "6e3d0020-0f13-4a04-952f-b8b685b103ea",
+      "at": "2026-10-11T04:07:46.096Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "05565d478b8cd6580f67c63b52f72dd08f1ab260121ddd23678e7a04ca1a12d3",
+        "summary": {
+          "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+          "documentGeneration": 1,
+          "action.type": "waitFor",
+          "action.target.testid": "welcome-save",
+          "action.state": "enabled"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 21
+    },
+    {
+      "recordId": "e954f7d7-c093-4b65-af73-60019dd94efc",
+      "at": "2026-10-11T04:07:46.103Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "e2b3f9dad989022ad535e979f3c99da18ae7e25911a4d30841eb8c8b394a4f3b",
+        "summary": {
+          "names": "array:1 sha256:24066947f78216e7"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 0
+    },
+    {
+      "recordId": "75bdce8c-d00a-4ba5-89ac-d4ad78bc8723",
+      "at": "2026-10-11T04:07:46.115Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "13723d0b99b98fe86d84bfd624d649404f088e31ded9efb5d44fd307ac6fa500",
+        "summary": {
+          "sql": "len:61 sha256:f90c3c2bcf4ae581"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 6
+    },
+    {
+      "recordId": "8d9fe5e4-9f79-4b9d-a16d-3e2427c291bb",
+      "at": "2026-10-11T04:07:46.125Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 4
+    },
+    {
+      "recordId": "9ba43d0b-c36e-49ef-b421-6af07e68345f",
+      "at": "2026-10-11T04:07:46.278Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "021f6af60e79f8ad905d25e9f82e91b75c38250eeb3a2b28e42ffdaa182d6626",
+        "summary": {
+          "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+          "documentGeneration": 1,
+          "action.type": "navigate",
+          "action.path": "/"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 2,
+      "durationMs": 147
+    },
+    {
+      "recordId": "87485cd7-0e48-43ee-8019-adc9aac8c723",
+      "at": "2026-10-11T04:07:46.288Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 2,
+      "documentGenerationAfter": 2,
+      "durationMs": 4
+    },
+    {
+      "recordId": "94561b08-a000-4871-8085-fe3ff8362ea3",
+      "at": "2026-10-11T04:07:52.274Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "e2b3f9dad989022ad535e979f3c99da18ae7e25911a4d30841eb8c8b394a4f3b",
+        "summary": {
+          "names": "array:1 sha256:24066947f78216e7"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": 2,
+      "documentGenerationAfter": 2,
+      "durationMs": 1
+    },
+    {
+      "recordId": "430da0f3-6530-455e-a670-b9da9688b05d",
+      "at": "2026-10-11T04:07:52.285Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "13723d0b99b98fe86d84bfd624d649404f088e31ded9efb5d44fd307ac6fa500",
+        "summary": {
+          "sql": "len:61 sha256:f90c3c2bcf4ae581"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 5
+    },
+    {
+      "recordId": "860c2cad-b108-4cd2-ae44-9f187b671a03",
+      "at": "2026-10-11T04:07:52.332Z",
+      "runId": "c2b34b22-6399-442f-be5f-0cdc039655b3",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-1ecbd994-e281-47a1-98f2-c794fa915a43",
+      "tool": "app.describe",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "f2400296-3122-40e7-bace-5805f4db7fd8",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 20
+    }
+  ],
+  "modelUiActionTypesObserved": [
+    "type",
+    "click",
+    "waitFor",
+    "navigate"
+  ],
+  "guestShellCli": [
+    {
+      "id": "item_4",
+      "turnId": "be0f48ce-32ee-431c-b41b-acd44726bf62",
+      "command": "/bin/bash -lc 'wsl-app describe'",
+      "exitCode": 3,
+      "outputSha256": "37cfd33b1b1ec19b6df250ba2baf3f23f7d14042c83dc8d0b398cdc6f4d9e35d",
+      "truncated": false,
+      "transportUnavailable": true,
+      "socketUnreachable": true,
+      "errorCode": "transport_unavailable"
+    }
+  ],
+  "hostReset": "{\"ok\":true,\"data\":{\"truncated\":[\"records\",\"sessions\"],\"seeded\":true}}\n",
+  "hostInstance": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "61988490-8a35-43ba-83cb-b9f633d1c275",
+    "environmentId": "sandbox",
+    "appInstanceId": "cfcb6b13-89bf-46ea-b374-a9e2ae1d8dea",
+    "state": "running",
+    "url": "http://127.0.0.1:49182",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/61988490-8a35-43ba-83cb-b9f633d1c275",
+    "guestPort": 34143,
+    "error": null,
+    "cleanupConfirmed": false
+  },
+  "hostQuery": {
+    "ok": true,
+    "data": {
+      "columns": [
+        "value"
+      ],
+      "rows": [
+        {
+          "value": "固定验收 2026"
+        }
+      ],
+      "rowCount": 1,
+      "truncated": false
+    }
+  },
+  "cleanupApp": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "61988490-8a35-43ba-83cb-b9f633d1c275",
+    "environmentId": "sandbox",
+    "appInstanceId": "cfcb6b13-89bf-46ea-b374-a9e2ae1d8dea",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/61988490-8a35-43ba-83cb-b9f633d1c275",
+    "guestPort": 34143,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "guestProcessesAfter": "[]\n",
+  "applicationExited": true,
+  "portsAfter": [
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49178,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    },
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49179,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    }
+  ],
+  "remainingOwnedPortMappings": [],
+  "fixedHashesAfter": {
+    "task": "21f44e2e39162ae876b3a5f84c820cafed78ced0729dd90e50ffcdde6293102c",
+    "scenario": "47045475157bf4e7ecfdb76c1cff742b7a549a3a69dbbbff803a3bf36ea86b91"
+  },
+  "cleanupErrors": []
+}

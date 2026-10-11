@@ -11,6 +11,8 @@ import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { _electron, type ElectronApplication, type Page } from '@playwright/test';
+import { appControlInjection } from './fixtures/app-control-injection';
+import { appControlCancelGate } from './fixtures/app-control-cancel-gate';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const fixtureSandbox =
@@ -26,6 +28,10 @@ export async function launchApp(
     observationRoot?: string;
     sshEnvironment?: { host: string; port: number; username: string; hostKeySha256: string; root: string; agent: string };
     controlledObservation?: boolean;
+    /** 测试专用：在 Main↔service 边界代替 guest Codex 轮次以驱动控制面，不调用模型。 */
+    appControlInjection?: boolean;
+    /** Test-only: observe real app calls and delay one genuine reply across cancellation. */
+    appControlCancelGate?: boolean;
     controlledTerminal?: boolean;
     codexBin?: string;
     sbxBin?: string;
@@ -102,6 +108,8 @@ export async function launchApp(
 const { app } = require('electron');
 app.setAppPath(${JSON.stringify(desktopDir)});
 globalThis.__wslRendererErrors = [];
+${options.appControlInjection ? appControlInjection : ''}
+${options.appControlCancelGate ? appControlCancelGate : ''}
 ${
   options.controlledObservation || options.controlledTerminal
     ? `

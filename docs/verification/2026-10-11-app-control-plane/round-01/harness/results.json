@@ -1,0 +1,672 @@
+{
+  "A01.describe": {
+    "stale": {
+      "manifest": false,
+      "build": false
+    },
+    "revisions": [
+      "b1c41940ae3a595a1c010b37f0bc5c8ad104c219c9853718eca4016c34d04e98",
+      "b1c41940ae3a595a1c010b37f0bc5c8ad104c219c9853718eca4016c34d04e98",
+      "b1c41940ae3a595a1c010b37f0bc5c8ad104c219c9853718eca4016c34d04e98"
+    ],
+    "testids": 8,
+    "commands": [
+      "health.refresh"
+    ],
+    "states": [
+      "app.health",
+      "welcome"
+    ],
+    "routes": [
+      {
+        "method": "POST",
+        "path": "/api/dev/session"
+      },
+      {
+        "method": "GET",
+        "path": "/api/health"
+      },
+      {
+        "method": "GET",
+        "path": "/api/kv/:key"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/kv/:key"
+      }
+    ],
+    "tables": [
+      "records",
+      "sessions"
+    ]
+  },
+  "A03.refFlow": {
+    "elements": 7,
+    "query": [
+      {
+        "value": "UI 引用写入"
+      }
+    ]
+  },
+  "A04.rejections": {
+    "staleDocument": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "stale_document",
+        "message": "页面文档代次已从 1 变为 2，请重新快照"
+      }
+    },
+    "staleRef": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "stale_ref",
+        "message": "引用 e7 已失效，请重新调用 app.ui.snapshot"
+      }
+    },
+    "staleLease": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "stale_lease",
+        "message": "实例租约已失效（已停止或正在重启）"
+      }
+    },
+    "noRun": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "no_active_run",
+        "message": "执行已结束"
+      }
+    },
+    "oldInstance": {
+      "ok": false,
+      "tool": "app.data.seed",
+      "error": {
+        "code": "stale_instance",
+        "message": "请求绑定的实例 harness-app-0 已不是当前实例 harness-app-1"
+      }
+    }
+  },
+  "A05.schema": {
+    "invoked": {
+      "ok": true,
+      "tool": "app.command.invoke",
+      "data": {
+        "result": null,
+        "documentGeneration": 2
+      }
+    },
+    "badInput": {
+      "ok": false,
+      "tool": "app.command.invoke",
+      "error": {
+        "code": "command_invalid_input",
+        "message": "命令 health.refresh 的输入不符合 schema",
+        "details": {
+          "issues": [
+            {
+              "path": "(root)",
+              "message": "Unrecognized key: \"extra\""
+            }
+          ]
+        }
+      }
+    },
+    "unknown": {
+      "ok": false,
+      "tool": "app.command.invoke",
+      "error": {
+        "code": "command_not_found",
+        "message": "命令 welcome.forceSave 未在 manifest 登记；可用：health.refresh"
+      }
+    },
+    "script": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "invalid_request",
+        "message": "app.ui.act 参数不符合 schema",
+        "details": [
+          {
+            "path": "action.type",
+            "message": "Invalid discriminator value. Expected 'click' | 'type' | 'press' | 'select' | 'scroll' | 'navigate' | 'waitFor'"
+          }
+        ]
+      }
+    },
+    "coordinates": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "invalid_request",
+        "message": "app.ui.act 参数不符合 schema",
+        "details": [
+          {
+            "path": "action.target",
+            "message": "Invalid input"
+          },
+          {
+            "path": "action",
+            "message": "Unrecognized keys: \"x\", \"y\""
+          }
+        ]
+      }
+    },
+    "tool": {
+      "ok": false,
+      "tool": null,
+      "error": {
+        "code": "unsupported",
+        "message": "未知控制面工具：app.eval"
+      }
+    }
+  },
+  "A06.data": {
+    "write": {
+      "ok": false,
+      "tool": "app.data.query",
+      "error": {
+        "code": "write_rejected",
+        "message": "只允许 SELECT/WITH/VALUES/EXPLAIN/TABLE/SHOW 查询",
+        "details": {
+          "backendCode": "write_rejected",
+          "mode": "http",
+          "cleanupConfirmed": true
+        }
+      }
+    },
+    "unauthorized": {
+      "ok": false,
+      "tool": "app.data.reset",
+      "error": {
+        "code": "authorization_required",
+        "message": "重置需要用户在任务允许范围中写明 app.data.reset"
+      }
+    },
+    "reset": {
+      "ok": true,
+      "tool": "app.data.reset",
+      "data": {
+        "truncated": [
+          "records",
+          "sessions"
+        ],
+        "seeded": true,
+        "appInstanceId": "harness-app-1"
+      }
+    }
+  },
+  "A07.takeover": {
+    "paused": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "paused_by_user",
+        "message": "用户正在 Browser 区操作；AI 操控已暂停，等待用户点“允许 AI 继续”"
+      }
+    },
+    "pausedState": {
+      "state": "paused_by_user",
+      "runId": "harness-run-1",
+      "since": "2026-10-10T19:55:49.801Z",
+      "lastAction": "waitFor"
+    },
+    "blocked": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "paused_by_user",
+        "message": "用户正在 Browser 区操作；AI 操控已暂停，等待用户点“允许 AI 继续”"
+      }
+    },
+    "resumed": "ok",
+    "focusBefore": {
+      "workbench": false,
+      "preview": false
+    },
+    "focusAfter": {
+      "workbench": false,
+      "preview": false
+    },
+    "previewIndicator": {
+      "state": "active",
+      "runId": "harness-run-1",
+      "since": "2026-10-10T19:55:49.906Z",
+      "lastAction": "press"
+    }
+  },
+  "A08.cancel": {
+    "result": {
+      "ok": false,
+      "tool": "app.scenario.run",
+      "error": {
+        "code": "cancelled",
+        "message": "控制面调用已取消"
+      }
+    },
+    "trace": {
+      "traceVersion": 1,
+      "scenarioRunId": "d8a938e9-b3d1-4043-99b3-8889b0959123",
+      "scenarioName": "cancel-mid-way",
+      "scenarioSha256": "990c0d49835b089a356c035ff3b390492fcc953ef0575acf23dd17a773fcf32a",
+      "runId": "harness-run-1",
+      "workspaceId": "harness-space",
+      "appInstanceId": "harness-app-1",
+      "sourceRevision": "b1c41940ae3a595a1c010b37f0bc5c8ad104c219c9853718eca4016c34d04e98",
+      "startedAt": "2026-10-10T19:55:50.058Z",
+      "endedAt": "2026-10-10T19:55:50.437Z",
+      "outcome": "cancelled",
+      "steps": [
+        {
+          "index": 0,
+          "type": "act",
+          "summary": "act navigate /",
+          "outcome": "passed",
+          "error": null,
+          "durationMs": 125,
+          "documentGeneration": 3,
+          "screenshot": null
+        },
+        {
+          "index": 1,
+          "type": "act",
+          "summary": "act waitFor testid=welcome-input visible",
+          "outcome": "passed",
+          "error": null,
+          "durationMs": 2,
+          "documentGeneration": 3,
+          "screenshot": null
+        },
+        {
+          "index": 2,
+          "type": "act",
+          "summary": "act type testid=welcome-input len=6",
+          "outcome": "passed",
+          "error": null,
+          "durationMs": 125,
+          "documentGeneration": 3,
+          "screenshot": null
+        },
+        {
+          "index": 3,
+          "type": "act",
+          "summary": "act click testid=welcome-save",
+          "outcome": "cancelled",
+          "error": {
+            "code": "cancelled",
+            "message": "控制面调用已取消"
+          },
+          "durationMs": 107,
+          "documentGeneration": 3,
+          "screenshot": null
+        },
+        {
+          "index": 4,
+          "type": "act",
+          "summary": "act waitFor testid=never-appears visible",
+          "outcome": "cancelled",
+          "error": {
+            "code": "cancelled",
+            "message": "场景已取消，未开始此步"
+          },
+          "durationMs": 0,
+          "documentGeneration": null,
+          "screenshot": null
+        },
+        {
+          "index": 5,
+          "type": "screenshot",
+          "summary": "screenshot never",
+          "outcome": "cancelled",
+          "error": {
+            "code": "cancelled",
+            "message": "场景已取消，未开始此步"
+          },
+          "durationMs": 0,
+          "documentGeneration": null,
+          "screenshot": null
+        }
+      ],
+      "stateDiff": [
+        {
+          "path": "/db/records/sha256",
+          "before": "1470948736a4929db8cdfe3d2a06f3db04dc67e5be62e218604d424f489f9ac7",
+          "after": "ffcddcef631640852c0966614654582ab62f68bf450d1d90ffaa0b659e613f02"
+        },
+        {
+          "path": "/db/sessions/rowCount",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "path": "/db/sessions/sha256",
+          "before": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "after": "441f3c81b1b43bfe314b4380dfd4194f27646490ef68beecc8ad515b44cb0bb9"
+        },
+        {
+          "path": "/state/welcome/value",
+          "before": "UI 引用写入",
+          "after": "取消前已保存"
+        }
+      ],
+      "inFlight": {
+        "kind": "act",
+        "settled": true
+      },
+      "cleanupConfirmed": true
+    }
+  },
+  "A09.fixedScenario.1": {
+    "outcome": "passed",
+    "evidence": {
+      "trace": "reference/harness-run-1/scenarios/4a8d72b3-527e-475b-8d56-c0a323831aec/trace.json",
+      "screenshots": [
+        "reference/harness-run-1/scenarios/4a8d72b3-527e-475b-8d56-c0a323831aec/15-fixed-welcome-saved.png"
+      ]
+    },
+    "steps": [
+      [
+        "act navigate /",
+        "passed",
+        null
+      ],
+      [
+        "act waitFor testid=welcome-value visible",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-value equals",
+        "passed",
+        null
+      ],
+      [
+        "act type testid=welcome-input len=3",
+        "passed",
+        null
+      ],
+      [
+        "act click testid=welcome-save",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-error equals",
+        "passed",
+        null
+      ],
+      [
+        "assert state welcome/value",
+        "passed",
+        null
+      ],
+      [
+        "act type testid=welcome-input len=9",
+        "passed",
+        null
+      ],
+      [
+        "act click testid=welcome-save",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-value equals",
+        "passed",
+        null
+      ],
+      [
+        "assert testid=welcome-error detached",
+        "passed",
+        null
+      ],
+      [
+        "assert state welcome/value",
+        "passed",
+        null
+      ],
+      [
+        "act navigate /",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-value equals",
+        "passed",
+        null
+      ],
+      [
+        "assert console-no-error",
+        "passed",
+        null
+      ],
+      [
+        "screenshot fixed-welcome-saved",
+        "passed",
+        null
+      ]
+    ],
+    "stateDiff": [
+      {
+        "path": "/db/records/sha256",
+        "before": "1470948736a4929db8cdfe3d2a06f3db04dc67e5be62e218604d424f489f9ac7",
+        "after": "a4cd642df566b871df485fe0330cffadf9987cbbbaf7d3ad29aedbee47ddff37"
+      },
+      {
+        "path": "/db/sessions/rowCount",
+        "before": 0,
+        "after": 2
+      },
+      {
+        "path": "/db/sessions/sha256",
+        "before": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "after": "0fb8ebe4e1f6691e5da613b9626c7df90943c4559ce28688c4cff7292297eba4"
+      },
+      {
+        "path": "/state/welcome/value",
+        "before": "取消前已保存",
+        "after": "固定验收 2026"
+      }
+    ]
+  },
+  "A09.fixedScenario.2": {
+    "outcome": "passed",
+    "evidence": {
+      "trace": "reference/harness-run-1/scenarios/0e96aaaf-fca2-400a-befd-b12c639461c0/trace.json",
+      "screenshots": [
+        "reference/harness-run-1/scenarios/0e96aaaf-fca2-400a-befd-b12c639461c0/15-fixed-welcome-saved.png"
+      ]
+    },
+    "steps": [
+      [
+        "act navigate /",
+        "passed",
+        null
+      ],
+      [
+        "act waitFor testid=welcome-value visible",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-value equals",
+        "passed",
+        null
+      ],
+      [
+        "act type testid=welcome-input len=3",
+        "passed",
+        null
+      ],
+      [
+        "act click testid=welcome-save",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-error equals",
+        "passed",
+        null
+      ],
+      [
+        "assert state welcome/value",
+        "passed",
+        null
+      ],
+      [
+        "act type testid=welcome-input len=9",
+        "passed",
+        null
+      ],
+      [
+        "act click testid=welcome-save",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-value equals",
+        "passed",
+        null
+      ],
+      [
+        "assert testid=welcome-error detached",
+        "passed",
+        null
+      ],
+      [
+        "assert state welcome/value",
+        "passed",
+        null
+      ],
+      [
+        "act navigate /",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-value equals",
+        "passed",
+        null
+      ],
+      [
+        "assert console-no-error",
+        "passed",
+        null
+      ],
+      [
+        "screenshot fixed-welcome-saved",
+        "passed",
+        null
+      ]
+    ],
+    "stateDiff": [
+      {
+        "path": "/db/records/sha256",
+        "before": "1470948736a4929db8cdfe3d2a06f3db04dc67e5be62e218604d424f489f9ac7",
+        "after": "a4cd642df566b871df485fe0330cffadf9987cbbbaf7d3ad29aedbee47ddff37"
+      },
+      {
+        "path": "/db/sessions/rowCount",
+        "before": 0,
+        "after": 2
+      },
+      {
+        "path": "/db/sessions/sha256",
+        "before": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "after": "9c7c5e8bc644da13cddefa2b1027fe99d421c070e05e78637c9e0099bb6ff8a0"
+      }
+    ]
+  },
+  "A09.replay": {
+    "comparableEqual": true,
+    "postQuery": [
+      {
+        "value": "固定验收 2026"
+      }
+    ]
+  },
+  "A02.stale": {
+    "staleManifest": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "manifest_stale",
+        "message": "manifest 与当前源码不一致；运行 npm run agent:manifest 后再试",
+        "details": {
+          "currentRevision": "e19740cb82c5a7d98f5f8050d4bc92f9fc866fa28ffe32ce32170314dff16629",
+          "manifestRevision": "b1c41940ae3a595a1c010b37f0bc5c8ad104c219c9853718eca4016c34d04e98"
+        }
+      }
+    },
+    "staleBuild": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "build_stale",
+        "message": "运行实例不是由当前源码构建；用 app.restart 重建后再试",
+        "details": {
+          "currentRevision": "e19740cb82c5a7d98f5f8050d4bc92f9fc866fa28ffe32ce32170314dff16629",
+          "buildRevision": "b1c41940ae3a595a1c010b37f0bc5c8ad104c219c9853718eca4016c34d04e98"
+        }
+      }
+    },
+    "describeStale": {
+      "manifest": false,
+      "build": true
+    },
+    "recovered": {
+      "manifest": false,
+      "build": false
+    },
+    "after": "ok",
+    "oldInstanceAfterRestart": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "stale_instance",
+        "message": "请求绑定的实例 harness-app-1 已不是当前实例 harness-app-2"
+      }
+    }
+  },
+  "Precheck.original": {
+    "outcome": "failed",
+    "failedStep": {
+      "index": 1,
+      "type": "act",
+      "summary": "act waitFor testid=welcome-value visible",
+      "outcome": "failed",
+      "error": {
+        "code": "wait_timeout",
+        "message": "等待 {\"testid\":\"welcome-value\"} 达到 visible 超时"
+      },
+      "durationMs": 8016,
+      "documentGeneration": 2,
+      "screenshot": null
+    }
+  },
+  "A10.production": {
+    "scan": {
+      "directory": "dist/client",
+      "files": 3,
+      "expectPresent": false,
+      "found": []
+    },
+    "typeofBridge": "undefined",
+    "state": {
+      "ok": false,
+      "tool": "app.state.read",
+      "error": {
+        "code": "bridge_unavailable",
+        "message": "页面未挂载 window.__WSL_AGENT__（生产构建或旧模板）"
+      }
+    }
+  },
+  "environment": {
+    "node": "v26.5.0",
+    "platform": "darwin-arm64",
+    "finishedAt": "2026-10-10T19:56:48.305Z"
+  }
+}

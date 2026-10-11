@@ -1,0 +1,39 @@
+
+Running 1 test using 1 worker
+
+(node:67234) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /private/tmp/wsl-space-app-model-live-20261010/WSL_APP_MODEL_d34997b14d374ebfb31c92ceaedf15fe/profile ELECTRON_PID 67235
+ELECTRON_STDERR (node:67235) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:49709/6a1b8aaa-810d-4cec-8009-1bb6aceb9a1d
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+SPACE_APP_MODEL_LIVE_EVIDENCE /private/tmp/wsl-space-app-model-live-20261010/WSL_APP_MODEL_d34997b14d374ebfb31c92ceaedf15fe
+  ✘  1 e2e/space-app-model-live.spec.ts:45:1 › live: real App creation, native element capture and product model edit rebuild the same project (1.4m)
+
+
+  1) e2e/space-app-model-live.spec.ts:45:1 › live: real App creation, native element capture and product model edit rebuild the same project 
+
+    Error: locator.selectOption: Error: strict mode violation: getByLabel('关联会话', { exact: true }) resolved to 2 elements:
+        1) <select aria-label="关联会话">…</select> aka getByLabel('关联会话').first()
+        2) <select aria-label="关联会话">…</select> aka getByRole('combobox')
+
+    Call log:
+      - waiting for getByLabel('关联会话', { exact: true })
+
+
+      143 |     await receipt('capture');
+      144 |     const receiver = (await state()).sessions[0]!;
+    > 145 |     await mainPage.getByLabel('关联会话', { exact: true }).selectOption(receiver.sessionId);
+          |                                                        ^
+      146 |     await mainPage.getByRole('button', { name: '采集到关联会话', exact: true }).click();
+      147 |     await expect.poll(async () => (await state()).resources.find((r) => r.resourceId === browser.resourceId)?.preview?.picking).toBe(true);
+      148 |     const point = await native.getByRole('heading', { name: '从这里开始构建', exact: true }).boundingBox();
+        at /private/tmp/web-studio-lab-space-app-model/e2e/space-app-model-live.spec.ts:145:56
+
+    Error Context: test-results/e2e/space-app-model-live-live--baa9e-it-rebuild-the-same-project/error-context.md
+
+  1 failed
+    e2e/space-app-model-live.spec.ts:45:1 › live: real App creation, native element capture and product model edit rebuild the same project 

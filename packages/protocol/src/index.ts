@@ -23,3 +23,5 @@ export * from './environments';
 export * from './setup';
 
 export * from './resource-catalog';
+
+export * from './app-control';

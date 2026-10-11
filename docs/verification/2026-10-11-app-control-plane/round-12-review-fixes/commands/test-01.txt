@@ -1,0 +1,112 @@
+
+> web-studio-lab@ test /Users/huaodong/workspace/web-studio-lab
+> vitest run && node --test scripts/packaging/*.test.mjs && pnpm test:external-builds
+
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/desktop/src/main/workbench/application.test.ts (27 tests | 1 failed) 732ms
+   ❯ workbench authoritative commands (24)
+     × restores drafts/history but never replays a runner or terminal 35ms
+ ❯ apps/desktop/src/main/workbench/recovery-facts.test.ts (2 tests | 2 failed) 296ms
+   ❯ R1/R6 durable recovery facts (2)
+     × persists interrupted run and cancelled capture once, preserving fact time and receipt across two read-only restarts 156ms
+     × exposes a recovery save failure while preserving original bytes and avoiding initialization or execution replay 133ms
+ ❯ apps/desktop/src/main/workbench/observation-application.test.ts (24 tests | 2 failed) 16576ms
+   ❯ Main observation ownership and lifecycle (16)
+     × retains completed but still archiving records while the history window rolls 5097ms
+     × keeps the 64-request run budget independent of the rolling session history 6726ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/workbench/application.test.ts > workbench authoritative commands > restores drafts/history but never replays a runner or terminal
+AssertionError: expected 'cancelling' to be 'interrupted' // Object.is equality
+
+Expected: "interrupted"
+Received: "cancelling"
+
+ ❯ apps/desktop/src/main/workbench/application.test.ts:329:49
+    327|     expect(after.workspaces[0]?.layout).toEqual((await app.getSnapshot…
+    328|     expect(after.workspaces[0]?.sessions[0]?.taskVersions).toEqual((aw…
+    329|     expect(after.workspaces[0]?.runs[0]?.state).toBe('interrupted');
+       |                                                 ^
+    330|     expect(runtime.send).toHaveBeenCalledTimes(1);
+    331|     expect(runtime.terminalOpen).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  apps/desktop/src/main/workbench/observation-application.test.ts > Main observation ownership and lifecycle > retains completed but still archiving records while the history window rolls
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/desktop/src/main/workbench/observation-application.test.ts:293:3
+    291|     expect((await app.getSnapshot()).workspaces[0]!.observations[0]).t…
+    292|   });
+    293|   it('retains completed but still archiving records while the history …
+       |   ^
+    294|     const { app, repository, file } = await setup();
+    295|     const resource = await file();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  apps/desktop/src/main/workbench/observation-application.test.ts > Main observation ownership and lifecycle > keeps the 64-request run budget independent of the rolling session history
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/desktop/src/main/workbench/observation-application.test.ts:318:3
+    316|     expect(await settled).not.toHaveProperty('error');
+    317|   });
+    318|   it('keeps the 64-request run budget independent of the rolling sessi…
+       |   ^
+    319|     const { app, runtime, command } = await setup();
+    320|     const w = (await app.getSnapshot()).workspaces[0]!;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  apps/desktop/src/main/workbench/recovery-facts.test.ts > R1/R6 durable recovery facts > persists interrupted run and cancelled capture once, preserving fact time and receipt across two read-only restarts
+AssertionError: expected { referenceSummary: [], …(18) } to match object { …(2) }
+(35 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "runId": "c8cf21fe-47bb-4bda-bda1-9e0d1eb81040",
+-   "state": "interrupted",
++   "state": "cancelling",
+  }
+
+ ❯ apps/desktop/src/main/workbench/recovery-facts.test.ts:88:43
+     86|     const first = new WorkbenchApplication(repository, runtime, vi.fn(…
+     87|     const before = await first.getSnapshot();
+     88|     expect(before.workspaces[0]!.runs[0]).toMatchObject({ runId, state…
+       |                                           ^
+     89|     expect(before.workspaces[0]!.sessions[0]!.captureRequest?.state).t…
+     90|     const persisted = await repository.load();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  apps/desktop/src/main/workbench/recovery-facts.test.ts > R1/R6 durable recovery facts > exposes a recovery save failure while preserving original bytes and avoiding initialization or execution replay
+AssertionError: expected 'cancelling' to be 'interrupted' // Object.is equality
+
+Expected: "interrupted"
+Received: "cancelling"
+
+ ❯ apps/desktop/src/main/workbench/recovery-facts.test.ts:113:52
+    111|     const restored = new WorkbenchApplication(repository, runtime, vi.…
+    112|     const snapshot: WorkbenchSnapshot = await restored.getSnapshot();
+    113|     expect(snapshot.workspaces[0]!.runs[0]!.state).toBe('interrupted');
+       |                                                    ^
+    114|     expect(snapshot.storageError).toContain('recovery disk full');
+    115|     expect(await readFile(file, 'utf8')).toBe(original);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  3 failed | 78 passed | 6 skipped (87)
+      Tests  5 failed | 677 passed | 15 skipped (697)
+   Start at  15:13:15
+   Duration  18.11s (tests 72%, import 22%, transform 6%, worker 1%)
+
+    Isolate  87 workers spawned · ~294ms startup each (spawn + environment, per file)
+             at least ~2.54s faster with isolate: false — reuses workers across files instead of one per file
+
+ ELIFECYCLE  Test failed. See above for more details.

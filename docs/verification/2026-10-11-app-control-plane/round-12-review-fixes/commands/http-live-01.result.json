@@ -1,0 +1,18 @@
+{
+  "command": [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "e2e/app-control-data-cancel-live.spec.ts",
+    "--output",
+    "test-results/round-12-http-live-01"
+  ],
+  "flags": {
+    "WSL_APP_CONTROL_DATA_CANCEL_LIVE": "1"
+  },
+  "evidence": "/Users/huaodong/workspace/web-studio-lab/docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/http-live-01",
+  "exitCode": 1,
+  "seconds": 65.33739018440247,
+  "build": "build-03"
+}

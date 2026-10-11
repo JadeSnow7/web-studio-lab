@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "templateId": "wsl-standard-app",
+  "templateVersion": "1.1.0",
+  "sourceRevision": "a8b86f3784ad2c06797c21fff279ddb0a5fbd33f6e2ebd749d0998f2b551b58e",
+  "pages": [
+    {
+      "path": "/",
+      "source": "src/App.tsx",
+      "testids": [
+        "app-instance-id",
+        "health-refresh",
+        "health-status",
+        "project-id"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/api/dev/session"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kv/:key"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/kv/:key"
+    }
+  ],
+  "dataModel": [
+    {
+      "table": "records",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "text",
+          "notNull": true,
+          "primaryKey": true
+        },
+        {
+          "name": "key",
+          "type": "text",
+          "notNull": true,
+          "primaryKey": true
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "notNull": true,
+          "primaryKey": false
+        }
+      ],
+      "primaryKey": [
+        "user_id",
+        "key"
+      ]
+    },
+    {
+      "table": "sessions",
+      "columns": [
+        {
+          "name": "token",
+          "type": "text",
+          "notNull": true,
+          "primaryKey": true
+        },
+        {
+          "name": "user_id",
+          "type": "text",
+          "notNull": true,
+          "primaryKey": false
+        },
+        {
+          "name": "expires_at",
+          "type": "bigint",
+          "notNull": true,
+          "primaryKey": false
+        }
+      ],
+      "primaryKey": [
+        "token"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "name": "health.refresh",
+      "description": "重新请求 /api/health 并返回应用服务连接状态（只读观察）",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "sources": [
+        "src/App.tsx:45"
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "app.health",
+      "sources": [
+        "src/App.tsx:44"
+      ]
+    }
+  ],
+  "testids": [
+    {
+      "testid": "app-instance-id",
+      "element": "dd",
+      "source": "src/App.tsx:84"
+    },
+    {
+      "testid": "health-refresh",
+      "element": "Button",
+      "source": "src/App.tsx:64"
+    },
+    {
+      "testid": "health-status",
+      "element": "p",
+      "source": "src/App.tsx:60"
+    },
+    {
+      "testid": "project-id",
+      "element": "dd",
+      "source": "src/App.tsx:78"
+    }
+  ],
+  "checks": []
+}

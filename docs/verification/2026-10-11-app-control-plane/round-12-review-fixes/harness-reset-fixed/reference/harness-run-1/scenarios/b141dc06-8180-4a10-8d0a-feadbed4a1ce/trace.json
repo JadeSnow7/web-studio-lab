@@ -1,0 +1,111 @@
+{
+  "traceVersion": 1,
+  "scenarioRunId": "b141dc06-8180-4a10-8d0a-feadbed4a1ce",
+  "scenarioName": "cancel-mid-way",
+  "scenarioSha256": "990c0d49835b089a356c035ff3b390492fcc953ef0575acf23dd17a773fcf32a",
+  "runId": "harness-run-1",
+  "workspaceId": "harness-space",
+  "appInstanceId": "harness-app-1",
+  "sourceRevision": "c7e18e31ecd91837749d4a6343ad0b6de308d54e9de6e8528e6752a575db95e5",
+  "startedAt": "2026-10-11T07:21:00.234Z",
+  "endedAt": "2026-10-11T07:21:00.614Z",
+  "outcome": "cancelled",
+  "steps": [
+    {
+      "index": 0,
+      "type": "act",
+      "summary": "act navigate /",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 126,
+      "documentGeneration": 3,
+      "screenshot": null
+    },
+    {
+      "index": 1,
+      "type": "act",
+      "summary": "act waitFor testid=welcome-input visible",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 3,
+      "documentGeneration": 3,
+      "screenshot": null
+    },
+    {
+      "index": 2,
+      "type": "act",
+      "summary": "act type testid=welcome-input len=6",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 124,
+      "documentGeneration": 3,
+      "screenshot": null
+    },
+    {
+      "index": 3,
+      "type": "act",
+      "summary": "act click testid=welcome-save",
+      "outcome": "cancelled",
+      "error": {
+        "code": "cancelled",
+        "message": "控制面调用已取消"
+      },
+      "durationMs": 101,
+      "documentGeneration": 3,
+      "screenshot": null
+    },
+    {
+      "index": 4,
+      "type": "act",
+      "summary": "act waitFor testid=never-appears visible",
+      "outcome": "cancelled",
+      "error": {
+        "code": "cancelled",
+        "message": "场景已取消，未开始此步"
+      },
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    },
+    {
+      "index": 5,
+      "type": "screenshot",
+      "summary": "screenshot never",
+      "outcome": "cancelled",
+      "error": {
+        "code": "cancelled",
+        "message": "场景已取消，未开始此步"
+      },
+      "durationMs": 0,
+      "documentGeneration": null,
+      "screenshot": null
+    }
+  ],
+  "stateDiff": [
+    {
+      "path": "/db/records/sha256",
+      "before": "1470948736a4929db8cdfe3d2a06f3db04dc67e5be62e218604d424f489f9ac7",
+      "after": "ffcddcef631640852c0966614654582ab62f68bf450d1d90ffaa0b659e613f02"
+    },
+    {
+      "path": "/db/sessions/rowCount",
+      "before": 0,
+      "after": 1
+    },
+    {
+      "path": "/db/sessions/sha256",
+      "before": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "after": "420a47439c3a07bcef224012f6c89fb35fabcb4f731366eb3dac3e9b5d1722cb"
+    },
+    {
+      "path": "/state/welcome/value",
+      "before": "UI 引用写入",
+      "after": "取消前已保存"
+    }
+  ],
+  "inFlight": {
+    "kind": "act",
+    "settled": true
+  },
+  "cleanupConfirmed": true
+}

@@ -1,0 +1,13 @@
+{
+  "node": "v26.5.0",
+  "pnpm": "10.34.6",
+  "pnpmEntry": "/Users/huaodong/.npm/_npx/168ca33e231eaaf0/node_modules/pnpm/bin/pnpm.cjs",
+  "sbx": "v0.47.0",
+  "sandbox": "wsl-sbx-smoke-20261006",
+  "preflightPorts": [],
+  "hostPermissionRequired": [
+    "sandbox service access",
+    "external build outputs"
+  ],
+  "realModelAndSandboxAuthorization": "approved implementation plan"
+}

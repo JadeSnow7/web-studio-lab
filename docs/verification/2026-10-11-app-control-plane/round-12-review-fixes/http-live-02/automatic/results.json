@@ -1,0 +1,13 @@
+{
+  "nonce": "cdb117f7-64c0-404e-89e6-a41f22b2eb15",
+  "mode": "automatic",
+  "profile": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-ocdlIT",
+  "sandbox": "wsl-sbx-smoke-20261006",
+  "gateDir": "/tmp/wsl-data-cancel-cdb117f7-64c0-404e-89e6-a41f22b2eb15",
+  "fixtureOperationsSha256": "6c7f55a1519b0fc91437192943666f2648726066cd10fb915526c126d2349d42",
+  "manifestPreparation": "Managed start imports dependencies then runs build:agent to generate manifest and build stamp",
+  "failure": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7mrunn\u001b[27ming\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mstart\u001b[27ming\"\u001b[39m\n\nCall Log:\n- Timeout 180000ms exceeded while waiting on the predicate",
+  "appExited": true,
+  "retainedOwnedProject": "/home/agent/workspace/.wsl-apps/a1a307c1-ad32-4b00-afc6-7159c88e21fb",
+  "cleanupErrors": []
+}

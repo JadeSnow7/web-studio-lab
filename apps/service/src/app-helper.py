@@ -123,18 +123,27 @@ def run(request):
         files.sort(key=lambda entry: entry['path'])
         output({'files': files})
         return
+    if request['operation'] == 'agent':
+        agent(root, identity, request)
+        return
     if request['operation'] != 'start':
         raise ValueError('unknown app operation')
     env = dict(os.environ)
     env.update({'HOST': '0.0.0.0', 'PORT': '0', 'WSL_DATA_DIR': str(root / '.data' / 'pglite'),
                 'WSL_WORKSPACE_ID': identity['workspaceId'], 'WSL_ENVIRONMENT_ID': 'sandbox',
                 'WSL_PROJECT_ID': project, 'WSL_APP_INSTANCE_ID': request['appInstanceId'], 'WSL_DEV_SESSIONS': '1'})
+    # 1.1.0+ 项目用 agent 构建挂载控制面；旧项目没有该脚本，照旧生产构建，不强制升级。
+    token = request.get('agentToken')
+    if token is not None and (not isinstance(token, str) or not re.fullmatch(r'[0-9a-f]{64}', token)):
+        raise ValueError('invalid agent token')
+    scripts = json.loads((root / 'package.json').read_text()).get('scripts', {})
+    build = ['npm', 'run', 'build:agent'] if token and isinstance(scripts, dict) and 'build:agent' in scripts else ['npm', 'run', 'build']
     commands = []
     if not (root / '.wsl-prepared').exists():
         commands = [['npm', 'ci', '--ignore-scripts', '--workspaces=false'], ['npm', 'run', 'db:migrate'],
-                    ['npm', 'run', 'db:seed'], ['npm', 'run', 'check'], ['npm', 'run', 'build']]
+                    ['npm', 'run', 'db:seed'], ['npm', 'run', 'check'], build]
     else:
-        commands = [['npm', 'run', 'db:migrate'], ['npm', 'run', 'check'], ['npm', 'run', 'build']]
+        commands = [['npm', 'run', 'db:migrate'], ['npm', 'run', 'check'], build]
     dependency_lock = root / '.wsl-dependency-lock'
     if dependency_lock.exists() and dependency_lock.read_text() == hashlib.sha256((root / 'package-lock.json').read_bytes()).hexdigest():
         commands = [command for command in commands if command[:2] != ['npm', 'ci']]
@@ -144,7 +153,38 @@ def run(request):
         subprocess.run(command, cwd=root, env=env, check=True)
     (root / '.wsl-prepared').touch()
     os.chdir(root)
+    # 令牌只交给最终服务进程，不进入构建与检查命令的环境。
+    if token and build[-1] == 'build:agent':
+        env['WSL_AGENT_TOKEN'] = token
     os.execvpe('npm', ['npm', 'start'], env)
+
+
+AGENT_DB_READS = {'query', 'snapshot'}
+
+
+def agent(root, identity, request):
+    """Read-only control-plane CLI for a stopped app; writes go through the running instance only."""
+    args = request.get('args')
+    if (not isinstance(args, list) or not 1 <= len(args) <= 6 or not all(isinstance(arg, str) and len(arg) <= 4096 for arg in args)
+            or args[0] not in ('describe', 'db') or (args[0] == 'db' and (len(args) < 2 or args[1] not in AGENT_DB_READS))):
+        raise ValueError('agent operation not allowed')
+    if not (root / 'server' / 'agent-cli.ts').is_file():
+        output({'unsupported': '项目未包含 Agent 控制面（模板 1.0.0）'})
+        return
+    if not (root / '.wsl-prepared').exists():
+        output({'unsupported': '项目依赖尚未准备；先启动一次应用'})
+        return
+    env = {key: value for key, value in os.environ.items() if not key.startswith('WSL_AGENT_')}
+    env.update({'WSL_DATA_DIR': str(root / '.data' / 'pglite'), 'WSL_WORKSPACE_ID': identity['workspaceId'],
+                'WSL_ENVIRONMENT_ID': 'sandbox', 'WSL_PROJECT_ID': identity['projectId']})
+    try:
+        completed = subprocess.run(['node', '--import', 'tsx', 'server/agent-cli.ts', *args, '--json'], cwd=root, env=env,
+                                   stdin=subprocess.DEVNULL, capture_output=True, timeout=25)
+    except subprocess.TimeoutExpired:
+        output({'exitCode': 124, 'stdout': '', 'stderr': 'agent-cli timed out'})
+        return
+    output({'exitCode': completed.returncode, 'stdout': completed.stdout[-1048576:].decode('utf-8', 'replace'),
+            'stderr': completed.stderr[-2000:].decode('utf-8', 'replace')})
 
 
 if __name__ == '__main__':

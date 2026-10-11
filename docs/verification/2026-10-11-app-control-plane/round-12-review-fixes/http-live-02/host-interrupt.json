@@ -1,0 +1,8 @@
+{
+  "reason": "Stop obsolete test fixture after it was proven to gate template startup tests; permit test finally to clean own app. Corrected fixture will run in a fresh process.",
+  "target": {
+    "pid": 26830,
+    "ppid": 26828
+  },
+  "signal": "SIGINT"
+}

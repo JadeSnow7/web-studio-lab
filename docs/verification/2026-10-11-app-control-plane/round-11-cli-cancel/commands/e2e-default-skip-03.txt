@@ -1,0 +1,8 @@
+
+Running 1 test using 1 worker
+
+(node:85765) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -  1 e2e/app-control-cancel-live.spec.ts:127:1 › real CLI cancellation stops owned processes and isolates a delayed reply from the next run
+
+  1 skipped

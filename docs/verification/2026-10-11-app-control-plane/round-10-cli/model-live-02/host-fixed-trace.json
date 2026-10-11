@@ -1,0 +1,208 @@
+{
+  "runner": "independent-playwright-product-page",
+  "trace": [
+    {
+      "index": 0,
+      "step": {
+        "type": "act",
+        "action": {
+          "type": "navigate",
+          "path": "/"
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 1,
+      "step": {
+        "type": "act",
+        "action": {
+          "type": "waitFor",
+          "target": {
+            "testid": "welcome-value"
+          },
+          "state": "visible",
+          "timeoutMs": 8000
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 2,
+      "step": {
+        "type": "assert",
+        "assert": {
+          "kind": "text",
+          "testid": "welcome-value",
+          "equals": "Ready",
+          "timeoutMs": 8000
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 3,
+      "step": {
+        "type": "act",
+        "action": {
+          "type": "type",
+          "target": {
+            "testid": "welcome-input"
+          },
+          "text": "   ",
+          "clear": true
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 4,
+      "step": {
+        "type": "act",
+        "action": {
+          "type": "click",
+          "target": {
+            "testid": "welcome-save"
+          }
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 5,
+      "step": {
+        "type": "assert",
+        "assert": {
+          "kind": "text",
+          "testid": "welcome-error",
+          "equals": "请输入欢迎语",
+          "timeoutMs": 3000
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 6,
+      "step": {
+        "type": "assert",
+        "assert": {
+          "kind": "state",
+          "name": "welcome",
+          "path": "/value",
+          "equals": "Ready"
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 7,
+      "step": {
+        "type": "act",
+        "action": {
+          "type": "type",
+          "target": {
+            "testid": "welcome-input"
+          },
+          "text": "固定验收 2026",
+          "clear": true
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 8,
+      "step": {
+        "type": "act",
+        "action": {
+          "type": "click",
+          "target": {
+            "testid": "welcome-save"
+          }
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 9,
+      "step": {
+        "type": "assert",
+        "assert": {
+          "kind": "text",
+          "testid": "welcome-value",
+          "equals": "固定验收 2026",
+          "timeoutMs": 5000
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 10,
+      "step": {
+        "type": "assert",
+        "assert": {
+          "kind": "testid",
+          "testid": "welcome-error",
+          "state": "detached",
+          "timeoutMs": 3000
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 11,
+      "step": {
+        "type": "assert",
+        "assert": {
+          "kind": "state",
+          "name": "welcome",
+          "path": "/value",
+          "equals": "固定验收 2026"
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 12,
+      "step": {
+        "type": "act",
+        "action": {
+          "type": "navigate",
+          "path": "/"
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 13,
+      "step": {
+        "type": "assert",
+        "assert": {
+          "kind": "text",
+          "testid": "welcome-value",
+          "equals": "固定验收 2026",
+          "timeoutMs": 8000
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 14,
+      "step": {
+        "type": "assert",
+        "assert": {
+          "kind": "console-no-error"
+        }
+      },
+      "outcome": "passed"
+    },
+    {
+      "index": 15,
+      "step": {
+        "type": "screenshot",
+        "label": "fixed-welcome-saved"
+      },
+      "outcome": "passed"
+    }
+  ],
+  "consoleErrors": []
+}

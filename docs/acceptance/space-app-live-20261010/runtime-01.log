@@ -1,0 +1,30 @@
+
+Running 1 test using 1 worker
+
+(node:66200) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /private/tmp/wsl-space-app-live-20261010-runtime-01/profile ELECTRON_PID 66201
+ELECTRON_STDERR (node:66201) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:49213/6d121d8c-5951-4f1a-a6f2-e20175f74ab3
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+LIVE_PROFILE /private/tmp/wsl-space-app-live-20261010-runtime-01/profile ELECTRON_PID 66923
+ELECTRON_STDERR (node:66923) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR [66924:1010/114540.176215:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:370] SharedImageManager::ProduceOverlay: Trying to Produce a Overlay representation from a non-existent mailbox.
+[66924:1010/114540.176629:ERROR:components/viz/service/display_embedder/skia_output_device_buffer_queue.cc:258] Invalid mailbox.
+[66924:1010/114540.176632:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:370] SharedImageManager::ProduceOverlay: Trying to Produce a Overlay representation from a non-existent mailbox.
+[66924:1010/114540.176634:ERROR:components/viz/service/display_embedder/skia_output_device_buffer_queue.cc:258] Invalid mailbox.
+[66924:1010/114540.176636:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:370] SharedImageManager::ProduceOverlay: Trying to Produce a Overlay representation from a non-existent mailbox.
+[66924:1010/114540.176637:ERROR:components/viz/service/display_embedder/skia_output_device_buffer_queue.cc:258] Invalid mailbox.
+
+MANAGED_APP_EVIDENCE /private/tmp/wsl-space-app-live-20261010-runtime-01
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:49497/2dbfa043-821d-490e-97d0-9a63f19a7412
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✓  1 e2e/managed-app-live.spec.ts:9:1 › real sbx standard app through product Browser, persistence, export and cancellation (4.2m)
+
+  1 passed (4.2m)

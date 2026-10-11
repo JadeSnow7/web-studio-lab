@@ -1,0 +1,245 @@
+{
+  "startedAt": "2026-10-10T03:42:16.720Z",
+  "profile": "/private/tmp/wsl-space-app-live-20261010-runtime-01/profile",
+  "sandbox": "wsl-sbx-smoke-20261006",
+  "launchEnvironment": {
+    "path": "./node_modules/.bin:/private/tmp/web-studio-lab-space-app-model/node_modules/.bin:/private/tmp/wsl-pnpm10:/Users/huaodong/.local/bin:/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home/bin:/Users/huaodong/Library/Android/sdk/cmdline-tools/latest/bin:/Users/huaodong/Library/Android/sdk/platform-tools:/Users/huaodong/Library/Android/sdk/emulator:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/huaodong/.codex/tmp/arg0/codex-arg051nSNn:/Users/huaodong/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/huaodong/.antigravity-ide/antigravity-ide/bin:/opt/homebrew/sbin:/Users/huaodong/.local/bin:/Users/huaodong/.antigravity/antigravity/bin:/Users/huaodong/.codebuddy/bin:/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home/bin:/Users/huaodong/Library/Android/sdk/cmdline-tools/latest/bin:/Users/huaodong/Library/Android/sdk/platform-tools:/Users/huaodong/Library/Android/sdk/emulator:/Users/huaodong/.cargo/bin:/Users/huaodong/.orbstack/bin:/Users/huaodong/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS:/Users/huaodong/.orbstack/bin",
+    "injected": [
+      "WSL_SBX_NAME",
+      "WSL_APP_LIVE",
+      "WSL_APP_DEPENDENCY_ARCHIVE",
+      "WSL_APP_EVIDENCE",
+      "WSL_SBX_BIN",
+      "WSL_CODEX_BIN"
+    ]
+  },
+  "created": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "af4ee8aa-c81a-4d11-b439-d149b7223f93",
+    "environmentId": "sandbox",
+    "appInstanceId": null,
+    "state": "created",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/af4ee8aa-c81a-4d11-b439-d149b7223f93",
+    "guestPort": null,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "first": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "af4ee8aa-c81a-4d11-b439-d149b7223f93",
+    "environmentId": "sandbox",
+    "appInstanceId": "459fa035-abe2-48ee-b8cd-2a6b5b7b8e14",
+    "state": "running",
+    "url": "http://127.0.0.1:49152",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/af4ee8aa-c81a-4d11-b439-d149b7223f93",
+    "guestPort": 43275,
+    "error": null,
+    "cleanupConfirmed": false
+  },
+  "nativeBrowser": {
+    "resource": {
+      "resourceId": "d34eaa05-a0b2-4183-a6a9-ff253fb67df7",
+      "environmentId": "sandbox",
+      "appProjectId": "af4ee8aa-c81a-4d11-b439-d149b7223f93",
+      "kind": "web",
+      "title": "Live 标准应用",
+      "url": "http://127.0.0.1:49152/",
+      "instanceId": "15d40d18-f134-4267-9227-36adb478b7f5",
+      "generation": 1,
+      "preview": {
+        "page": {
+          "webContentsId": 3,
+          "documentGeneration": 1,
+          "url": "http://127.0.0.1:49152/",
+          "title": "标准应用 · Web Studio Lab",
+          "partition": "preview-taskflow-demo-15d40d18-f134-4267-9227-36adb478b7f5"
+        },
+        "loading": false,
+        "canGoBack": false,
+        "canGoForward": false,
+        "picking": false,
+        "cdp": {
+          "state": "idle"
+        },
+        "consoleIssueCount": 1,
+        "loadError": null,
+        "blockedNavigation": null,
+        "pickError": null
+      },
+      "terminal": null,
+      "unavailableReason": null
+    },
+    "health": {
+      "ok": true,
+      "templateId": "wsl-standard-app",
+      "templateVersion": "1.0.0",
+      "identity": {
+        "workspaceId": "taskflow-demo",
+        "environmentId": "sandbox",
+        "projectId": "af4ee8aa-c81a-4d11-b439-d149b7223f93",
+        "appInstanceId": "459fa035-abe2-48ee-b8cd-2a6b5b7b8e14"
+      }
+    },
+    "geometry": {
+      "visible": true,
+      "bounds": {
+        "x": 310,
+        "y": 199,
+        "width": 1085,
+        "height": 657
+      },
+      "webContentsId": 3,
+      "url": "http://127.0.0.1:49152/"
+    },
+    "activePane": {
+      "kind": "pane",
+      "paneId": "ae7eab69-c2fc-45b7-9927-13cbf31f07b8",
+      "tabId": "ec95589d-dc25-446b-ba22-3bad48fa3bdb"
+    }
+  },
+  "storageBefore": {
+    "a": {
+      "status": 200,
+      "body": {
+        "userId": "A"
+      }
+    },
+    "writeA": {
+      "status": 200,
+      "body": {
+        "userId": "A",
+        "key": "welcome",
+        "value": "eb2dd7a7-abca-47c9-b0ae-0b0fb04a1fe0"
+      }
+    },
+    "b": {
+      "status": 200,
+      "body": {
+        "userId": "B"
+      }
+    },
+    "readB": {
+      "status": 200,
+      "body": {
+        "userId": "B",
+        "key": "welcome",
+        "value": "Ready"
+      }
+    },
+    "writeB": {
+      "status": 200,
+      "body": {
+        "userId": "B",
+        "key": "welcome",
+        "value": "B-eb2dd7a7-abca-47c9-b0ae-0b0fb04a1fe0"
+      }
+    }
+  },
+  "firstStoppedPorts": [],
+  "restartedPorts": [
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49153,
+      "sandbox_port": 38195,
+      "protocol": "tcp4"
+    }
+  ],
+  "restart": {
+    "second": {
+      "workspaceId": "taskflow-demo",
+      "projectId": "af4ee8aa-c81a-4d11-b439-d149b7223f93",
+      "environmentId": "sandbox",
+      "appInstanceId": "ede29789-6160-4315-bd1c-278eea3471bb",
+      "state": "running",
+      "url": "http://127.0.0.1:49153",
+      "guestCwd": "/home/agent/workspace/.wsl-apps/af4ee8aa-c81a-4d11-b439-d149b7223f93",
+      "guestPort": 38195,
+      "error": null,
+      "cleanupConfirmed": false
+    },
+    "persisted": [
+      {
+        "userId": "A",
+        "key": "welcome",
+        "value": "eb2dd7a7-abca-47c9-b0ae-0b0fb04a1fe0"
+      },
+      {
+        "userId": "B",
+        "key": "welcome",
+        "value": "B-eb2dd7a7-abca-47c9-b0ae-0b0fb04a1fe0"
+      }
+    ]
+  },
+  "windowClosedPorts": [],
+  "windowRestored": {
+    "restored": {
+      "workspaceId": "taskflow-demo",
+      "projectId": "af4ee8aa-c81a-4d11-b439-d149b7223f93",
+      "environmentId": "sandbox",
+      "appInstanceId": null,
+      "state": "stopped",
+      "url": null,
+      "guestCwd": "/home/agent/workspace/.wsl-apps/af4ee8aa-c81a-4d11-b439-d149b7223f93",
+      "guestPort": null,
+      "error": null,
+      "cleanupConfirmed": true
+    },
+    "third": {
+      "workspaceId": "taskflow-demo",
+      "projectId": "af4ee8aa-c81a-4d11-b439-d149b7223f93",
+      "environmentId": "sandbox",
+      "appInstanceId": "09e185c2-0bf1-416c-b399-ae3626041907",
+      "state": "running",
+      "url": "http://127.0.0.1:49154",
+      "guestCwd": "/home/agent/workspace/.wsl-apps/af4ee8aa-c81a-4d11-b439-d149b7223f93",
+      "guestPort": 37231,
+      "error": null,
+      "cleanupConfirmed": false
+    },
+    "persisted": [
+      {
+        "userId": "A",
+        "key": "welcome",
+        "value": "eb2dd7a7-abca-47c9-b0ae-0b0fb04a1fe0"
+      },
+      {
+        "userId": "B",
+        "key": "welcome",
+        "value": "B-eb2dd7a7-abca-47c9-b0ae-0b0fb04a1fe0"
+      }
+    ]
+  },
+  "secondStoppedPorts": [],
+  "export": {
+    "path": "/private/tmp/wsl-space-app-live-20261010-runtime-01/profile/exports/af4ee8aa-c81a-4d11-b439-d149b7223f93-a0f7f074-3e12-4d3b-9d4b-33e8c241dc69",
+    "manifestPath": "/private/tmp/wsl-space-app-live-20261010-runtime-01/profile/exports/af4ee8aa-c81a-4d11-b439-d149b7223f93-a0f7f074-3e12-4d3b-9d4b-33e8c241dc69.manifest.json",
+    "sha256": "0e202ad48842669c5b721295ec4a42328425adabfcc48f92ccb8d9f36245e5cc"
+  },
+  "cancelled": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "af4ee8aa-c81a-4d11-b439-d149b7223f93",
+    "environmentId": "sandbox",
+    "appInstanceId": "788a4ef0-064c-47eb-8368-62ea65f560aa",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/af4ee8aa-c81a-4d11-b439-d149b7223f93",
+    "guestPort": null,
+    "error": "Error: 应用启动已取消或超时（依赖导入已结束）",
+    "cleanupConfirmed": true
+  },
+  "finalAwakePorts": [],
+  "passed": true,
+  "final": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "af4ee8aa-c81a-4d11-b439-d149b7223f93",
+    "environmentId": "sandbox",
+    "appInstanceId": "788a4ef0-064c-47eb-8368-62ea65f560aa",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/af4ee8aa-c81a-4d11-b439-d149b7223f93",
+    "guestPort": null,
+    "error": "Error: 应用启动已取消或超时（依赖导入已结束）",
+    "cleanupConfirmed": true
+  }
+}

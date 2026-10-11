@@ -1,0 +1,36 @@
+{
+  "managedApp": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "662be925-2d04-4fed-a8a5-69bb9b673baa",
+    "environmentId": "sandbox",
+    "appInstanceId": "7a392eb9-b647-43e3-a217-a8a66233ea6a",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/662be925-2d04-4fed-a8a5-69bb9b673baa",
+    "guestPort": 39253,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "runs": [
+    {
+      "runId": "391f7a60-f477-4f21-9f22-140d9316e98e",
+      "state": "cancelled",
+      "endedAt": "2026-10-11T05:49:35.861Z",
+      "cleanupPending": false,
+      "conversationState": "cancelled",
+      "error": null,
+      "validation": {
+        "state": "not_run",
+        "applicability": "unknown",
+        "reason": null
+      },
+      "review": null
+    }
+  ],
+  "layout": {
+    "kind": "pane",
+    "paneId": "d96379f7-980c-4f64-badd-cdf6593def8a",
+    "tabId": "6639d8a9-4a23-41ad-b3b5-86e902801237"
+  },
+  "activePaneId": "d96379f7-980c-4f64-badd-cdf6593def8a"
+}

@@ -1,0 +1,983 @@
+{
+  "nonce": "c36425ee-ece3-4756-8609-f912ac9eb53b",
+  "mode": "automatic",
+  "profile": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-UrCsmX",
+  "sandbox": "wsl-sbx-smoke-20261006",
+  "gateDir": "/tmp/wsl-data-cancel-c36425ee-ece3-4756-8609-f912ac9eb53b",
+  "fixtureOperationsSha256": "8501c192dc35abe0dc8d0b7e10eef5406169954af35f3abb7c4e0c9dec7ad343",
+  "manifestPreparation": "Managed start imports dependencies then runs build:agent to generate manifest and build stamp",
+  "managedStartSourceRevision": "42a347304d90f9360e574aa2d90fcde59fdf4927b5f03a15b3acd3c7015f0463",
+  "appBefore": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "2692d20c-6a52-45d4-bb55-354a45767686",
+    "environmentId": "sandbox",
+    "appInstanceId": "28dc40e3-62fa-460d-ab6b-d56fbbb23e86",
+    "state": "running",
+    "url": "http://127.0.0.1:49280",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686",
+    "guestPort": 33437,
+    "error": null,
+    "cleanupConfirmed": false
+  },
+  "runtimeBefore": {
+    "pid": 510,
+    "port": 33437,
+    "appInstanceId": "28dc40e3-62fa-460d-ab6b-d56fbbb23e86"
+  },
+  "runId": "3a3eb22e-7c8e-439b-ad0f-2ccb18ac3974",
+  "entered": {
+    "nonce": "c36425ee-ece3-4756-8609-f912ac9eb53b",
+    "operationId": "c4c30c9c-889b-47a9-bf07-06cc1d313bfa",
+    "operation": "seed",
+    "appInstanceId": "28dc40e3-62fa-460d-ab6b-d56fbbb23e86",
+    "pid": 510,
+    "at": 1791705178527
+  },
+  "cancelAt": 1791705181551,
+  "modelStoppedBackendRunning": {
+    "referenceSummary": [],
+    "runId": "3a3eb22e-7c8e-439b-ad0f-2ccb18ac3974",
+    "workspaceId": "taskflow-demo",
+    "sessionId": "session-86cff54d-87d7-4907-8257-0d1f329c17cb",
+    "taskVersionId": "7cfb6bea-2a8d-4930-b477-87cb759e0f54",
+    "targetRef": null,
+    "state": "cancelling",
+    "startedAt": "2026-10-11T07:52:43.602Z",
+    "endedAt": null,
+    "error": null,
+    "candidateId": "e18e9bb1-7946-4191-ad86-91bf6f5716ae",
+    "validation": {
+      "state": "not_run",
+      "applicability": "unknown",
+      "reason": null
+    },
+    "conversation": {
+      "conversationId": "session-86cff54d-87d7-4907-8257-0d1f329c17cb",
+      "generation": "15ab9244-df7f-4958-a4e9-2651ba8e86e6",
+      "seq": 11,
+      "threadId": "01a129f3-330e-7742-90ec-5111dfcb96eb",
+      "turnId": "3c6f0cf3-4d14-493d-a904-889cf9033450",
+      "state": "cancelling",
+      "messages": [
+        {
+          "id": "3c6f0cf3-4d14-493d-a904-889cf9033450",
+          "role": "user",
+          "text": "任务版本 7cfb6bea-2a8d-4930-b477-87cb759e0f54\n空间 taskflow-demo\n目标 null\n上下文 未附加\n允许范围 \n验收条件 真实后端操作登记后取消并核对\n\n真实数据取消验收，只在 /home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686 通过普通命令工具原样执行下方 Python 脚本。应用已准备并运行；禁止改源码、重启、停止、读取凭据、联网或申请权限。只允许 status 与一次 data.seed，不要重试。操作在后端等待 Host，Host 将点击产品取消按钮。保持现有 sandbox 权限，10分钟内一次run。\npython3 - <<'PY'\nimport subprocess,json,os\nos.chdir(\"/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686\")\np=subprocess.run(['wsl-app','status','{}'],capture_output=True,text=True,timeout=65)\nassert p.returncode==0,p.stdout\ns=json.loads(p.stdout)['data']['app']\np=subprocess.run(['wsl-app','data.seed',json.dumps({'appInstanceId':s['appInstanceId']})],capture_output=True,text=True,timeout=65)\nprint(p.stdout)\nassert p.returncode==0,p.stdout\nPY"
+        },
+        {
+          "id": "3c6f0cf3-4d14-493d-a904-889cf9033450:item_2",
+          "role": "assistant",
+          "text": "我会在指定目录原样执行脚本一次，仅调用 `status` 和一次 `data.seed`，不重试。\n"
+        }
+      ],
+      "toolExecutions": [],
+      "warnings": [
+        "Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored."
+      ],
+      "cleanupPending": true,
+      "error": null
+    },
+    "cleanupPending": true,
+    "appCleanupPending": true,
+    "executorState": {
+      "state": "cancelled",
+      "cleanupPending": false
+    },
+    "cleanupReconciling": true,
+    "cleanupRetryAvailable": false,
+    "executionBinding": {
+      "generation": "15ab9244-df7f-4958-a4e9-2651ba8e86e6",
+      "turnId": "3c6f0cf3-4d14-493d-a904-889cf9033450"
+    },
+    "review": null
+  },
+  "blocked-startApp": {
+    "ok": false,
+    "error": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "snapshot": {
+      "catalog": {
+        "accountId": "9d801aa8-8de0-4f36-a9a2-9d2ff577c1aa",
+        "revision": 4,
+        "resources": [
+          {
+            "resourceId": "7c881f09-fe06-4e56-b695-3a0861ee2b1c",
+            "ownerAccountId": "9d801aa8-8de0-4f36-a9a2-9d2ff577c1aa",
+            "title": "TaskFlow 预览",
+            "descriptor": {
+              "kind": "web",
+              "url": "wsl-demo://taskflow/index.html"
+            },
+            "createdAt": "2026-10-11T07:51:31.834Z",
+            "latestVersion": 0,
+            "versions": []
+          },
+          {
+            "resourceId": "a105bfee-9409-45bd-8162-c12e37a5a9fd",
+            "ownerAccountId": "9d801aa8-8de0-4f36-a9a2-9d2ff577c1aa",
+            "title": "开发终端",
+            "descriptor": {
+              "kind": "development",
+              "entryKind": "terminal",
+              "environmentId": "sandbox",
+              "path": null,
+              "projectId": null
+            },
+            "createdAt": "2026-10-11T07:51:31.834Z",
+            "latestVersion": 0,
+            "versions": []
+          },
+          {
+            "resourceId": "7ab9ae5c-4369-44da-9dac-08353ef09471",
+            "ownerAccountId": "9d801aa8-8de0-4f36-a9a2-9d2ff577c1aa",
+            "title": "标准应用",
+            "descriptor": {
+              "kind": "development",
+              "entryKind": "project",
+              "environmentId": "sandbox",
+              "path": null,
+              "projectId": "2692d20c-6a52-45d4-bb55-354a45767686"
+            },
+            "createdAt": "2026-10-11T07:52:37.861Z",
+            "latestVersion": 0,
+            "versions": []
+          }
+        ],
+        "library": [],
+        "links": [
+          {
+            "workspaceId": "taskflow-demo",
+            "resourceId": "7c881f09-fe06-4e56-b695-3a0861ee2b1c",
+            "referenceVersion": null,
+            "connectedAt": "2026-10-11T07:51:31.834Z"
+          },
+          {
+            "workspaceId": "taskflow-demo",
+            "resourceId": "a105bfee-9409-45bd-8162-c12e37a5a9fd",
+            "referenceVersion": null,
+            "connectedAt": "2026-10-11T07:51:31.834Z"
+          },
+          {
+            "workspaceId": "taskflow-demo",
+            "resourceId": "7ab9ae5c-4369-44da-9dac-08353ef09471",
+            "referenceVersion": null,
+            "connectedAt": "2026-10-11T07:52:37.861Z"
+          }
+        ]
+      },
+      "appInstanceId": "b05898d3-76a0-41f5-96e1-e3e5def2d529",
+      "storageError": null,
+      "activeWorkspaceId": "taskflow-demo",
+      "seq": 35,
+      "workspaces": [
+        {
+          "managedApp": {
+            "workspaceId": "taskflow-demo",
+            "projectId": "2692d20c-6a52-45d4-bb55-354a45767686",
+            "environmentId": "sandbox",
+            "appInstanceId": "28dc40e3-62fa-460d-ab6b-d56fbbb23e86",
+            "state": "running",
+            "url": "http://127.0.0.1:49280",
+            "guestCwd": "/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686",
+            "guestPort": 33437,
+            "error": null,
+            "cleanupConfirmed": false
+          },
+          "workspaceId": "taskflow-demo",
+          "name": "TaskFlow",
+          "revision": 8,
+          "tabs": [
+            {
+              "tabId": "68167d7a-1402-46c0-a8ae-5933dbac1555",
+              "title": "TaskFlow 预览",
+              "pinned": false,
+              "group": null,
+              "targetRef": {
+                "kind": "web",
+                "resourceId": "d522e3be-e606-4a66-9abe-a4df38d9e580"
+              }
+            },
+            {
+              "tabId": "c9f1432b-24a0-40b5-a01d-4084cb6afe09",
+              "title": "开发终端",
+              "pinned": false,
+              "group": null,
+              "targetRef": {
+                "kind": "terminal",
+                "resourceId": "4dfc3b08-f628-4615-9b4d-0b8fdc03938b"
+              }
+            },
+            {
+              "tabId": "19a77622-9d7a-437e-bdad-c770f17cb90d",
+              "title": "Agent 会话",
+              "pinned": false,
+              "group": null,
+              "targetRef": {
+                "kind": "session",
+                "resourceId": "93700fbf-1467-402c-9ae9-6567f1818957"
+              }
+            },
+            {
+              "tabId": "fe5026fc-d719-4ff5-a359-ac931c297ecb",
+              "title": "标准应用",
+              "pinned": false,
+              "group": null,
+              "targetRef": {
+                "kind": "web",
+                "resourceId": "3a6a86e0-8f58-4112-bca0-2c24aecc24d6"
+              }
+            }
+          ],
+          "resources": [
+            {
+              "resourceId": "d522e3be-e606-4a66-9abe-a4df38d9e580",
+              "catalogResourceId": "7c881f09-fe06-4e56-b695-3a0861ee2b1c",
+              "environmentId": "local",
+              "kind": "web",
+              "title": "TaskFlow 预览",
+              "url": "wsl-demo://taskflow/index.html",
+              "instanceId": "15066f99-ae67-41d7-9aff-656fa92ebd46",
+              "generation": 1,
+              "preview": {
+                "page": {
+                  "webContentsId": 2,
+                  "documentGeneration": 1,
+                  "url": "wsl-demo://taskflow/index.html",
+                  "title": "任务 · TaskFlow 演示",
+                  "partition": "preview-taskflow-demo-15066f99-ae67-41d7-9aff-656fa92ebd46"
+                },
+                "loading": false,
+                "canGoBack": false,
+                "canGoForward": false,
+                "picking": false,
+                "cdp": {
+                  "state": "idle"
+                },
+                "consoleIssueCount": 4,
+                "loadError": null,
+                "blockedNavigation": null,
+                "pickError": null,
+                "agentControl": {
+                  "state": "idle",
+                  "runId": null,
+                  "since": null,
+                  "lastAction": null
+                }
+              },
+              "terminal": null,
+              "unavailableReason": null
+            },
+            {
+              "resourceId": "4dfc3b08-f628-4615-9b4d-0b8fdc03938b",
+              "catalogResourceId": "a105bfee-9409-45bd-8162-c12e37a5a9fd",
+              "environmentId": "sandbox",
+              "kind": "terminal",
+              "title": "开发终端",
+              "url": null,
+              "instanceId": null,
+              "generation": 0,
+              "preview": null,
+              "terminal": null,
+              "unavailableReason": null
+            },
+            {
+              "resourceId": "93700fbf-1467-402c-9ae9-6567f1818957",
+              "environmentId": null,
+              "kind": "session",
+              "title": "Agent 会话",
+              "url": null,
+              "instanceId": null,
+              "generation": 0,
+              "preview": null,
+              "terminal": null,
+              "unavailableReason": null
+            },
+            {
+              "resourceId": "3a6a86e0-8f58-4112-bca0-2c24aecc24d6",
+              "catalogResourceId": "7ab9ae5c-4369-44da-9dac-08353ef09471",
+              "environmentId": "sandbox",
+              "appProjectId": "2692d20c-6a52-45d4-bb55-354a45767686",
+              "kind": "web",
+              "title": "标准应用",
+              "url": "http://127.0.0.1:49280/",
+              "instanceId": "bdbc56bc-0bbb-4555-b57b-bb6db3121679",
+              "generation": 1,
+              "preview": {
+                "page": {
+                  "webContentsId": 3,
+                  "documentGeneration": 1,
+                  "url": "http://127.0.0.1:49280/",
+                  "title": "标准应用 · Web Studio Lab",
+                  "partition": "preview-taskflow-demo-bdbc56bc-0bbb-4555-b57b-bb6db3121679"
+                },
+                "loading": false,
+                "canGoBack": false,
+                "canGoForward": false,
+                "picking": false,
+                "cdp": {
+                  "state": "idle"
+                },
+                "consoleIssueCount": 1,
+                "loadError": null,
+                "blockedNavigation": null,
+                "pickError": null,
+                "agentControl": {
+                  "state": "idle",
+                  "runId": null,
+                  "since": null,
+                  "lastAction": null
+                }
+              },
+              "terminal": null,
+              "unavailableReason": null
+            }
+          ],
+          "layout": {
+            "kind": "pane",
+            "paneId": "14921262-0dd2-4187-949e-ee5b49d2f089",
+            "tabId": "19a77622-9d7a-437e-bdad-c770f17cb90d"
+          },
+          "activePaneId": "14921262-0dd2-4187-949e-ee5b49d2f089",
+          "sessions": [
+            {
+              "sessionId": "session-86cff54d-87d7-4907-8257-0d1f329c17cb",
+              "resourceId": "93700fbf-1467-402c-9ae9-6567f1818957",
+              "title": "Agent 会话",
+              "draft": "",
+              "conversation": {
+                "conversationId": "session-86cff54d-87d7-4907-8257-0d1f329c17cb",
+                "generation": "15ab9244-df7f-4958-a4e9-2651ba8e86e6",
+                "seq": 11,
+                "threadId": "01a129f3-330e-7742-90ec-5111dfcb96eb",
+                "turnId": "3c6f0cf3-4d14-493d-a904-889cf9033450",
+                "state": "cancelling",
+                "messages": [
+                  {
+                    "id": "3c6f0cf3-4d14-493d-a904-889cf9033450",
+                    "role": "user",
+                    "text": "任务版本 7cfb6bea-2a8d-4930-b477-87cb759e0f54\n空间 taskflow-demo\n目标 null\n上下文 未附加\n允许范围 \n验收条件 真实后端操作登记后取消并核对\n\n真实数据取消验收，只在 /home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686 通过普通命令工具原样执行下方 Python 脚本。应用已准备并运行；禁止改源码、重启、停止、读取凭据、联网或申请权限。只允许 status 与一次 data.seed，不要重试。操作在后端等待 Host，Host 将点击产品取消按钮。保持现有 sandbox 权限，10分钟内一次run。\npython3 - <<'PY'\nimport subprocess,json,os\nos.chdir(\"/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686\")\np=subprocess.run(['wsl-app','status','{}'],capture_output=True,text=True,timeout=65)\nassert p.returncode==0,p.stdout\ns=json.loads(p.stdout)['data']['app']\np=subprocess.run(['wsl-app','data.seed',json.dumps({'appInstanceId':s['appInstanceId']})],capture_output=True,text=True,timeout=65)\nprint(p.stdout)\nassert p.returncode==0,p.stdout\nPY"
+                  },
+                  {
+                    "id": "3c6f0cf3-4d14-493d-a904-889cf9033450:item_2",
+                    "role": "assistant",
+                    "text": "我会在指定目录原样执行脚本一次，仅调用 `status` 和一次 `data.seed`，不重试。\n"
+                  }
+                ],
+                "toolExecutions": [],
+                "warnings": [
+                  "Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored."
+                ],
+                "cleanupPending": true,
+                "error": null
+              },
+              "historyRestored": false,
+              "observations": [],
+              "context": null,
+              "captureRequest": null,
+              "contextTarget": null,
+              "taskTargetRef": null,
+              "taskAcceptance": [],
+              "taskAllowedScopes": [],
+              "contextApplicability": "unknown",
+              "taskVersions": [
+                {
+                  "taskVersionId": "7cfb6bea-2a8d-4930-b477-87cb759e0f54",
+                  "version": 1,
+                  "workspaceId": "taskflow-demo",
+                  "sessionId": "session-86cff54d-87d7-4907-8257-0d1f329c17cb",
+                  "goal": "真实数据取消验收，只在 /home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686 通过普通命令工具原样执行下方 Python 脚本。应用已准备并运行；禁止改源码、重启、停止、读取凭据、联网或申请权限。只允许 status 与一次 data.seed，不要重试。操作在后端等待 Host，Host 将点击产品取消按钮。保持现有 sandbox 权限，10分钟内一次run。\npython3 - <<'PY'\nimport subprocess,json,os\nos.chdir(\"/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686\")\np=subprocess.run(['wsl-app','status','{}'],capture_output=True,text=True,timeout=65)\nassert p.returncode==0,p.stdout\ns=json.loads(p.stdout)['data']['app']\np=subprocess.run(['wsl-app','data.seed',json.dumps({'appInstanceId':s['appInstanceId']})],capture_output=True,text=True,timeout=65)\nprint(p.stdout)\nassert p.returncode==0,p.stdout\nPY",
+                  "targetRef": null,
+                  "capture": null,
+                  "captureBinding": null,
+                  "confirmedAt": "2026-10-11T07:52:43.577Z",
+                  "acceptance": [
+                    "真实后端操作登记后取消并核对"
+                  ],
+                  "allowedScopes": []
+                }
+              ]
+            }
+          ],
+          "runs": [
+            {
+              "referenceSummary": [],
+              "runId": "3a3eb22e-7c8e-439b-ad0f-2ccb18ac3974",
+              "workspaceId": "taskflow-demo",
+              "sessionId": "session-86cff54d-87d7-4907-8257-0d1f329c17cb",
+              "taskVersionId": "7cfb6bea-2a8d-4930-b477-87cb759e0f54",
+              "targetRef": null,
+              "state": "cancelling",
+              "startedAt": "2026-10-11T07:52:43.602Z",
+              "endedAt": null,
+              "error": null,
+              "candidateId": "e18e9bb1-7946-4191-ad86-91bf6f5716ae",
+              "validation": {
+                "state": "not_run",
+                "applicability": "unknown",
+                "reason": null
+              },
+              "conversation": {
+                "conversationId": "session-86cff54d-87d7-4907-8257-0d1f329c17cb",
+                "generation": "15ab9244-df7f-4958-a4e9-2651ba8e86e6",
+                "seq": 11,
+                "threadId": "01a129f3-330e-7742-90ec-5111dfcb96eb",
+                "turnId": "3c6f0cf3-4d14-493d-a904-889cf9033450",
+                "state": "cancelling",
+                "messages": [
+                  {
+                    "id": "3c6f0cf3-4d14-493d-a904-889cf9033450",
+                    "role": "user",
+                    "text": "任务版本 7cfb6bea-2a8d-4930-b477-87cb759e0f54\n空间 taskflow-demo\n目标 null\n上下文 未附加\n允许范围 \n验收条件 真实后端操作登记后取消并核对\n\n真实数据取消验收，只在 /home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686 通过普通命令工具原样执行下方 Python 脚本。应用已准备并运行；禁止改源码、重启、停止、读取凭据、联网或申请权限。只允许 status 与一次 data.seed，不要重试。操作在后端等待 Host，Host 将点击产品取消按钮。保持现有 sandbox 权限，10分钟内一次run。\npython3 - <<'PY'\nimport subprocess,json,os\nos.chdir(\"/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686\")\np=subprocess.run(['wsl-app','status','{}'],capture_output=True,text=True,timeout=65)\nassert p.returncode==0,p.stdout\ns=json.loads(p.stdout)['data']['app']\np=subprocess.run(['wsl-app','data.seed',json.dumps({'appInstanceId':s['appInstanceId']})],capture_output=True,text=True,timeout=65)\nprint(p.stdout)\nassert p.returncode==0,p.stdout\nPY"
+                  },
+                  {
+                    "id": "3c6f0cf3-4d14-493d-a904-889cf9033450:item_2",
+                    "role": "assistant",
+                    "text": "我会在指定目录原样执行脚本一次，仅调用 `status` 和一次 `data.seed`，不重试。\n"
+                  }
+                ],
+                "toolExecutions": [],
+                "warnings": [
+                  "Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored."
+                ],
+                "cleanupPending": true,
+                "error": null
+              },
+              "cleanupPending": true,
+              "appCleanupPending": true,
+              "executorState": {
+                "state": "cancelled",
+                "cleanupPending": false
+              },
+              "cleanupReconciling": true,
+              "cleanupRetryAvailable": false,
+              "executionBinding": {
+                "generation": "15ab9244-df7f-4958-a4e9-2651ba8e86e6",
+                "turnId": "3c6f0cf3-4d14-493d-a904-889cf9033450"
+              },
+              "review": null
+            }
+          ],
+          "fileHints": [],
+          "observations": [],
+          "theme": "system"
+        }
+      ],
+      "environments": [
+        {
+          "environmentId": "local",
+          "kind": "local",
+          "label": "本设备",
+          "state": "configured",
+          "reason": "未授权本地目录；本地文件和终端不可用",
+          "capabilities": {
+            "files": false,
+            "terminal": false,
+            "browser": true
+          }
+        },
+        {
+          "environmentId": "sandbox",
+          "kind": "sandbox",
+          "label": "wsl-sbx-smoke-20261006",
+          "state": "configured",
+          "reason": null,
+          "capabilities": {
+            "files": false,
+            "terminal": true,
+            "browser": false
+          }
+        },
+        {
+          "environmentId": "ssh",
+          "kind": "ssh",
+          "label": "SSH",
+          "state": "unavailable",
+          "reason": "未配置可信 SSH 环境",
+          "capabilities": {
+            "files": false,
+            "terminal": false,
+            "browser": false
+          }
+        }
+      ],
+      "notificationReadReceipts": [],
+      "notifications": []
+    }
+  },
+  "blocked-exportApp": {
+    "ok": false,
+    "error": {
+      "code": "execution_failed",
+      "message": "conflict: App 数据操作结果待确认"
+    },
+    "snapshot": {
+      "catalog": {
+        "accountId": "9d801aa8-8de0-4f36-a9a2-9d2ff577c1aa",
+        "revision": 4,
+        "resources": [
+          {
+            "resourceId": "7c881f09-fe06-4e56-b695-3a0861ee2b1c",
+            "ownerAccountId": "9d801aa8-8de0-4f36-a9a2-9d2ff577c1aa",
+            "title": "TaskFlow 预览",
+            "descriptor": {
+              "kind": "web",
+              "url": "wsl-demo://taskflow/index.html"
+            },
+            "createdAt": "2026-10-11T07:51:31.834Z",
+            "latestVersion": 0,
+            "versions": []
+          },
+          {
+            "resourceId": "a105bfee-9409-45bd-8162-c12e37a5a9fd",
+            "ownerAccountId": "9d801aa8-8de0-4f36-a9a2-9d2ff577c1aa",
+            "title": "开发终端",
+            "descriptor": {
+              "kind": "development",
+              "entryKind": "terminal",
+              "environmentId": "sandbox",
+              "path": null,
+              "projectId": null
+            },
+            "createdAt": "2026-10-11T07:51:31.834Z",
+            "latestVersion": 0,
+            "versions": []
+          },
+          {
+            "resourceId": "7ab9ae5c-4369-44da-9dac-08353ef09471",
+            "ownerAccountId": "9d801aa8-8de0-4f36-a9a2-9d2ff577c1aa",
+            "title": "标准应用",
+            "descriptor": {
+              "kind": "development",
+              "entryKind": "project",
+              "environmentId": "sandbox",
+              "path": null,
+              "projectId": "2692d20c-6a52-45d4-bb55-354a45767686"
+            },
+            "createdAt": "2026-10-11T07:52:37.861Z",
+            "latestVersion": 0,
+            "versions": []
+          }
+        ],
+        "library": [],
+        "links": [
+          {
+            "workspaceId": "taskflow-demo",
+            "resourceId": "7c881f09-fe06-4e56-b695-3a0861ee2b1c",
+            "referenceVersion": null,
+            "connectedAt": "2026-10-11T07:51:31.834Z"
+          },
+          {
+            "workspaceId": "taskflow-demo",
+            "resourceId": "a105bfee-9409-45bd-8162-c12e37a5a9fd",
+            "referenceVersion": null,
+            "connectedAt": "2026-10-11T07:51:31.834Z"
+          },
+          {
+            "workspaceId": "taskflow-demo",
+            "resourceId": "7ab9ae5c-4369-44da-9dac-08353ef09471",
+            "referenceVersion": null,
+            "connectedAt": "2026-10-11T07:52:37.861Z"
+          }
+        ]
+      },
+      "appInstanceId": "b05898d3-76a0-41f5-96e1-e3e5def2d529",
+      "storageError": null,
+      "activeWorkspaceId": "taskflow-demo",
+      "seq": 35,
+      "workspaces": [
+        {
+          "managedApp": {
+            "workspaceId": "taskflow-demo",
+            "projectId": "2692d20c-6a52-45d4-bb55-354a45767686",
+            "environmentId": "sandbox",
+            "appInstanceId": "28dc40e3-62fa-460d-ab6b-d56fbbb23e86",
+            "state": "running",
+            "url": "http://127.0.0.1:49280",
+            "guestCwd": "/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686",
+            "guestPort": 33437,
+            "error": null,
+            "cleanupConfirmed": false
+          },
+          "workspaceId": "taskflow-demo",
+          "name": "TaskFlow",
+          "revision": 8,
+          "tabs": [
+            {
+              "tabId": "68167d7a-1402-46c0-a8ae-5933dbac1555",
+              "title": "TaskFlow 预览",
+              "pinned": false,
+              "group": null,
+              "targetRef": {
+                "kind": "web",
+                "resourceId": "d522e3be-e606-4a66-9abe-a4df38d9e580"
+              }
+            },
+            {
+              "tabId": "c9f1432b-24a0-40b5-a01d-4084cb6afe09",
+              "title": "开发终端",
+              "pinned": false,
+              "group": null,
+              "targetRef": {
+                "kind": "terminal",
+                "resourceId": "4dfc3b08-f628-4615-9b4d-0b8fdc03938b"
+              }
+            },
+            {
+              "tabId": "19a77622-9d7a-437e-bdad-c770f17cb90d",
+              "title": "Agent 会话",
+              "pinned": false,
+              "group": null,
+              "targetRef": {
+                "kind": "session",
+                "resourceId": "93700fbf-1467-402c-9ae9-6567f1818957"
+              }
+            },
+            {
+              "tabId": "fe5026fc-d719-4ff5-a359-ac931c297ecb",
+              "title": "标准应用",
+              "pinned": false,
+              "group": null,
+              "targetRef": {
+                "kind": "web",
+                "resourceId": "3a6a86e0-8f58-4112-bca0-2c24aecc24d6"
+              }
+            }
+          ],
+          "resources": [
+            {
+              "resourceId": "d522e3be-e606-4a66-9abe-a4df38d9e580",
+              "catalogResourceId": "7c881f09-fe06-4e56-b695-3a0861ee2b1c",
+              "environmentId": "local",
+              "kind": "web",
+              "title": "TaskFlow 预览",
+              "url": "wsl-demo://taskflow/index.html",
+              "instanceId": "15066f99-ae67-41d7-9aff-656fa92ebd46",
+              "generation": 1,
+              "preview": {
+                "page": {
+                  "webContentsId": 2,
+                  "documentGeneration": 1,
+                  "url": "wsl-demo://taskflow/index.html",
+                  "title": "任务 · TaskFlow 演示",
+                  "partition": "preview-taskflow-demo-15066f99-ae67-41d7-9aff-656fa92ebd46"
+                },
+                "loading": false,
+                "canGoBack": false,
+                "canGoForward": false,
+                "picking": false,
+                "cdp": {
+                  "state": "idle"
+                },
+                "consoleIssueCount": 4,
+                "loadError": null,
+                "blockedNavigation": null,
+                "pickError": null,
+                "agentControl": {
+                  "state": "idle",
+                  "runId": null,
+                  "since": null,
+                  "lastAction": null
+                }
+              },
+              "terminal": null,
+              "unavailableReason": null
+            },
+            {
+              "resourceId": "4dfc3b08-f628-4615-9b4d-0b8fdc03938b",
+              "catalogResourceId": "a105bfee-9409-45bd-8162-c12e37a5a9fd",
+              "environmentId": "sandbox",
+              "kind": "terminal",
+              "title": "开发终端",
+              "url": null,
+              "instanceId": null,
+              "generation": 0,
+              "preview": null,
+              "terminal": null,
+              "unavailableReason": null
+            },
+            {
+              "resourceId": "93700fbf-1467-402c-9ae9-6567f1818957",
+              "environmentId": null,
+              "kind": "session",
+              "title": "Agent 会话",
+              "url": null,
+              "instanceId": null,
+              "generation": 0,
+              "preview": null,
+              "terminal": null,
+              "unavailableReason": null
+            },
+            {
+              "resourceId": "3a6a86e0-8f58-4112-bca0-2c24aecc24d6",
+              "catalogResourceId": "7ab9ae5c-4369-44da-9dac-08353ef09471",
+              "environmentId": "sandbox",
+              "appProjectId": "2692d20c-6a52-45d4-bb55-354a45767686",
+              "kind": "web",
+              "title": "标准应用",
+              "url": "http://127.0.0.1:49280/",
+              "instanceId": "bdbc56bc-0bbb-4555-b57b-bb6db3121679",
+              "generation": 1,
+              "preview": {
+                "page": {
+                  "webContentsId": 3,
+                  "documentGeneration": 1,
+                  "url": "http://127.0.0.1:49280/",
+                  "title": "标准应用 · Web Studio Lab",
+                  "partition": "preview-taskflow-demo-bdbc56bc-0bbb-4555-b57b-bb6db3121679"
+                },
+                "loading": false,
+                "canGoBack": false,
+                "canGoForward": false,
+                "picking": false,
+                "cdp": {
+                  "state": "idle"
+                },
+                "consoleIssueCount": 1,
+                "loadError": null,
+                "blockedNavigation": null,
+                "pickError": null,
+                "agentControl": {
+                  "state": "idle",
+                  "runId": null,
+                  "since": null,
+                  "lastAction": null
+                }
+              },
+              "terminal": null,
+              "unavailableReason": null
+            }
+          ],
+          "layout": {
+            "kind": "pane",
+            "paneId": "14921262-0dd2-4187-949e-ee5b49d2f089",
+            "tabId": "19a77622-9d7a-437e-bdad-c770f17cb90d"
+          },
+          "activePaneId": "14921262-0dd2-4187-949e-ee5b49d2f089",
+          "sessions": [
+            {
+              "sessionId": "session-86cff54d-87d7-4907-8257-0d1f329c17cb",
+              "resourceId": "93700fbf-1467-402c-9ae9-6567f1818957",
+              "title": "Agent 会话",
+              "draft": "",
+              "conversation": {
+                "conversationId": "session-86cff54d-87d7-4907-8257-0d1f329c17cb",
+                "generation": "15ab9244-df7f-4958-a4e9-2651ba8e86e6",
+                "seq": 11,
+                "threadId": "01a129f3-330e-7742-90ec-5111dfcb96eb",
+                "turnId": "3c6f0cf3-4d14-493d-a904-889cf9033450",
+                "state": "cancelling",
+                "messages": [
+                  {
+                    "id": "3c6f0cf3-4d14-493d-a904-889cf9033450",
+                    "role": "user",
+                    "text": "任务版本 7cfb6bea-2a8d-4930-b477-87cb759e0f54\n空间 taskflow-demo\n目标 null\n上下文 未附加\n允许范围 \n验收条件 真实后端操作登记后取消并核对\n\n真实数据取消验收，只在 /home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686 通过普通命令工具原样执行下方 Python 脚本。应用已准备并运行；禁止改源码、重启、停止、读取凭据、联网或申请权限。只允许 status 与一次 data.seed，不要重试。操作在后端等待 Host，Host 将点击产品取消按钮。保持现有 sandbox 权限，10分钟内一次run。\npython3 - <<'PY'\nimport subprocess,json,os\nos.chdir(\"/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686\")\np=subprocess.run(['wsl-app','status','{}'],capture_output=True,text=True,timeout=65)\nassert p.returncode==0,p.stdout\ns=json.loads(p.stdout)['data']['app']\np=subprocess.run(['wsl-app','data.seed',json.dumps({'appInstanceId':s['appInstanceId']})],capture_output=True,text=True,timeout=65)\nprint(p.stdout)\nassert p.returncode==0,p.stdout\nPY"
+                  },
+                  {
+                    "id": "3c6f0cf3-4d14-493d-a904-889cf9033450:item_2",
+                    "role": "assistant",
+                    "text": "我会在指定目录原样执行脚本一次，仅调用 `status` 和一次 `data.seed`，不重试。\n"
+                  }
+                ],
+                "toolExecutions": [],
+                "warnings": [
+                  "Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored."
+                ],
+                "cleanupPending": true,
+                "error": null
+              },
+              "historyRestored": false,
+              "observations": [],
+              "context": null,
+              "captureRequest": null,
+              "contextTarget": null,
+              "taskTargetRef": null,
+              "taskAcceptance": [],
+              "taskAllowedScopes": [],
+              "contextApplicability": "unknown",
+              "taskVersions": [
+                {
+                  "taskVersionId": "7cfb6bea-2a8d-4930-b477-87cb759e0f54",
+                  "version": 1,
+                  "workspaceId": "taskflow-demo",
+                  "sessionId": "session-86cff54d-87d7-4907-8257-0d1f329c17cb",
+                  "goal": "真实数据取消验收，只在 /home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686 通过普通命令工具原样执行下方 Python 脚本。应用已准备并运行；禁止改源码、重启、停止、读取凭据、联网或申请权限。只允许 status 与一次 data.seed，不要重试。操作在后端等待 Host，Host 将点击产品取消按钮。保持现有 sandbox 权限，10分钟内一次run。\npython3 - <<'PY'\nimport subprocess,json,os\nos.chdir(\"/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686\")\np=subprocess.run(['wsl-app','status','{}'],capture_output=True,text=True,timeout=65)\nassert p.returncode==0,p.stdout\ns=json.loads(p.stdout)['data']['app']\np=subprocess.run(['wsl-app','data.seed',json.dumps({'appInstanceId':s['appInstanceId']})],capture_output=True,text=True,timeout=65)\nprint(p.stdout)\nassert p.returncode==0,p.stdout\nPY",
+                  "targetRef": null,
+                  "capture": null,
+                  "captureBinding": null,
+                  "confirmedAt": "2026-10-11T07:52:43.577Z",
+                  "acceptance": [
+                    "真实后端操作登记后取消并核对"
+                  ],
+                  "allowedScopes": []
+                }
+              ]
+            }
+          ],
+          "runs": [
+            {
+              "referenceSummary": [],
+              "runId": "3a3eb22e-7c8e-439b-ad0f-2ccb18ac3974",
+              "workspaceId": "taskflow-demo",
+              "sessionId": "session-86cff54d-87d7-4907-8257-0d1f329c17cb",
+              "taskVersionId": "7cfb6bea-2a8d-4930-b477-87cb759e0f54",
+              "targetRef": null,
+              "state": "cancelling",
+              "startedAt": "2026-10-11T07:52:43.602Z",
+              "endedAt": null,
+              "error": null,
+              "candidateId": "e18e9bb1-7946-4191-ad86-91bf6f5716ae",
+              "validation": {
+                "state": "not_run",
+                "applicability": "unknown",
+                "reason": null
+              },
+              "conversation": {
+                "conversationId": "session-86cff54d-87d7-4907-8257-0d1f329c17cb",
+                "generation": "15ab9244-df7f-4958-a4e9-2651ba8e86e6",
+                "seq": 11,
+                "threadId": "01a129f3-330e-7742-90ec-5111dfcb96eb",
+                "turnId": "3c6f0cf3-4d14-493d-a904-889cf9033450",
+                "state": "cancelling",
+                "messages": [
+                  {
+                    "id": "3c6f0cf3-4d14-493d-a904-889cf9033450",
+                    "role": "user",
+                    "text": "任务版本 7cfb6bea-2a8d-4930-b477-87cb759e0f54\n空间 taskflow-demo\n目标 null\n上下文 未附加\n允许范围 \n验收条件 真实后端操作登记后取消并核对\n\n真实数据取消验收，只在 /home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686 通过普通命令工具原样执行下方 Python 脚本。应用已准备并运行；禁止改源码、重启、停止、读取凭据、联网或申请权限。只允许 status 与一次 data.seed，不要重试。操作在后端等待 Host，Host 将点击产品取消按钮。保持现有 sandbox 权限，10分钟内一次run。\npython3 - <<'PY'\nimport subprocess,json,os\nos.chdir(\"/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686\")\np=subprocess.run(['wsl-app','status','{}'],capture_output=True,text=True,timeout=65)\nassert p.returncode==0,p.stdout\ns=json.loads(p.stdout)['data']['app']\np=subprocess.run(['wsl-app','data.seed',json.dumps({'appInstanceId':s['appInstanceId']})],capture_output=True,text=True,timeout=65)\nprint(p.stdout)\nassert p.returncode==0,p.stdout\nPY"
+                  },
+                  {
+                    "id": "3c6f0cf3-4d14-493d-a904-889cf9033450:item_2",
+                    "role": "assistant",
+                    "text": "我会在指定目录原样执行脚本一次，仅调用 `status` 和一次 `data.seed`，不重试。\n"
+                  }
+                ],
+                "toolExecutions": [],
+                "warnings": [
+                  "Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored."
+                ],
+                "cleanupPending": true,
+                "error": null
+              },
+              "cleanupPending": true,
+              "appCleanupPending": true,
+              "executorState": {
+                "state": "cancelled",
+                "cleanupPending": false
+              },
+              "cleanupReconciling": true,
+              "cleanupRetryAvailable": false,
+              "executionBinding": {
+                "generation": "15ab9244-df7f-4958-a4e9-2651ba8e86e6",
+                "turnId": "3c6f0cf3-4d14-493d-a904-889cf9033450"
+              },
+              "review": null
+            }
+          ],
+          "fileHints": [],
+          "observations": [],
+          "theme": "system"
+        }
+      ],
+      "environments": [
+        {
+          "environmentId": "local",
+          "kind": "local",
+          "label": "本设备",
+          "state": "configured",
+          "reason": "未授权本地目录；本地文件和终端不可用",
+          "capabilities": {
+            "files": false,
+            "terminal": false,
+            "browser": true
+          }
+        },
+        {
+          "environmentId": "sandbox",
+          "kind": "sandbox",
+          "label": "wsl-sbx-smoke-20261006",
+          "state": "configured",
+          "reason": null,
+          "capabilities": {
+            "files": false,
+            "terminal": true,
+            "browser": false
+          }
+        },
+        {
+          "environmentId": "ssh",
+          "kind": "ssh",
+          "label": "SSH",
+          "state": "unavailable",
+          "reason": "未配置可信 SSH 环境",
+          "capabilities": {
+            "files": false,
+            "terminal": false,
+            "browser": false
+          }
+        }
+      ],
+      "notificationReadReceipts": [],
+      "notifications": []
+    }
+  },
+  "terminal": {
+    "nonce": "c36425ee-ece3-4756-8609-f912ac9eb53b",
+    "receipt": {
+      "operationId": "c4c30c9c-889b-47a9-bf07-06cc1d313bfa",
+      "appInstanceId": "28dc40e3-62fa-460d-ab6b-d56fbbb23e86",
+      "operation": "seed",
+      "state": "succeeded",
+      "envelope": {
+        "ok": true,
+        "data": {
+          "seeded": true
+        }
+      }
+    },
+    "pid": 510,
+    "at": 1791705185715
+  },
+  "appReconciledStillRunning": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "2692d20c-6a52-45d4-bb55-354a45767686",
+    "environmentId": "sandbox",
+    "appInstanceId": "28dc40e3-62fa-460d-ab6b-d56fbbb23e86",
+    "state": "running",
+    "url": "http://127.0.0.1:49280",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686",
+    "guestPort": 33437,
+    "error": null,
+    "cleanupConfirmed": false
+  },
+  "runtimeReconciledStillRunning": {
+    "pid": 510,
+    "port": 33437,
+    "appInstanceId": "28dc40e3-62fa-460d-ab6b-d56fbbb23e86"
+  },
+  "sourceArchive": "/Users/huaodong/workspace/web-studio-lab/docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/http-live-final/automatic/owned-project-export.tar.gz",
+  "exportedSource": {
+    "path": "/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-UrCsmX/exports/2692d20c-6a52-45d4-bb55-354a45767686-43768be7-baeb-4294-ba55-bb35bc9f6455",
+    "manifestPath": "/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-UrCsmX/exports/2692d20c-6a52-45d4-bb55-354a45767686-43768be7-baeb-4294-ba55-bb35bc9f6455.manifest.json",
+    "sha256": "407996389b59b46dc1e90ba3dd7573e53c0f70649f8f45bedb3aad0c7d5a81af"
+  },
+  "database": {
+    "ok": true,
+    "data": {
+      "columns": [
+        "n"
+      ],
+      "rows": [
+        {
+          "n": 2
+        }
+      ],
+      "rowCount": 1,
+      "truncated": false
+    }
+  },
+  "outcome": "passed",
+  "appExited": true,
+  "retainedOwnedProject": "/home/agent/workspace/.wsl-apps/2692d20c-6a52-45d4-bb55-354a45767686",
+  "cleanupErrors": []
+}

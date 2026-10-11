@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '../components/Icon';
 import { useStore } from '../lib/store';
 import { dismissError, errorStore } from '../state/errors';
@@ -99,5 +100,45 @@ export function ErrorToasts() {
         </div>
       ))}
     </div>
+  );
+}
+
+/** App forms share the modal layer's native focus trap and restoration. */
+export function AppFormDialog({
+  open,
+  label,
+  onCancel,
+  children,
+}: {
+  open: boolean;
+  label: string;
+  onCancel: () => void;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const dialog = ref.current;
+    const previous = document.activeElement;
+    dialog?.showModal();
+    return () => {
+      dialog?.close();
+      if (previous instanceof HTMLElement && previous.isConnected) previous.focus();
+      else document.querySelector<HTMLButtonElement>('[aria-label="切换空间"]')?.focus();
+    };
+  }, [open]);
+  return createPortal(
+    <dialog
+      ref={ref}
+      className="workspace-editor"
+      aria-label={label}
+      onCancel={(event) => {
+        event.preventDefault();
+        onCancel();
+      }}
+    >
+      {children}
+    </dialog>,
+    document.body,
   );
 }

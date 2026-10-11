@@ -1,0 +1,37 @@
+Scope: all 4 workspace projects
+Recreating /private/tmp/web-studio-lab-space-app-model/node_modules
+Lockfile is up to date, resolution step is skipped
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +467
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 467, reused 467, downloaded 0, added 467, done
+
+devDependencies:
++ @eslint/js 10.0.1
++ @playwright/test 1.63.0
++ @types/node 22.19.11
++ @types/react 19.2.14
++ @types/react-dom 19.2.3
++ eslint 10.12.0
++ eslint-plugin-react-hooks 7.1.1
++ globals 17.13.0
++ prettier 3.9.9
++ react 19.2.4
++ react-dom 19.2.4
++ tsx 4.21.0
++ typescript 6.0.3
++ typescript-baseline <- typescript 5.9.3
++ typescript-eslint 8.71.1
++ vite 7.3.1
++ vitest 5.0.3
++ zod 4.3.6
+
+╭ Warning ─────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Ignored build scripts: cpu-features@0.0.10, electron-winstaller@5.4.0,     │
+│   ssh2@1.17.0.                                                               │
+│   Run "pnpm approve-builds" to pick which dependencies should be allowed     │
+│   to run scripts.                                                            │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+Done in 1.9s using pnpm v10.34.6

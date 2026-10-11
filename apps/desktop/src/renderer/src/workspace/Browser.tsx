@@ -54,7 +54,7 @@ export function Browser({
   };
   const resourceAction = useCatalogMutation();
   const [captureGuidance, setCaptureGuidance] = useState(false);
-  const action = (action: 'navigate' | 'reload' | 'back' | 'forward' | 'pick' | 'cancelPick' | 'reattach', url?: string) =>
+  const action = (action: 'navigate' | 'reload' | 'back' | 'forward' | 'pick' | 'cancelPick' | 'reattach' | 'resumeAgent', url?: string) =>
     workspaceCommand(workspaceId, {
       type: 'browserAction',
       resourceId: resource.resourceId,
@@ -63,7 +63,16 @@ export function Browser({
     });
   useLayoutEffect(() => {
     const element = host.current!;
+    // 受管 App 停止/重启（非 running）期间没有原生网页可定位，此时同步布局只会被 Main 以“实例已停止”拒绝。
+    // 读取最新快照而非闭包；依赖保持不变（新实例就绪时 managedAppInstanceId 变化会重新执行本效果），避免为演示/公开网页增加隐藏-显示循环。
+    const pendingApp = () => {
+      const space = workspaceStore.get().snapshot?.workspaces.find((w) => w.workspaceId === workspaceId);
+      const latest = space?.resources.find((r) => r.resourceId === resource.resourceId);
+      // 应用运行中而实例未建：布局同步正是创建原生网页的入口，不能跳过。
+      return !!latest?.appProjectId && !latest.instanceId && space?.managedApp?.state !== 'running';
+    };
     const sync = () => {
+      if (pendingApp()) return;
       const rect = element.getBoundingClientRect();
       void workspaceCommand(workspaceId, {
         type: 'browserLayout',
@@ -86,6 +95,7 @@ export function Browser({
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', sync);
+      if (pendingApp()) return;
       void workspaceCommand(workspaceId, {
         type: 'browserLayout',
         resourceId: resource.resourceId,
@@ -201,9 +211,23 @@ export function Browser({
         </p>
       ) : null}
       {resource.appProjectId ? (
-        <p className="resource-browser-actions muted small" role="status">
-          沙箱应用 · {workspace?.managedApp?.state === 'running' ? '服务运行中' : '服务未运行'}
-        </p>
+        <>
+          <p className="resource-browser-actions muted small" role="status">
+            沙箱应用 · {workspace?.managedApp?.state === 'running' ? '服务运行中' : '服务未运行'}
+          </p>
+          {p?.agentControl?.state === 'active' ? (
+            <p className="workspace-inline-info" role="status" data-testid="agent-control-active">
+              AI 正在操控此页面（{p.agentControl.lastAction ?? '操作'}）。你在页面中点击或输入会立即暂停 AI。
+            </p>
+          ) : p?.agentControl?.state === 'paused_by_user' ? (
+            <p className="workspace-inline-info" role="status" data-testid="agent-control-paused">
+              已暂停 AI 操控：检测到你在页面中的操作。{' '}
+              <button type="button" className="btn" onClick={() => void action('resumeAgent')}>
+                允许 AI 继续
+              </button>
+            </p>
+          ) : null}
+        </>
       ) : (
         <div className="resource-browser-actions row wrap gap-8">
           <span className="muted small">收藏地址与正文快照分别保存</span>

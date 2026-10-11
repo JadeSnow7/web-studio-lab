@@ -1,0 +1,184 @@
+import { describe, expect, it } from 'vitest';
+import {
+  APP_TOOL_LEVEL,
+  AppControlResultSchema,
+  AppScenarioSchema,
+  AppToolInputSchemas,
+  AppToolNameSchema,
+  AppUiActionSchema,
+  ChatServiceMessageSchema,
+  ChatServiceRequestSchema,
+  PreviewStateSchema,
+  WorkbenchCommandSchema,
+  comparableTrace,
+  type AppScenarioTrace,
+} from './index';
+
+const binding = { appInstanceId: 'app-1', documentGeneration: 3 };
+const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
+describe('app control tool inputs', () => {
+  it('每个工具都有输入 schema 与风险级别', () => {
+    for (const tool of AppToolNameSchema.options) {
+      expect(AppToolInputSchemas[tool]).toBeDefined();
+      expect(APP_TOOL_LEVEL[tool]).toMatch(/^(read|write|reset)$/);
+    }
+    expect(APP_TOOL_LEVEL['app.data.reset']).toBe('reset');
+    expect(APP_TOOL_LEVEL['app.ui.snapshot']).toBe('read');
+  });
+  it('UI 动作只接受引用或 testid，拒绝坐标、选择器脚本和任意 JS', () => {
+    expect(AppUiActionSchema.parse({ type: 'click', target: { testid: 'welcome-save' } }).type).toBe('click');
+    expect(AppUiActionSchema.parse({ type: 'click', target: { ref: 'e12' } }).type).toBe('click');
+    for (const action of [
+      { type: 'click', x: 10, y: 20 },
+      { type: 'click', target: { x: 10, y: 20 } },
+      { type: 'click', target: { selector: '#save' } },
+      { type: 'click', target: { testid: 'a' }, script: 'alert(1)' },
+      { type: 'evaluate', expression: 'document.body.innerHTML' },
+      { type: 'navigate', path: 'https://example.com/' },
+      { type: 'navigate', path: '//evil.example/x' },
+      { type: 'scroll' },
+      { type: 'scroll', target: { testid: 'a' }, direction: 'down' },
+      { type: 'waitFor', target: { testid: 'a' }, timeoutMs: 60000 },
+    ])
+      expect(AppUiActionSchema.safeParse(action).success, JSON.stringify(action)).toBe(false);
+  });
+  it('写工具必须绑定实例与文档代次，重置需要显式确认词', () => {
+    expect(AppToolInputSchemas['app.ui.act'].safeParse({ action: { type: 'press', key: 'Enter' } }).success).toBe(false);
+    expect(AppToolInputSchemas['app.ui.act'].parse({ ...binding, action: { type: 'press', key: 'Enter' } }).appInstanceId).toBe('app-1');
+    expect(AppToolInputSchemas['app.data.reset'].safeParse({ appInstanceId: 'app-1' }).success).toBe(false);
+    expect(AppToolInputSchemas['app.data.reset'].parse({ appInstanceId: 'app-1', confirm: 'reset-instance-data' }).confirm).toBe(
+      'reset-instance-data',
+    );
+    expect(AppToolInputSchemas['app.command.invoke'].safeParse({ ...binding, name: 'eval', code: 'x' }).success).toBe(false);
+    expect(AppToolInputSchemas['app.describe'].safeParse({ workspaceId: 'other' }).success).toBe(false);
+  });
+  it('命令输入受 16 KiB 预算约束', () => {
+    const big = { value: 'x'.repeat(17000) };
+    expect(AppToolInputSchemas['app.command.invoke'].safeParse({ ...binding, name: 'welcome.save', input: big }).success).toBe(false);
+  });
+});
+
+describe('app scenario', () => {
+  it('场景只允许 testid 定位并限制步数', () => {
+    const scenario = {
+      name: 'fixed',
+      steps: [
+        { type: 'act', action: { type: 'navigate', path: '/' } },
+        { type: 'act', action: { type: 'type', target: { testid: 'welcome-input' }, text: '固定验收 2026' } },
+        { type: 'assert', assert: { kind: 'text', testid: 'welcome-value', equals: '固定验收 2026' } },
+        { type: 'assert', assert: { kind: 'state', name: 'welcome', path: '/value', equals: '固定验收 2026' } },
+        { type: 'assert', assert: { kind: 'console-no-error' } },
+        { type: 'screenshot', label: 'after-save' },
+      ],
+    };
+    expect(AppScenarioSchema.parse(scenario).surface).toBe('web');
+    expect(
+      AppScenarioSchema.safeParse({ name: 'x', steps: [{ type: 'act', action: { type: 'click', target: { ref: 'e1' } } }] }).success,
+    ).toBe(false);
+    expect(AppScenarioSchema.safeParse({ name: 'x', steps: [] }).success).toBe(false);
+    expect(
+      AppScenarioSchema.safeParse({ name: 'x', steps: Array.from({ length: 51 }, () => ({ type: 'screenshot', label: 'a' })) }).success,
+    ).toBe(false);
+    expect(AppScenarioSchema.safeParse({ name: 'x', steps: [{ type: 'assert', assert: { kind: 'text', testid: 'a' } }] }).success).toBe(
+      false,
+    );
+  });
+  it('回放比较忽略时间字段', () => {
+    const trace = (startedAt: string, durationMs: number): AppScenarioTrace => ({
+      traceVersion: 1,
+      scenarioRunId: uuid(1),
+      scenarioName: 'x',
+      scenarioSha256: 'a'.repeat(64),
+      runId: 'run-1',
+      workspaceId: 'w',
+      appInstanceId: 'app-1',
+      sourceRevision: 'b'.repeat(64),
+      startedAt,
+      endedAt: startedAt,
+      outcome: 'passed',
+      steps: [
+        {
+          index: 0,
+          type: 'act',
+          summary: 'navigate /',
+          outcome: 'passed',
+          error: null,
+          durationMs,
+          documentGeneration: 1,
+          screenshot: null,
+        },
+      ],
+      stateDiff: [],
+      inFlight: null,
+      cleanupConfirmed: true,
+    });
+    expect(comparableTrace(trace('2026-10-11T00:00:00.000Z', 3))).toEqual(comparableTrace(trace('2026-10-11T01:00:00.000Z', 90)));
+  });
+});
+
+describe('app control envelopes', () => {
+  it('结果与错误码可辨别', () => {
+    expect(AppControlResultSchema.parse({ ok: true, tool: 'app.status', data: { state: 'running' } }).ok).toBe(true);
+    expect(AppControlResultSchema.safeParse({ ok: false, tool: 'app.ui.act', error: { code: 'not_a_code', message: 'x' } }).success).toBe(
+      false,
+    );
+    expect(AppControlResultSchema.parse({ ok: false, tool: null, error: { code: 'paused_by_user', message: '用户正在操作' } }).ok).toBe(
+      false,
+    );
+  });
+  it('service 消息与请求包含控制面帧，其他工具名被拒绝', () => {
+    const scope = { workspaceId: 'w', sessionId: 's', runId: 'r', sources: [] };
+    const id = uuid(2);
+    expect(ChatServiceMessageSchema.parse({ type: 'app-call', id, scope, tool: 'app.describe', args: {} }).type).toBe('app-call');
+    expect(ChatServiceMessageSchema.safeParse({ type: 'app-call', id, scope, tool: 'browser.act', args: {} }).success).toBe(false);
+    expect(
+      ChatServiceRequestSchema.parse({
+        id: '1',
+        method: 'app.agent',
+        payload: {
+          callId: id,
+          target: { workspaceId: 'w', projectId: uuid(3) },
+          appInstanceId: null,
+          operation: { op: 'query', sql: 'select 1', limit: 10 },
+        },
+      }).method,
+    ).toBe('app.agent');
+    expect(
+      ChatServiceRequestSchema.safeParse({
+        id: '1',
+        method: 'app.agent',
+        payload: {
+          callId: id,
+          target: { workspaceId: 'w', projectId: uuid(3) },
+          appInstanceId: null,
+          operation: { op: 'shell', command: 'rm -rf /' },
+        },
+      }).success,
+    ).toBe(false);
+  });
+  it('预览状态的操控字段可缺省，renderer 只能请求恢复', () => {
+    const page = { webContentsId: 1, documentGeneration: 0, url: 'x', title: 't', partition: 'p' };
+    const state = {
+      page,
+      loading: false,
+      canGoBack: false,
+      canGoForward: false,
+      picking: false,
+      cdp: { state: 'idle' },
+      consoleIssueCount: 0,
+      loadError: null,
+      blockedNavigation: null,
+      pickError: null,
+    };
+    expect(PreviewStateSchema.parse(state).agentControl).toBeUndefined();
+    expect(
+      PreviewStateSchema.parse({ ...state, agentControl: { state: 'paused_by_user', runId: 'r', since: 'now', lastAction: null } })
+        .agentControl?.state,
+    ).toBe('paused_by_user');
+    expect(
+      WorkbenchCommandSchema.parse({ type: 'browserAction', commandId: 'c', workspaceId: 'w', resourceId: 'r', action: 'resumeAgent' })
+        .type,
+    ).toBe('browserAction');
+  });
+});

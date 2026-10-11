@@ -1,0 +1,16 @@
+
+Running 1 test using 1 worker
+
+(node:72342) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /private/tmp/wsl-space-app-model-live-20261010/WSL_APP_MODEL_b026b5a262064f4bb4618886392fe946/profile ELECTRON_PID 72343
+ELECTRON_STDERR (node:72343) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:50992/c608c8b5-721d-4139-94b1-63324673ba0a
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+SPACE_APP_MODEL_LIVE_EVIDENCE /private/tmp/wsl-space-app-model-live-20261010/WSL_APP_MODEL_b026b5a262064f4bb4618886392fe946
+  ✓  1 e2e/space-app-model-live.spec.ts:45:1 › live: real App creation, native element capture and product model edit rebuild the same project (2.7m)
+
+  1 passed (2.7m)

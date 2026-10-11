@@ -1,0 +1,7 @@
+typecheck exit=0
+lint exit=1 ✖ 2011 problems (2011 errors, 0 warnings)
+format:check exit=1 [warn] Code style issues found in 794 files. Run Prettier with --write to fix.
+Documentation check passed (19 normative files; local link targets and trailing whitespace). Anchors and external URLs are not checked.
+check-docs exit=0
+git diff --check exit=0
+staged files: 0

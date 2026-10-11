@@ -1,3 +1,4 @@
+import { rm, writeFile } from 'node:fs/promises';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { z } from 'zod';
@@ -16,18 +17,29 @@ const identity = identitySchema.parse({
   projectId: process.env.WSL_PROJECT_ID ?? 'local-project',
   appInstanceId: process.env.WSL_APP_INSTANCE_ID ?? 'local-app',
 });
-const database = await openDatabase(process.env.WSL_DATA_DIR ?? '.data/pglite');
+const dataDir = process.env.WSL_DATA_DIR ?? '.data/pglite';
+// 仅工作台受管开发实例传入令牌；agent-cli 据运行文件得知数据目录已被本进程占用。
+const agentToken = process.env.WSL_AGENT_TOKEN || undefined;
+const runtimeFile = `${dataDir}.runtime.json`;
+const database = await openDatabase(dataDir);
 try {
   await migrateDatabase(database);
 } catch (error) {
   await database.client.close();
   throw error;
 }
-const app = createApp(database, identity, process.env.WSL_DEV_SESSIONS === '1');
+const app = createApp(
+  database,
+  identity,
+  process.env.WSL_DEV_SESSIONS === '1',
+  agentToken ? { token: agentToken, root: process.cwd() } : undefined,
+);
 app.use('/*', serveStatic({ root: './dist/client' }));
 app.get('*', serveStatic({ path: './dist/client/index.html' }));
 const server = serve({ fetch: app.fetch, hostname: process.env.HOST ?? '0.0.0.0', port }, (info) => {
-  console.log(JSON.stringify({ event: 'app-ready', port: info.port, identity }));
+  void writeFile(runtimeFile, JSON.stringify({ pid: process.pid, port: info.port, appInstanceId: identity.appInstanceId }), { mode: 0o600 })
+    .catch((error: unknown) => console.error('Runtime file write failed', error))
+    .finally(() => console.log(JSON.stringify({ event: 'app-ready', port: info.port, identity })));
 });
 let closing = false;
 function shutdown() {
@@ -38,8 +50,8 @@ function shutdown() {
     process.exit(1);
   }, 8000);
   server.close((error) => {
-    void database.client
-      .close()
+    void rm(runtimeFile, { force: true })
+      .then(() => database.client.close())
       .then(() => {
         clearTimeout(deadline);
         process.exit(error ? 1 : 0);

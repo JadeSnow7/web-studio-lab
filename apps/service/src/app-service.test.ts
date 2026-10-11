@@ -6,6 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { describe, expect, it, vi } from 'vitest';
 import { AppService, validateAppSources, type AppKey } from './app-service';
+import { AppControl } from '../../desktop/src/main/workbench/app-control';
 import appHelper from './app-helper.py?raw';
 import type { GuestFrame, GuestOutcome, GuestStart } from './sbx';
 
@@ -16,6 +17,10 @@ const files = [{ path: 'package.json', base64: Buffer.from('{}').toString('base6
 function fixture(
   settings: {
     closeGate?: Promise<void>;
+    agentOutcome?: GuestOutcome;
+    agentGate?: Promise<void>;
+    agentCloseError?: string;
+    agentDoneError?: string;
     exportGate?: Promise<void>;
     wrongIdentity?: boolean;
     wrongReadyIdentity?: boolean;
@@ -38,16 +43,21 @@ function fixture(
   let crash: (() => void) | undefined;
   let identity: Record<string, unknown> = {};
   const commands: string[][] = [];
+  const prompts: Record<string, unknown>[] = [];
+  const agentRequests: { url: string; token: string | null; body: string | null }[] = [];
   const connection = {
     runtimeTarget: () => ({ binary: '/configured/sbx', sandbox: 'sandbox-test' }),
     getStatus: () => ({ available: true, reason: null, sandbox: 'sandbox-test', version: 'fixture', cwd: '/home/agent/workspace' }),
     start: (start: GuestStart, onFrame: (frame: GuestFrame) => void) => {
       if (start.mode !== 'codex') throw new Error('unexpected mode');
       const input = JSON.parse(start.prompt ?? '{}') as { operation: string; appInstanceId: string };
+      prompts.push(input);
       starts++;
       let finish: ((result: GuestOutcome) => void) | undefined;
-      const done = new Promise<GuestOutcome>((resolve) => {
+      let rejectDone!: (error: Error) => void;
+      const done = new Promise<GuestOutcome>((resolve, reject) => {
         finish = resolve;
+        rejectDone = reject;
       });
       identity = { ...key, environmentId: 'sandbox', appInstanceId: input.appInstanceId };
       if (input.operation === 'start') crash = () => finish?.({ confirmed: true, exitCode: 17, error: null });
@@ -67,17 +77,35 @@ function fixture(
       if (input.operation !== 'start')
         queueMicrotask(async () => {
           if (input.operation === 'export' && settings.exportGate) await settings.exportGate;
+          if (input.operation === 'agent' && settings.agentGate) await settings.agentGate;
+          if (input.operation === 'agent' && settings.agentDoneError) {
+            rejectDone(new Error(settings.agentDoneError));
+            return;
+          }
           onFrame({
             type: 'output',
             stream: 'stdout',
-            data: `WSL_APP_RESULT:${JSON.stringify(input.operation === 'create' ? { created: true } : { files })}\n`,
+            data: `WSL_APP_RESULT:${JSON.stringify(
+              input.operation === 'create'
+                ? { created: true }
+                : input.operation === 'agent'
+                  ? {
+                      exitCode: 0,
+                      stdout: 'noise\n' + JSON.stringify({ ok: true, data: { args: (input as { args?: unknown }).args } }) + '\n',
+                      stderr: '',
+                    }
+                  : { files },
+            )}\n`,
           });
-          finish?.({ confirmed: true, exitCode: 0, error: null });
+          finish?.(
+            input.operation === 'agent' && settings.agentOutcome ? settings.agentOutcome : { confirmed: true, exitCode: 0, error: null },
+          );
         });
       return {
         done,
         close: async () => {
           closes++;
+          if (input.operation === 'agent' && settings.agentCloseError) throw new Error(settings.agentCloseError);
           if (settings.closeGate) await settings.closeGate;
           commands.push(['child-close']);
           finish?.({
@@ -111,13 +139,18 @@ function fixture(
         ...(settings.unrelatedMapping ? [{ host_ip: '127.0.0.1', host_port: 50111, sandbox_port: 3000, protocol: 'tcp4' }] : []),
       ]);
     },
-    fetch: async () => {
+    fetch: async (url: string | URL | Request, init?: RequestInit) => {
+      if (String(url).includes('/api/__agent/')) {
+        const headers = new Headers(init?.headers);
+        agentRequests.push({ url: String(url), token: headers.get('x-wsl-agent-token'), body: (init?.body as string | undefined) ?? null });
+        return new Response(JSON.stringify({ ok: true, data: { path: new URL(String(url)).pathname } }));
+      }
       if (settings.noHealth) throw new TypeError('not listening');
       return new Response(
         JSON.stringify({
           ok: true,
           templateId: 'wsl-standard-app',
-          templateVersion: '1.0.0',
+          templateVersion: '1.1.0',
           identity: { ...identity, ...(settings.wrongIdentity ? { appInstanceId: randomUUID() } : {}) },
         }),
       );
@@ -128,6 +161,8 @@ function fixture(
     options,
     service: new AppService(connection, options),
     commands: () => commands,
+    prompts: () => prompts,
+    agentRequests: () => agentRequests,
     closes: () => closes,
     starts: () => starts,
     crash: () => crash?.(),
@@ -631,4 +666,396 @@ print(json.dumps(dict(error=error,exists=exists,foreign=foreign,retry_error=retr
       await rm(test.root, { recursive: true, force: true });
     }
   });
+});
+
+describe('managed app control plane', () => {
+  it.each(['running', 'stopped'])('pre-cancelled agent on %s app neither fetches nor starts a guest', async (state) => {
+    const test = fixture();
+    await test.service.create({ ...key, files });
+    const running = state === 'running' ? await test.service.start(key) : null;
+    const before = test.prompts().length;
+    const controller = new AbortController();
+    controller.abort();
+    const result = await test.service.agent(key, running?.appInstanceId ?? null, { op: 'snapshot' }, controller.signal);
+    expect(test.prompts()).toHaveLength(before);
+    expect(test.agentRequests()).toEqual([]);
+    expect(result).toMatchObject({
+      cleanupConfirmed: true,
+      operationDispatched: false,
+      envelope: { ok: false, error: { code: 'cancelled' } },
+    });
+    if (running) await test.service.stop(key);
+  });
+  it('stop during CLI admission persistence prevents a late guest launch', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-agent-admission-'));
+    const test = fixture();
+    const service = new AppService(test.connection, { ...test.options, registryPath: path.join(root, 'registry.json') });
+    await service.create({ ...key, files });
+    const originalWrite = fs.writeFile;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let entered = false;
+    const writing = vi.spyOn(fs, 'writeFile').mockImplementation(async (...args) => {
+      if (!entered) {
+        entered = true;
+        await gate;
+      }
+      return originalWrite(...args);
+    });
+    try {
+      const starts = test.starts();
+      const pending = service.agent(key, null, { op: 'describe' }, new AbortController().signal);
+      await vi.waitFor(() => expect(entered).toBe(true));
+      const stopping = service.stop(key);
+      await vi.waitFor(async () => expect((await service.get(key)).state).toBe('stopping'));
+      release();
+      const [result, stopped] = await Promise.all([pending, stopping]);
+      expect(stopped).toMatchObject({ state: 'stopped', cleanupConfirmed: true });
+      expect(test.starts()).toBe(starts);
+      expect(result).toMatchObject({ operationDispatched: false });
+    } finally {
+      release();
+      writing.mockRestore();
+      await service.shutdown();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('start passes a fresh token only to the start helper; HTTP agent calls carry it and stop revokes it', async () => {
+    const test = fixture();
+    await test.service.create({ ...key, files });
+    const running = await test.service.start(key);
+    expect(running.state).toBe('running');
+    const startPrompt = test.prompts().find((prompt) => prompt.operation === 'start')!;
+    expect(startPrompt.agentToken).toMatch(/^[0-9a-f]{64}$/);
+    expect(
+      test
+        .prompts()
+        .filter((prompt) => prompt.operation !== 'start')
+        .every((prompt) => !('agentToken' in prompt)),
+    ).toBe(true);
+    const signal = new AbortController().signal;
+    const query = await test.service.agent(key, running.appInstanceId, { op: 'query', sql: 'select 1', limit: 5 }, signal);
+    expect(query).toEqual({ mode: 'http', cleanupConfirmed: true, envelope: { ok: true, data: { path: '/api/__agent/db/query' } } });
+    expect(test.agentRequests()[0]).toEqual({
+      url: 'http://127.0.0.1:49152/api/__agent/db/query',
+      token: startPrompt.agentToken,
+      body: JSON.stringify({ sql: 'select 1', limit: 5 }),
+    });
+    const stale = await test.service.agent(key, 'old-instance', { op: 'reset', operationId: randomUUID() }, signal);
+    expect(stale.envelope).toEqual({ ok: false, error: { code: 'stale_instance', message: expect.any(String) } });
+    expect(test.agentRequests()).toHaveLength(1);
+    await test.service.stop(key);
+    const second = await test.service.start(key);
+    const tokens = test
+      .prompts()
+      .filter((prompt) => prompt.operation === 'start')
+      .map((prompt) => prompt.agentToken);
+    expect(new Set(tokens).size).toBe(2);
+    expect(second.appInstanceId).not.toBe(running.appInstanceId);
+    await test.service.stop(key);
+    const write = await test.service.agent(key, second.appInstanceId, { op: 'seed', operationId: randomUUID() }, signal);
+    expect(write.envelope).toEqual({ ok: false, error: { code: 'app_not_running', message: expect.any(String) } });
+  });
+
+  it('stopped reads run the helper agent operation with fixed read-only argv and parse the last JSON line', async () => {
+    const test = fixture();
+    await test.service.create({ ...key, files });
+    const result = await test.service.agent(key, null, { op: 'query', sql: "select 'x'", limit: 3 }, new AbortController().signal);
+    expect(result.mode).toBe('cli');
+    expect(result.envelope).toEqual({ ok: true, data: { args: ['db', 'query', "select 'x'", '--limit', '3'] } });
+    const agentPrompt = test.prompts().find((prompt) => prompt.operation === 'agent')!;
+    expect(agentPrompt).toEqual({
+      operation: 'agent',
+      workspaceId: key.workspaceId,
+      projectId: key.projectId,
+      args: ['db', 'query', "select 'x'", '--limit', '3'],
+    });
+    const describe = await test.service.agent(key, null, { op: 'describe' }, new AbortController().signal);
+    expect(describe.envelope).toEqual({ ok: true, data: { args: ['describe'] } });
+  });
+
+  it('retains an unconfirmed CLI handle and prevents reuse even after repeated close', async () => {
+    const test = fixture({ agentOutcome: { confirmed: false, exitCode: null, error: 'lost cleanup' } });
+    await test.service.create({ ...key, files });
+    const result = await test.service.agent(key, null, { op: 'describe' }, new AbortController().signal);
+    expect(result.cleanupConfirmed).toBe(false);
+    const before = test.starts();
+    expect((await test.service.agent(key, null, { op: 'describe' }, new AbortController().signal)).envelope).toMatchObject({
+      ok: false,
+      error: { code: 'app_busy' },
+    });
+    expect(test.starts()).toBe(before);
+    const cancelled = new AbortController();
+    cancelled.abort();
+    expect(await test.service.agent(key, null, { op: 'describe' }, cancelled.signal)).toMatchObject({ operationDispatched: false });
+    expect((await test.service.stop(key)).cleanupConfirmed).toBe(false);
+    await expect(test.service.start(key)).rejects.toThrow();
+  });
+  it('surfaces rejected CLI close and preserves the handle without waiting forever for done', async () => {
+    const test = fixture({ agentGate: new Promise(() => undefined), agentCloseError: 'close rejected' });
+    await test.service.create({ ...key, files });
+    const controller = new AbortController();
+    const pending = test.service.agent(key, null, { op: 'describe' }, controller.signal);
+    await vi.waitFor(() => expect(test.prompts().some((prompt) => prompt.operation === 'agent')).toBe(true));
+    controller.abort();
+    expect(await pending).toMatchObject({ cleanupConfirmed: false, envelope: { ok: false, error: { code: 'cancelled' } } });
+    expect(await test.service.stop(key)).toMatchObject({ cleanupConfirmed: false, error: expect.stringContaining('close rejected') });
+    await expect(test.service.start(key)).rejects.toThrow();
+  });
+  it('retains ownership when the CLI done promise rejects', async () => {
+    const test = fixture({ agentDoneError: 'done rejected' });
+    await test.service.create({ ...key, files });
+    await expect(test.service.agent(key, null, { op: 'describe' }, new AbortController().signal)).rejects.toThrow('done rejected');
+    expect(await test.service.stop(key)).toMatchObject({ cleanupConfirmed: false, error: expect.stringContaining('done rejected') });
+    await expect(test.service.start(key)).rejects.toThrow();
+  });
+  it.each(['lost_response', 'cancelled', 'write_404', 'oversize', 'wrong_instance', 'missing', 'malformed'])(
+    'reconciles %s without replaying a database write',
+    async (kind) => {
+      const operationId = randomUUID();
+      const controller = new AbortController();
+      const calls: string[] = [];
+      const envelope = { ok: true, data: { seeded: true } };
+      const tracked = fixture();
+      let instanceId = '';
+      const fetcher = async (url: string | URL | Request, init?: RequestInit) => {
+        const path = new URL(String(url)).pathname;
+        if (!path.includes('/api/__agent/')) return originalHealth(url, init);
+        calls.push((init?.method ?? 'GET') + ' ' + path);
+        if (path.endsWith('/describe')) return Response.json({ ok: true, data: { operationTrackingVersion: 1 } });
+        if (path.endsWith('/db/seed')) {
+          expect(new Headers(init?.headers).get('x-wsl-agent-operation-id')).toBe(operationId);
+          if (kind === 'cancelled') controller.abort();
+          throw new Error('response lost');
+        }
+        if (path.endsWith('/cancel'))
+          return Response.json({ ok: true, data: { operationId, appInstanceId: instanceId, operation: 'seed', state: 'running' } });
+        if (kind === 'missing') return Response.json({ ok: false, error: { code: 'not_found', message: 'missing' } }, { status: 404 });
+        if (kind === 'malformed') return new Response('{');
+        return Response.json({
+          ok: true,
+          data: {
+            operationId,
+            appInstanceId: kind === 'wrong_instance' ? 'other' : instanceId,
+            operation: 'seed',
+            state: 'succeeded',
+            envelope,
+          },
+        });
+      };
+      const originalHealth = tracked.options.fetch;
+      const controlled = new AppService(tracked.connection, { ...tracked.options, reconciliationTimeoutMs: 20, fetch: fetcher });
+      await controlled.create({ ...key, files });
+      instanceId = (await controlled.start(key)).appInstanceId!;
+      const result = await controlled.agent(key, instanceId, { op: 'seed', operationId }, controller.signal);
+      expect(result.cleanupConfirmed).toBe(['lost_response', 'cancelled', 'write_404', 'oversize'].includes(kind));
+      expect(calls.filter((call) => call.endsWith('/db/seed'))).toHaveLength(1);
+      expect(calls.some((call) => call.endsWith('/cancel'))).toBe(true);
+      expect(calls.some((call) => call.startsWith('GET /api/__agent/operations/'))).toBe(true);
+      if (result.cleanupConfirmed) expect(result.operation).toMatchObject({ operationId, appInstanceId: instanceId, state: 'succeeded' });
+      await controlled.stop(key);
+    },
+  );
+
+  it('rechecks instance and cancellation after asynchronous write capability discovery', async () => {
+    const test = fixture();
+    let release!: () => void;
+    let entered!: () => void;
+    const enteredPromise = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const calls: string[] = [];
+    const originalHealth = test.options.fetch;
+    const controlled = new AppService(test.connection, {
+      ...test.options,
+      fetch: async (url, init) => {
+        if (!String(url).includes('/api/__agent/')) return originalHealth(url, init);
+        calls.push(String(url));
+        entered();
+        await gate;
+        return Response.json({ ok: true, data: { operationTrackingVersion: 1 } });
+      },
+    });
+    await controlled.create({ ...key, files });
+    const instance = await controlled.start(key);
+    const pending = controlled.agent(key, instance.appInstanceId, { op: 'seed', operationId: randomUUID() }, new AbortController().signal);
+    await enteredPromise;
+    await controlled.stop(key);
+    release();
+    expect(await pending).toMatchObject({ operationDispatched: false, cleanupConfirmed: true });
+    expect(calls.some((url) => url.endsWith('/db/seed'))).toBe(false);
+  });
+  it('a capacity rejection proves the write never started and does not strand service occupancy', async () => {
+    const test = fixture();
+    const originalHealth = test.options.fetch;
+    const controlled = new AppService(test.connection, {
+      ...test.options,
+      fetch: async (url, init) => {
+        if (!String(url).includes('/api/__agent/')) return originalHealth(url, init);
+        return String(url).endsWith('/describe')
+          ? Response.json({ ok: true, data: { operationTrackingVersion: 1 } })
+          : Response.json({ ok: false, error: { code: 'operation_capacity', message: 'full' } }, { status: 409 });
+      },
+    });
+    await controlled.create({ ...key, files });
+    const instance = await controlled.start(key);
+    expect(
+      await controlled.agent(key, instance.appInstanceId, { op: 'seed', operationId: randomUUID() }, new AbortController().signal),
+    ).toMatchObject({ operationDispatched: false, cleanupConfirmed: true });
+    expect((await controlled.start(key)).appInstanceId).toBe(instance.appInstanceId);
+    await controlled.stop(key);
+  });
+
+  it('logs return a bounded UTF-8 tail of the current instance output', async () => {
+    const test = fixture();
+    await test.service.create({ ...key, files });
+    await test.service.start(key);
+    const logs = await test.service.logs(key, 20);
+    expect(logs.totalBytes).toBeGreaterThan(20);
+    expect(logs.truncated).toBe(true);
+    expect(Buffer.byteLength(logs.text, 'utf8')).toBeLessThanOrEqual(20);
+    await test.service.stop(key);
+  });
+});
+
+describe('app helper agent operation', () => {
+  const run = (root: string, request: Record<string, unknown>) =>
+    execFileSync(
+      'python3',
+      [
+        '-c',
+        `import sys,json
+from pathlib import Path
+scope={'__name__':'wsl_test'}
+exec(sys.argv[3],scope)
+scope['ROOT']=Path(sys.argv[1])
+scope['run'](json.loads(sys.argv[2]))`,
+        root,
+        JSON.stringify({ ...key, ...request }),
+        appHelper,
+      ],
+      { encoding: 'utf8', timeout: 5000, stdio: ['ignore', 'pipe', 'pipe'] },
+    );
+  it('allows only describe and read-only db commands and reports projects without the control plane', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-agent-'));
+    try {
+      run(root, { operation: 'create', files });
+      for (const args of [['db', 'reset'], ['db', 'seed'], ['api', 'call', 'GET', '/api/health'], ['manifest', '--write'], ['db'], []])
+        expect(() => run(root, { operation: 'agent', args }), JSON.stringify(args)).toThrow(/not allowed/);
+      expect(run(root, { operation: 'agent', args: ['describe'] })).toContain('"unsupported"');
+      expect(() => run(root, { operation: 'agent', args: ['describe'], workspaceId: 'other-space' })).toThrow(/identity/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('Main to Service pre-dispatch read exclusion', () => {
+  it.each(['starting', 'stopping'])('does not strand a CLI reservation while App lifecycle is %s', async (state) => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const test = fixture(state === 'starting' ? { publishGate: gate } : { closeGate: gate });
+    await test.service.create({ ...key, files });
+    if (state === 'stopping') await test.service.start(key);
+    const lifecycle = state === 'starting' ? test.service.start(key) : test.service.stop(key);
+    await vi.waitFor(() => {
+      expect(test.service.get(key).state).toBe(state);
+      if (state === 'starting') expect(test.commands().some((args) => args[0] === '--publish')).toBe(true);
+    });
+    const control = new AppControl({
+      context: async () => ({
+        workspaceId: key.workspaceId,
+        sessionId: 'session',
+        runId: 'run',
+        allowsReset: false,
+        app: test.service.get(key),
+        browser: null,
+      }),
+      ui: () => {
+        throw new Error('no browser');
+      },
+      agent: (target, instance, operation, signal) => test.service.agent(target, instance, operation, signal),
+      logs: (target, maxBytes) => test.service.logs(target, maxBytes),
+      leaseValid: () => false,
+      restart: () => {
+        throw new Error('no restart');
+      },
+      store: { savePending: async () => undefined, appendAudit: async () => undefined, writeEvidence: async () => '' },
+    });
+    try {
+      const result = await control.call(
+        { workspaceId: key.workspaceId, sessionId: 'session', runId: 'run', sources: [] },
+        'app.describe',
+        {},
+      );
+      expect(result).toMatchObject({ ok: false, error: { code: 'app_busy' } });
+      expect(test.prompts().filter((prompt) => prompt.operation === 'agent')).toEqual([]);
+      expect(control.hasPending(key.workspaceId, 'run')).toBe(false);
+    } finally {
+      release();
+      await lifecycle;
+      if (state === 'starting') await test.service.stop(key);
+    }
+  });
+});
+
+describe('Main read reservation follows actual Service transport', () => {
+  it.each(['starting', 'stopped'] as const)(
+    'clears a read reservation when frozen context is %s and Service is already running',
+    async (contextState) => {
+      const test = fixture();
+      await test.service.create({ ...key, files });
+      const running = await test.service.start(key);
+      const previousFetch = test.options.fetch;
+      test.options.fetch = async (url, init) =>
+        String(url).endsWith('/api/__agent/describe')
+          ? Response.json({
+              ok: true,
+              data: {
+                currentRevision: 'a'.repeat(64),
+                manifestRevision: null,
+                buildRevision: null,
+                manifest: null,
+                operationTrackingVersion: 1,
+              },
+            })
+          : previousFetch(url, init);
+      const control = new AppControl({
+        context: async () => ({
+          workspaceId: key.workspaceId,
+          sessionId: 'session',
+          runId: 'run',
+          allowsReset: false,
+          app: { ...running, state: contextState },
+          browser: null,
+        }),
+        ui: () => {
+          throw new Error('no browser');
+        },
+        agent: (target, instance, operation, signal) => test.service.agent(target, instance, operation, signal),
+        logs: (target, maxBytes) => test.service.logs(target, maxBytes),
+        leaseValid: () => false,
+        restart: () => {
+          throw new Error('no restart');
+        },
+        store: { savePending: async () => undefined, appendAudit: async () => undefined, writeEvidence: async () => '' },
+      });
+      try {
+        expect(
+          await control.call({ workspaceId: key.workspaceId, sessionId: 'session', runId: 'run', sources: [] }, 'app.describe', {}),
+        ).toMatchObject({ ok: true });
+        expect(test.prompts().filter((prompt) => prompt.operation === 'agent')).toEqual([]);
+        expect(control.hasPending(key.workspaceId, 'run')).toBe(false);
+      } finally {
+        await test.service.stop(key);
+      }
+    },
+  );
 });

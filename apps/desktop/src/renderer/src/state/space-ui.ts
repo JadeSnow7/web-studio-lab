@@ -1,4 +1,4 @@
-import type { WorkbenchTab, EnvironmentDescription } from '@wsl/protocol';
+import type { WorkbenchTab, EnvironmentDescription, WorkspaceSnapshot } from '@wsl/protocol';
 import { createStore } from '../lib/store';
 import { occlusion } from './occlusion';
 import { shellActions } from './shell';
@@ -10,6 +10,7 @@ export type Editor = {
   workspaceId?: string;
 };
 export const spaceUiStore = createStore<{
+  appEditor: { workspace: WorkspaceSnapshot; overlayId: string } | null;
   appWorkspaceId: string | null;
   resourcesWorkspaceId: string | null;
   url: string;
@@ -23,6 +24,7 @@ export const spaceUiStore = createStore<{
   environmentError: string | null;
   loadingEnvironments: boolean;
 }>({
+  appEditor: null,
   appWorkspaceId: null,
   resourcesWorkspaceId: null,
   url: '',
@@ -72,7 +74,24 @@ async function loadEnvironments(editor: Editor) {
   }
 }
 
+let openingAppEditor = false;
 export const spaceActions = {
+  async openAppEditor(workspace: WorkspaceSnapshot) {
+    if (openingAppEditor || spaceUiStore.get().appEditor) return;
+    openingAppEditor = true;
+    const target = structuredClone(workspace);
+    const overlayId = `app-editor-${crypto.randomUUID()}`;
+    try {
+      if (await occlusion.open(overlayId)) spaceUiStore.set((s) => ({ ...s, appEditor: { workspace: target, overlayId } }));
+    } finally {
+      openingAppEditor = false;
+    }
+  },
+  closeAppEditor(overlayId: string) {
+    spaceUiStore.set((s) => (s.appEditor?.overlayId === overlayId ? { ...s, appEditor: null } : s));
+    occlusion.close(overlayId);
+  },
+
   async showResources(workspaceId: string) {
     await shellActions.setPeek(true);
     spaceUiStore.set((s) => ({ ...s, resourcesWorkspaceId: workspaceId }));

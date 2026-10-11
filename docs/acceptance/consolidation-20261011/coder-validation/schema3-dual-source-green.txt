@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /private/tmp/wsl-consolidate-review-20261011
+
+
+ Test Files  3 passed (3)
+      Tests  20 passed (20)
+   Start at  16:26:41
+   Duration  665ms (transform 53%, import 27%, tests 19%, worker 1%)
+

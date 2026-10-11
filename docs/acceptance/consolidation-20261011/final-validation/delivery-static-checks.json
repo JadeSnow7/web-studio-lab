@@ -1,0 +1,20 @@
+[
+  {
+    "name": "format-delivery",
+    "command": ["pnpm", "format:check"],
+    "exit_code": 1,
+    "seconds": 47.24
+  },
+  {
+    "name": "workshop-lint",
+    "command": ["pnpm", "exec", "eslint", "e2e/workshop-actions.spec.ts"],
+    "exit_code": 0,
+    "seconds": 2.76
+  },
+  {
+    "name": "docs-delivery",
+    "command": ["node", "scripts/check-docs.mjs"],
+    "exit_code": 0,
+    "seconds": 0.09
+  }
+]

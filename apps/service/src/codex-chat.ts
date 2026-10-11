@@ -6,6 +6,9 @@ import {
   ObservationSourcesSchema,
   ObservationErrorSchema,
   WorkspaceObservationResultSchema,
+  AppControlResultSchema,
+  AppToolNameSchema,
+  type AppControlResult,
   ResourceBundleSchema,
   type ObservationTurnScope,
   type WorkspaceObservationResult,
@@ -181,6 +184,13 @@ export class CodexChat {
     | null = null;
   setObservationReader(reader: NonNullable<CodexChat['observationReader']>) {
     this.observationReader = reader;
+  }
+  /** 控制面调用与观察共用同一 guest socket、轮次 scope 和调用预算，由 Main dispatcher 授权执行。 */
+  private appControlReader:
+    ((scope: ObservationTurnScope, tool: string, args: Record<string, unknown>, signal: AbortSignal) => Promise<AppControlResult>) | null =
+    null;
+  setAppControlReader(reader: NonNullable<CodexChat['appControlReader']>) {
+    this.appControlReader = reader;
   }
   private readonly slots = new Map<ChatSlot, Slot>();
   private readonly workspaceBySession = new Map<ChatSlot, string>();
@@ -388,13 +398,18 @@ export class CodexChat {
           return;
         }
         if (frame.type === 'observation-call') {
-          const reply = (result: WorkspaceObservationResult) => {
+          const appTool = frame.tool.startsWith('app.');
+          const reply = (result: WorkspaceObservationResult | AppControlResult) => {
             if (slot.active !== turn || turn.cancel || turn.observation.signal.aborted) return;
             const bounded = boundedObservationReply(frame.id, result);
             process.write(bounded);
           };
-          if (!observationScope || !this.observationReader || turn.cancel) {
-            reply({ error: 'unauthorized', message: '无运行观察归属' });
+          if (!observationScope || !(appTool ? this.appControlReader : this.observationReader) || turn.cancel) {
+            reply(
+              appTool
+                ? { ok: false, tool: null, error: { code: 'no_active_run', message: '无运行归属，控制面不可用' } }
+                : { error: 'unauthorized', message: '无运行观察归属' },
+            );
             return;
           }
           if (turn.calls.has(frame.id)) {
@@ -402,29 +417,39 @@ export class CodexChat {
             return;
           }
           if (turn.calls.size >= 4 || ++callCount > 64) {
-            reply({ error: 'budget_exceeded', message: '观察并发或单轮预算已用完' });
+            reply(
+              appTool
+                ? { ok: false, tool: null, error: { code: 'budget_exceeded', message: '观察与控制面并发或单轮预算已用完' } }
+                : { error: 'budget_exceeded', message: '观察并发或单轮预算已用完' },
+            );
             return;
           }
           const controller = new AbortController();
           turn.calls.set(frame.id, controller);
           const abort = () => controller.abort();
           turn.observation.signal.addEventListener('abort', abort, { once: true });
-          void this.observationReader(structuredClone(observationScope), frame.tool, frame.args, controller.signal)
-            .then(
-              (result) => reply(WorkspaceObservationResultSchema.parse(result)),
-              (error) => reply({ error: 'unavailable', message: (error as Error).message }),
-            )
-            .then(
-              () => {
-                turn.calls.delete(frame.id);
-                turn.observation.signal.removeEventListener('abort', abort);
-              },
-              (error) => {
-                turn.calls.delete(frame.id);
-                turn.observation.signal.removeEventListener('abort', abort);
-                if (slot.active === turn) fail('观察返回失败：' + (error as Error).message);
-              },
-            );
+          const call = appTool
+            ? AppToolNameSchema.safeParse(frame.tool).success
+              ? this.appControlReader!(structuredClone(observationScope), frame.tool, frame.args, controller.signal).then(
+                  (result) => reply(AppControlResultSchema.parse(result)),
+                  (error) => reply({ ok: false, tool: null, error: { code: 'unavailable', message: (error as Error).message } }),
+                )
+              : Promise.resolve(reply({ ok: false, tool: null, error: { code: 'unsupported', message: '未知控制面工具' } }))
+            : this.observationReader!(structuredClone(observationScope), frame.tool, frame.args, controller.signal).then(
+                (result) => reply(WorkspaceObservationResultSchema.parse(result)),
+                (error) => reply({ error: 'unavailable', message: (error as Error).message }),
+              );
+          void call.then(
+            () => {
+              turn.calls.delete(frame.id);
+              turn.observation.signal.removeEventListener('abort', abort);
+            },
+            (error) => {
+              turn.calls.delete(frame.id);
+              turn.observation.signal.removeEventListener('abort', abort);
+              if (slot.active === turn) fail('观察返回失败：' + (error as Error).message);
+            },
+          );
           return;
         }
         if (frame.type === 'cleanup') {
@@ -525,13 +550,16 @@ export class CodexChat {
   }
 }
 
-export function boundedObservationReply(id: string, result: WorkspaceObservationResult) {
+export function boundedObservationReply(id: string, result: WorkspaceObservationResult | AppControlResult) {
   const frame = { type: 'observation-result' as const, id, result };
   if (Buffer.byteLength(JSON.stringify(frame) + '\n', 'utf8') > 1048576)
     return {
       type: 'observation-result' as const,
       id,
-      result: { error: 'budget_exceeded' as const, message: '观察结果超过控制帧UTF-8预算' },
+      result:
+        'ok' in result
+          ? { ok: false as const, tool: null, error: { code: 'budget_exceeded' as const, message: '控制面结果超过控制帧UTF-8预算' } }
+          : { error: 'budget_exceeded' as const, message: '观察结果超过控制帧UTF-8预算' },
     };
   return frame;
 }

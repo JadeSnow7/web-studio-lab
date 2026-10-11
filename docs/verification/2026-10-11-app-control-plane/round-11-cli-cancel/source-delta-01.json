@@ -1,0 +1,14 @@
+{
+  "e2e/app-control-cancel-live.spec.ts": {
+    "before": null,
+    "after": "69f3da25d594aec3eb9fccd4d0ed74dcbdda1bdae4a304389e250ad13e6005a1"
+  },
+  "e2e/fixtures/app-control-cancel-gate.ts": {
+    "before": null,
+    "after": "f675aecd72582764dc45b87aba4cc89a34a3abbdb43c38062b3e5df36c310c97"
+  },
+  "e2e/helpers.ts": {
+    "before": "0a16205f05fb54b0a0ba8f66517a82d510f20e0bb2599a10da3cae880d22b1a0",
+    "after": "410d671bbd39e2469fd86bfae54f4ccc757867b7d035c195e787330f1d4e08e6"
+  }
+}

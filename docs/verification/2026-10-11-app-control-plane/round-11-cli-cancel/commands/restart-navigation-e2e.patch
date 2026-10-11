@@ -1,0 +1,38 @@
+--- e2e/app-control-cancel-live.spec.ts before round-11 fix
++++ e2e/app-control-cancel-live.spec.ts after round-11 fix
+@@ -254,6 +254,8 @@
+     sessionId = (await space()).sessions[0]!.sessionId;
+     await command({ type: 'locateSession', sessionId });
+     const session = page.getByRole('region', { name: 'Agent 会话内容' });
++    const initialNavigation = await observe();
++    results['navigationBeforeRun'] = { layout: initialNavigation.layout, activePaneId: initialNavigation.activePaneId };
+     const initialHashes = await sourceHashes();
+     results['sourceHashesInitial'] = initialHashes;
+     await save();
+@@ -327,8 +329,25 @@
+       'CLI must still be active before the product cancel',
+     ).toBe(false);
+     expect(Date.now() - entered.at, 'Evidence collection must finish while waitFor is genuinely in flight').toBeLessThan(8000);
++    const beforeCancel = await observe();
++    const navigationBeforeCancel = {
++      layout: beforeCancel.layout,
++      activePaneId: beforeCancel.activePaneId,
++      sessionVisible: await session.isVisible(),
++      cancelVisible: await session.getByRole('button', { name: '取消回复', exact: true }).isVisible(),
++      at: Date.now(),
++    };
++    results['navigationBeforeCancel'] = navigationBeforeCancel;
++    expect(navigationBeforeCancel.sessionVisible, 'AI restart must keep the real session visible').toBe(true);
++    expect(navigationBeforeCancel.cancelVisible, 'The product cancel button must remain visible without navigating back').toBe(true);
++    expect(beforeCancel.layout).toEqual(initialNavigation.layout);
++    expect(beforeCancel.activePaneId).toBe(initialNavigation.activePaneId);
+     results['cancelButtonClickedAt'] = Date.now();
+-    await session.getByRole('button', { name: '取消回复', exact: true }).click();
++    await session
++      .getByRole('button', { name: '取消回复', exact: true })
++      .click({ timeout: Math.max(1, 10_000 - (Date.now() - entered.at)) });
++    results['cancelButtonClickFinishedAt'] = Date.now();
++    expect(Date.now() - entered.at, 'The actual product click must finish inside the in-flight waitFor window').toBeLessThan(10_000);
+     const cancelled = await waitTerminal(first, 'cancelled', 60_000);
+     await expect(session).toContainText('回复已取消，进程已退出。');
+     await expect(session.getByRole('button', { name: '取消回复', exact: true })).toHaveCount(0);

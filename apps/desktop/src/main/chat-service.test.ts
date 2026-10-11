@@ -27,6 +27,7 @@ vi.mock('electron', () => ({
   },
 }));
 import { ChatService } from './chat-service';
+import { AppControl } from './workbench/app-control';
 const snapshot: ChatConversation = {
   conversationId: 'conv-personal-default',
   generation: 'g',
@@ -349,4 +350,112 @@ describe('对话服务宿主故障', () => {
     expect(states.at(-1)).toMatchObject({ sessionId: 'new-pty', state: 'failed', cleanupPending: true });
     await expect(service.shutdown()).rejects.toThrow('清理未确认');
   });
+});
+
+describe('control-plane relay', () => {
+  const scope = { workspaceId: 'w', sessionId: 's', runId: 'r', sources: [] };
+  it('routes app-call frames to the Main dispatcher, replies with app.reply and propagates app-abort', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    let seen: AbortSignal | undefined;
+    let finish!: () => void;
+    service.setAppControlReader(async (_scope, tool, _args, signal) => {
+      seen = signal;
+      await new Promise<void>((resolve) => (finish = resolve));
+      return { ok: true, tool: tool as 'app.status', data: { state: 'running' } };
+    });
+    const id = '00000000-0000-4000-8000-000000000001';
+    mock.callbacks.get('message')?.({ type: 'app-call', id, scope, tool: 'app.status', args: {} });
+    await vi.waitFor(() => expect(seen).toBeDefined());
+    mock.callbacks.get('message')?.({ type: 'app-abort', id });
+    expect(seen!.aborted).toBe(true);
+    finish();
+    await vi.waitFor(() => expect(mock.postMessage.mock.calls.some(([data]) => data.method === 'app.reply')).toBe(true));
+    const reply = mock.postMessage.mock.calls.find(([data]) => data.method === 'app.reply')![0];
+    expect(reply.payload).toEqual({ callId: id, result: { ok: true, tool: 'app.status', data: { state: 'running' } } });
+  });
+  it('pre-cancelled appAgent sends no service request', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const controller = new AbortController();
+    controller.abort();
+    const pending = service.appAgent({ workspaceId: 'w', projectId: 'p' }, null, { op: 'snapshot' }, controller.signal);
+    expect(mock.postMessage.mock.calls.filter(([request]) => request.method.startsWith('app.agent'))).toEqual([]);
+    expect(await pending).toMatchObject({
+      cleanupConfirmed: true,
+      operationDispatched: false,
+      envelope: { ok: false, error: { code: 'cancelled' } },
+    });
+  });
+  it('appAgent cancels its service call by callId when the dispatcher aborts', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const controller = new AbortController();
+    const target = { workspaceId: 'w', projectId: '00000000-0000-4000-8000-000000000002' };
+    const pending = service.appAgent(target, 'app-1', { op: 'snapshot' }, controller.signal);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    expect(request).toMatchObject({ method: 'app.agent', payload: { target, appInstanceId: 'app-1', operation: { op: 'snapshot' } } });
+    controller.abort();
+    const cancel = mock.postMessage.mock.calls.at(-1)![0];
+    expect(cancel).toMatchObject({ method: 'app.agent.cancel', payload: { callId: request.payload.callId } });
+    mock.callbacks.get('message')?.({ type: 'response', id: cancel.id, result: null });
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: request.id,
+      result: { mode: 'cli', cleanupConfirmed: true, envelope: { ok: false, error: { code: 'cancelled', message: 'x' } } },
+    });
+    expect(await pending).toEqual({
+      mode: 'cli',
+      cleanupConfirmed: true,
+      envelope: { ok: false, error: { code: 'cancelled', message: 'x' } },
+    });
+  });
+});
+
+describe('CLI read cancellation before adapter dispatch', () => {
+  it('clears the reserved Main occupancy when real ChatService sees cancellation after pending metadata was saved', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const controller = new AbortController();
+    const control = new AppControl({
+      context: async () => ({
+        workspaceId: 'w',
+        sessionId: 's',
+        runId: 'run',
+        allowsReset: false,
+        app: { projectId: 'p', appInstanceId: null, state: 'stopped', url: null, cleanupConfirmed: true, error: null },
+        browser: null,
+      }),
+      ui: () => {
+        throw new Error('no browser');
+      },
+      agent: (target, instance, operation, signal) => service.appAgent(target, instance, operation, signal),
+      logs: async () => ({ text: '', truncated: false, totalBytes: 0 }),
+      leaseValid: () => false,
+      restart: () => {
+        throw new Error('no restart');
+      },
+      store: {
+        savePending: async (operations) => {
+          if (operations.length) controller.abort();
+        },
+        appendAudit: async () => undefined,
+        writeEvidence: async () => '',
+      },
+    });
+    const result = await control.call(
+      { workspaceId: 'w', sessionId: 's', runId: 'run', sources: [] },
+      'app.describe',
+      {},
+      controller.signal,
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: 'cancelled' } });
+    expect(mock.postMessage.mock.calls.filter(([request]) => request.method.startsWith('app.agent'))).toEqual([]);
+    expect(control.hasPending('w', 'run')).toBe(false);
+  });
+});
+
+it('pre-cancelled cleanup reconciliation cannot claim the original operation was never dispatched', async () => {
+  const service = new ChatService(vi.fn(), vi.fn());
+  const controller = new AbortController();
+  controller.abort();
+  const result = await service.appAgent({ workspaceId: 'w', projectId: 'p' }, null, { op: 'reconcile-cli' }, controller.signal);
+  expect(result.operationDispatched).toBeUndefined();
+  expect(mock.postMessage.mock.calls.filter(([request]) => request.method.startsWith('app.agent'))).toEqual([]);
 });

@@ -1,0 +1,113 @@
+{
+  "rawOutputLocation": "Initial five defects: implementation tool transcript; independent raw red log files were not captured. Dual-source schema3 defect: raw red and green command logs saved below. No raw outputs were reconstructed.",
+  "defects": [
+    {
+      "id": "late-main-identity",
+      "tests": [
+        "rejects a late describe result after instance changes",
+        "rejects a late describe result after browser changes",
+        "rejects a late describe result after run changes",
+        "rejects a late UI action result after the app instance is replaced"
+      ],
+      "red": {
+        "toolSessionId": 84489,
+        "exitCode": 1,
+        "failed": 4,
+        "passed": 30,
+        "assertion": "expected null to be stale_instance / stale_document / no_active_run"
+      },
+      "green": "targeted-tests.txt"
+    },
+    {
+      "id": "late-bridge",
+      "tests": [
+        "rejects a late bridge response after navigate",
+        "rejects a late bridge response after cancel",
+        "rejects a late bridge response after detach"
+      ],
+      "red": {
+        "toolSessionId": 91414,
+        "exitCode": 1,
+        "failed": 3,
+        "passed": 54,
+        "assertion": "expected ok to be stale_document / cancelled / cdp_detached"
+      },
+      "green": "targeted-tests.txt"
+    },
+    {
+      "id": "late-query",
+      "tests": [
+        "rejects a late element query after navigate",
+        "rejects a late element query after cancel",
+        "rejects a late element query after detach"
+      ],
+      "red": {
+        "toolSessionId": 2572,
+        "exitCode": 1,
+        "failed": 3,
+        "passed": 23,
+        "assertion": "expected ok to be stale_document / cancelled / cdp_detached"
+      },
+      "green": "targeted-tests.txt"
+    },
+    {
+      "id": "late-cleanup",
+      "tests": [
+        "rejects query when navigation occurs during object cleanup",
+        "rejects bridge when navigation occurs during object cleanup"
+      ],
+      "red": {
+        "toolSessionId": 88419,
+        "exitCode": 1,
+        "failed": 2,
+        "passed": 26,
+        "assertion": "expected ok to be stale_document"
+      },
+      "green": "targeted-tests.txt"
+    },
+    {
+      "id": "cli-admission-stop",
+      "tests": ["stop during CLI admission persistence prevents a late guest launch"],
+      "red": {
+        "execChunkId": "bb3d21",
+        "exitCode": 1,
+        "failed": 1,
+        "skippedByFocusedTestFilter": 54,
+        "assertion": "expected 2 to be 1 (guest launches)"
+      },
+      "priorInvalidProbe": {
+        "toolSessionId": 30105,
+        "reason": "initial state expectation stopping did not account for original stop already setting failed before queued registry publication; corrected probe then demonstrated late process launch"
+      },
+      "green": "targeted-tests.txt"
+    },
+    {
+      "id": "dual-source-schema3-migration",
+      "tests": [
+        "migrates the actual catalog-free space-app schema3 shape (App present: false)",
+        "migrates the actual catalog-free space-app schema3 shape (App present: true)"
+      ],
+      "red": {
+        "log": "schema3-dual-source-red.txt",
+        "exitCode": 1,
+        "failed": 2,
+        "passed": 4,
+        "assertion": "repository FileSchema.parse rejects actual source01 schema3 with no catalog"
+      },
+      "green": {
+        "log": "schema3-dual-source-green.txt",
+        "exitCode": 0,
+        "files": 3,
+        "passed": 20
+      },
+      "verification": [
+        "App metadata retained including stable appId/revision/description",
+        "publicResources migrated into catalog",
+        "original schema3 bytes backed up before schema4 save",
+        "missing app markers, empty workspace list, malformed App rejected"
+      ],
+      "typecheck": "schema3-dual-source-typecheck.txt",
+      "lint": "schema3-dual-source-lint.txt"
+    }
+  ]
+}

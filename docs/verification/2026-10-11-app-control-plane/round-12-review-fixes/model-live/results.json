@@ -1,0 +1,2013 @@
+{
+  "sandbox": "wsl-sbx-smoke-20261006",
+  "taskSha256": "21f44e2e39162ae876b3a5f84c820cafed78ced0729dd90e50ffcdde6293102c",
+  "scenarioSha256": "47045475157bf4e7ecfdb76c1cff742b7a549a3a69dbbbff803a3bf36ea86b91",
+  "profile": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-app-control-model-7kWeTk",
+  "modelBudgetMs": 600000,
+  "modelToolChainObserved": true,
+  "modelFullSelfVerification": "not_proven_by_tool_presence",
+  "hostFixedOutcome": "passed",
+  "portsBefore": [
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49265,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    },
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49266,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    },
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49267,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    },
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49268,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    }
+  ],
+  "project": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "a43e6f5d-a679-4c5a-9977-579efc46291e",
+    "environmentId": "sandbox",
+    "appInstanceId": null,
+    "state": "created",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/a43e6f5d-a679-4c5a-9977-579efc46291e",
+    "guestPort": null,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "ownedInstances": [
+    "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+    "07cef360-d227-4859-a331-9a57b5ab0cea",
+    "ab7b4e1a-4e18-4e47-8072-866bb3c44579"
+  ],
+  "ownedGuestPorts": [
+    42385,
+    34825,
+    37599
+  ],
+  "taskVersion": {
+    "taskVersionId": "cc72e7bc-5ed1-479e-9f52-5f58dbabca35",
+    "version": 1,
+    "workspaceId": "taskflow-demo",
+    "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+    "goal": "在首页“应用服务”区块下方新增“欢迎语”卡片：以开发会话 A 读取 kv 键 welcome 显示于 data-testid=\"welcome-value\"；提供输入框 data-testid=\"welcome-input\" 与“保存欢迎语”按钮 data-testid=\"welcome-save\"；点击后经 PUT /api/kv/welcome 保存并显示新值；去除首尾空白后为空时显示“请输入欢迎语”（data-testid=\"welcome-error\"）且不发请求；刷新页面后仍显示已保存值；用 exposeState('welcome', …) 暴露 {value, saving, error}。不修改其他 API 与测试基准。\n\n这是已授权的真实控制面验证；只允许修改新建项目 /home/agent/workspace/.wsl-apps/a43e6f5d-a679-4c5a-9977-579efc46291e 内允许范围。按以下顺序执行，不得交换：\n1. 先实际调用一次 wsl_space.app_describe。当前初始模板实例已在运行，尚未修改代码；立即用普通命令工具原样执行下面的 Python CLI 验证脚本，不要先修改源码、生成 manifest 或重启。模板已提供 health-refresh 按钮及 app.health 状态，脚本无需等待新增欢迎语功能。15 项 CLI 完成后才开始实现任务。\n2. 每个 wsl-app 都必须在现有普通命令沙箱内执行；禁止请求权限提升、扩大网络或目录权限、用 MCP 替代 CLI、篡改汇总、重试或忽略 transport_unavailable。伪造实例及未授权 reset 必须由 Main 拒绝，退出码应为 1，错误码分别 stale_instance 与 authorization_required；旧快照引用必须退出 1 并返回 stale_ref；其他 CLI 命令必须退出 0。保留脚本打印的结构化汇总，不输出凭据或环境。\n3. 然后完成欢迎语任务。不得读取凭据、其他项目或 Host 文件；不联网、不安装依赖。不要修改测试基准、锁文件和其他 API。修改后 npm run agent:manifest，只调用一次 app_restart 重建最终源码。等待新实例时，每次 app_status 查询之前用普通命令工具执行 sleep 3 到 5 秒，最多查询 12 次；不要密集轮询或重复重启。使用 app_ui_snapshot/app_ui_act 实际完成空白校验、保存和 navigate 刷新后的持久化自验，至少把上述原有保存按钮点击替换为一次真正的 MCP app_ui_act 引用动作：target 必须使用最近一次成功 MCP app_ui_snapshot 返回的 {ref,snapshotId}，不要改用 testid、不要为此新增动作或提高预算。以 app_state_read 和 app_data_query 确认。实际执行 npm run agent:check 与 npm run check。\n本轮 app.* 工具总预算为 64 次，并发上限 4；上述 CLI 已使用 15 次，MCP 调用总数控制在 35 次以内。自行计数并保留余量；预算耗尽后不得继续尝试，不得提升或增加权限。最终简要报告工具/检查结果并结束，不等待 Host。全程限一次 run、10 分钟。\n\npython3 - <<'PY'\nimport json,subprocess\ncalls=[]\ndef call(label,tool,args):\n argv=['wsl-app',tool,json.dumps(args,separators=(',',':'))]\n p=subprocess.run(argv,capture_output=True,text=True,timeout=65)\n if len(p.stdout)>262144: raise ValueError('CLI stdout budget exceeded')\n result=json.loads(p.stdout)\n calls.append({'label':label,'argv':argv,'exitCode':p.returncode,'result':result})\n if label not in ('stale_instance','reset_denied','stale_snapshot') and (p.returncode!=0 or result.get('ok') is not True):\n  print('WSL_CLI_VERIFICATION_V1='+json.dumps({'version':1,'calls':calls},ensure_ascii=False)); raise ValueError('CLI failed: '+label)\n return result\ncall('describe','describe',{})\ncall('status','status',{})\ns=call('snapshot','ui.snapshot',{})['data']\nb={'appInstanceId':s['appInstanceId'],'documentGeneration':s['documentGeneration']}\na={'type':'click','target':{'ref':next(e['ref'] for e in s['elements'] if e['testid']=='health-refresh'),'snapshotId':s['snapshotId']}}\ncall('click','ui.act',dict(b,action=a))\ncall('health_settled','ui.act',dict(b,action={'type':'waitFor','target':{'testid':'health-refresh'},'state':'enabled','timeoutMs':10000}))\ncall('state_before','state.read',{'names':['app.health']})\ncall('data_before','data.query',{'sql':'SELECT user_id, key, value FROM records ORDER BY user_id, key'})\ncall('stale_instance','ui.act',dict(b,appInstanceId='cli-forged-instance',action=a))\ncall('reset_denied','data.reset',{'appInstanceId':b['appInstanceId'],'confirm':'reset-instance-data'})\ncall('state_after','state.read',{'names':['app.health']})\ncall('data_after','data.query',{'sql':'SELECT user_id, key, value FROM records ORDER BY user_id, key'})\ns2=call('resnapshot','ui.snapshot',{})['data']\ncall('stale_snapshot','ui.act',dict(b,action=a))\na2={'type':'click','target':{'ref':next(e['ref'] for e in s2['elements'] if e['testid']=='health-refresh'),'snapshotId':s2['snapshotId']}}\ncall('current_ref','ui.act',dict(b,action=a2))\ncall('current_settled','ui.act',dict(b,action={'type':'waitFor','target':{'testid':'health-refresh'},'state':'enabled','timeoutMs':10000}))\nprint('WSL_CLI_VERIFICATION_V1='+json.dumps({'version':1,'calls':calls},ensure_ascii=False))\nPY",
+    "targetRef": null,
+    "capture": null,
+    "captureBinding": null,
+    "confirmedAt": "2026-10-11T07:45:50.722Z",
+    "acceptance": [
+      "真实 MCP 与命令沙箱 CLI 成功、Main 两项拒绝负例、两个 npm 检查；Host 独立固定验收"
+    ],
+    "allowedScopes": [
+      "src/App.tsx",
+      "src/components/**",
+      "agent/**"
+    ]
+  },
+  "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+  "run": {
+    "referenceSummary": [],
+    "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+    "workspaceId": "taskflow-demo",
+    "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+    "taskVersionId": "cc72e7bc-5ed1-479e-9f52-5f58dbabca35",
+    "targetRef": null,
+    "state": "completed",
+    "startedAt": "2026-10-11T07:45:50.786Z",
+    "endedAt": "2026-10-11T07:49:02.395Z",
+    "error": null,
+    "candidateId": "3d8627eb-f30d-4322-96e0-46489bb05774",
+    "validation": {
+      "state": "not_run",
+      "applicability": "unknown",
+      "reason": null
+    },
+    "conversation": {
+      "conversationId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "generation": "5e7a41c1-30b3-427d-a545-76ded8de6f73",
+      "seq": 53,
+      "threadId": "01a129ec-e47f-7192-a91b-740587d4965f",
+      "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+      "state": "idle",
+      "messages": [],
+      "toolExecutions": [
+        {
+          "id": "item_3",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_describe {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_4",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc \"python3 - <<'PY'\nimport json,subprocess\ncalls=[]\ndef call(label,tool,args):\n argv=['wsl-app',tool,json.dumps(args,separators=(',',':'))]\n p=subprocess.run(argv,capture_output=True,text=True,timeout=65)\n if len(p.stdout)>262144: raise ValueError('CLI stdout budget exceeded')\n result=json.loads(p.stdout)\n calls.append({'label':label,'argv':argv,'exitCode':p.returncode,'result':result})\n if label not in ('stale_instance','reset_denied','stale_snapshot') and (p.returncode\"'!=0 or result.get('\"'ok') is not True):\n  print('WSL_CLI_VERIFICATION_V1='+json.dumps({'version':1,'calls':calls},ensure_ascii=False)); raise ValueError('CLI failed: '+label)\n return result\ncall('describe','describe',{})\ncall('status','status',{})\ns=call('snapshot','ui.snapshot',{})['data']\nb={'appInstanceId':s['appInstanceId'],'documentGeneration':s['documentGeneration']}\na={'type':'click','target':{'ref':next(e['ref'] for e in s['elements'] if e['testid']=='health-refresh'),'snapshotId':s['snapshotId']}}\ncall('click','ui.act',dict(b,action=a))\ncall('health_settled','ui.act',dict(b,action={'type':'waitFor','target':{'testid':'health-refresh'},'state':'enabled','timeoutMs':10000}))\ncall('state_before','state.read',{'names':['app.health']})\ncall('data_before','data.query',{'sql':'SELECT user_id, key, value FROM records ORDER BY user_id, key'})\ncall('stale_instance','ui.act',dict(b,appInstanceId='cli-forged-instance',action=a))\ncall('reset_denied','data.reset',{'appInstanceId':b['appInstanceId'],'confirm':'reset-instance-data'})\ncall('state_after','state.read',{'names':['app.health']})\ncall('data_after','data.query',{'sql':'SELECT user_id, key, value FROM records ORDER BY user_id, key'})\ns2=call('resnapshot','ui.snapshot',{})['data']\ncall('stale_snapshot','ui.act',dict(b,action=a))\na2={'type':'click','target':{'ref':next(e['ref'] for e in s2['elements'] if e['testid']=='health-refresh'),'snapshotId':s2['snapshotId']}}\ncall('current_ref','ui.act',dict(b,action=a2))\ncall('current_settled','ui.act',dict(b,action={'type':'waitFor','target':{'testid':'health-refresh'},'state':'enabled','timeoutMs':10000}))\nprint('WSL_CLI_VERIFICATION_V1='+json.dumps({'version':1,'calls':calls},ensure_ascii=False))\nPY\"",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_5",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc \"pwd; rg --files -g AGENTS.md -g 'App.tsx' -g '*api*' -g '*agent*' -g package.json -g '*Input*' -g '*Card*'\"",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_6",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc \"cat AGENTS.md agent/AGENTS.md src/App.tsx package.json; rg -n 'dev/session|api/kv|authorization|token|exposeState' src server/routes* server/app*; rg --files src\"",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_7",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc \"sed -n '35,95p' server/app.ts; cat src/agent/registry.ts src/components/Button.tsx\"",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_10",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc 'npm run agent:manifest'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_11",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_restart {\"appInstanceId\":\"5505768b-6ba6-4941-9c8e-8cb13ac9de87\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_12",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc 'sleep 3'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_13",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_14",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc 'npm run agent:check'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_16",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc 'sleep 3'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_17",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_18",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc 'sleep 4'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_19",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_20",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc 'sleep 5'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_21",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_15",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc 'npm run check'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_23",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc 'sleep 5'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_24",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_25",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc 'sleep 5'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_26",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_27",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_ui_snapshot {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_28",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_state_read {\"names\":[\"welcome\"]}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_29",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"07cef360-d227-4859-a331-9a57b5ab0cea\",\"documentGeneration\":1,\"action\":{\"type\":\"type\",\"target\":{\"ref\":\"e7\",\"snapshotId\":\"435d3b7d-c6f7-470a-a166-f1d91f0f9a03\"},\"text\":\"   \",\"clear\":true}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_30",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"07cef360-d227-4859-a331-9a57b5ab0cea\",\"documentGeneration\":1,\"action\":{\"type\":\"click\",\"target\":{\"ref\":\"e2\",\"snapshotId\":\"435d3b7d-c6f7-470a-a166-f1d91f0f9a03\"}}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_31",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_ui_snapshot {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_32",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_state_read {\"names\":[\"welcome\"]}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_33",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_data_query {\"sql\":\"SELECT user_id, key, value FROM records ORDER BY user_id, key\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_34",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"07cef360-d227-4859-a331-9a57b5ab0cea\",\"documentGeneration\":1,\"action\":{\"type\":\"type\",\"target\":{\"ref\":\"e7\",\"snapshotId\":\"08f7a688-8e13-46ac-956a-8253a27d2e0f\"},\"text\":\"  欢迎来到 Taskflow  \",\"clear\":true}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_35",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"07cef360-d227-4859-a331-9a57b5ab0cea\",\"documentGeneration\":1,\"action\":{\"type\":\"click\",\"target\":{\"ref\":\"e2\",\"snapshotId\":\"08f7a688-8e13-46ac-956a-8253a27d2e0f\"}}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_36",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"07cef360-d227-4859-a331-9a57b5ab0cea\",\"documentGeneration\":1,\"action\":{\"type\":\"waitFor\",\"target\":{\"ref\":\"e2\",\"snapshotId\":\"08f7a688-8e13-46ac-956a-8253a27d2e0f\"},\"state\":\"enabled\",\"timeoutMs\":10000}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_37",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_state_read {\"names\":[\"welcome\"]}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_38",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_data_query {\"sql\":\"SELECT user_id, key, value FROM records ORDER BY user_id, key\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_39",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"07cef360-d227-4859-a331-9a57b5ab0cea\",\"documentGeneration\":1,\"action\":{\"type\":\"navigate\",\"path\":\"/\"}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_40",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_ui_snapshot {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_41",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_state_read {\"names\":[\"welcome\"]}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_42",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "mcp:wsl_space.app_data_query {\"sql\":\"SELECT user_id, key, value FROM records WHERE key = 'welcome' ORDER BY user_id\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_43",
+          "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+          "command": "/bin/bash -lc 'git diff --stat -- src/App.tsx src/components agent; git status --short -- src/App.tsx src/components agent'",
+          "exitCode": 128,
+          "truncated": false
+        }
+      ],
+      "warnings": [
+        "Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored."
+      ],
+      "cleanupPending": false,
+      "error": null
+    },
+    "cleanupPending": false,
+    "appCleanupPending": false,
+    "executorState": {
+      "state": "idle",
+      "cleanupPending": false
+    },
+    "cleanupReconciling": false,
+    "cleanupRetryAvailable": false,
+    "executionBinding": {
+      "generation": "5e7a41c1-30b3-427d-a545-76ded8de6f73",
+      "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306"
+    },
+    "review": null
+  },
+  "changedSourcePaths": [
+    "agent/AGENTS.md",
+    "agent/app.manifest.json",
+    "src/App.tsx",
+    "src/components/WelcomeCard.tsx"
+  ],
+  "modelAudit": [
+    {
+      "recordId": "2fb02185-9d70-4ef2-81a2-836e1fca7c49",
+      "at": "2026-10-11T07:46:01.753Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.describe",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 107
+    },
+    {
+      "recordId": "1ef373e0-2430-4fbb-8db3-5a8262fe20ef",
+      "at": "2026-10-11T07:46:14.962Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.describe",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 40
+    },
+    {
+      "recordId": "e6adb45a-fc7b-4e16-b9e5-11a20a311918",
+      "at": "2026-10-11T07:46:15.078Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "603fe909-bd9c-4d53-990a-1328ff363f16",
+      "at": "2026-10-11T07:46:15.193Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 11
+    },
+    {
+      "recordId": "70144e65-85e7-4fc6-b5fd-5a59be07fcfd",
+      "at": "2026-10-11T07:46:15.453Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "b3e83acf3f05415ced204d598d22f31cdfd67f61ee7b84d03ddad7dcfe458a53",
+        "summary": {
+          "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+          "documentGeneration": 1,
+          "action.type": "click",
+          "action.target.ref": "e1",
+          "action.target.snapshotId": "7b1eb43c-c84e-45fb-bad3-871f7e93b0df"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 157
+    },
+    {
+      "recordId": "d079f229-a15f-4349-a162-3bbd2d3e2fbf",
+      "at": "2026-10-11T07:46:15.597Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "bd45d230004b03e5c16d98d50458b2f7b394740ae2bd182b222f71eb8ee44360",
+        "summary": {
+          "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+          "documentGeneration": 1,
+          "action.type": "waitFor",
+          "action.target.testid": "health-refresh",
+          "action.state": "enabled",
+          "action.timeoutMs": 10000
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 39
+    },
+    {
+      "recordId": "e1ef5b53-e3cb-4112-9541-1cb8bd3d239f",
+      "at": "2026-10-11T07:46:15.703Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "10e443117d2c3bfdfbb86fb3c9457cc64c4ee59fe5b5886a95332825f6eba9d3",
+        "summary": {
+          "names": "array:1 sha256:8c61d549e0adbc26"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 2
+    },
+    {
+      "recordId": "82ca08fd-4f41-48ff-934c-865c016b4b6b",
+      "at": "2026-10-11T07:46:15.842Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "5554e05216dfd84f11a4a65fd8d87653f7305a4b0a6cc69b7e322570f2d986f0",
+        "summary": {
+          "sql": "len:61 sha256:466e8ef995b5cb69"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 28
+    },
+    {
+      "recordId": "568bdf88-7e2d-4f87-b532-38cff19caec5",
+      "at": "2026-10-11T07:46:15.954Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "fdff7955c91cb4a0f71ce0b5fbc19a75d9e80385dae49113219d77cd657421d7",
+        "summary": {
+          "appInstanceId": "cli-forged-instance",
+          "documentGeneration": 1,
+          "action.type": "click",
+          "action.target.ref": "e1",
+          "action.target.snapshotId": "7b1eb43c-c84e-45fb-bad3-871f7e93b0df"
+        }
+      },
+      "outcome": "stale_instance",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "fb887309-02d9-498a-87b1-f9e88897f609",
+      "at": "2026-10-11T07:46:16.059Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.data.reset",
+      "level": "reset",
+      "args": {
+        "sha256": "24f6a1823168c9c8e83c37966472689590e95558c79c9c740619e10bf6c07ffe",
+        "summary": {
+          "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+          "confirm": "reset-instance-data"
+        }
+      },
+      "outcome": "authorization_required",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "d2fb4522-3194-455f-b73a-70afb50739df",
+      "at": "2026-10-11T07:46:16.168Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "10e443117d2c3bfdfbb86fb3c9457cc64c4ee59fe5b5886a95332825f6eba9d3",
+        "summary": {
+          "names": "array:1 sha256:8c61d549e0adbc26"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 1
+    },
+    {
+      "recordId": "4b2299e2-8fb9-4023-a44c-03ad3d6f1bfe",
+      "at": "2026-10-11T07:46:16.281Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "5554e05216dfd84f11a4a65fd8d87653f7305a4b0a6cc69b7e322570f2d986f0",
+        "summary": {
+          "sql": "len:61 sha256:466e8ef995b5cb69"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 8
+    },
+    {
+      "recordId": "2a217233-2849-445c-b7b9-1fab35a76b48",
+      "at": "2026-10-11T07:46:16.390Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 4
+    },
+    {
+      "recordId": "fb7610d8-b26d-4dbd-b733-7bc7f856c8df",
+      "at": "2026-10-11T07:46:16.543Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "b3e83acf3f05415ced204d598d22f31cdfd67f61ee7b84d03ddad7dcfe458a53",
+        "summary": {
+          "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+          "documentGeneration": 1,
+          "action.type": "click",
+          "action.target.ref": "e1",
+          "action.target.snapshotId": "7b1eb43c-c84e-45fb-bad3-871f7e93b0df"
+        }
+      },
+      "outcome": "stale_ref",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": null,
+      "durationMs": 29
+    },
+    {
+      "recordId": "21a3b986-0742-4ebd-ae79-fdae431413a3",
+      "at": "2026-10-11T07:46:16.804Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "7d146e3d92623d879e46510e95bf32c67b81b7ffe949c3fd3cb0efecf25fbd8f",
+        "summary": {
+          "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+          "documentGeneration": 1,
+          "action.type": "click",
+          "action.target.ref": "e1",
+          "action.target.snapshotId": "619f3a37-768a-4917-9961-6d3b01d6f5ce"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 150
+    },
+    {
+      "recordId": "6f883c45-8b2c-4965-848a-c58cdbf50728",
+      "at": "2026-10-11T07:46:16.943Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "bd45d230004b03e5c16d98d50458b2f7b394740ae2bd182b222f71eb8ee44360",
+        "summary": {
+          "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+          "documentGeneration": 1,
+          "action.type": "waitFor",
+          "action.target.testid": "health-refresh",
+          "action.state": "enabled",
+          "action.timeoutMs": 10000
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 27
+    },
+    {
+      "recordId": "6ea7fe89-381d-448e-b9f3-be3fc3f3117a",
+      "at": "2026-10-11T07:47:01.782Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.restart",
+      "level": "write",
+      "args": {
+        "sha256": "e58c33a759a6b04f1f03a54b9eff8e284498c409b834f7a3e9774e7d19e8ff19",
+        "summary": {
+          "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 2
+    },
+    {
+      "recordId": "2052db34-29da-4c86-99d9-a057d5d6b302",
+      "at": "2026-10-11T07:47:12.121Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "b333d577-d378-4779-9961-219fbca87505",
+      "at": "2026-10-11T07:47:23.101Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "cc8be26c-42f5-4b39-804e-e8f62c595e05",
+      "at": "2026-10-11T07:47:35.938Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "8b507da5-1437-4c62-ab27-2806e2c2fd3a",
+      "at": "2026-10-11T07:47:47.135Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 1
+    },
+    {
+      "recordId": "2043b772-5a9d-4538-9216-a576d5be0837",
+      "at": "2026-10-11T07:48:02.914Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 1
+    },
+    {
+      "recordId": "45ca0c62-47bb-46d1-9625-a5fcc0881a91",
+      "at": "2026-10-11T07:48:11.657Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "86de88f7-a818-4969-92f1-491164f7f0ac",
+      "at": "2026-10-11T07:48:18.450Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 8
+    },
+    {
+      "recordId": "46e54747-e83d-4596-8a4b-d35c552089c0",
+      "at": "2026-10-11T07:48:18.460Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "e2b3f9dad989022ad535e979f3c99da18ae7e25911a4d30841eb8c8b394a4f3b",
+        "summary": {
+          "names": "array:1 sha256:24066947f78216e7"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 1
+    },
+    {
+      "recordId": "6a78e89e-f3fa-4253-a80c-fcf23a80c207",
+      "at": "2026-10-11T07:48:29.693Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "5e3abe2932a1db08d4b83da2237658f86c997bdb3060281e93b85e5527157f17",
+        "summary": {
+          "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+          "documentGeneration": 1,
+          "action.type": "type",
+          "action.target.ref": "e7",
+          "action.target.snapshotId": "435d3b7d-c6f7-470a-a166-f1d91f0f9a03",
+          "action.text": "len:3 sha256:0aad7da77d2ed59c",
+          "action.clear": true
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 152
+    },
+    {
+      "recordId": "328068b1-b7da-4898-a5e8-ad7758df1ee2",
+      "at": "2026-10-11T07:48:29.864Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "2881cb44273b5c88781fe3c2568575cc0d28b4b916ca188edf20a1e33f3927b8",
+        "summary": {
+          "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+          "documentGeneration": 1,
+          "action.type": "click",
+          "action.target.ref": "e2",
+          "action.target.snapshotId": "435d3b7d-c6f7-470a-a166-f1d91f0f9a03"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 163
+    },
+    {
+      "recordId": "146591e4-3583-4010-bc62-0eb84bb5ea84",
+      "at": "2026-10-11T07:48:29.877Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 5
+    },
+    {
+      "recordId": "4ea07da4-2e71-4798-bfbb-6898803cc614",
+      "at": "2026-10-11T07:48:29.886Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "e2b3f9dad989022ad535e979f3c99da18ae7e25911a4d30841eb8c8b394a4f3b",
+        "summary": {
+          "names": "array:1 sha256:24066947f78216e7"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 0
+    },
+    {
+      "recordId": "39d51af6-e2a2-4c91-89f6-acb2c296a460",
+      "at": "2026-10-11T07:48:29.904Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "5554e05216dfd84f11a4a65fd8d87653f7305a4b0a6cc69b7e322570f2d986f0",
+        "summary": {
+          "sql": "len:61 sha256:466e8ef995b5cb69"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 11
+    },
+    {
+      "recordId": "d6a0aa8b-12b5-46a3-b558-5f11e0f7ad94",
+      "at": "2026-10-11T07:48:41.761Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "42b72baa601f832e5725e508e191660b7ebd73a0d1dea449141e45760e1aa1fc",
+        "summary": {
+          "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+          "documentGeneration": 1,
+          "action.type": "type",
+          "action.target.ref": "e7",
+          "action.target.snapshotId": "08f7a688-8e13-46ac-956a-8253a27d2e0f",
+          "action.text": "len:17 sha256:dac57c7e6462d98b",
+          "action.clear": true
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 149
+    },
+    {
+      "recordId": "16eb578b-4f51-414d-9363-58bf511dbec3",
+      "at": "2026-10-11T07:48:41.918Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "df7707abdfa082399d56e939f623596a1e9aa4cf995b56d6d6cfd53b0cf04924",
+        "summary": {
+          "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+          "documentGeneration": 1,
+          "action.type": "click",
+          "action.target.ref": "e2",
+          "action.target.snapshotId": "08f7a688-8e13-46ac-956a-8253a27d2e0f"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 148
+    },
+    {
+      "recordId": "7c83e924-2ec1-44f1-a2cd-b65e10b1ddef",
+      "at": "2026-10-11T07:48:41.948Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "fe81f149bcfdf407a31ca074953d88fe260c4f11f2437eef623e992e08da1028",
+        "summary": {
+          "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+          "documentGeneration": 1,
+          "action.type": "waitFor",
+          "action.target.ref": "e2",
+          "action.target.snapshotId": "08f7a688-8e13-46ac-956a-8253a27d2e0f",
+          "action.state": "enabled",
+          "action.timeoutMs": 10000
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 23
+    },
+    {
+      "recordId": "ecb7d7a8-ac6c-43b0-9ed2-d167a984d318",
+      "at": "2026-10-11T07:48:41.957Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "e2b3f9dad989022ad535e979f3c99da18ae7e25911a4d30841eb8c8b394a4f3b",
+        "summary": {
+          "names": "array:1 sha256:24066947f78216e7"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 2
+    },
+    {
+      "recordId": "0f7cfde1-790b-45e5-bf8e-7ba4dcf8df4e",
+      "at": "2026-10-11T07:48:41.972Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "5554e05216dfd84f11a4a65fd8d87653f7305a4b0a6cc69b7e322570f2d986f0",
+        "summary": {
+          "sql": "len:61 sha256:466e8ef995b5cb69"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 6
+    },
+    {
+      "recordId": "9ed44eef-2084-4212-a33b-85a01ed04000",
+      "at": "2026-10-11T07:48:42.147Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "78015a83e26e67355c5d04d56be3270c6f29a3222acd21e3f99aebf64bbef736",
+        "summary": {
+          "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+          "documentGeneration": 1,
+          "action.type": "navigate",
+          "action.path": "/"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 2,
+      "durationMs": 150
+    },
+    {
+      "recordId": "4a915475-50db-4e93-9a3e-5ad886553b76",
+      "at": "2026-10-11T07:48:42.160Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 2,
+      "documentGenerationAfter": 2,
+      "durationMs": 5
+    },
+    {
+      "recordId": "75f2aa6e-1895-4981-aaed-ef58cc6b88dc",
+      "at": "2026-10-11T07:48:52.618Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "e2b3f9dad989022ad535e979f3c99da18ae7e25911a4d30841eb8c8b394a4f3b",
+        "summary": {
+          "names": "array:1 sha256:24066947f78216e7"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": 2,
+      "documentGenerationAfter": 2,
+      "durationMs": 1
+    },
+    {
+      "recordId": "23ac0c7d-a3eb-4134-a6b9-115665217c60",
+      "at": "2026-10-11T07:48:52.632Z",
+      "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-e4e6907a-0452-4d2a-93f7-fda4a0637c5f",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "f48e9189a9d13c27606f86ddd693250f5385f94e723cba5f0ae1ef847faca32a",
+        "summary": {
+          "sql": "len:78 sha256:82035375f6dc2681"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 6
+    }
+  ],
+  "modelUiActionTypesObserved": [
+    "click",
+    "waitFor",
+    "type",
+    "navigate"
+  ],
+  "modelMcpSnapshotRefActions": [
+    {
+      "toolId": "item_29",
+      "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGeneration": 1,
+      "target": {
+        "ref": "e7",
+        "snapshotId": "435d3b7d-c6f7-470a-a166-f1d91f0f9a03"
+      },
+      "argsSha256": "5e3abe2932a1db08d4b83da2237658f86c997bdb3060281e93b85e5527157f17",
+      "mainAuditId": "6a78e89e-f3fa-4253-a80c-fcf23a80c207"
+    },
+    {
+      "toolId": "item_30",
+      "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGeneration": 1,
+      "target": {
+        "ref": "e2",
+        "snapshotId": "435d3b7d-c6f7-470a-a166-f1d91f0f9a03"
+      },
+      "argsSha256": "2881cb44273b5c88781fe3c2568575cc0d28b4b916ca188edf20a1e33f3927b8",
+      "mainAuditId": "328068b1-b7da-4898-a5e8-ad7758df1ee2"
+    },
+    {
+      "toolId": "item_34",
+      "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGeneration": 1,
+      "target": {
+        "ref": "e7",
+        "snapshotId": "08f7a688-8e13-46ac-956a-8253a27d2e0f"
+      },
+      "argsSha256": "42b72baa601f832e5725e508e191660b7ebd73a0d1dea449141e45760e1aa1fc",
+      "mainAuditId": "d6a0aa8b-12b5-46a3-b558-5f11e0f7ad94"
+    },
+    {
+      "toolId": "item_35",
+      "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGeneration": 1,
+      "target": {
+        "ref": "e2",
+        "snapshotId": "08f7a688-8e13-46ac-956a-8253a27d2e0f"
+      },
+      "argsSha256": "df7707abdfa082399d56e939f623596a1e9aa4cf995b56d6d6cfd53b0cf04924",
+      "mainAuditId": "16eb578b-4f51-414d-9363-58bf511dbec3"
+    },
+    {
+      "toolId": "item_36",
+      "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+      "appInstanceId": "07cef360-d227-4859-a331-9a57b5ab0cea",
+      "documentGeneration": 1,
+      "target": {
+        "ref": "e2",
+        "snapshotId": "08f7a688-8e13-46ac-956a-8253a27d2e0f"
+      },
+      "argsSha256": "fe81f149bcfdf407a31ca074953d88fe260c4f11f2437eef623e992e08da1028",
+      "mainAuditId": "7c83e924-2ec1-44f1-a2cd-b65e10b1ddef"
+    }
+  ],
+  "guestShellCli": [
+    {
+      "id": "item_4",
+      "turnId": "908c4ac5-af4a-4246-8251-fd00c4b50306",
+      "exitCode": 0,
+      "outputSha256": "56d0362f1e6740222ccfe83c24ca9f43dc8f9bc7ca37925d2d924d13400d0cc4",
+      "truncated": false
+    }
+  ],
+  "cliTranscripts": [
+    {
+      "version": 1,
+      "calls": [
+        {
+          "label": "describe",
+          "argv": [
+            "wsl-app",
+            "describe",
+            "{}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.describe",
+            "data": {
+              "app": {
+                "projectId": "a43e6f5d-a679-4c5a-9977-579efc46291e",
+                "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+                "state": "running",
+                "url": "http://127.0.0.1:49273",
+                "cleanupConfirmed": false,
+                "error": null
+              },
+              "browser": {
+                "resourceId": "a712d811-9686-4fdc-8ffc-3fa7a0585fc9",
+                "documentGeneration": 1,
+                "url": "http://127.0.0.1:49273/",
+                "cdp": {
+                  "state": "idle"
+                },
+                "agentControl": {
+                  "state": "idle",
+                  "runId": null,
+                  "since": null,
+                  "lastAction": null
+                }
+              },
+              "operationTrackingVersion": 1,
+              "currentRevision": "a8b86f3784ad2c06797c21fff279ddb0a5fbd33f6e2ebd749d0998f2b551b58e",
+              "manifestRevision": "a8b86f3784ad2c06797c21fff279ddb0a5fbd33f6e2ebd749d0998f2b551b58e",
+              "buildRevision": "a8b86f3784ad2c06797c21fff279ddb0a5fbd33f6e2ebd749d0998f2b551b58e",
+              "manifest": {
+                "schemaVersion": 1,
+                "templateId": "wsl-standard-app",
+                "templateVersion": "1.1.0",
+                "sourceRevision": "a8b86f3784ad2c06797c21fff279ddb0a5fbd33f6e2ebd749d0998f2b551b58e",
+                "pages": [
+                  {
+                    "path": "/",
+                    "source": "src/App.tsx",
+                    "testids": [
+                      "app-instance-id",
+                      "health-refresh",
+                      "health-status",
+                      "project-id"
+                    ]
+                  }
+                ],
+                "routes": [
+                  {
+                    "method": "POST",
+                    "path": "/api/dev/session"
+                  },
+                  {
+                    "method": "GET",
+                    "path": "/api/health"
+                  },
+                  {
+                    "method": "GET",
+                    "path": "/api/kv/:key"
+                  },
+                  {
+                    "method": "PUT",
+                    "path": "/api/kv/:key"
+                  }
+                ],
+                "dataModel": [
+                  {
+                    "table": "records",
+                    "columns": [
+                      {
+                        "name": "user_id",
+                        "type": "text",
+                        "notNull": true,
+                        "primaryKey": true
+                      },
+                      {
+                        "name": "key",
+                        "type": "text",
+                        "notNull": true,
+                        "primaryKey": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "notNull": true,
+                        "primaryKey": false
+                      }
+                    ],
+                    "primaryKey": [
+                      "user_id",
+                      "key"
+                    ]
+                  },
+                  {
+                    "table": "sessions",
+                    "columns": [
+                      {
+                        "name": "token",
+                        "type": "text",
+                        "notNull": true,
+                        "primaryKey": true
+                      },
+                      {
+                        "name": "user_id",
+                        "type": "text",
+                        "notNull": true,
+                        "primaryKey": false
+                      },
+                      {
+                        "name": "expires_at",
+                        "type": "bigint",
+                        "notNull": true,
+                        "primaryKey": false
+                      }
+                    ],
+                    "primaryKey": [
+                      "token"
+                    ]
+                  }
+                ],
+                "commands": [
+                  {
+                    "name": "health.refresh",
+                    "description": "重新请求 /api/health 并返回应用服务连接状态（只读观察）",
+                    "inputSchema": {
+                      "$schema": "https://json-schema.org/draft/2020-12/schema",
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": false
+                    },
+                    "sources": [
+                      "src/App.tsx:45"
+                    ]
+                  }
+                ],
+                "states": [
+                  {
+                    "name": "app.health",
+                    "sources": [
+                      "src/App.tsx:44"
+                    ]
+                  }
+                ],
+                "testids": [
+                  {
+                    "testid": "app-instance-id",
+                    "element": "dd",
+                    "source": "src/App.tsx:84"
+                  },
+                  {
+                    "testid": "health-refresh",
+                    "element": "Button",
+                    "source": "src/App.tsx:64"
+                  },
+                  {
+                    "testid": "health-status",
+                    "element": "p",
+                    "source": "src/App.tsx:60"
+                  },
+                  {
+                    "testid": "project-id",
+                    "element": "dd",
+                    "source": "src/App.tsx:78"
+                  }
+                ],
+                "checks": []
+              },
+              "manifestError": null,
+              "stale": {
+                "manifest": false,
+                "build": false
+              },
+              "guide": "agent/AGENTS.md",
+              "rules": [
+                "语义命令只用于准备数据与观察状态：seed、读 state、读日志、读库。",
+                "判定“用户能完成某操作”必须经 app.ui.act 的 UI 动作，再用状态断言佐证；禁止用语义命令直接制造被验收的行为结果。",
+                "固定验收基准在 Agent 写入范围外；Agent 自写场景只是开发辅助，不算验收通过。"
+              ]
+            }
+          }
+        },
+        {
+          "label": "status",
+          "argv": [
+            "wsl-app",
+            "status",
+            "{}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.status",
+            "data": {
+              "app": {
+                "projectId": "a43e6f5d-a679-4c5a-9977-579efc46291e",
+                "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+                "state": "running",
+                "url": "http://127.0.0.1:49273",
+                "cleanupConfirmed": false,
+                "error": null
+              },
+              "browser": {
+                "resourceId": "a712d811-9686-4fdc-8ffc-3fa7a0585fc9",
+                "documentGeneration": 1,
+                "url": "http://127.0.0.1:49273/",
+                "cdp": {
+                  "state": "idle"
+                },
+                "agentControl": {
+                  "state": "idle",
+                  "runId": null,
+                  "since": null,
+                  "lastAction": null
+                }
+              },
+              "runId": "8a27f78e-dacf-4f5a-a4de-e43abf3fe751"
+            }
+          }
+        },
+        {
+          "label": "snapshot",
+          "argv": [
+            "wsl-app",
+            "ui.snapshot",
+            "{}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.ui.snapshot",
+            "data": {
+              "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+              "documentGeneration": 1,
+              "snapshotId": "7b1eb43c-c84e-45fb-bad3-871f7e93b0df",
+              "url": "http://127.0.0.1:49273/",
+              "title": "标准应用 · Web Studio Lab",
+              "elements": [
+                {
+                  "ref": "e1",
+                  "role": "button",
+                  "name": "检查连接",
+                  "testid": "health-refresh",
+                  "text": "检查连接",
+                  "value": "",
+                  "visible": true,
+                  "disabled": false,
+                  "focused": false,
+                  "checked": null
+                },
+                {
+                  "ref": "e2",
+                  "role": "status",
+                  "name": "",
+                  "testid": "health-status",
+                  "text": "已连接 · 数据库就绪",
+                  "value": null,
+                  "visible": true,
+                  "disabled": false,
+                  "focused": false,
+                  "checked": null
+                },
+                {
+                  "ref": "e3",
+                  "role": "definition",
+                  "name": "",
+                  "testid": "project-id",
+                  "text": "a43e6f5d-a679-4c5a-9977-579efc46291e",
+                  "value": null,
+                  "visible": true,
+                  "disabled": false,
+                  "focused": false,
+                  "checked": null
+                },
+                {
+                  "ref": "e4",
+                  "role": "definition",
+                  "name": "",
+                  "testid": "app-instance-id",
+                  "text": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+                  "value": null,
+                  "visible": true,
+                  "disabled": false,
+                  "focused": false,
+                  "checked": null
+                }
+              ],
+              "truncated": false,
+              "coverage": [
+                "仅根文档；iframe 与关闭的 shadow root 不在快照内"
+              ]
+            }
+          }
+        },
+        {
+          "label": "click",
+          "argv": [
+            "wsl-app",
+            "ui.act",
+            "{\"appInstanceId\":\"5505768b-6ba6-4941-9c8e-8cb13ac9de87\",\"documentGeneration\":1,\"action\":{\"type\":\"click\",\"target\":{\"ref\":\"e1\",\"snapshotId\":\"7b1eb43c-c84e-45fb-bad3-871f7e93b0df\"}}}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.ui.act",
+            "data": {
+              "documentGeneration": 1,
+              "navigated": false,
+              "url": "http://127.0.0.1:49273/",
+              "action": "click"
+            }
+          }
+        },
+        {
+          "label": "health_settled",
+          "argv": [
+            "wsl-app",
+            "ui.act",
+            "{\"appInstanceId\":\"5505768b-6ba6-4941-9c8e-8cb13ac9de87\",\"documentGeneration\":1,\"action\":{\"type\":\"waitFor\",\"target\":{\"testid\":\"health-refresh\"},\"state\":\"enabled\",\"timeoutMs\":10000}}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.ui.act",
+            "data": {
+              "documentGeneration": 1,
+              "navigated": false,
+              "url": "http://127.0.0.1:49273/",
+              "action": "waitFor"
+            }
+          }
+        },
+        {
+          "label": "state_before",
+          "argv": [
+            "wsl-app",
+            "state.read",
+            "{\"names\":[\"app.health\"]}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.state.read",
+            "data": {
+              "documentGeneration": 1,
+              "states": {
+                "app.health": {
+                  "status": "ok",
+                  "busy": false,
+                  "error": null,
+                  "identity": {
+                    "workspaceId": "taskflow-demo",
+                    "environmentId": "sandbox",
+                    "projectId": "a43e6f5d-a679-4c5a-9977-579efc46291e",
+                    "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "label": "data_before",
+          "argv": [
+            "wsl-app",
+            "data.query",
+            "{\"sql\":\"SELECT user_id, key, value FROM records ORDER BY user_id, key\"}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.data.query",
+            "data": {
+              "columns": [
+                "user_id",
+                "key",
+                "value"
+              ],
+              "rows": [
+                {
+                  "user_id": "A",
+                  "key": "welcome",
+                  "value": "Ready"
+                },
+                {
+                  "user_id": "B",
+                  "key": "welcome",
+                  "value": "Ready"
+                }
+              ],
+              "rowCount": 2,
+              "truncated": false,
+              "mode": "http"
+            }
+          }
+        },
+        {
+          "label": "stale_instance",
+          "argv": [
+            "wsl-app",
+            "ui.act",
+            "{\"appInstanceId\":\"cli-forged-instance\",\"documentGeneration\":1,\"action\":{\"type\":\"click\",\"target\":{\"ref\":\"e1\",\"snapshotId\":\"7b1eb43c-c84e-45fb-bad3-871f7e93b0df\"}}}"
+          ],
+          "exitCode": 1,
+          "result": {
+            "ok": false,
+            "tool": "app.ui.act",
+            "error": {
+              "code": "stale_instance",
+              "message": "请求绑定的实例 cli-forged-instance 已不是当前实例 5505768b-6ba6-4941-9c8e-8cb13ac9de87"
+            }
+          }
+        },
+        {
+          "label": "reset_denied",
+          "argv": [
+            "wsl-app",
+            "data.reset",
+            "{\"appInstanceId\":\"5505768b-6ba6-4941-9c8e-8cb13ac9de87\",\"confirm\":\"reset-instance-data\"}"
+          ],
+          "exitCode": 1,
+          "result": {
+            "ok": false,
+            "tool": "app.data.reset",
+            "error": {
+              "code": "authorization_required",
+              "message": "重置需要用户在任务允许范围中写明 app.data.reset"
+            }
+          }
+        },
+        {
+          "label": "state_after",
+          "argv": [
+            "wsl-app",
+            "state.read",
+            "{\"names\":[\"app.health\"]}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.state.read",
+            "data": {
+              "documentGeneration": 1,
+              "states": {
+                "app.health": {
+                  "status": "ok",
+                  "busy": false,
+                  "error": null,
+                  "identity": {
+                    "workspaceId": "taskflow-demo",
+                    "environmentId": "sandbox",
+                    "projectId": "a43e6f5d-a679-4c5a-9977-579efc46291e",
+                    "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "label": "data_after",
+          "argv": [
+            "wsl-app",
+            "data.query",
+            "{\"sql\":\"SELECT user_id, key, value FROM records ORDER BY user_id, key\"}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.data.query",
+            "data": {
+              "columns": [
+                "user_id",
+                "key",
+                "value"
+              ],
+              "rows": [
+                {
+                  "user_id": "A",
+                  "key": "welcome",
+                  "value": "Ready"
+                },
+                {
+                  "user_id": "B",
+                  "key": "welcome",
+                  "value": "Ready"
+                }
+              ],
+              "rowCount": 2,
+              "truncated": false,
+              "mode": "http"
+            }
+          }
+        },
+        {
+          "label": "resnapshot",
+          "argv": [
+            "wsl-app",
+            "ui.snapshot",
+            "{}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.ui.snapshot",
+            "data": {
+              "appInstanceId": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+              "documentGeneration": 1,
+              "snapshotId": "619f3a37-768a-4917-9961-6d3b01d6f5ce",
+              "url": "http://127.0.0.1:49273/",
+              "title": "标准应用 · Web Studio Lab",
+              "elements": [
+                {
+                  "ref": "e1",
+                  "role": "button",
+                  "name": "检查连接",
+                  "testid": "health-refresh",
+                  "text": "检查连接",
+                  "value": "",
+                  "visible": true,
+                  "disabled": false,
+                  "focused": false,
+                  "checked": null
+                },
+                {
+                  "ref": "e2",
+                  "role": "status",
+                  "name": "",
+                  "testid": "health-status",
+                  "text": "已连接 · 数据库就绪",
+                  "value": null,
+                  "visible": true,
+                  "disabled": false,
+                  "focused": false,
+                  "checked": null
+                },
+                {
+                  "ref": "e3",
+                  "role": "definition",
+                  "name": "",
+                  "testid": "project-id",
+                  "text": "a43e6f5d-a679-4c5a-9977-579efc46291e",
+                  "value": null,
+                  "visible": true,
+                  "disabled": false,
+                  "focused": false,
+                  "checked": null
+                },
+                {
+                  "ref": "e4",
+                  "role": "definition",
+                  "name": "",
+                  "testid": "app-instance-id",
+                  "text": "5505768b-6ba6-4941-9c8e-8cb13ac9de87",
+                  "value": null,
+                  "visible": true,
+                  "disabled": false,
+                  "focused": false,
+                  "checked": null
+                }
+              ],
+              "truncated": false,
+              "coverage": [
+                "仅根文档；iframe 与关闭的 shadow root 不在快照内"
+              ]
+            }
+          }
+        },
+        {
+          "label": "stale_snapshot",
+          "argv": [
+            "wsl-app",
+            "ui.act",
+            "{\"appInstanceId\":\"5505768b-6ba6-4941-9c8e-8cb13ac9de87\",\"documentGeneration\":1,\"action\":{\"type\":\"click\",\"target\":{\"ref\":\"e1\",\"snapshotId\":\"7b1eb43c-c84e-45fb-bad3-871f7e93b0df\"}}}"
+          ],
+          "exitCode": 1,
+          "result": {
+            "ok": false,
+            "tool": "app.ui.act",
+            "error": {
+              "code": "stale_ref",
+              "message": "引用 e1 已失效，请重新调用 app.ui.snapshot"
+            }
+          }
+        },
+        {
+          "label": "current_ref",
+          "argv": [
+            "wsl-app",
+            "ui.act",
+            "{\"appInstanceId\":\"5505768b-6ba6-4941-9c8e-8cb13ac9de87\",\"documentGeneration\":1,\"action\":{\"type\":\"click\",\"target\":{\"ref\":\"e1\",\"snapshotId\":\"619f3a37-768a-4917-9961-6d3b01d6f5ce\"}}}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.ui.act",
+            "data": {
+              "documentGeneration": 1,
+              "navigated": false,
+              "url": "http://127.0.0.1:49273/",
+              "action": "click"
+            }
+          }
+        },
+        {
+          "label": "current_settled",
+          "argv": [
+            "wsl-app",
+            "ui.act",
+            "{\"appInstanceId\":\"5505768b-6ba6-4941-9c8e-8cb13ac9de87\",\"documentGeneration\":1,\"action\":{\"type\":\"waitFor\",\"target\":{\"testid\":\"health-refresh\"},\"state\":\"enabled\",\"timeoutMs\":10000}}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.ui.act",
+            "data": {
+              "documentGeneration": 1,
+              "navigated": false,
+              "url": "http://127.0.0.1:49273/",
+              "action": "waitFor"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "cliMainAuditIds": [
+    "2fb02185-9d70-4ef2-81a2-836e1fca7c49",
+    "e6adb45a-fc7b-4e16-b9e5-11a20a311918",
+    "603fe909-bd9c-4d53-990a-1328ff363f16",
+    "70144e65-85e7-4fc6-b5fd-5a59be07fcfd",
+    "d079f229-a15f-4349-a162-3bbd2d3e2fbf",
+    "e1ef5b53-e3cb-4112-9541-1cb8bd3d239f",
+    "82ca08fd-4f41-48ff-934c-865c016b4b6b",
+    "568bdf88-7e2d-4f87-b532-38cff19caec5",
+    "fb887309-02d9-498a-87b1-f9e88897f609",
+    "d2fb4522-3194-455f-b73a-70afb50739df",
+    "4b2299e2-8fb9-4023-a44c-03ad3d6f1bfe",
+    "2a217233-2849-445c-b7b9-1fab35a76b48",
+    "fb7610d8-b26d-4dbd-b733-7bc7f856c8df",
+    "21a3b986-0742-4ebd-ae79-fdae431413a3",
+    "6f883c45-8b2c-4965-848a-c58cdbf50728"
+  ],
+  "cliOutcome": "passed",
+  "hostReset": "{\"ok\":true,\"data\":{\"truncated\":[\"records\",\"sessions\"],\"seeded\":true}}\n",
+  "hostInstance": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "a43e6f5d-a679-4c5a-9977-579efc46291e",
+    "environmentId": "sandbox",
+    "appInstanceId": "ab7b4e1a-4e18-4e47-8072-866bb3c44579",
+    "state": "running",
+    "url": "http://127.0.0.1:49275",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/a43e6f5d-a679-4c5a-9977-579efc46291e",
+    "guestPort": 37599,
+    "error": null,
+    "cleanupConfirmed": false
+  },
+  "hostQuery": {
+    "ok": true,
+    "data": {
+      "columns": [
+        "value"
+      ],
+      "rows": [
+        {
+          "value": "固定验收 2026"
+        }
+      ],
+      "rowCount": 1,
+      "truncated": false
+    }
+  },
+  "cleanupApp": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "a43e6f5d-a679-4c5a-9977-579efc46291e",
+    "environmentId": "sandbox",
+    "appInstanceId": "ab7b4e1a-4e18-4e47-8072-866bb3c44579",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/a43e6f5d-a679-4c5a-9977-579efc46291e",
+    "guestPort": 37599,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "guestProcessesAfter": "[]\n",
+  "applicationExited": true,
+  "portsAfter": [
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49265,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    },
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49266,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    },
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49267,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    },
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49268,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    }
+  ],
+  "remainingOwnedPortMappings": [],
+  "fixedHashesAfter": {
+    "task": "21f44e2e39162ae876b3a5f84c820cafed78ced0729dd90e50ffcdde6293102c",
+    "scenario": "47045475157bf4e7ecfdb76c1cff742b7a549a3a69dbbbff803a3bf36ea86b91"
+  },
+  "cleanupErrors": []
+}

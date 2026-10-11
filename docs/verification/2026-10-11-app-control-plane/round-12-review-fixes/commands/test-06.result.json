@@ -1,0 +1,9 @@
+{
+  "command": [
+    "pnpm",
+    "test"
+  ],
+  "exitCode": 0,
+  "seconds": 14.611912965774536,
+  "sourceFingerprint": "final-runtime-input-sha256.json"
+}

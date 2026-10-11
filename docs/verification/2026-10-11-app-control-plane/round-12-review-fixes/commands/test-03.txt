@@ -1,0 +1,69 @@
+
+> web-studio-lab@ test /Users/huaodong/workspace/web-studio-lab
+> vitest run && node --test scripts/packaging/*.test.mjs && pnpm test:external-builds
+
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+
+ Test Files  81 passed | 6 skipped (87)
+      Tests  693 passed | 15 skipped (708)
+   Start at  15:21:37
+   Duration  13.67s (tests 76%, import 18%, transform 5%, worker 1%)
+
+    Isolate  87 workers spawned · ~181ms startup each (spawn + environment, per file)
+             at least ~1.56s faster with isolate: false — reuses workers across files instead of one per file
+
+✔ CI rejects mismatched or injected tags and corrupted asset bytes (63.160708ms)
+✔ CI publishes only after uploading and verifying every asset, including prereleases (76.445875ms)
+✔ CI finds a matching draft on later pages and retries without replacing assets (34.767375ms)
+✔ CI refuses published releases and refuses publication after a remote tag moves (68.901167ms)
+✔ CI rejects another draft asset set and failed lookup does not create a release (26.753042ms)
+✔ CI imports only supplied certificate data and cleans up its own temporary keychain (6.234583ms)
+✔ CI tool failures suppress passwords from command error details (0.404875ms)
+✔ signed runtime probes disable pyc writes and fail if the probe damages the seal (0.228709ms)
+✔ pnpm platform pruning removes only macOS/Windows targets and preserves Linux ARM64 native bytes (63.869666ms)
+✔ guest archive audit rejects residual Mach-O and PE even outside pnpm (39.16575ms)
+✔ guest audit rejects wrong ELF architecture or a missing required native executable (16.125083ms)
+✔ download refuses hash and registry-integrity mismatch (1.898166ms)
+✔ interrupted and corrupt downloads never publish a cache hit (37.524541ms)
+✔ safe archive validation rejects parent and absolute traversal (11.893542ms)
+✔ safe archive validation rejects escaping symlink (6.293083ms)
+✔ archives are byte reproducible including links and executable modes (10.414ms)
+✔ release rejects missing/development signing and incomplete notarization (0.58925ms)
+✔ payload gate rejects an absent manifest (1.272333ms)
+✔ service audit rejects unbundled required assets while accepting optional accelerators (4.337166ms)
+✔ notarization failure does not leak secret-bearing exec argv (0.551958ms)
+✔ safe archive validation rejects writes through a symlink (5.235833ms)
+✔ payload gate rejects a changed source version and corrupted payload bytes (9.06925ms)
+✔ release documents are required and nonempty before artifact publication (4.451334ms)
+✔ release attachments preserve Chinese documents and signed App manifests byte for byte (13.765875ms)
+✔ formal builder selector removes only the Developer ID prefix and preserves full signing identity (0.470208ms)
+✔ installed electron-builder selects the same Developer ID certificate with the sanitized qualifier (358.778541ms)
+✔ template archive accepts Linux ARM64 and rejects foreign binaries, missing target and missing execute bit (70.108417ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 575.738917
+
+> web-studio-lab@ test:external-builds /Users/huaodong/workspace/web-studio-lab
+> node --test scripts/external-builds.test.mjs
+
+✔ setup preserves paths, writes through external links and remains idempotent (23.266542ms)
+✔ existing artifacts reject setup before any directory is linked (5.59925ms)
+✔ verification rejects missing external directories and replaced links (10.700459ms)
+✔ checkout identity follows physical paths and isolates separate checkouts (2.953208ms)
+✔ a normal directory cannot stand in for a mounted external volume (1.721625ms)
+✔ invalid opt-in config is rejected before setup changes artifacts (2.702667ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 125.070917

@@ -1,0 +1,72 @@
+{
+  "activePaneId": "13ae5db3-4c3e-4bba-80c1-dbe87d1e730c",
+  "layout": {
+    "kind": "pane",
+    "paneId": "13ae5db3-4c3e-4bba-80c1-dbe87d1e730c",
+    "tabId": "d438e0a8-5d2a-4c69-919e-e6969123aaf9"
+  },
+  "tabs": [
+    {
+      "tabId": "8ef1ca4d-d903-4a03-8296-12f9c4a348d1",
+      "title": "TaskFlow 预览",
+      "pinned": false,
+      "group": null,
+      "targetRef": {
+        "kind": "web",
+        "resourceId": "4ddfa7db-20d5-41c1-9f4d-f979f600b6c3"
+      }
+    },
+    {
+      "tabId": "e6282a69-44b6-4ff9-8297-9f8a4a96d889",
+      "title": "开发终端",
+      "pinned": false,
+      "group": null,
+      "targetRef": {
+        "kind": "terminal",
+        "resourceId": "d78b3b08-2e3a-4f4e-aace-6bdd5fb5fee2"
+      }
+    },
+    {
+      "tabId": "0ea05c79-139b-44dd-b087-5cd7b266dccb",
+      "title": "Agent 会话",
+      "pinned": false,
+      "group": null,
+      "targetRef": {
+        "kind": "session",
+        "resourceId": "de9af25f-6a13-49e5-afbd-6bc9dc9e6ca7"
+      }
+    },
+    {
+      "tabId": "d438e0a8-5d2a-4c69-919e-e6969123aaf9",
+      "title": "标准应用",
+      "pinned": false,
+      "group": null,
+      "targetRef": {
+        "kind": "web",
+        "resourceId": "5cc62f89-5bdb-427a-8ce2-8c7249c27003"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "resourceId": "4ddfa7db-20d5-41c1-9f4d-f979f600b6c3",
+      "kind": "web"
+    },
+    {
+      "resourceId": "d78b3b08-2e3a-4f4e-aace-6bdd5fb5fee2",
+      "kind": "terminal"
+    },
+    {
+      "resourceId": "de9af25f-6a13-49e5-afbd-6bc9dc9e6ca7",
+      "kind": "session"
+    },
+    {
+      "resourceId": "5cc62f89-5bdb-427a-8ce2-8c7249c27003",
+      "kind": "web",
+      "appProjectId": "8244385c-f317-4df5-adfc-f63741a49714"
+    }
+  ],
+  "sessionIds": [
+    "session-ee38c43b-92b0-45d5-9d35-e5a7d0e4f821"
+  ]
+}

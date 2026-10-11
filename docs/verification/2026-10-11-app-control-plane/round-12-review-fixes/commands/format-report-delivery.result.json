@@ -1,0 +1,13 @@
+{
+  "command": [
+    "pnpm",
+    "exec",
+    "prettier",
+    "--ignore-path",
+    "/dev/null",
+    "--write",
+    "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/README.md"
+  ],
+  "exitCode": 0,
+  "seconds": 0.7366447448730469
+}

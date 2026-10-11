@@ -1,0 +1,125 @@
+{
+  "taskSha256": "21f44e2e39162ae876b3a5f84c820cafed78ced0729dd90e50ffcdde6293102c",
+  "scenarioSha256": "47045475157bf4e7ecfdb76c1cff742b7a549a3a69dbbbff803a3bf36ea86b91",
+  "changedSourcePaths": [
+    "agent/AGENTS.md",
+    "agent/app.manifest.json",
+    "src/App.tsx",
+    "src/components/WelcomeCard.tsx"
+  ],
+  "modelToolChainObserved": true,
+  "modelFullSelfVerification": "not_proven_by_tool_presence",
+  "hostFixedOutcome": "passed",
+  "cliOutcome": "passed",
+  "hostQuery": {
+    "ok": true,
+    "data": {
+      "columns": [
+        "value"
+      ],
+      "rows": [
+        {
+          "value": "固定验收 2026"
+        }
+      ],
+      "rowCount": 1,
+      "truncated": false
+    }
+  },
+  "cleanupErrors": [],
+  "applicationExited": true,
+  "mcpSnapshotRefActions": 5,
+  "cliCalls": [
+    {
+      "label": "describe",
+      "exitCode": 0,
+      "outcome": "ok"
+    },
+    {
+      "label": "status",
+      "exitCode": 0,
+      "outcome": "ok"
+    },
+    {
+      "label": "snapshot",
+      "exitCode": 0,
+      "outcome": "ok"
+    },
+    {
+      "label": "click",
+      "exitCode": 0,
+      "outcome": "ok"
+    },
+    {
+      "label": "health_settled",
+      "exitCode": 0,
+      "outcome": "ok"
+    },
+    {
+      "label": "state_before",
+      "exitCode": 0,
+      "outcome": "ok"
+    },
+    {
+      "label": "data_before",
+      "exitCode": 0,
+      "outcome": "ok"
+    },
+    {
+      "label": "stale_instance",
+      "exitCode": 1,
+      "outcome": "stale_instance"
+    },
+    {
+      "label": "reset_denied",
+      "exitCode": 1,
+      "outcome": "authorization_required"
+    },
+    {
+      "label": "state_after",
+      "exitCode": 0,
+      "outcome": "ok"
+    },
+    {
+      "label": "data_after",
+      "exitCode": 0,
+      "outcome": "ok"
+    },
+    {
+      "label": "resnapshot",
+      "exitCode": 0,
+      "outcome": "ok"
+    },
+    {
+      "label": "stale_snapshot",
+      "exitCode": 1,
+      "outcome": "stale_ref"
+    },
+    {
+      "label": "current_ref",
+      "exitCode": 0,
+      "outcome": "ok"
+    },
+    {
+      "label": "current_settled",
+      "exitCode": 0,
+      "outcome": "ok"
+    }
+  ],
+  "run": {
+    "state": "completed",
+    "cleanupPending": false,
+    "endedAt": "2026-10-11T07:49:02.395Z",
+    "validation": {
+      "state": "not_run",
+      "applicability": "unknown",
+      "reason": null
+    }
+  },
+  "builtFrom": "build-04",
+  "remainingOwnedMappings": [],
+  "cleanupApp": {
+    "state": "stopped",
+    "cleanupConfirmed": true
+  }
+}

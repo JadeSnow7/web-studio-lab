@@ -1,4 +1,8 @@
+import type { AppUiPort } from './app-control';
 import type {
+  AppAgentOperation,
+  AppAgentResult,
+  AppLogs,
   PageResourceSnapshot,
   CatalogReferenceSnapshot,
   ManagedApp,
@@ -22,6 +26,11 @@ export interface WorkbenchRuntime {
   appStop?(target: AppTarget): Promise<ManagedApp>;
   appExport?(target: AppTarget): Promise<{ path: string; manifestPath?: string; sha256: string }>;
   releaseAppBrowser?(resourceId: string): void;
+  /** 控制面执行器：仅受管 App 的 Browser 资源可取得 UI 端口。 */
+  appUi?(resourceId: string): AppUiPort;
+  appAgent?(target: AppTarget, appInstanceId: string | null, operation: AppAgentOperation, signal: AbortSignal): Promise<AppAgentResult>;
+  appLogs?(target: AppTarget, maxBytes: number): Promise<AppLogs>;
+  appLeaseValid?(projectId: string, appInstanceId: string): boolean;
   environmentsList(): Promise<EnvironmentDescription[]>;
   releaseResource(identity: ResourceInstanceIdentity): Promise<void>;
   registerResource(identity: ResourceInstanceIdentity): Promise<void>;

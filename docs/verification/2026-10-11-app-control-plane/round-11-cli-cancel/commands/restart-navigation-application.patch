@@ -1,0 +1,49 @@
+--- apps/desktop/src/main/workbench/application.ts before round-11 fix
++++ apps/desktop/src/main/workbench/application.ts after round-11 fix
+@@ -415,7 +415,10 @@
+   private readonly pendingAppFailures = new Map<string, NonNullable<WorkspaceSnapshot['managedApp']>>();
+   private readonly appOperations = new Map<string, string>();
+   private readonly appCommands = new Map<string, { fingerprint: string; promise: Promise<WorkbenchResult> }>();
+-  private appCommand(c: Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>): Promise<WorkbenchResult> {
++  private appCommand(
++    c: Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>,
++    activateApp = true,
++  ): Promise<WorkbenchResult> {
+     const fingerprint = createHash('sha256').update(JSON.stringify(c)).digest('hex');
+     const previous = this.appCommands.get(c.commandId);
+     if (previous)
+@@ -428,12 +431,13 @@
+           });
+     if (this.commands.has(c.commandId))
+       return Promise.resolve({ ok: false, error: { code: 'conflict', message: '命令身份已使用' }, snapshot: this.publicSnapshot() });
+-    const promise = this.executeAppCommand(c);
++    const promise = this.executeAppCommand(c, activateApp);
+     this.appCommands.set(c.commandId, { fingerprint, promise });
+     return promise;
+   }
+   private async executeAppCommand(
+     c: Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>,
++    activateApp: boolean,
+   ): Promise<WorkbenchResult> {
+     let target: { workspaceId: string; projectId: string } | undefined;
+     try {
+@@ -506,7 +510,9 @@
+             }
+             resource.url = app.url;
+             resource.unavailableReason = null;
+-            this.openResource(w, resource.resourceId);
++            if (activateApp) this.openResource(w, resource.resourceId);
++            // AI restarts need a live browser without changing the user's current or intervening navigation.
++            else this.ensureBrowser(w, resource);
+           }
+         }
+         this.appOperations.delete(c.workspaceId);
+@@ -955,7 +961,7 @@
+       const current = this.snapshot.workspaces.find((workspace) => workspace.workspaceId === workspaceId)?.managedApp;
+       if (current?.appInstanceId !== appInstanceId) return;
+       const stopped = await this.command({ type: 'stopApp', commandId: randomUUID(), workspaceId });
+-      if (stopped.ok) await this.command({ type: 'startApp', commandId: randomUUID(), workspaceId });
++      if (stopped.ok) await this.appCommand({ type: 'startApp', commandId: randomUUID(), workspaceId }, false);
+     })().catch((error: unknown) => console.error('控制面重启应用失败', error));
+   }
+   private observationFailure(error: unknown): WorkspaceObservationResult {

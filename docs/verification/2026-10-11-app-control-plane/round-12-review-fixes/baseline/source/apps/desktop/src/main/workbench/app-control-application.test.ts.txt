@@ -1,0 +1,223 @@
+import { catalogForTestSnapshot } from './catalog-test-fixture';
+import { randomUUID } from 'node:crypto';
+import { describe, expect, it, vi } from 'vitest';
+import type { ChatConversation, ManagedApp, ObservationTurnScope, WorkbenchCommand } from '@wsl/protocol';
+import { WorkbenchApplication } from './application';
+import type { WorkbenchRuntime } from './ports';
+import type { AppControl } from './app-control';
+import { AppControlFailure } from './app-control-failure';
+
+function conversation(id: string, state: ChatConversation['state']): ChatConversation {
+  return {
+    conversationId: id,
+    generation: 'g',
+    seq: 1,
+    turnId: 't',
+    threadId: 'th',
+    state,
+    messages: [],
+    toolExecutions: [],
+    warnings: [],
+    cleanupPending: state === 'running',
+    error: null,
+  };
+}
+
+async function setup(allowedScopes: string[]) {
+  let instance: ManagedApp | null = null;
+  let starts = 0;
+  const runtime = {
+    environmentsList: vi.fn().mockResolvedValue([]),
+    registerResource: vi.fn(),
+    releaseResource: vi.fn(),
+    observe: vi.fn(),
+    registerSession: vi.fn(),
+    captureResource: vi.fn(),
+    validateBrowserUrl: vi.fn(),
+    ensureBrowser: vi.fn(),
+    browserState: vi.fn(() => ({
+      page: { webContentsId: 1, documentGeneration: 0, url: 'http://127.0.0.1:49152', title: 'App', partition: 'test' },
+      loading: false,
+      canGoBack: false,
+      canGoForward: false,
+      picking: false,
+      cdp: { state: 'attached' },
+      consoleIssueCount: 0,
+      loadError: null,
+      blockedNavigation: null,
+      pickError: null,
+    })),
+    browserLayout: vi.fn(),
+    browserAction: vi.fn(),
+    hideBrowsers: vi.fn(),
+    terminalOpen: vi.fn(),
+    terminalWrite: vi.fn(),
+    terminalResize: vi.fn(),
+    terminalStop: vi.fn(),
+    send: vi.fn(async (id: string) => conversation(id, 'running')),
+    cancel: vi.fn(async (id: string) => conversation(id, 'cancelled')),
+    releaseAppBrowser: vi.fn(),
+    appCreate: vi.fn(
+      async (target) =>
+        (instance = {
+          ...target,
+          environmentId: 'sandbox',
+          appInstanceId: null,
+          state: 'created',
+          url: null,
+          guestCwd: '/g',
+          error: null,
+          cleanupConfirmed: true,
+        }),
+    ),
+    appStop: vi.fn(
+      async () =>
+        (instance = {
+          ...instance!,
+          state: 'stopped',
+          url: null,
+          cleanupConfirmed: true,
+        }),
+    ),
+    appStart: vi.fn(
+      async () =>
+        (instance = {
+          ...instance!,
+          appInstanceId: 'app-instance-' + ++starts,
+          state: 'running',
+          url: 'http://127.0.0.1:49152',
+          cleanupConfirmed: false,
+        }),
+    ),
+  } as unknown as WorkbenchRuntime;
+  const app = new WorkbenchApplication(
+    {
+      migrationPending: false,
+      loadCatalog: catalogForTestSnapshot,
+      load: async () => null,
+      save: async () => undefined,
+      appendObservation: async () => '',
+    },
+    runtime,
+    vi.fn(),
+  );
+  const control = { releaseRun: vi.fn(), call: vi.fn() };
+  app.setAppControl(control as unknown as AppControl);
+  await app.getSnapshot();
+  const command = (payload: Record<string, unknown>) =>
+    app.command({ workspaceId: 'taskflow-demo', commandId: randomUUID(), ...payload } as WorkbenchCommand);
+  expect((await command({ type: 'createApp' })).ok).toBe(true);
+  expect((await command({ type: 'startApp' })).ok).toBe(true);
+  const w = (await app.getSnapshot()).workspaces[0]!;
+  const sessionId = w.sessions[0]!.sessionId;
+  expect((await command({ type: 'confirmTask', sessionId, goal: '修改欢迎语', targetRef: null, allowedScopes })).ok).toBe(true);
+  const version = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions.at(-1)!;
+  expect((await command({ type: 'startRun', sessionId, taskVersionId: version.taskVersionId })).ok).toBe(true);
+  const scope = vi.mocked(runtime.send).mock.calls[0]![2] as ObservationTurnScope;
+  return { app, runtime, control, scope, sessionId, command };
+}
+const failure = async (work: Promise<unknown>) => {
+  try {
+    await work;
+    return 'ok';
+  } catch (error) {
+    return error instanceof AppControlFailure ? error.code : String(error);
+  }
+};
+
+describe('control-plane authorization context', () => {
+  it('derives app, browser and reset authorization only from the frozen active run', async () => {
+    const { app, scope } = await setup(['app.data.reset', 'ui']);
+    const context = await app.appControlContext(scope);
+    expect(context).toMatchObject({
+      workspaceId: 'taskflow-demo',
+      runId: scope.runId,
+      allowsReset: true,
+      app: { appInstanceId: 'app-instance-1', state: 'running' },
+    });
+    const resource = (await app.getSnapshot()).workspaces[0]!.resources.find((item) => item.appProjectId === context.app!.projectId)!;
+    expect(context.browser?.resourceId).toBe(resource.resourceId);
+    expect(await failure(app.appControlContext({ ...scope, sessionId: 'other-session' }))).toBe('no_active_run');
+    expect(await failure(app.appControlContext({ ...scope, runId: 'forged-run' }))).toBe('no_active_run');
+  });
+  it('without the user marker reset is not authorized', async () => {
+    const { app, scope } = await setup(['ui']);
+    expect((await app.appControlContext(scope)).allowsReset).toBe(false);
+  });
+  it('run end releases the control plane and later calls see no active run', async () => {
+    const { app, scope, sessionId, control } = await setup([]);
+    app.onConversation({ ...conversation(sessionId, 'idle'), seq: 5 });
+    await app.getSnapshot();
+    expect(control.releaseRun).toHaveBeenCalledWith(scope.runId);
+    expect(await failure(app.appControlContext(scope))).toBe('no_active_run');
+  });
+  it('a cancelling run cannot use the control plane', async () => {
+    const { app, scope, command } = await setup([]);
+    const pending = command({ type: 'cancelRun', runId: scope.runId });
+    await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]!.runs[0]!.state).not.toBe('running'));
+    expect(await failure(app.appControlContext(scope))).toBe('no_active_run');
+    await pending;
+  });
+});
+
+describe('control-plane restart preserves user navigation', () => {
+  it('does not replace the active session pane when the App restarts', async () => {
+    const { app, command, sessionId } = await setup([]);
+    expect((await command({ type: 'locateSession', sessionId })).ok).toBe(true);
+    const before = (await app.getSnapshot()).workspaces[0]!;
+    app.restartAppForControl(before.workspaceId, before.managedApp!.appInstanceId!);
+    await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]!.managedApp?.appInstanceId).toBe('app-instance-2'));
+    const after = (await app.getSnapshot()).workspaces[0]!;
+    expect(after.layout).toEqual(before.layout);
+    expect(after.activePaneId).toBe(before.activePaneId);
+  });
+
+  it('keeps navigation made by the user while the restart is pending', async () => {
+    const { app, command, runtime, sessionId } = await setup([]);
+    expect((await command({ type: 'locateSession', sessionId })).ok).toBe(true);
+    const before = (await app.getSnapshot()).workspaces[0]!;
+    let complete!: (app: ManagedApp) => void;
+    vi.mocked(runtime.appStart!).mockImplementationOnce(
+      () =>
+        new Promise<ManagedApp>((resolve) => {
+          complete = resolve;
+        }),
+    );
+    app.restartAppForControl(before.workspaceId, before.managedApp!.appInstanceId!);
+    await vi.waitFor(() => expect(runtime.appStart).toHaveBeenCalledTimes(2));
+    expect((await command({ type: 'createTab', kind: 'session', title: '用户中途打开的会话' })).ok).toBe(true);
+    const navigated = (await app.getSnapshot()).workspaces[0]!;
+    complete({ ...before.managedApp!, appInstanceId: 'app-instance-2' });
+    await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]!.managedApp?.appInstanceId).toBe('app-instance-2'));
+    const after = (await app.getSnapshot()).workspaces[0]!;
+    expect(after.layout).toEqual(navigated.layout);
+    expect(after.activePaneId).toBe(navigated.activePaneId);
+  });
+
+  it('recreates the browser through the runtime without activating its tab', async () => {
+    const { app, command, runtime, sessionId } = await setup([]);
+    expect((await command({ type: 'locateSession', sessionId })).ok).toBe(true);
+    const before = (await app.getSnapshot()).workspaces[0]!;
+    app.restartAppForControl(before.workspaceId, before.managedApp!.appInstanceId!);
+    await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]!.managedApp?.appInstanceId).toBe('app-instance-2'));
+    const resource = (await app.getSnapshot()).workspaces[0]!.resources.find((r) => r.appProjectId === before.managedApp!.projectId)!;
+    expect(resource.instanceId).toEqual(expect.any(String));
+    expect(runtime.ensureBrowser).toHaveBeenCalledWith(
+      before.workspaceId,
+      expect.objectContaining({ resourceId: resource.resourceId, instanceId: resource.instanceId }),
+    );
+  });
+
+  it('still opens the App tab for an explicit user start', async () => {
+    const { app, command, sessionId } = await setup([]);
+    expect((await command({ type: 'stopApp' })).ok).toBe(true);
+    expect((await command({ type: 'locateSession', sessionId })).ok).toBe(true);
+    const before = (await app.getSnapshot()).workspaces[0]!;
+    expect((await command({ type: 'startApp' })).ok).toBe(true);
+    const after = (await app.getSnapshot()).workspaces[0]!;
+    const resource = after.resources.find((r) => r.appProjectId === after.managedApp!.projectId)!;
+    const tab = after.tabs.find((t) => t.targetRef.resourceId === resource.resourceId)!;
+    expect(after.layout).not.toEqual(before.layout);
+    expect(JSON.stringify(after.layout)).toContain(tab.tabId);
+  });
+});

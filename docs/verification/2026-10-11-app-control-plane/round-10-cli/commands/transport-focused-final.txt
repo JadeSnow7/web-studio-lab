@@ -1,0 +1,48 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/observation-socket.test.ts (1 test | 1 failed) 284ms
+   × uses a real Unix socket for bounded observation calls and releases its own client/server paths 283ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/observation-socket.test.ts > uses a real Unix socket for bounded observation calls and releases its own client/server paths
+AssertionError: test_actual_unix_socket_bounded_read_and_scoped_source_list (__main__.ObservationSocketTests.test_actual_unix_socket_bounded_read_and_scoped_source_list) ... ok
+test_disconnected_guest_client_emits_cancel_and_leaves_other_client_usable (__main__.ObservationSocketTests.test_disconnected_guest_client_emits_cancel_and_leaves_other_client_usable) ... ok
+test_full_request_frame_budget_is_rejected_before_connecting (__main__.ObservationSocketTests.test_full_request_frame_budget_is_rejected_before_connecting) ... ok
+test_oversized_complete_frame_and_unfinished_tail_are_rejected (__main__.ControlFrameParserTests.test_oversized_complete_frame_and_unfinished_tail_are_rejected) ... ok
+test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget (__main__.ControlFrameParserTests.test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget) ... ERROR
+
+======================================================================
+ERROR: test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget (__main__.ControlFrameParserTests.test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<string>", line 152, in test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget
+    exec(parser, namespace)
+    ~~~~^^^^^^^^^^^^^^^^^^^
+  File "<actual-guest-stdin-parser>", line 416, in <module>
+NameError: name 'cli_channel' is not defined
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.112s
+
+FAILED (errors=1)
+: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ apps/service/src/observation-socket.test.ts:10:40
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 2 passed (3)
+   Start at  12:34:45
+   Duration  2.05s (tests 94%, transform 5%, import 1%)
+

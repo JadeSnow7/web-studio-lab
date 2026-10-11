@@ -1,0 +1,8 @@
+{
+  "apps/desktop/out/main/index.js": "b1c1240ffa86714e82a986519bc6c5a9b97083c50dd5ac595b5b421728ffbeb2",
+  "apps/service/out/index.cjs": "efc492545951fba1c32856172770c76585e91c422acc77e5acf6e64017886227",
+  "packaging/generated/runtime/template-dependencies.tar.gz": "fa12446d82c6e4c069f8bd4540ff4ed489e39460b73ee6931d8a7231fe983e4f",
+  "tests/app-control/fixed-task/task.json": "21f44e2e39162ae876b3a5f84c820cafed78ced0729dd90e50ffcdde6293102c",
+  "tests/app-control/fixed-task/scenario.json": "47045475157bf4e7ecfdb76c1cff742b7a549a3a69dbbbff803a3bf36ea86b91",
+  "tests/app-control/fixed-task/reference/App.tsx": "8a526d2b2fabf1765dd42af6e197a7720bcd11789cd9306b71637a29ecdffdd1"
+}

@@ -1,0 +1,68 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts (14 tests | 2 failed | 12 skipped) 39ms
+   ❯ recovered executor cleanup remains unverified (2)
+     × does not infer model exit from an App terminal receipt for running 31ms
+     × does not infer model exit from an App terminal receipt for legacy_missing_executor 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > recovered executor cleanup remains unverified > does not infer model exit from an App terminal receipt for running
+AssertionError: expected { …(20) } to match object { state: 'cancelling', …(4) }
+(33 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "appCleanupPending": true,
+    "cleanupPending": true,
+    "endedAt": null,
+-   "error": StringContaining "旧模型进程清理未确认",
++   "error": "应用重启；未重放执行",
+    "state": "cancelling",
+  }
+
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:354:17
+    352|     let workspace = (await recovered.getSnapshot()).workspaces[0]!;
+    353|     let run = workspace.runs.find((item) => item.runId === initial.sco…
+    354|     expect(run).toMatchObject({ state: 'cancelling', endedAt: null, cl…
+       |                 ^
+    355|     control.reconcileRun.mockImplementation(async () => { control.hasP…
+    356|     expect((await recovered.command({ workspaceId: initial.scope.works…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > recovered executor cleanup remains unverified > does not infer model exit from an App terminal receipt for legacy_missing_executor
+AssertionError: expected { …(19) } to match object { state: 'cancelling', …(4) }
+(30 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "appCleanupPending": true,
+    "cleanupPending": true,
+    "endedAt": null,
+-   "error": StringContaining "旧模型进程清理未确认",
++   "error": "应用重启；未重放执行",
+    "state": "cancelling",
+  }
+
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:354:17
+    352|     let workspace = (await recovered.getSnapshot()).workspaces[0]!;
+    353|     let run = workspace.runs.find((item) => item.runId === initial.sco…
+    354|     expect(run).toMatchObject({ state: 'cancelling', endedAt: null, cl…
+       |                 ^
+    355|     control.reconcileRun.mockImplementation(async () => { control.hasP…
+    356|     expect((await recovered.command({ workspaceId: initial.scope.works…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 12 skipped (14)
+   Start at  15:25:34
+   Duration  614ms (transform 61%, import 30%, tests 8%, worker 1%)
+

@@ -1,0 +1,226 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: app-control-cancel-live.spec.ts >> real CLI cancellation stops owned processes and isolates a delayed reply from the next run
+- Location: e2e/app-control-cancel-live.spec.ts:127:1
+
+# Error details
+
+```
+TimeoutError: locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('region', { name: 'Agent 会话内容' }).getByRole('button', { name: '取消回复', exact: true })
+
+```
+
+# Test source
+
+```ts
+  231 |           const run = (await observe()).runs.find((r) => r.runId === runId)!;
+  232 |           return run.state === state && !run.conversation?.cleanupPending;
+  233 |         },
+  234 |         { timeout, intervals: [500, 1000] },
+  235 |       )
+  236 |       .toBe(true);
+  237 |     return (await space()).runs.find((r) => r.runId === runId)!;
+  238 |   };
+  239 |   try {
+  240 |     const beforePorts = PortsSchema.parse(JSON.parse((await execute(sbx, ['ports', sandbox, '--json'], { timeout: 20_000 })).stdout));
+  241 |     results['portsBefore'] = beforePorts;
+  242 |     for (const port of beforePorts) baselinePorts.add(portKey(port));
+  243 |     await app.evaluate((_electron, nonce) => {
+  244 |       (globalThis as GateGlobal).__wslAppCancelGate.nonce = nonce;
+  245 |     }, missing);
+  246 |     await workshopNavigate(page, '空间');
+  247 |     await page.getByRole('button', { name: '新建 App', exact: true }).click();
+  248 |     await page.getByRole('button', { name: '创建标准应用', exact: true }).click();
+  249 |     cwd = (await waitApp('created')).guestCwd;
+  250 |     results['projectCwd'] = cwd;
+  251 |     await page.getByRole('button', { name: '启动应用', exact: true }).click();
+  252 |     await waitApp('running');
+  253 |     await page.getByRole('dialog', { name: '空间 App' }).getByRole('button', { name: '关闭', exact: true }).click();
+  254 |     sessionId = (await space()).sessions[0]!.sessionId;
+  255 |     await command({ type: 'locateSession', sessionId });
+  256 |     const session = page.getByRole('region', { name: 'Agent 会话内容' });
+  257 |     const initialHashes = await sourceHashes();
+  258 |     results['sourceHashesInitial'] = initialHashes;
+  259 |     await save();
+  260 |     const firstScript = `import json,subprocess,pathlib,os
+  261 | os.chdir(${JSON.stringify(cwd)})
+  262 | s=subprocess.run(['wsl-app','ui.snapshot','{}'],capture_output=True,text=True,timeout=65)
+  263 | assert s.returncode==0,s.stdout
+  264 | r=json.loads(s.stdout);assert r['ok'];b=r['data']
+  265 | a={'appInstanceId':b['appInstanceId'],'documentGeneration':b['documentGeneration'],'action':{'type':'waitFor','target':{'testid':'${missing}'},'state':'visible','timeoutMs':10000}}
+  266 | p=subprocess.run(['wsl-app','ui.act',json.dumps(a)],capture_output=True,text=True,timeout=65)
+  267 | pathlib.Path('${forbidden}').write_text('${nonce}')
+  268 | subprocess.run(['wsl-app','status','{}'],check=True)
+  269 | print('WSL_UNEXPECTED_AFTER_RETURN',p.returncode)`;
+  270 |     const first = await start(
+  271 |       `这是已授权的真实取消测试，不是欢迎语任务。仅操作新建项目 ${cwd}。先用普通命令工具 mkdir -p ${cwd}/src/components，然后在 ${cwd}/${retained} 写入精确内容 ${nonce}，不要末尾换行；运行 npm run agent:manifest。然后调用 MCP app_restart 一次，查询 app_status 前每次 shell sleep 15 秒，最多12次（总等待不超过3分钟），确认新实例 running。不要改其他源码，不读凭据、不联网、不安装依赖、不提升现有权限。app.*总预算64/并发4，MCP总调用少于20。接着立即用普通命令工具原样运行下面的 Python脚本，所有 wsl-app 必须在普通workspace-write命令沙箱运行，不能由MCP代替、不能重试。脚本将等待随机不存在元素，Host会从产品按钮取消整个任务；不要自行取消、不要绕过等待、不要提前创建 after-return 文件。10分钟内一次run。\npython3 - <<'PY'\n${firstScript}\nPY`,
+  272 |     );
+  273 |     await expect(session.getByRole('button', { name: '取消回复', exact: true })).toBeVisible();
+  274 |     await expect
+  275 |       .poll(
+  276 |         async () => {
+  277 |           const target = (await gate()).target;
+  278 |           if (target) return target;
+  279 |           const current = await observe();
+  280 |           const run = current.runs.find((run) => run.runId === first)!;
+  281 |           if (!['starting', 'running', 'cancelling'].includes(run.state)) {
+  282 |             results['preflightTerminal'] = {
+  283 |               runId: first,
+  284 |               state: run.state,
+  285 |               cleanupPending: run.conversation?.cleanupPending,
+  286 |               appState: current.managedApp?.state,
+  287 |               toolExecutions: run.conversation?.toolExecutions.length,
+  288 |             };
+  289 |             await save();
+  290 |             throw new Error(`First model run ended in ${run.state} before issuing the required in-flight CLI call`);
+  291 |           }
+  292 |           return null;
+  293 |         },
+  294 |         { timeout: 600_000, intervals: [100, 250] },
+  295 |       )
+  296 |       .not.toBeNull();
+  297 |     const entered = (await gate()).target!;
+  298 |     expect(entered.runId).toBe(first);
+  299 |     expect(entered.tool).toBe('app.ui.act');
+  300 |     const targetArgs = AppToolInputSchemas['app.ui.act'].parse(entered.args);
+  301 |     expect(targetArgs.action).toEqual({ type: 'waitFor', target: { testid: missing }, state: 'visible', timeoutMs: 10000 });
+  302 |     ownership = OwnershipSchema.parse(
+  303 |       JSON.parse((await guest(['python3', '-I', '-c', ownershipScript, missing, cwd, retained, forbidden])).stdout),
+  304 |     );
+  305 |     results['inflightOwnership'] = ownership;
+  306 |     results['gateBeforeCancel'] = await gate();
+  307 |     results['sourceBeforeCancel'] = ownership.markers;
+  308 |     results['sourceHashesBeforeCancel'] = ownership.sourceHashes;
+  309 |     const changedPaths = [...new Set([...Object.keys(initialHashes), ...Object.keys(ownership.sourceHashes)])].filter(
+  310 |       (file) => initialHashes[file] !== ownership!.sourceHashes[file],
+  311 |     );
+  312 |     results['changedSourcePaths'] = changedPaths;
+  313 |     expect(changedPaths).toContain(retained);
+  314 |     expect(
+  315 |       changedPaths.filter((file) => file !== retained && !file.startsWith('agent/')),
+  316 |       'Model source changes must stay inside the frozen scope',
+  317 |     ).toEqual([]);
+  318 |     await save();
+  319 |     expect(results['sourceBeforeCancel']).toEqual({ retained: nonce, forbidden: null });
+  320 |     expect(
+  321 |       ownership.tree.some((p) => /codex/i.test(p.comm)),
+  322 |       'Owned helper subtree must include real Codex',
+  323 |     ).toBe(true);
+  324 |     expect((await gate()).held, 'Cancel must precede the real waitFor reply').toBeNull();
+  325 |     expect(
+  326 |       (await gate()).events.some((e) => e.type === 'abort'),
+  327 |       'CLI must still be active before the product cancel',
+  328 |     ).toBe(false);
+  329 |     expect(Date.now() - entered.at, 'Evidence collection must finish while waitFor is genuinely in flight').toBeLessThan(8000);
+  330 |     results['cancelButtonClickedAt'] = Date.now();
+> 331 |     await session.getByRole('button', { name: '取消回复', exact: true }).click();
+      |                                                                      ^ TimeoutError: locator.click: Timeout 30000ms exceeded.
+  332 |     const cancelled = await waitTerminal(first, 'cancelled', 60_000);
+  333 |     await expect(session).toContainText('回复已取消，进程已退出。');
+  334 |     await expect(session.getByRole('button', { name: '取消回复', exact: true })).toHaveCount(0);
+  335 |     await page.screenshot({ path: path.join(evidence, 'product-after-cancel.png') });
+  336 |     results['firstRun'] = { runId: cancelled.runId, state: cancelled.state, cleanupPending: cancelled.conversation?.cleanupPending };
+  337 |     await expect.poll(async () => (await gate()).held, { timeout: 20_000 }).not.toBeNull();
+  338 |     const held = (await gate()).held!;
+  339 |     expect(held.id).toBe(entered.id);
+  340 |     expect(held.result.ok).toBe(false);
+  341 |     if (held.result.ok) throw new Error('Real cancellation reply expected');
+  342 |     expect(held.result.error.code).toBe('cancelled');
+  343 |     const firstAudit = await audit(first);
+  344 |     results['firstAudit'] = firstAudit;
+  345 |     expect(
+  346 |       firstAudit.some((r) => r.tool === entered.tool && r.args.sha256 === hash(JSON.stringify(entered.args)) && r.outcome === 'cancelled'),
+  347 |     ).toBe(true);
+  348 |     await expect
+  349 |       .poll(async () => JSON.parse((await guest(['python3', '-I', '-c', stoppedScript, JSON.stringify(ownership)])).stdout), {
+  350 |         timeout: 30_000,
+  351 |       })
+  352 |       .toEqual({ remaining: [], channelExists: false });
+  353 |     results['stoppedOwnership'] = JSON.parse((await guest(['python3', '-I', '-c', stoppedScript, JSON.stringify(ownership)])).stdout);
+  354 |     expect(await markerFiles()).toEqual({ retained: nonce, forbidden: null });
+  355 |     results['sourceAfterCancel'] = await markerFiles();
+  356 |     const afterCancelHashes = await sourceHashes();
+  357 |     results['sourceHashesAfterCancel'] = afterCancelHashes;
+  358 |     expect(afterCancelHashes, 'Cancellation must retain every source file from the in-flight baseline').toEqual(ownership.sourceHashes);
+  359 |     const running = (await observe()).managedApp!;
+  360 |     expect(running.state, 'Task cancellation leaves the managed App running for the user').toBe('running');
+  361 |     results['appAfterCancel'] = running;
+  362 |     await save();
+  363 |     await app.evaluate(() => {
+  364 |       (globalThis as GateGlobal).__wslAppCancelGate.releaseOnSecond = true;
+  365 |     });
+  366 |     const secondScript = `import json,subprocess,os
+  367 | os.chdir(${JSON.stringify(cwd)})
+  368 | calls=[]
+  369 | for tool in ['status','describe']:
+  370 |  p=subprocess.run(['wsl-app',tool,'{}'],capture_output=True,text=True,timeout=65)
+  371 |  r=json.loads(p.stdout);calls.append({'tool':'app.'+tool,'exitCode':p.returncode,'result':r})
+  372 |  assert p.returncode==0 and r['ok'],r
+  373 | print('${secondMarker}'+json.dumps({'version':1,'calls':calls},ensure_ascii=False))`;
+  374 |     const second = await start(
+  375 |       `这是同会话新的真实CLI隔离验证。不要修改任何文件，不要重启或停止应用。仅在 ${cwd} 用普通命令工具原样执行下面Python脚本，真实 wsl-app 必须在现有workspace-write命令沙箱运行，不调用MCP，不提权、不联网、不重试；脚本完成即简短结束，一次run最多10分钟。\npython3 - <<'PY'\n${secondScript}\nPY`,
+  376 |     );
+  377 |     const completed = await waitTerminal(second, 'completed', 600_000);
+  378 |     const finalGate = await gate();
+  379 |     results['gateAfterSecond'] = finalGate;
+  380 |     expect(finalGate.second?.runId).toBe(second);
+  381 |     expect(finalGate.second?.tool).toBe('app.status');
+  382 |     expect(finalGate.second?.args).toEqual({});
+  383 |     expect(finalGate.second?.id).not.toBe(entered.id);
+  384 |     const cancelForwarded = finalGate.events.find((e) => e.type === 'cancel-forwarded');
+  385 |     expect(cancelForwarded).toBeDefined();
+  386 |     expect(
+  387 |       finalGate.calls.filter((c) => c.runId === first && c.at >= cancelForwarded!.at),
+  388 |       'Cancelled run cannot start any new control action',
+  389 |     ).toEqual([]);
+  390 |     expect(finalGate.events.filter((e) => e.type === 'released')).toEqual([
+  391 |       { type: 'released', reason: 'second-real-request', at: expect.any(Number), callId: entered.id },
+  392 |     ]);
+  393 |     expect(finalGate.events.some((e) => e.type === 'cancel-forwarded')).toBe(true);
+  394 |     expect(
+  395 |       completed.conversation!.toolExecutions.filter((t) => t.command.startsWith('mcp:')),
+  396 |       'Second run must use only the genuine CLI transport',
+  397 |     ).toEqual([]);
+  398 |     expect(finalGate.calls.filter((c) => c.runId === second).map((c) => c.tool)).toEqual(['app.status', 'app.describe']);
+  399 |     const cliTools = completed.conversation!.toolExecutions.filter(
+  400 |       (t) => !t.command.startsWith('mcp:') && t.command.includes(secondMarker),
+  401 |     );
+  402 |     results['secondCliCommands'] = cliTools.map((t) => ({
+  403 |       id: t.id,
+  404 |       turnId: t.turnId,
+  405 |       exitCode: t.exitCode,
+  406 |       truncated: t.truncated,
+  407 |       outputSha256: hash(t.output),
+  408 |     }));
+  409 |     const receipts = cliTools.flatMap((t) =>
+  410 |       t.output
+  411 |         .split('\n')
+  412 |         .filter((line) => line.startsWith(secondMarker))
+  413 |         .map((line) => ({
+  414 |           tool: t,
+  415 |           receipt: z
+  416 |             .object({
+  417 |               version: z.literal(1),
+  418 |               calls: z
+  419 |                 .array(
+  420 |                   z
+  421 |                     .object({ tool: z.enum(['app.status', 'app.describe']), exitCode: z.literal(0), result: AppControlResultSchema })
+  422 |                     .strict(),
+  423 |                 )
+  424 |                 .length(2),
+  425 |             })
+  426 |             .strict()
+  427 |             .parse(JSON.parse(line.slice(secondMarker.length))),
+  428 |         })),
+  429 |     );
+  430 |     expect(receipts).toHaveLength(1);
+  431 |     const receipt = receipts[0]!;
+```

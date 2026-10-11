@@ -1,0 +1,1685 @@
+{
+  "sandbox": "wsl-sbx-smoke-20261006",
+  "taskSha256": "21f44e2e39162ae876b3a5f84c820cafed78ced0729dd90e50ffcdde6293102c",
+  "scenarioSha256": "47045475157bf4e7ecfdb76c1cff742b7a549a3a69dbbbff803a3bf36ea86b91",
+  "profile": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-app-control-model-sq6xT5",
+  "modelBudgetMs": 600000,
+  "modelToolChainObserved": true,
+  "modelFullSelfVerification": "not_proven_by_tool_presence",
+  "hostFixedOutcome": "passed",
+  "portsBefore": [],
+  "project": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "ced1c0a8-943c-4623-bba8-ab21f4b4befd",
+    "environmentId": "sandbox",
+    "appInstanceId": null,
+    "state": "created",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/ced1c0a8-943c-4623-bba8-ab21f4b4befd",
+    "guestPort": null,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "ownedInstances": [
+    "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+    "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+    "80ec62ab-4238-43c5-8588-74b7ba4daccf"
+  ],
+  "ownedGuestPorts": [
+    35165,
+    36617,
+    45719
+  ],
+  "taskVersion": {
+    "taskVersionId": "b959cd82-6e46-4654-85dd-134453528bd5",
+    "version": 1,
+    "workspaceId": "taskflow-demo",
+    "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+    "goal": "在首页“应用服务”区块下方新增“欢迎语”卡片：以开发会话 A 读取 kv 键 welcome 显示于 data-testid=\"welcome-value\"；提供输入框 data-testid=\"welcome-input\" 与“保存欢迎语”按钮 data-testid=\"welcome-save\"；点击后经 PUT /api/kv/welcome 保存并显示新值；去除首尾空白后为空时显示“请输入欢迎语”（data-testid=\"welcome-error\"）且不发请求；刷新页面后仍显示已保存值；用 exposeState('welcome', …) 暴露 {value, saving, error}。不修改其他 API 与测试基准。\n\n这是已授权的真实控制面验证；只允许修改新建项目 /home/agent/workspace/.wsl-apps/ced1c0a8-943c-4623-bba8-ab21f4b4befd 内允许范围。按以下顺序执行，不得交换：\n1. 先实际调用一次 wsl_space.app_describe。当前初始模板实例已在运行，尚未修改代码；立即用普通命令工具原样执行下面的 Python CLI 验证脚本，不要先修改源码、生成 manifest 或重启。模板已提供 health-refresh 按钮及 app.health 状态，脚本无需等待新增欢迎语功能。11 项 CLI 完成后才开始实现任务。\n2. 每个 wsl-app 都必须在现有普通命令沙箱内执行；禁止请求权限提升、扩大网络或目录权限、用 MCP 替代 CLI、篡改汇总、重试或忽略 transport_unavailable。伪造实例及未授权 reset 必须由 Main 拒绝，退出码应为 1，错误码分别 stale_instance 与 authorization_required；其他 CLI 命令必须退出 0。保留脚本打印的结构化汇总，不输出凭据或环境。\n3. 然后完成欢迎语任务。不得读取凭据、其他项目或 Host 文件；不联网、不安装依赖。不要修改测试基准、锁文件和其他 API。修改后 npm run agent:manifest，只调用一次 app_restart 重建最终源码。等待新实例时，每次 app_status 查询之前用普通命令工具执行 sleep 3 到 5 秒，最多查询 12 次；不要密集轮询或重复重启。使用 app_ui_snapshot/app_ui_act 实际完成空白校验、保存和 navigate 刷新后的持久化自验，以 app_state_read 和 app_data_query 确认。实际执行 npm run agent:check 与 npm run check。\n本轮 app.* 工具总预算为 64 次，并发上限 4；上述 CLI 已使用 11 次，MCP 调用总数控制在 35 次以内。自行计数并保留余量；预算耗尽后不得继续尝试，不得提升或增加权限。最终简要报告工具/检查结果并结束，不等待 Host。全程限一次 run、10 分钟。\n\npython3 - <<'PY'\nimport json,subprocess\ncalls=[]\ndef call(label,tool,args):\n argv=['wsl-app',tool,json.dumps(args,separators=(',',':'))]\n p=subprocess.run(argv,capture_output=True,text=True,timeout=65)\n if len(p.stdout)>262144: raise ValueError('CLI stdout budget exceeded')\n result=json.loads(p.stdout)\n calls.append({'label':label,'argv':argv,'exitCode':p.returncode,'result':result})\n if label not in ('stale_instance','reset_denied') and (p.returncode!=0 or result.get('ok') is not True):\n  print('WSL_CLI_VERIFICATION_V1='+json.dumps({'version':1,'calls':calls},ensure_ascii=False)); raise ValueError('CLI failed: '+label)\n return result\ncall('describe','describe',{})\ncall('status','status',{})\ns=call('snapshot','ui.snapshot',{})['data']\nb={'appInstanceId':s['appInstanceId'],'documentGeneration':s['documentGeneration']}\na={'type':'click','target':{'testid':'health-refresh'}}\ncall('click','ui.act',dict(b,action=a))\ncall('health_settled','ui.act',dict(b,action={'type':'waitFor','target':{'testid':'health-refresh'},'state':'enabled','timeoutMs':10000}))\ncall('state_before','state.read',{'names':['app.health']})\ncall('data_before','data.query',{'sql':'SELECT user_id, key, value FROM records ORDER BY user_id, key'})\ncall('stale_instance','ui.act',dict(b,appInstanceId='cli-forged-instance',action=a))\ncall('reset_denied','data.reset',{'appInstanceId':b['appInstanceId'],'confirm':'reset-instance-data'})\ncall('state_after','state.read',{'names':['app.health']})\ncall('data_after','data.query',{'sql':'SELECT user_id, key, value FROM records ORDER BY user_id, key'})\nprint('WSL_CLI_VERIFICATION_V1='+json.dumps({'version':1,'calls':calls},ensure_ascii=False))\nPY",
+    "targetRef": null,
+    "capture": null,
+    "captureBinding": null,
+    "confirmedAt": "2026-10-11T04:50:57.413Z",
+    "acceptance": [
+      "真实 MCP 与命令沙箱 CLI 成功、Main 两项拒绝负例、两个 npm 检查；Host 独立固定验收"
+    ],
+    "allowedScopes": [
+      "src/App.tsx",
+      "src/components/**",
+      "agent/**"
+    ]
+  },
+  "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+  "run": {
+    "referenceSummary": [],
+    "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+    "workspaceId": "taskflow-demo",
+    "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+    "taskVersionId": "b959cd82-6e46-4654-85dd-134453528bd5",
+    "targetRef": null,
+    "state": "completed",
+    "startedAt": "2026-10-11T04:50:57.436Z",
+    "endedAt": "2026-10-11T04:53:40.406Z",
+    "error": null,
+    "candidateId": "97f57fcb-0470-40c2-927c-0bcd97bf2930",
+    "validation": {
+      "state": "not_run",
+      "applicability": "unknown",
+      "reason": null
+    },
+    "conversation": {
+      "conversationId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "generation": "4b770745-78d3-4b4a-8694-0f788e303015",
+      "seq": 55,
+      "threadId": "01a1294c-c941-7271-88f5-bf4dca6af1ee",
+      "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+      "state": "idle",
+      "messages": [],
+      "toolExecutions": [
+        {
+          "id": "item_3",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_describe {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_4",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc \"python3 - <<'PY'\nimport json,subprocess\ncalls=[]\ndef call(label,tool,args):\n argv=['wsl-app',tool,json.dumps(args,separators=(',',':'))]\n p=subprocess.run(argv,capture_output=True,text=True,timeout=65)\n if len(p.stdout)>262144: raise ValueError('CLI stdout budget exceeded')\n result=json.loads(p.stdout)\n calls.append({'label':label,'argv':argv,'exitCode':p.returncode,'result':result})\n if label not in ('stale_instance','reset_denied') and (p.returncode\"'!=0 or result.get('\"'ok') is not True):\n  print('WSL_CLI_VERIFICATION_V1='+json.dumps({'version':1,'calls':calls},ensure_ascii=False)); raise ValueError('CLI failed: '+label)\n return result\ncall('describe','describe',{})\ncall('status','status',{})\ns=call('snapshot','ui.snapshot',{})['data']\nb={'appInstanceId':s['appInstanceId'],'documentGeneration':s['documentGeneration']}\na={'type':'click','target':{'testid':'health-refresh'}}\ncall('click','ui.act',dict(b,action=a))\ncall('health_settled','ui.act',dict(b,action={'type':'waitFor','target':{'testid':'health-refresh'},'state':'enabled','timeoutMs':10000}))\ncall('state_before','state.read',{'names':['app.health']})\ncall('data_before','data.query',{'sql':'SELECT user_id, key, value FROM records ORDER BY user_id, key'})\ncall('stale_instance','ui.act',dict(b,appInstanceId='cli-forged-instance',action=a))\ncall('reset_denied','data.reset',{'appInstanceId':b['appInstanceId'],'confirm':'reset-instance-data'})\ncall('state_after','state.read',{'names':['app.health']})\ncall('data_after','data.query',{'sql':'SELECT user_id, key, value FROM records ORDER BY user_id, key'})\nprint('WSL_CLI_VERIFICATION_V1='+json.dumps({'version':1,'calls':calls},ensure_ascii=False))\nPY\"",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_5",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc \"pwd; rg --files -g AGENTS.md -g package.json -g 'App.tsx' -g '*api*' -g '*agent*' -g '*session*' -g '*kv*' -g '*Input*' -g '*Card*'\"",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_6",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc \"cat AGENTS.md agent/AGENTS.md src/App.tsx package.json; rg --files src; rg -n 'dev/session|api/kv|authorization|userId|token' server/index.ts src\"",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_7",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc \"rg -n 'dev/session|api/kv|Bearer|userId|value:' server/app.ts; cat src/agent/registry.ts src/components/Button.tsx; rg --files server\"",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_8",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc \"sed -n '38,90p' server/app.ts; cat src/main.tsx; rg -n 'exposeState|useAgentState' server/agent/manifest.ts\"",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_11",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc 'npm run agent:manifest'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_12",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_restart {\"appInstanceId\":\"802ad2c1-289d-4b74-abb8-66b675b4bc21\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_13",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc 'sleep 3'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_14",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_15",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc 'npm run agent:check'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_17",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc 'sleep 3'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_18",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_16",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc 'npm run check'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_19",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc 'sleep 4'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_20",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_21",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc 'sleep 4'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_22",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_23",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc 'sleep 5'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_24",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_26",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc 'sleep 5'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_27",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_28",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc 'sleep 5'",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_29",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_status {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_30",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_ui_snapshot {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_31",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"2dbed35a-1c97-4990-9fba-f3b9d8bf8095\",\"documentGeneration\":1,\"action\":{\"type\":\"type\",\"target\":{\"testid\":\"welcome-input\"},\"text\":\"   \",\"clear\":true}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_32",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"2dbed35a-1c97-4990-9fba-f3b9d8bf8095\",\"documentGeneration\":1,\"action\":{\"type\":\"click\",\"target\":{\"testid\":\"welcome-save\"}}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_33",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_ui_snapshot {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_34",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_state_read {\"names\":[\"welcome\"]}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_35",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_data_query {\"sql\":\"SELECT user_id, key, value FROM records ORDER BY user_id, key\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_36",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"2dbed35a-1c97-4990-9fba-f3b9d8bf8095\",\"documentGeneration\":1,\"action\":{\"type\":\"type\",\"target\":{\"testid\":\"welcome-input\"},\"text\":\"  欢迎来到 Taskflow  \",\"clear\":true}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_37",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"2dbed35a-1c97-4990-9fba-f3b9d8bf8095\",\"documentGeneration\":1,\"action\":{\"type\":\"click\",\"target\":{\"testid\":\"welcome-save\"}}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_38",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"2dbed35a-1c97-4990-9fba-f3b9d8bf8095\",\"documentGeneration\":1,\"action\":{\"type\":\"waitFor\",\"target\":{\"testid\":\"welcome-save\"},\"state\":\"enabled\",\"timeoutMs\":10000}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_39",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_state_read {\"names\":[\"welcome\"]}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_40",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_data_query {\"sql\":\"SELECT user_id, key, value FROM records ORDER BY user_id, key\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_41",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_ui_act {\"appInstanceId\":\"2dbed35a-1c97-4990-9fba-f3b9d8bf8095\",\"documentGeneration\":1,\"action\":{\"type\":\"navigate\",\"path\":\"/\"}}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_42",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_ui_snapshot {}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_43",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_state_read {\"names\":[\"welcome\"]}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_44",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "mcp:wsl_space.app_data_query {\"sql\":\"SELECT user_id, key, value FROM records ORDER BY user_id, key\"}",
+          "exitCode": 0,
+          "truncated": false
+        },
+        {
+          "id": "item_45",
+          "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+          "command": "/bin/bash -lc 'git diff --stat; git status --short'",
+          "exitCode": 128,
+          "truncated": false
+        }
+      ],
+      "warnings": [
+        "Codex is ignoring 2 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.headers` is ignored.\n  user (/home/agent/.codex/config.toml): `mcp_servers.mcp-gateway.type` is ignored."
+      ],
+      "cleanupPending": false,
+      "error": null
+    },
+    "executionBinding": {
+      "generation": "4b770745-78d3-4b4a-8694-0f788e303015",
+      "turnId": "5662e099-8210-435f-8a26-6e438ce54117"
+    },
+    "review": null
+  },
+  "changedSourcePaths": [
+    "agent/AGENTS.md",
+    "agent/app.manifest.json",
+    "src/App.tsx"
+  ],
+  "modelAudit": [
+    {
+      "recordId": "76d571c0-cade-4133-b7c4-d0ada457e49c",
+      "at": "2026-10-11T04:51:08.740Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.describe",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 32
+    },
+    {
+      "recordId": "9492816a-eaa7-49b3-b941-62d2310a17aa",
+      "at": "2026-10-11T04:51:18.861Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.describe",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 24
+    },
+    {
+      "recordId": "729080f4-b12e-429c-9d04-74d1ad4e821c",
+      "at": "2026-10-11T04:51:18.983Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "c4566914-b3f6-42f2-909f-6fad37b27f8e",
+      "at": "2026-10-11T04:51:19.116Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 22
+    },
+    {
+      "recordId": "5d9eca7d-3af2-4bb1-bbac-544669ffdd9f",
+      "at": "2026-10-11T04:51:19.378Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "7d428a32693485db0d95e0dbfca7c6d42fab576af9888d7e79019c625fdafd90",
+        "summary": {
+          "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+          "documentGeneration": 1,
+          "action.type": "click",
+          "action.target.testid": "health-refresh"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 158
+    },
+    {
+      "recordId": "e7596cab-f798-4f21-bf37-f25ec360a92e",
+      "at": "2026-10-11T04:51:19.515Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "1efbc3e97e1b345f7f843e2fb81470791f5a31b71f09d7ab263ea3f63e047aad",
+        "summary": {
+          "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+          "documentGeneration": 1,
+          "action.type": "waitFor",
+          "action.target.testid": "health-refresh",
+          "action.state": "enabled",
+          "action.timeoutMs": 10000
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 25
+    },
+    {
+      "recordId": "aa563f70-b9dd-4aec-90cf-2c38a06dec26",
+      "at": "2026-10-11T04:51:19.619Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "10e443117d2c3bfdfbb86fb3c9457cc64c4ee59fe5b5886a95332825f6eba9d3",
+        "summary": {
+          "names": "array:1 sha256:8c61d549e0adbc26"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 1
+    },
+    {
+      "recordId": "456e549d-2120-4d70-99c3-886643c4e6dc",
+      "at": "2026-10-11T04:51:19.747Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "5554e05216dfd84f11a4a65fd8d87653f7305a4b0a6cc69b7e322570f2d986f0",
+        "summary": {
+          "sql": "len:61 sha256:466e8ef995b5cb69"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 18
+    },
+    {
+      "recordId": "32fff1fb-8575-4b9f-bd5a-52ac328a57b5",
+      "at": "2026-10-11T04:51:19.858Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "bfe8a37d84b6831a5e1cede052e6f53ad48664490d059b0d968c7a609aea2619",
+        "summary": {
+          "appInstanceId": "cli-forged-instance",
+          "documentGeneration": 1,
+          "action.type": "click",
+          "action.target.testid": "health-refresh"
+        }
+      },
+      "outcome": "stale_instance",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 1
+    },
+    {
+      "recordId": "1be6e240-d712-4b39-afda-94cb715b810e",
+      "at": "2026-10-11T04:51:19.962Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.data.reset",
+      "level": "reset",
+      "args": {
+        "sha256": "62fc5dd578ae7aa777d77bfd6769d7dc2e0cb2ba517df8e4b149073b7c037f2c",
+        "summary": {
+          "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+          "confirm": "reset-instance-data"
+        }
+      },
+      "outcome": "authorization_required",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "79657b6d-f62e-4361-8b69-f995e65c4550",
+      "at": "2026-10-11T04:51:20.066Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "10e443117d2c3bfdfbb86fb3c9457cc64c4ee59fe5b5886a95332825f6eba9d3",
+        "summary": {
+          "names": "array:1 sha256:8c61d549e0adbc26"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 1
+    },
+    {
+      "recordId": "da6ad00c-c535-4c0d-9a29-62e1e5355946",
+      "at": "2026-10-11T04:51:20.175Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "5554e05216dfd84f11a4a65fd8d87653f7305a4b0a6cc69b7e322570f2d986f0",
+        "summary": {
+          "sql": "len:61 sha256:466e8ef995b5cb69"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 6
+    },
+    {
+      "recordId": "240a8455-475b-4265-83fc-1c72ba29ff7b",
+      "at": "2026-10-11T04:52:10.091Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.restart",
+      "level": "write",
+      "args": {
+        "sha256": "7a42ea504f43db25d113a2b6cfa5a4a3d8043ce9087b1960092b6fd3b258fe54",
+        "summary": {
+          "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 7
+    },
+    {
+      "recordId": "1bcf62d4-b7fc-43cb-a103-67f11d8c4538",
+      "at": "2026-10-11T04:52:13.179Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 1
+    },
+    {
+      "recordId": "6761c3f7-66eb-4882-9659-ade7d7587e93",
+      "at": "2026-10-11T04:52:31.986Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 1
+    },
+    {
+      "recordId": "a9a88518-c828-4a09-a803-6421a7b40ebb",
+      "at": "2026-10-11T04:52:40.670Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "e4418d84-60ce-41a0-9891-65ce3ec4f53f",
+      "at": "2026-10-11T04:52:47.783Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "47bd2176-b99c-4b11-aeb0-e50917fd2000",
+      "at": "2026-10-11T04:52:56.201Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 1
+    },
+    {
+      "recordId": "232582dd-0a38-4c20-90a8-bc7c34a2c8bc",
+      "at": "2026-10-11T04:53:06.210Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "b516f61f-fca8-4b75-819d-48160ec8eebd",
+      "at": "2026-10-11T04:53:14.381Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 2
+    },
+    {
+      "recordId": "9458ae69-81c1-461d-8ac5-206226f614c4",
+      "at": "2026-10-11T04:53:17.782Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 23
+    },
+    {
+      "recordId": "d5d091b5-638e-470e-baf1-2812821ff7be",
+      "at": "2026-10-11T04:53:22.559Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "06be8edb06a376b698ab8f1a14c828e0efef540c3c99972db636fe84349e430e",
+        "summary": {
+          "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+          "documentGeneration": 1,
+          "action.type": "type",
+          "action.target.testid": "welcome-input",
+          "action.text": "len:3 sha256:0aad7da77d2ed59c",
+          "action.clear": true
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 162
+    },
+    {
+      "recordId": "a757768e-3709-48a8-b0be-5b90cd0c95b9",
+      "at": "2026-10-11T04:53:22.732Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "eece5c116600f5d021786bdd27fcab420e257a0fd7593d8e0495f2052cba7813",
+        "summary": {
+          "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+          "documentGeneration": 1,
+          "action.type": "click",
+          "action.target.testid": "welcome-save"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 166
+    },
+    {
+      "recordId": "5ddea79c-0f27-4468-8fb2-85bb5ad65296",
+      "at": "2026-10-11T04:53:22.743Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 4
+    },
+    {
+      "recordId": "1c2f14c6-dacc-4844-acee-929704f2a23e",
+      "at": "2026-10-11T04:53:22.752Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "e2b3f9dad989022ad535e979f3c99da18ae7e25911a4d30841eb8c8b394a4f3b",
+        "summary": {
+          "names": "array:1 sha256:24066947f78216e7"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 2
+    },
+    {
+      "recordId": "c3da311b-522a-498d-90c6-c9a09901b231",
+      "at": "2026-10-11T04:53:22.770Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "5554e05216dfd84f11a4a65fd8d87653f7305a4b0a6cc69b7e322570f2d986f0",
+        "summary": {
+          "sql": "len:61 sha256:466e8ef995b5cb69"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 11
+    },
+    {
+      "recordId": "8e349c16-5d74-4f54-9357-968b96bc47a0",
+      "at": "2026-10-11T04:53:29.192Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "31a129427dad300a96412b5d666ed9cabab321fe886a8c0cbdddfb2c545434b7",
+        "summary": {
+          "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+          "documentGeneration": 1,
+          "action.type": "type",
+          "action.target.testid": "welcome-input",
+          "action.text": "len:17 sha256:dac57c7e6462d98b",
+          "action.clear": true
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 151
+    },
+    {
+      "recordId": "852df661-1e07-4b0e-9e18-b323962adb6e",
+      "at": "2026-10-11T04:53:29.352Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "eece5c116600f5d021786bdd27fcab420e257a0fd7593d8e0495f2052cba7813",
+        "summary": {
+          "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+          "documentGeneration": 1,
+          "action.type": "click",
+          "action.target.testid": "welcome-save"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 151
+    },
+    {
+      "recordId": "8b4fe699-3532-421b-84ce-62a90e427ac4",
+      "at": "2026-10-11T04:53:29.382Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "f46aa80b23d61ca4973faa12f5cc98c6db1ac5152f00641d57ecfaa4a296eb80",
+        "summary": {
+          "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+          "documentGeneration": 1,
+          "action.type": "waitFor",
+          "action.target.testid": "welcome-save",
+          "action.state": "enabled",
+          "action.timeoutMs": 10000
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 23
+    },
+    {
+      "recordId": "36779e97-2759-459c-a5da-87f8d1ebdb93",
+      "at": "2026-10-11T04:53:29.389Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "e2b3f9dad989022ad535e979f3c99da18ae7e25911a4d30841eb8c8b394a4f3b",
+        "summary": {
+          "names": "array:1 sha256:24066947f78216e7"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 1
+    },
+    {
+      "recordId": "62ccead8-b4a5-4b3d-acc1-490af6e96459",
+      "at": "2026-10-11T04:53:29.402Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "5554e05216dfd84f11a4a65fd8d87653f7305a4b0a6cc69b7e322570f2d986f0",
+        "summary": {
+          "sql": "len:61 sha256:466e8ef995b5cb69"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 6
+    },
+    {
+      "recordId": "cc76d774-e3db-4f7b-ba28-2bc2a105711a",
+      "at": "2026-10-11T04:53:29.577Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "52c29625ad889197444b8b2da9a9a3299add2e04d6206a7ee4c324494e67064a",
+        "summary": {
+          "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+          "documentGeneration": 1,
+          "action.type": "navigate",
+          "action.path": "/"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 2,
+      "durationMs": 149
+    },
+    {
+      "recordId": "fae7a247-680a-47db-a25c-35e1d76f7365",
+      "at": "2026-10-11T04:53:29.590Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": 2,
+      "documentGenerationAfter": 2,
+      "durationMs": 5
+    },
+    {
+      "recordId": "c80b8944-cffd-4a21-a5c5-046b41d5d3cc",
+      "at": "2026-10-11T04:53:34.517Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.state.read",
+      "level": "read",
+      "args": {
+        "sha256": "e2b3f9dad989022ad535e979f3c99da18ae7e25911a4d30841eb8c8b394a4f3b",
+        "summary": {
+          "names": "array:1 sha256:24066947f78216e7"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": 2,
+      "documentGenerationAfter": 2,
+      "durationMs": 1
+    },
+    {
+      "recordId": "2448c17e-2cde-4a2d-8be5-dfa070842f5a",
+      "at": "2026-10-11T04:53:34.526Z",
+      "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-7b05b3c2-def1-4cb8-ab68-343e4f62bd65",
+      "tool": "app.data.query",
+      "level": "read",
+      "args": {
+        "sha256": "5554e05216dfd84f11a4a65fd8d87653f7305a4b0a6cc69b7e322570f2d986f0",
+        "summary": {
+          "sql": "len:61 sha256:466e8ef995b5cb69"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "2dbed35a-1c97-4990-9fba-f3b9d8bf8095",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 7
+    }
+  ],
+  "modelUiActionTypesObserved": [
+    "click",
+    "waitFor",
+    "type",
+    "navigate"
+  ],
+  "guestShellCli": [
+    {
+      "id": "item_4",
+      "turnId": "5662e099-8210-435f-8a26-6e438ce54117",
+      "exitCode": 0,
+      "outputSha256": "faae3dc51c4766ea7314021b34afd207f26d423491e33b036769aee4dbaff71c",
+      "truncated": false
+    }
+  ],
+  "cliTranscripts": [
+    {
+      "version": 1,
+      "calls": [
+        {
+          "label": "describe",
+          "argv": [
+            "wsl-app",
+            "describe",
+            "{}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.describe",
+            "data": {
+              "app": {
+                "projectId": "ced1c0a8-943c-4623-bba8-ab21f4b4befd",
+                "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+                "state": "running",
+                "url": "http://127.0.0.1:49200",
+                "cleanupConfirmed": false,
+                "error": null
+              },
+              "browser": {
+                "resourceId": "61182dd3-3718-48e9-8dee-69083f1d317b",
+                "documentGeneration": 1,
+                "url": "http://127.0.0.1:49200/",
+                "cdp": {
+                  "state": "idle"
+                },
+                "agentControl": {
+                  "state": "idle",
+                  "runId": null,
+                  "since": null,
+                  "lastAction": null
+                }
+              },
+              "currentRevision": "e14c3dfa2b8099529b2a86361848e58a32b1a410f56538f35d3ccbccb3f0d9b1",
+              "manifestRevision": "e14c3dfa2b8099529b2a86361848e58a32b1a410f56538f35d3ccbccb3f0d9b1",
+              "buildRevision": "e14c3dfa2b8099529b2a86361848e58a32b1a410f56538f35d3ccbccb3f0d9b1",
+              "manifest": {
+                "schemaVersion": 1,
+                "templateId": "wsl-standard-app",
+                "templateVersion": "1.1.0",
+                "sourceRevision": "e14c3dfa2b8099529b2a86361848e58a32b1a410f56538f35d3ccbccb3f0d9b1",
+                "pages": [
+                  {
+                    "path": "/",
+                    "source": "src/App.tsx",
+                    "testids": [
+                      "app-instance-id",
+                      "health-refresh",
+                      "health-status",
+                      "project-id"
+                    ]
+                  }
+                ],
+                "routes": [
+                  {
+                    "method": "POST",
+                    "path": "/api/dev/session"
+                  },
+                  {
+                    "method": "GET",
+                    "path": "/api/health"
+                  },
+                  {
+                    "method": "GET",
+                    "path": "/api/kv/:key"
+                  },
+                  {
+                    "method": "PUT",
+                    "path": "/api/kv/:key"
+                  }
+                ],
+                "dataModel": [
+                  {
+                    "table": "records",
+                    "columns": [
+                      {
+                        "name": "user_id",
+                        "type": "text",
+                        "notNull": true,
+                        "primaryKey": true
+                      },
+                      {
+                        "name": "key",
+                        "type": "text",
+                        "notNull": true,
+                        "primaryKey": true
+                      },
+                      {
+                        "name": "value",
+                        "type": "text",
+                        "notNull": true,
+                        "primaryKey": false
+                      }
+                    ],
+                    "primaryKey": [
+                      "user_id",
+                      "key"
+                    ]
+                  },
+                  {
+                    "table": "sessions",
+                    "columns": [
+                      {
+                        "name": "token",
+                        "type": "text",
+                        "notNull": true,
+                        "primaryKey": true
+                      },
+                      {
+                        "name": "user_id",
+                        "type": "text",
+                        "notNull": true,
+                        "primaryKey": false
+                      },
+                      {
+                        "name": "expires_at",
+                        "type": "bigint",
+                        "notNull": true,
+                        "primaryKey": false
+                      }
+                    ],
+                    "primaryKey": [
+                      "token"
+                    ]
+                  }
+                ],
+                "commands": [
+                  {
+                    "name": "health.refresh",
+                    "description": "重新请求 /api/health 并返回应用服务连接状态（只读观察）",
+                    "inputSchema": {
+                      "$schema": "https://json-schema.org/draft/2020-12/schema",
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": false
+                    },
+                    "sources": [
+                      "src/App.tsx:45"
+                    ]
+                  }
+                ],
+                "states": [
+                  {
+                    "name": "app.health",
+                    "sources": [
+                      "src/App.tsx:44"
+                    ]
+                  }
+                ],
+                "testids": [
+                  {
+                    "testid": "app-instance-id",
+                    "element": "dd",
+                    "source": "src/App.tsx:84"
+                  },
+                  {
+                    "testid": "health-refresh",
+                    "element": "Button",
+                    "source": "src/App.tsx:64"
+                  },
+                  {
+                    "testid": "health-status",
+                    "element": "p",
+                    "source": "src/App.tsx:60"
+                  },
+                  {
+                    "testid": "project-id",
+                    "element": "dd",
+                    "source": "src/App.tsx:78"
+                  }
+                ],
+                "checks": []
+              },
+              "manifestError": null,
+              "stale": {
+                "manifest": false,
+                "build": false
+              },
+              "guide": "agent/AGENTS.md",
+              "rules": [
+                "语义命令只用于准备数据与观察状态：seed、读 state、读日志、读库。",
+                "判定“用户能完成某操作”必须经 app.ui.act 的 UI 动作，再用状态断言佐证；禁止用语义命令直接制造被验收的行为结果。",
+                "固定验收基准在 Agent 写入范围外；Agent 自写场景只是开发辅助，不算验收通过。"
+              ]
+            }
+          }
+        },
+        {
+          "label": "status",
+          "argv": [
+            "wsl-app",
+            "status",
+            "{}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.status",
+            "data": {
+              "app": {
+                "projectId": "ced1c0a8-943c-4623-bba8-ab21f4b4befd",
+                "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+                "state": "running",
+                "url": "http://127.0.0.1:49200",
+                "cleanupConfirmed": false,
+                "error": null
+              },
+              "browser": {
+                "resourceId": "61182dd3-3718-48e9-8dee-69083f1d317b",
+                "documentGeneration": 1,
+                "url": "http://127.0.0.1:49200/",
+                "cdp": {
+                  "state": "idle"
+                },
+                "agentControl": {
+                  "state": "idle",
+                  "runId": null,
+                  "since": null,
+                  "lastAction": null
+                }
+              },
+              "runId": "7e66125e-e338-409a-a2d3-ff4829a75b5e"
+            }
+          }
+        },
+        {
+          "label": "snapshot",
+          "argv": [
+            "wsl-app",
+            "ui.snapshot",
+            "{}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.ui.snapshot",
+            "data": {
+              "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+              "documentGeneration": 1,
+              "snapshotId": "25cd18f7-d383-42c3-94bc-809cd65bfe5b",
+              "url": "http://127.0.0.1:49200/",
+              "title": "标准应用 · Web Studio Lab",
+              "elements": [
+                {
+                  "ref": "e1",
+                  "role": "button",
+                  "name": "检查连接",
+                  "testid": "health-refresh",
+                  "text": "检查连接",
+                  "value": "",
+                  "visible": true,
+                  "disabled": false,
+                  "focused": false,
+                  "checked": null
+                },
+                {
+                  "ref": "e2",
+                  "role": "status",
+                  "name": "",
+                  "testid": "health-status",
+                  "text": "已连接 · 数据库就绪",
+                  "value": null,
+                  "visible": true,
+                  "disabled": false,
+                  "focused": false,
+                  "checked": null
+                },
+                {
+                  "ref": "e3",
+                  "role": "definition",
+                  "name": "",
+                  "testid": "project-id",
+                  "text": "ced1c0a8-943c-4623-bba8-ab21f4b4befd",
+                  "value": null,
+                  "visible": true,
+                  "disabled": false,
+                  "focused": false,
+                  "checked": null
+                },
+                {
+                  "ref": "e4",
+                  "role": "definition",
+                  "name": "",
+                  "testid": "app-instance-id",
+                  "text": "802ad2c1-289d-4b74-abb8-66b675b4bc21",
+                  "value": null,
+                  "visible": true,
+                  "disabled": false,
+                  "focused": false,
+                  "checked": null
+                }
+              ],
+              "truncated": false,
+              "coverage": [
+                "仅根文档；iframe 与关闭的 shadow root 不在快照内"
+              ]
+            }
+          }
+        },
+        {
+          "label": "click",
+          "argv": [
+            "wsl-app",
+            "ui.act",
+            "{\"appInstanceId\":\"802ad2c1-289d-4b74-abb8-66b675b4bc21\",\"documentGeneration\":1,\"action\":{\"type\":\"click\",\"target\":{\"testid\":\"health-refresh\"}}}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.ui.act",
+            "data": {
+              "documentGeneration": 1,
+              "navigated": false,
+              "url": "http://127.0.0.1:49200/",
+              "action": "click"
+            }
+          }
+        },
+        {
+          "label": "health_settled",
+          "argv": [
+            "wsl-app",
+            "ui.act",
+            "{\"appInstanceId\":\"802ad2c1-289d-4b74-abb8-66b675b4bc21\",\"documentGeneration\":1,\"action\":{\"type\":\"waitFor\",\"target\":{\"testid\":\"health-refresh\"},\"state\":\"enabled\",\"timeoutMs\":10000}}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.ui.act",
+            "data": {
+              "documentGeneration": 1,
+              "navigated": false,
+              "url": "http://127.0.0.1:49200/",
+              "action": "waitFor"
+            }
+          }
+        },
+        {
+          "label": "state_before",
+          "argv": [
+            "wsl-app",
+            "state.read",
+            "{\"names\":[\"app.health\"]}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.state.read",
+            "data": {
+              "documentGeneration": 1,
+              "states": {
+                "app.health": {
+                  "status": "ok",
+                  "busy": false,
+                  "error": null,
+                  "identity": {
+                    "workspaceId": "taskflow-demo",
+                    "environmentId": "sandbox",
+                    "projectId": "ced1c0a8-943c-4623-bba8-ab21f4b4befd",
+                    "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "label": "data_before",
+          "argv": [
+            "wsl-app",
+            "data.query",
+            "{\"sql\":\"SELECT user_id, key, value FROM records ORDER BY user_id, key\"}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.data.query",
+            "data": {
+              "columns": [
+                "user_id",
+                "key",
+                "value"
+              ],
+              "rows": [
+                {
+                  "user_id": "A",
+                  "key": "welcome",
+                  "value": "Ready"
+                },
+                {
+                  "user_id": "B",
+                  "key": "welcome",
+                  "value": "Ready"
+                }
+              ],
+              "rowCount": 2,
+              "truncated": false,
+              "mode": "http"
+            }
+          }
+        },
+        {
+          "label": "stale_instance",
+          "argv": [
+            "wsl-app",
+            "ui.act",
+            "{\"appInstanceId\":\"cli-forged-instance\",\"documentGeneration\":1,\"action\":{\"type\":\"click\",\"target\":{\"testid\":\"health-refresh\"}}}"
+          ],
+          "exitCode": 1,
+          "result": {
+            "ok": false,
+            "tool": "app.ui.act",
+            "error": {
+              "code": "stale_instance",
+              "message": "请求绑定的实例 cli-forged-instance 已不是当前实例 802ad2c1-289d-4b74-abb8-66b675b4bc21"
+            }
+          }
+        },
+        {
+          "label": "reset_denied",
+          "argv": [
+            "wsl-app",
+            "data.reset",
+            "{\"appInstanceId\":\"802ad2c1-289d-4b74-abb8-66b675b4bc21\",\"confirm\":\"reset-instance-data\"}"
+          ],
+          "exitCode": 1,
+          "result": {
+            "ok": false,
+            "tool": "app.data.reset",
+            "error": {
+              "code": "authorization_required",
+              "message": "重置需要用户在任务允许范围中写明 app.data.reset"
+            }
+          }
+        },
+        {
+          "label": "state_after",
+          "argv": [
+            "wsl-app",
+            "state.read",
+            "{\"names\":[\"app.health\"]}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.state.read",
+            "data": {
+              "documentGeneration": 1,
+              "states": {
+                "app.health": {
+                  "status": "ok",
+                  "busy": false,
+                  "error": null,
+                  "identity": {
+                    "workspaceId": "taskflow-demo",
+                    "environmentId": "sandbox",
+                    "projectId": "ced1c0a8-943c-4623-bba8-ab21f4b4befd",
+                    "appInstanceId": "802ad2c1-289d-4b74-abb8-66b675b4bc21"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "label": "data_after",
+          "argv": [
+            "wsl-app",
+            "data.query",
+            "{\"sql\":\"SELECT user_id, key, value FROM records ORDER BY user_id, key\"}"
+          ],
+          "exitCode": 0,
+          "result": {
+            "ok": true,
+            "tool": "app.data.query",
+            "data": {
+              "columns": [
+                "user_id",
+                "key",
+                "value"
+              ],
+              "rows": [
+                {
+                  "user_id": "A",
+                  "key": "welcome",
+                  "value": "Ready"
+                },
+                {
+                  "user_id": "B",
+                  "key": "welcome",
+                  "value": "Ready"
+                }
+              ],
+              "rowCount": 2,
+              "truncated": false,
+              "mode": "http"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "cliMainAuditIds": [
+    "76d571c0-cade-4133-b7c4-d0ada457e49c",
+    "729080f4-b12e-429c-9d04-74d1ad4e821c",
+    "c4566914-b3f6-42f2-909f-6fad37b27f8e",
+    "5d9eca7d-3af2-4bb1-bbac-544669ffdd9f",
+    "e7596cab-f798-4f21-bf37-f25ec360a92e",
+    "aa563f70-b9dd-4aec-90cf-2c38a06dec26",
+    "456e549d-2120-4d70-99c3-886643c4e6dc",
+    "32fff1fb-8575-4b9f-bd5a-52ac328a57b5",
+    "1be6e240-d712-4b39-afda-94cb715b810e",
+    "79657b6d-f62e-4361-8b69-f995e65c4550",
+    "da6ad00c-c535-4c0d-9a29-62e1e5355946"
+  ],
+  "cliOutcome": "passed",
+  "hostReset": "{\"ok\":true,\"data\":{\"truncated\":[\"records\",\"sessions\"],\"seeded\":true}}\n",
+  "hostInstance": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "ced1c0a8-943c-4623-bba8-ab21f4b4befd",
+    "environmentId": "sandbox",
+    "appInstanceId": "80ec62ab-4238-43c5-8588-74b7ba4daccf",
+    "state": "running",
+    "url": "http://127.0.0.1:49202",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/ced1c0a8-943c-4623-bba8-ab21f4b4befd",
+    "guestPort": 45719,
+    "error": null,
+    "cleanupConfirmed": false
+  },
+  "hostQuery": {
+    "ok": true,
+    "data": {
+      "columns": [
+        "value"
+      ],
+      "rows": [
+        {
+          "value": "固定验收 2026"
+        }
+      ],
+      "rowCount": 1,
+      "truncated": false
+    }
+  },
+  "cleanupApp": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "ced1c0a8-943c-4623-bba8-ab21f4b4befd",
+    "environmentId": "sandbox",
+    "appInstanceId": "80ec62ab-4238-43c5-8588-74b7ba4daccf",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/ced1c0a8-943c-4623-bba8-ab21f4b4befd",
+    "guestPort": 45719,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "guestProcessesAfter": "[]\n",
+  "applicationExited": true,
+  "portsAfter": [
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49198,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    },
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49199,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    }
+  ],
+  "remainingOwnedPortMappings": [],
+  "fixedHashesAfter": {
+    "task": "21f44e2e39162ae876b3a5f84c820cafed78ced0729dd90e50ffcdde6293102c",
+    "scenario": "47045475157bf4e7ecfdb76c1cff742b7a549a3a69dbbbff803a3bf36ea86b91"
+  },
+  "cleanupErrors": []
+}

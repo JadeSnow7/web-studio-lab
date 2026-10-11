@@ -8,6 +8,7 @@ import {
 } from './observation';
 import { z } from 'zod';
 import { AppTargetSchema, AppSourceFileSchema, ManagedAppSchema, AppSourceSchema } from './managed-app';
+import { AppAgentOperationSchema, AppAgentResultSchema, AppControlResultSchema, AppLogsSchema, AppToolNameSchema } from './app-control';
 const BufferlessBytes = (value: string) => {
   let bytes = 0;
   for (const char of value) {
@@ -77,6 +78,35 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
   z
     .object({
       id: z.string(),
+      method: z.literal('app.reply'),
+      payload: z.object({ callId: z.string().uuid(), result: AppControlResultSchema }).strict(),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string(),
+      method: z.literal('app.agent'),
+      payload: z
+        .object({
+          callId: z.string().uuid(),
+          target: AppTargetSchema,
+          appInstanceId: z.string().min(1).max(200).nullable(),
+          operation: AppAgentOperationSchema,
+        })
+        .strict(),
+    })
+    .strict(),
+  z.object({ id: z.string(), method: z.literal('app.agent.cancel'), payload: z.object({ callId: z.string().uuid() }).strict() }).strict(),
+  z
+    .object({
+      id: z.string(),
+      method: z.literal('app.logs'),
+      payload: z.object({ target: AppTargetSchema, maxBytes: z.number().int().min(1).max(65536) }).strict(),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string(),
       method: z.literal('observation.reply'),
       payload: z.object({ callId: z.string().uuid(), result: WorkspaceObservationResultSchema }).strict(),
     })
@@ -132,10 +162,22 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
     })
     .strict(),
   z.object({ type: z.literal('observation-abort'), id: z.string().uuid() }).strict(),
+  z
+    .object({
+      type: z.literal('app-call'),
+      id: z.string().uuid(),
+      scope: ObservationTurnScopeSchema,
+      tool: AppToolNameSchema,
+      args: z.record(z.string(), z.unknown()).refine((args) => BufferlessBytes(JSON.stringify(args)) <= 16384),
+    })
+    .strict(),
+  z.object({ type: z.literal('app-abort'), id: z.string().uuid() }).strict(),
   z.object({
     type: z.literal('response'),
     id: z.string(),
     result: z.union([
+      AppAgentResultSchema,
+      AppLogsSchema,
       ManagedAppSchema,
       AppSourceSchema,
       ChatStatusSchema,

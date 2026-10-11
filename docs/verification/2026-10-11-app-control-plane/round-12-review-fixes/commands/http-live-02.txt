@@ -1,0 +1,52 @@
+
+Running 3 tests using 1 worker
+
+(node:26839) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-ocdlIT ELECTRON_PID 26850
+ELECTRON_STDERR (node:26850) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:52231/edf7088d-4261-456e-b8bf-82d414104480
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✘  1 e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend automatic cancellation keeps App alive until operation termination is reconciled (3.3m)
+(node:28349) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-DnfM6M ELECTRON_PID 28351
+ELECTRON_STDERR (node:28351) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+  ✘  2 e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend manual cancellation keeps App alive until operation termination is reconciled (1.6m)
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:52557/fb64dbb7-36f2-4d68-91d6-074b5c5ff1bd
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+
+
+  1) e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend automatic cancellation keeps App alive until operation termination is reconciled 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "running"
+    Received: "starting"
+
+    Call Log:
+    - Timeout 180000ms exceeded while waiting on the predicate
+
+      65 |     };
+      66 |     const waitApp = async (state: string) => {
+    > 67 |       await expect.poll(async () => (await space()).managedApp?.state, { timeout: 180_000 }).toBe(state);
+         |                                                                                              ^
+      68 |       return (await space()).managedApp!;
+      69 |     };
+      70 |     const pending = async () =>
+        at waitApp (/Users/huaodong/workspace/web-studio-lab/e2e/app-control-data-cancel-live.spec.ts:67:94)
+        at /Users/huaodong/workspace/web-studio-lab/e2e/app-control-data-cancel-live.spec.ts:105:29
+
+    Error Context: test-results/round-12-http-live-02/app-control-data-cancel-li-8588f-n-termination-is-reconciled/error-context.md
+
+  1 failed
+    e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend automatic cancellation keeps App alive until operation termination is reconciled 
+  1 interrupted
+    e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend manual cancellation keeps App alive until operation termination is reconciled 
+  1 did not run

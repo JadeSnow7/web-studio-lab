@@ -2,7 +2,7 @@ import { ObservationRecordSchema, FileInvalidationHintSchema } from './observati
 import { EnvironmentListSchema } from './environments';
 import { z } from 'zod';
 import { CatalogSummarySchema, CatalogReferenceSnapshotSchema } from './resource-catalog';
-import { ManagedAppSchema } from './managed-app';
+import { ManagedAppSchema, SpaceAppSchema } from './managed-app';
 import { ChatConversationSchema } from './chat';
 import { PageCaptureSchema, PreviewLayoutSchema, PreviewStateSchema } from './preview';
 import { TerminalWriteSchema, TerminalSnapshotSchema } from './terminal';
@@ -45,6 +45,9 @@ export const WorkbenchTaskVersionSchema = z.object({
   goal: z.string().min(1).max(32000),
   targetRef: TargetRefSchema.nullable(),
   capture: PageCaptureSchema.nullable(),
+  appTarget: SpaceAppSchema.extend({ guestCwd: z.string().min(1) })
+    .nullable()
+    .default(null),
   captureBinding: z
     .object({ appInstanceId: Id, instanceId: Id, generation: z.number().int().nonnegative() })
     .strict()
@@ -73,6 +76,11 @@ export const WorkbenchRunSchema = z.object({
     reason: z.string().nullable(),
   }),
   conversation: ChatConversationSchema.nullable().default(null),
+  cleanupPending: z.boolean().optional(),
+  appCleanupPending: z.boolean().optional(),
+  executorState: z.object({ state: ChatConversationSchema.shape.state, cleanupPending: z.boolean() }).optional(),
+  cleanupReconciling: z.boolean().optional(),
+  cleanupRetryAvailable: z.boolean().optional(),
   executionBinding: z.object({ generation: z.string(), turnId: z.string().nullable() }).nullable().default(null),
   review: z.object({ decision: z.enum(['accepted', 'changes_requested']), reviewedAt: z.string(), candidateId: Id }).nullable(),
 });
@@ -119,6 +127,7 @@ export const WorkbenchResourceSchema = z.object({
 });
 export type WorkbenchResource = z.infer<typeof WorkbenchResourceSchema>;
 export const WorkspaceSnapshotSchema = z.object({
+  app: SpaceAppSchema.nullable().optional(),
   managedApp: ManagedAppSchema.nullable().optional(),
   appExport: z.object({ path: z.string(), manifestPath: z.string().optional(), sha256: z.string() }).nullable().optional(),
   workspaceId: Id,
@@ -162,7 +171,13 @@ const Base = { commandId: Id, workspaceId: Id, expectedRevision: z.number().int(
 const command = <T extends string, S extends z.ZodRawShape>(type: T, shape: S) =>
   z.object({ ...Base, type: z.literal(type), ...shape }).strict();
 export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
-  command('createApp', {}),
+  command('createApp', { name: SpaceAppSchema.shape.name.optional(), description: SpaceAppSchema.shape.description.optional() }),
+  command('updateApp', {
+    appId: z.uuid(),
+    expectedAppRevision: z.number().int().nonnegative(),
+    name: SpaceAppSchema.shape.name,
+    description: SpaceAppSchema.shape.description,
+  }),
   command('startApp', {}),
   command('stopApp', {}),
   command('exportApp', {}),
@@ -213,13 +228,14 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
   }),
   command('startRun', { sessionId: Id, taskVersionId: Id }),
   command('cancelRun', { runId: Id }),
+  command('reconcileRunCleanup', { runId: Id }),
   command('cancelObservation', { sessionId: Id.nullable(), requestId: Id }),
   command('runValidation', { runId: Id }),
   command('recordReview', { runId: Id, candidateId: Id, decision: z.enum(['accepted', 'changes_requested']) }),
   command('browserLayout', { resourceId: Id, layout: PreviewLayoutSchema }),
   command('browserAction', {
     resourceId: Id,
-    action: z.enum(['navigate', 'reload', 'back', 'forward', 'focus', 'pick', 'cancelPick', 'reattach']),
+    action: z.enum(['navigate', 'reload', 'back', 'forward', 'focus', 'pick', 'cancelPick', 'reattach', 'resumeAgent']),
     url: z.string().max(2048).optional(),
   }),
   command('terminalOpen', { resourceId: Id, cols: z.number().int().min(2).max(500), rows: z.number().int().min(1).max(200) }),

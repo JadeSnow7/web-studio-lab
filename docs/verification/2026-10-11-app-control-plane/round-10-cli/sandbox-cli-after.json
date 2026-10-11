@@ -1,0 +1,6 @@
+{
+  "moduleSha256": "36087de5ac277ca3a03099b876b35b82efd7043ce8d54d63ae867af437678809",
+  "exitCode": 0,
+  "stdout": "{\"codexVersion\": \"0.160.0\", \"sandboxMode\": \"workspace-write\", \"scope\": \"real Codex command sandbox; synthetic Main response; no model\", \"calls\": [[\"848826c1-fb63-4af3-8fd5-408804c5979e\", {\"tool\": \"app.describe\", \"args\": {}}]], \"cancels\": [], \"exitCode\": 0, \"stdout\": \"{\\\"ok\\\":true,\\\"tool\\\":\\\"app.describe\\\",\\\"data\\\":{\\\"marker\\\":\\\"bounded_cli\\\"}}\\n\", \"stderr\": \"\"}\n",
+  "stderr": "Sandbox wsl-sbx-smoke-20261006 started successfully\n"
+}

@@ -10,6 +10,7 @@ import type {
   PreviewLayout,
   PreviewState,
 } from '@wsl/protocol';
+import { AgentControlLatch } from './app-ui';
 import { readElementSummary } from './element-summary';
 import { clampToViewport } from './geometry';
 import { isAllowedPreviewUrl } from './navigation-policy';
@@ -62,6 +63,8 @@ export class PreviewController {
   private brokerFailureEpoch: number | null = null;
   private publicDocument: { document: PublicDocument; epoch: number } | null = null;
   private readonly publicProtocol: PublicDocumentProtocol;
+  /** 控制面“AI 正在操控/已暂停”展示态；用户输入由本页面的 input-event 判定。 */
+  readonly agentControl = new AgentControlLatch(() => this.emitState());
 
   constructor(
     private readonly window: BrowserWindow,
@@ -159,6 +162,7 @@ export class PreviewController {
       if (this.consoleIssues.length > CONSOLE_ISSUE_LIMIT) this.consoleIssues.shift();
       this.emitState();
     });
+    wc.on('input-event', (_event, input) => this.agentControl.observeInput(input.type));
     wc.on('before-input-event', (event, input) => {
       if (this.picking && input.type === 'keyDown' && input.key === 'Escape') {
         event.preventDefault();
@@ -263,6 +267,7 @@ export class PreviewController {
       loadError: this.loadError,
       blockedNavigation: this.blockedNavigation,
       pickError: this.pickError,
+      agentControl: this.agentControl.state(),
     };
   }
 
@@ -381,6 +386,14 @@ export class PreviewController {
 
   focus(): void {
     this.webContents.focus();
+  }
+
+  isPicking(): boolean {
+    return this.picking;
+  }
+
+  getCdpState(): CdpState {
+    return this.cdp;
   }
 
   private send(method: string, params?: Record<string, unknown>): Promise<unknown> {

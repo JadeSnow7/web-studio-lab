@@ -171,7 +171,7 @@ describe('RESOURCE-OWNERSHIP-1 migration/persistence R09', () => {
     await expect(new FileWorkbenchRepository(file).load()).rejects.toThrow('运行绑定');
     expect(await readFile(file, 'utf8')).toBe(bytes);
   });
-  it('preserves old workbench bytes in a read-only migration backup before schema3 commit', async () => {
+  it('preserves old workbench bytes in a read-only migration backup before schema4 commit', async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'catalog-backup-'));
     const file = path.join(directory, 'workbench.json');
     const bytes = JSON.stringify({ schemaVersion: 2, snapshot: workbench() }, null, 2);
@@ -180,7 +180,7 @@ describe('RESOURCE-OWNERSHIP-1 migration/persistence R09', () => {
     const state = await repository.loadCatalog(workbench());
     await repository.save(workbench(), state);
     expect(await readFile(file + '.legacy-schema-2.json', 'utf8')).toBe(bytes);
-    expect(JSON.parse(await readFile(file, 'utf8')).schemaVersion).toBe(3);
+    expect(JSON.parse(await readFile(file, 'utf8')).schemaVersion).toBe(4);
   });
   it('preserves corrupt/future destination bytes and legacy bytes on initialization/save failure', async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'catalog-fail-'));

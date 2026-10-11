@@ -1,0 +1,8 @@
+{
+  "lintDiagnosticsIdenticalToFirstRound": true,
+  "formatNewPaths": [],
+  "formatResolvedPaths": [
+    "apps/service/src/app-service.test.ts"
+  ],
+  "finalFormatCount": 794
+}

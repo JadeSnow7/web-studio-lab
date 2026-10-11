@@ -1,0 +1,1 @@
+{"command": ["pnpm", "format:check"], "exitCode": 1, "seconds": 51.166788816452026}

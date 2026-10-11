@@ -4,7 +4,13 @@ import { constants } from 'node:fs';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { z } from 'zod';
-import { ResourceBundleSchema, type ChatStatus, type ResourceBundle, type WorkspaceObservationResult } from '@wsl/protocol';
+import {
+  ResourceBundleSchema,
+  type AppControlResult,
+  type ChatStatus,
+  type ResourceBundle,
+  type WorkspaceObservationResult,
+} from '@wsl/protocol';
 import helper from './guest-helper.py?raw';
 import resourceMcp from './resource_mcp.py?raw';
 import terminalRc from './terminal-bash-integration.sh?raw';
@@ -157,7 +163,7 @@ export class GuestProcess {
   }
   write(
     frame:
-      | { type: 'observation-result'; id: string; result: WorkspaceObservationResult }
+      | { type: 'observation-result'; id: string; result: WorkspaceObservationResult | AppControlResult }
       | GuestStart
       | { type: 'input'; data: string }
       | { type: 'resize'; cols: number; rows: number }

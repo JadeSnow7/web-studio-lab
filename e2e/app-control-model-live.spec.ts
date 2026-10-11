@@ -1,0 +1,648 @@
+import { expect, test, type Page } from '@playwright/test';
+import { execFile } from 'node:child_process';
+import { createHash, randomUUID } from 'node:crypto';
+import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+import { z } from 'zod';
+import {
+  AppAuditRecordSchema,
+  AppControlResultSchema,
+  AppScenarioSchema,
+  AppToolInputSchemas,
+  AppToolNameSchema,
+  AppUiSnapshotSchema,
+  type AppScenario,
+  type WorkbenchCommand,
+} from '../packages/protocol/src';
+import { launchApp, workspaceSnapshot, workshopNavigate } from './helpers';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const fixed = path.join(root, 'tests/app-control/fixed-task');
+const sbx = process.env['WSL_SBX_BIN'] ?? '/opt/homebrew/bin/sbx';
+const sandbox = process.env['WSL_SBX_NAME'] ?? 'wsl-sbx-smoke-20261006';
+const execute = promisify(execFile);
+const digest = (text: string) => createHash('sha256').update(text).digest('hex');
+const TaskSchema = z.object({
+  goal: z.string(),
+  allowedScopes: z.array(z.string()),
+  postQuery: z.object({ sql: z.string(), expectedRows: z.array(z.unknown()) }),
+});
+const PortsSchema = z.array(
+  z.object({ host_ip: z.string(), host_port: z.number().int(), sandbox_port: z.number().int(), protocol: z.string() }),
+);
+const portIdentity = (port: z.infer<typeof PortsSchema>[number]) =>
+  `${port.protocol}:${port.host_ip}:${port.host_port}:${port.sandbox_port}`;
+const SourceSchema = z.record(z.string(), z.object({ sha256: z.string(), content: z.string().nullable() }));
+
+const cliMarker = 'WSL_CLI_VERIFICATION_V1=';
+const cliQuery = 'SELECT user_id, key, value FROM records ORDER BY user_id, key';
+const CliTranscriptSchema = z
+  .object({
+    version: z.literal(1),
+    calls: z
+      .array(
+        z
+          .object({
+            label: z.string(),
+            argv: z.tuple([z.literal('wsl-app'), z.string(), z.string()]),
+            exitCode: z.number().int(),
+            result: AppControlResultSchema,
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(15),
+  })
+  .strict();
+// Run by Codex's normal command tool, without saving a script into the project's source.
+const cliVerificationScript = `import json,subprocess
+calls=[]
+def call(label,tool,args):
+ argv=['wsl-app',tool,json.dumps(args,separators=(',',':'))]
+ p=subprocess.run(argv,capture_output=True,text=True,timeout=65)
+ if len(p.stdout)>262144: raise ValueError('CLI stdout budget exceeded')
+ result=json.loads(p.stdout)
+ calls.append({'label':label,'argv':argv,'exitCode':p.returncode,'result':result})
+ if label not in ('stale_instance','reset_denied','stale_snapshot') and (p.returncode!=0 or result.get('ok') is not True):
+  print('${cliMarker}'+json.dumps({'version':1,'calls':calls},ensure_ascii=False)); raise ValueError('CLI failed: '+label)
+ return result
+call('describe','describe',{})
+call('status','status',{})
+s=call('snapshot','ui.snapshot',{})['data']
+b={'appInstanceId':s['appInstanceId'],'documentGeneration':s['documentGeneration']}
+a={'type':'click','target':{'ref':next(e['ref'] for e in s['elements'] if e['testid']=='health-refresh'),'snapshotId':s['snapshotId']}}
+call('click','ui.act',dict(b,action=a))
+call('health_settled','ui.act',dict(b,action={'type':'waitFor','target':{'testid':'health-refresh'},'state':'enabled','timeoutMs':10000}))
+call('state_before','state.read',{'names':['app.health']})
+call('data_before','data.query',{'sql':'${cliQuery}'})
+call('stale_instance','ui.act',dict(b,appInstanceId='cli-forged-instance',action=a))
+call('reset_denied','data.reset',{'appInstanceId':b['appInstanceId'],'confirm':'reset-instance-data'})
+call('state_after','state.read',{'names':['app.health']})
+call('data_after','data.query',{'sql':'${cliQuery}'})
+s2=call('resnapshot','ui.snapshot',{})['data']
+call('stale_snapshot','ui.act',dict(b,action=a))
+a2={'type':'click','target':{'ref':next(e['ref'] for e in s2['elements'] if e['testid']=='health-refresh'),'snapshotId':s2['snapshotId']}}
+call('current_ref','ui.act',dict(b,action=a2))
+call('current_settled','ui.act',dict(b,action={'type':'waitFor','target':{'testid':'health-refresh'},'state':'enabled','timeoutMs':10000}))
+print('${cliMarker}'+json.dumps({'version':1,'calls':calls},ensure_ascii=False))`;
+
+// Only this newly created project's source is read; credentials and runtime data are never copied.
+const snapshotScript = `import pathlib,hashlib,json,sys,base64,os
+p=pathlib.Path(sys.argv[1]); out={}; total=0
+if p.parent != pathlib.Path('/home/agent/workspace/.wsl-apps') or p.is_symlink(): raise ValueError('unowned project')
+for parent,dirs,files in os.walk(p,followlinks=False):
+ dirs[:]=sorted(d for d in dirs if d not in {'node_modules','dist','.data','data','.git','.vite'})
+ for name in sorted(files):
+  f=pathlib.Path(parent)/name; rel=f.relative_to(p).as_posix()
+  if name.startswith('.wsl-'): continue
+  if f.is_symlink(): raise ValueError('source symlink: '+rel)
+  b=f.read_bytes(); total+=len(b)
+  if total>8388608 or len(out)>=256: raise ValueError('source budget exceeded')
+  sensitive=name.startswith('.env') or any(s in name.lower() for s in ['credential','secret','token','.pem','.key'])
+  out[rel]={'sha256':hashlib.sha256(b).hexdigest(),'content':None if sensitive else base64.b64encode(b).decode()}
+print(json.dumps(out))`;
+async function guest(args: string[]) {
+  return execute(sbx, ['exec', sandbox, ...args], { timeout: 60_000, maxBuffer: 12 * 1024 * 1024 });
+}
+async function sources(cwd: string) {
+  return SourceSchema.parse(JSON.parse((await guest(['python3', '-I', '-c', snapshotScript, cwd])).stdout));
+}
+
+/** Independent Host replay; it does not call app.scenario.run or impersonate a guest tool call. */
+async function replay(page: Page, scenario: AppScenario, evidence: string) {
+  const consoleErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('pageerror', (error) => consoleErrors.push(error.message));
+  const trace: unknown[] = [];
+  try {
+    for (const [index, step] of scenario.steps.entries()) {
+      try {
+        if (step.type === 'act') {
+          const action = step.action;
+          if (action.type === 'navigate') await page.goto(new URL(action.path, page.url()).href);
+          else if ('target' in action && action.target && 'testid' in action.target) {
+            const target = page.getByTestId(action.target.testid);
+            if (action.type === 'waitFor') {
+              if (action.state === 'enabled') await expect(target).toBeEnabled({ timeout: action.timeoutMs });
+              else if (action.state === 'disabled') await expect(target).toBeDisabled({ timeout: action.timeoutMs });
+              else await target.waitFor({ state: action.state, timeout: action.timeoutMs });
+            } else if (action.type === 'click') await target.click();
+            else if (action.type === 'type') {
+              if (action.clear) await target.fill(action.text);
+              else await target.pressSequentially(action.text);
+            } else throw new Error(`Unsupported frozen action: ${action.type}`);
+          } else throw new Error(`Unsupported frozen action: ${action.type}`);
+        } else if (step.type === 'assert') {
+          const assertion = step.assert;
+          if (assertion.kind === 'text') {
+            const target = page.getByTestId(assertion.testid);
+            if (assertion.equals !== undefined) await expect(target).toHaveText(assertion.equals, { timeout: assertion.timeoutMs });
+            else {
+              if (assertion.contains === undefined) throw new Error('Invalid text assertion');
+              await expect(target).toContainText(assertion.contains, { timeout: assertion.timeoutMs });
+            }
+          } else if (assertion.kind === 'testid') {
+            const target = page.getByTestId(assertion.testid);
+            if (assertion.state === 'enabled') await expect(target).toBeEnabled({ timeout: assertion.timeoutMs });
+            else if (assertion.state === 'disabled') await expect(target).toBeDisabled({ timeout: assertion.timeoutMs });
+            else await target.waitFor({ state: assertion.state, timeout: assertion.timeoutMs });
+          } else if (assertion.kind === 'console-no-error') expect(consoleErrors).toEqual([]);
+          else {
+            const envelope = await page.evaluate(async (name) => {
+              const bridge = (window as unknown as { __WSL_AGENT__: { call(json: string): Promise<string> } }).__WSL_AGENT__;
+              return JSON.parse(await bridge.call(JSON.stringify({ op: 'state', names: [name] }))) as {
+                ok: boolean;
+                data: Record<string, unknown>;
+              };
+            }, assertion.name);
+            expect(envelope.ok).toBe(true);
+            let value = envelope.data[assertion.name];
+            for (const key of assertion.path.split('/').slice(1))
+              value = (value as Record<string, unknown>)[key.replace(/~1/g, '/').replace(/~0/g, '~')];
+            expect(value).toEqual(assertion.equals);
+          }
+        } else if (step.type === 'screenshot') await page.screenshot({ path: path.join(evidence, `${step.label}.png`) });
+        else throw new Error('Frozen command steps require an explicit Host runner implementation');
+        trace.push({ index, step, outcome: 'passed' });
+      } catch (error) {
+        trace.push({ index, step, outcome: 'failed', error: String(error) });
+        throw error;
+      }
+    }
+  } finally {
+    await writeFile(
+      path.join(evidence, 'host-fixed-trace.json'),
+      JSON.stringify({ runner: 'independent-playwright-product-page', trace, consoleErrors }, null, 2),
+    );
+  }
+}
+
+test('A11: real guest Codex implements and self-verifies the frozen welcome task', async () => {
+  test.skip(process.env['WSL_APP_CONTROL_MODEL_LIVE'] !== '1', 'explicit real model AND sandbox authorization required');
+  test.setTimeout(900_000);
+  const evidence = path.resolve(
+    process.env['WSL_APP_CONTROL_MODEL_EVIDENCE'] ?? path.join(root, 'test-results/app-control-model-live', randomUUID()),
+  );
+  await mkdir(evidence, { recursive: true });
+  const taskText = await readFile(path.join(fixed, 'task.json'), 'utf8');
+  const scenarioText = await readFile(path.join(fixed, 'scenario.json'), 'utf8');
+  const task = TaskSchema.parse(JSON.parse(taskText));
+  const scenario = AppScenarioSchema.parse(JSON.parse(scenarioText));
+  const profile = await mkdtemp(path.join(tmpdir(), 'wsl-app-control-model-'));
+  const { app, page } = await launchApp({ live: true, userData: profile });
+  const electronProcess = app.process();
+  const results: Record<string, unknown> = {
+    sandbox,
+    taskSha256: digest(taskText),
+    scenarioSha256: digest(scenarioText),
+    profile,
+    modelBudgetMs: 600_000,
+    modelToolChainObserved: false,
+    modelFullSelfVerification: 'not_proven_by_tool_presence',
+    hostFixedOutcome: 'not_run',
+  };
+  const save = () => writeFile(path.join(evidence, 'results.json'), JSON.stringify(results, null, 2) + '\n');
+  const space = async () => (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')!;
+  const command = async (input: Omit<WorkbenchCommand, 'commandId' | 'workspaceId'> & Record<string, unknown>) => {
+    const result = await page.evaluate((input) => window.studio.workbench.command(input as never), {
+      ...input,
+      workspaceId: 'taskflow-demo',
+      commandId: randomUUID(),
+    });
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+  };
+  const ownedGuestPorts = new Set<number>();
+  const baselinePorts = new Set<string>();
+  const ownedInstances = new Set<string>();
+  const observeOwnedInstance = (instance: Awaited<ReturnType<typeof space>>['managedApp']) => {
+    if (instance?.state !== 'running' || !instance.appInstanceId || ownedInstances.has(instance.appInstanceId)) return;
+    if (!instance.guestPort) throw new Error('Running owned instance has no guest port');
+    ownedInstances.add(instance.appInstanceId);
+    ownedGuestPorts.add(instance.guestPort);
+    results['ownedInstances'] = [...ownedInstances];
+    results['ownedGuestPorts'] = [...ownedGuestPorts];
+  };
+  const waitState = async (state: string) => {
+    await expect.poll(async () => (await space()).managedApp?.state, { timeout: 180_000 }).toBe(state);
+    const instance = (await space()).managedApp!;
+    observeOwnedInstance(instance);
+    return instance;
+  };
+  let runId: string | undefined;
+  let cwd: string | undefined;
+  let failure: unknown;
+  const cleanupErrors: string[] = [];
+  try {
+    const portsBefore = PortsSchema.parse(JSON.parse((await execute(sbx, ['ports', sandbox, '--json'], { timeout: 20_000 })).stdout));
+    results['portsBefore'] = portsBefore;
+    for (const port of portsBefore) baselinePorts.add(portIdentity(port));
+    await workshopNavigate(page, '空间');
+    await page.getByRole('button', { name: '新建 App', exact: true }).click();
+    await page.getByRole('button', { name: '创建标准应用', exact: true }).click();
+    const createForm = page.getByRole('dialog', { name: '创建 App', exact: true });
+    await createForm.getByLabel('App 名称').fill('Live 标准应用');
+    await createForm.getByRole('button', { name: '保存 App' }).click();
+    await expect(createForm).not.toBeVisible();
+    await page.getByRole('button', { name: '管理 App', exact: true }).click();
+    const created = await waitState('created');
+    cwd = created.guestCwd;
+    results['project'] = created;
+    const before = await sources(cwd);
+    await writeFile(path.join(evidence, 'guest-source-before.json'), JSON.stringify(before, null, 2));
+    await page.getByRole('button', { name: '启动应用', exact: true }).click();
+    await waitState('running');
+    await page.getByRole('dialog', { name: '空间 App' }).getByRole('button', { name: '关闭', exact: true }).click();
+    const sessionId = (await space()).sessions[0]!.sessionId;
+    const goal = `${task.goal}\n\n这是已授权的真实控制面验证；只允许修改新建项目 ${cwd} 内允许范围。按以下顺序执行，不得交换：
+1. 先实际调用一次 wsl_space.app_describe。当前初始模板实例已在运行，尚未修改代码；立即用普通命令工具原样执行下面的 Python CLI 验证脚本，不要先修改源码、生成 manifest 或重启。模板已提供 health-refresh 按钮及 app.health 状态，脚本无需等待新增欢迎语功能。15 项 CLI 完成后才开始实现任务。
+2. 每个 wsl-app 都必须在现有普通命令沙箱内执行；禁止请求权限提升、扩大网络或目录权限、用 MCP 替代 CLI、篡改汇总、重试或忽略 transport_unavailable。伪造实例及未授权 reset 必须由 Main 拒绝，退出码应为 1，错误码分别 stale_instance 与 authorization_required；旧快照引用必须退出 1 并返回 stale_ref；其他 CLI 命令必须退出 0。保留脚本打印的结构化汇总，不输出凭据或环境。
+3. 然后完成欢迎语任务。不得读取凭据、其他项目或 Host 文件；不联网、不安装依赖。不要修改测试基准、锁文件和其他 API。修改后 npm run agent:manifest，只调用一次 app_restart 重建最终源码。等待新实例时，每次 app_status 查询之前用普通命令工具执行 sleep 3 到 5 秒，最多查询 12 次；不要密集轮询或重复重启。使用 app_ui_snapshot/app_ui_act 实际完成空白校验、保存和 navigate 刷新后的持久化自验，至少把上述原有保存按钮点击替换为一次真正的 MCP app_ui_act 引用动作：target 必须使用最近一次成功 MCP app_ui_snapshot 返回的 {ref,snapshotId}，不要改用 testid、不要为此新增动作或提高预算。以 app_state_read 和 app_data_query 确认。实际执行 npm run agent:check 与 npm run check。
+本轮 app.* 工具总预算为 64 次，并发上限 4；上述 CLI 已使用 15 次，MCP 调用总数控制在 35 次以内。自行计数并保留余量；预算耗尽后不得继续尝试，不得提升或增加权限。最终简要报告工具/检查结果并结束，不等待 Host。全程限一次 run、10 分钟。\n\npython3 - <<'PY'\n${cliVerificationScript}\nPY`;
+    await command({
+      type: 'confirmTask',
+      sessionId,
+      goal,
+      targetRef: null,
+      allowedScopes: task.allowedScopes,
+      acceptance: ['真实 MCP 与命令沙箱 CLI 成功、Main 两项拒绝负例、两个 npm 检查；Host 独立固定验收'],
+    });
+    const version = (await space()).sessions[0]!.taskVersions.at(-1)!;
+    results['taskVersion'] = version;
+    await command({ type: 'startRun', sessionId, taskVersionId: version.taskVersionId });
+    await expect.poll(async () => (await space()).runs.at(-1)?.state, { timeout: 30_000 }).not.toBe('starting');
+    runId = (await space()).runs.at(-1)!.runId;
+    results['runId'] = runId;
+    await expect
+      .poll(
+        async () => {
+          const current = await space();
+          observeOwnedInstance(current.managedApp);
+          const run = current.runs.find((run) => run.runId === runId)!;
+          return !['starting', 'running', 'cancelling'].includes(run.state) && !run.conversation?.cleanupPending;
+        },
+        { timeout: 600_000, intervals: [1000, 2000] },
+      )
+      .toBe(true);
+    const run = (await space()).runs.find((run) => run.runId === runId)!;
+    results['run'] = {
+      ...run,
+      conversation: run.conversation
+        ? {
+            ...run.conversation,
+            messages: [],
+            toolExecutions: run.conversation.toolExecutions.map((tool) => ({
+              id: tool.id,
+              turnId: tool.turnId,
+              command: tool.command,
+              exitCode: tool.exitCode,
+              truncated: tool.truncated,
+            })),
+          }
+        : null,
+    };
+    await save();
+    const after = await sources(cwd);
+    await writeFile(path.join(evidence, 'guest-source-after.json'), JSON.stringify(after, null, 2));
+    const changed = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(
+      (file) => before[file]?.sha256 !== after[file]?.sha256,
+    );
+    results['changedSourcePaths'] = changed;
+    await save();
+    expect(changed.length).toBeGreaterThan(0);
+    expect(changed.filter((file) => file !== 'src/App.tsx' && !file.startsWith('src/components/') && !file.startsWith('agent/'))).toEqual(
+      [],
+    );
+    expect(run.state).toBe('completed');
+    const audit = (await readFile(path.join(profile, 'app-control', runId, 'audit.jsonl'), 'utf8'))
+      .trim()
+      .split('\n')
+      .map((line) => AppAuditRecordSchema.parse(JSON.parse(line)));
+    results['modelAudit'] = audit;
+    for (const tool of ['app.describe', 'app.ui.snapshot', 'app.ui.act', 'app.state.read', 'app.data.query'] as const) {
+      expect(
+        audit.some((record) => record.runId === runId && record.tool === tool && record.outcome === 'ok'),
+        `successful Main audit: ${tool}`,
+      ).toBe(true);
+    }
+    const observedActions = [
+      ...new Set(
+        audit
+          .filter((record) => record.tool === 'app.ui.act' && record.outcome === 'ok')
+          .map((record) => record.args.summary['action.type']),
+      ),
+    ];
+    results['modelUiActionTypesObserved'] = observedActions;
+    for (const action of ['click', 'type', 'navigate']) expect(observedActions).toContain(action);
+    const tools = run.conversation!.toolExecutions;
+    for (const script of ['agent:check', 'check']) {
+      expect(
+        tools.some((tool) => !tool.command.startsWith('mcp:') && tool.command.includes(`npm run ${script}`) && tool.exitCode === 0),
+        `real npm run ${script}`,
+      ).toBe(true);
+    }
+    for (const name of ['app_describe', 'app_ui_snapshot', 'app_ui_act', 'app_state_read', 'app_data_query']) {
+      expect(
+        tools.some((tool) => tool.command.startsWith(`mcp:wsl_space.${name} `) && tool.exitCode === 0),
+        `real ${name} completion`,
+      ).toBe(true);
+    }
+    const refActionPrefix = 'mcp:wsl_space.app_ui_act ';
+    const mcpRefActions = tools.flatMap((tool) => {
+      if (!tool.command.startsWith(refActionPrefix) || tool.exitCode !== 0) return [];
+      const raw: unknown = JSON.parse(tool.command.slice(refActionPrefix.length));
+      const parsed = AppToolInputSchemas['app.ui.act'].safeParse(raw);
+      if (!parsed.success) return [];
+      const input = parsed.data;
+      if (!('target' in input.action) || !input.action.target || !('ref' in input.action.target)) return [];
+      const argsSha256 = digest(JSON.stringify(raw));
+      const matching = audit.find(
+        (record) => record.runId === runId && record.tool === 'app.ui.act' && record.outcome === 'ok' && record.args.sha256 === argsSha256,
+      );
+      if (!matching) return [];
+      return [
+        {
+          toolId: tool.id,
+          turnId: tool.turnId,
+          appInstanceId: input.appInstanceId,
+          documentGeneration: input.documentGeneration,
+          target: input.action.target,
+          argsSha256,
+          mainAuditId: matching.recordId,
+        },
+      ];
+    });
+    results['modelMcpSnapshotRefActions'] = mcpRefActions;
+    await save();
+    expect(mcpRefActions.length, 'Real MCP must successfully use {ref,snapshotId} from its latest snapshot').toBeGreaterThan(0);
+    results['modelToolChainObserved'] = true;
+    const cli = tools.filter((tool) => !tool.command.startsWith('mcp:') && tool.command.includes(cliMarker));
+    const transcripts = cli.flatMap((tool) =>
+      tool.output
+        .split('\n')
+        .filter((line) => line.startsWith(cliMarker))
+        .map((line) => ({
+          tool,
+          transcript: CliTranscriptSchema.parse(JSON.parse(line.slice(cliMarker.length))),
+        })),
+    );
+    results['guestShellCli'] = cli.map((tool) => ({
+      id: tool.id,
+      turnId: tool.turnId,
+      exitCode: tool.exitCode,
+      outputSha256: digest(tool.output),
+      truncated: tool.truncated,
+    }));
+    results['cliTranscripts'] = transcripts.map(({ transcript }) => transcript);
+    await save();
+    expect(transcripts, 'Exactly one complete CLI transcript must come from the real Codex command sandbox').toHaveLength(1);
+    const verified = transcripts[0]!;
+    expect(verified.tool.exitCode, 'Python wrapper must finish normally').toBe(0);
+    expect(verified.tool.truncated).toBe(false);
+    const labels = [
+      'describe',
+      'status',
+      'snapshot',
+      'click',
+      'health_settled',
+      'state_before',
+      'data_before',
+      'stale_instance',
+      'reset_denied',
+      'state_after',
+      'data_after',
+      'resnapshot',
+      'stale_snapshot',
+      'current_ref',
+      'current_settled',
+    ];
+    expect(verified.transcript.calls.map((call) => call.label)).toEqual(labels);
+    const expectedTools = [
+      'app.describe',
+      'app.status',
+      'app.ui.snapshot',
+      'app.ui.act',
+      'app.ui.act',
+      'app.state.read',
+      'app.data.query',
+      'app.ui.act',
+      'app.data.reset',
+      'app.state.read',
+      'app.data.query',
+      'app.ui.snapshot',
+      'app.ui.act',
+      'app.ui.act',
+      'app.ui.act',
+    ];
+    const matchedAuditIds: string[] = [];
+    for (const [index, call] of verified.transcript.calls.entries()) {
+      const name = AppToolNameSchema.parse(`app.${call.argv[1]}`);
+      expect(name).toBe(expectedTools[index]);
+      const input: unknown = JSON.parse(call.argv[2]);
+      AppToolInputSchemas[name].parse(input);
+      const expectedError =
+        call.label === 'stale_instance'
+          ? 'stale_instance'
+          : call.label === 'reset_denied'
+            ? 'authorization_required'
+            : call.label === 'stale_snapshot'
+              ? 'stale_ref'
+              : null;
+      expect(call.exitCode, `${call.label}: actual wsl-app exit code`).toBe(expectedError ? 1 : 0);
+      expect(call.result.tool).toBe(name);
+      expect(call.result.ok).toBe(expectedError === null);
+      if (!call.result.ok) expect(call.result.error.code).toBe(expectedError);
+      const matching = audit.find(
+        (record) =>
+          record.runId === runId &&
+          record.tool === name &&
+          record.args.sha256 === digest(JSON.stringify(input)) &&
+          record.outcome === (expectedError ?? 'ok') &&
+          !matchedAuditIds.includes(record.recordId),
+      );
+      expect(matching, `${call.label}: independent Main audit with matching raw JSON input`).toBeDefined();
+      matchedAuditIds.push(matching!.recordId);
+    }
+    results['cliMainAuditIds'] = matchedAuditIds;
+    const calls = verified.transcript.calls;
+    const snapshotResult = calls[2]!.result;
+    if (!snapshotResult.ok) throw new Error('Successful CLI snapshot expected');
+    const snapshot = AppUiSnapshotSchema.parse(snapshotResult.data);
+    const binding = { appInstanceId: snapshot.appInstanceId, documentGeneration: snapshot.documentGeneration };
+    const initialTarget = {
+      ref: snapshot.elements.find((element) => element.testid === 'health-refresh')!.ref,
+      snapshotId: snapshot.snapshotId,
+    };
+    expect(JSON.parse(calls[3]!.argv[2])).toEqual({ ...binding, action: { type: 'click', target: initialTarget } });
+    expect(JSON.parse(calls[4]!.argv[2])).toEqual({
+      ...binding,
+      action: { type: 'waitFor', target: { testid: 'health-refresh' }, state: 'enabled', timeoutMs: 10000 },
+    });
+    expect(JSON.parse(calls[7]!.argv[2])).toEqual({
+      ...binding,
+      appInstanceId: 'cli-forged-instance',
+      action: { type: 'click', target: initialTarget },
+    });
+    expect(JSON.parse(calls[8]!.argv[2])).toEqual({ appInstanceId: binding.appInstanceId, confirm: 'reset-instance-data' });
+    for (const index of [5, 9]) expect(JSON.parse(calls[index]!.argv[2])).toEqual({ names: ['app.health'] });
+    for (const index of [6, 10]) expect(JSON.parse(calls[index]!.argv[2])).toEqual({ sql: cliQuery });
+    const state = calls[5]!.result;
+    if (!state.ok) throw new Error('Successful CLI state expected');
+    expect(
+      z
+        .object({ states: z.object({ 'app.health': z.object({ status: z.literal('ok'), busy: z.literal(false), error: z.null() }) }) })
+        .parse(state.data).states['app.health'].status,
+    ).toBe('ok');
+    expect(calls[9]!.result, 'Rejected CLI writes must not change public state').toEqual(calls[5]!.result);
+    expect(calls[10]!.result, 'Rejected CLI writes must not reset records').toEqual(calls[6]!.result);
+    const resnapshotResult = calls[11]!.result;
+    if (!resnapshotResult.ok) throw new Error('Successful new CLI snapshot expected');
+    const resnapshot = AppUiSnapshotSchema.parse(resnapshotResult.data);
+    expect(resnapshot.snapshotId).not.toBe(snapshot.snapshotId);
+    expect(resnapshot.documentGeneration).toBe(snapshot.documentGeneration);
+    expect(JSON.parse(calls[12]!.argv[2])).toEqual({ ...binding, action: { type: 'click', target: initialTarget } });
+    expect(JSON.parse(calls[13]!.argv[2])).toEqual({
+      ...binding,
+      action: {
+        type: 'click',
+        target: {
+          ref: resnapshot.elements.find((element) => element.testid === 'health-refresh')!.ref,
+          snapshotId: resnapshot.snapshotId,
+        },
+      },
+    });
+    expect(JSON.parse(calls[14]!.argv[2])).toEqual({
+      ...binding,
+      action: { type: 'waitFor', target: { testid: 'health-refresh' }, state: 'enabled', timeoutMs: 10000 },
+    });
+    results['cliOutcome'] = 'passed';
+    await save();
+    // Host preparation is separate from the model run: reset only this stopped instance's data.
+    await command({ type: 'stopApp' });
+    await waitState('stopped');
+    const projectCwd = cwd;
+    const cliAt = async (args: string[]) =>
+      guest(['sh', '-c', 'cd "$1" && shift && exec node --import tsx server/agent-cli.ts "$@" --json', 'sh', projectCwd, ...args]);
+    results['hostReset'] = (await cliAt(['db', 'reset'])).stdout;
+    await command({ type: 'startApp' });
+    const instance = await waitState('running');
+    if (!instance.url) throw new Error('Running app has no URL');
+    const instanceUrl = instance.url;
+    await expect
+      .poll(
+        () =>
+          app
+            .context()
+            .pages()
+            .filter((candidate) => candidate.url().startsWith(instanceUrl)).length,
+        { timeout: 30_000 },
+      )
+      .toBe(1);
+    const preview = app
+      .context()
+      .pages()
+      .find((candidate) => candidate.url().startsWith(instanceUrl))!;
+    results['hostInstance'] = instance;
+    await replay(preview, scenario, evidence);
+    const png = await app.evaluate(async ({ BrowserWindow }) =>
+      (await BrowserWindow.getAllWindows()[0]!.capturePage()).toPNG().toString('base64'),
+    );
+    await writeFile(path.join(evidence, 'product-window.png'), Buffer.from(png, 'base64'));
+    await command({ type: 'stopApp' });
+    await waitState('stopped');
+    const query = JSON.parse((await cliAt(['db', 'query', task.postQuery.sql])).stdout) as { ok: boolean; data: { rows: unknown[] } };
+    results['hostQuery'] = query;
+    expect(query.ok).toBe(true);
+    expect(query.data.rows).toEqual(task.postQuery.expectedRows);
+    expect(await sources(cwd), 'Host verification must not change model source').toEqual(after);
+    results['hostFixedOutcome'] = 'passed';
+  } catch (error) {
+    failure = error;
+    results['failure'] = String(error);
+  } finally {
+    try {
+      const current = await space();
+      observeOwnedInstance(current.managedApp);
+      const active = current.runs.find((run) => run.runId === runId);
+      if (active && ['starting', 'running', 'cancelling'].includes(active.state)) {
+        await command({ type: 'cancelRun', runId });
+        await expect
+          .poll(
+            async () => {
+              const run = (await space()).runs.find((r) => r.runId === runId)!;
+              return run.state === 'cancelled' && !run.conversation?.cleanupPending;
+            },
+            { timeout: 30_000 },
+          )
+          .toBe(true);
+      }
+      if (current.managedApp && current.managedApp.state !== 'stopped') await command({ type: 'stopApp' });
+      await expect
+        .poll(
+          async () => {
+            const app = (await space()).managedApp;
+            return !app || (app.state === 'stopped' && app.cleanupConfirmed);
+          },
+          { timeout: 30_000 },
+        )
+        .toBe(true);
+      results['cleanupApp'] = (await space()).managedApp;
+      if (cwd)
+        results['guestProcessesAfter'] = (
+          await guest([
+            'python3',
+            '-I',
+            '-c',
+            `import pathlib,json,sys\np=sys.argv[1]; out=[]\nfor f in pathlib.Path('/proc').glob('[0-9]*/cwd'):\n try:\n  if str(f.resolve()).startswith(p): out.append({'pid':int(f.parent.name),'comm':(f.parent/'comm').read_text().strip()})\n except FileNotFoundError: pass\nprint(json.dumps(out))`,
+            cwd,
+          ])
+        ).stdout;
+      if (runId) await cp(path.join(profile, 'app-control', runId), path.join(evidence, 'app-control', runId), { recursive: true });
+    } catch (error) {
+      cleanupErrors.push(String(error));
+    }
+    if (cwd) {
+      try {
+        await writeFile(path.join(evidence, 'guest-source-final.json'), JSON.stringify(await sources(cwd), null, 2));
+      } catch (error) {
+        cleanupErrors.push(String(error));
+      }
+    }
+    try {
+      await app.close();
+    } catch (error) {
+      cleanupErrors.push(String(error));
+    }
+    results['applicationExited'] = electronProcess.exitCode !== null || electronProcess.signalCode !== null;
+    try {
+      const portsAfter = PortsSchema.parse(JSON.parse((await execute(sbx, ['ports', sandbox, '--json'], { timeout: 20_000 })).stdout));
+      results['portsAfter'] = portsAfter;
+      const remainingOwned = portsAfter.filter((port) => ownedGuestPorts.has(port.sandbox_port) && !baselinePorts.has(portIdentity(port)));
+      results['remainingOwnedPortMappings'] = remainingOwned;
+      expect(remainingOwned, 'All mappings for observed owned instance ports must be removed; pre-existing mappings are preserved').toEqual(
+        [],
+      );
+    } catch (error) {
+      cleanupErrors.push(String(error));
+    }
+    try {
+      const finalTaskHash = digest(await readFile(path.join(fixed, 'task.json'), 'utf8'));
+      const finalScenarioHash = digest(await readFile(path.join(fixed, 'scenario.json'), 'utf8'));
+      results['fixedHashesAfter'] = { task: finalTaskHash, scenario: finalScenarioHash };
+      expect(finalTaskHash, 'Frozen task must remain unchanged').toBe(digest(taskText));
+      expect(finalScenarioHash, 'Frozen scenario must remain unchanged').toBe(digest(scenarioText));
+    } catch (error) {
+      cleanupErrors.push(String(error));
+    }
+    results['cleanupErrors'] = cleanupErrors;
+    await save();
+  }
+  if (cleanupErrors.length) throw new AggregateError([...(failure ? [failure] : []), ...cleanupErrors], 'A11 failure/cleanup errors');
+  if (failure) throw failure;
+  expect(results['applicationExited']).toBe(true);
+  expect(JSON.parse(String(results['guestProcessesAfter']))).toEqual([]);
+});

@@ -1,0 +1,35 @@
+
+Running 1 test using 1 worker
+
+(node:83278) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-cli-cancel-4x28fs ELECTRON_PID 83281
+ELECTRON_STDERR (node:83281) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:53199/337afa98-9679-4d60-8990-db6e49bcfb1c
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✘  1 e2e/app-control-cancel-live.spec.ts:127:1 › real CLI cancellation stops owned processes and isolates a delayed reply from the next run (3.6m)
+
+
+  1) e2e/app-control-cancel-live.spec.ts:127:1 › real CLI cancellation stops owned processes and isolates a delayed reply from the next run 
+
+    TimeoutError: locator.click: Timeout 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('region', { name: 'Agent 会话内容' }).getByRole('button', { name: '取消回复', exact: true })
+
+
+      329 |     expect(Date.now() - entered.at, 'Evidence collection must finish while waitFor is genuinely in flight').toBeLessThan(8000);
+      330 |     results['cancelButtonClickedAt'] = Date.now();
+    > 331 |     await session.getByRole('button', { name: '取消回复', exact: true }).click();
+          |                                                                      ^
+      332 |     const cancelled = await waitTerminal(first, 'cancelled', 60_000);
+      333 |     await expect(session).toContainText('回复已取消，进程已退出。');
+      334 |     await expect(session.getByRole('button', { name: '取消回复', exact: true })).toHaveCount(0);
+        at /Users/huaodong/workspace/web-studio-lab/e2e/app-control-cancel-live.spec.ts:331:70
+
+    Error Context: test-results/e2e/app-control-cancel-live-re-25775-yed-reply-from-the-next-run/error-context.md
+
+  1 failed
+    e2e/app-control-cancel-live.spec.ts:127:1 › real CLI cancellation stops owned processes and isolates a delayed reply from the next run 

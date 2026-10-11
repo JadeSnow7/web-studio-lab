@@ -1,0 +1,28 @@
+[
+  {
+    "name": "lint-final",
+    "command": ["pnpm", "lint"],
+    "exit_code": 1,
+    "seconds": 13.01
+  },
+  {
+    "name": "format-final",
+    "command": ["pnpm", "format:check"],
+    "exit_code": 1,
+    "seconds": 44.35
+  },
+  {
+    "name": "premium-final",
+    "command": [
+      "python3",
+      "/Users/huaodong/.codex/plugins/cache/openai-curated-remote/frontend-design-premium/1.4.0/skills/frontend-design-premium/scripts/audit_project.py",
+      "/private/tmp/wsl-consolidate-review-20261011",
+      "--mode",
+      "strict",
+      "--output",
+      "/private/tmp/wsl-consolidation-20261011/final-validation/premium-final.json"
+    ],
+    "exit_code": 0,
+    "seconds": 0.57
+  }
+]

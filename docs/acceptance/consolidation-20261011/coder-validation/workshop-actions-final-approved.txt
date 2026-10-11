@@ -1,0 +1,10 @@
+
+Running 3 tests using 1 worker
+
+(node:60999) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/workshop-actions.spec.ts:7:1 › Workshop typed creation persists resources and restores modal focus (4.9s)
+  ✓  2 e2e/workshop-actions.spec.ts:65:1 › Workshop App dialog creates, exports, reports startup failure and restores persisted ownership (7.9s)
+  ✓  3 e2e/workshop-actions.spec.ts:117:1 › App operations stay with their workspace after closing and switching (5.0s)
+
+  3 passed (18.4s)

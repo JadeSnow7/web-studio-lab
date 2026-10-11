@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-10T04:34:42.493Z",
+  "sandbox": "wsl-sbx-smoke-20261006",
+  "ownedPorts": [
+    42821,
+    34959
+  ],
+  "awakePortMappings": [],
+  "ownedMappingsAbsent": true,
+  "urls": [
+    "http://127.0.0.1:49158",
+    "http://127.0.0.1:49159"
+  ],
+  "healthUnavailable": [
+    true,
+    true
+  ]
+}

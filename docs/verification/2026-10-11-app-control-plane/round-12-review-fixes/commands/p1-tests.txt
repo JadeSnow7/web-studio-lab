@@ -1,0 +1,13 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+
+ Test Files  5 passed (5)
+      Tests  120 passed (120)
+   Start at  15:15:31
+   Duration  4.75s (tests 61%, transform 28%, import 11%)
+
+  Transform  transforming modules took 2.22s · 28% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+
