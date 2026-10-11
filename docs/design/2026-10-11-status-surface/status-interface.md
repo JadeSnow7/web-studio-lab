@@ -118,10 +118,10 @@ export interface FactInput {
 | | `closing` | pending | progress | 正在关闭并核实进程… | — |
 | | `closed` | idle | confirmation | 已关闭，所属进程已确认退出 | 连接终端 |
 | | `failed` | failed | problem | 连接失败（detail：error） | 连接终端 |
-| `terminal:<id>:cleanup` | `cleanupPending` | unknown | unresolved | 所属进程退出未确认 | — |
+| `terminal:<id>:cleanup` | `cleanupPending` 且 state ∈ {`failed`, `closed`, `idle`} | unknown | unresolved | 所属进程退出未确认 | — |
 | `terminal:<id>:unavailable` | `unavailableReason` | degraded | problem | {unavailableReason} | — |
 
-SSH 断线后远端进程状态不明属于 `terminal:<id>:cleanup`（`unresolved`）：只要事实未变就持续显式，不因交互降级。此时「连接终端」动作为 `disabled`，与合同「重连明确拒绝」一致。
+`cleanupPending` 在源码中表示「所属进程尚未确认退出」，进程存活期间始终为 true（`apps/service/src/terminal.ts` 启动时置位），因此只在进程应已结束的状态产出未确认事实；`starting` / `running` / `closing` 由 state 文案表达（运行同理，见 §4.5；实施期修订，用户确认）。SSH 断线后远端进程状态不明属于 `terminal:<id>:cleanup`（`unresolved`）：只要事实未变就持续显式，不因交互降级。此时「连接终端」动作为 `disabled`，与合同「重连明确拒绝」一致。
 
 ### 4.3 网页 `PreviewState`
 
@@ -164,7 +164,7 @@ problem 内优先级：load-error > pick-error > cdp > blocked-nav > unavailable
 | | `cancelled` | idle | steady | 已取消 | — |
 | | `failed` | failed | problem | 执行失败（detail：error） | — |
 | | `interrupted` | failed | problem | 执行中断 | — |
-| `run:<id>:process-cleanup` | `cleanupPending` | unknown | unresolved | 正在核实所属进程退出… | — |
+| `run:<id>:process-cleanup` | `cleanupPending` 且 state ∈ {`completed`, `cancelled`, `failed`, `interrupted`} | unknown | unresolved | 正在核实所属进程退出… | — |
 | `run:<id>:app-cleanup` | `appCleanupPending` | unknown | unresolved | `executorState.cleanupPending === false` 时「模型已停止，App 数据操作仍待确认」；否则（含重启恢复时执行器状态缺失或未确认）「App 数据操作结果待确认」 | 重新核对（`cleanupRetryAvailable` 时出现，`cleanupReconciling` 时禁用） |
 
 `run:<id>:state` 为 `cancelling` 与 `run:<id>:app-cleanup` 可同时成立，两条都显示，对应合同「会话保持取消中，行内显示模型已停止…」。
@@ -223,6 +223,19 @@ problem 内优先级：load-error > pick-error > cdp > blocked-nav > unavailable
 `steady` → StatusDot（环境级）；`capability` → 设置页与诊断面板。全局（无窗格归属）的 problem 是持续条件，进**标题栏**（channel `titlebar`）：对话不可用为「Codex CLI · 对话不可用」，setup 类取最高优先级一条为「环境 · {label}」，均进入设置页；`storage` 进底部横幅。Toast 只承载一次性失败（界面操作失败、工作区命令错误）。（实施期修订，2026-10-11 用户确认：持续条件放进 Toast 会在开发与 E2E 默认环境常驻并遮挡输入区。）
 
 由此，AI 操控提示、暂停后的「允许 AI 继续」、取消中与清理未确认**永远不会**被其他错误折叠或压过。
+
+### 5.1 侧栏标签行尾（实施期补充）
+
+侧栏标签行尾只画一个 StatusDot，由展示层 `tabStatus` 选出，与会话页的历史选择无关：
+
+| 标签 | 取值 | 画点 |
+| ---- | ---- | ---- |
+| 会话 | 该会话最新 run 的 `run:<id>:state` | 进行中为缺口环、失败 / 中断为三角；完成、已取消、无 run 不画 |
+| 终端 / SSH | `terminal:<id>:state` | 已连接为成功色实心点（决策 2）、连接中 / 关闭中为缺口环、失败为三角；`closed` / `idle` 但存在 `terminal:<id>:cleanup` 时为虚线环（所属进程退出未确认）；其余空闲不画 |
+| 网页 | `web:<id>:load-error` / `pick-error` | 仅 failed 问题画三角；加载中、拦截、AI 操控等留在窗格状态槽 |
+| 文件 | — | 不画 |
+
+状态文字以视觉隐藏文本输出，并作为标签按钮的 `aria-describedby`；按钮名称保持标签标题。
 
 ## 6. 展示状态（第 ②层输入）
 

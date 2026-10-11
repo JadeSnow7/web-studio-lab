@@ -6,8 +6,10 @@ import type {
   StatusDomain,
   StatusFact,
   StatusKind,
+  StatusPhase,
   StatusRaw,
   StatusScope,
+  TargetRef,
   WorkbenchSnapshot,
 } from '@wsl/protocol';
 import { projectFacts } from '../../../shared/status';
@@ -361,6 +363,8 @@ export interface StatusView {
   channel: StatusChannel;
   visible: boolean;
   historical?: true;
+  /** run:<id>:state 专用：该 run 是所属会话的最新一条（与历史选择无关），侧栏行尾据此取值。 */
+  latestRun?: true;
 }
 
 export interface PresentInput {
@@ -488,6 +492,15 @@ export function presentStatus(facts: readonly StatusFact[], state: PresentationS
   const runVersions = input.snapshot
     ? new Map(input.snapshot.workspaces.flatMap((w) => w.runs.map((r) => [r.runId, r.taskVersionId] as const)))
     : null;
+  // 每个会话的最新 run（与历史选择无关，口径同 Session.tsx 的 currentRun）：有快照时取快照里该会话最后一条，否则取事实顺序里最后一条。
+  const latestRun = new Map<string, string | null>();
+  for (const [sessionId, scope] of sessionScopes) {
+    const snapshotRuns = input.snapshot?.workspaces
+      .find((w) => scope.kind !== 'global' && w.workspaceId === scope.workspaceId)
+      ?.runs.filter((r) => r.sessionId === sessionId);
+    const last = ownRuns.get(sessionId)?.at(-1);
+    latestRun.set(sessionId, snapshotRuns ? (snapshotRuns.at(-1)?.runId ?? null) : last ? entityOf(last) : null);
+  }
   const currentRun = new Map<string, string | null>();
   const unavailable: string[] = [];
   for (const [sessionId, scope] of sessionScopes) {
@@ -512,6 +525,13 @@ export function presentStatus(facts: readonly StatusFact[], state: PresentationS
   const views: StatusView[] = [];
   for (const fact of facts) {
     const base: StatusView = { ...fact, channel: channelOf(fact), visible: true };
+    if (
+      fact.domain === 'run' &&
+      fact.facet === 'state' &&
+      fact.scope.kind === 'session' &&
+      latestRun.get(fact.scope.sessionId) === entityOf(fact)
+    )
+      base.latestRun = true;
     // 当前项限定只作用于 steady / problem / confirmation；persistent 类（control / unresolved / progress）不论属于哪个 run 都必须可见（§5）。
     const limited = base.channel !== 'persistent';
     if (limited && isRunDomain(fact) && fact.scope.kind === 'session' && currentRun.get(fact.scope.sessionId) !== entityOf(fact)) {
@@ -652,6 +672,79 @@ export function selectTitlebar(views: readonly StatusView[]): TitlebarStatus {
   };
 }
 
+/* ---------- 侧栏标签 ---------- */
+
+export interface TabTarget {
+  kind: TargetRef['kind'];
+  resourceId: string;
+  /** 会话标签对应的会话 id；由调用方按 resourceId 查出，其余标签忽略。 */
+  sessionId?: string | null;
+}
+
+/** 值得在标签行尾出现的 phase：进行中、失败、未确认 / 降级。ok 与 idle 是安静的稳态，不画点。 */
+const TAB_ATTENTION: ReadonlySet<StatusPhase> = new Set(['pending', 'active', 'failed', 'unknown', 'degraded']);
+
+/**
+ * 侧栏标签行尾的状态：该标签实体最相关的一条事实，没有就是 null（不画点）。views 已按 compareViews 排序，所以取第一条匹配的。
+ * 标签行尾只回答「这个标签现在是否运行 / 出错」，所以只取实体的 state 事实；清理 / 核实类在窗格的状态槽里呈现（终端的未确认例外见下）。
+ * 选择规则：
+ * - 会话：取该会话最新 run 的 run:<id>:state（启动中 / 执行 / 取消中 / 失败 / 中断画点；完成、已取消、无 run 不画）。
+ *   「最新」按 run 顺序，与会话页的历史选择无关——用户在会话页点开旧 run 不会改变侧栏。
+ * - 终端 / SSH：terminal:<id>:state（连接中 / 关闭中 / 失败 / 已连接）；已连接（ok）是唯一保留的稳态绿点（README 决策 2）。
+ *   例外：state 为已关闭 / 空闲而 terminal:<id>:cleanup 仍未确认时，画 unknown 虚线环「所属进程退出未确认」。
+ * - 网页：只取 failed 的 problem（页面加载失败 / 元素选择失败）；加载中、拦截导航、AI 操控等留给窗格内的状态槽。
+ * - 文件：不画点。
+ * - 空闲（idle）不显示。
+ */
+export function tabStatus(views: readonly StatusView[], target: TabTarget): StatusView | null {
+  const match = (view: StatusView): boolean => {
+    switch (target.kind) {
+      case 'session':
+        return (
+          view.domain === 'run' &&
+          view.facet === 'state' &&
+          view.scope.kind === 'session' &&
+          !!target.sessionId &&
+          view.scope.sessionId === target.sessionId &&
+          view.latestRun === true &&
+          TAB_ATTENTION.has(view.phase)
+        );
+      case 'terminal':
+      case 'ssh':
+        return (
+          !view.historical &&
+          view.domain === 'terminal' &&
+          view.facet === 'state' &&
+          view.scope.kind === 'resource' &&
+          view.scope.resourceId === target.resourceId &&
+          (TAB_ATTENTION.has(view.phase) || view.phase === 'ok')
+        );
+      case 'web':
+        return (
+          !view.historical &&
+          view.domain === 'web' &&
+          view.scope.kind === 'resource' &&
+          view.scope.resourceId === target.resourceId &&
+          view.kind === 'problem' &&
+          view.phase === 'failed'
+        );
+      case 'file':
+        return false;
+    }
+  };
+  const found = views.find(match) ?? null;
+  if (found || (target.kind !== 'terminal' && target.kind !== 'ssh')) return found;
+  // 已关闭 / 空闲但所属进程退出仍未确认：虚线环。
+  const own = (facet: string) =>
+    views.find(
+      (view) =>
+        view.domain === 'terminal' && view.facet === facet && view.scope.kind === 'resource' && view.scope.resourceId === target.resourceId,
+    );
+  const state = own('state');
+  const cleanup = own('cleanup');
+  return state?.phase === 'idle' && cleanup?.phase === 'unknown' ? cleanup : null;
+}
+
 /* ---------- Hook ---------- */
 
 export interface StatusViewResult {
@@ -740,6 +833,11 @@ export function useStatusView(scope: StatusScope): StatusViewResult {
   const key = scopeKey(scope);
   const views = byScope.get(key) ?? EMPTY_VIEWS;
   return useMemo(() => groupForScope(views), [views]);
+}
+
+/** 侧栏某个标签行尾的状态；规则见 tabStatus。 */
+export function useTabStatus(target: TabTarget): StatusView | null {
+  return tabStatus(useDerivedStatus().views, target);
 }
 
 export function useToastQueue(): ToastItem[] {

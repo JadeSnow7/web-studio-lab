@@ -475,7 +475,9 @@ function terminalFacts(workspaceId: string, resource: WorkbenchResource): Status
       }),
     ),
   ];
-  if (terminal?.cleanupPending)
+  // 运行中的 PTY 本来就持有进程（cleanupPending 为 true）：starting / running / closing 由 state 文案表达，
+  // 只有进程应已结束（failed / closed / idle）却仍未确认时才是「未确认」事实。
+  if (terminal?.cleanupPending && (state === 'failed' || state === 'closed' || state === 'idle'))
     facts.push(build(entity, 'cleanup', { phase: 'unknown', kind: 'unresolved', priority: 90, label: '所属进程退出未确认', raw }));
   if (resource.unavailableReason)
     facts.push(
@@ -638,7 +640,8 @@ function runFacts(workspaceId: string, run: WorkbenchRun): StatusFact[] {
   const facts: StatusFact[] = [
     build(run_, 'state', fromMapping(RUN_STATE[run.state], { raw, detail: run.state === 'failed' ? run.error : undefined })),
   ];
-  if (run.cleanupPending)
+  // 执行期间（starting / running / cancelling）进程本来就在；只有 run 已进入终态仍未核实退出时才产出。
+  if (run.cleanupPending && ['completed', 'cancelled', 'failed', 'interrupted'].includes(run.state))
     facts.push(build(run_, 'process-cleanup', { phase: 'unknown', kind: 'unresolved', priority: 85, label: '正在核实所属进程退出…', raw }));
   // App 数据操作待确认：只要 appCleanupPending 就产出。执行器已确认无待清理时说明「模型已停止」；
   // executorState 缺失或仍待清理（如重启恢复路径）时只说明 App 数据操作结果待确认。可与 cancelling 同时成立，两条都产出。

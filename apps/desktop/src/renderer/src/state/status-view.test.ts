@@ -21,6 +21,7 @@ import {
   statusPresentationActions as actions,
   terminalToken,
   statusPresentationStore as store,
+  tabStatus,
   type Hint,
   type PresentationState,
   type StatusView,
@@ -966,5 +967,138 @@ describe('标题栏通道', () => {
     expect(
       deriveStatus({ ...base, chat: { available: true, reason: null, version: '1', sandbox: 's', cwd: '/w' } as never }).titlebar,
     ).toEqual({ chat: null, setup: null, moreSetup: 0 });
+  });
+});
+
+describe('侧栏标签状态', () => {
+  const sessionFact = (entity: string, facet: string, phase: StatusFact['phase'], kind: StatusKind, sessionId = 's1', priority = 10) =>
+    fact({ domain: 'run', entity, facet, scope: session(sessionId), kind, phase, priority });
+  const terminalFact = (entity: string, facet: string, phase: StatusFact['phase'], kind: StatusKind, priority = 10) =>
+    fact({ domain: 'terminal', entity, facet, scope: resource(entity), kind, phase, priority });
+  const webFact = (entity: string, facet: string, phase: StatusFact['phase'], kind: StatusKind, priority = 10) =>
+    fact({ domain: 'web', entity, facet, scope: resource(entity), kind, phase, priority });
+  const status = (facts: StatusFact[], target: Parameters<typeof tabStatus>[1]) => tabStatus(present(facts), target)?.key ?? null;
+
+  it('终端：已连接是绿点（ok），连接中 / 失败 / 未确认 / 不可用各有状态；尚未连接与已关闭不显示', () => {
+    const target = { kind: 'terminal', resourceId: 't1' } as const;
+    expect(status([terminalFact('t1', 'state', 'ok', 'steady')], target)).toBe('terminal:t1:state');
+    expect(tabStatus(present([terminalFact('t1', 'state', 'ok', 'steady')]), target)).toMatchObject({ phase: 'ok' });
+    expect(status([terminalFact('t1', 'state', 'pending', 'progress', 60)], target)).toBe('terminal:t1:state');
+    expect(status([terminalFact('t1', 'state', 'failed', 'problem', 60)], target)).toBe('terminal:t1:state');
+    expect(status([terminalFact('t1', 'state', 'idle', 'steady')], target)).toBeNull();
+    expect(status([terminalFact('t1', 'state', 'idle', 'confirmation', 20)], target)).toBeNull();
+    // ssh 与终端同一规则。
+    expect(status([terminalFact('t1', 'state', 'ok', 'steady')], { kind: 'ssh', resourceId: 't1' })).toBe('terminal:t1:state');
+  });
+
+  it('终端：只取 state 事实；清理 / 不可用类事实不改变标签点，只取本资源的事实', () => {
+    const target = { kind: 'terminal', resourceId: 't1' } as const;
+    // 运行中的 PTY 本身就带 cleanupPending，不能因此把已连接盖成「未确认」。
+    const running = [terminalFact('t1', 'state', 'ok', 'steady'), terminalFact('t1', 'cleanup', 'unknown', 'unresolved', 90)];
+    expect(tabStatus(present(running), target)).toMatchObject({ key: 'terminal:t1:state', phase: 'ok' });
+    expect(status([terminalFact('t1', 'cleanup', 'unknown', 'unresolved', 90)], target)).toBeNull();
+    expect(status([terminalFact('t1', 'unavailable', 'degraded', 'problem', 40)], target)).toBeNull();
+    expect(status([terminalFact('t2', 'state', 'ok', 'steady')], target)).toBeNull();
+  });
+
+  it('会话：执行中是进行中、失败是失败；完成 / 已取消 / 没有 run 不显示', () => {
+    const target = { kind: 'session', resourceId: 'r', sessionId: 's1' } as const;
+    expect(tabStatus(present([sessionFact('run1', 'state', 'active', 'progress', 's1', 70)]), target)).toMatchObject({
+      key: 'run:run1:state',
+      phase: 'active',
+    });
+    expect(tabStatus(present([sessionFact('run1', 'state', 'failed', 'problem', 's1', 70)]), target)).toMatchObject({ phase: 'failed' });
+    expect(status([sessionFact('run1', 'state', 'ok', 'steady')], target)).toBeNull();
+    expect(status([sessionFact('run1', 'state', 'idle', 'steady')], target)).toBeNull();
+    expect(status([], target)).toBeNull();
+    // 没有会话 id（资源尚无会话）时不显示；其他会话的 run 不串。
+    expect(status([sessionFact('run1', 'state', 'active', 'progress')], { kind: 'session', resourceId: 'r' })).toBeNull();
+    expect(status([sessionFact('run9', 'state', 'active', 'progress', 's9')], target)).toBeNull();
+  });
+
+  it('会话：只看当前 run，历史 run 的失败不显示；检查与审阅事实不会进标签行尾', () => {
+    const target = { kind: 'session', resourceId: 'r', sessionId: 's1' } as const;
+    const snapshot = snapshotOf({
+      sessions: [sessionRecord('s1')],
+      runs: [runRecord('old', 's1', { state: 'failed', error: 'boom' }), runRecord('new', 's1', { state: 'completed' })],
+    });
+    const views = present(factsOf(snapshot), {}, snapshot);
+    expect(tabStatus(views, target)).toBeNull();
+    const failedNow = snapshotOf({
+      sessions: [sessionRecord('s1')],
+      runs: [runRecord('old', 's1', { state: 'completed' }), runRecord('new', 's1', { state: 'failed', error: 'later' })],
+    });
+    expect(tabStatus(present(factsOf(failedNow), {}, failedNow), target)).toMatchObject({ key: 'run:new:state', phase: 'failed' });
+    const validation = fact({
+      domain: 'validation',
+      entity: 'run1',
+      facet: 'state',
+      scope: session('s1'),
+      kind: 'problem',
+      phase: 'failed',
+    });
+    expect(status([validation], target)).toBeNull();
+  });
+
+  it('会话：侧栏取最新 run，不随会话页的历史选择变化', () => {
+    const target = { kind: 'session', resourceId: 'r', sessionId: 's1' } as const;
+    // (a) 旧 run 完成、新 run 失败，用户选中旧 run：侧栏仍是新 run 的失败三角。
+    const failedNew = snapshotOf({
+      sessions: [sessionRecord('s1')],
+      runs: [runRecord('old', 's1', { state: 'completed' }), runRecord('new', 's1', { state: 'failed', error: 'later' })],
+    });
+    actions.selectHistory('s1', { runId: 'old' });
+    expect(tabStatus(present(factsOf(failedNew), store.get(), failedNew), target)).toMatchObject({ key: 'run:new:state', phase: 'failed' });
+    // (b) 旧 run 失败、新 run 完成，用户选中旧 run：侧栏不显示点（不拿历史失败充数）。
+    const failedOld = snapshotOf({
+      sessions: [sessionRecord('s1')],
+      runs: [runRecord('old', 's1', { state: 'failed', error: 'boom' }), runRecord('new', 's1', { state: 'completed' })],
+    });
+    expect(tabStatus(present(factsOf(failedOld), store.get(), failedOld), target)).toBeNull();
+  });
+
+  it('终端：已关闭 / 空闲但所属进程退出未确认时画 unknown 虚线环；其他终端规则不变', () => {
+    const target = { kind: 'terminal', resourceId: 't1' } as const;
+    const cleanup = terminalFact('t1', 'cleanup', 'unknown', 'unresolved', 90);
+    expect(tabStatus(present([terminalFact('t1', 'state', 'idle', 'confirmation', 20), cleanup]), target)).toMatchObject({
+      key: 'terminal:t1:cleanup',
+      phase: 'unknown',
+    });
+    expect(tabStatus(present([terminalFact('t1', 'state', 'idle', 'steady'), cleanup]), { kind: 'ssh', resourceId: 't1' })).toMatchObject({
+      key: 'terminal:t1:cleanup',
+    });
+    // 失败仍是失败；已连接仍是绿点；别的终端的 cleanup 不串。
+    expect(tabStatus(present([terminalFact('t1', 'state', 'failed', 'problem', 60), cleanup]), target)).toMatchObject({
+      key: 'terminal:t1:state',
+      phase: 'failed',
+    });
+    expect(tabStatus(present([terminalFact('t1', 'state', 'ok', 'steady'), cleanup]), target)).toMatchObject({ phase: 'ok' });
+    expect(
+      tabStatus(
+        present([terminalFact('t1', 'state', 'idle', 'steady'), terminalFact('t2', 'cleanup', 'unknown', 'unresolved', 90)]),
+        target,
+      ),
+    ).toBeNull();
+    expect(tabStatus(present([terminalFact('t1', 'state', 'idle', 'steady')]), target)).toBeNull();
+  });
+
+  it('会话：只取 run:<id>:state；清理未确认类事实不进标签行尾', () => {
+    const target = { kind: 'session', resourceId: 'r', sessionId: 's1' } as const;
+    expect(status([sessionFact('run1', 'app-cleanup', 'unknown', 'unresolved', 's1', 95)], target)).toBeNull();
+    expect(status([sessionFact('run1', 'process-cleanup', 'unknown', 'unresolved', 's1', 85)], target)).toBeNull();
+    const facts = [
+      sessionFact('run1', 'state', 'pending', 'progress', 's1', 75),
+      sessionFact('run1', 'app-cleanup', 'unknown', 'unresolved', 's1', 95),
+    ];
+    expect(status(facts, target)).toBe('run:run1:state');
+  });
+
+  it('网页：只有 failed 问题显示；加载中、拦截导航、AI 操控与文件标签都不显示', () => {
+    const target = { kind: 'web', resourceId: 'w1' } as const;
+    expect(status([webFact('w1', 'load-error', 'failed', 'problem', 50)], target)).toBe('web:w1:load-error');
+    expect(status([webFact('w1', 'state', 'active', 'steady')], target)).toBeNull();
+    expect(status([webFact('w1', 'blocked-nav', 'degraded', 'problem', 20)], target)).toBeNull();
+    expect(status([webFact('w1', 'agent-control', 'active', 'control', 100)], target)).toBeNull();
+    expect(status([webFact('w1', 'load-error', 'failed', 'problem', 50)], { kind: 'file', resourceId: 'w1' })).toBeNull();
   });
 });

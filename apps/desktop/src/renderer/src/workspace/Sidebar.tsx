@@ -1,12 +1,41 @@
 import { reorderTabIds } from './presentation';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { WorkspaceSnapshot } from '@wsl/protocol';
 import { Icon } from '../components/Icon';
+import { StatusDot } from '../components/Status';
 import { command, panes, workspaceStore } from '../state/workspace';
 import { useStore } from '../lib/store';
 import { useCatalogMutation } from '../state/catalog';
 import { spaceUiStore } from '../state/space-ui';
+import { useTabStatus, type TabTarget } from '../state/status-view';
 import { resourceIcons as icons } from './icons';
+/**
+ * 标签行尾状态点：状态与「什么时候画」都由展示层决定（tabStatus），这里只负责画；没有可画的状态时不占位。
+ * 描述节点只在有状态点时才存在，所以 aria-describedby 也只在有状态点时设置——由子函数在拿到 view 后决定。
+ */
+function WithTabStatus({
+  id,
+  target,
+  children,
+}: {
+  id: string;
+  target: TabTarget;
+  children: (describedBy: string | undefined, dot: ReactNode) => ReactNode;
+}) {
+  const view = useTabStatus(target);
+  if (!view) return <>{children(undefined, null)}</>;
+  return (
+    <>
+      {children(
+        id,
+        <span id={id} className="tab-status">
+          <StatusDot view={view} />
+        </span>,
+      )}
+    </>
+  );
+}
+
 export function Sidebar({
   workspace,
   peek,
@@ -32,6 +61,7 @@ export function Sidebar({
   const action = useCatalogMutation();
   const items = workspace?.tabs ?? [];
   const ordered = [...items.filter((t) => t.pinned), ...items.filter((t) => !t.pinned)];
+  const background = workspace?.resources.filter((r) => !items.some((t) => t.targetRef.resourceId === r.resourceId)) ?? [];
   return (
     <section className="workspace-sidebar" aria-label="空间导航">
       <div className="sidebar-heading">
@@ -73,9 +103,8 @@ export function Sidebar({
         {ordered.map((tab, index) => {
           const p = workspace ? panes(workspace.layout).find((p) => p.tabId === tab.tabId) : undefined;
           const active = p?.paneId === workspace?.activePaneId;
-          const r = workspace?.resources.find((r) => r.resourceId === tab.targetRef.resourceId);
-          const session = workspace?.sessions.find((s) => s.resourceId === tab.targetRef.resourceId);
-          const run = workspace?.runs.filter((r) => r.sessionId === session?.sessionId).at(-1);
+          const sessionId = workspace?.sessions.find((s) => s.resourceId === tab.targetRef.resourceId)?.sessionId;
+          const statusId = `vertical-status-${tab.tabId}`;
           return (
             <div
               key={tab.tabId}
@@ -104,46 +133,50 @@ export function Sidebar({
                 setDragged(null);
               }}
             >
-              <button
-                type="button"
-                className="vertical-tab-main"
-                aria-label={tab.title}
-                aria-current={active ? 'page' : undefined}
-                title={tab.title}
-                onClick={() => {
-                  void command({ type: 'activateTab', tabId: tab.tabId });
-                  if (peek) {
-                    onClosePeek();
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.nativeEvent.isComposing) return;
-                  const next =
-                    e.key === 'ArrowDown'
-                      ? index + 1
-                      : e.key === 'ArrowUp'
-                        ? index - 1
-                        : e.key === 'Home'
-                          ? 0
-                          : e.key === 'End'
-                            ? ordered.length - 1
-                            : null;
-                  if (next !== null) {
-                    e.preventDefault();
-                    document.getElementById(`vertical-${ordered[(next + ordered.length) % ordered.length]!.tabId}`)?.focus();
-                  }
-                }}
-                id={`vertical-${tab.tabId}`}
-              >
-                <Icon name={icons[tab.targetRef.kind]} />
-                <span className="tab-description">
-                  <span>{tab.title}</span>
-                  {tab.group ? <small>{tab.group}</small> : null}
-                </span>
-                {tab.pinned ? <span aria-label="已固定">⌖</span> : null}
-                {p && !active ? <small>已显示</small> : null}
-                {run?.state === 'running' ? <small>执行中</small> : r?.terminal?.state === 'running' ? <small>已连接</small> : null}
-              </button>
+              <WithTabStatus id={statusId} target={{ ...tab.targetRef, sessionId }}>
+                {(describedBy, dot) => (
+                  <button
+                    type="button"
+                    className="vertical-tab-main"
+                    aria-label={tab.title}
+                    aria-current={active ? 'page' : undefined}
+                    title={tab.title}
+                    aria-describedby={describedBy}
+                    onClick={() => {
+                      void command({ type: 'activateTab', tabId: tab.tabId });
+                      if (peek) {
+                        onClosePeek();
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.nativeEvent.isComposing) return;
+                      const next =
+                        e.key === 'ArrowDown'
+                          ? index + 1
+                          : e.key === 'ArrowUp'
+                            ? index - 1
+                            : e.key === 'Home'
+                              ? 0
+                              : e.key === 'End'
+                                ? ordered.length - 1
+                                : null;
+                      if (next !== null) {
+                        e.preventDefault();
+                        document.getElementById(`vertical-${ordered[(next + ordered.length) % ordered.length]!.tabId}`)?.focus();
+                      }
+                    }}
+                    id={`vertical-${tab.tabId}`}
+                  >
+                    <Icon name={icons[tab.targetRef.kind]} />
+                    <span className="tab-description">
+                      <span>{tab.title}</span>
+                      {tab.group ? <small>{tab.group}</small> : null}
+                    </span>
+                    {tab.pinned ? <span aria-label="已固定">⌖</span> : null}
+                    {dot}
+                  </button>
+                )}
+              </WithTabStatus>
               <button type="button" className="icon-btn tab-actions" aria-label={`${tab.title}操作`} onClick={() => onTabMenu(tab.tabId)}>
                 ···
               </button>
@@ -151,11 +184,13 @@ export function Sidebar({
           );
         })}
         {!ordered.length ? <p className="workspace-empty">空间还没有标签。</p> : null}
-        <details className="background-resources">
-          <summary>后台资源 / 已关闭标签</summary>
-          {workspace?.resources
-            .filter((r) => !items.some((t) => t.targetRef.resourceId === r.resourceId))
-            .map((r) => (
+        {background.length ? (
+          <details className="background-resources">
+            <summary>
+              <span>后台资源 / 已关闭标签</span>
+              <span className="count">· {background.length}</span>
+            </summary>
+            {background.map((r) => (
               <div key={r.resourceId} className="stack-8">
                 <span className="resource-location">
                   {r.title} · {r.instanceId ? '实例保留' : '无运行实例'}
@@ -181,7 +216,8 @@ export function Sidebar({
                 </div>
               </div>
             ))}
-        </details>
+          </details>
+        ) : null}
       </nav>
       {workspace && catalog ? (
         <details
@@ -330,7 +366,6 @@ export function Sidebar({
         <button type="button" className="btn btn-ghost" onClick={() => onSwitcher()}>
           搜索空间或标签
         </button>
-        <span className="muted small">关闭窗格保留标签 · 隐藏继续运行</span>
       </div>
     </section>
   );

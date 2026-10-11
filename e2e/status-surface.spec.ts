@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { launchApp, screensDir, setWindowSize, setWorkspaceTheme, shot, workshopNavigate } from './helpers';
+import { launchApp, screensDir, setWindowSize, setWorkspaceTheme, shot, workshopNavigate, workspaceSnapshot } from './helpers';
 
 const run = promisify(execFile);
 
@@ -14,6 +14,7 @@ const run = promisify(execFile);
  */
 
 const codexBin = path.resolve('e2e/fixtures/codex.mjs');
+const sbxBin = path.resolve('e2e/fixtures/sbx.mjs');
 
 const titlebarChat = (page: Page) => page.getByRole('button', { name: /^Codex CLI · / });
 const bell = (page: Page) => page.getByRole('button', { name: /^通知 · \d+ 条未读$/ });
@@ -194,6 +195,185 @@ test('标题栏截图：白 / 暗 / 暖 × 1440 / 960，正常与对话不可用
         for (const width of [1440, 960]) {
           await resize(app, page, width, width === 1440 ? 900 : 700);
           await shot(page, `status-surface/titlebar-${state}-${label}-${width}`);
+        }
+      }
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+/* ---------- 侧栏 ---------- */
+
+const sidebarOf = (page: Page) => page.getByRole('region', { name: '空间导航', exact: true });
+const tabRow = (page: Page, title: string) =>
+  sidebarOf(page)
+    .locator('.vertical-tab')
+    .filter({ has: page.getByRole('button', { name: title, exact: true }) });
+
+/** 宽窗口里侧栏常驻；窄窗口里经「展开 Workshop」临时展开。 */
+async function showSidebar(page: Page, whileVisible?: () => Promise<void>) {
+  const navigation = page.getByRole('navigation', { name: 'Workshop 导航' });
+  // 主题 / 宽度切换后可能处于收起、临时展开或非空间路由的中间态：每轮重新判断，补齐缺失的一步。
+  await expect(async () => {
+    if (!(await sidebarOf(page).isVisible())) {
+      if (!(await navigation.isVisible())) {
+        await page.getByRole('button', { name: '展开 Workshop', exact: true }).click({ timeout: 2000 });
+        await expect(navigation).toBeVisible({ timeout: 2000 });
+      }
+      const space = navigation.getByRole('button', { name: '空间', exact: true });
+      if ((await space.getAttribute('aria-current')) !== 'page') await space.click({ timeout: 2000 });
+    }
+    await expect(sidebarOf(page)).toBeVisible({ timeout: 2000 });
+    // 窗口宽度变化后布局模式可能稍后才切换并收起临时展开；需要侧栏在场的断言与截图放进同一轮重试。
+    await whileVisible?.();
+  }).toPass({ timeout: 20000 });
+}
+
+async function connectTerminal(page: Page) {
+  await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '开发终端', exact: true }).click();
+  const panel = page.getByRole('region', { name: '资源终端' });
+  await panel.getByRole('button', { name: '连接终端', exact: true }).click();
+  await expect(panel).toContainText('已连接');
+}
+
+async function failSessionRun(page: Page) {
+  await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
+  const region = page.getByRole('region', { name: 'Agent 会话内容' });
+  await region.getByRole('textbox', { name: '会话消息', exact: true }).fill('执行器不可用时记录失败运行');
+  await region.getByRole('button', { name: '发送', exact: true }).click();
+  await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('failed');
+}
+
+test('侧栏：终端连接后行尾出现成功色实心点；没有「已显示」与页脚说明；方向键导航不变', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    const sidebar = sidebarOf(page);
+    await showSidebar(page);
+    const row = tabRow(page, '开发终端');
+    // 尚未连接：不画点（空闲状态不是噪声）。
+    await expect(row).toBeVisible();
+    await expect(row.locator('[data-status]')).toHaveCount(0);
+    await connectTerminal(page);
+
+    const dot = row.locator('[data-status="terminal:ok"]');
+    await expect(dot).toBeVisible();
+    await expect(dot).toHaveText('已连接');
+    await expect(dot).toHaveAttribute('data-status-key', /^terminal:.+:state$/);
+    // 实心点，颜色是成功色而不是中性灰。
+    await expect(dot.locator('.shape-dot')).toBeVisible();
+    const colors = await dot.evaluate((node) => {
+      const probe = document.createElement('span');
+      probe.style.color = 'var(--ok)';
+      document.body.append(probe);
+      const ok = getComputedStyle(probe).color;
+      probe.remove();
+      return { dot: getComputedStyle(node).color, ok };
+    });
+    expect(colors.dot).toBe(colors.ok);
+    // 标签按钮的名称不变，状态文字走描述。
+    const main = row.getByRole('button', { name: '开发终端', exact: true });
+    await expect(main).toHaveAccessibleDescription('已连接');
+    // 其他标签（网页、会话）没有被误加点。
+    await expect(sidebar.locator('.vertical-tab [data-status]')).toHaveCount(1);
+
+    await expect(sidebar).not.toContainText('已显示');
+    await expect(sidebar).not.toContainText('执行中');
+    await expect(sidebar).not.toContainText('关闭窗格保留标签');
+    await expect(sidebar).not.toContainText('隐藏继续运行');
+    await expect(sidebar.locator('.sidebar-footer')).toContainText('搜索空间或标签');
+
+    // 方向键移动焦点的行为不变。
+    const mains = sidebar.locator('.vertical-tab-main');
+    const count = await mains.count();
+    expect(count).toBeGreaterThan(2);
+    await mains.first().focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(mains.nth(1)).toBeFocused();
+    await page.keyboard.press('End');
+    await expect(mains.nth(count - 1)).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(mains.first()).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await expect(mains.nth(count - 1)).toBeFocused();
+    await page.keyboard.press('Home');
+    await expect(mains.first()).toBeFocused();
+  } finally {
+    await app.close();
+  }
+});
+
+test('侧栏：「后台资源 / 已关闭标签」没有内容时不出现，有内容时摘要保留原文并附计数', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    await showSidebar(page);
+    const background = sidebarOf(page).locator('details.background-resources');
+    await expect(background).toHaveCount(0);
+
+    await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '开发终端', exact: true }).click();
+    await page.getByRole('button', { name: '开发终端操作', exact: true }).click();
+    await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）', exact: true }).click();
+    await showSidebar(page);
+    await expect(background).toHaveCount(1);
+    // 原文在独立元素里（精确匹配仍命中），计数在另一个元素里，口径与列出的条目一致。
+    const label = sidebarOf(page).getByText('后台资源 / 已关闭标签', { exact: true });
+    await expect(label).toHaveCount(1);
+    await expect(background.locator('summary')).toContainText('后台资源 / 已关闭标签');
+    await expect(background.locator('summary .count')).toHaveText('· 1');
+    await label.click();
+    await expect(background.locator('.stack-8')).toHaveCount(1);
+    await expect(background.locator('.stack-8')).toContainText('开发终端');
+
+    await background.getByRole('button', { name: '开发终端 · 重新打开', exact: true }).click();
+    await showSidebar(page);
+    await expect(background).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});
+
+test('侧栏：会话执行失败时行尾是失败三角，状态文字进入标签描述', async () => {
+  const { app, page } = await launchApp();
+  try {
+    await showSidebar(page);
+    const row = tabRow(page, 'Agent 会话');
+    await expect(row.locator('[data-status]')).toHaveCount(0);
+    await failSessionRun(page);
+    await showSidebar(page);
+    const dot = row.locator('[data-status="run:failed"]');
+    await expect(dot).toBeVisible();
+    await expect(dot).toHaveText('执行失败');
+    await expect(dot.locator('.shape-triangle')).toBeVisible();
+    await expect(row.getByRole('button', { name: 'Agent 会话', exact: true })).toHaveAccessibleDescription('执行失败');
+  } finally {
+    await app.close();
+  }
+});
+
+test('侧栏截图：白 / 暗 / 暖 × 1440 / 960，正常（终端已连接）与异常（会话执行失败）', async () => {
+  test.setTimeout(180000);
+  const dir = path.join(screensDir, 'status-surface');
+  await mkdir(dir, { recursive: true });
+  for (const [state, options] of [
+    ['normal', { sbxBin }],
+    ['abnormal', {}],
+  ] as const) {
+    const { app, page } = await launchApp(options);
+    try {
+      await resize(app, page, 1440, 900);
+      if (state === 'normal') await connectTerminal(page);
+      else await failSessionRun(page);
+      for (const theme of ['light', 'dark', 'warm'] as const) {
+        await resize(app, page, 1440, 900);
+        await expect(page.getByRole('navigation', { name: 'Workshop 导航' })).toBeVisible();
+        await setWorkspaceTheme(page, theme);
+        for (const width of [1440, 960]) {
+          await resize(app, page, width, width === 1440 ? 900 : 700);
+          await showSidebar(page, async () => {
+            const dot = sidebarOf(page).locator(state === 'normal' ? '[data-status="terminal:ok"]' : '[data-status="run:failed"]');
+            await expect(dot).toBeVisible({ timeout: 2000 });
+            await shot(page, `status-surface/sidebar-${state}-${theme}-${width}`);
+          });
         }
       }
     } finally {

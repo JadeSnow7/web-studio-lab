@@ -331,12 +331,50 @@ describe('projectFacts: 终端', () => {
     expect(keys(facts)).toContain('terminal:ssh1:state');
   });
 
-  it('cleanupPending 产出 unresolved，且此时连接动作 disabled（SSH 断线后重连被拒绝）', () => {
+  it('cleanupPending 且进程应已结束（failed / closed / idle）才产出 unresolved，此时连接动作 disabled', () => {
     const facts = terminalFact(terminalState({ state: 'failed', cleanupPending: true, error: 'SSH 已断开' }));
     expect(find(facts, 'terminal:t1:cleanup')).toMatchObject({ phase: 'unknown', kind: 'unresolved', label: '所属进程退出未确认' });
     expect(find(facts, 'terminal:t1:state')!.action).toEqual({ id: 'terminal.connect', label: '连接终端', disabled: true });
     const clean = find(terminalFact(terminalState({ state: 'closed' })), 'terminal:t1:state')!;
     expect(clean.action).toEqual({ id: 'terminal.connect', label: '连接终端' });
+    for (const state of ['closed', 'idle'] as const) {
+      const pending = terminalFact(terminalState({ state, cleanupPending: true }));
+      expect(find(pending, 'terminal:t1:cleanup')).toMatchObject({ phase: 'unknown', kind: 'unresolved' });
+      expect(find(pending, 'terminal:t1:state')!.action).toEqual({ id: 'terminal.connect', label: '连接终端', disabled: true });
+    }
+  });
+
+  it('starting / running / closing 期间 PTY 本来就持有进程：cleanupPending 不产出 cleanup 事实，由 state 文案表达', () => {
+    for (const state of ['starting', 'running', 'closing'] as const) {
+      const facts = terminalFact(terminalState({ state, cleanupPending: true }));
+      expect(keys(facts)).toEqual(['terminal:t1:state']);
+    }
+    expect(find(terminalFact(terminalState({ state: 'running', cleanupPending: true })), 'terminal:t1:state')).toMatchObject({
+      phase: 'ok',
+      kind: 'steady',
+      label: '已连接',
+    });
+    expect(find(terminalFact(terminalState({ state: 'closing', cleanupPending: true })), 'terminal:t1:state')).toMatchObject({
+      phase: 'pending',
+      kind: 'progress',
+    });
+  });
+
+  it('SSH 断线后 failed + cleanupPending：cleanup 为 unresolved，连接动作 disabled', () => {
+    const facts = factsOf({
+      resources: [
+        resource('ssh1', {
+          kind: 'ssh',
+          environmentId: 'ssh',
+          terminal: terminalState({ state: 'failed', cleanupPending: true, error: 'SSH 已断开' }),
+        }),
+      ],
+    });
+    expect(find(facts, 'terminal:ssh1:cleanup')).toMatchObject({ phase: 'unknown', kind: 'unresolved', label: '所属进程退出未确认' });
+    expect(find(facts, 'terminal:ssh1:state')).toMatchObject({
+      phase: 'failed',
+      action: { id: 'terminal.connect', label: '连接终端', disabled: true },
+    });
   });
 
   it('unavailableReason 产出 problem；instanceToken = instanceId:sessionId', () => {
@@ -637,9 +675,9 @@ describe('projectFacts: 运行', () => {
     });
   });
 
-  it('cleanupPending 产出 process-cleanup(unresolved)；三条 run facet 同时成立时 key 两两不同', () => {
+  it('cleanupPending 且 run 已进入终态才产出 process-cleanup(unresolved)；三条 run facet 同时成立时 key 两两不同', () => {
     const facts = runFacts({
-      state: 'cancelling',
+      state: 'failed',
       cleanupPending: true,
       appCleanupPending: true,
       executorState: { state: 'cancelled', cleanupPending: false },
@@ -648,6 +686,23 @@ describe('projectFacts: 运行', () => {
     const runKeys = keys(facts).filter((key) => key.startsWith('run:'));
     expect(runKeys).toEqual(['run:r1:state', 'run:r1:process-cleanup', 'run:r1:app-cleanup']);
     expect(new Set(runKeys).size).toBe(3);
+    for (const state of ['completed', 'cancelled', 'interrupted'] as const)
+      expect(find(runFacts({ state, cleanupPending: true }), 'run:r1:process-cleanup')).toMatchObject({ kind: 'unresolved' });
+  });
+
+  it('starting / running / cancelling 期间进程本来就在：cleanupPending 不产出 process-cleanup，app-cleanup 规则不变', () => {
+    for (const state of ['starting', 'running', 'cancelling'] as const) {
+      const facts = runFacts({ state, cleanupPending: true });
+      expect(find(facts, 'run:r1:process-cleanup')).toBeUndefined();
+      expect(keys(facts).filter((key) => key.startsWith('run:'))).toEqual(['run:r1:state']);
+    }
+    const cancelling = runFacts({
+      state: 'cancelling',
+      cleanupPending: true,
+      appCleanupPending: true,
+      executorState: { state: 'cancelled', cleanupPending: false },
+    });
+    expect(keys(cancelling).filter((key) => key.startsWith('run:'))).toEqual(['run:r1:state', 'run:r1:app-cleanup']);
   });
 });
 
