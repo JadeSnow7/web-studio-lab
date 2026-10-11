@@ -1,7 +1,18 @@
+import type { WorkbenchNotification } from '@wsl/protocol';
 import { DEMO_FEED } from '../demo/sampleData';
 import { useStore } from '../lib/store';
 import { workspaceStore, workspaceCommand } from '../state/workspace';
 import { locateSession } from '../state/location';
+import { statusLabel, useScopeViews } from '../state/status-view';
+
+/** 检查与审阅用展示层的中文 label（validation / review 的 state 事实），不外露原始枚举。 */
+function ResultSummary({ notification: n }: { notification: WorkbenchNotification }) {
+  const views = useScopeViews({ kind: 'session', workspaceId: n.workspaceId, sessionId: n.sessionId });
+  const validation = statusLabel(views, `validation:${n.runId}:state`);
+  const review = statusLabel(views, `review:${n.runId}:state`);
+  const text = [validation, review].filter(Boolean).join(' · ');
+  return text ? <p>{text}</p> : null;
+}
 export function Notifications({ onOpen }: { onOpen?: (sessionId: string) => void } = {}) {
   const snapshot = useStore(workspaceStore, (s) => s.snapshot);
   return (
@@ -17,14 +28,7 @@ export function Notifications({ onOpen }: { onOpen?: (sessionId: string) => void
           <p className="wrap">
             {n.runId} · {n.readAt ? '已读' : '未读'}
           </p>
-          <p>
-            检查：
-            {
-              snapshot.workspaces.find((w) => w.workspaceId === n.workspaceId)?.runs.find((r) => r.runId === n.runId)?.validation.state
-            } ·{' '}
-            {snapshot.workspaces.find((w) => w.workspaceId === n.workspaceId)?.runs.find((r) => r.runId === n.runId)?.review?.decision ??
-              (n.kind === 'completed' ? '待审阅' : '尚未审阅')}
-          </p>
+          <ResultSummary notification={n} />
           <p className="muted small">{new Date(n.occurredAt).toLocaleString('zh-CN')}</p>
           <div className="row gap-8 wrap">
             <button

@@ -12,13 +12,18 @@ interface ComposerProps {
   placeholder: string;
   harnessLabel: string;
   rows?: number;
+  /** 输入区说明（不再常驻可见）：作为输入框的可访问描述与悬停 title。 */
+  descriptions?: readonly string[];
 }
+
+/** 常驻的快捷键说明收进发送按钮的悬停；阻止原因优先。 */
+const SEND_HINT = 'Enter 发送 · Shift+Enter 换行 · 草稿按会话保存';
 
 /**
  * 会话输入框。草稿按会话 ID 保存在 draftsStore，右栏、会话页与首页读写同一份草稿；
  * 输入法组词期间按 Enter 不提交。
  */
-export function Composer({ target, sendBlockedReason, placeholder, harnessLabel, rows = 2 }: ComposerProps) {
+export function Composer({ target, sendBlockedReason, placeholder, harnessLabel, rows = 2, descriptions = [] }: ComposerProps) {
   const inputId = useId();
   const input = useRef<HTMLTextAreaElement>(null);
   const conversationId = target.kind === 'conversation' ? target.conversation.id : null;
@@ -57,9 +62,15 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,
 
   return (
     <div className="composer">
-      <label htmlFor={inputId} className="composer-target">
+      {/* 视觉隐藏但保留：输入框的可访问名称不变。 */}
+      <label htmlFor={inputId} className="sr-only">
         发送到 · {target.conversation.scopeLabel} / {target.conversation.title} / {harnessLabel}
       </label>
+      {descriptions.map((text, index) => (
+        <span key={index} id={`${inputId}-desc-${index}`} className="sr-only">
+          {text}
+        </span>
+      ))}
       <PersonalReferences disabled={!!blocked} />
       <textarea
         className="resize-none"
@@ -68,6 +79,8 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,
         rows={rows}
         value={draft}
         placeholder={placeholder}
+        title={descriptions.length ? descriptions.join(' ') : undefined}
+        aria-describedby={descriptions.length ? descriptions.map((_, index) => `${inputId}-desc-${index}`).join(' ') : undefined}
         onChange={(event) => {
           setNotice(null);
           draftActions.set(target.conversation.id, event.target.value);
@@ -75,13 +88,13 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,
         onKeyDown={onKeyDown}
       />
       <div className="composer-foot">
-        <span className={notice ? 'composer-notice' : 'composer-hint'}>{notice ?? 'Enter 发送 · Shift+Enter 换行 · 草稿按会话保留'}</span>
+        {notice ? <span className="composer-notice">{notice}</span> : null}
         <button
           type="button"
           className="icon-btn primary"
           aria-label="发送"
           aria-disabled={blocked !== null}
-          title={blocked ?? '发送'}
+          title={blocked ?? SEND_HINT}
           onClick={() => {
             attemptSend();
             input.current?.focus();

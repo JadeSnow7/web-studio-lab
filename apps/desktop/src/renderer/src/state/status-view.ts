@@ -752,6 +752,24 @@ export function tabStatus(views: readonly StatusView[], target: TabTarget): Stat
   return state?.phase === 'idle' && cleanup?.phase === 'unknown' ? cleanup : null;
 }
 
+/**
+ * 首页空间卡片的状态：该空间内正在进行的 run（run:<id>:state，kind=progress：启动中 / 执行中 / 取消中）。
+ * 没有进行中的 run 时为 null（不画点）；views 已排序，同一空间多个 run 取第一条。
+ */
+export function workspaceRunStatus(views: readonly StatusView[], workspaceId: string): StatusView | null {
+  return (
+    views.find(
+      (view) =>
+        view.domain === 'run' &&
+        view.facet === 'state' &&
+        view.kind === 'progress' &&
+        view.latestRun === true &&
+        view.scope.kind === 'session' &&
+        view.scope.workspaceId === workspaceId,
+    ) ?? null
+  );
+}
+
 /* ---------- Hook ---------- */
 
 export interface StatusViewResult {
@@ -870,6 +888,11 @@ export function useScopeViews(scope: StatusScope): readonly StatusView[] {
 /** 从视图列表按 key 取 label（run 选择列表等纯文本位置使用）；找不到时为 null。 */
 export function statusLabel(views: readonly StatusView[], key: string): string | null {
   return views.find((view) => view.key === key)?.label ?? null;
+}
+
+/** 某个空间内进行中的 run 状态（首页空间卡片）；规则见 workspaceRunStatus。 */
+export function useWorkspaceRunStatus(workspaceId: string): StatusView | null {
+  return workspaceRunStatus(useDerivedStatus().views, workspaceId);
 }
 
 /** 侧栏某个标签行尾的状态；规则见 tabStatus。 */

@@ -23,6 +23,7 @@ import {
   terminalToken,
   statusPresentationStore as store,
   tabStatus,
+  workspaceRunStatus,
   type Hint,
   type PresentationState,
   type StatusView,
@@ -1207,5 +1208,59 @@ describe('侧栏标签状态', () => {
     expect(status([webFact('w1', 'blocked-nav', 'degraded', 'problem', 20)], target)).toBeNull();
     expect(status([webFact('w1', 'agent-control', 'active', 'control', 100)], target)).toBeNull();
     expect(status([webFact('w1', 'load-error', 'failed', 'problem', 50)], { kind: 'file', resourceId: 'w1' })).toBeNull();
+  });
+});
+
+describe('首页空间卡片状态', () => {
+  const runFact = (entity: string, phase: StatusFact['phase'], kind: StatusKind, sessionId = 's1', workspaceId = WS) =>
+    fact({
+      domain: 'run',
+      entity,
+      facet: 'state',
+      scope: { kind: 'session', workspaceId, sessionId },
+      kind,
+      phase,
+      priority: 70,
+    });
+
+  it('只取该空间内进行中（progress）的 run；完成 / 失败 / 其他空间的 run 不画', () => {
+    expect(workspaceRunStatus(present([runFact('run1', 'active', 'progress')]), WS)).toMatchObject({
+      key: 'run:run1:state',
+      phase: 'active',
+    });
+    expect(workspaceRunStatus(present([runFact('run1', 'pending', 'progress')]), WS)).toMatchObject({ key: 'run:run1:state' });
+    expect(workspaceRunStatus(present([runFact('run1', 'ok', 'steady')]), WS)).toBeNull();
+    expect(workspaceRunStatus(present([runFact('run1', 'failed', 'problem')]), WS)).toBeNull();
+    expect(workspaceRunStatus(present([runFact('run1', 'active', 'progress', 's9', 'other')]), WS)).toBeNull();
+    expect(workspaceRunStatus(present([]), WS)).toBeNull();
+  });
+
+  it('同一会话的旧 run 即使仍为 progress 也不点亮卡片，只看各会话最新 run', () => {
+    const old = runFact('run-old', 'active', 'progress');
+    const latest = runFact('run-new', 'ok', 'steady');
+    expect(workspaceRunStatus(present([old, latest]), WS)).toBeNull();
+    expect(workspaceRunStatus(present([latest, runFact('run-newer', 'active', 'progress')]), WS)).toMatchObject({
+      key: 'run:run-newer:state',
+    });
+  });
+
+  it('其他域的 progress 事实不算：检查中、终端连接中', () => {
+    const validating = fact({
+      domain: 'validation',
+      entity: 'run1',
+      facet: 'state',
+      scope: session('s1'),
+      kind: 'progress',
+      phase: 'active',
+    });
+    const connecting = fact({
+      domain: 'terminal',
+      entity: 't1',
+      facet: 'state',
+      scope: resource('t1'),
+      kind: 'progress',
+      phase: 'pending',
+    });
+    expect(workspaceRunStatus(present([validating, connecting]), WS)).toBeNull();
   });
 });

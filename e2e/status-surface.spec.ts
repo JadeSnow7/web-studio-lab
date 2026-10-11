@@ -3,7 +3,7 @@ import { mkdir, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
+import { expect, test, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import {
   fixtureSandbox,
   launchApp,
@@ -1508,5 +1508,179 @@ test('会话：「历史已恢复」提示在场时，一次点击「重新核�
     expect(await app.evaluate(() => (globalThis as unknown as { cleanupShim: { reconciles: number } }).cleanupShim.reconciles)).toBe(1);
   } finally {
     await app.close();
+  }
+});
+
+/* ---------- 输入区（Composer）与首页 ---------- */
+
+const homeRegion = (page: Page) => page.getByRole('region', { name: '混合输入', exact: true });
+const HOME_TEXTBOX = '发送到 · 个人 · 默认 Agent / 首页对话 / 默认 Agent';
+const HOME_NOTES = ['不读取其他空间', '可从个人收藏中选择明确的正文版本作为参考。'];
+const SHORTCUTS = 'Enter 发送 · Shift+Enter 换行 · 草稿按会话保存';
+
+/** sr-only 文本在 DOM 中存在、盒子不超过 1px：对用户不可见，对读屏可用。 */
+async function expectVisuallyHidden(locator: Locator) {
+  await expect(locator).toHaveCount(1);
+  const box = await locator.boundingBox();
+  expect(box === null || (box.width <= 1 && box.height <= 1)).toBe(true);
+}
+
+async function blockHomeSend(page: Page, text: string) {
+  const region = homeRegion(page);
+  await region.getByRole('radio', { name: '搜索', exact: true }).click();
+  // 搜索模式下名称末段随 Harness 变为「搜索」（改动前如此），这里只有一个输入框。
+  const input = region.getByRole('textbox');
+  await input.fill(text);
+  await input.press('Enter');
+  await expect(region.locator('.composer-notice')).toBeVisible();
+}
+
+test('首页输入区：可访问名称不变；两条说明与快捷键说明不再常驻，改为描述与发送按钮 title', async () => {
+  const { app, page } = await launchApp({ codexBin });
+  try {
+    await workshopNavigate(page, '首页');
+    const region = homeRegion(page);
+    const input = region.getByRole('textbox', { name: HOME_TEXTBOX, exact: true });
+    await expect(input).toBeVisible();
+    // 「发送到 · …」label 保留（视觉隐藏），名称与改前一致。
+    await expectVisuallyHidden(region.locator('label', { hasText: '发送到 · ' }));
+    // 两条说明：不可见，但在输入框的可访问描述里（原文），并作为悬停 title。
+    for (const note of HOME_NOTES) {
+      await expectVisuallyHidden(region.getByText(note, { exact: true }));
+      await expect(input).toHaveAccessibleDescription(new RegExp(note.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    }
+    await expect(input).toHaveAttribute('title', HOME_NOTES.join(' '));
+    await expect(region.locator('.chip', { hasText: '个人 · 默认 Agent' })).toHaveAttribute('title', HOME_NOTES[0]!);
+    // 快捷键说明不在页面文字里，在发送按钮 title；按钮名称仍是「发送」。
+    await expect(region.getByText(SHORTCUTS)).toHaveCount(0);
+    await expect(region.locator('.composer-hint')).toHaveCount(0);
+    const send = region.getByRole('button', { name: '发送', exact: true });
+    await expect(send).toBeVisible();
+    await expect(send).toHaveAttribute('title', SHORTCUTS);
+    // 没有被阻止时没有 notice。
+    await expect(region.locator('.composer-notice')).toHaveCount(0);
+    // 键盘：Enter 发送，Shift+Enter 换行。
+    await input.fill('键盘发送');
+    await input.press('Shift+Enter');
+    await expect(input).toHaveValue('键盘发送\n');
+    await input.press('Backspace');
+    await input.press('Enter');
+    await expect(region.locator('.message-agent')).toContainText('fixture 回复：键盘发送');
+  } finally {
+    await app.close();
+  }
+});
+
+test('首页输入区：发送被阻止时原因显式可见，按钮 title 为阻止原因；改动草稿后提示消失', async () => {
+  const { app, page } = await launchApp({ codexBin });
+  try {
+    await workshopNavigate(page, '首页');
+    const region = homeRegion(page);
+    await blockHomeSend(page, '被阻止的草稿');
+    await expect(region.locator('.composer-notice')).toHaveText('未发送：搜索尚未接入');
+    const send = region.getByRole('button', { name: '发送', exact: true });
+    await expect(send).toHaveAttribute('title', '搜索尚未接入');
+    // 草稿保留；继续输入后提示消失。
+    const input = region.getByRole('textbox', { name: '发送到 · 个人 · 默认 Agent / 首页对话 / 搜索', exact: true });
+    await expect(input).toHaveValue('被阻止的草稿');
+    await input.press('x');
+    await expect(region.locator('.composer-notice')).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});
+
+test('首页空间卡片：有进行中的任务时标题旁出现状态点（文字视觉隐藏），计数文字不变；结束后消失', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    await openSessionTab(page);
+    await sessionMessageBox(page).fill('[slow] 首页状态点用例');
+    await sessionRegion(page).getByRole('button', { name: '发送', exact: true }).click();
+    await expect(sessionRegion(page).getByRole('button', { name: '取消回复', exact: true })).toBeVisible();
+    await workshopNavigate(page, '首页');
+    const card = page.getByRole('region', { name: '近期空间', exact: true }).locator('.space-card').first();
+    const dot = card.locator('.status-dot');
+    await expect(dot).toBeVisible();
+    await expect(dot.locator('.shape')).toBeVisible();
+    await expect(dot).toHaveAttribute('data-status-key', /^run:.+:state$/);
+    await expect(dot).toHaveAttribute('data-status-channel', 'persistent');
+    await expectVisuallyHidden(dot.locator('.sr-only'));
+    await expect(dot.locator('.sr-only')).toHaveText(/正在(启动|执行)…/);
+    // 计数文字不变（workspace-migration.spec.ts 依赖）。
+    const workspace = (await workspaceSnapshot(page)).workspaces[0]!;
+    await expect(card).toContainText(`任务版本数 ${workspace.sessions.reduce((n, s) => n + s.taskVersions.length, 0)}`);
+    await expect(card).toContainText(`运行 ${workspace.runs.length}`);
+    // 键盘可达：卡片是按钮，名称仍含空间名。
+    await card.focus();
+    await expect(card).toBeFocused();
+    // 取消并核实退出后状态点消失（已取消不是进行中）。
+    await workshopNavigate(page, '空间');
+    await openSessionTab(page);
+    await sessionRegion(page).getByRole('button', { name: '取消回复', exact: true }).click();
+    await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('cancelled');
+    await workshopNavigate(page, '首页');
+    await expect(card).toBeVisible();
+    await expect(card.locator('.status-dot')).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});
+
+test('通知与任务历史：检查 / 审阅用中文 label，运行按钮不含英文状态，runId 在 title', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    await completeSessionRun(page, '通知中文状态用例');
+    // 检查无法执行（夹具没有独立检查适配器）。
+    await sessionRegion(page).getByRole('button', { name: '检查', exact: true }).click();
+    await sessionRegion(page).getByRole('button', { name: '运行检查', exact: true }).click();
+    await expect(sessionSlotItems(page).filter({ hasText: '检查无法执行' })).toBeVisible();
+    const runId = (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)!.runId;
+
+    await page.getByRole('button', { name: /^通知 · / }).click();
+    const item = page.getByRole('region', { name: '通知' }).locator(`[data-run-id="${runId}"]`);
+    await expect(item).toBeVisible();
+    await expect(item).toContainText('未读');
+    await expect(item).toContainText('检查无法执行 · 尚未审阅');
+    await expect(item).not.toContainText(/\b(not_run|passed|blocked|running|failed|completed|accepted|changes_requested)\b/);
+
+    await workshopNavigate(page, '任务');
+    const runButton = page.getByRole('button', { name: /^运行 · / });
+    await expect(runButton).toBeVisible();
+    await expect(runButton).toHaveAttribute('title', runId);
+    await expect(runButton).toHaveAccessibleName(/^运行 · .+ 执行完成$/);
+    await expect(runButton).not.toContainText(runId);
+    await expect(runButton).not.toContainText(/\b(completed|running|failed)\b/);
+    await expect(runButton.locator('[data-status="run:ok"]')).toHaveCount(1);
+  } finally {
+    await app.close();
+  }
+});
+
+test('首页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（发送被阻止）', async () => {
+  test.setTimeout(240000);
+  const dir = path.join(screensDir, 'status-surface');
+  await mkdir(dir, { recursive: true });
+  for (const state of ['normal', 'abnormal'] as const) {
+    const { app, page } = await launchApp({ codexBin });
+    try {
+      await resize(app, page, 1440, 900);
+      for (const theme of ['light', 'dark', 'warm'] as const) {
+        await resize(app, page, 1440, 900);
+        await setWorkspaceTheme(page, theme);
+        for (const width of [1440, 960]) {
+          await resize(app, page, width, width === 1440 ? 900 : 700);
+          await workshopNavigate(page, '首页');
+          const region = homeRegion(page);
+          if (state === 'abnormal') await blockHomeSend(page, '被阻止的草稿');
+          else {
+            await expect(region.getByRole('textbox', { name: HOME_TEXTBOX, exact: true })).toBeVisible();
+            await expect(region.locator('.composer-notice')).toHaveCount(0);
+          }
+          await shot(page, `status-surface/home-${state}-${theme}-${width}`);
+        }
+      }
+    } finally {
+      await app.close();
+    }
   }
 });
