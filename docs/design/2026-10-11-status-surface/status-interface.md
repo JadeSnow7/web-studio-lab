@@ -222,6 +222,8 @@ problem 内优先级：load-error > pick-error > cdp > blocked-nav > unavailable
 
 `steady` → StatusDot（环境级）；`capability` → 设置页与诊断面板。全局（无窗格归属）的 problem 进 Toast；`storage` 进底部横幅。
 
+全局 problem 的 Toast 可由用户关闭：关闭按 `key` + `label` 记录在展示状态中，事实消失或文案变化后再次出现；不自动消失（实施期修订，2026-10-11 用户确认）。
+
 由此，AI 操控提示、暂停后的「允许 AI 继续」、取消中与清理未确认**永远不会**被其他错误折叠或压过。
 
 ## 6. 展示状态（第 ②层输入）

@@ -155,7 +155,6 @@ export function ResourcesPage() {
           重新读取资源
         </button>
       </div>
-      {state.error ? <Notice tone="warn">{state.error}</Notice> : null}
       {action.error ? <p role="alert">{action.error}</p> : null}
       {action.notice ? <p role="status">{action.notice}</p> : null}
       {!catalog ? (

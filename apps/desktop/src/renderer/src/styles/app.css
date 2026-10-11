@@ -2479,3 +2479,133 @@ textarea.resize-none {
 .resource-catalog-row:has([aria-pressed='true']) {
   background: var(--accent-soft);
 }
+
+/* 统一状态接口：StatusDot / StatusSlot / Toast（status-interface.md §5、§9）。 */
+.toasts .workspace-error {
+  position: static;
+  transform: none;
+  max-width: none;
+  align-items: flex-start;
+  border: 0;
+}
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+}
+.status-dot[data-phase='ok'] {
+  color: var(--ok);
+}
+.status-dot[data-phase='pending'],
+.status-dot[data-phase='active'] {
+  color: var(--accent);
+}
+.status-dot[data-phase='failed'] {
+  color: var(--bad);
+}
+.status-dot[data-phase='unknown'],
+.status-dot[data-phase='degraded'] {
+  color: var(--warn);
+}
+.shape-arc {
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+}
+.status-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: 0 0 0 1px var(--line-soft);
+  font-size: 12px;
+}
+.status-item .status-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.status-item .btn {
+  flex: none;
+}
+.status-item[data-status-channel='problem'] {
+  background: var(--bad-soft);
+  color: var(--bad);
+  box-shadow: 0 0 0 1px var(--bad);
+}
+.status-item[data-status-channel='persistent'][data-status$=':degraded'],
+.status-item[data-status-channel='persistent'][data-status$=':unknown'] {
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+  box-shadow: 0 0 0 1px var(--warn);
+}
+.status-more {
+  position: relative;
+}
+.status-more-menu {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 240px;
+  max-width: 420px;
+  margin-top: 4px;
+  padding: 6px;
+  background: var(--content);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  box-shadow: 0 8px 24px #0003;
+}
+.status-more-menu [role='menuitem'] {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  text-align: left;
+}
+.status-more-menu [role='menuitem']:hover,
+.status-more-menu [role='menuitem']:focus-visible {
+  background: var(--accent-soft);
+}
+.status-item .status-live {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.status-item .status-live .shape {
+  margin-top: 4px;
+}
+.status-detail {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--text-2);
+}
+.status-item[data-status-channel='problem'] .status-detail {
+  color: inherit;
+  opacity: 0.85;
+}
+.status-more-menu .status-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}

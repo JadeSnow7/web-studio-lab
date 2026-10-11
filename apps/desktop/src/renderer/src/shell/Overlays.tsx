@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../components/Icon';
 import { useStore } from '../lib/store';
-import { dismissError, errorStore } from '../state/errors';
+import { dismissError } from '../state/errors';
+import { useToastQueue } from '../state/status-view';
+import { workspaceStore } from '../state/workspace';
 import { uiActions, uiStore, type Modal } from '../state/ui';
 
 function AppDialog({ modal }: { modal: NonNullable<Modal> }) {
@@ -83,22 +85,42 @@ export function ModalLayer() {
   const modal = useStore(uiStore, (s) => s.modal);
   return modal ? <AppDialog key={modal.kind + modal.title} modal={modal} /> : null;
 }
+/**
+ * 合并后的 Toast 队列：界面错误（原 errorStore）与工作区错误（workspaceStore.error）。
+ * 每个条目自带 role="alert"，容器不带 role，避免嵌套播报与 getByRole('alert') 多重命中。
+ * 本阶段只渲染错误；无窗格归属的 problem 事实在 P2 进入标题栏区域。
+ */
 export function ErrorToasts() {
-  const errors = useStore(errorStore, (e) => e);
-  if (errors.length === 0) return null;
+  const toasts = useToastQueue();
+  const items = toasts.filter((t) => t.kind !== 'status');
+  if (items.length === 0) return null;
   return (
-    <div className="toasts" role="alert">
-      {errors.map((e) => (
-        <div key={e.id} className="toast">
-          <div>
-            <strong>{e.context}失败</strong>
-            <p>{e.message}</p>
+    <div className="toasts">
+      {items.map((item) =>
+        item.kind === 'ui-error' ? (
+          <div key={item.id} className="toast" role="alert">
+            <div>
+              <strong>{item.error.context}失败</strong>
+              <p>{item.error.message}</p>
+            </div>
+            <button type="button" className="icon-btn" aria-label="关闭提示" onClick={() => dismissError(item.error.id)}>
+              <Icon name="close" size={14} />
+            </button>
           </div>
-          <button type="button" className="icon-btn" aria-label="关闭提示" onClick={() => dismissError(e.id)}>
-            <Icon name="close" size={14} />
-          </button>
-        </div>
-      ))}
+        ) : item.kind === 'workspace-error' ? (
+          <div key={item.id} className="toast workspace-error" role="alert">
+            <span>{item.message}</span>
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="关闭错误提示"
+              onClick={() => workspaceStore.set((s) => ({ ...s, error: null }))}
+            >
+              ×
+            </button>
+          </div>
+        ) : null,
+      )}
     </div>
   );
 }

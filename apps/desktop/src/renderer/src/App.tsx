@@ -18,6 +18,7 @@ import { panelMode } from './state/panels';
 import { workspaceStore, initializeWorkspace, panes } from './state/workspace';
 import { occlusion } from './state/occlusion';
 import { spaceActions } from './state/space-ui';
+import { startStatusPresentationSync } from './state/status-view';
 export function App() {
   const shell = useStore(shellStore, (s) => s);
   const state = useStore(workspaceStore, (s) => s);
@@ -28,12 +29,16 @@ export function App() {
     initializeShell();
     void initializeWorkspace();
     const unsubscribe = initializeSetup();
+    const unsyncStatus = startStatusPresentationSync();
     void Promise.all([window.studio.app.getInfo(), window.studio.setup.status()])
       .then(([info, setup]) => {
         if (info.packaged && (setup.stage !== 'ready' || setup.error)) shellActions.navigate('settings');
       })
       .catch((error: unknown) => console.error('安装状态初始化失败', error));
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      unsyncStatus();
+    };
   }, []);
   useEffect(() => {
     document.title = `${ROUTE_TITLES[shell.route]} · ${workspace?.name ?? '加载空间'} · Web Studio Lab`;
@@ -139,19 +144,6 @@ export function App() {
         <p role="alert" className="workspace-error">
           持久化失败：{state.snapshot.storageError}。当前状态仅保留在内存中。
         </p>
-      ) : null}
-      {state.error ? (
-        <div role="alert" className="workspace-error">
-          <span>{state.error}</span>
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="关闭错误提示"
-            onClick={() => workspaceStore.set((s) => ({ ...s, error: null }))}
-          >
-            ×
-          </button>
-        </div>
       ) : null}
     </div>
   );
