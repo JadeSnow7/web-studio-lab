@@ -505,12 +505,19 @@ test('终端已关闭：提示可见；与窗格交互后视觉消失而圆点�
     await expect(notice).not.toBeVisible();
     await expect(capsuleOf(page).locator('[data-status="terminal:idle"]')).toContainText(closedText);
 
-    // 用户引起的聚焦同样确认：再来一个新实例，关闭后 Playwright 的真实 focus 事件。
+    // 用户引起的聚焦同样确认：再来一个新实例，关闭后用键盘 Tab 进入窗格。
     await connectButton(page).click();
     await expect(terminalPanel(page)).toContainText('已连接');
     await closeButton(page).click();
     await expect(notice).toBeVisible();
-    await connectButton(page).focus();
+    // 键盘 Tab 进入窗格（keydown 发生在窗格之外）：焦点进入即确认。鼠标点按钮引起的焦点不算，在 click 里确认。
+    await page.locator('[data-pane-id]:visible .pane-title').focus();
+    let reached = false;
+    for (let i = 0; i < 12 && !reached; i++) {
+      await page.keyboard.press('Tab');
+      reached = await connectButton(page).evaluate((node) => node === document.activeElement);
+    }
+    expect(reached).toBe(true);
     await expect(notice).not.toBeVisible();
   } finally {
     await app.close();
@@ -1069,5 +1076,437 @@ test('网页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（加载失
     } finally {
       await app.close();
     }
+  }
+});
+
+/* ---------- 会话 ---------- */
+
+const sessionRegion = (page: Page) => page.getByRole('region', { name: 'Agent 会话内容', exact: true });
+const sessionViews = (page: Page) => sessionRegion(page).getByRole('navigation', { name: '会话视图', exact: true });
+const runRecordTrigger = (page: Page) => sessionViews(page).getByRole('button', { name: '运行记录', exact: true });
+const runRecordMenu = (page: Page) => sessionRegion(page).getByRole('menu', { name: '运行记录', exact: true });
+const sessionSlotItems = (page: Page) => sessionRegion(page).locator('.status-slot .status-item');
+const sessionMessageBox = (page: Page) => sessionRegion(page).getByRole('textbox', { name: '会话消息', exact: true });
+const RESTORED = '历史已恢复；新执行不会自动延续旧模型上下文。';
+
+async function openSessionTab(page: Page) {
+  await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
+}
+
+/** 用 sbx 夹具跑完一次会话运行（不调用模型）。 */
+async function completeSessionRun(page: Page, text: string) {
+  await openSessionTab(page);
+  await sessionMessageBox(page).fill(text);
+  await sessionRegion(page).getByRole('button', { name: '发送', exact: true }).click();
+  await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('completed');
+}
+
+/**
+ * 夹具无法制造真实的「取消中 + App 数据操作待确认」（需要 live 的数据网关，见 app-control-data-cancel-live.spec.ts）。
+ * 这里在 Main 的 IPC 出口把最新一条 run 的快照改写成该状态，只用来验证会话状态条的呈现与键盘；
+ * 取消 / 清理的业务判定不在本用例范围。reconcileRunCleanup 被拦截计数，不进入真实 Main。
+ */
+async function installCleanupShim(app: ElectronApplication) {
+  await app.evaluate(({ ipcMain, BrowserWindow }) => {
+    const host = globalThis as unknown as { cleanupShim: Shim };
+    type Shim = { active: boolean; reconciling: boolean; reconciles: number; reconcileRunIds: string[] };
+    const shim: Shim = (host.cleanupShim = {
+      active: false,
+      reconciling: false,
+      reconciles: 0,
+      reconcileRunIds: [],
+    });
+    type Snapshot = { workspaces: Array<{ runs: Array<Record<string, unknown>> }> };
+    const transform = <T extends Snapshot>(snapshot: T): T => {
+      if (!shim.active) return snapshot;
+      const next = structuredClone(snapshot);
+      for (const workspace of next.workspaces) {
+        const run = workspace.runs.at(-1);
+        if (run)
+          Object.assign(run, {
+            state: 'cancelling',
+            endedAt: null,
+            cleanupPending: true,
+            appCleanupPending: true,
+            cleanupRetryAvailable: true,
+            cleanupReconciling: shim.reconciling,
+            executorState: { state: 'idle', cleanupPending: false },
+          });
+      }
+      return next;
+    };
+    type Handler = (event: Electron.IpcMainInvokeEvent, request?: { type?: string }) => Promise<unknown>;
+    const handlers = (ipcMain as unknown as { _invokeHandlers: Map<string, Handler> })._invokeHandlers;
+    const get = handlers.get('workbench:get-snapshot')!;
+    const command = handlers.get('workbench:command')!;
+    ipcMain.removeHandler('workbench:get-snapshot');
+    ipcMain.handle('workbench:get-snapshot', async (event) => transform((await get(event)) as Snapshot));
+    ipcMain.removeHandler('workbench:command');
+    ipcMain.handle('workbench:command', async (event, request) => {
+      if (request?.type === 'reconcileRunCleanup') {
+        shim.reconciles++;
+        shim.reconcileRunIds.push((request as unknown as { runId: string }).runId);
+        shim.reconciling = true;
+        return { ok: true, snapshot: transform((await get(event)) as Snapshot) };
+      }
+      const result = (await command(event, request)) as { snapshot: Snapshot };
+      return { ...result, snapshot: transform(result.snapshot) };
+    });
+    const contents = BrowserWindow.getAllWindows()[0]!.webContents;
+    const send = contents.send.bind(contents);
+    contents.send = ((channel: string, ...args: Array<{ snapshot?: Snapshot }>) => {
+      const payload = args[0];
+      if (channel === 'workbench:event' && payload?.snapshot) return send(channel, { ...payload, snapshot: transform(payload.snapshot) });
+      return send(channel, ...args);
+    }) as typeof contents.send;
+  });
+}
+const setCleanupShim = (app: ElectronApplication, state: { active?: boolean; reconciling?: boolean }) =>
+  app.evaluate((_electron, next) => {
+    const host = globalThis as unknown as { cleanupShim: { active: boolean; reconciling: boolean } };
+    Object.assign(host.cleanupShim, next);
+  }, state);
+
+test('会话「运行记录 ⌄」：视图收为五项，Tab 到触发器、Enter 打开，方向键 / Home / End 移动，Esc 回到触发器；原生网页让位后恢复', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    await resize(app, page, 1440, 900);
+    // 分屏后网页窗格留在旁边：菜单展开期间原生网页必须让位。
+    await page.getByRole('button', { name: '左右分屏', exact: true }).click();
+    await completeSessionRun(page, '运行记录菜单用例');
+    await expectNativePage(app, page, true);
+
+    await expect(sessionViews(page).getByRole('button')).toHaveText(['对话', '任务', '上下文', '检查', '运行记录 ⌄']);
+    for (const name of ['日志', 'diff', '报告']) await expect(sessionViews(page).getByRole('button', { name, exact: true })).toHaveCount(0);
+
+    const trigger = runRecordTrigger(page);
+    await sessionViews(page).getByRole('button', { name: '检查', exact: true }).focus();
+    await page.keyboard.press('Tab');
+    await expect(trigger).toBeFocused();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+    await page.keyboard.press('Enter');
+    const menu = runRecordMenu(page);
+    await expect(menu).toBeVisible();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await expect(menu.getByRole('menuitem')).toHaveText(['日志', 'diff', '报告']);
+    await expectNativePage(app, page, false);
+
+    const item = (name: string) => menu.getByRole('menuitem', { name, exact: true });
+    await expect(item('日志')).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(item('diff')).toBeFocused();
+    await page.keyboard.press('End');
+    await expect(item('报告')).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(item('日志')).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await expect(item('报告')).toBeFocused();
+    await page.keyboard.press('Home');
+    await expect(item('日志')).toBeFocused();
+    await shot(page, 'status-surface/session-menu-open');
+
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await expectNativePage(app, page, true);
+
+    // 触发器上按 ArrowDown 同样展开；选择菜单项后菜单关闭、焦点回到触发器、所选视图显示。
+    await page.keyboard.press('ArrowDown');
+    await expect(menu).toBeVisible();
+    await page.keyboard.press('ArrowDown');
+    await expect(item('diff')).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(menu).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(sessionRegion(page).getByRole('region', { name: '运行详情' })).toContainText('真实 diff 尚未记录');
+    await expectNativePage(app, page, true);
+    // 再次展开时从当前项开始，并标出当前项。
+    await page.keyboard.press('Enter');
+    await expect(menu).toBeVisible();
+    await expect(item('diff')).toBeFocused();
+    await expect(item('diff')).toHaveAttribute('aria-current', 'true');
+    // 点击外部同样关闭并让原生网页恢复。
+    await sessionViews(page).getByRole('button', { name: '对话', exact: true }).click();
+    await expect(menu).toHaveCount(0);
+    await expectNativePage(app, page, true);
+  } finally {
+    await app.close();
+  }
+});
+
+test('会话检查页：执行 / 检查 / 审阅是中文 label + StatusDot，「检查无法执行」在问题通道可见，没有英文原始枚举', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    await resize(app, page, 1440, 900);
+    await completeSessionRun(page, '检查页状态用例');
+    const region = sessionRegion(page);
+    await region.getByRole('button', { name: '检查', exact: true }).click();
+    const runState = region.locator('[data-status-key$=":state"][data-status="run:ok"]');
+    await expect(runState).toBeVisible();
+    await expect(runState).toHaveText('执行完成');
+    await expect(runState.locator('.shape-dot')).toBeVisible();
+    const notChecked = region.locator('[data-status="validation:idle"]');
+    await expect(notChecked).toBeVisible();
+    await expect(notChecked).toHaveText('尚未检查');
+    await expect(region.locator('[data-status="review:idle"]')).toHaveText('尚未审阅');
+    // 无问题时状态槽高度为 0。
+    await expect(sessionSlotItems(page)).toHaveCount(0);
+
+    await region.getByRole('button', { name: '运行检查', exact: true }).click();
+    const problem = sessionSlotItems(page).filter({ hasText: '检查无法执行' });
+    await expect(problem).toBeVisible();
+    await expect(problem).toHaveAttribute('data-status-channel', 'problem');
+    await expect(problem.getByRole('alert')).toBeVisible();
+    // 原因是可见的 detail，不只在悬停里。
+    await expect(problem).toContainText('独立检查适配器尚未接入');
+    // 页内是记录：原因在检查卡片里同样无条件可见（与槽里的告警各一处）。
+    await expect(region.locator('.version-card').getByText('独立检查适配器尚未接入；Agent 文本不能作为检查结果')).toBeVisible();
+    await expect(region.locator('[data-status="validation:ok"]')).toHaveCount(0);
+    await expect(region.getByRole('button', { name: '接受结果', exact: true })).toBeDisabled();
+    // 检查页的页面文字不含英文原始枚举。
+    await expect(region).not.toContainText(/\b(not_run|blocked|completed|passed|cancelled|running|failed|unknown|stale)\b/);
+    // 任务历史页复用同一组件：检查无法执行的原因同样可见。
+    await workshopNavigate(page, '任务');
+    await page.getByRole('button', { name: /^运行 · / }).click();
+    await page.getByRole('button', { name: '报告', exact: true }).click();
+    const details = page.getByRole('region', { name: '运行详情' });
+    await expect(details.getByText('独立检查适配器尚未接入；Agent 文本不能作为检查结果')).toBeVisible();
+    await expect(details.locator('[data-status="validation:degraded"]')).toHaveText('检查无法执行');
+  } finally {
+    await app.close();
+  }
+});
+
+test('会话输入区：可访问名称仍是「会话消息」，「发送到 · …」是描述，快捷键说明在发送按钮 title', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    await openSessionTab(page);
+    const region = sessionRegion(page);
+    await expect(sessionMessageBox(page)).toBeVisible();
+    await expect(region.getByLabel('会话消息')).toHaveCount(1);
+    await expect(sessionMessageBox(page)).toHaveAccessibleDescription(/^发送到 · TaskFlow \/ Agent 会话 \/ Codex CLI$/);
+    await expect(region.locator('.workspace-composer label')).toHaveCount(0);
+    const send = region.getByRole('button', { name: '发送', exact: true });
+    await expect(send).toHaveAttribute('title', 'Enter 发送 · Shift+Enter 换行 · 草稿按会话保存');
+    // 不再常驻的两行说明：沙箱 / 状态行与快捷键文字。
+    await expect(region.getByText(/沙箱由服务决定/)).toHaveCount(0);
+    await expect(region.getByText('Enter 发送 · Shift+Enter 换行 · 草稿按会话保存')).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});
+
+test('会话历史选择：执行记录用中文状态；选择历史后现场适用性显示「历史采集」，回到最新后恢复', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    await completeSessionRun(page, '历史选择用例');
+    const region = sessionRegion(page);
+    await region.getByRole('button', { name: '上下文', exact: true }).click();
+    await expect(region).toContainText('现场适用性：未知');
+    await region.getByRole('button', { name: '检查', exact: true }).click();
+    const select = region.getByLabel('执行记录');
+    await expect(select.locator('option')).toHaveCount(2);
+    await expect(select.locator('option').nth(1)).toContainText('执行完成');
+    await expect(select).not.toContainText(/completed/);
+    await select.selectOption({ index: 1 });
+    await region.getByRole('button', { name: '上下文', exact: true }).click();
+    await expect(region.locator('[data-status-key$=":applicability"]')).toHaveText('现场适用性：历史采集（不表示当前现场）');
+    await region.getByRole('button', { name: '检查', exact: true }).click();
+    await select.selectOption({ index: 0 });
+    await region.getByRole('button', { name: '上下文', exact: true }).click();
+    await expect(region.locator('[data-status-key$=":applicability"]')).toHaveText('现场适用性：未知');
+    await expect(region).not.toContainText('历史采集');
+  } finally {
+    await app.close();
+  }
+});
+
+test('会话「历史已恢复」：重启后在提示通道可见（带句号），与会话交互后消失', async () => {
+  let { app, page } = await launchApp({ sbxBin });
+  const profile = await app.evaluate(({ app: electronApp }) => electronApp.getPath('userData'));
+  try {
+    await completeSessionRun(page, '重启历史用例');
+    await app.close();
+    ({ app, page } = await launchApp({ sbxBin, userData: profile }));
+    await openSessionTab(page);
+    const notice = sessionSlotItems(page).filter({ hasText: RESTORED });
+    await expect(notice).toBeVisible();
+    await expect(page.getByText(RESTORED)).toBeVisible();
+    await expect(notice).toHaveAttribute('data-status-channel', 'notice');
+    await expect(notice.getByRole('button', { name: '知道了', exact: true })).toBeVisible();
+    await sessionMessageBox(page).click();
+    await expect(notice).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});
+
+test('会话状态条：取消中与「App 数据操作仍待确认」同时可见；「重新核对」Tab 可达、核对中禁用；状态变化不抢焦点', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    await resize(app, page, 1440, 900);
+    await completeSessionRun(page, '清理待确认用例');
+    await installCleanupShim(app);
+    const box = sessionMessageBox(page);
+    await box.click();
+    await expect(sessionSlotItems(page)).toHaveCount(0);
+    await setCleanupShim(app, { active: true });
+    await box.fill('触发一次快照下发');
+
+    const cancelling = sessionSlotItems(page).filter({ hasText: '正在取消并核实退出…' });
+    const pending = sessionSlotItems(page).filter({ hasText: '模型已停止，App 数据操作仍待确认' });
+    await expect(cancelling).toBeVisible();
+    await expect(pending).toBeVisible();
+    await expect(cancelling).toHaveAttribute('data-status-channel', 'persistent');
+    await expect(pending).toHaveAttribute('data-status-channel', 'persistent');
+    // 状态变化不抢走输入框的焦点；取消已在进行，不再提供「取消回复」。
+    await expect(box).toBeFocused();
+    await expect(sessionRegion(page).getByRole('button', { name: '取消回复', exact: true })).toHaveCount(0);
+    await shot(page, 'status-surface/session-cancelling-pending');
+
+    // 状态槽在输入区之前：Shift+Tab 从输入框回到「重新核对」。
+    const retry = sessionRegion(page).getByRole('button', { name: '重新核对', exact: true });
+    await expect(retry).toBeVisible();
+    await expect(retry).toBeEnabled();
+    await page.keyboard.press('Shift+Tab');
+    await expect(retry).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(retry).toBeDisabled();
+    // 核对中两条都保持可见；禁用的按钮再按键不会重复下发。
+    await expect(cancelling).toBeVisible();
+    await expect(pending).toBeVisible();
+    await page.keyboard.press('Enter');
+    expect(await app.evaluate(() => (globalThis as unknown as { cleanupShim: { reconciles: number } }).cleanupShim.reconciles)).toBe(1);
+    // 拦截到的命令确实针对最新一条运行。
+    const latestRunId = (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)!.runId;
+    expect(
+      await app.evaluate(() => (globalThis as unknown as { cleanupShim: { reconcileRunIds: string[] } }).cleanupShim.reconcileRunIds),
+    ).toEqual([latestRunId]);
+
+    // 事实消失（核对完成）后两条一起消失。
+    await setCleanupShim(app, { active: false, reconciling: false });
+    await box.fill('核对完成');
+    await expect(sessionSlotItems(page)).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});
+
+test('会话截图：白 / 暗 / 暖 × 1440 / 960，正常（执行完成）与异常（检查无法执行）', async () => {
+  test.setTimeout(240000);
+  const dir = path.join(screensDir, 'status-surface');
+  await mkdir(dir, { recursive: true });
+  for (const state of ['normal', 'abnormal'] as const) {
+    const { app, page } = await launchApp({ sbxBin });
+    try {
+      await resize(app, page, 1440, 900);
+      await completeSessionRun(page, '截图用例');
+      await sessionRegion(page).getByRole('button', { name: '检查', exact: true }).click();
+      if (state === 'abnormal') {
+        await sessionRegion(page).getByRole('button', { name: '运行检查', exact: true }).click();
+        await expect(sessionSlotItems(page).filter({ hasText: '检查无法执行' })).toBeVisible();
+      }
+      for (const theme of ['light', 'dark', 'warm'] as const) {
+        await resize(app, page, 1440, 900);
+        await expect(page.getByRole('navigation', { name: 'Workshop 导航' })).toBeVisible();
+        await setWorkspaceTheme(page, theme);
+        for (const width of [1440, 960]) {
+          await resize(app, page, width, width === 1440 ? 900 : 700);
+          await expect(sessionRegion(page)).toBeVisible();
+          await sessionRegion(page).getByRole('button', { name: '检查', exact: true }).click();
+          if (state === 'abnormal') await expect(sessionSlotItems(page).filter({ hasText: '检查无法执行' })).toBeVisible();
+          else {
+            await expect(sessionRegion(page).locator('[data-status="run:ok"]')).toBeVisible();
+            await expect(sessionSlotItems(page)).toHaveCount(0);
+          }
+          await shot(page, `status-surface/session-${state}-${theme}-${width}`);
+        }
+      }
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+test('会话对话视图：状态点的悬停含对话的沙箱 · cwd（不新增可见文字）', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    await completeSessionRun(page, '对话悬停用例');
+    await sessionRegion(page).getByRole('button', { name: '对话', exact: true }).click();
+    const dot = sessionRegion(page).locator('.session-run-state [data-status]');
+    await expect(dot).toBeVisible();
+    await expect(dot).toHaveAttribute('title', new RegExp(`Codex CLI · .*${fixtureSandbox}`));
+    await expect(dot).toHaveText('执行完成');
+    await expect(sessionRegion(page).getByText(new RegExp(fixtureSandbox))).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});
+
+test('会话状态槽「取消采集」：采集进行中可见，点击后采集取消、条目消失', async () => {
+  const { app, page } = await launchApp();
+  try {
+    await resize(app, page, 1440, 900);
+    await page.getByRole('button', { name: '左右分屏', exact: true }).click();
+    await openSessionTab(page);
+    const region = sessionRegion(page);
+    await region.getByRole('button', { name: '任务', exact: true }).click();
+    await region.getByLabel('附加目标（明确选择）').selectOption({ label: 'TaskFlow 预览' });
+    await region.getByRole('button', { name: '采集目标元素', exact: true }).click();
+    const item = sessionSlotItems(page).filter({ hasText: '正在采集…' });
+    await expect(item).toBeVisible();
+    const cancel = item.getByRole('button', { name: '取消采集', exact: true });
+    await expect(cancel).toBeVisible();
+    await cancel.click();
+    await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.captureRequest?.state).toBe('cancelled');
+    await expect(item).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});
+
+test('会话：执行中点「取消回复」后焦点交给输入框，不落到 body', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    await openSessionTab(page);
+    await sessionMessageBox(page).fill('[delayed-complete] 取消焦点用例');
+    await sessionRegion(page).getByRole('button', { name: '发送', exact: true }).click();
+    const cancel = sessionRegion(page).getByRole('button', { name: '取消回复', exact: true });
+    await expect(cancel).toBeVisible();
+    await cancel.click();
+    await expect(cancel).toHaveCount(0);
+    await expect(sessionMessageBox(page)).toBeFocused();
+    expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe('BODY');
+  } finally {
+    await app.close();
+  }
+});
+
+test('会话：「历史已恢复」提示在场时，一次点击「重新核对」即生效（确认不吞首次点击）', async () => {
+  let { app, page } = await launchApp({ sbxBin });
+  const profile = await app.evaluate(({ app: electronApp }) => electronApp.getPath('userData'));
+  try {
+    await completeSessionRun(page, '提示在场点击用例');
+    await app.close();
+    ({ app, page } = await launchApp({ sbxBin, userData: profile }));
+    await openSessionTab(page);
+    const notice = sessionSlotItems(page).filter({ hasText: RESTORED });
+    await expect(notice).toBeVisible();
+    await installCleanupShim(app);
+    await setCleanupShim(app, { active: true });
+    // fill 只聚焦输入框、不点击，不会确认提示；它触发一次快照下发。
+    await sessionMessageBox(page).fill('触发一次快照下发');
+    const retry = sessionRegion(page).getByRole('button', { name: '重新核对', exact: true });
+    await expect(retry).toBeVisible();
+    await expect(notice).toBeVisible();
+    await retry.click();
+    // 提示消失（槽高度变化）不影响这一次点击：命令已下发，按钮进入核对中。
+    await expect(notice).toHaveCount(0);
+    await expect(retry).toBeDisabled();
+    expect(await app.evaluate(() => (globalThis as unknown as { cleanupShim: { reconciles: number } }).cleanupShim.reconciles)).toBe(1);
+  } finally {
+    await app.close();
   }
 });

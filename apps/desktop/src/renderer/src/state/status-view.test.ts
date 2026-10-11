@@ -18,6 +18,7 @@ import {
   presentToasts,
   scopeKey,
   selectTitlebar,
+  statusLabel,
   statusPresentationActions as actions,
   terminalToken,
   statusPresentationStore as store,
@@ -630,6 +631,112 @@ describe('历史选择', () => {
     expect(store.get().selections).toEqual({});
     actions.selectHistory('s1', null);
     expect(find(present(facts, store.get(), snapshot), 'run:r2:state').visible).toBe(true);
+  });
+});
+
+describe('会话页的历史选择与状态槽取用', () => {
+  const S = session('s1');
+  const snapshot = snapshotOf({
+    sessions: [sessionRecord('s1', { contextApplicability: 'stale', taskVersions: [{ taskVersionId: 'tv1' }] })],
+    runs: [
+      runRecord('r1', 's1', {
+        taskVersionId: 'tv1',
+        state: 'completed',
+        validation: { state: 'blocked', applicability: 'unknown', reason: 'x' },
+      }),
+    ],
+  });
+  const facts = factsOf(snapshot);
+
+  it('两个 id 都为空（「最新版本」「最新执行」）等同清除：不留下选择，现场适用性不被改写', () => {
+    actions.selectHistory('s1', { runId: 'r1' });
+    expect(store.get().selections).toEqual({ s1: { runId: 'r1' } });
+    actions.selectHistory('s1', { runId: '', taskVersionId: '' });
+    expect(store.get().selections).toEqual({});
+    actions.selectHistory('s1', { runId: undefined, taskVersionId: undefined });
+    expect(store.get().selections).toEqual({});
+    const context = find(present(facts, store.get(), snapshot), 'context:s1:applicability');
+    expect(context.label).not.toBe(HISTORY_CONTEXT_LABEL);
+    expect(context.kind).toBe('problem');
+  });
+
+  it('选择 run 时同时带上它的任务版本：两个 id 一并保存，只改其中一个才算新选择', () => {
+    actions.selectHistory('s1', { runId: 'r1', taskVersionId: 'tv1' });
+    expect(store.get().selections).toEqual({ s1: { runId: 'r1', taskVersionId: 'tv1' } });
+    const once = store.get();
+    actions.selectHistory('s1', { runId: 'r1', taskVersionId: 'tv1' });
+    expect(store.get()).toBe(once);
+    actions.selectHistory('s1', { taskVersionId: 'tv1' });
+    expect(store.get().selections).toEqual({ s1: { taskVersionId: 'tv1' } });
+  });
+
+  it('statusLabel：按 key 取中文 label（不论通道与可见性），找不到为 null', () => {
+    const views = present(facts, {}, snapshot);
+    expect(statusLabel(views, 'run:r1:state')).toBe('执行完成');
+    expect(statusLabel(views, 'validation:r1:state')).toBe('检查无法执行');
+    expect(statusLabel(views, 'review:r1:state')).toBe('尚未审阅');
+    expect(statusLabel(views, 'run:gone:state')).toBeNull();
+    // 历史选择下，非所选运行的视图仍可按 key 取到 label。
+    actions.selectHistory('s1', { runId: 'gone' });
+    expect(statusLabel(present(facts, store.get(), snapshot), 'run:r1:state')).toBe('执行完成');
+  });
+
+  it('groupForScope 排除观察类：被排除的问题不再占唯一的可见名额，剩余问题重新选「一条 + 另有 N 项」', () => {
+    const observationFailure = fact({
+      domain: 'observation',
+      entity: 'req-1',
+      facet: 'state',
+      scope: S,
+      kind: 'problem',
+      priority: 200,
+      label: '读取失败',
+    });
+    const views = present([observationFailure, ...facts]);
+    // 未排除：观察失败优先级最高，占住唯一的可见名额，检查类问题进「另有 N 项」。
+    const all = forScope(views, S);
+    expect(all.problem?.domain).toBe('observation');
+    // 排除后：检查无法执行成为可见的那一条，现场失效进「另有 1 项」；历史项不计入。
+    const exclude = (view: StatusView) => view.domain === 'observation';
+    const group = groupForScope(
+      views.filter((v) => scopeKey(v.scope) === scopeKey(S)),
+      { exclude },
+    );
+    expect(group.problem?.key).toBe('validation:r1:state');
+    expect(group.more.map((v) => v.key)).toEqual(['context:s1:applicability']);
+    expect([group.problem, ...group.more].some((v) => v?.domain === 'observation')).toBe(false);
+    // 没有可排除的视图时与不传 exclude 一致。
+    const plain = forScope(present(facts, {}, snapshot), S);
+    const same = groupForScope(
+      present(facts, {}, snapshot).filter((v) => scopeKey(v.scope) === scopeKey(S)),
+      { exclude },
+    );
+    expect(same.problem?.key).toBe(plain.problem?.key);
+    expect(same.more.map((v) => v.key)).toEqual(plain.more.map((v) => v.key));
+  });
+
+  it('run.cancel / run.reconcileCleanup 的视图带冻结的动作：取消中不再提供取消，清理未确认可核对', () => {
+    const running = factsOf(snapshotOf({ sessions: [sessionRecord('s1')], runs: [runRecord('r2', 's1', { state: 'running' })] }));
+    const persistent = forScope(present(running), S).persistent;
+    expect(persistent.map((v) => [v.key, v.action?.id])).toEqual([['run:r2:state', 'run.cancel']]);
+    const cancelling = factsOf(
+      snapshotOf({
+        sessions: [sessionRecord('s1')],
+        runs: [
+          runRecord('r2', 's1', {
+            state: 'cancelling',
+            appCleanupPending: true,
+            cleanupRetryAvailable: true,
+            cleanupReconciling: true,
+            executorState: { state: 'idle', cleanupPending: false },
+          }),
+        ],
+      }),
+    );
+    const both = forScope(present(cancelling), S).persistent;
+    expect(both.map((v) => v.key)).toEqual(['run:r2:app-cleanup', 'run:r2:state']);
+    expect(both[0]).toMatchObject({ label: '模型已停止，App 数据操作仍待确认', action: { id: 'run.reconcileCleanup', disabled: true } });
+    expect(both[1]).toMatchObject({ label: '正在取消并核实退出…' });
+    expect(both[1]!.action).toBeUndefined();
   });
 });
 

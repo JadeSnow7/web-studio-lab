@@ -105,7 +105,8 @@ test('live：真实PTY与单Agent执行跨空间保持归属，检查和审阅�
     expect(run.review).toBeNull();
     await session.getByRole('button', { name: '检查', exact: true }).click();
     await session.getByRole('button', { name: '运行检查' }).click();
-    await expect(session).toContainText('检查：blocked');
+    await expect(session.locator('.status-slot [data-status-channel="problem"]').filter({ hasText: '检查无法执行' })).toBeVisible();
+    await expect(session.locator('[data-status="validation:ok"]')).toHaveCount(0);
     await expect(session.getByRole('button', { name: '接受结果' })).toBeDisabled();
     await expect(session).toContainText('审阅：尚未审阅');
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '开发终端', exact: true }).click();

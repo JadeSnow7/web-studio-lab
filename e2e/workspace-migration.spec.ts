@@ -81,7 +81,8 @@ test('R1 通知定位后台同一运行，打开与已读分离且重启保持�
     const item = page.getByRole('region', { name: '通知' }).locator(`[data-run-id="${run.runId}"]`);
     await expect(item).toContainText('未读');
     await item.getByRole('button', { name: '打开运行', exact: true }).click();
-    await expect(page.getByRole('region', { name: 'Agent 会话内容' })).toContainText(run.runId);
+    // 运行标识不再外露在界面文字里：以展示层视图的实体键确认打开的正是这条后台运行。
+    await expect(page.getByRole('region', { name: 'Agent 会话内容' }).locator(`[data-status-key="run:${run.runId}:state"]`)).toBeVisible();
     expect((await workspaceSnapshot(page)).workspaces[0]!.runs).toEqual(before);
     await page.getByRole('button', { name: /^通知 · / }).click();
     await expect(item).toContainText('未读');

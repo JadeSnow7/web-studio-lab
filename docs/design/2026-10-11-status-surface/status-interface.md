@@ -191,7 +191,7 @@ problem 内优先级：load-error > pick-error > cdp > blocked-nav > unavailable
 | | `unknown` | unknown | steady | 现场适用性：未知 | — |
 | `context:<sid>:capture` | `pending` | active | progress | 正在采集… | 取消采集 |
 | | `failed` | failed | problem | 采集失败（detail：error） | — |
-| `context:<sid>:history-restored` | `historyRestored` | degraded | confirmation | 历史已恢复；新执行不会自动延续旧模型上下文 | — |
+| `context:<sid>:history-restored` | `historyRestored` | degraded | confirmation | 历史已恢复；新执行不会自动延续旧模型上下文。 | — |
 
 查看历史版本时的「现场适用性：历史采集（不表示当前现场）」由第 ②层根据选择状态改写（§6.1），不属于业务事实。
 

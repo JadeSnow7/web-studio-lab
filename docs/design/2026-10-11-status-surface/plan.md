@@ -44,7 +44,7 @@
 2. `workspace/Sidebar.tsx`
 3. `workspace/Terminal.tsx`
 4. `workspace/Browser.tsx`（两个新菜单进入 occlusion）
-5. `workspace/Session.tsx`、`workspace/RunDetails.tsx`、`workbench/RunViews.tsx`（选择状态移入展示 store）
+5. `workspace/Session.tsx`、`workspace/RunDetails.tsx`、`workbench/RunViews.tsx`（选择状态移入展示 store；实施期说明：`RunViews.tsx` 只服务演示记录，本阶段不涉及；Session 输入区的「发送到」描述随本区域一并完成）
 6. `shell/Composer.tsx`、`pages/HomePage.tsx`
 7. `workspace/Observation.tsx`、`workspace/Files.tsx`
 8. `workspace/ManagedAppDialog.tsx`
@@ -108,7 +108,8 @@
 | `review-regressions.spec.ts:172, 191`、`workspace-migration.spec.ts:130-131`、`space-app-model-live.spec.ts:154-155` | 直接操作「关联会话」与「采集到关联会话」 | 移入「采集到会话 ⌄」 | 新增 helper `openBrowserMenu(page, '采集到会话')`，控件名称不变 |
 | `resources.spec.ts:52-53, 77, 96-97, 164`、`public-document.spec.ts:71` | 直接定位「保存正文快照」 | 移入「⋯」 | 先 `openBrowserMenu(page, '更多网页操作')`，菜单项名称不变 |
 | `resources.spec.ts:63`、`resources-live.spec.ts:67` | 点击「查看空间资源」 | 同上 | 同上 |
-| `workspace-migration.spec.ts:35` | 点击视图「日志 / diff / 报告」 | 收入「运行记录 ⌄」 | 先展开「运行记录」再点菜单项 |
+| ~~`workspace-migration.spec.ts:35`~~ | 点击视图「日志 / diff / 报告」 | （实施期更正：该行属于任务页「运行视图」导航，不受会话「运行记录 ⌄」影响，无需修改） | — |
+| `workspace-migration.spec.ts:84`（实施期补充） | `toContainText(run.runId)` | 依赖已删除的「运行 {runId}」行 | 定位 `[data-status-key="run:<runId>:state"]` 可见，语义不变 |
 
 不受影响：任务页按钮「运行 · …」（`workspace-migration.spec.ts:34`）、首页卡片计数（同文件 :115-116）。实施每个 P2 提交前再 `git grep` 一次。
 

@@ -129,12 +129,17 @@ test('运行、检查、审阅分别记录；没有独立检查器不会显示�
   await session().getByRole('button', { name: '确认任务（生成新版本）' }).click();
   await expect(session()).toContainText('任务 v2');
   await session().getByRole('button', { name: '开始运行' }).click();
-  await expect(session()).toContainText('执行：completed');
+  const runState = session().locator('[data-status-key$=":state"][data-status="run:ok"]');
+  await expect(runState).toBeVisible();
+  await expect(runState).toContainText('执行完成');
   await session().getByRole('button', { name: '检查', exact: true }).click();
-  await expect(session()).toContainText('检查：not_run');
+  const notChecked = session().locator('[data-status="validation:idle"]');
+  await expect(notChecked).toBeVisible();
+  await expect(notChecked).toContainText('尚未检查');
   await session().getByRole('button', { name: '运行检查' }).click();
-  await expect(session()).toContainText('检查：blocked');
-  await expect(session()).not.toContainText('检查：passed');
+  // 检查无法执行是问题：在会话状态槽的问题通道里可见，从不显示为通过。
+  await expect(session().locator('.status-slot [data-status-channel="problem"]').filter({ hasText: '检查无法执行' })).toBeVisible();
+  await expect(session().locator('[data-status="validation:ok"]')).toHaveCount(0);
   await expect(session()).toContainText('审阅：尚未审阅');
   await expect(session().getByRole('button', { name: '接受结果' })).toBeDisabled();
   await expect(session()).toContainText('审阅：尚未审阅');

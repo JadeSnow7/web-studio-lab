@@ -2020,10 +2020,6 @@ textarea.resize-none {
   flex-direction: column;
   gap: 8px;
 }
-.workspace-composer > label {
-  color: var(--text-2);
-  font-size: 11px;
-}
 .workspace-composer textarea {
   width: 100%;
   padding: 10px;
@@ -2033,9 +2029,15 @@ textarea.resize-none {
   min-height: 68px;
   resize: none;
 }
-.session-status {
-  padding: 8px 12px;
+/* 会话的状态槽：沿用网页 / 终端窗格的状态槽，位于消息区与输入区之间；三条通道都空时高度为 0。 */
+.session-workspace .status-slot {
+  flex: none;
+  padding: 6px 10px;
   border-top: 1px solid var(--line-soft);
+}
+.workspace-composer-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 .context-image {
   width: 100%;
@@ -2721,4 +2723,59 @@ textarea.resize-none {
 .background-resources > summary .count {
   margin-left: 4px;
   color: var(--text-2);
+}
+
+/* 会话：「运行记录 ⌄」菜单（组件见 workspace/Session.tsx）与详情页里的状态字段。 */
+.session-views .session-run-anchor {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+.session-views .session-run-anchor > .btn {
+  flex: 1;
+}
+.session-run-menu {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  margin-top: 4px;
+  padding: 6px;
+  background: var(--content);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  box-shadow: 0 8px 24px #0003;
+}
+.session-run-menu [role='menuitem'] {
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  text-align: left;
+  color: var(--text);
+}
+.session-run-menu [role='menuitem'][aria-current='true'] {
+  background: var(--glass);
+  font-weight: 600;
+}
+.session-run-menu [role='menuitem']:hover,
+.session-run-menu [role='menuitem']:focus-visible {
+  background: var(--accent-soft);
+}
+.status-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+.status-dot .status-label {
+  color: var(--text);
+}
+.session-run-state {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
 }

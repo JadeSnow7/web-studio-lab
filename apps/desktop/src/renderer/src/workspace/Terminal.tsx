@@ -143,10 +143,11 @@ export function Terminal({
   const onAction = (view: StatusView) => {
     if (view.action?.id === 'terminal.connect' && !view.action.disabled) connect();
   };
-  // 与窗格交互（指针、按键、终端获得焦点）后确认其中的 confirmation；unresolved / progress 不受影响。
+  // 与窗格交互（点击、按键、终端获得焦点）后确认其中的 confirmation；unresolved / progress 不受影响。
   const acknowledge = () => ackScope(scope);
-  const acknowledgeFocus = () => {
-    if (!programmaticFocus.current) acknowledge();
+  // 鼠标点击按钮引起的焦点不算（会在 click 里确认；mousedown 时确认会让槽高度变化、点击落空）；键盘 / 文本输入的焦点才算。
+  const acknowledgeFocus = (event: React.FocusEvent<HTMLElement>) => {
+    if (!programmaticFocus.current && event.target.matches(':focus-visible')) acknowledge();
   };
   const cwd = resource.terminal?.cwd ?? null;
   const cwdTail = cwd ? (cwd.split('/').filter(Boolean).at(-1) ?? cwd) : null;
@@ -155,7 +156,7 @@ export function Terminal({
     <section
       className="terminal-panel"
       aria-label="资源终端"
-      onPointerDownCapture={acknowledge}
+      onClickCapture={acknowledge}
       onKeyDownCapture={acknowledge}
       onFocusCapture={acknowledgeFocus}
     >

@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { StatusPhase, StatusScope } from '@wsl/protocol';
 import { occlusion } from '../state/occlusion';
 import { reportError } from '../state/errors';
-import { statusPresentationActions, useStatusView, scopeKey, type StatusView } from '../state/status-view';
+import { statusPresentationActions, useStatusView, scopeKey, type StatusView, type StatusViewOptions } from '../state/status-view';
 
 /* 形状沿用 Badges.tsx 的约定（形状 + 颜色，不只靠颜色）；配色由 .status-dot[data-phase] 给出。 */
 const SHAPE: Record<StatusPhase, string> = {
@@ -27,17 +27,21 @@ export function Shape({ phase }: { phase: StatusPhase }) {
   return <span className={`shape shape-${SHAPE[phase]}`} aria-hidden="true" />;
 }
 
-/** 环境级状态：只画形状；文字以视觉隐藏文本输出，悬停 title 为 label + detail。 */
-export function StatusDot({ view }: { view: ViewMeta }) {
+/**
+ * 环境级状态：只画形状；文字以视觉隐藏文本输出，悬停 title 为 label + detail。
+ * visibleLabel：详情页里状态本身就是内容（检查页的执行 / 检查 / 审阅），label 改为可见文本，其余不变。
+ * title：覆盖悬停文字（如会话页把对话的版本 · 沙箱 · cwd 并入运行状态点的悬停）。
+ */
+export function StatusDot({ view, visibleLabel, title }: { view: ViewMeta; visibleLabel?: boolean; title?: string }) {
   return (
     <span
       className="status-dot"
       data-phase={view.phase}
-      title={view.detail ? `${view.label}（${view.detail}）` : view.label}
+      title={title ?? (view.detail ? `${view.label}（${view.detail}）` : view.label)}
       {...statusAttrs(view)}
     >
       <Shape phase={view.phase} />
-      <span className="sr-only">{view.label}</span>
+      <span className={visibleLabel ? 'status-label' : 'sr-only'}>{view.label}</span>
     </span>
   );
 }
@@ -74,7 +78,17 @@ function Live({ view, role }: { view: StatusView; role: 'status' | 'alert' }) {
 }
 
 /** 「另有 N 项」：展开前进入 occlusion 遮挡集合；方向键移动，Esc 关闭并回到触发器。 */
-function MoreMenu({ scope, items, onAction }: { scope: StatusScope; items: readonly StatusView[]; onAction: (view: StatusView) => void }) {
+function MoreMenu({
+  scope,
+  items,
+  onAction,
+  omit,
+}: {
+  scope: StatusScope;
+  items: readonly StatusView[];
+  onAction: (view: StatusView) => void;
+  omit?: readonly string[];
+}) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -159,11 +173,11 @@ function MoreMenu({ scope, items, onAction }: { scope: StatusScope; items: reado
               {...statusAttrs(view)}
               onClick={() => {
                 close(true);
-                if (view.action && !view.action.disabled) onAction(view);
+                if (view.action && !omit?.includes(view.action.id) && !view.action.disabled) onAction(view);
               }}
             >
               <ItemBody view={view} />
-              {view.action ? <span className="muted">（{view.action.label}）</span> : null}
+              {view.action && !omit?.includes(view.action.id) ? <span className="muted">（{view.action.label}）</span> : null}
             </button>
           ))}
         </div>
@@ -182,6 +196,7 @@ export function StatusSlot({
   onAction,
   omitActions,
   itemTestId,
+  exclude,
 }: {
   scope: StatusScope;
   onAction: (view: StatusView) => void;
@@ -189,8 +204,10 @@ export function StatusSlot({
   omitActions?: readonly string[];
   /** 按条目附加 data-testid（既有合同用例按它定位）；返回 undefined 则不加。 */
   itemTestId?: (view: StatusView) => string | undefined;
+  /** 同 scope 里已有自己呈现方式的视图（如会话页自带结果区的观察）；见 StatusViewOptions.exclude，需稳定引用。 */
+  exclude?: StatusViewOptions['exclude'];
 }) {
-  const { persistent, problem, more, notice } = useStatusView(scope);
+  const { persistent, problem, more, notice } = useStatusView(scope, { exclude });
   if (!persistent.length && !problem && !notice) return null;
   return (
     <div className="status-slot">
@@ -204,7 +221,7 @@ export function StatusSlot({
         <div className="status-item" {...statusAttrs(problem)} data-testid={itemTestId?.(problem)}>
           <Live view={problem} role="alert" />
           <ActionButton view={problem} onAction={onAction} omit={omitActions} />
-          {more.length ? <MoreMenu scope={scope} items={more} onAction={onAction} /> : null}
+          {more.length ? <MoreMenu scope={scope} items={more} onAction={onAction} omit={omitActions} /> : null}
         </div>
       ) : null}
       {notice ? (

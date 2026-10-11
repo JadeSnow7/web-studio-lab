@@ -844,7 +844,7 @@ describe('projectFacts: 会话上下文', () => {
     expect(find(facts, 'context:s1:history-restored')).toMatchObject({
       phase: 'degraded',
       kind: 'confirmation',
-      label: '历史已恢复；新执行不会自动延续旧模型上下文',
+      label: '历史已恢复；新执行不会自动延续旧模型上下文。',
     });
     expect(keys(facts)).toEqual(['context:s1:applicability', 'context:s1:capture', 'context:s1:history-restored']);
   });

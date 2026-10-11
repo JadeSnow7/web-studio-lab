@@ -726,7 +726,7 @@ function contextFacts(workspaceId: string, session: WorkbenchSession): StatusFac
         phase: 'degraded',
         kind: 'confirmation',
         priority: 10,
-        label: '历史已恢复；新执行不会自动延续旧模型上下文',
+        label: '历史已恢复；新执行不会自动延续旧模型上下文。',
         raw,
       }),
     );
