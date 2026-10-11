@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { StatusPhase, StatusScope } from '@wsl/protocol';
 import { occlusion } from '../state/occlusion';
+import { reportError } from '../state/errors';
 import { statusPresentationActions, useStatusView, scopeKey, type StatusView } from '../state/status-view';
 
 /* 形状沿用 Badges.tsx 的约定（形状 + 颜色，不只靠颜色）；配色由 .status-dot[data-phase] 给出。 */
@@ -87,7 +88,11 @@ function MoreMenu({ scope, items, onAction }: { scope: StatusScope; items: reado
   };
   const show = async () => {
     if (open) return close(true);
-    if (await occlusion.open(source)) setOpen(true);
+    try {
+      if (await occlusion.open(source)) setOpen(true);
+    } catch (error) {
+      reportError('打开菜单', error);
+    }
   };
 
   useEffect(() => () => occlusion.close(source), [source]);
@@ -176,31 +181,34 @@ export function StatusSlot({
   scope,
   onAction,
   omitActions,
+  itemTestId,
 }: {
   scope: StatusScope;
   onAction: (view: StatusView) => void;
   /** 窗格工具栏已有同名控件的动作 id；槽里不再重复渲染按钮（避免同名按钮重复）。 */
   omitActions?: readonly string[];
+  /** 按条目附加 data-testid（既有合同用例按它定位）；返回 undefined 则不加。 */
+  itemTestId?: (view: StatusView) => string | undefined;
 }) {
   const { persistent, problem, more, notice } = useStatusView(scope);
   if (!persistent.length && !problem && !notice) return null;
   return (
     <div className="status-slot">
       {persistent.map((view) => (
-        <div key={view.key} className="status-item" {...statusAttrs(view)}>
+        <div key={view.key} className="status-item" {...statusAttrs(view)} data-testid={itemTestId?.(view)}>
           <Live view={view} role="status" />
           <ActionButton view={view} onAction={onAction} omit={omitActions} />
         </div>
       ))}
       {problem ? (
-        <div className="status-item" {...statusAttrs(problem)}>
+        <div className="status-item" {...statusAttrs(problem)} data-testid={itemTestId?.(problem)}>
           <Live view={problem} role="alert" />
           <ActionButton view={problem} onAction={onAction} omit={omitActions} />
           {more.length ? <MoreMenu scope={scope} items={more} onAction={onAction} /> : null}
         </div>
       ) : null}
       {notice ? (
-        <div className="status-item" {...statusAttrs(notice)}>
+        <div className="status-item" {...statusAttrs(notice)} data-testid={itemTestId?.(notice)}>
           <Live view={notice} role="status" />
           <button type="button" className="btn btn-small" onClick={() => statusPresentationActions.acknowledge(scope, notice)}>
             知道了

@@ -1,12 +1,178 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import type { WorkbenchResource } from '@wsl/protocol';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import type { StatusScope, WorkbenchResource } from '@wsl/protocol';
 import { workspaceCommand, workspaceStore } from '../state/workspace';
 import { useStore } from '../lib/store';
 import { captureContext, cancelContextCapture } from '../state/capture';
 import { locateSession } from '../state/location';
 import { Icon } from '../components/Icon';
+import { StatusDot, StatusSlot } from '../components/Status';
 import { spaceActions } from '../state/space-ui';
 import { useCatalogMutation } from '../state/catalog';
+import { occlusion } from '../state/occlusion';
+import { reportError } from '../state/errors';
+import { ackScope, statusPresentationActions, useStatusViewByKey, type StatusView } from '../state/status-view';
+
+const PICKING_HINT = '选择中，先取消选择';
+const CAPTURE_GUIDANCE = '请在此网页的“关联会话”中明确选择会话，再点击“采集到关联会话”。没有会话时可新建关联会话；采集结果保存在所选会话。';
+
+/**
+ * 工具栏弹出层（「采集到会话 ⌄」与「⋯」）：展开前进入 occlusion 遮挡集合（原生网页让位），关闭时释放。
+ * menu：方向键 / Home / End 在菜单项间移动；dialog（内含表单控件，非模态）：方向键只在按钮间移动，不抢 select 的方向键。
+ * Esc 关闭并回到触发器；点击外部或焦点移出弹出层关闭；窗格被隐藏时关闭。
+ */
+function ToolbarPopup({
+  source,
+  role,
+  label,
+  triggerClassName,
+  triggerLabel,
+  triggerContent,
+  hidden,
+  disabled,
+  title,
+  children,
+}: {
+  source: string;
+  role: 'menu' | 'dialog';
+  /** 弹出层的可访问名称。 */
+  label: string;
+  triggerClassName: string;
+  /** 触发器可访问名称；缺省取按钮内的文字。 */
+  triggerLabel?: string;
+  triggerContent: ReactNode;
+  hidden: boolean;
+  disabled?: boolean;
+  title?: string;
+  children: (close: () => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const mounted = useRef(true);
+  const popupId = useId();
+  const triggerId = useId();
+  const focusable = role === 'menu' ? '[role="menuitem"]:not(:disabled)' : 'select, button:not(:disabled)';
+
+  const close = (restoreFocus = true) => {
+    setOpen(false);
+    occlusion.close(source);
+    if (restoreFocus) document.getElementById(triggerId)?.focus();
+  };
+  const show = async () => {
+    if (open) return close();
+    try {
+      if (!(await occlusion.open(source))) return;
+    } catch (error) {
+      reportError('打开菜单', error);
+      return;
+    }
+    if (!mounted.current) occlusion.close(source);
+    else setOpen(true);
+  };
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      occlusion.close(source);
+    };
+  }, [source]);
+  useEffect(() => {
+    if (open) panel.current?.querySelector<HTMLElement>(focusable)?.focus();
+    // 只在展开时移动一次焦点。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  // 选择中禁用触发器时同步收起（渲染期调整 open，遮挡集合在效果里释放）。
+  if (disabled && open) setOpen(false);
+  useEffect(() => {
+    if (disabled) occlusion.close(source);
+  }, [disabled, source]);
+  // 窗格被隐藏（切换标签 / 空间）时收起；新建关联会话会让窗格短暂切走再切回，所以持续隐藏才收起。
+  useEffect(() => {
+    if (!hidden || !open) return;
+    const timer = setTimeout(() => close(false), 400);
+    return () => clearTimeout(timer);
+    // close 只依赖稳定的 source 与 ref。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hidden, open]);
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !root.current?.contains(event.target)) close(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, source]);
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.nativeEvent.isComposing) return;
+    if (!open) {
+      if (role === 'menu' && event.key === 'ArrowDown' && event.target === trigger.current) {
+        event.preventDefault();
+        void show();
+      }
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      return;
+    }
+    // select 自己使用方向键改变选项。
+    if (event.target instanceof HTMLSelectElement) return;
+    const items = Array.from(panel.current?.querySelectorAll<HTMLElement>(focusable) ?? []);
+    if (!items.length) return;
+    const index = items.findIndex((item) => item === document.activeElement);
+    const next =
+      event.key === 'ArrowDown'
+        ? index + 1
+        : event.key === 'ArrowUp'
+          ? index - 1
+          : event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? items.length - 1
+              : null;
+    if (next === null) return;
+    event.preventDefault();
+    items[(next + items.length) % items.length]?.focus();
+  };
+
+  return (
+    <div
+      className="browser-popup-anchor"
+      ref={root}
+      onKeyDown={onKeyDown}
+      onBlur={(event) => {
+        if (open && event.relatedTarget instanceof Node && !root.current?.contains(event.relatedTarget)) close(false);
+      }}
+    >
+      <button
+        type="button"
+        ref={trigger}
+        id={triggerId}
+        className={triggerClassName}
+        aria-label={triggerLabel}
+        title={title}
+        disabled={disabled}
+        aria-haspopup={role}
+        aria-expanded={open}
+        aria-controls={open ? popupId : undefined}
+        onClick={() => void show()}
+      >
+        {triggerContent}
+      </button>
+      {open ? (
+        <div className="browser-popup" ref={panel} role={role} id={popupId} aria-label={label} tabIndex={-1}>
+          {children(() => close())}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function Browser({
   workspaceId,
@@ -33,6 +199,7 @@ export function Browser({
   const capture = () => captureContext(workspaceId, associatedSessionId, resource.resourceId);
   const [creatingSession, setCreatingSession] = useState(false);
   const creating = useRef(false);
+  const selectRef = useRef<HTMLSelectElement>(null);
   const createAssociatedSession = async () => {
     if (creating.current || !workspace) return;
     creating.current = true;
@@ -52,8 +219,31 @@ export function Browser({
       setCreatingSession(false);
     }
   };
+  const { resourceId } = resource;
+  const scope = useMemo<StatusScope>(() => ({ kind: 'resource', workspaceId, resourceId }), [workspaceId, resourceId]);
+  // 受管 App 的服务状态：事实层 app:<workspaceId>:state，降为工具栏上的 StatusDot。
+  const appState = useStatusViewByKey({ kind: 'workspace', workspaceId }, `app:${workspaceId}:state`);
   const resourceAction = useCatalogMutation();
-  const [captureGuidance, setCaptureGuidance] = useState(false);
+  const resourceActionName = useRef('收藏到资源');
+  // 界面操作失败是一次性事件，进 Toast；成功结果是 hint（提示通道），用户确认或与窗格交互后消失。
+  useEffect(() => {
+    if (resourceAction.error) reportError(resourceActionName.current, resourceAction.error);
+  }, [resourceAction.error]);
+  const saveToCatalog = async (
+    name: '收藏到资源' | '保存正文快照',
+    source: 'bookmark' | 'snapshot',
+    payload: Parameters<typeof resourceAction.mutate>[0],
+    message: string,
+  ) => {
+    resourceActionName.current = name;
+    if (await resourceAction.mutate(payload, message))
+      statusPresentationActions.hint({ key: `ui:${resourceId}:${source}`, scope, label: message, source, until: 'ack' });
+  };
+  const guidanceKey = `ui:${resourceId}:capture-guidance`;
+  // 开始选择后采集指引不再适用。
+  useEffect(() => {
+    if (p?.picking) statusPresentationActions.dismissHint(guidanceKey);
+  }, [p?.picking, guidanceKey]);
   const action = (action: 'navigate' | 'reload' | 'back' | 'forward' | 'pick' | 'cancelPick' | 'reattach' | 'resumeAgent', url?: string) =>
     workspaceCommand(workspaceId, {
       type: 'browserAction',
@@ -103,8 +293,22 @@ export function Browser({
       });
     };
   }, [workspaceId, resource.resourceId, resource.url, managedAppInstanceId, visible, occluded]);
+  const onAction = (view: StatusView) => {
+    const id = view.action?.id;
+    if (!id || view.action?.disabled) return;
+    if (id === 'web.reload') void action('reload');
+    else if (id === 'web.reattach') void action('reattach');
+    else if (id === 'web.resumeAgent') void action('resumeAgent');
+    else if (id === 'web.cancelPick') void cancelContextCapture(workspaceId, resource.resourceId);
+  };
+  // 受管 App 的合同用例按这两个 testid 定位 AI 操控条目。
+  const itemTestId = (view: StatusView) =>
+    view.facet === 'agent-control' ? (view.phase === 'active' ? 'agent-control-active' : 'agent-control-paused') : undefined;
+  // 与窗格交互（指针、按键、焦点）后确认其中的 hint / confirmation；control / progress / problem 不受影响。
+  // 原生网页区域的点击不会到达 DOM，不在此处理。
+  const acknowledge = () => ackScope(scope);
   return (
-    <div className="workspace-browser">
+    <div className="workspace-browser" onPointerDownCapture={acknowledge} onKeyDownCapture={acknowledge} onFocusCapture={acknowledge}>
       <div className="browser-toolbar">
         <button type="button" className="icon-btn" aria-label="后退" disabled={!p?.canGoBack} onClick={() => void action('back')}>
           <Icon name="back" />
@@ -115,6 +319,11 @@ export function Browser({
         <button type="button" className="icon-btn" aria-label="刷新页面" onClick={() => void action('reload')}>
           <Icon name="reload" />
         </button>
+        {resource.appProjectId && appState ? (
+          <span className="browser-app-status" title="沙箱应用">
+            <StatusDot view={appState} />
+          </span>
+        ) : null}
         <form
           className="address"
           noValidate
@@ -167,135 +376,169 @@ export function Browser({
           onClick={() => {
             if (p?.picking) {
               void cancelContextCapture(workspaceId, resource.resourceId);
-            } else setCaptureGuidance(true);
+            } else
+              statusPresentationActions.hint({
+                key: guidanceKey,
+                scope,
+                label: CAPTURE_GUIDANCE,
+                source: 'capture-guidance',
+                until: 'ack',
+              });
           }}
         >
           {p?.picking ? '选择中 · Esc 取消' : '选择元素'}
         </button>
-      </div>
-      <div className="resource-browser-actions row wrap gap-8">
-        <label>
-          关联会话{' '}
-          <select aria-label="关联会话" value={associatedSessionId} onChange={(e) => setAssociatedSessionId(e.target.value)}>
-            <option value="">明确选择会话</option>
-            {workspace?.sessions.map((s) => (
-              <option key={s.sessionId} value={s.sessionId}>
-                {s.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button className="btn" type="button" disabled={creatingSession} onClick={() => void createAssociatedSession()}>
-          新建关联会话
-        </button>
-        <button
-          className="btn"
-          type="button"
-          disabled={!associatedSessionId || !resource.instanceId || !!p?.loading}
-          onClick={() => void capture()}
+        <ToolbarPopup
+          source={`browser-capture:${resourceId}`}
+          role="dialog"
+          label="采集到会话"
+          triggerClassName="btn"
+          triggerContent={
+            <>
+              采集到会话<span aria-hidden="true"> ⌄</span>
+            </>
+          }
+          hidden={!visible}
+          // 打开弹出层会让出原生网页，Main 会因此取消进行中的点选：选择中先取消选择。
+          disabled={!!p?.picking}
+          title={p?.picking ? PICKING_HINT : undefined}
         >
-          采集到关联会话
-        </button>
-        <button
-          className="btn"
-          type="button"
-          disabled={!associatedSessionId}
-          onClick={() => void locateSession({ workspaceId, sessionId: associatedSessionId, view: 'context' })}
-        >
-          打开关联会话
-        </button>
-      </div>
-      {captureGuidance && !p?.picking ? (
-        <p className="workspace-inline-info" role="status">
-          请在此网页的“关联会话”中明确选择会话，再点击“采集到关联会话”。没有会话时可新建关联会话；采集结果保存在所选会话。
-        </p>
-      ) : null}
-      {resource.appProjectId ? (
-        <>
-          <p className="resource-browser-actions muted small" role="status">
-            沙箱应用 · {workspace?.managedApp?.state === 'running' ? '服务运行中' : '服务未运行'}
-          </p>
-          {p?.agentControl?.state === 'active' ? (
-            <p className="workspace-inline-info" role="status" data-testid="agent-control-active">
-              AI 正在操控此页面（{p.agentControl.lastAction ?? '操作'}）。你在页面中点击或输入会立即暂停 AI。
-            </p>
-          ) : p?.agentControl?.state === 'paused_by_user' ? (
-            <p className="workspace-inline-info" role="status" data-testid="agent-control-paused">
-              已暂停 AI 操控：检测到你在页面中的操作。{' '}
-              <button type="button" className="btn" onClick={() => void action('resumeAgent')}>
-                允许 AI 继续
+          {(close) => (
+            <div className="browser-popup-form">
+              <label>
+                关联会话{' '}
+                <select
+                  ref={selectRef}
+                  aria-label="关联会话"
+                  value={associatedSessionId}
+                  onChange={(e) => setAssociatedSessionId(e.target.value)}
+                >
+                  <option value="">明确选择会话</option>
+                  {workspace?.sessions.map((s) => (
+                    <option key={s.sessionId} value={s.sessionId}>
+                      {s.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="btn"
+                type="button"
+                disabled={creatingSession}
+                onClick={() => {
+                  // 新建会话不需要原生网页可见：弹出层保持打开，完成后 select 已指向新会话，焦点回到 select。
+                  void createAssociatedSession().then(() => selectRef.current?.focus());
+                }}
+              >
+                新建关联会话
               </button>
-            </p>
-          ) : null}
-        </>
-      ) : (
-        <div className="resource-browser-actions row wrap gap-8">
-          <span className="muted small">收藏地址与正文快照分别保存</span>
-          <button
-            type="button"
-            className="btn"
-            disabled={resourceAction.busy}
-            onClick={() =>
-              void resourceAction.mutate(
-                { type: 'bookmarkRuntimeResource', workspaceId, runtimeResourceId: resource.resourceId },
-                '已收藏到我的资源。',
-              )
-            }
-          >
-            收藏到资源
-          </button>
-          <button
-            type="button"
-            className="btn"
-            disabled={resourceAction.busy || !resource.instanceId || !!p?.loading || !!p?.loadError}
-            onClick={() =>
-              void resourceAction.mutate(
-                { type: 'captureResourceRevision', workspaceId, runtimeResourceId: resource.resourceId },
-                '正文快照已保存；请在空间资源中明确选择参考版本。',
-              )
-            }
-          >
-            保存正文快照
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={() => spaceActions.showResources(workspaceId)}>
-            查看空间资源
-          </button>
-        </div>
-      )}
-      {resourceAction.error ? (
-        <p className="workspace-inline-error" role="alert">
-          {resourceAction.error}
-        </p>
-      ) : null}
-      {resourceAction.notice ? (
-        <p className="workspace-inline-info" role="status">
-          {resourceAction.notice}
-        </p>
-      ) : null}
-      {p?.pickError ? (
-        <p className="workspace-inline-error" role="alert">
-          {p.pickError}
-        </p>
-      ) : null}
-      {p?.loadError ? (
-        <p className="workspace-inline-error" role="alert">
-          页面加载失败：{p.loadError.description}
-        </p>
-      ) : null}
-      {p?.blockedNavigation ? <p role="alert">已拦截导航：{p.blockedNavigation}</p> : null}
-      {p?.cdp.state === 'detached' ? (
-        <p role="status">
-          页面控制已断开{' '}
-          <button type="button" className="btn" onClick={() => void action('reattach')}>
-            重新附着
-          </button>
-        </p>
-      ) : null}
+              <button
+                className="btn"
+                type="button"
+                disabled={!associatedSessionId || !resource.instanceId || !!p?.loading}
+                onClick={() => {
+                  // 先关闭让出遮挡：开始选择要求原生网页可见。
+                  close();
+                  void capture();
+                }}
+              >
+                采集到关联会话
+              </button>
+              <button
+                className="btn"
+                type="button"
+                disabled={!associatedSessionId}
+                onClick={() => {
+                  close();
+                  void locateSession({ workspaceId, sessionId: associatedSessionId, view: 'context' });
+                }}
+              >
+                打开关联会话
+              </button>
+            </div>
+          )}
+        </ToolbarPopup>
+        <ToolbarPopup
+          source={`browser-more:${resourceId}`}
+          role="menu"
+          label="更多网页操作"
+          triggerClassName="icon-btn"
+          triggerLabel="更多网页操作"
+          triggerContent={<span aria-hidden="true">⋯</span>}
+          hidden={!visible}
+          disabled={!!p?.picking}
+          title={p?.picking ? PICKING_HINT : '更多网页操作'}
+        >
+          {(close) =>
+            resource.appProjectId ? (
+              <button
+                type="button"
+                role="menuitem"
+                disabled={!workspace}
+                onClick={() => {
+                  // 先回到触发器再打开对话框，对话框关闭后焦点回到这里。
+                  close();
+                  void spaceActions.openApp(workspaceId);
+                }}
+              >
+                管理 App
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={resourceAction.busy}
+                  onClick={() => {
+                    close();
+                    void saveToCatalog(
+                      '收藏到资源',
+                      'bookmark',
+                      { type: 'bookmarkRuntimeResource', workspaceId, runtimeResourceId: resource.resourceId },
+                      '已收藏到我的资源。',
+                    );
+                  }}
+                >
+                  收藏到资源
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={resourceAction.busy || !resource.instanceId || !!p?.loading || !!p?.loadError}
+                  onClick={() => {
+                    close();
+                    void saveToCatalog(
+                      '保存正文快照',
+                      'snapshot',
+                      { type: 'captureResourceRevision', workspaceId, runtimeResourceId: resource.resourceId },
+                      '正文快照已保存；请在空间资源中明确选择参考版本。',
+                    );
+                  }}
+                >
+                  保存正文快照
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    close();
+                    void spaceActions.showResources(workspaceId);
+                  }}
+                >
+                  查看空间资源
+                </button>
+              </>
+            )
+          }
+        </ToolbarPopup>
+      </div>
+      {/* 「选择中 · Esc 取消」按钮在工具栏，槽里不重复渲染取消按钮。 */}
+      <StatusSlot scope={scope} onAction={onAction} omitActions={['web.cancelPick']} itemTestId={itemTestId} />
       <div className="preview-host" ref={host} data-native={visible && !occluded ? 'visible' : 'hidden'}>
         {occluded ? (
           <p className="preview-placeholder">浮层打开期间网页已让位，关闭后恢复</p>
         ) : !resource.instanceId ? (
-          <p className="preview-placeholder">{resource.unavailableReason ?? '正在恢复网页…'}</p>
+          <p className="preview-placeholder">{resource.unavailableReason ? '网页未在运行' : '正在恢复网页…'}</p>
         ) : null}
       </div>
     </div>

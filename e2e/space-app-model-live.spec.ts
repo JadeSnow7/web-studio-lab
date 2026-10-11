@@ -5,7 +5,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { z } from 'zod';
-import { launchApp, setWindowSize, workspaceSnapshot, workshopNavigate } from './helpers';
+import { launchApp, openBrowserMenu, setWindowSize, workspaceSnapshot, workshopNavigate } from './helpers';
 
 const SourceSnapshot = z.object({
   source: z.string(),
@@ -151,6 +151,7 @@ test('live: real App creation, native element capture and product model edit reb
       .filter({ has: mainPage.locator(`[id="address-${browser.resourceId}"]`) });
     await expect(browserUi).toHaveCount(1);
     await expect(browserUi.getByLabel('页面地址', { exact: true })).toHaveValue(native.url());
+    await openBrowserMenu(mainPage, '采集到会话', browserUi);
     await browserUi.getByLabel('关联会话', { exact: true }).selectOption(receiver.sessionId);
     await browserUi.getByRole('button', { name: '采集到关联会话', exact: true }).click();
     await expect.poll(async () => (await state()).resources.find((r) => r.resourceId === browser.resourceId)?.preview?.picking).toBe(true);

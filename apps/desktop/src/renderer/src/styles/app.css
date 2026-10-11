@@ -1578,9 +1578,6 @@ p {
 }
 
 /* 网页资源复用管理页滚动、语义按钮和全局 token。 */
-.resource-browser-actions {
-  min-height: 30px;
-}
 .resource-feedback {
   min-height: 20px;
   overflow-wrap: anywhere;
@@ -1959,9 +1956,13 @@ textarea.resize-none {
 }
 .workspace-browser .browser-toolbar {
   flex: none;
-  height: 48px;
+  min-height: 48px;
   padding: 7px 10px;
   border-bottom: 1px solid var(--line-soft);
+}
+.workspace-browser .status-slot {
+  flex: none;
+  padding: 6px 10px;
 }
 .workspace-browser .preview-host {
   position: relative;
@@ -1976,9 +1977,6 @@ textarea.resize-none {
   padding: 32px 22px;
   color: var(--text-2);
   line-height: 1.7;
-}
-.workspace-inline-error {
-  padding: 10px;
 }
 .session-workspace {
   background: var(--content);
@@ -2628,6 +2626,66 @@ textarea.resize-none {
 .status-more-menu .status-text {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* 网页工具栏：「采集到会话 ⌄」与「⋯」弹出层（组件见 workspace/Browser.tsx）。 */
+.browser-popup-anchor {
+  position: relative;
+  flex: none;
+}
+.browser-app-status {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 0 4px;
+}
+.browser-popup {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  max-width: min(420px, calc(100vw - 24px));
+  margin-top: 4px;
+  padding: 6px;
+  background: var(--content);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  box-shadow: 0 8px 24px #0003;
+  outline: none;
+}
+.browser-popup[role='menu'] [role='menuitem'] {
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  text-align: left;
+  color: var(--text);
+}
+.browser-popup[role='menu'] [role='menuitem']:disabled {
+  color: var(--text-2);
+}
+.browser-popup[role='menu'] [role='menuitem']:not(:disabled):hover,
+.browser-popup[role='menu'] [role='menuitem']:focus-visible {
+  background: var(--accent-soft);
+}
+.browser-popup-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 4px;
+}
+.browser-popup-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+.browser-popup-form .btn {
+  justify-content: center;
 }
 
 .titlebar-status {

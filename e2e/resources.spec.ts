@@ -3,7 +3,7 @@ import { mkdtemp, readFile, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { launchApp, workshopNavigate, workspaceSnapshot, setWindowSize, windowShots } from './helpers';
+import { launchApp, openBrowserMenu, workshopNavigate, workspaceSnapshot, setWindowSize, windowShots } from './helpers';
 import { controlledResourceNetwork } from './resource-network-fixture';
 let app: ElectronApplication, page: Page;
 test.afterEach(async () => {
@@ -49,8 +49,9 @@ test('account favorite→A/B connections→explicit frozen personal reference→
   expect(state.catalog!.links.find((link) => link.resourceId === id)!.referenceVersion).toBeNull();
   await page.getByRole('button', { name: '在空间打开', exact: true }).click();
   await expect(page.getByLabel('页面地址').filter({ visible: true })).toHaveValue('https://example.com/');
-  await expect(page.getByRole('button', { name: '保存正文快照', exact: true })).toBeEnabled();
-  await page.getByRole('button', { name: '保存正文快照', exact: true }).click();
+  await openBrowserMenu(page, '更多网页操作');
+  await expect(page.getByRole('menuitem', { name: '保存正文快照', exact: true })).toBeEnabled();
+  await page.getByRole('menuitem', { name: '保存正文快照', exact: true }).click();
   await expect
     .poll(async () => (await workspaceSnapshot(page)).catalog!.resources.find((item) => item.resourceId === id)!.versions)
     .toEqual([1]);
@@ -60,7 +61,8 @@ test('account favorite→A/B connections→explicit frozen personal reference→
       return wc.executeJavaScript('typeof window.untrustedExecuted');
     }),
   ).toBe('undefined');
-  await page.getByRole('button', { name: '查看空间资源', exact: true }).click();
+  await openBrowserMenu(page, '更多网页操作');
+  await page.getByRole('menuitem', { name: '查看空间资源', exact: true }).click();
   const section = await resourceSection();
   await expect(section).toHaveAttribute('open', '');
   await section.getByLabel('跨空间资料会话参考').selectOption('1');
@@ -74,7 +76,8 @@ test('account favorite→A/B connections→explicit frozen personal reference→
   await page.getByLabel('目标空间').selectOption(b.workspaceId);
   await page.getByRole('button', { name: '连接到空间', exact: true }).click();
   await page.getByRole('button', { name: '在空间打开', exact: true }).click();
-  await expect(page.getByRole('button', { name: '保存正文快照', exact: true })).toBeEnabled();
+  await openBrowserMenu(page, '更多网页操作');
+  await expect(page.getByRole('menuitem', { name: '保存正文快照', exact: true })).toBeEnabled();
   state = await workspaceSnapshot(page);
   const bindingB = state.workspaces
     .find((workspace) => workspace.workspaceId === b.workspaceId)!
@@ -93,8 +96,9 @@ test('account favorite→A/B connections→explicit frozen personal reference→
     (globalThis as typeof globalThis & { resourceNetwork: { body: string } }).resourceNetwork.body = 'RESOURCE BODY V2';
   });
   await page.getByRole('button', { name: '刷新页面', exact: true }).click();
-  await expect(page.getByRole('button', { name: '保存正文快照', exact: true })).toBeEnabled();
-  await page.getByRole('button', { name: '保存正文快照', exact: true }).click();
+  await openBrowserMenu(page, '更多网页操作');
+  await expect(page.getByRole('menuitem', { name: '保存正文快照', exact: true })).toBeEnabled();
+  await page.getByRole('menuitem', { name: '保存正文快照', exact: true }).click();
   await expect
     .poll(async () => (await workspaceSnapshot(page)).catalog!.resources.find((item) => item.resourceId === id)!.versions)
     .toEqual([1, 2]);
@@ -161,7 +165,8 @@ test('account favorite→A/B connections→explicit frozen personal reference→
   const row = reopened.locator('article').filter({ hasText: '跨空间资料' });
   await controlledResourceNetwork(app);
   await row.getByRole('button', { name: '打开', exact: true }).click();
-  await expect(page.getByRole('button', { name: '保存正文快照', exact: true })).toBeEnabled();
+  await openBrowserMenu(page, '更多网页操作');
+  await expect(page.getByRole('menuitem', { name: '保存正文快照', exact: true })).toBeEnabled();
   const restored = (await workspaceSnapshot(page)).workspaces
     .find((workspace) => workspace.workspaceId === b.workspaceId)!
     .resources.find((resource) => resource.catalogResourceId === id)!;

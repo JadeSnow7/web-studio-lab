@@ -10,7 +10,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { _electron, type ElectronApplication, type Page } from '@playwright/test';
+import { _electron, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import { appControlInjection } from './fixtures/app-control-injection';
 import { appControlCancelGate } from './fixtures/app-control-cancel-gate';
 
@@ -297,6 +297,17 @@ export async function terminalSnapshot(page: Page) {
   if (!resource?.terminal) throw new Error('terminal snapshot unavailable');
   return resource.terminal;
 }
+/**
+ * 打开网页工具栏的弹出层：「采集到会话」（非模态 dialog，内含关联会话与三个按钮）或「更多网页操作」（menu）。
+ * 已展开时不重复点击（触发器是开关）。scope 用于多个网页窗格同时存在时限定在某个 .workspace-browser 内。
+ */
+export async function openBrowserMenu(page: Page, name: '采集到会话' | '更多网页操作', scope: Page | Locator = page) {
+  const popup = scope.getByRole(name === '采集到会话' ? 'dialog' : 'menu', { name, exact: true });
+  if (!(await popup.isVisible())) await scope.getByRole('button', { name, exact: true }).click();
+  await popup.waitFor({ state: 'visible' });
+  return popup;
+}
+
 export async function workshopNavigate(page: Page, label: string) {
   const navigation = page.getByRole('navigation', { name: 'Workshop 导航' });
   if (!(await navigation.isVisible())) await page.getByRole('button', { name: '展开 Workshop', exact: true }).click();

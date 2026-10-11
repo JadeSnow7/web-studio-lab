@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { launchApp, previewInfo, screensDir, setWindowSize, windowShots, browserState } from './helpers';
+import { launchApp, openBrowserMenu, previewInfo, screensDir, setWindowSize, windowShots, browserState } from './helpers';
 import { resourceCollection } from './helpers';
 
 interface NetworkFixture {
@@ -68,7 +68,8 @@ test('controlled-network fixture：真实 Electron 协议跳转、显示、绑�
   await address.fill('https://example.com/start#section');
   await address.press('Enter');
   await expect.poll(async () => (await previewInfo(app)).url).toBe('https://docs.docker.com/guide');
-  const capture = page.getByRole('button', { name: '保存正文快照', exact: true });
+  const capture = page.getByRole('menuitem', { name: '保存正文快照', exact: true });
+  await openBrowserMenu(page, '更多网页操作');
   await expect(capture).toBeEnabled();
   await expect(page.getByLabel('页面地址')).toHaveValue('https://docs.docker.com/guide');
   const previewDocument = await app.evaluate(async ({ BrowserWindow }) => {
@@ -88,6 +89,7 @@ test('controlled-network fixture：真实 Electron 协议跳转、显示、绑�
   });
   const before = await browserState(page);
   await capture.click();
+  await openBrowserMenu(page, '更多网页操作');
   await expect(capture).toBeEnabled();
   const collection = await resourceCollection(page);
   expect(collection.resources).toHaveLength(1);
@@ -101,15 +103,20 @@ test('controlled-network fixture：真实 Electron 协议跳转、显示、绑�
     page: before.page,
   });
   await capture.click();
+  await openBrowserMenu(page, '更多网页操作');
   await expect(capture).toBeEnabled();
   const second = await resourceCollection(page);
   expect(second.resources[0]?.version).toBe(2);
   expect(second.resources[0]?.text).toBe(resource.text);
+  // 截图需要原生网页可见：先关闭菜单。
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu', { name: '更多网页操作', exact: true })).toBeHidden();
   await windowShots(app, page, 'public-document-controlled-redirect-saved');
 
   await address.fill('https://example.com/missing');
   await address.press('Enter');
   await expect.poll(async () => (await browserState(page)).loadError !== null).toBe(true);
+  await openBrowserMenu(page, '更多网页操作');
   await expect(capture).toBeDisabled();
   expect((await browserState(page)).loadError?.description).toContain('HTTP 404');
   const staleCapture = await page.evaluate(async () => {

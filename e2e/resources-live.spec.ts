@@ -3,7 +3,16 @@ import path from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import type { ChatConversation, StudioApi } from '../packages/protocol/src';
-import { launchApp, previewInfo, screensDir, setWindowSize, windowShots, workspaceSnapshot, workshopNavigate } from './helpers';
+import {
+  launchApp,
+  openBrowserMenu,
+  previewInfo,
+  screensDir,
+  setWindowSize,
+  windowShots,
+  workspaceSnapshot,
+  workshopNavigate,
+} from './helpers';
 import { resourceCollection } from './helpers';
 
 let app: ElectronApplication;
@@ -64,7 +73,8 @@ test('live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过
     expect(resource.text).toContain('This domain is for use in');
     expect(resource.page.url).toBe(resource.url);
     expect(resource.version).toBe(1);
-    await page.getByRole('button', { name: '查看空间资源' }).click();
+    await openBrowserMenu(page, '更多网页操作');
+    await page.getByRole('menuitem', { name: '查看空间资源' }).click();
     const detail = page.getByRole('region', { name: '资源详情' });
     await expect(detail).toContainText(resource.resourceId);
     await expect(detail).toContainText(resource.title);

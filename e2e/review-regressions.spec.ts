@@ -1,6 +1,14 @@
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import type { WorkbenchCommand, WorkbenchResult, WorkbenchSnapshot } from '../packages/protocol/src';
-import { launchApp, setWindowSize, workspaceSnapshot, previewClick, previewElementCenter, workshopNavigate } from './helpers';
+import {
+  launchApp,
+  openBrowserMenu,
+  setWindowSize,
+  workspaceSnapshot,
+  previewClick,
+  previewElementCenter,
+  workshopNavigate,
+} from './helpers';
 
 type ReviewGate = {
   commands: WorkbenchCommand[];
@@ -169,6 +177,7 @@ for (const destination of ['tab', 'route', 'space', 'session-view-keyboard'] as 
       await page.getByRole('button', { name: 'Agent 会话', exact: true }).click();
     }
     const initial = (await workspaceSnapshot(page)).workspaces[0]!;
+    await openBrowserMenu(page, '采集到会话');
     await page.getByLabel('关联会话').selectOption(initial.sessions[0]!.sessionId);
     await app.evaluate(({ BrowserWindow }) => {
       const host = globalThis as ReviewGlobal;
@@ -188,6 +197,7 @@ for (const destination of ['tab', 'route', 'space', 'session-view-keyboard'] as 
         return image;
       };
     });
+    await openBrowserMenu(page, '采集到会话');
     await page.getByRole('button', { name: '采集到关联会话' }).click();
     await expect(page.getByRole('button', { name: '选择中 · Esc 取消' })).toBeVisible();
     await previewClick(app, await previewElementCenter(app, '[data-testid="due-1"]'));

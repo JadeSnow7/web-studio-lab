@@ -1,5 +1,5 @@
 import { expect, test, type ElectronApplication } from '@playwright/test';
-import { launchApp, setWindowSize, workspaceSnapshot, workshopNavigate, target } from './helpers';
+import { launchApp, openBrowserMenu, setWindowSize, workspaceSnapshot, workshopNavigate, target } from './helpers';
 
 const fixture = new URL('./fixtures/sbx.mjs', import.meta.url).pathname;
 
@@ -127,6 +127,7 @@ test('R4 单窗格窄窗从网页关联会话并采集', async () => {
   try {
     await setWindowSize(app, 900, 700);
     await expect(page.locator('[data-pane-id]:visible')).toHaveCount(1);
+    await openBrowserMenu(page, '采集到会话');
     await page.getByLabel('关联会话').selectOption({ label: 'Agent 会话' });
     await page.getByRole('button', { name: '采集到关联会话', exact: true }).click();
     await expect(page.getByRole('button', { name: '选择中 · Esc 取消' })).toBeVisible();
