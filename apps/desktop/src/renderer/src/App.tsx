@@ -1,5 +1,5 @@
 import { initializeSetup } from './state/setup';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ROUTE_TITLES } from './shell/routes';
 import { useStore } from './lib/store';
 import { useViewportWidth } from './lib/viewport';
@@ -111,8 +111,23 @@ export function App() {
     }
   }, [leftMode, rightMode, shell.workshop.peek, shell.rightPanel.peek]);
   const occluded = Object.keys(barriers).length > 0;
+  // 存储横幅出现时，Toast 整体上移到横幅之上，两者互不遮挡；横幅本身的位置与文案不变。
+  const storageError = state.snapshot?.storageError;
+  const banner = useRef<HTMLParagraphElement>(null);
+  const [bannerHeight, setBannerHeight] = useState(0);
+  useEffect(() => {
+    const node = banner.current;
+    if (!storageError || !node) return;
+    // ResizeObserver 在 observe 之后会立即回调一次，所以不需要在 effect 里同步 setState。
+    const observer = new ResizeObserver(() => setBannerHeight(Math.ceil(node.getBoundingClientRect().height)));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [storageError]);
   return (
-    <div className="app remake-app">
+    <div
+      className="app remake-app"
+      style={storageError && bannerHeight ? ({ '--storage-banner-h': `${bannerHeight + 8}px` } as React.CSSProperties) : undefined}
+    >
       <TitleBar leftMode={leftMode} rightMode={rightMode} />
       <div className="app-body">
         <Workshop mode={leftMode} />
@@ -140,9 +155,9 @@ export function App() {
       </div>
       <ModalLayer />
       <ErrorToasts />
-      {state.snapshot?.storageError ? (
-        <p role="alert" className="workspace-error">
-          持久化失败：{state.snapshot.storageError}。当前状态仅保留在内存中。
+      {storageError ? (
+        <p role="alert" className="workspace-error" ref={banner}>
+          持久化失败：{storageError}。当前状态仅保留在内存中。
         </p>
       ) : null}
     </div>

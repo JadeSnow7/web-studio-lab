@@ -2481,12 +2481,17 @@ textarea.resize-none {
 }
 
 /* 统一状态接口：StatusDot / StatusSlot / Toast（status-interface.md §5、§9）。 */
+/* 工作区错误沿用原横幅的位置（底部居中，不压住右下角的发送按钮）；容器本身是 fixed，所以这里也用 fixed。 */
 .toasts .workspace-error {
-  position: static;
-  transform: none;
-  max-width: none;
-  align-items: flex-start;
-  border: 0;
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + var(--storage-banner-h, 0px));
+  transform: translateX(-50%);
+  max-width: 80%;
+}
+/* 存储横幅出现时 App 根节点设置 --storage-banner-h，Toast 容器整体上移。 */
+.toasts {
+  bottom: calc(16px + var(--storage-banner-h, 0px));
 }
 .status-dot {
   display: inline-flex;
@@ -2608,4 +2613,29 @@ textarea.resize-none {
 .status-more-menu .status-text {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.titlebar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 280px;
+}
+.titlebar-status > .status-text-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.titlebar-status[data-phase='failed'] {
+  color: var(--bad);
+}
+.titlebar-status[data-phase='degraded'],
+.titlebar-status[data-phase='unknown'] {
+  color: var(--warn-ink);
+}
+@media (max-width: 1080px) {
+  .titlebar-status {
+    max-width: 180px;
+  }
 }

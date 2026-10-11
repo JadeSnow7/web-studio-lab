@@ -38,6 +38,6 @@ P0 独立审查发现两处设计与源码事实的冲突，经用户确认后�
 | ------ | ---- | ---- | ---- |
 | P0 审查 P2-1 | `app-cleanup` 仅在执行器已确认停止时产出；Main 重启恢复（`main/workbench/application.ts` 恢复分支）时执行器状态缺失或未确认，现有 `Session.tsx` 仍显示「重新核对」，按原设计会丢失该动作 | 只要 `appCleanupPending` 就产出；按执行器状态切换文案，动作条件不变 | status-interface.md §4.5 |
 | P0 审查 P2-3 | context 三个 facet 共用 `sessionId:requestId` 令牌，已确认的「历史已恢复」在每次新采集后重现 | history-restored 令牌改为 `sessionId` | status-interface.md §6.3 |
-| 实施期问题（P2 标题栏前） | 全局 problem 不可关闭的 Toast 会在 `pnpm dev` 与未打包 E2E（无 `runtime.json`，环境未就绪）中常驻右下角 | 全局 problem Toast 可关闭；按 key + label 记录，事实消失或文案变化后重现 | status-interface.md §5 |
+| 实施期问题（P2 标题栏） | 全局 problem 进 Toast 会在 `pnpm dev` 与未打包 E2E（无 `runtime.json`，环境未就绪）中常驻右下角；先改为「可关闭 Toast」，全量 E2E 仍有 9 个既有用例因 Toast 遮挡发送按钮与 `getByRole('alert')` 多重命中失败 | 持续条件改进标题栏（「Codex CLI · 对话不可用」「环境 · {label}」），Toast 只承载一次性失败 | status-interface.md §5；design.md §4 |
 
 另：观察错误标签沿用现有 `Observation.tsx` 文案（如 `unauthorized`「未获授权」、`stale_ref`「引用已失效」），因为 §4.8 引用的修订 1 对照表不在仓库中，且 `e2e/ssh-product.spec.ts` 断言「未获授权」。

@@ -2,7 +2,7 @@ import { expect, test, type ElectronApplication, type Page } from '@playwright/t
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
-import { launchApp, workspaceSnapshot, target, setWindowSize } from './helpers';
+import { launchApp, workspaceSnapshot, target, setWindowSize, workshopNavigate } from './helpers';
 
 const fixture = new URL('./fixtures/sbx.mjs', import.meta.url).pathname;
 
@@ -126,7 +126,7 @@ test('未配置环境明确禁用能力，不创建未授权文件标签', async
   try {
     await useNarrowWindow(app, page);
     // Cover returning from another route as well as opening the current space in the file/PTY cases.
-    await page.getByRole('button', { name: /^Codex CLI · / }).click();
+    await workshopNavigate(page, '设置');
     await expect(page.getByRole('region', { name: '应用设置', exact: true })).toBeVisible();
     await showSpaceNavigation(page);
     await page.getByRole('button', { name: '新建标签', exact: true }).click();

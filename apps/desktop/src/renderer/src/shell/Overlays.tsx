@@ -86,28 +86,29 @@ export function ModalLayer() {
   return modal ? <AppDialog key={modal.kind + modal.title} modal={modal} /> : null;
 }
 /**
- * 合并后的 Toast 队列：界面错误（原 errorStore）与工作区错误（workspaceStore.error）。
+ * Toast 队列只放事件：界面错误（原 errorStore）与工作区错误（workspaceStore.error）。
+ * 对话不可用、环境未就绪等持续条件不进 Toast，在标题栏呈现。
  * 每个条目自带 role="alert"，容器不带 role，避免嵌套播报与 getByRole('alert') 多重命中。
- * 本阶段只渲染错误；无窗格归属的 problem 事实在 P2 进入标题栏区域。
  */
 export function ErrorToasts() {
-  const toasts = useToastQueue();
-  const items = toasts.filter((t) => t.kind !== 'status');
+  const items = useToastQueue();
   if (items.length === 0) return null;
   return (
     <div className="toasts">
-      {items.map((item) =>
-        item.kind === 'ui-error' ? (
-          <div key={item.id} className="toast" role="alert">
-            <div>
-              <strong>{item.error.context}失败</strong>
-              <p>{item.error.message}</p>
+      {items.map((item) => {
+        if (item.kind === 'ui-error')
+          return (
+            <div key={item.id} className="toast" role="alert">
+              <div>
+                <strong>{item.error.context}失败</strong>
+                <p>{item.error.message}</p>
+              </div>
+              <button type="button" className="icon-btn" aria-label="关闭提示" onClick={() => dismissError(item.error.id)}>
+                <Icon name="close" size={14} />
+              </button>
             </div>
-            <button type="button" className="icon-btn" aria-label="关闭提示" onClick={() => dismissError(item.error.id)}>
-              <Icon name="close" size={14} />
-            </button>
-          </div>
-        ) : item.kind === 'workspace-error' ? (
+          );
+        return (
           <div key={item.id} className="toast workspace-error" role="alert">
             <span>{item.message}</span>
             <button
@@ -119,8 +120,8 @@ export function ErrorToasts() {
               ×
             </button>
           </div>
-        ) : null,
-      )}
+        );
+      })}
     </div>
   );
 }

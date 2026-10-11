@@ -15,7 +15,7 @@ Main 快照 / ChatStatus / SetupSnapshot / ExecutionStatus
 ② presentStatus()  展示投影：纯函数，仅 Renderer；输入 = 事实 + 展示状态
         │  StatusView[]
         ▼
-useStatusView(scope) → StatusDot / StatusSlot / Toast / 诊断面板
+useStatusView(scope) → StatusDot / StatusSlot / 标题栏按钮 / 诊断面板（Toast 只承载一次性失败，不来自事实）
 ```
 
 | 层 | 职责 | 输入 | 落点 |
@@ -220,9 +220,7 @@ problem 内优先级：load-error > pick-error > cdp > blocked-nav > unavailable
 | **问题通道** | `problem` | 显示 priority 最高的一条，其余为「另有 N 项」可展开列表。 |
 | **提示通道** | `confirmation`、展示层 hint | 同时只显示一条；被确认后消失（§6.3）。 |
 
-`steady` → StatusDot（环境级）；`capability` → 设置页与诊断面板。全局（无窗格归属）的 problem 进 Toast；`storage` 进底部横幅。
-
-全局 problem 的 Toast 可由用户关闭：关闭按 `key` + `label` 记录在展示状态中，事实消失或文案变化后再次出现；不自动消失（实施期修订，2026-10-11 用户确认）。
+`steady` → StatusDot（环境级）；`capability` → 设置页与诊断面板。全局（无窗格归属）的 problem 是持续条件，进**标题栏**（channel `titlebar`）：对话不可用为「Codex CLI · 对话不可用」，setup 类取最高优先级一条为「环境 · {label}」，均进入设置页；`storage` 进底部横幅。Toast 只承载一次性失败（界面操作失败、工作区命令错误）。（实施期修订，2026-10-11 用户确认：持续条件放进 Toast 会在开发与 E2E 默认环境常驻并遮挡输入区。）
 
 由此，AI 操控提示、暂停后的「允许 AI 继续」、取消中与清理未确认**永远不会**被其他错误折叠或压过。
 
@@ -268,7 +266,7 @@ Browser 的采集指引、收藏结果、保存快照结果、Files 首次说明
 ```ts
 export function presentStatus(facts: readonly StatusFact[], state: PresentationState): StatusView[];
 export interface StatusView extends StatusFact {
-  channel: 'persistent' | 'problem' | 'notice' | 'ambient' | 'toast' | 'banner' | 'settings';
+  channel: 'persistent' | 'problem' | 'notice' | 'ambient' | 'titlebar' | 'banner' | 'settings';
   visible: boolean;        // 问题通道折叠项为 false
 }
 export function useStatusView(scope: StatusScope): { persistent: StatusView[]; problem: StatusView | null; more: StatusView[]; notice: StatusView | null; ambient: StatusView[] };
@@ -288,7 +286,7 @@ export function useStatusView(scope: StatusScope): { persistent: StatusView[]; p
 | `context.recapture` | `captureContext` |
 | `observation.cancel` | 现有观察取消 |
 | `app.start` / `app.manage` / `app.create` | `startApp` / 打开 ManagedAppDialog / `openAppEditor` |
-| `nav.settings` / `nav.setup` | 进入设置页对应区块 |
+| `nav.settings` / `nav.setup` | 进入设置页（首版不定位到区块，实施期确认） |
 
 ## 8. 调试通道与数据边界
 

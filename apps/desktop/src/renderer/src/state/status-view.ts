@@ -338,7 +338,7 @@ export function startStatusPresentationSync(): () => void {
 
 /* ---------- 展示投影 ---------- */
 
-export type StatusChannel = 'persistent' | 'problem' | 'notice' | 'ambient' | 'toast' | 'banner' | 'settings';
+export type StatusChannel = 'persistent' | 'problem' | 'notice' | 'ambient' | 'titlebar' | 'banner' | 'settings';
 
 /**
  * 事实 + 通道 + 可见性。展示层合成的条目（hint、终端输出缺口、历史记录不可用）使用 domain: 'ui'。
@@ -388,7 +388,7 @@ function channelOf(fact: Pick<StatusFact, 'kind' | 'scope' | 'domain'>): StatusC
     case 'progress':
       return 'persistent';
     case 'problem':
-      return fact.domain === 'storage' ? 'banner' : fact.scope.kind === 'global' ? 'toast' : 'problem';
+      return fact.domain === 'storage' ? 'banner' : fact.scope.kind === 'global' ? 'titlebar' : 'problem';
     case 'confirmation':
       return 'notice';
     case 'steady':
@@ -467,7 +467,7 @@ function latestObservationIds(snapshot: WorkbenchSnapshot): Map<string, string> 
 /**
  * 展示投影。通道规则见 status-interface.md §5：
  * - control / unresolved / progress → persistent：全部可见，不折叠，不因交互降级；
- * - problem → problem：每个 scope 只有 1 条 visible，其余 visible:false 进「另有 N 项」；无窗格归属的进 toast，storage 进 banner；
+ * - problem → problem：每个 scope 只有 1 条 visible，其余 visible:false 进「另有 N 项」；无窗格归属的（对话不可用、环境未就绪等持续条件）进标题栏，storage 进 banner；
  * - confirmation 与 hint → notice：每个 scope 同时只显示 1 条；confirmation 已被同一 instanceToken 确认则不显示；
  * - steady → ambient；capability → settings。
  * 会话只呈现当前 run（有历史选择时为所选 run，否则最新一条）的 run / validation / review，观察只呈现每个 scope 最新一条。
@@ -613,26 +613,43 @@ export function presentStatus(facts: readonly StatusFact[], state: PresentationS
 
 /* ---------- Toast 队列 ---------- */
 
-export type ToastItem =
-  | { kind: 'ui-error'; id: string; error: UiError }
-  | { kind: 'workspace-error'; id: string; message: string }
-  | { kind: 'status'; id: string; view: StatusView };
+export type ToastItem = { kind: 'ui-error'; id: string; error: UiError } | { kind: 'workspace-error'; id: string; message: string };
 
 export interface ToastInput {
   /** workspaceStore.error 的当前值；所有权仍在 workspaceStore。 */
   workspaceError?: string | null;
 }
 
-/** 合并后的 Toast 队列，最多 TOAST_LIMIT 条：先是界面错误与工作区错误（超出时丢弃最早的），余位给无窗格归属的 problem。失败类不自动消失。 */
-export function presentToasts(views: readonly StatusView[], state: PresentationState, input: ToastInput = {}): ToastItem[] {
+/**
+ * Toast 队列只放事件：界面错误（uiErrors）与工作区错误（workspaceError），最多 TOAST_LIMIT 条，超出时丢弃最早的。失败类不自动消失。
+ * 全局 problem 与 capability 是持续条件，从不进 Toast（前者进标题栏，后者在设置页）。
+ */
+export function presentToasts(state: PresentationState, input: ToastInput = {}): ToastItem[] {
   const errors: ToastItem[] = state.uiErrors.map((error) => ({ kind: 'ui-error', id: `ui-error:${error.id}`, error }));
   if (input.workspaceError) errors.push({ kind: 'workspace-error', id: 'workspace-error', message: input.workspaceError });
-  const kept = errors.slice(-TOAST_LIMIT);
-  const status: ToastItem[] = views
-    .filter((view) => view.channel === 'toast' && view.visible)
-    .slice(0, TOAST_LIMIT - kept.length)
-    .map((view) => ({ kind: 'status', id: `status:${view.key}`, view }));
-  return [...kept, ...status];
+  return errors.slice(-TOAST_LIMIT);
+}
+
+/* ---------- 标题栏 ---------- */
+
+export interface TitlebarStatus {
+  /** 对话不可用（chat:global:state 为 problem）；健康与读取中为 null。 */
+  chat: StatusView | null;
+  /** setup 的 problem 中优先级最高的一条（未就绪 / 安装出错 / 重启后生效）；没有时为 null。 */
+  setup: StatusView | null;
+  /** 除 setup 以外还有几条 setup problem。 */
+  moreSetup: number;
+}
+
+/** 标题栏的选择逻辑：只取 titlebar 通道的视图；capability、steady 与窗格内的事实不会出现。 */
+export function selectTitlebar(views: readonly StatusView[]): TitlebarStatus {
+  const titlebar = views.filter((view) => view.channel === 'titlebar' && view.visible);
+  const setup = titlebar.filter((view) => view.domain === 'setup').sort((a, b) => b.priority - a.priority);
+  return {
+    chat: titlebar.find((view) => view.domain === 'chat') ?? null,
+    setup: setup[0] ?? null,
+    moreSetup: Math.max(setup.length - 1, 0),
+  };
 }
 
 /* ---------- Hook ---------- */
@@ -673,6 +690,8 @@ export interface DerivedStatus {
   views: StatusView[];
   byScope: ReadonlyMap<string, StatusView[]>;
   toasts: ToastItem[];
+  /** 标题栏要显示的持续条件（全局 problem：对话不可用、环境未就绪）。 */
+  titlebar: TitlebarStatus;
   banner: StatusView | null;
 }
 
@@ -690,7 +709,8 @@ export function deriveStatus(deps: StatusDeps): DerivedStatus {
     facts,
     views,
     byScope,
-    toasts: presentToasts(views, deps.presentation, { workspaceError: deps.workspaceError }),
+    toasts: presentToasts(deps.presentation, { workspaceError: deps.workspaceError }),
+    titlebar: selectTitlebar(views),
     banner: views.find((view) => view.channel === 'banner') ?? null,
   };
 }
@@ -729,6 +749,11 @@ export function useToastQueue(): ToastItem[] {
 /** 持久化失败的底部横幅事实；没有失败时为 null。 */
 export function useStorageBanner(): StatusView | null {
   return useDerivedStatus().banner;
+}
+
+/** 标题栏要显示的持续条件；选择逻辑见 selectTitlebar。 */
+export function useTitlebarStatus(): TitlebarStatus {
+  return useDerivedStatus().titlebar;
 }
 
 /** 当前 scope 内所有可确认的 confirmation 视图（供窗格交互时调用 ackFacts）。 */

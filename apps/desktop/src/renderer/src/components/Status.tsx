@@ -22,7 +22,7 @@ const statusAttrs = (view: ViewMeta) => ({
   'data-status-channel': view.channel,
 });
 
-function Shape({ phase }: { phase: StatusPhase }) {
+export function Shape({ phase }: { phase: StatusPhase }) {
   return <span className={`shape shape-${SHAPE[phase]}`} aria-hidden="true" />;
 }
 

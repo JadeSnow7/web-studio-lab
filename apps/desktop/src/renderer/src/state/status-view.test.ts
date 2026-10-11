@@ -17,6 +17,7 @@ import {
   presentStatus,
   presentToasts,
   scopeKey,
+  selectTitlebar,
   statusPresentationActions as actions,
   terminalToken,
   statusPresentationStore as store,
@@ -131,21 +132,26 @@ describe('通道分配', () => {
     const capability = find(views, 'execution:global:state');
     expect(capability.channel).toBe('settings');
     expect(forScope(views, GLOBAL)).toMatchObject({ persistent: [], problem: null, notice: null });
-    expect(presentToasts(views, EMPTY_PRESENTATION)).toEqual([]);
+    expect(presentToasts(EMPTY_PRESENTATION)).toEqual([]);
   });
 
-  it('全局 problem → toast，storage → banner；其余全局 kind 保持各自通道', () => {
+  it('全局 problem → titlebar，storage → banner；其余全局 kind 保持各自通道', () => {
     const views = present([
       fact({ domain: 'chat', entity: 'global', facet: 'state', scope: GLOBAL, kind: 'problem', priority: 80 }),
       fact({ domain: 'storage', entity: 'global', facet: 'state', scope: GLOBAL, kind: 'problem', priority: 90 }),
       fact({ domain: 'setup', entity: 'global', facet: 'login', scope: GLOBAL, kind: 'progress' }),
     ]);
-    expect(find(views, 'chat:global:state')).toMatchObject({ channel: 'toast', visible: true });
+    expect(find(views, 'chat:global:state')).toMatchObject({ channel: 'titlebar', visible: true });
     expect(find(views, 'storage:global:state')).toMatchObject({ channel: 'banner', visible: true });
     expect(find(views, 'setup:global:login').channel).toBe('persistent');
     // 无窗格归属的 problem 不进窗格的问题通道。
     expect(forScope(views, GLOBAL).problem).toBeNull();
-    expect(presentToasts(views, EMPTY_PRESENTATION).map((t) => t.id)).toEqual(['status:chat:global:state']);
+    // 全局 problem 是持续条件，进标题栏，不进 Toast 队列。
+    expect(presentToasts(EMPTY_PRESENTATION)).toEqual([]);
+    expect(
+      deriveStatus({ snapshot: null, chat: null, setup: null, execution: null, presentation: EMPTY_PRESENTATION, workspaceError: null })
+        .titlebar,
+    ).toEqual({ chat: null, setup: null, moreSetup: 0 });
   });
 });
 
@@ -781,7 +787,7 @@ describe('Toast 队列与错误出口', () => {
 
   it('合并 uiErrors 与 workspaceError，最多 5 条；超出时丢弃最早的错误，工作区错误保留', () => {
     for (let i = 0; i < 5; i++) actions.pushUiError(`c${i}`, `m${i}`);
-    const toasts = presentToasts([], store.get(), { workspaceError: '最多四个窗格；请先关闭一个窗格。' });
+    const toasts = presentToasts(store.get(), { workspaceError: '最多四个窗格；请先关闭一个窗格。' });
     expect(toasts).toHaveLength(TOAST_LIMIT);
     expect(toasts.at(-1)).toMatchObject({ kind: 'workspace-error', message: '最多四个窗格；请先关闭一个窗格。' });
     expect(toasts.filter((t) => t.kind === 'ui-error').map((t) => (t.kind === 'ui-error' ? t.error.context : ''))).toEqual([
@@ -790,19 +796,19 @@ describe('Toast 队列与错误出口', () => {
       'c3',
       'c4',
     ]);
-    expect(presentToasts([], EMPTY_PRESENTATION, { workspaceError: null })).toEqual([]);
+    expect(presentToasts(EMPTY_PRESENTATION, { workspaceError: null })).toEqual([]);
   });
 
-  it('全局 problem 在余位内进入队列，排在错误之后', () => {
-    const views = present([chatProblem]);
+  it('全局 problem 永不进 Toast 队列：队列只含事件，上限不受它影响', () => {
+    expect(find(present([chatProblem]), 'chat:global:state').channel).toBe('titlebar');
+    expect(presentToasts(store.get())).toEqual([]);
     actions.pushUiError('a', 'b');
-    const toasts = presentToasts(views, store.get(), { workspaceError: 'e' });
-    expect(toasts.map((t) => t.kind)).toEqual(['ui-error', 'workspace-error', 'status']);
-    for (let i = 0; i < 4; i++) actions.pushUiError('x', `${i}`);
-    expect(presentToasts(views, store.get(), { workspaceError: 'e' }).every((t) => t.kind !== 'status')).toBe(true);
+    expect(presentToasts(store.get(), { workspaceError: 'e' }).map((t) => t.kind)).toEqual(['ui-error', 'workspace-error']);
+    for (let i = 0; i < 6; i++) actions.pushUiError('x', `${i}`);
+    expect(presentToasts(store.get(), { workspaceError: 'e' })).toHaveLength(TOAST_LIMIT);
   });
 
-  it('deriveStatus：toast、banner 与 settings 各取各的；依赖引用不变时复用结果', () => {
+  it('deriveStatus：toast、titlebar、banner 与 settings 各取各的；依赖引用不变时复用结果', () => {
     const snapshot = { ...snapshotOf({}), storageError: '磁盘只读' } as WorkbenchSnapshot;
     const deps = {
       snapshot,
@@ -814,7 +820,8 @@ describe('Toast 队列与错误出口', () => {
     };
     const derived = deriveStatus(deps);
     expect(derived.banner?.key).toBe('storage:global:state');
-    expect(derived.toasts.map((t) => t.kind)).toEqual(['workspace-error', 'status']);
+    expect(derived.toasts.map((t) => t.kind)).toEqual(['workspace-error']);
+    expect(derived.titlebar.chat?.key).toBe('chat:global:state');
     expect(derived.views.find((v) => v.domain === 'execution')?.channel).toBe('settings');
     expect(derivedStatus(deps)).toBe(derivedStatus({ ...deps }));
     expect(derivedStatus({ ...deps, workspaceError: null })).not.toBe(derivedStatus(deps));
@@ -907,5 +914,57 @@ describe('startStatusPresentationSync 与 ackScope', () => {
     ackScope(T);
     expect(store.get()).toBe(settled);
     resetWorkspace();
+  });
+});
+
+describe('标题栏通道', () => {
+  const chat = fact({
+    domain: 'chat',
+    entity: 'global',
+    facet: 'state',
+    scope: GLOBAL,
+    kind: 'problem',
+    priority: 80,
+    label: '对话不可用',
+  });
+  const setupState = fact({ domain: 'setup', entity: 'global', facet: 'state', scope: GLOBAL, kind: 'problem', priority: 70 });
+  const setupError = fact({ domain: 'setup', entity: 'global', facet: 'error', scope: GLOBAL, kind: 'problem', priority: 75 });
+  const restart = fact({ domain: 'setup', entity: 'global', facet: 'restart', scope: GLOBAL, kind: 'problem', priority: 30 });
+  const capability = fact({ domain: 'execution', entity: 'global', facet: 'state', scope: GLOBAL, kind: 'capability', priority: 0 });
+  const deps = (facts: StatusFact[]) => present(facts, store.get());
+
+  it('全局 problem（chat / setup）进 titlebar 通道，永不进 toast；capability 进 settings', () => {
+    const views = deps([chat, setupState, capability]);
+    expect(views.filter((v) => v.channel === 'titlebar').map((v) => v.key)).toEqual(['chat:global:state', 'setup:global:state']);
+    expect(views.some((v) => (v.channel as string) === 'toast')).toBe(false);
+    expect(find(views, 'execution:global:state').channel).toBe('settings');
+    expect(presentToasts(store.get())).toEqual([]);
+  });
+
+  it('selectTitlebar：多条 setup problem 取最高优先级，moreSetup 为其余条数', () => {
+    const views = deps([restart, chat, setupState, setupError, capability]);
+    const selected = selectTitlebar(views);
+    expect(selected.chat?.key).toBe('chat:global:state');
+    expect(selected.setup?.facet).toBe('error');
+    expect(selected.moreSetup).toBe(2);
+    expect(selectTitlebar(deps([restart])).moreSetup).toBe(0);
+    expect(selectTitlebar(deps([restart])).setup?.facet).toBe('restart');
+  });
+
+  it('selectTitlebar：没有 problem 时全为 null；capability、steady 与窗格内事实不会出现', () => {
+    const steady = fact({ domain: 'chat', entity: 'global', facet: 'state', scope: GLOBAL, kind: 'steady', label: '对话可用' });
+    const paneProblem = fact({ domain: 'web', entity: 'w', facet: 'load-error', scope: resource('w'), kind: 'problem' });
+    expect(selectTitlebar(deps([steady, capability, paneProblem]))).toEqual({ chat: null, setup: null, moreSetup: 0 });
+    expect(selectTitlebar([])).toEqual({ chat: null, setup: null, moreSetup: 0 });
+  });
+
+  it('deriveStatus.titlebar：事实消失即消失，没有关闭记录', () => {
+    const base = { snapshot: null, chat: null, setup: null, execution: null, presentation: EMPTY_PRESENTATION, workspaceError: null };
+    expect(
+      deriveStatus({ ...base, chat: { available: false, reason: '未安装', version: null, sandbox: null, cwd: null } }).titlebar.chat,
+    ).not.toBeNull();
+    expect(
+      deriveStatus({ ...base, chat: { available: true, reason: null, version: '1', sandbox: 's', cwd: '/w' } as never }).titlebar,
+    ).toEqual({ chat: null, setup: null, moreSetup: 0 });
   });
 });
