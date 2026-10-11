@@ -835,6 +835,12 @@ export function useStatusView(scope: StatusScope): StatusViewResult {
   return useMemo(() => groupForScope(views), [views]);
 }
 
+/** 某个 scope 内指定 key 的视图（不论通道与是否可见）；窗格工具栏的环境级 StatusDot 用它，确认后提示消失而圆点仍在。 */
+export function useStatusViewByKey(scope: StatusScope, key: string): StatusView | null {
+  const { byScope } = useDerivedStatus();
+  return byScope.get(scopeKey(scope))?.find((view) => view.key === key) ?? null;
+}
+
 /** 侧栏某个标签行尾的状态；规则见 tabStatus。 */
 export function useTabStatus(target: TabTarget): StatusView | null {
   return tabStatus(useDerivedStatus().views, target);

@@ -163,9 +163,19 @@ interface WorkspaceOverrides {
   managedApp?: unknown;
   app?: unknown;
 }
+const environment = (environmentId: 'local' | 'sandbox' | 'ssh', overrides: Record<string, unknown> = {}) => ({
+  environmentId,
+  kind: environmentId,
+  label: environmentId,
+  state: 'configured',
+  reason: null,
+  capabilities: { files: true, terminal: true, browser: true },
+  ...overrides,
+});
 const snapshot = (workspace: WorkspaceOverrides = {}, top: Record<string, unknown> = {}): WorkbenchSnapshot =>
   WorkbenchSnapshotSchema.parse({
     appInstanceId: 'app-inst',
+    environments: [environment('local'), environment('sandbox'), environment('ssh')],
     storageError: null,
     activeWorkspaceId: WS,
     seq: 1,
@@ -382,6 +392,33 @@ describe('projectFacts: 终端', () => {
     expect(find(facts, 'terminal:t1:unavailable')).toMatchObject({ phase: 'degraded', kind: 'problem', label: '环境未配置' });
     expect(find(facts, 'terminal:t1:state')!.instanceToken).toBe('t1-inst:pty-1');
     expect(find(terminalFact(null), 'terminal:t1:state')!.instanceToken).toBe('t1-inst:none');
+  });
+
+  it('不可用推导：资源原因优先；环境无终端能力取环境原因；环境缺失给通用说明；有能力则无事实', () => {
+    const unavailable = (resourceOverrides: Record<string, unknown>, environments: unknown[]) =>
+      find(
+        factsOf({ resources: [resource('t1', { kind: 'terminal', terminal: null, ...resourceOverrides })] }, { environments }),
+        'terminal:t1:unavailable',
+      );
+    const noTerminal = (reason: string | null) =>
+      environment('local', { state: 'unavailable', reason, capabilities: { files: true, terminal: false, browser: true } });
+    // 资源自带原因优先于环境原因。
+    expect(unavailable({ unavailableReason: '资源原因' }, [noTerminal('环境原因')])).toMatchObject({ label: '资源原因', kind: 'problem' });
+    // 环境没有终端能力：取环境 reason。
+    expect(unavailable({}, [noTerminal('沙箱未配置')])).toMatchObject({ phase: 'degraded', kind: 'problem', label: '沙箱未配置' });
+    // 环境没有 reason，或根本没有对应环境 / 资源未绑定环境：通用说明。
+    expect(unavailable({}, [noTerminal(null)])!.label).toBe('环境能力尚未核对或终端未配置');
+    expect(unavailable({}, [])!.label).toBe('环境能力尚未核对或终端未配置');
+    expect(unavailable({ environmentId: null }, [environment('local')])!.label).toBe('环境能力尚未核对或终端未配置');
+    expect(unavailable({ environmentId: 'sandbox' }, [environment('local')])!.label).toBe('环境能力尚未核对或终端未配置');
+    // 有终端能力：没有该事实。
+    expect(unavailable({}, [environment('local')])).toBeUndefined();
+    // SSH 资源同一规则。
+    const ssh = factsOf(
+      { resources: [resource('s1', { kind: 'ssh', environmentId: 'ssh', terminal: null })] },
+      { environments: [environment('ssh', { capabilities: { files: true, terminal: false, browser: false }, reason: 'SSH 未配置' })] },
+    );
+    expect(find(ssh, 'terminal:s1:unavailable')).toMatchObject({ label: 'SSH 未配置' });
   });
 
   it('实例或 PTY 会话更换后 instanceToken 变化', () => {

@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Terminal as Xterm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import type { WorkbenchResource } from '@wsl/protocol';
-import { useStore } from '../lib/store';
-import { workspaceCommand, workspaceStore } from '../state/workspace';
+import type { StatusScope, WorkbenchResource } from '@wsl/protocol';
+import { Icon } from '../components/Icon';
+import { StatusDot, StatusSlot } from '../components/Status';
+import { ackScope, statusPresentationActions, useStatusViewByKey, type StatusView } from '../state/status-view';
+import { workspaceCommand } from '../state/workspace';
 import { terminalDelta, type RenderedTerminal } from './presentation';
 import '@xterm/xterm/css/xterm.css';
 
@@ -22,11 +24,11 @@ export function Terminal({
   occluded: boolean;
   theme: string;
 }) {
-  const environment = useStore(workspaceStore, (state) =>
-    state.snapshot?.environments.find((environment) => environment.environmentId === resource.environmentId),
-  );
-  const unavailable =
-    resource.unavailableReason ?? (!environment?.capabilities.terminal ? (environment?.reason ?? '环境能力尚未核对或终端未配置') : null);
+  const { resourceId } = resource;
+  const scope = useMemo<StatusScope>(() => ({ kind: 'resource', workspaceId, resourceId }), [workspaceId, resourceId]);
+  // 状态文案与「不可用」判断都来自事实层（terminal:<id>:state / :unavailable）；组件不再自行推导。
+  const stateView = useStatusViewByKey(scope, `terminal:${resourceId}:state`);
+  const unavailable = useStatusViewByKey(scope, `terminal:${resourceId}:unavailable`);
   const host = useRef<HTMLDivElement>(null),
     term = useRef<Xterm | null>(null),
     fit = useRef<FitAddon | null>(null);
@@ -35,7 +37,6 @@ export function Terminal({
     latest.current = resource;
   }, [resource]);
   const rendered = useRef<RenderedTerminal>({ instanceId: null, sessionId: null, output: '', offset: 0 });
-  const [truncated, setTruncated] = useState(false);
   useEffect(() => {
     const t = new Xterm({
       fontFamily: getComputedStyle(document.documentElement).getPropertyValue('--mono').trim(),
@@ -103,11 +104,22 @@ export function Terminal({
     const delta = terminalDelta(rendered.current, next);
     if (delta.reset) t.reset();
     if (delta.text) t.write(delta.text);
-    if (delta.gap) setTruncated(true);
-    else if (delta.reset) setTruncated(false);
+    if (delta.gap)
+      statusPresentationActions.setTerminalGap(resource.resourceId, { instanceId: resource.instanceId, sessionId: next.sessionId });
+    else if (delta.reset) statusPresentationActions.clearTerminalGap(resource.resourceId);
     rendered.current = next;
     t.options.disableStdin = occluded || resource.terminal?.state !== 'running';
   }, [resource, occluded]);
+  // 标签激活 / 连接引起的程序性聚焦不是用户与窗格交互：focus() 同步派发 focusin，用标记让 onFocusCapture 跳过这一次。
+  const programmaticFocus = useRef(false);
+  const focusTerminal = () => {
+    programmaticFocus.current = true;
+    try {
+      term.current?.focus();
+    } finally {
+      programmaticFocus.current = false;
+    }
+  };
   const activation = useRef('');
   useEffect(() => {
     const next = `${active}:${visible}`;
@@ -115,29 +127,55 @@ export function Terminal({
     activation.current = next;
     if (active && visible) fit.current?.fit();
     // Runtime readiness must not override focus chosen after a connection request.
-    if (changed && active && visible && !occluded) term.current?.focus();
+    if (changed && active && visible && !occluded) focusTerminal();
   }, [active, visible, occluded]);
   const running = resource.terminal?.state === 'running',
     busy = resource.terminal?.state === 'starting' || resource.terminal?.state === 'closing';
+  const connect = () => {
+    focusTerminal();
+    void workspaceCommand(workspaceId, {
+      type: 'terminalOpen',
+      resourceId: resource.resourceId,
+      cols: term.current?.cols ?? 80,
+      rows: term.current?.rows ?? 24,
+    });
+  };
+  const onAction = (view: StatusView) => {
+    if (view.action?.id === 'terminal.connect' && !view.action.disabled) connect();
+  };
+  // 与窗格交互（指针、按键、终端获得焦点）后确认其中的 confirmation；unresolved / progress 不受影响。
+  const acknowledge = () => ackScope(scope);
+  const acknowledgeFocus = () => {
+    if (!programmaticFocus.current) acknowledge();
+  };
+  const cwd = resource.terminal?.cwd ?? null;
+  const cwdTail = cwd ? (cwd.split('/').filter(Boolean).at(-1) ?? cwd) : null;
+  const origin = [resource.terminal?.sandbox, cwd].filter(Boolean).join(' · ');
   return (
-    <section className="terminal-panel" aria-label="资源终端">
+    <section
+      className="terminal-panel"
+      aria-label="资源终端"
+      onPointerDownCapture={acknowledge}
+      onKeyDownCapture={acknowledge}
+      onFocusCapture={acknowledgeFocus}
+    >
       <div className="terminal-toolbar row space-between gap-8">
-        <span role="status">
-          {resource.environmentId ?? '未绑定环境'}
-          {resource.terminal?.sandbox ? ` / ${resource.terminal.sandbox}` : ''} · {resource.terminal?.cwd ?? '工作目录未读取'} ·{' '}
-          {resource.terminal?.state === 'running'
-            ? '已连接'
-            : resource.terminal?.state === 'closed'
-              ? '已关闭，所属进程已确认退出'
-              : resource.terminal?.state === 'failed'
-                ? '连接失败'
-                : (resource.terminal?.state ?? '尚未连接')}
+        <span className="terminal-capsule" title={origin || undefined}>
+          <span className="terminal-capsule-text">
+            {resource.environmentId ?? '未绑定环境'}
+            {cwdTail ? ` · ${cwdTail}` : ''}
+          </span>
+          {/* 沙箱全名与绝对 cwd 不外露，但保留在视觉隐藏文本里（悬停 title 同内容）。 */}
+          {origin ? <span className="sr-only">{origin}</span> : null}
+          {stateView ? <StatusDot view={stateView} /> : null}
         </span>
         {running ? (
           <div className="row gap-8">
             <button
               type="button"
-              className="btn"
+              className="icon-btn"
+              aria-label="中断（Ctrl-C）"
+              title="中断（Ctrl-C）"
               onClick={() =>
                 void workspaceCommand(workspaceId, {
                   type: 'terminalWrite',
@@ -147,11 +185,13 @@ export function Terminal({
                 })
               }
             >
-              中断（Ctrl-C）
+              <Icon name="stop" size={16} />
             </button>
             <button
               type="button"
-              className="btn"
+              className="icon-btn"
+              aria-label="关闭终端"
+              title="关闭终端"
               disabled={busy}
               onClick={() =>
                 void workspaceCommand(workspaceId, {
@@ -161,33 +201,18 @@ export function Terminal({
                 })
               }
             >
-              关闭终端
+              <Icon name="close" size={16} />
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            className="btn"
-            disabled={busy || !resource.environmentId || !!unavailable}
-            onClick={() => {
-              term.current?.focus();
-              void workspaceCommand(workspaceId, {
-                type: 'terminalOpen',
-                resourceId: resource.resourceId,
-                cols: term.current?.cols ?? 80,
-                rows: term.current?.rows ?? 24,
-              });
-            }}
-          >
-            {busy ? '正在连接或关闭…' : '连接终端'}
+          <button type="button" className="btn" disabled={busy || !resource.environmentId || !!unavailable} onClick={connect}>
+            连接终端
           </button>
         )}
       </div>
-      {resource.terminal?.error ? <p role="alert">{resource.terminal.error}</p> : null}
-      {unavailable ? <p role="status">{unavailable}</p> : null}
-      {truncated ? <p role="status">未读输出已超出保留窗口；已从当前窗口重建显示。</p> : null}
+      {/* 连接动作只在工具栏出现一次，槽里不重复渲染同名按钮。 */}
+      <StatusSlot scope={scope} onAction={onAction} omitActions={['terminal.connect']} />
       <div className="terminal-surface" ref={host} />
-      <p className="muted small terminal-hint">输出最多保留 256 Ki 字符 · 隐藏窗格继续运行</p>
     </section>
   );
 }

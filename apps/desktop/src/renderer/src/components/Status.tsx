@@ -41,8 +41,8 @@ export function StatusDot({ view }: { view: ViewMeta }) {
   );
 }
 
-function ActionButton({ view, onAction }: { view: StatusView; onAction: (view: StatusView) => void }) {
-  if (!view.action) return null;
+function ActionButton({ view, onAction, omit }: { view: StatusView; onAction: (view: StatusView) => void; omit?: readonly string[] }) {
+  if (!view.action || omit?.includes(view.action.id)) return null;
   return (
     <button type="button" className="btn btn-small" disabled={view.action.disabled} onClick={() => onAction(view)}>
       {view.action.label}
@@ -172,7 +172,16 @@ function MoreMenu({ scope, items, onAction }: { scope: StatusScope; items: reado
  * 常驻（control > unresolved > progress，全部显示）、问题（一条 + 「另有 N 项」）、提示（一条 +「知道了」）。
  * 三通道全空时不渲染任何元素。动作经调用方注入的 onAction 执行，组件本身不调用 IPC。
  */
-export function StatusSlot({ scope, onAction }: { scope: StatusScope; onAction: (view: StatusView) => void }) {
+export function StatusSlot({
+  scope,
+  onAction,
+  omitActions,
+}: {
+  scope: StatusScope;
+  onAction: (view: StatusView) => void;
+  /** 窗格工具栏已有同名控件的动作 id；槽里不再重复渲染按钮（避免同名按钮重复）。 */
+  omitActions?: readonly string[];
+}) {
   const { persistent, problem, more, notice } = useStatusView(scope);
   if (!persistent.length && !problem && !notice) return null;
   return (
@@ -180,13 +189,13 @@ export function StatusSlot({ scope, onAction }: { scope: StatusScope; onAction: 
       {persistent.map((view) => (
         <div key={view.key} className="status-item" {...statusAttrs(view)}>
           <Live view={view} role="status" />
-          <ActionButton view={view} onAction={onAction} />
+          <ActionButton view={view} onAction={onAction} omit={omitActions} />
         </div>
       ))}
       {problem ? (
         <div className="status-item" {...statusAttrs(problem)}>
           <Live view={problem} role="alert" />
-          <ActionButton view={problem} onAction={onAction} />
+          <ActionButton view={problem} onAction={onAction} omit={omitActions} />
           {more.length ? <MoreMenu scope={scope} items={more} onAction={onAction} /> : null}
         </div>
       ) : null}

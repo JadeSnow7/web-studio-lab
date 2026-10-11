@@ -3,6 +3,7 @@ import {
   type AgentControlState,
   type CdpState,
   type ChatStatus,
+  type EnvironmentDescription,
   type ExecutionStatus,
   type FileInvalidationHint,
   type ManagedApp,
@@ -439,7 +440,14 @@ function storageFacts(snapshot: WorkbenchSnapshot): StatusFact[] {
 
 /* ---------- 终端 ---------- */
 
-function terminalFacts(workspaceId: string, resource: WorkbenchResource): StatusFact[] {
+/** 终端不可用的原因：资源自带的原因优先；否则环境没有终端能力时取环境的原因（环境未核对 / 未配置时给通用说明）。 */
+function terminalUnavailableReason(resource: WorkbenchResource, environments: readonly EnvironmentDescription[]): string | null {
+  if (resource.unavailableReason) return resource.unavailableReason;
+  const environment = environments.find((item) => item.environmentId === resource.environmentId);
+  return environment?.capabilities.terminal ? null : (environment?.reason ?? '环境能力尚未核对或终端未配置');
+}
+
+function terminalFacts(workspaceId: string, resource: WorkbenchResource, environments: readonly EnvironmentDescription[]): StatusFact[] {
   const terminal = resource.terminal;
   const state = terminal?.state ?? 'idle';
   const entity: Entity<'terminal'> = {
@@ -479,14 +487,15 @@ function terminalFacts(workspaceId: string, resource: WorkbenchResource): Status
   // 只有进程应已结束（failed / closed / idle）却仍未确认时才是「未确认」事实。
   if (terminal?.cleanupPending && (state === 'failed' || state === 'closed' || state === 'idle'))
     facts.push(build(entity, 'cleanup', { phase: 'unknown', kind: 'unresolved', priority: 90, label: '所属进程退出未确认', raw }));
-  if (resource.unavailableReason)
+  const unavailable = terminalUnavailableReason(resource, environments);
+  if (unavailable)
     facts.push(
       build(entity, 'unavailable', {
         phase: 'degraded',
         kind: 'problem',
         priority: 40,
-        label: resource.unavailableReason,
-        detail: resource.unavailableReason.length > LABEL_LIMIT ? resource.unavailableReason : undefined,
+        label: unavailable,
+        detail: unavailable.length > LABEL_LIMIT ? unavailable : undefined,
         raw,
       }),
     );
@@ -792,12 +801,12 @@ function fileHintFact(workspaceId: string, hint: FileInvalidationHint): StatusFa
 
 /* ---------- 入口 ---------- */
 
-function workspaceFacts(workspace: WorkspaceSnapshot): StatusFact[] {
+function workspaceFacts(workspace: WorkspaceSnapshot, environments: readonly EnvironmentDescription[]): StatusFact[] {
   const workspaceId = workspace.workspaceId;
   const facts: StatusFact[] = [...appFacts(workspace)];
   for (const resource of workspace.resources) {
     if (resource.kind === 'web') facts.push(...webFacts(workspaceId, resource));
-    else if (resource.kind === 'terminal' || resource.kind === 'ssh') facts.push(...terminalFacts(workspaceId, resource));
+    else if (resource.kind === 'terminal' || resource.kind === 'ssh') facts.push(...terminalFacts(workspaceId, resource, environments));
   }
   for (const session of workspace.sessions) facts.push(...contextFacts(workspaceId, session));
   for (const run of workspace.runs) facts.push(...runFacts(workspaceId, run));
@@ -822,7 +831,7 @@ export function projectFacts(input: FactInput): StatusFact[] {
   const facts: StatusFact[] = [...chatFacts(input.chat), ...executionFacts(input.execution), ...setupFacts(input.setup)];
   if (input.snapshot) {
     facts.push(...storageFacts(input.snapshot));
-    for (const workspace of input.snapshot.workspaces) facts.push(...workspaceFacts(workspace));
+    for (const workspace of input.snapshot.workspaces) facts.push(...workspaceFacts(workspace, input.snapshot.environments ?? []));
   }
   return facts;
 }

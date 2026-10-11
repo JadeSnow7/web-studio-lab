@@ -42,3 +42,10 @@ P0 独立审查发现两处设计与源码事实的冲突，经用户确认后�
 | 实施期问题（P2 侧栏） | `cleanupPending` 在终端与运行的进程存活期间始终为 true，按原 §4.2 / §4.5 健康的已连接终端与执行中的运行会常驻「未确认」 | 终端 cleanup 仅在 failed / closed / idle 时产出；运行 process-cleanup 仅在终态产出 | status-interface.md §4.2、§4.5 |
 
 另：观察错误标签沿用现有 `Observation.tsx` 文案（如 `unauthorized`「未获授权」、`stale_ref`「引用已失效」），因为 §4.8 引用的修订 1 对照表不在仓库中，且 `e2e/ssh-product.spec.ts` 断言「未获授权」。
+
+### 实施期已知的非回归 E2E 现象
+
+| 用例 | 现象 | 判断依据 |
+| ---- | ---- | -------- |
+| `e2e/review-regressions.spec.ts:82` | 间歇失败：页面初始地址晚于 `fill()` 到达，提交的地址不是被拒地址 | 917f375 基线导出上同样复现（12 次 1 次失败） |
+| `e2e/workspace-migration.spec.ts:151` | 单独重复运行时原生 webContents 焦点断言失败；全量顺序运行通常通过 | 917f375 基线导出上单独重复运行同样 6/6 失败，依赖系统窗口焦点 |

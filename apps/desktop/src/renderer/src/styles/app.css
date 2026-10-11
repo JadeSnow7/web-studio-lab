@@ -1516,8 +1516,23 @@ p {
 .terminal-error {
   overflow-wrap: anywhere;
 }
-.terminal-hint {
-  flex: none;
+.terminal-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--glass);
+  box-shadow: 0 0 0 1px var(--line-soft);
+  font-size: 12px;
+}
+.terminal-capsule-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .chat-tools {
   border: 1px solid var(--line);

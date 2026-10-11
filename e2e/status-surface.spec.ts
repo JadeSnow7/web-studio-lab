@@ -4,7 +4,17 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { launchApp, screensDir, setWindowSize, setWorkspaceTheme, shot, workshopNavigate, workspaceSnapshot } from './helpers';
+import {
+  fixtureSandbox,
+  launchApp,
+  screensDir,
+  setWindowSize,
+  setWorkspaceTheme,
+  shot,
+  workshopNavigate,
+  workspaceSnapshot,
+} from './helpers';
+import { sshLoopback } from './fixtures/ssh-loopback';
 
 const run = promisify(execFile);
 
@@ -379,5 +389,274 @@ test('侧栏截图：白 / 暗 / 暖 × 1440 / 960，正常（终端已连接）
     } finally {
       await app.close();
     }
+  }
+});
+
+/* ---------- 终端 ---------- */
+
+const terminalPanel = (page: Page) => page.getByRole('region', { name: '资源终端' });
+const terminalSlotItems = (page: Page) => terminalPanel(page).locator('.status-slot .status-item');
+const capsuleOf = (page: Page) => terminalPanel(page).locator('.terminal-capsule');
+const connectButton = (page: Page) => terminalPanel(page).getByRole('button', { name: '连接终端', exact: true });
+const interruptButton = (page: Page) => terminalPanel(page).getByRole('button', { name: '中断（Ctrl-C）', exact: true });
+const closeButton = (page: Page) => terminalPanel(page).getByRole('button', { name: '关闭终端', exact: true });
+
+/** 不经过面板内的任何交互，直接用命令关闭当前终端实例（焦点保持不动）。 */
+async function stopTerminalByCommand(page: Page) {
+  const snapshot = await workspaceSnapshot(page);
+  const resource = snapshot.workspaces
+    .find((workspace) => workspace.workspaceId === snapshot.activeWorkspaceId)!
+    .resources.find((item) => item.kind === 'terminal' && item.terminal?.state === 'running')!;
+  await page.evaluate((command) => window.studio.workbench.command({ ...command, commandId: crypto.randomUUID() } as never), {
+    type: 'stopInstance',
+    workspaceId: snapshot.activeWorkspaceId,
+    resourceId: resource.resourceId,
+    instanceId: resource.instanceId!,
+  });
+}
+
+async function createSshTab(page: Page, title: string) {
+  await page.getByRole('button', { name: '新建标签', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: '新建标签' });
+  await editor.getByLabel('标签类型').selectOption('ssh');
+  await editor.getByLabel('名称', { exact: true }).fill(title);
+  await editor.getByLabel('资源环境').selectOption('ssh');
+  await editor.getByRole('button', { name: '保存', exact: true }).click();
+}
+
+test('终端已连接：胶囊与成功色实心点可见，悬停含沙箱全名与绝对 cwd；中断与关闭是图标按钮且名称不变、Tab 可达', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    await connectTerminal(page);
+    const capsule = capsuleOf(page);
+    await expect(capsule).toBeVisible();
+    await expect(capsule.locator('.terminal-capsule-text')).toHaveText('sandbox · workspace');
+    const dot = capsule.locator('[data-status="terminal:ok"]');
+    await expect(dot).toBeVisible();
+    await expect(dot.locator('.shape-dot')).toBeVisible();
+    await expect(dot).toHaveText('已连接');
+    await capsule.hover();
+    await expect(capsule).toHaveAttribute('title', new RegExp(`${fixtureSandbox} · /home/agent/workspace`));
+    await expect(dot).toHaveAttribute('title', new RegExp(`已连接（${fixtureSandbox} · /home/agent/workspace）`));
+
+    // 原整串「环境 / 沙箱全名 · 绝对 cwd · 状态」、英文枚举与页脚说明都不再外露。
+    await expect(terminalPanel(page).locator('[role="status"]:visible')).toHaveCount(0);
+    await expect(terminalPanel(page)).not.toContainText('输出最多保留');
+    await expect(terminalPanel(page)).not.toContainText('隐藏窗格继续运行');
+    await expect(terminalSlotItems(page)).toHaveCount(0);
+
+    // 图标按钮：可见、名称不变、没有文字；Tab 可达，顺序为中断 → 关闭。
+    for (const button of [interruptButton(page), closeButton(page)]) {
+      await expect(button).toBeVisible();
+      await expect(button).toHaveClass(/icon-btn/);
+      await expect(button.locator('svg')).toBeVisible();
+      await expect(button).toHaveText('');
+    }
+    await expect(interruptButton(page)).toHaveAttribute('title', '中断（Ctrl-C）');
+    await expect(closeButton(page)).toHaveAttribute('title', '关闭终端');
+    await interruptButton(page).focus();
+    await expect(interruptButton(page)).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(closeButton(page)).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(interruptButton(page)).toBeFocused();
+  } finally {
+    await app.close();
+  }
+});
+
+test('终端已关闭：提示可见；与窗格交互后视觉消失而圆点文字仍在；重新连接再关闭后再次可见', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    const closedText = '已关闭，所属进程已确认退出';
+    const notice = terminalSlotItems(page).filter({ hasText: closedText });
+    await connectTerminal(page);
+    await expect(notice).toHaveCount(0);
+    await closeButton(page).click();
+    await expect(notice).toBeVisible();
+    await expect(notice.getByRole('button', { name: '知道了', exact: true })).toBeVisible();
+    // 连接动作只在工具栏出现一次。
+    await expect(connectButton(page)).toHaveCount(1);
+    await expect(capsuleOf(page).locator('[data-status="terminal:idle"]')).toContainText(closedText);
+
+    // pointerdown 路径：点击胶囊文字（不可聚焦，不产生 focus 事件），提示视觉消失，但环境级圆点仍携带同一文字。
+    await capsuleOf(page).locator('.terminal-capsule-text').click();
+    await expect(notice).not.toBeVisible();
+    await expect(terminalSlotItems(page)).toHaveCount(0);
+    const dot = capsuleOf(page).locator('[data-status="terminal:idle"]');
+    await expect(dot).toHaveCount(1);
+    await expect(dot).toContainText(closedText);
+    await expect(terminalPanel(page)).toContainText(closedText);
+
+    // keydown 路径：焦点先放在终端输入框里（此时没有提示，不产生确认），不经面板内的点击或聚焦，
+    // 直接通过命令关闭终端使提示（新实例，instanceToken 变化）出现，再发一次纯按键。
+    await connectButton(page).click();
+    await expect(terminalPanel(page)).toContainText('已连接');
+    const input = terminalPanel(page).getByLabel('终端输入');
+    await input.focus();
+    await expect(input).toBeFocused();
+    await stopTerminalByCommand(page);
+    await expect(notice).toBeVisible();
+    await expect(input).toBeFocused();
+    await page.keyboard.press('Shift');
+    await expect(notice).not.toBeVisible();
+    await expect(capsuleOf(page).locator('[data-status="terminal:idle"]')).toContainText(closedText);
+
+    // 用户引起的聚焦同样确认：再来一个新实例，关闭后 Playwright 的真实 focus 事件。
+    await connectButton(page).click();
+    await expect(terminalPanel(page)).toContainText('已连接');
+    await closeButton(page).click();
+    await expect(notice).toBeVisible();
+    await connectButton(page).focus();
+    await expect(notice).not.toBeVisible();
+  } finally {
+    await app.close();
+  }
+});
+
+test('终端已关闭：切换标签再切回（程序性聚焦）不确认提示；随后点击终端区域才消失', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    const closedText = '已关闭，所属进程已确认退出';
+    const notice = terminalSlotItems(page).filter({ hasText: closedText });
+    const tabs = page.getByRole('navigation', { name: '空间标签' });
+    await connectTerminal(page);
+    await closeButton(page).click();
+    await expect(notice).toBeVisible();
+    await tabs.getByRole('button', { name: 'Agent 会话', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Agent 会话内容' })).toBeVisible();
+    await tabs.getByRole('button', { name: '开发终端', exact: true }).click();
+    await expect(terminalPanel(page)).toBeVisible();
+    // 重新激活时终端被程序性聚焦，但这不是用户与窗格交互：提示仍在。
+    await expect(terminalPanel(page).getByLabel('终端输入')).toBeFocused();
+    await expect(notice).toBeVisible();
+    await terminalPanel(page).locator('.terminal-surface').click();
+    await expect(notice).not.toBeVisible();
+  } finally {
+    await app.close();
+  }
+});
+
+test('终端不可用：问题通道条目可见，连接按钮禁用', async () => {
+  const { app, page } = await launchApp();
+  try {
+    // 依赖 E2E 默认环境：sbx 缺失，环境没有终端能力。
+    await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '开发终端', exact: true }).click();
+    const item = terminalSlotItems(page).locator('xpath=self::*[@data-status="terminal:degraded"]');
+    await expect(item).toBeVisible();
+    await expect(item).toHaveAttribute('data-status-channel', 'problem');
+    await expect(item.getByRole('alert')).toBeVisible();
+    expect(((await item.textContent()) ?? '').trim().length).toBeGreaterThan(0);
+    await expect(connectButton(page)).toBeDisabled();
+    await expect(terminalPanel(page)).not.toContainText('undefined');
+  } finally {
+    await app.close();
+  }
+});
+
+test('终端连接失败：问题通道显示失败与可见的 detail；工具栏连接按钮可 Tab 到达', async () => {
+  const fixture = await sshLoopback();
+  let app: Awaited<ReturnType<typeof launchApp>>['app'] | undefined;
+  try {
+    const launched = await launchApp({
+      sshEnvironment: { ...fixture.environment, hostKeySha256: '0'.repeat(64) },
+      userData: fixture.profile,
+    });
+    app = launched.app;
+    const page = launched.page;
+    await createSshTab(page, '错误pin');
+    await connectButton(page).click();
+    const item = terminalSlotItems(page).locator('xpath=self::*[@data-status="terminal:failed"]');
+    await expect(item).toBeVisible();
+    await expect(item).toHaveAttribute('data-status-channel', 'problem');
+    await expect(item.getByRole('alert')).toContainText('连接失败');
+    await expect(item.locator('.status-detail')).toBeVisible();
+    expect(((await item.locator('.status-detail').textContent()) ?? '').trim().length).toBeGreaterThan(0);
+    await expect(capsuleOf(page).locator('[data-status="terminal:failed"]')).toBeVisible();
+    // 槽里不重复渲染连接按钮；工具栏的按钮可用并可由键盘到达。
+    await expect(connectButton(page)).toHaveCount(1);
+    await expect(connectButton(page)).toBeEnabled();
+    await connectButton(page).focus();
+    await expect(connectButton(page)).toBeFocused();
+    // 失败是问题，不因交互降级。
+    await terminalPanel(page).locator('.terminal-surface').click();
+    await expect(item).toBeVisible();
+  } finally {
+    await app?.close();
+    await fixture.stop();
+  }
+});
+
+test('SSH 断线后进程未确认：交互后提示仍可见（unresolved 不降级）', async () => {
+  test.setTimeout(180000);
+  const fixture = await sshLoopback();
+  let app: Awaited<ReturnType<typeof launchApp>>['app'] | undefined;
+  try {
+    const launched = await launchApp({ sshEnvironment: fixture.environment, userData: fixture.profile });
+    app = launched.app;
+    const page = launched.page;
+    await createSshTab(page, '断线SSH');
+    await connectButton(page).click();
+    await expect(terminalPanel(page)).toContainText('已连接');
+    fixture.disconnect();
+    const unresolved = terminalSlotItems(page).filter({ hasText: '所属进程退出未确认' });
+    await expect(unresolved).toBeVisible();
+    await expect(unresolved).toHaveAttribute('data-status-channel', 'persistent');
+    // 点击窗格、按键之后仍然可见。工具栏的「连接终端」保持可点：重连由 Main 明确拒绝并给出「清理未确认」（ssh-product.spec 覆盖）。
+    await terminalPanel(page).locator('.terminal-surface').click();
+    await page.keyboard.press('Shift+Tab');
+    await expect(unresolved).toBeVisible();
+    await expect(capsuleOf(page).locator('[data-status="terminal:failed"]')).toBeVisible();
+  } finally {
+    // 产品有意拒绝在远端清理未确认时正常关闭窗口（同 ssh-product.spec）：fixture 独立确认其 PTY 已退出后强制结束本测试拥有的进程。
+    if (app && app.process().exitCode === null) {
+      const exited = new Promise<void>((resolve) => app!.process().once('exit', () => resolve()));
+      app.process().kill('SIGKILL');
+      await exited;
+    }
+    await fixture.stop();
+  }
+});
+
+test('终端截图：白 / 暗 / 暖 × 1440 / 960，正常（已连接）与异常（连接失败）', async () => {
+  test.setTimeout(240000);
+  const dir = path.join(screensDir, 'status-surface');
+  await mkdir(dir, { recursive: true });
+  const fixture = await sshLoopback();
+  const cases = [
+    { state: 'normal', launch: () => launchApp({ sbxBin }) },
+    {
+      state: 'abnormal',
+      launch: () => launchApp({ sshEnvironment: { ...fixture.environment, hostKeySha256: '0'.repeat(64) }, userData: fixture.profile }),
+    },
+  ] as const;
+  try {
+    for (const { state, launch } of cases) {
+      const { app, page } = await launch();
+      try {
+        await resize(app, page, 1440, 900);
+        if (state === 'normal') await connectTerminal(page);
+        else {
+          await createSshTab(page, '错误pin');
+          await connectButton(page).click();
+        }
+        for (const theme of ['light', 'dark', 'warm'] as const) {
+          await resize(app, page, 1440, 900);
+          await expect(page.getByRole('navigation', { name: 'Workshop 导航' })).toBeVisible();
+          await setWorkspaceTheme(page, theme);
+          for (const width of [1440, 960]) {
+            await resize(app, page, width, width === 1440 ? 900 : 700);
+            await expect(terminalPanel(page)).toBeVisible();
+            if (state === 'normal') await expect(capsuleOf(page).locator('[data-status="terminal:ok"]')).toBeVisible();
+            else await expect(terminalSlotItems(page).locator('xpath=self::*[@data-status="terminal:failed"]')).toBeVisible();
+            await shot(page, `status-surface/terminal-${state}-${theme}-${width}`);
+          }
+        }
+      } finally {
+        await app.close();
+      }
+    }
+  } finally {
+    await fixture.stop();
   }
 });
