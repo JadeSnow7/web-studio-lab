@@ -2149,3 +2149,226 @@ test('文件截图：白 / 暗 / 暖 × 1440 / 960，正常（小文件读取完
     }
   }
 });
+
+/* ---------- App 对话框 ---------- */
+
+const appSbxBin = path.resolve('e2e/fixtures/sbx-app-actions.mjs');
+const APP_WORKSPACE = 'taskflow-demo';
+const appStateKey = `app:${APP_WORKSPACE}:state`;
+const appDialog = (page: Page) => page.getByRole('dialog', { name: '空间 App' });
+const appState = (page: Page) => appDialog(page).locator(`[data-status-key="${appStateKey}"]`);
+
+/** 创建标准 App（说明留空），回到空间页。 */
+async function createManagedApp(page: Page, name: string) {
+  await page.getByRole('button', { name: '新建 App', exact: true }).click();
+  await appDialog(page).getByRole('button', { name: '创建标准应用', exact: true }).click();
+  const form = page.getByRole('dialog', { name: '创建 App', exact: true });
+  await form.getByLabel('App 名称').fill(name);
+  await form.getByRole('button', { name: '保存 App' }).click();
+  await expect(form).not.toBeVisible();
+  await expect(page.getByRole('button', { name: '管理 App', exact: true })).toBeVisible();
+}
+
+const openAppDialog = async (page: Page) => {
+  await page.getByRole('button', { name: '管理 App', exact: true }).click();
+  await expect(appDialog(page).getByRole('button', { name: '关闭', exact: true })).toBeFocused();
+};
+
+/** 启动应用直到 fixture 拒绝启动，状态落在 failed。 */
+async function failAppStart(page: Page) {
+  await appDialog(page).getByRole('button', { name: '启动应用', exact: true }).click();
+  await expect
+    .poll(async () => (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === APP_WORKSPACE)?.managedApp?.state)
+    .toBe('failed');
+}
+
+test('App 对话框：标题是 App 名称，说明为空不显示占位；服务状态是 StatusDot + 可见 label；空间 / 工程类型说明改为描述', async () => {
+  const { app, page } = await launchApp({ sbxBin: appSbxBin });
+  try {
+    await createManagedApp(page, 'Workshop 状态应用');
+    await openAppDialog(page);
+    const dialog = appDialog(page);
+    await expect(dialog.getByRole('heading', { name: '管理 App', exact: true })).toBeVisible();
+    await expect(dialog.getByText('Workshop 状态应用', { exact: true })).toBeVisible();
+    // 说明为空：不出现占位。
+    await expect(dialog.getByText('暂无 App 说明')).toHaveCount(0);
+    // 服务状态：形状 + 可见 label，第一个 status 区域只含 label。
+    const state = appState(page);
+    await expect(state).toBeVisible();
+    await expect(state).toHaveAttribute('data-status', 'app:idle');
+    await expect(state).toHaveAttribute('data-status-channel', 'ambient');
+    await expect(state.locator('.shape')).toHaveAttribute('aria-hidden', 'true');
+    await expect(state.locator('.status-label')).toBeVisible();
+    await expect(state.locator('.status-label')).toHaveText('已创建');
+    await expect(dialog.getByRole('status').first()).toHaveText('已创建');
+    // 稳态没有常驻 / 问题条目，状态槽不渲染。
+    await expect(dialog.locator('.status-slot')).toHaveCount(0);
+    // 「空间 · 沙箱 React 全栈工程」与沙箱目录不再常驻外露，仍在描述 / 视觉隐藏文本里。
+    await expect(dialog).toHaveAccessibleDescription(/沙箱 React 全栈工程/);
+    await expectVisuallyHidden(dialog.locator('span.sr-only', { hasText: '沙箱 React 全栈工程' }));
+    await expect(state).toHaveAttribute('title', /^已创建（.+）$/);
+    // 动作按钮保持原名称。
+    for (const name of ['编辑 App', '启动应用', '导出源码']) await expect(dialog.getByRole('button', { name, exact: true })).toBeVisible();
+  } finally {
+    await app.close();
+  }
+});
+
+test('App 对话框：启动中在常驻通道可见且不重复动作；取消启动后为已停止；再次启动失败时问题条目与 detail 可见；Tab 顺序与 Esc 回焦不变', async () => {
+  const { app, page } = await launchApp({ sbxBin: appSbxBin });
+  try {
+    await createManagedApp(page, 'Workshop 状态应用');
+    await openAppDialog(page);
+    const dialog = appDialog(page);
+    await dialog.getByRole('button', { name: '启动应用', exact: true }).click();
+    // 启动中：状态槽常驻通道，文案来自事实层。fixture 的启动窗口约 1.2 秒：先断言条目可见，
+    // 随后用一次同步 DOM 快照核对细节，再立刻用键盘取消启动，不在窗口内做多步异步断言。
+    const starting = dialog.locator(`.status-slot .status-item[data-status-key="${appStateKey}"]`);
+    await expect(starting).toBeVisible();
+    const snapshot = await dialog.evaluate((node, key) => {
+      const item = node.querySelector(`.status-slot .status-item[data-status-key="${key}"]`);
+      return {
+        channel: item?.getAttribute('data-status-channel'),
+        liveText: item?.querySelector('[role="status"]')?.textContent?.trim(),
+        slotButtons: node.querySelectorAll('.status-slot button').length,
+        occurrences: (node.textContent?.match(/正在启动应用…/g) ?? []).length,
+        ambientRows: node.querySelectorAll(`[data-status-channel="ambient"][data-status-key="${key}"]`).length,
+      };
+    }, appStateKey);
+    // 常驻通道、文案只出现一次（不再另画一行服务状态），槽里不重复「启动应用 / 管理 App」。
+    expect(snapshot).toEqual({ channel: 'persistent', liveText: '正在启动应用…', slotButtons: 0, occurrences: 1, ambientRows: 0 });
+    const cancel = dialog.getByRole('button', { name: '取消启动', exact: true });
+    await expect(cancel).toBeEnabled();
+    await cancel.focus();
+    await page.keyboard.press('Enter');
+    await expect
+      .poll(async () => (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === APP_WORKSPACE)?.managedApp?.state)
+      .toBe('stopped');
+    await expect(appState(page)).toHaveAttribute('data-status', 'app:idle');
+    await expect(appState(page).locator('.status-label')).toHaveText('已停止');
+    await expect(dialog.getByRole('button', { name: '启动应用', exact: true })).toBeEnabled();
+    // 再次启动：fixture 拒绝启动，进入失败。
+    await failAppStart(page);
+    const failed = dialog.locator(`.status-slot .status-item[data-status-key="${appStateKey}"]`);
+    await expect(failed).toBeVisible();
+    await expect(failed).toHaveAttribute('data-status-channel', 'problem');
+    await expect(failed.getByRole('alert')).toContainText('应用运行失败');
+    await expect(failed.locator('.status-detail')).toBeVisible();
+    await expect(failed.locator('.status-detail')).not.toHaveText('');
+    await expect(dialog.getByRole('alert').first()).toBeVisible();
+    // 完整错误是结果内容：「错误详情」折叠区默认收起，Enter 展开后完整 app.error 可见；它不是 alert / status。
+    const fullError = (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === APP_WORKSPACE)!.managedApp!.error!;
+    const details = dialog.locator('details.managed-app-error');
+    await expect(details).toBeVisible();
+    await expect(details).not.toHaveAttribute('open', '');
+    await expect(details.getByText('错误详情', { exact: true })).toBeVisible();
+    await expect(details.locator('pre')).toBeHidden();
+    await expect(details.locator('[role="alert"], [role="status"]')).toHaveCount(0);
+    // 不再由组件直接渲染 app.error；服务状态不重复画一行。
+    await expect(dialog.locator('p[role="alert"]')).toHaveCount(0);
+    await expect(appState(page)).toHaveCount(1);
+    await expect(dialog.locator('.status-slot button')).toHaveCount(0);
+    // Tab 顺序：关闭 → 编辑 App → 启动应用 → 停止应用 → 导出源码（状态槽没有按钮，不插入新的 Tab 停靠点），Esc 回到触发器。
+    await dialog.getByRole('button', { name: '关闭', exact: true }).focus();
+    for (const name of ['编辑 App', '启动应用', '停止应用', '导出源码']) {
+      await page.keyboard.press('Tab');
+      await expect(dialog.getByRole('button', { name, exact: true })).toBeFocused();
+    }
+    await page.keyboard.press('Tab');
+    await expect(details.locator('summary')).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(details).toHaveAttribute('open', '');
+    await expect(details.locator('pre')).toBeVisible();
+    await expect(details.locator('pre')).toHaveText(fullError);
+    await expect(details.locator('pre')).toContainText('fixture: startup intentionally rejected');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: '管理 App', exact: true })).toBeFocused();
+  } finally {
+    await app.close();
+  }
+});
+
+test('App 对话框截图：白 / 暗 / 暖 × 1440 / 960，正常（已创建）与异常（运行失败）', async () => {
+  test.setTimeout(240000);
+  const dir = path.join(screensDir, 'status-surface');
+  await mkdir(dir, { recursive: true });
+  const { app, page } = await launchApp({ sbxBin: appSbxBin });
+  try {
+    await resize(app, page, 1440, 900);
+    await createManagedApp(page, 'Workshop 状态应用');
+    for (const state of ['normal', 'abnormal'] as const) {
+      if (state === 'abnormal') {
+        await resize(app, page, 1440, 900);
+        await openAppDialog(page);
+        await failAppStart(page);
+        await page.keyboard.press('Escape');
+      }
+      for (const theme of ['light', 'dark', 'warm'] as const) {
+        await resize(app, page, 1440, 900);
+        await expect(page.getByRole('navigation', { name: 'Workshop 导航' })).toBeVisible();
+        await setWorkspaceTheme(page, theme);
+        // 窄窗口里侧栏收起、触发器不在场：在 1440 下打开对话框，再缩窄窗口截图。
+        await openAppDialog(page);
+        for (const width of [1440, 960]) {
+          await resize(app, page, width, width === 1440 ? 900 : 700);
+          if (state === 'normal') await expect(appState(page)).toHaveAttribute('data-status', 'app:idle');
+          else await expect(appDialog(page).locator('.status-item[data-status="app:failed"]')).toBeVisible();
+          await shot(page, `status-surface/app-dialog-${state === 'normal' ? 'created' : 'failed'}-${theme}-${width}`);
+        }
+        await page.keyboard.press('Escape');
+        await expect(appDialog(page)).not.toBeVisible();
+      }
+    }
+  } finally {
+    await app.close();
+  }
+});
+
+test('App 对话框：启动中强制结束应用后重启，恢复为 failed + 清理未确认时，「应用进程清理未确认」常驻可见，交互后不消失；启动被禁用', async () => {
+  const profile = await mkdtemp(path.join(tmpdir(), 'wsl-app-recovery-'));
+  const options = { userData: profile, sbxBin: appSbxBin };
+  let launched = await launchApp(options);
+  try {
+    await createManagedApp(launched.page, 'Workshop 状态应用');
+    await openAppDialog(launched.page);
+    await appDialog(launched.page).getByRole('button', { name: '启动应用', exact: true }).click();
+    await expect(
+      appDialog(launched.page).locator(`.status-slot .status-item[data-status-key="${appStateKey}"][data-status-channel="persistent"]`),
+    ).toBeVisible();
+    // 启动窗口内强制结束应用（starting 已持久化）；重启后 Main 核对恢复，核对不了则记为 failed + cleanupConfirmed:false。
+    const exited = new Promise<void>((resolve) => launched.app.process().once('exit', () => resolve()));
+    launched.app.process().kill('SIGKILL');
+    await exited;
+    launched = await launchApp(options);
+    const { page } = launched;
+    await expect
+      .poll(
+        async () => (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === APP_WORKSPACE)?.managedApp?.cleanupConfirmed,
+      )
+      .toBe(false);
+    await openAppDialog(page);
+    const dialog = appDialog(page);
+    const unresolved = dialog.locator(`.status-slot .status-item[data-status-key="app:${APP_WORKSPACE}:cleanup"]`);
+    await expect(unresolved).toBeVisible();
+    await expect(unresolved).toHaveAttribute('data-status-channel', 'persistent');
+    await expect(unresolved.getByRole('status')).toHaveText('应用进程清理未确认');
+    // 问题通道的失败条目同时可见；清理未确认时不能再次启动。
+    await expect(
+      dialog.locator(`.status-slot .status-item[data-status-key="${appStateKey}"][data-status-channel="problem"]`),
+    ).toBeVisible();
+    await expect(dialog.getByRole('button', { name: '启动应用', exact: true })).toBeDisabled();
+    // 点击与按键之后仍然可见（unresolved 不降级）。
+    await dialog.getByRole('heading', { name: '管理 App', exact: true }).click();
+    await page.keyboard.press('Shift+Tab');
+    await expect(unresolved).toBeVisible();
+    await expect(dialog.getByRole('alert').first()).toBeVisible();
+  } finally {
+    // 清理未确认时产品有意拒绝正常关闭（同 SSH 断线用例）：沙箱进程由 fixture 模拟，直接强制结束本测试拥有的应用进程。
+    if (launched.app.process().exitCode === null) {
+      const exited = new Promise<void>((resolve) => launched.app.process().once('exit', () => resolve()));
+      launched.app.process().kill('SIGKILL');
+      await exited;
+    }
+    await rm(profile, { recursive: true, force: true });
+  }
+});

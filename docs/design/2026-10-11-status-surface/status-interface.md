@@ -145,13 +145,13 @@ problem 内优先级：load-error > pick-error > cdp > blocked-nav > unavailable
 | key | 条件 | phase | kind | label | 动作 |
 | --- | ---- | ----- | ---- | ----- | ---- |
 | `app:<ws>:state` | 无 `managedApp` | idle | steady | 尚未创建 App | 新建 App |
-| | `created` / `stopped` | idle | steady | 已创建，未启动 / 已停止 | 启动应用 |
+| | `created` / `stopped` | idle | steady | 已创建 / 已停止（实施期：「未启动」由可见的「启动应用」按钮表达，`e2e/workshop-actions.spec.ts` 精确断言「已创建」） | 启动应用 |
 | | `starting` / `stopping` | pending | progress | 正在启动应用… / 正在停止应用… | — |
 | | `running` | ok | steady | 服务运行中 | — |
 | | `failed` | failed | problem | 应用运行失败（detail：error） | 管理 App |
-| `app:<ws>:cleanup` | `stopped` 且 `cleanupConfirmed: false` | unknown | unresolved | 停止后的清理未确认 | — |
+| `app:<ws>:cleanup` | `cleanupConfirmed: false` 且 state ∈ {`failed`, `stopped`} | unknown | unresolved | 应用进程清理未确认 | — |
 
-`workspace.app` 的名称与说明是内容，不是状态；作为对话框标题和说明显示。
+`workspace.app` 的名称与说明是内容，不是状态；名称在对话框首行加粗显示（对话框标题仍为「管理 App / 新建 App」），说明为空时不显示占位。服务端把清理未确认记为 `failed` + `cleanupConfirmed: false`（停止后清理未确认、注册表与重启恢复路径），因此 cleanup 事实同时覆盖 failed 与 stopped（实施期修订，用户确认）。失败时完整错误在对话框「错误详情」折叠区中作为内容提供。
 
 ### 4.5 运行
 

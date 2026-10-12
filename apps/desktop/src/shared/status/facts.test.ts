@@ -605,7 +605,7 @@ describe('projectFacts: 受管 App', () => {
 
   it('每个 state 都有映射', () => {
     const expected = {
-      created: ['idle', 'steady', '已创建，未启动', '启动应用'],
+      created: ['idle', 'steady', '已创建', '启动应用'],
       starting: ['pending', 'progress', '正在启动应用…', undefined],
       running: ['ok', 'steady', '服务运行中', undefined],
       stopping: ['pending', 'progress', '正在停止应用…', undefined],
@@ -623,12 +623,20 @@ describe('projectFacts: 受管 App', () => {
     }
   });
 
-  it('stopped 且 cleanupConfirmed:false 才产出 cleanup(unresolved)', () => {
-    const facts = factsOf({ managedApp: managedApp({ state: 'stopped', cleanupConfirmed: false }) });
-    expect(keys(facts)).toEqual([`app:${WS}:state`, `app:${WS}:cleanup`]);
-    expect(find(facts, `app:${WS}:cleanup`)).toMatchObject({ phase: 'unknown', kind: 'unresolved', label: '停止后的清理未确认' });
-    expect(keys(factsOf({ managedApp: managedApp({ state: 'stopped', cleanupConfirmed: true }) }))).toEqual([`app:${WS}:state`]);
-    expect(keys(factsOf({ managedApp: managedApp({ state: 'running', cleanupConfirmed: false }) }))).toEqual([`app:${WS}:state`]);
+  it('failed 或 stopped 且 cleanupConfirmed:false 才产出 cleanup(unresolved，常驻)；其余状态与已确认不产出', () => {
+    for (const state of ['failed', 'stopped']) {
+      const facts = factsOf({ managedApp: managedApp({ state, cleanupConfirmed: false }) });
+      expect(keys(facts), state).toEqual([`app:${WS}:state`, `app:${WS}:cleanup`]);
+      expect(find(facts, `app:${WS}:cleanup`), state).toMatchObject({
+        phase: 'unknown',
+        kind: 'unresolved',
+        priority: 80,
+        label: '应用进程清理未确认',
+      });
+      expect(keys(factsOf({ managedApp: managedApp({ state, cleanupConfirmed: true }) })), state).toEqual([`app:${WS}:state`]);
+    }
+    for (const state of ['created', 'starting', 'running', 'stopping'])
+      expect(keys(factsOf({ managedApp: managedApp({ state, cleanupConfirmed: false }) })), state).toEqual([`app:${WS}:state`]);
   });
 
   it('instanceToken 为 appInstanceId', () => {

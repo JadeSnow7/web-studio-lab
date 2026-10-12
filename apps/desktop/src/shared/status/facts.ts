@@ -181,7 +181,7 @@ const APP_NEW: Mapping = {
 };
 const APP_START: ActionSpec = { id: 'app.start', label: '启动应用' };
 const APP_STATE = {
-  created: { phase: 'idle', kind: 'steady', priority: 10, label: '已创建，未启动', action: APP_START },
+  created: { phase: 'idle', kind: 'steady', priority: 10, label: '已创建', action: APP_START },
   starting: { phase: 'pending', kind: 'progress', priority: 60, label: '正在启动应用…' },
   running: { phase: 'ok', kind: 'steady', priority: 10, label: '服务运行中' },
   stopping: { phase: 'pending', kind: 'progress', priority: 60, label: '正在停止应用…' },
@@ -627,8 +627,9 @@ function appFacts(workspace: WorkspaceSnapshot): StatusFact[] {
   const facts = [
     build(entity, 'state', fromMapping(APP_STATE[app.state], { raw, detail: app.state === 'failed' ? app.error : undefined })),
   ];
-  if (app.state === 'stopped' && !app.cleanupConfirmed)
-    facts.push(build(entity, 'cleanup', { phase: 'unknown', kind: 'unresolved', priority: 80, label: '停止后的清理未确认', raw }));
+  // 服务端把清理未确认记为 failed（或 stopped）+ cleanupConfirmed:false；starting / running / stopping 期间进程本来就在，不算未确认。
+  if ((app.state === 'stopped' || app.state === 'failed') && !app.cleanupConfirmed)
+    facts.push(build(entity, 'cleanup', { phase: 'unknown', kind: 'unresolved', priority: 80, label: '应用进程清理未确认', raw }));
   return facts;
 }
 

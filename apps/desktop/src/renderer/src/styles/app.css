@@ -2830,3 +2830,20 @@ textarea.resize-none {
   align-items: center;
   gap: 6px;
 }
+
+/* App 对话框「错误详情」：完整 app.error 是结果内容，默认收起；长文本在框内滚动。 */
+.managed-app-error summary {
+  cursor: pointer;
+}
+.managed-app-error pre {
+  max-height: 200px;
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: 0 0 0 1px var(--line-soft);
+}

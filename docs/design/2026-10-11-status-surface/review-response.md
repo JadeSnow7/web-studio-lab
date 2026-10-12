@@ -40,6 +40,8 @@ P0 独立审查发现两处设计与源码事实的冲突，经用户确认后�
 | P0 审查 P2-3 | context 三个 facet 共用 `sessionId:requestId` 令牌，已确认的「历史已恢复」在每次新采集后重现 | history-restored 令牌改为 `sessionId` | status-interface.md §6.3 |
 | 实施期问题（P2 标题栏） | 全局 problem 进 Toast 会在 `pnpm dev` 与未打包 E2E（无 `runtime.json`，环境未就绪）中常驻右下角；先改为「可关闭 Toast」，全量 E2E 仍有 9 个既有用例因 Toast 遮挡发送按钮与 `getByRole('alert')` 多重命中失败 | 持续条件改进标题栏（「Codex CLI · 对话不可用」「环境 · {label}」），Toast 只承载一次性失败 | status-interface.md §5；design.md §4 |
 | 实施期问题（P2 侧栏） | `cleanupPending` 在终端与运行的进程存活期间始终为 true，按原 §4.2 / §4.5 健康的已连接终端与执行中的运行会常驻「未确认」 | 终端 cleanup 仅在 failed / closed / idle 时产出；运行 process-cleanup 仅在终态产出 | status-interface.md §4.2、§4.5 |
+| 实施期问题（P2 App 对话框） | `app:<ws>:state` 的 created label「已创建，未启动」与既有 `e2e/workshop-actions.spec.ts` 对对话框首个 status 的精确断言「已创建」冲突 | label 改为「已创建」，「未启动」由可见的「启动应用」按钮表达 | status-interface.md §4.4 |
+| 实施期问题（P2 App 对话框审查） | 服务端把清理未确认记为 failed + cleanupConfirmed=false，原 §4.4 只在 stopped 时产出 cleanup，失败时无常驻「未确认」；完整错误被 300 字符与两行截断 | cleanup 在 failed 或 stopped 且未确认时产出，label「应用进程清理未确认」；完整错误进对话框「错误详情」折叠区 | status-interface.md §4.4 |
 
 另：观察错误标签沿用现有 `Observation.tsx` 文案（如 `unauthorized`「未获授权」、`stale_ref`「引用已失效」），因为 §4.8 引用的修订 1 对照表不在仓库中，且 `e2e/ssh-product.spec.ts` 断言「未获授权」。
 
