@@ -1,5 +1,6 @@
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import {
+  clickAppMenu,
   launchApp,
   previewClick,
   previewElementCenter,
@@ -12,7 +13,8 @@ import {
 let app: ElectronApplication, page: Page;
 test.describe.configure({ mode: 'serial' });
 test.beforeAll(async () => {
-  ({ app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx.mjs', import.meta.url).pathname }));
+  // 启用诊断通道：会话现场的诊断详情已移到诊断面板（plan §4）。
+  ({ app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx.mjs', import.meta.url).pathname, debugStatus: true }));
   await setWindowSize(app, 1440, 900);
 });
 test.afterAll(async () => {
@@ -26,12 +28,13 @@ test('启动：窗口、安全边界与 Browser 区真实加载', async () => {
     await page.evaluate(() => ({
       require: typeof (window as Window & { require?: unknown }).require,
       process: typeof (window as Window & { process?: unknown }).process,
+      // 诊断通道在本文件中启用：恰为原来的六个键加 `debug`（未启用时的六键断言见 workspace-debug.spec.ts）。
       studio: Object.keys(window.studio),
     })),
   ).toEqual({
     require: 'undefined',
     process: 'undefined',
-    studio: ['setup', 'workbench', 'chat', 'app', 'execution', 'shell'],
+    studio: ['setup', 'workbench', 'chat', 'app', 'execution', 'shell', 'debug'],
   });
   await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
   const info = await previewInfo(app);
@@ -65,9 +68,19 @@ test('点选：明确目标后采集摘要、截图与页面身份，先采集�
   await previewClick(app, await previewElementCenter(app, '[data-testid="due-1"]'));
   await expect(session()).toContainText('现场适用性：有效');
   await expect(session().locator('img.context-image')).toHaveCount(2);
-  await session().getByText('诊断详情').click();
-  await expect(session().locator('pre')).toContainText('webContentsId');
-  await expect(session().locator('pre')).toContainText('未设置');
+  // 产品界面不再外露「诊断详情」；采集条目移到诊断面板，面板内可查看并标注不可导出。
+  await expect(session().getByText('诊断详情')).toHaveCount(0);
+  expect(await clickAppMenu(app, '诊断')).toBe('CmdOrCtrl+Alt+Shift+D');
+  const debugPanel = page.getByRole('dialog', { name: '诊断', exact: true });
+  await expect(debugPanel).toBeVisible();
+  const liveSession = debugPanel.getByRole('region', { name: '当前会话现场（不可导出）' });
+  await expect(liveSession).toContainText('不可导出');
+  await liveSession.getByRole('button', { name: '查看', exact: true }).click();
+  const captureJson = liveSession.getByLabel('会话现场 JSON（不可导出）');
+  await expect(captureJson).toContainText('webContentsId');
+  await expect(captureJson).toContainText('未设置');
+  await page.keyboard.press('Escape');
+  await expect(debugPanel).toHaveCount(0);
   const s = await workspaceSnapshot(page);
   expect(s.workspaces[0]?.sessions[0]?.taskVersions).toHaveLength(0);
   await windowShots(app, page, 'workbench-context-before-confirm');

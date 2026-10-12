@@ -2847,3 +2847,228 @@ textarea.resize-none {
   background: var(--glass);
   box-shadow: 0 0 0 1px var(--line-soft);
 }
+
+/* 诊断面板（仅 Main 启用诊断通道时可打开）：浮层，沿用主题 token。 */
+dialog.debug-panel {
+  width: min(1180px, calc(100vw - 48px));
+  height: min(760px, calc(100vh - 48px));
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  color: var(--text);
+  background: var(--content);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px #0003;
+}
+dialog.debug-panel[open] {
+  display: flex;
+  flex-direction: column;
+}
+dialog.debug-panel::backdrop {
+  background: rgba(29, 29, 31, 0.35);
+}
+.debug-head,
+.debug-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.debug-head strong {
+  font-size: 15px;
+}
+.debug-meta {
+  color: var(--text-2);
+}
+.debug-spacer {
+  flex: 1;
+}
+.debug-filters {
+  background: var(--glass);
+}
+.debug-kinds {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.debug-kinds button {
+  padding: 5px 10px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: var(--content);
+}
+.debug-kinds button:first-child {
+  border-left: 0;
+}
+.debug-kinds button[aria-checked='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.debug-domain {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.debug-error {
+  margin: 0;
+  padding: 8px 18px;
+  color: var(--bad);
+  background: var(--bad-soft);
+}
+.debug-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.debug-facts {
+  flex: 3 1 0;
+  min-width: 0;
+  overflow: auto;
+  border-right: 1px solid var(--line-soft);
+}
+.debug-side {
+  flex: 2 1 0;
+  min-width: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 18px;
+}
+.debug-group h3 {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-2);
+  background: var(--glass);
+}
+.debug-group table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.debug-group th,
+.debug-group td {
+  padding: 7px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line-soft);
+  line-height: 18px;
+}
+.debug-group th {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.debug-group td:nth-child(5) {
+  overflow-wrap: anywhere;
+}
+.debug-key {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+.debug-key[aria-pressed='true'] code {
+  font-weight: 700;
+}
+.debug-row-selected {
+  background: var(--accent-soft);
+}
+.debug-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.debug-detail code,
+.debug-timeline code {
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.debug-detail pre,
+.debug-session pre {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  max-height: 260px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 18px;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: 0 0 0 1px var(--line-soft);
+}
+.debug-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.debug-timeline ol {
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow: auto;
+  list-style: none;
+  font-size: 12px;
+  line-height: 18px;
+}
+.debug-session {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+}
+.debug-session-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.debug-session-head > span {
+  flex: 1;
+  line-height: 19px;
+}
+.debug-session-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.debug-ids {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  margin: 0;
+}
+.debug-ids dt {
+  color: var(--text-2);
+}
+.debug-ids dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.debug-list {
+  margin: 0;
+  padding-left: 18px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  .debug-body {
+    flex-direction: column;
+    overflow: auto;
+  }
+  .debug-facts,
+  .debug-side {
+    flex: none;
+    overflow: visible;
+    border-right: 0;
+  }
+}

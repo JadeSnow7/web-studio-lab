@@ -2,7 +2,6 @@ import type { SetupManager } from './setup';
 import type { WorkbenchApplication } from './workbench/application';
 import { app, dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import {
-  INVOKE_CHANNEL_NAMES,
   invokeChannels,
   type EventChannel,
   type EventPayload,
@@ -12,7 +11,8 @@ import {
 } from '@wsl/protocol';
 import type { ChatService } from './chat-service';
 import { getExecutionStatus } from './execution';
-import { assertTrustedSender, type TrustedRenderer } from './ipc-guard';
+import type { DebugStatus } from './debug-status';
+import { activeInvokeChannels, assertChannelEnabled, assertTrustedSender, type TrustedRenderer } from './ipc-guard';
 
 type Handlers = {
   [C in InvokeChannel]: (request: InvokeRequest<C>) => Promise<InvokeResponse<C>> | InvokeResponse<C>;
@@ -24,6 +24,8 @@ export interface IpcDeps {
   chat: ChatService;
   workbench?: WorkbenchApplication;
   setup?: SetupManager;
+  /** 仅诊断通道启用时存在；同时决定是否注册 `debug:status`。 */
+  debug?: DebugStatus;
 }
 
 function senderInfo(event: IpcMainInvokeEvent, window: BrowserWindow) {
@@ -39,7 +41,7 @@ function assertLegacySession(id: string) {
   if (id !== 'conv-personal-default') throw new Error('会话必须通过所属空间任务用例访问');
 }
 
-export function registerIpc({ window, trusted, chat, workbench, setup }: IpcDeps): () => void {
+export function registerIpc({ window, trusted, chat, workbench, setup, debug }: IpcDeps): () => void {
   const requireSetup = () => {
     if (!setup) throw new Error('安装服务不可用');
     return setup;
@@ -67,13 +69,18 @@ export function registerIpc({ window, trusted, chat, workbench, setup }: IpcDeps
       if (!workbench) throw new Error('工作台服务不可用');
       return workbench.observe({ ...input, args: input.args ?? {} });
     },
-    'workbench:reload': () => {
+    // 诊断通道只读订阅已发布的快照：把返回给 renderer 的同一份快照交给 debug，不改业务状态。
+    'workbench:reload': async () => {
       if (!workbench) throw new Error('工作台服务不可用');
-      return workbench.retryInitialization();
+      const snapshot = await workbench.retryInitialization();
+      debug?.onWorkbench(snapshot);
+      return snapshot;
     },
-    'workbench:get-snapshot': () => {
+    'workbench:get-snapshot': async () => {
       if (!workbench) throw new Error('工作台服务不可用');
-      return workbench.getSnapshot();
+      const snapshot = await workbench.getSnapshot();
+      debug?.onWorkbench(snapshot);
+      return snapshot;
     },
     'workbench:command': (command) => {
       if (!workbench) throw new Error('工作台服务不可用');
@@ -100,7 +107,11 @@ export function registerIpc({ window, trusted, chat, workbench, setup }: IpcDeps
       arch: process.arch,
       packaged: app.isPackaged,
     }),
-    'chat:get-status': () => chat.status(),
+    'chat:get-status': async () => {
+      const status = await chat.status();
+      debug?.onChat(status);
+      return status;
+    },
     'chat:get': ({ conversationId }) => {
       assertLegacySession(conversationId);
       return chat.get(conversationId);
@@ -119,18 +130,24 @@ export function registerIpc({ window, trusted, chat, workbench, setup }: IpcDeps
       return chat.reset(conversationId);
     },
     'execution:get-status': () => getExecutionStatus(),
+    'debug:status': () => {
+      if (!debug) throw new Error('诊断通道未启用');
+      return debug.snapshot();
+    },
   };
 
-  for (const channel of INVOKE_CHANNEL_NAMES) {
+  const channels = activeInvokeChannels(debug !== undefined);
+  for (const channel of channels) {
     ipcMain.handle(channel, (event, raw: unknown) => {
       assertTrustedSender(senderInfo(event, window), trusted);
+      assertChannelEnabled(channel, debug !== undefined);
       const request = invokeChannels[channel].request.parse(raw);
       const handler = handlers[channel] as (request: unknown) => unknown;
       return Promise.resolve(handler(request)).then((result) => invokeChannels[channel].response.parse(result));
     });
   }
   return () => {
-    for (const channel of INVOKE_CHANNEL_NAMES) ipcMain.removeHandler(channel);
+    for (const channel of channels) ipcMain.removeHandler(channel);
   };
 }
 

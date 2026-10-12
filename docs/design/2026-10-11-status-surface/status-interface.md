@@ -364,7 +364,9 @@ interface DebugStatusSnapshot { appInstanceId: string; seq: number; generatedAt:
 // event 'debug:status'
 interface StatusTransition { key: string; from: { phase; kind; label } | null; to: { phase; kind; label } | null; at: string; seq: number }
 // preload，仅启用时
-studio.debug = { status(): Promise<DebugStatusSnapshot>; onTransition(listener): () => void };
+studio.debug = { status(): Promise<DebugStatusSnapshot>; onTransition(listener): () => void; onTogglePanel(listener): () => void };
+// event 'debug:panel'（payload 'toggle'）：菜单「诊断」（CmdOrCtrl+Alt+Shift+D）通知 Renderer 切换面板；与 debug:status 一样只在启用时注册。
+// 首版面板提供「复制 JSON」；mockups 中的「暂停刷新」「导出 NDJSON」按钮不做，NDJSON 由 WSL_STATUS_LOG 开启。
 ```
 
 ## 9. DOM 约定
@@ -382,6 +384,7 @@ studio.debug = { status(): Promise<DebugStatusSnapshot>; onTransition(listener):
 | `apps/desktop/src/shared/status/index.ts`、`facts.ts`、`facts.test.ts`、`redact.ts`、`redact.test.ts` | 第 ①层与脱敏 |
 | `apps/desktop/src/renderer/src/state/status-view.ts`、`status-view.test.ts` | 第 ②层、展示状态 store |
 | `apps/desktop/src/renderer/src/components/Status.tsx` | StatusDot、StatusSlot（三通道） |
-| `apps/desktop/src/renderer/src/shell/DebugPanel.tsx` | 诊断面板 |
+| `apps/desktop/src/renderer/src/shell/DebugPanel.tsx`、`state/debug.ts`、`state/debug.test.ts` | 诊断面板与其展示状态 |
+| `e2e/debug-status.spec.ts` | 启用矩阵、通道、面板与日志 E2E |
 | `apps/desktop/src/main/debug-status.ts`、`.test.ts` | 转换、缓冲、NDJSON、大小上限 |
 | `apps/desktop/tsconfig.node.json`、`tsconfig.web.json` | `include` 增加 `src/shared/**/*.ts` |

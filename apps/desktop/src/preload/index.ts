@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { eventChannels, invokeChannels } from '@wsl/protocol';
-import type { EventChannel, EventPayload, InvokeChannel, InvokeRequest, InvokeResponse, StudioApi } from '@wsl/protocol';
+import { DEBUG_PRELOAD_ARGUMENT, eventChannels, invokeChannels } from '@wsl/protocol';
+import type { EventChannel, EventPayload, InvokeChannel, InvokeRequest, InvokeResponse, StudioApi, StudioDebugApi } from '@wsl/protocol';
 
 // preload 只把具名方法交给工作台页面，不暴露 ipcRenderer 本身。
 function invoke<C extends InvokeChannel>(channel: C, request?: InvokeRequest<C>): Promise<InvokeResponse<C>> {
@@ -18,7 +18,7 @@ function subscribe<C extends EventChannel>(channel: C, listener: (payload: Event
   };
 }
 
-const studio: StudioApi = {
+const studio: StudioApi & { debug?: StudioDebugApi } = {
   setup: {
     status: () => invoke('setup:status'),
     check: () => invoke('setup:check'),
@@ -63,5 +63,14 @@ const studio: StudioApi = {
     onCommand: (listener) => subscribe('shell:command', listener),
   },
 };
+
+// 诊断接口只在 Main 启用诊断通道时存在：未启用时 `studio` 的键保持不变（status-interface.md §8.1）。
+if (process.argv.includes(DEBUG_PRELOAD_ARGUMENT)) {
+  studio.debug = {
+    status: () => invoke('debug:status'),
+    onTransition: (listener) => subscribe('debug:status', listener),
+    onTogglePanel: (listener) => subscribe('debug:panel', () => listener()),
+  };
+}
 
 contextBridge.exposeInMainWorld('studio', studio);

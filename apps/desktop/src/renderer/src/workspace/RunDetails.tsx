@@ -73,10 +73,6 @@ export function RunDetails({ run, view }: { run: WorkbenchRun; view: RunView }) 
             <p>此运行缺少可可靠归属的消息与工具日志；旧会话日志不会并入此运行。</p>
           )}
           {run.error || run.conversation?.error ? <p role="alert">{run.error ?? run.conversation?.error}</p> : null}
-          <p className="muted small">
-            执行绑定：
-            {run.executionBinding ? `${run.executionBinding.generation} / ${run.executionBinding.turnId ?? '未返回 turnId'}` : '未记录'}
-          </p>
         </>
       ) : view === 'diff' ? (
         <>

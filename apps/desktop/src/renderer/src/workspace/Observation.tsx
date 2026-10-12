@@ -68,6 +68,12 @@ const sourceNames: Record<string, string> = {
   terminal_output: '终端输出',
   terminal_commands: '终端命令',
 };
+const recordStateNames: Record<ObservationRecord['state'], string> = {
+  pending: '读取中',
+  completed: '已完成',
+  cancelled: '已取消',
+  failed: '失败',
+};
 const errorNames: Record<string, string> = {
   cancelled: '已取消',
   unavailable: '不可用',
@@ -158,12 +164,6 @@ export function ObservationResult({
           <pre>{JSON.stringify(metadata, null, 2)}</pre>
         </details>
       )}
-      {result.evidenceRef ? (
-        <details>
-          <summary>观察证据</summary>
-          <p className="small">{result.evidenceRef}</p>
-        </details>
-      ) : null}
     </div>
   );
 }
@@ -202,19 +202,10 @@ export function ObservationHistory({ records, scope }: { records: ObservationRec
         [...records].reverse().map((record) => (
           <details key={record.request.requestId}>
             <summary>
-              {record.request.tool} · {record.state} · {new Date(record.startedAt).toLocaleString('zh-CN')}
+              {toolLabels[record.request.tool] ?? record.request.tool} · {recordStateNames[record.state]} ·{' '}
+              {new Date(record.startedAt).toLocaleString('zh-CN')}
             </summary>
-            <p className="small">
-              空间 {record.request.workspaceId} · 会话 {record.request.sessionId ?? '文件浏览'} · 运行 {record.request.runId ?? '无运行'}
-            </p>
-            {record.request.target ? (
-              <p className="small">
-                资源 {record.request.target.resourceId} · 环境 {record.request.target.environmentId} · 实例{' '}
-                {record.request.target.instanceId} / {record.request.target.instanceGeneration}
-              </p>
-            ) : null}
             <HistoryResult scope={scope} record={record} />
-            {record.evidenceRef ? <p className="small">归档 {record.evidenceRef}</p> : null}
           </details>
         ))
       ) : (
@@ -225,7 +216,9 @@ export function ObservationHistory({ records, scope }: { records: ObservationRec
 }
 
 const toolLabels: Record<string, string> = {
+  'workspace.list_sources': '来源列表',
   'browser.snapshot': '网页结构',
+  'browser.query': '网页元素',
   'browser.screenshot': '网页截图',
   'browser.read_events': '页面事件',
   'terminal.read_screen': '终端屏幕',
@@ -268,7 +261,7 @@ export function SessionObservation({ workspace, session }: { workspace: Workspac
     <section className="observation-context" aria-label="会话统一观察">
       <h3>资源观察</h3>
       <p className="muted small">
-        {workspace.name} / {session.title} · {runId ? `运行 ${runId}` : '会话上下文（无活动运行）'} · 读取不会自动发送或执行任务。
+        {workspace.name} / {session.title} · 读取不会自动发送或执行任务。
       </p>
       <form
         noValidate

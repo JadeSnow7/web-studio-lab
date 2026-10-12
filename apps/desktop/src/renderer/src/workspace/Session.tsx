@@ -587,10 +587,6 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
                     页面错误：{issue.message}
                   </p>
                 ))}
-                <details>
-                  <summary>诊断详情</summary>
-                  <pre>{JSON.stringify(context, null, 2)}</pre>
-                </details>
               </>
             ) : (
               <p className="workspace-empty">尚未附加页面现场。先在网页选择元素，再确认相关任务。</p>

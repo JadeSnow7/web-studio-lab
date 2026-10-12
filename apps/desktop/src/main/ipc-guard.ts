@@ -1,3 +1,5 @@
+import { INVOKE_CHANNEL_NAMES, type InvokeChannel } from '@wsl/protocol';
+
 /**
  * 工作台页面的可信来源。开发模式是 Vite dev server 的 origin，
  * 打包后是本地 renderer/index.html 的 file URL。
@@ -29,4 +31,17 @@ export function assertTrustedSender(sender: SenderInfo, trusted: TrustedRenderer
   if (!sender.isMainWindow || !sender.isTopFrame || sender.frameUrl === null || !isTrustedRendererUrl(sender.frameUrl, trusted)) {
     throw new Error('拒绝来自非工作台页面的 IPC 请求');
   }
+}
+
+/** 只在诊断通道启用时存在的 invoke 通道（status-interface.md §8.1）。 */
+const DEBUG_INVOKE_CHANNELS: ReadonlySet<InvokeChannel> = new Set<InvokeChannel>(['debug:status']);
+
+/** 本次运行应注册的 invoke 通道：未启用时不含诊断通道。 */
+export function activeInvokeChannels(debugStatusEnabled: boolean): InvokeChannel[] {
+  return INVOKE_CHANNEL_NAMES.filter((channel) => debugStatusEnabled || !DEBUG_INVOKE_CHANNELS.has(channel));
+}
+
+/** 未启用诊断通道时调用 debug:* 一律拒绝；通道本身也不会注册，这里是第二道检查。 */
+export function assertChannelEnabled(channel: InvokeChannel, debugStatusEnabled: boolean): void {
+  if (!debugStatusEnabled && DEBUG_INVOKE_CHANNELS.has(channel)) throw new Error('诊断通道未启用');
 }

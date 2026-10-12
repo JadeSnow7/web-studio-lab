@@ -1,7 +1,7 @@
-import type { StudioApi } from '../packages/protocol/src';
+import type { StudioApi, StudioDebugApi } from '../packages/protocol/src';
 declare global {
   interface Window {
-    studio: StudioApi;
+    studio: StudioApi & { debug?: StudioDebugApi };
   }
 }
 import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
@@ -40,6 +40,10 @@ export async function launchApp(
     userData?: string;
     startupError?: string;
     cleanInstall?: boolean;
+    /** 写入 WSL_DEBUG_STATUS=1：启用诊断通道（build 产物默认关闭；packaged 清除所有 WSL_* 之后再写入）。 */
+    debugStatus?: boolean;
+    /** 写入 WSL_STATUS_LOG=<path>（需同时启用诊断通道才有效）。 */
+    statusLog?: string;
   } = {},
 ): Promise<{ app: ElectronApplication; page: Page; rendererErrors: string[] }> {
   // 默认回归不得消耗模型；真实模型仅在显式 live 模式使用已选 sbx。
@@ -100,6 +104,11 @@ export async function launchApp(
     for (const key of Object.keys(env)) if (key.startsWith('WSL_')) delete env[key as keyof typeof env];
     if (options.live) env['PATH'] = '/usr/bin:/bin:/usr/sbin:/sbin';
   }
+  // 诊断开关只由选项决定：先清除继承自外部环境的值，且在上面清除所有 WSL_* 的分支之后写入。
+  delete env['WSL_DEBUG_STATUS'];
+  delete env['WSL_STATUS_LOG'];
+  if (options.debugStatus) env['WSL_DEBUG_STATUS'] = '1';
+  if (options.debugStatus && options.statusLog) env['WSL_STATUS_LOG'] = options.statusLog;
   // Install the observer before the real entrypoint creates any renderer.
   const bootstrap = path.join(await mkdtemp(path.join(tmpdir(), 'wsl-e2e-bootstrap-')), 'main.cjs');
   await writeFile(
@@ -269,6 +278,33 @@ export function previewClick(app: ElectronApplication, point: { x: number; y: nu
     wc.sendInputEvent({ type: 'mouseDown', x: p.x, y: p.y, button: 'left', clickCount: 1 });
     wc.sendInputEvent({ type: 'mouseUp', x: p.x, y: p.y, button: 'left', clickCount: 1 });
   }, point);
+}
+
+/** 在应用菜单中按 label 找到菜单项并触发（等同用户点击或按其快捷键）；返回其 accelerator。找不到时抛错。 */
+export function clickAppMenu(app: ElectronApplication, label: string): Promise<string | null> {
+  return app.evaluate(({ Menu, BrowserWindow }, target) => {
+    const find = (items: Electron.MenuItem[]): Electron.MenuItem | undefined => {
+      for (const item of items) {
+        if (item.label === target) return item;
+        const nested = item.submenu ? find(item.submenu.items) : undefined;
+        if (nested) return nested;
+      }
+      return undefined;
+    };
+    const item = find(Menu.getApplicationMenu()?.items ?? []);
+    if (!item) throw new Error(`missing menu ${target}`);
+    item.click(undefined, BrowserWindow.getAllWindows()[0], undefined as never);
+    return item.accelerator ?? null;
+  }, label);
+}
+
+/** 应用菜单中是否存在 label 包含 text 的菜单项（含子菜单）。 */
+export function appMenuHas(app: ElectronApplication, text: string): Promise<boolean> {
+  return app.evaluate(({ Menu }, target) => {
+    const has = (items: Electron.MenuItem[]): boolean =>
+      items.some((item) => item.label.includes(target) || (item.submenu ? has(item.submenu.items) : false));
+    return has(Menu.getApplicationMenu()?.items ?? []);
+  }, text);
 }
 
 export function setWindowSize(app: ElectronApplication, width: number, height: number): Promise<void> {

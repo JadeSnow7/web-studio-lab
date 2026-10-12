@@ -6,9 +6,12 @@ import { WorkbenchApplication } from './workbench/application';
 import { FileWorkbenchRepository } from './workbench/repository';
 import { AppControl, FileAppControlStore } from './workbench/app-control';
 import { WorkbenchHost } from './workbench/host';
+import os from 'node:os';
 import path from 'node:path';
 import { app, dialog, session, type BrowserWindow } from 'electron';
 import { ChatService } from './chat-service';
+import { DebugStatus, debugStatusEnabled } from './debug-status';
+import { getExecutionStatus } from './execution';
 import { registerIpc, sendToRenderer } from './ipc';
 import { installAppMenu } from './menu';
 import { registerDemoScheme } from './preview/demo-protocol';
@@ -27,7 +30,26 @@ function denyAllPermissions(target: Electron.Session): void {
 
 function openWorkbench(setup: SetupManager): BrowserWindow {
   const trusted = rendererSource();
-  const window = createMainWindow(trusted);
+  // 诊断通道的启用判定只在这里：开发服务器，或 WSL_DEBUG_STATUS=1；未启用时下面所有诊断装配都不存在。
+  const debugEnabled = debugStatusEnabled(trusted, process.env);
+  const window = createMainWindow(trusted, { debugStatus: debugEnabled });
+  let debug: DebugStatus | undefined;
+  if (debugEnabled) {
+    // 开发环境变量绕过安装记录，其中的授权根与 SSH 身份在这里补充给脱敏。
+    const developmentEnv = app.isPackaged ? [] : [process.env['WSL_OBSERVATION_ROOT'], process.env['WSL_SSH_ROOT']];
+    const developmentSsh = app.isPackaged ? [] : [process.env['WSL_SSH_HOST'], process.env['WSL_SSH_USER']];
+    debug = new DebugStatus({
+      homeDir: os.homedir(),
+      logPath: process.env['WSL_STATUS_LOG'] ? path.resolve(process.env['WSL_STATUS_LOG']) : null,
+      extraRoots: developmentEnv.filter((value): value is string => !!value),
+      extraSshIdentities: developmentSsh.filter((value): value is string => !!value),
+      emit: (transition) => sendToRenderer(window, 'debug:status', transition),
+      reportError: (message, error) => console.error(message, error),
+    });
+    // 基线：启动时已知的安装记录与固定的执行状态；对话与工作台快照在各自发布时订阅。
+    debug.update({ setup: setup.status(), execution: getExecutionStatus() });
+    debug.startLog();
+  }
 
   let templateDependencies;
   if (app.isPackaged) {
@@ -46,6 +68,7 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
       workbench?.onConversation(conversation);
     },
     (status) => {
+      debug?.onChat(status);
       sendToRenderer(window, 'chat:status', status);
       void workbench?.onChatStatus().catch((error: unknown) => console.error('工作台执行环境状态更新失败', error));
     },
@@ -62,9 +85,10 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
         },
   );
   const host = new WorkbenchHost(window, chat, demoRoot());
-  workbench = new WorkbenchApplication(new FileWorkbenchRepository(path.join(app.getPath('userData'), 'workbench.json')), host, (event) =>
-    sendToRenderer(window, 'workbench:event', event),
-  );
+  workbench = new WorkbenchApplication(new FileWorkbenchRepository(path.join(app.getPath('userData'), 'workbench.json')), host, (event) => {
+    debug?.onWorkbench(event.snapshot);
+    sendToRenderer(window, 'workbench:event', event);
+  });
   host.application = workbench;
   chat.setObservationReader((scope, tool, args, signal) => workbench!.observeForTurn(scope, tool, args, signal));
   const control = new AppControl({
@@ -79,9 +103,12 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
   });
   workbench.setAppControl(control);
   chat.setAppControlReader((scope, tool, args, signal) => workbench!.appControlForTurn(scope, tool, args, signal));
-  const unregisterIpc = registerIpc({ window, trusted, chat, workbench, setup });
-  const unsubscribeSetup = setup.subscribe((snapshot) => sendToRenderer(window, 'setup:status', snapshot));
-  installAppMenu(window, host);
+  const unregisterIpc = registerIpc({ window, trusted, chat, workbench, setup, ...(debug ? { debug } : {}) });
+  const unsubscribeSetup = setup.subscribe((snapshot) => {
+    debug?.onSetup(snapshot);
+    sendToRenderer(window, 'setup:status', snapshot);
+  });
+  installAppMenu(window, host, { debugStatus: debugEnabled });
 
   const exit = new ExitCoordinator(
     async () => {

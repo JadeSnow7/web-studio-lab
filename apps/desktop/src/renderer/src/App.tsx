@@ -9,6 +9,7 @@ import { ResourcesPage } from './pages/ResourcesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SpacePage } from './pages/SpacePage';
 import { TasksPage } from './pages/TasksPage';
+import { DebugPanel } from './shell/DebugPanel';
 import { ErrorToasts, ModalLayer } from './shell/Overlays';
 import { RightPanel } from './shell/RightPanel';
 import { TitleBar } from './shell/TitleBar';
@@ -16,6 +17,7 @@ import { Workshop } from './shell/Workshop';
 import { shellActions, shellStore, initializeShell } from './state/shell';
 import { panelMode } from './state/panels';
 import { workspaceStore, initializeWorkspace, panes } from './state/workspace';
+import { debugActions } from './state/debug';
 import { occlusion } from './state/occlusion';
 import { spaceActions } from './state/space-ui';
 import { startStatusPresentationSync } from './state/status-view';
@@ -77,6 +79,8 @@ export function App() {
       }),
     [],
   );
+  // 菜单「诊断」（⇧⌥⌘D）：仅 Main 启用诊断通道时 preload 才有 debug。
+  useEffect(() => window.studio.debug?.onTogglePanel(() => void debugActions.toggle()), []);
   const leftMode = shell.focusMode ? 'collapsed' : panelMode(shell.workshop, narrow);
   const rightMode = shell.focusMode ? 'collapsed' : panelMode(shell.rightPanel, narrow);
   useEffect(() => {
@@ -154,6 +158,7 @@ export function App() {
         <RightPanel mode={rightMode} />
       </div>
       <ModalLayer />
+      <DebugPanel />
       <ErrorToasts />
       {storageError ? (
         <p role="alert" className="workspace-error" ref={banner}>

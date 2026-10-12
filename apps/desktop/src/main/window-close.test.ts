@@ -32,7 +32,8 @@ vi.mock('./workbench/host', () => ({
   },
 }));
 vi.mock('./window', () => ({
-  rendererSource: vi.fn(),
+  // 返回 file 来源：index.ts 据此判定诊断通道未启用（真实实现同样如此）。
+  rendererSource: vi.fn(() => ({ kind: 'file', url: 'file:///app/renderer/index.html' })),
   createMainWindow: () => ({
     on: (name: string, callback: (event: { preventDefault(): void }) => void) => fixture.listeners.set(name, callback),
     close: fixture.close,
