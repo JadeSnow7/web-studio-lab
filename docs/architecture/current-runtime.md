@@ -5,6 +5,7 @@
 ## 已有能力和缺口
 
 - `apps/desktop/src/main/workbench` 持有空间、标签、资源、窗格、会话、任务版本、运行、阅读回执及持久快照。Host将应用端口接到原生网页和服务；renderer只持有快照投影与展示状态。
+- 状态呈现经两层只读投影：`apps/desktop/src/shared/status` 由 Main 快照推导业务事实（Main 与 Renderer 共用），Renderer `state/status-view.ts` 叠加展示状态并分配常驻 / 问题 / 提示通道；诊断通道 `debug:status` 仅在开发服务器或 `WSL_DEBUG_STATUS=1` 时注册。见[状态降噪设计](../design/2026-10-11-status-surface/README.md)。
 - 全局保留首页、空间、资源、会话、任务和设置；空间页使用垂直标签与最多四窗格。左右栏是全局展示容器，固定偏好属于本设备，不属于空间业务。主题仍按空间保存，设置页是唯一编辑入口。
 - `apps/service` 提供 sbx 会话、guest PTY、捕获适配与只读 MCP；账户资源目录由 Main 单点写入；`guest-browser-bridge.ts` 与 `guest-browser.cjs` 是隔离浏览器采集切片，尚未完成生产 UI 挂载验证。
 - `packages/protocol` 是跨进程schema来源；空间操作经workbench命令，旧空间/预览/运行/资源/终端renderer控制器随消费者迁移退役。个人会话仍使用窄chat接口。

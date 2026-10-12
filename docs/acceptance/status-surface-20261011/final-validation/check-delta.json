@@ -1,0 +1,14 @@
+{
+  "baseline": "917f375（设计目录提交前后一致）",
+  "lint": {
+    "baseline_errors": 217,
+    "final_errors": 217,
+    "files_identical": true
+  },
+  "format": {
+    "baseline_files": 801,
+    "final_files": 801,
+    "new": [],
+    "fixed": []
+  }
+}

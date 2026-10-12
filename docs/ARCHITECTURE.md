@@ -82,14 +82,15 @@ flowchart LR
 
 `apps/desktop`、`apps/service`、`packages/protocol` 已存在；下表区分当前宿主与后续职责。`templates/task-app` 和比赛 C1–C3 验收仍未实现；`fixtures/vertical-slice` 与 `tests/vertical-slice` 是独立的 VS001 固定基线。
 
-| 位置                                           | 责任                                                                                                                 |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `apps/desktop/src/renderer`                    | Presentation 与用例客户端；`workbench` 消费 Main 快照，不恢复旧 `state/runs.ts` 业务状态                             |
-| `apps/desktop/src/preload`                     | 窄桥接，使用协议，不导入任务用例实现                                                                                 |
-| `apps/desktop/src/main`                        | `workbench/application.ts` 业务权威、`ports.ts` 能力端口、`host.ts` 装配与原生浏览器适配；窗口、可信来源检查和持久化 |
-| `apps/service`                                 | Electron 无关的 Node 适配宿主：Codex/sbx、PTY、文件、SSH/SFTP、资源 MCP；不另建空间或任务权威                        |
-| `packages/protocol`                            | 唯一跨进程契约源，延续已有 Zod/类型导出                                                                              |
-| `templates/task-app`、`acceptance`、`fixtures` | 后续固定模板、独立验收和初态；模板可独立交付，验收走公开 UI/API，不导入被测内部实现                                  |
+| 位置                                           | 责任                                                                                                                               |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/desktop/src/renderer`                    | Presentation 与用例客户端；`workbench` 消费 Main 快照，不恢复旧 `state/runs.ts` 业务状态                                           |
+| `apps/desktop/src/preload`                     | 窄桥接，使用协议，不导入任务用例实现                                                                                               |
+| `apps/desktop/src/main`                        | `workbench/application.ts` 业务权威、`ports.ts` 能力端口、`host.ts` 装配与原生浏览器适配；窗口、可信来源检查和持久化               |
+| `apps/desktop/src/shared`                      | Main 与 Renderer 共用的纯函数：`status` 把已发布快照投影为带键状态事实并脱敏诊断出口；不依赖 React、Electron、Node API，不持有状态 |
+| `apps/service`                                 | Electron 无关的 Node 适配宿主：Codex/sbx、PTY、文件、SSH/SFTP、资源 MCP；不另建空间或任务权威                                      |
+| `packages/protocol`                            | 唯一跨进程契约源，延续已有 Zod/类型导出                                                                                            |
+| `templates/task-app`、`acceptance`、`fixtures` | 后续固定模板、独立验收和初态；模板可独立交付，验收走公开 UI/API，不导入被测内部实现                                                |
 
 `apps/service` 中的 service 表示执行宿主，不要求 HTTP 服务。现有包结构已满足需求就保留；当前具体实现与已验证范围见 [当前运行时](architecture/current-runtime.md)，不为满足分层图创建第二套实现。
 
