@@ -8,7 +8,7 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 
 ## 当前状态
 
-当前候选树整合 Electron 工作台、统一观察、受管标准 App、账户资源目录、App 控制面，以及 App 名称/说明和任务目标绑定。六板块布局继续遵循[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)。2026-10-11 的来源去向、审查修复、最终验证与未完成项统一见[本轮整合记录](docs/acceptance/consolidation-20261011/README.md)；[2026-10-08 整合记录](docs/acceptance/integration-20261008/task-summary.md)保留为历史，不能替代本轮结果。
+当前候选树整合 Electron 工作台、统一观察、受管标准 App、账户资源目录、App 控制面、App 名称/说明和任务目标绑定，以及统一状态呈现与诊断。六板块布局继续遵循[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)。2026-10-13 的 PR 范围、审查修复、实际验证与未运行项见[当前 PR 说明](docs/acceptance/consolidation-20261011/PR.md)；[2026-10-11 整合记录](docs/acceptance/consolidation-20261011/README.md)、[状态界面实施与修复记录](docs/acceptance/status-surface-20261011/README.md)及更早记录保留为历史，不能替代当前版本复验。edu 导入/运行与独立源码工具保留在各自分支，不纳入本候选。
 
 | 能力         | 实现与验证边界                                                                                                                                                          |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -23,7 +23,9 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 | 标准应用     | 独立版本化 React/TS/Vite + Hono + Drizzle/PGlite + Zod 模板；空间内创建、受管启动、Browser接入、停止与源码导出                                                          |
 | 完整业务闭环 | priority业务API、独立检查器及任务页真实diff/报告仍未实现；VS001与标准应用的本轮结果见[最小闭环记录](docs/acceptance/integrated-app-installer-public-20261009/README.md) |
 | 统一观察     | Browser、文件、终端与 SSH 已接 Main、MCP 和空间界面；完整验证进行中                                                                                                     |
-| App 控制面   | 阶段 A：真实 guest Codex 经 MCP 与命令沙箱 `wsl-app` 文件通道验证通过，Host 独立固定复验通过；产品检查器尚未接入，见下文                                                |
+| App 控制面   | 阶段 A 已接线；下文保留历史真实模型与 Host 复验证据，本次 PR 不重新调用模型或 sandbox live；产品检查器尚未接入                                                          |
+| 状态与诊断   | Main 只读事实投影与 Renderer 状态槽；取消、接管和清理未确认持续可见，诊断默认关闭，日志有界且检查文件归属                                                               |
+| Code Wiki    | [独立交互原型](docs/design/2026-10-12-code-wiki/README.md)：模块、通信、源码依赖及流程地图；源码摘录固定于 2026-10-12，不是当前 PR 的自动扫描结果                       |
 
 ## 环境
 
@@ -52,7 +54,7 @@ WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm dev
 pnpm check
 ```
 
-`pnpm check` 依次运行类型检查（含 e2e 与配置文件）、ESLint、Prettier 格式检查和 Vitest 单元测试，并在首个失败时停止。本整合树保留 VS001 与来源档案的原始格式；全树 lint/格式的已知失败和当前代码结果在[最终验收记录](docs/acceptance/integration-20261008/evidence/final/README.md)分列。需要全部结果时分别运行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm test`，不要自动格式化封存证据。
+`pnpm check` 依次运行类型检查（含 e2e 与配置文件）、ESLint、Prettier 格式检查和 Vitest 单元测试，并在首个失败时停止。本整合树保留 VS001 与来源档案的原始格式；全树 lint/格式的已知失败和本候选实际结果在[当前 PR 说明](docs/acceptance/consolidation-20261011/PR.md)分列。需要全部结果时分别运行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm test`，不要自动格式化封存证据。
 
 ```bash
 pnpm test:e2e
@@ -62,7 +64,7 @@ pnpm test:e2e
 
 ## 沙箱对话与终端
 
-先按[依赖说明](docs/development/dependencies.md)准备 sbx、该 sandbox 已配置的认证和 guest Codex/Node。启动时用 `WSL_SBX_NAME` 选择已有沙箱，历史测试使用 `wsl-sbx-smoke-20261006`；`WSL_SBX_BIN` 可指定 CLI 路径。SR-1 重制阶段没有调用真实模型；本次整合已获 live 验证授权，执行结果单独记录在当前验收中。应用从 PATH、`/opt/homebrew/bin/sbx`、`/usr/local/bin/sbx` 定位 sbx，配置不成功时明确禁用发送。生产通路不再使用 `WSL_CODEX_BIN` 或 host Codex。
+先按[依赖说明](docs/development/dependencies.md)准备 sbx、该 sandbox 已配置的认证和 guest Codex/Node。启动时用 `WSL_SBX_NAME` 选择已有沙箱，历史测试使用 `wsl-sbx-smoke-20261006`；`WSL_SBX_BIN` 可指定 CLI 路径。历史 live 验证仅适用于各自记录的版本与授权；2026-10-13 PR 整理不调用真实模型或 sandbox live。应用从 PATH、`/opt/homebrew/bin/sbx`、`/usr/local/bin/sbx` 定位 sbx，配置不成功时明确禁用发送。生产通路不再使用 `WSL_CODEX_BIN` 或 host Codex。
 
 首页个人对话和会话页支持 Enter 发送、Shift+Enter 换行、取消和开始新对话。空间会话标签分别保存草稿、任务版本与运行，进入新会话使用空间的新建会话入口。界面显示 sandbox 与 guest cwd，运行详情可查看工具结果及警告。Codex 可以使用 guest 工具读写 `/home/agent/workspace`；对话历史分开，但文件系统与终端共享。新对话不会删除 guest 文件，也不承诺删除 CLI 历史。
 
@@ -95,7 +97,7 @@ pnpm exec playwright test e2e/app-control-harness.spec.ts
 
 收藏网页链接只保存地址，不访问网络；公开 HTTPS 文档继续沿用受控只读路径，外部脚本、子资源和登录状态不进入文档视图。保存正文快照追加不可变版本，与收藏、连接空间分别执行；不支持捕获的链接仍可收藏。文档/文件入口和开发入口沿用已有授权环境能力。
 
-空间会话只读取本空间明确选择的连接版本，个人会话只读取明确选择的收藏版本，默认不附带。每轮最多 16 个参考，收藏数量不继承这个限制；新版本不改变在途与历史任务的固定证据。Main 是目录唯一写入者，schema 3 持久化账户目录与工作台；旧空间资源迁移为账户资源和原空间连接，默认不收藏，旧文件保留且不自动启动进程。
+空间会话只读取本空间明确选择的连接版本，个人会话只读取明确选择的收藏版本，默认不附带。每轮最多 16 个参考，收藏数量不继承这个限制；新版本不改变在途与历史任务的固定证据。Main 是目录唯一写入者，当前 schema 4 持久化账户目录、工作台与 App 元数据，并识别两种历史 schema 3 来源；旧空间资源迁移为账户资源和原空间连接，默认不收藏，旧文件保留且不自动启动进程。
 
 真实网络、模型结果和受控 fixture 分别记录。历史[公开快照合同](docs/verification/2026-10-06-public-resources/SPEC.md)保留来源隔离证据，旧空间所有权与 TaskFlow 专用集合由新合同替代。本轮未运行真实模型或 sandbox live。
 

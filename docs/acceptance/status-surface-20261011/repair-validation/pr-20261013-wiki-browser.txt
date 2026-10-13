@@ -1,0 +1,11 @@
+<anonymous_script>:2
+  modules: [
+  ^
+
+SyntaxError: Expected property name or '}' in JSON at position 4 (line 2 column 3)
+    at JSON.parse (<anonymous>)
+    at readData (file:///Users/huaodong/workspace/_worktrees/pr-ready-20261013/[eval1]:19:110)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///Users/huaodong/workspace/_worktrees/pr-ready-20261013/[eval1]:20:16
+
+Node.js v26.5.0

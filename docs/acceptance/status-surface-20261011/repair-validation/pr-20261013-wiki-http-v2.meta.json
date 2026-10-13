@@ -1,0 +1,23 @@
+{
+  "name": "pr-20261013-wiki-http-v2",
+  "command": [
+    "node",
+    "--input-type=module",
+    "-e",
+    "\nimport assert from \"node:assert/strict\";\nimport { spawn } from \"node:child_process\";\nimport { createServer, createConnection } from \"node:net\";\nimport { once } from \"node:events\";\nconst reservation = createServer();\nreservation.listen(0, \"127.0.0.1\");\nawait once(reservation, \"listening\");\nconst port = reservation.address().port;\nawait new Promise((resolve) => reservation.close(resolve));\nconst server = spawn(process.execPath, [\"docs/design/2026-10-12-code-wiki/serve.mjs\"], { env: { ...process.env, WIKI_PORT: String(port) }, stdio: [\"ignore\", \"pipe\", \"pipe\"] });\nserver.stderr.on(\"data\", (data) => process.stderr.write(data));\nconst exited = once(server, \"exit\");\nconst request = async (target, method = \"GET\") => {\n  const socket = createConnection({ host: \"127.0.0.1\", port });\n  let response = \"\";\n  socket.setEncoding(\"utf8\");\n  socket.setTimeout(5000, () => socket.destroy(new Error(\"request timeout\")));\n  socket.on(\"data\", (data) => { response += data; });\n  socket.on(\"error\", () => {});\n  await once(socket, \"connect\");\n  socket.write(`${method} ${target} HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n`);\n  await once(socket, \"close\");\n  return response;\n};\ntry {\n  await Promise.race([once(server.stdout, \"data\"), exited.then(() => { throw new Error(\"server exited before readiness\"); })]);\n  for (const [target, method, status] of [[\"/\", \"GET\", 200], [\"/app.js\", \"GET\", 200], [\"/sources.js\", \"HEAD\", 200], [\"/package.json\", \"GET\", 404], [\"/../../package.json\", \"GET\", 404], [\"/%2e%2e/%2e%2e/package.json\", \"GET\", 404], [\"/\", \"POST\", 404], [\"http://[\", \"GET\", 400]]) {\n    const response = await request(target, method);\n    assert.match(response, new RegExp(`^HTTP/1.1 ${status} `));\n    if (method === \"HEAD\") assert.equal(response.split(\"\\r\\n\\r\\n\")[1], \"\");\n    console.log(method, target, status);\n  }\n  assert.equal((await fetch(`http://127.0.0.1:${port}/`)).status, 200);\n  console.log(\"Preview remains available after rejected requests.\");\n} finally {\n  if (server.exitCode === null && server.signalCode === null) server.kill(\"SIGTERM\");\n  await exited;\n}\n"
+  ],
+  "cwd": "/Users/huaodong/workspace/_worktrees/pr-ready-20261013",
+  "head": "1bce260678c5d60e6889a093e0c523c333019fca",
+  "startedAt": "2026-10-13T10:30:52.336Z",
+  "endedAt": "2026-10-13T10:30:52.723Z",
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "envOverrides": { "WSL_E2E_TARGET": "build", "WSL_APP_HASH_REJECTION": "0" },
+  "productSourceDiff": {
+    "sha256Before": "5d67dae7263711cc37eb6a6f7e6a7d79ea49dbd0a74bc68686cac9b29a386bc9",
+    "sha256After": "5d67dae7263711cc37eb6a6f7e6a7d79ea49dbd0a74bc68686cac9b29a386bc9",
+    "changedDuringRun": false
+  },
+  "notes": "txt 为子进程 stdout 与 stderr 原始字节按到达顺序的交错记录，未经过 shell；meta 只记录上方 envOverrides，不转储其他环境变量。"
+}

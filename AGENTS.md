@@ -36,3 +36,13 @@
 - 交付必须说明改动路径、行为/约定变化、实际命令及结果、未运行原因、未实现项。区分静态检查、实际运行与用户接受；不通过删断言或改固定验收制造通过。
 
 - 比赛范围、排期和固定用例以 [任务计划](docs/plans/2026-10-os2026-task-plan.md) 为准。公开资源和 guest 浏览器另遵守各自合同；本次整合不新增能力。
+
+## Electron 宿主中的窗口测试
+
+macOS 上的 Electron IDE/Harness 可能向终端继承 `ELECTRON_RUN_AS_NODE=1`，使 Playwright 启动 Electron 时因 `bad option: --remote-debugging-port=0` 失败。先 `pnpm build`，再仅对子进程清除此变量：
+
+```sh
+env -u ELECTRON_RUN_AS_NODE pnpm exec playwright test
+```
+
+这不修改项目或系统配置，不关闭 Electron sandbox，也不启用真实模型或 sandbox live。失败记录与清理环境后的独立复跑应分别保留。

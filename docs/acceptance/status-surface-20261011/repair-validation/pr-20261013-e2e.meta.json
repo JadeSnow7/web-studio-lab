@@ -1,0 +1,18 @@
+{
+  "name": "pr-20261013-e2e",
+  "command": ["pnpm", "exec", "playwright", "test"],
+  "cwd": "/Users/huaodong/workspace/_worktrees/pr-ready-20261013",
+  "head": "1bce260678c5d60e6889a093e0c523c333019fca",
+  "startedAt": "2026-10-13T10:35:07.425Z",
+  "endedAt": "2026-10-13T10:36:54.665Z",
+  "exitCode": 1,
+  "signal": null,
+  "error": null,
+  "envOverrides": { "WSL_E2E_TARGET": "build", "WSL_APP_HASH_REJECTION": "0" },
+  "productSourceDiff": {
+    "sha256Before": "5d67dae7263711cc37eb6a6f7e6a7d79ea49dbd0a74bc68686cac9b29a386bc9",
+    "sha256After": "5d67dae7263711cc37eb6a6f7e6a7d79ea49dbd0a74bc68686cac9b29a386bc9",
+    "changedDuringRun": false
+  },
+  "notes": "txt 为子进程 stdout 与 stderr 原始字节按到达顺序的交错记录，未经过 shell；meta 只记录上方 envOverrides，不转储其他环境变量。"
+}

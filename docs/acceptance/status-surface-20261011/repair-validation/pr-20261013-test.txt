@@ -1,0 +1,251 @@
+
+> web-studio-lab@ test /Users/huaodong/workspace/_worktrees/pr-ready-20261013
+> vitest run && node --test scripts/packaging/*.test.mjs && pnpm test:external-builds
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv5.0.3 [39m[90m/Users/huaodong/workspace/_worktrees/pr-ready-20261013[39m
+
+ [32m✓[39m apps/desktop/src/shared/status/facts.test.ts [2m([22m[2m57 tests[22m[2m)[22m[32m 133[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/renderer/src/state/status-view.test.ts [2m([22m[2m68 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/application.test.ts [2m([22m[2m27 tests[22m[2m)[22m[33m 500[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/debug-status.test.ts [2m([22m[2m33 tests[22m[2m)[22m[33m 784[2mms[22m[39m
+   [32m✓[39m NDJSON（WSL_STATUS_LOG） [2m(4)[22m
+     [33m[2m✓[22m[39m 文件达到 5 MiB 时写一行 limit 后停止，不超过上限；内存中的转换与事件继续[33m 680[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/chat-service.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 165[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/app-control.test.ts [2m([22m[2m55 tests[22m[2m)[22m[33m 893[2mms[22m[39m
+ [32m✓[39m apps/service/src/guest-browser.test.ts [2m([22m[2m50 tests[22m[2m)[22m[33m 1509[2mms[22m[39m
+   [32m✓[39m Chromium 隔离拒绝策略（合成诊断只用于离线单测） [2m(25)[22m
+     [33m[2m✓[22m[39m 清理无法重新核验身份时不发送信号，并报告清理未确认[33m 1074[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/public-resources-migration.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 1110[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/managed-app.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 76[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/app-control-application.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 307[2mms[22m[39m
+ [32m✓[39m apps/service/src/resource-chat.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 145[2mms[22m[39m
+ [2m[90m↓[39m[22m apps/service/src/app-service.live.test.ts [2m([22m[2m2 tests[22m[2m | [22m[33m2 skipped[39m[2m)[22m
+ [32m✓[39m apps/desktop/src/main/setup.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 495[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/resource-catalog-repository.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 296[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/preview/app-ui.test.ts [2m([22m[2m28 tests[22m[2m)[22m[33m 1908[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/resource-catalog.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 487[2mms[22m[39m
+   [32m✓[39m persisted command deduplication window [2m(1)[22m
+     [33m[2m✓[22m[39m keeps only the most recent command IDs and rejects a replay of an evicted ID as a revision conflict[33m 378[2mms[22m[39m
+ [2m[90m↓[39m[22m apps/service/src/guest-workspace.test.ts [2m([22m[2m5 tests[22m[2m | [22m[33m5 skipped[39m[2m)[22m
+ [32m✓[39m apps/desktop/src/shared/status/redact.test.ts [2m([22m[2m25 tests[22m[2m)[22m[32m 235[2mms[22m[39m
+ [32m✓[39m apps/service/src/observation-files.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 1663[2mms[22m[39m
+   [32m✓[39m real local file observations [2m(8)[22m
+     [33m[2m✓[22m[39m recognizes binary content and bounds list and rg search[33m 356[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/preview/observation.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 278[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/run-notification-migration.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 301[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/renderer/src/state/capture.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/review-lifecycle.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 2504[2mms[22m[39m
+   [32m✓[39m review: real service frozen capability cancellation receipt [2m(2)[22m
+     [33m[2m✓[22m[39m settles Main cancellation with prior history=false after explicit frozen input[33m 1097[2mms[22m[39m
+     [33m[2m✓[22m[39m settles Main cancellation with prior history=true after explicit frozen input[33m 837[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/space-app-persistence.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 329[2mms[22m[39m
+ [32m✓[39m packages/protocol/src/app-control.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 92[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/migration-regressions.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 145[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/preview/public-protocol.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 103[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/renderer/src/state/workspace.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 188[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/host-migration.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/preview/controller-resource.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 93[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/renderer/src/state/debug.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 63[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/preview/controller-migration.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 349[2mms[22m[39m
+ [32m✓[39m apps/service/src/observation-ssh.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 307[2mms[22m[39m
+   [33m[2m✓[22m[39m real loopback SSH handshake rejects bad host pin and reads filesystem through SFTP; shell channel survives false[33m 306[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/preview/controller-navigation.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 73[2mms[22m[39m
+ [32m✓[39m packages/protocol/src/resources.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/preview/public-document.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 701[2mms[22m[39m
+   [32m✓[39m 真实 HTML 转为无能力的只读文档 [2m(4)[22m
+     [33m[2m✓[22m[39m 大量兄弟节点仍然受控提取，不超过函数参数限制[33m 577[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/runtime-outcomes.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/resource-revision-provenance.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+ [2m[90m↓[39m[22m apps/service/src/sbx.live.test.ts [2m([22m[2m2 tests[22m[2m | [22m[33m2 skipped[39m[2m)[22m
+ [32m✓[39m apps/service/src/environment-resources.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 715[2mms[22m[39m
+   [33m[2m✓[22m[39m releases a file observation lease without closing another space using the same authorized root[33m 380[2mms[22m[39m
+ [32m✓[39m apps/service/src/ssh-terminal.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 192[2mms[22m[39m
+ [32m✓[39m apps/service/src/app-service.test.ts [2m([22m[2m55 tests[22m[2m)[22m[33m 6756[2mms[22m[39m
+   [32m✓[39m app helper filesystem boundaries [2m(6)[22m
+     [33m[2m✓[22m[39m exclusive project creation preserves original files and rejects a foreign workspace[33m 625[2mms[22m[39m
+     [33m[2m✓[22m[39m dependency import existing failure removes only its own temporary archive and permits retry[33m 422[2mms[22m[39m
+     [33m[2m✓[22m[39m exports source bytes while excluding persistent data, dependencies and build output[33m 385[2mms[22m[39m
+     [33m[2m✓[22m[39m rejects source symlinks and FIFOs without following or blocking on them[33m 597[2mms[22m[39m
+   [32m✓[39m app helper agent operation [2m(1)[22m
+     [33m[2m✓[22m[39m allows only describe and read-only db commands and reports projects without the control plane[33m 1519[2mms[22m[39m
+ [32m✓[39m apps/service/src/index.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 753[2mms[22m[39m
+ [32m✓[39m apps/service/src/guest-browser-bridge.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 114[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/migration-followup.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+ [2m[90m↓[39m[22m apps/service/src/resource-agent.live.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
+ [32m✓[39m apps/desktop/src/main/setup-adapter-failure.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 42[2mms[22m[39m
+ [32m✓[39m apps/service/src/environment-lifecycle.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 284[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/recovery-facts.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 165[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/observation-application.test.ts [2m([22m[2m24 tests[22m[2m)[22m[33m 8463[2mms[22m[39m
+   [32m✓[39m Main observation ownership and lifecycle [2m(16)[22m
+     [33m[2m✓[22m[39m keeps the 200 record window while archiving more than 200 independent reads[33m 1802[2mms[22m[39m
+     [33m[2m✓[22m[39m retains completed but still archiving records while the history window rolls[33m 2463[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps the 64-request run budget independent of the rolling session history[33m 3590[2mms[22m[39m
+ [32m✓[39m apps/service/src/sbx.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 4697[2mms[22m[39m
+   [32m✓[39m guest helper 宿主边界 [2m(13)[22m
+     [33m[2m✓[22m[39m 拒绝挂载host的目标而不调用Codex[33m 555[2mms[22m[39m
+     [33m[2m✓[22m[39m 仅接受与目标sandbox匹配的启动说明[33m 377[2mms[22m[39m
+     [33m[2m✓[22m[39m 正常PTY输入与resize转发且关闭须确认，旧session不得操作新终端[33m 548[2mms[22m[39m
+     [33m[2m✓[22m[39m 清理失败阻止terminal重新open并保留失败状态[33m 400[2mms[22m[39m
+     [33m[2m✓[22m[39m missing-cleanup聊天失败保持明确cleanupPending占用[33m 402[2mms[22m[39m
+     [33m[2m✓[22m[39m cleanup-fail聊天失败保持明确cleanupPending占用[33m 434[2mms[22m[39m
+     [33m[2m✓[22m[39m terminal 清理未知阻止同 sandbox 的新资源对话[33m 445[2mms[22m[39m
+     [33m[2m✓[22m[39m 非致命MCP警告可见、去重，工具输出有界且显式标截断[33m 374[2mms[22m[39m
+     [33m[2m✓[22m[39m rejects oversized Chinese input at service and workbench boundaries while preserving the same PTY[33m 379[2mms[22m[39m
+ [32m✓[39m apps/service/src/local-file-watch.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 844[2mms[22m[39m
+   [33m[2m✓[22m[39m real nested change rename delete invalidate bounded hints; reread hashes and close stops events[33m 606[2mms[22m[39m
+ [2m[90m↓[39m[22m apps/service/src/guest-browser.live.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
+ [32m✓[39m apps/desktop/src/renderer/src/state/shell.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m apps/service/src/observation-terminal.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 87[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/observation-persistence.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 107[2mms[22m[39m
+[90mstderr[2m | apps/desktop/src/main/window-close.test.ts[2m > [22m[2mwindow shutdown[2m > [22m[2mretries cleanup from the dialog and closes after confirmation
+[22m[39m工作台状态不可读；guest清理已确认，继续关闭窗口 Error: corrupt workspace file
+    at [90m/Users/huaodong/workspace/_worktrees/pr-ready-20261013/[39mapps/desktop/src/main/window-close.test.ts:51:41
+    at [90mfile:///Users/huaodong/workspace/_worktrees/pr-ready-20261013/[39mnode_modules/[4m.pnpm[24m/vitest@5.0.3_@types+node@22.19.11_vite@7.3.1_@types+node@22.19.11_jiti@2.7.0_tsx@4.21.0_/node_modules/[4mvitest[24m/dist/chunks/run.BTlFXlnv.js:1628:35
+    at wrapper [90m(file:///Users/huaodong/workspace/_worktrees/pr-ready-20261013/[39mnode_modules/[4m.pnpm[24m/vitest@5.0.3_@types+node@22.19.11_vite@7.3.1_@types+node@22.19.11_jiti@2.7.0_tsx@4.21.0_/node_modules/[4mvitest[24m/dist/chunks/run.BTlFXlnv.js:1977:37[90m)[39m
+    at [90mfile:///Users/huaodong/workspace/_worktrees/pr-ready-20261013/[39mnode_modules/[4m.pnpm[24m/vitest@5.0.3_@types+node@22.19.11_vite@7.3.1_@types+node@22.19.11_jiti@2.7.0_tsx@4.21.0_/node_modules/[4mvitest[24m/dist/chunks/run.BTlFXlnv.js:3301:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///Users/huaodong/workspace/_worktrees/pr-ready-20261013/[39mnode_modules/[4m.pnpm[24m/vitest@5.0.3_@types+node@22.19.11_vite@7.3.1_@types+node@22.19.11_jiti@2.7.0_tsx@4.21.0_/node_modules/[4mvitest[24m/dist/chunks/run.BTlFXlnv.js:3259:10[90m)[39m
+    at [90mfile:///Users/huaodong/workspace/_worktrees/pr-ready-20261013/[39mnode_modules/[4m.pnpm[24m/vitest@5.0.3_@types+node@22.19.11_vite@7.3.1_@types+node@22.19.11_jiti@2.7.0_tsx@4.21.0_/node_modules/[4mvitest[24m/dist/chunks/run.BTlFXlnv.js:3586:52
+    at run [90m(file:///Users/huaodong/workspace/_worktrees/pr-ready-20261013/[39mnode_modules/[4m.pnpm[24m/vitest@5.0.3_@types+node@22.19.11_vite@7.3.1_@types+node@22.19.11_jiti@2.7.0_tsx@4.21.0_/node_modules/[4mvitest[24m/dist/chunks/run.BTlFXlnv.js:1348:20[90m)[39m
+    at limiterFn [90m(file:///Users/huaodong/workspace/_worktrees/pr-ready-20261013/[39mnode_modules/[4m.pnpm[24m/vitest@5.0.3_@types+node@22.19.11_vite@7.3.1_@types+node@22.19.11_jiti@2.7.0_tsx@4.21.0_/node_modules/[4mvitest[24m/dist/chunks/run.BTlFXlnv.js:1358:59[90m)[39m
+    at runHook [90m(file:///Users/huaodong/workspace/_worktrees/pr-ready-20261013/[39mnode_modules/[4m.pnpm[24m/vitest@5.0.3_@types+node@22.19.11_vite@7.3.1_@types+node@22.19.11_jiti@2.7.0_tsx@4.21.0_/node_modules/[4mvitest[24m/dist/chunks/run.BTlFXlnv.js:3585:10[90m)[39m
+
+ [32m✓[39m apps/desktop/src/main/shutdown.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/window-close.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 1363[2mms[22m[39m
+   [32m✓[39m window shutdown [2m(6)[22m
+     [33m[2m✓[22m[39m closes after confirmed guest cleanup even when the workbench is unreadable[33m 539[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/renderer/src/workspace/presentation.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m apps/service/src/initialization-migration.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 351[2mms[22m[39m
+   [32m✓[39m R6 service boundary initialization [2m(1)[22m
+     [33m[2m✓[22m[39m answers local read/status/register requests while sbx initialization remains pending[33m 348[2mms[22m[39m
+ [32m✓[39m apps/service/src/observation-mcp.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 2827[2mms[22m[39m
+   [32m✓[39m per-turn observation MCP host [2m(7)[22m
+     [33m[2m✓[22m[39m binds real session/run identity and rejects another session or registered workspace[33m 849[2mms[22m[39m
+     [33m[2m✓[22m[39m propagates cancellation of a pending request to the Main reader and discards late completion[33m 316[2mms[22m[39m
+     [33m[2m✓[22m[39m propagates guest socket disconnect and preserves a bounded response[33m 350[2mms[22m[39m
+     [33m[2m✓[22m[39m enforces four pending calls and cancels all of them on turn shutdown[33m 329[2mms[22m[39m
+     [33m[2m✓[22m[39m enforces the independent 64 request budget for sequential calls in one turn[33m 397[2mms[22m[39m
+     [33m[2m✓[22m[39m returns a bounded error through the framed process for an oversized multibyte Provider result[33m 376[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/preview/public-request.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 61[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/template-runtime.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+ [32m✓[39m packages/protocol/src/protocol.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m apps/service/src/vertical-slice/adapter.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 9086[2mms[22m[39m
+   [32m✓[39m offline VS001 inventory and lifecycle rejection tests (no model) [2m(20)[22m
+     [33m[2m✓[22m[39m builds and imports the real service adapter, retaining a preflight error without starting an Agent[33m 3412[2mms[22m[39m
+     [33m[2m✓[22m[39m builds the actual thin Electron host with the production PreviewController[33m 1934[2mms[22m[39m
+     [33m[2m✓[22m[39m serves the unchanged fixed page and resolves React and App.js to TSX through the real Vite component[33m 550[2mms[22m[39m
+     [33m[2m✓[22m[39m abort from an inspect diagnostic callback prevents a later Codex version probe[33m 595[2mms[22m[39m
+     [33m[2m✓[22m[39m term stops an actual host grandchild and confirms the owned process group is gone[33m 2147[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/ipc-resources.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/preview/preview-pure.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m apps/service/src/local-terminal-detached.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 1746[2mms[22m[39m
+   [33m[2m✓[22m[39m cleans an inherited owned child after fork, reparenting and setsid without claiming an OS sandbox[33m 1485[2mms[22m[39m
+ [32m✓[39m apps/service/src/codex-chat.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 4445[2mms[22m[39m
+   [32m✓[39m 真实子进程生命周期（fixture） [2m(10)[22m
+     [33m[2m✓[22m[39m 同会话恢复身份，个人与空间隔离，reset 清除上下文[33m 838[2mms[22m[39m
+     [33m[2m✓[22m[39m [exit] 必须失败且保留用户消息[33m 339[2mms[22m[39m
+     [33m[2m✓[22m[39m [no-completion] 必须失败且保留用户消息[33m 309[2mms[22m[39m
+     [33m[2m✓[22m[39m 取消 的进程组清理失败必须阻止重置、关闭与新发送[33m 303[2mms[22m[39m
+     [33m[2m✓[22m[39m 协议失败 的进程组清理失败必须阻止重置、关闭与新发送[33m 342[2mms[22m[39m
+     [33m[2m✓[22m[39m 发送后立即 reset 不会启动旧轮次或污染新会话[33m 346[2mms[22m[39m
+     [33m[2m✓[22m[39m 拒绝重复发送，取消等待进程 close，迟到消息不污染 reset[33m 492[2mms[22m[39m
+ [32m✓[39m apps/service/src/sbx-contract.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/ipc-guard.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [2m[90m↓[39m[22m apps/service/src/resource-mcp.live.test.ts [2m([22m[2m4 tests[22m[2m | [22m[33m4 skipped[39m[2m)[22m
+ [32m✓[39m apps/service/src/local-terminal.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 5023[2mms[22m[39m
+   [32m✓[39m local terminal lifecycle [2m(3)[22m
+     [33m[2m✓[22m[39m real local PTY: failed command preserves shell, zsh hooks report code, close settles[33m 736[2mms[22m[39m
+     [33m[2m✓[22m[39m bounds cleanup when foreground process ignores hangup[33m 2240[2mms[22m[39m
+     [33m[2m✓[22m[39m consumes immediate close queued alongside start without losing the frame[33m 881[2mms[22m[39m
+   [33m[2m✓[22m[39m rejects oversized UTF-8 Chinese input without closing the PTY and still runs the next command[33m 452[2mms[22m[39m
+   [33m[2m✓[22m[39m bundled Python PTY isolates stdlib imports from cwd and PYTHONPATH[33m 424[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/preview/controller-construction.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m apps/service/src/terminal-output.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m packages/protocol/src/observation.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/renderer/src/state/occlusion.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/renderer/src/state/panels.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m apps/service/src/local-terminal-failure.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+ [32m✓[39m apps/service/src/resource-dispatch.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/renderer/src/state/drafts.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m apps/service/src/shutdown.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/layout.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m apps/service/src/app-control-routing.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 936[2mms[22m[39m
+   [33m[2m✓[22m[39m routes app.* frames from the guest socket to the control-plane reader with the frozen run scope[33m 511[2mms[22m[39m
+   [33m[2m✓[22m[39m without a control-plane reader the guest receives a structured no_active_run error, not an observation[33m 422[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/renderer/src/demo/runScenarios.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 118[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/workbench/repository.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/renderer/src/state/chat.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m packages/protocol/src/workspace-preferences.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m apps/service/src/resource-mcp.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 167[2mms[22m[39m
+ [32m✓[39m apps/service/src/observation-socket.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 287[2mms[22m[39m
+ [32m✓[39m apps/desktop/src/main/setup-adapter.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 4133[2mms[22m[39m
+   [32m✓[39m installer native boundaries [2m(6)[22m
+     [33m[2m✓[22m[39m accepts actual sanitized sbx inspect shape, rejects mounts and daemon drift[33m 2838[2mms[22m[39m
+     [33m[2m✓[22m[39m extracts only presence from filtered secret metadata[33m 1076[2mms[22m[39m
+ [32m✓[39m apps/service/src/app-control-mcp.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 2204[2mms[22m[39m
+   [33m[2m✓[22m[39m guest MCP socket 与命令 CLI 文件通道转发同一 app.* 帧，退出码可辨别[33m 2199[2mms[22m[39m
+ [32m✓[39m apps/service/src/host-python-readonly.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 4747[2mms[22m[39m
+   [33m[2m✓[22m[39m host file and PTY Python invocations leave source and bytecode unchanged, including an uncached import[33m 4745[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m87 passed[39m[22m[2m | [22m[33m6 skipped[39m[90m (93)[39m
+[2m      Tests [22m [1m[32m940 passed[39m[22m[2m | [22m[33m15 skipped[39m[90m (955)[39m
+[2m   Start at [22m 18:24:49
+[2m   Duration [22m 15.31s[2m (tests 74%, import 17%, transform 8%, worker 1%)[22m
+
+[2m    Isolate [22m [33m93 workers spawned[39m[2m · ~205ms startup each (spawn + environment, per file)[22m
+[2m            [22m [2mat least ~1.91s faster with [22m[33misolate: false[39m[2m — reuses workers across files instead of one per file[22m
+
+✔ CI rejects mismatched or injected tags and corrupted asset bytes (51.178833ms)
+✔ CI publishes only after uploading and verifying every asset, including prereleases (72.233291ms)
+✔ CI finds a matching draft on later pages and retries without replacing assets (34.587375ms)
+✔ CI refuses published releases and refuses publication after a remote tag moves (41.076209ms)
+✔ CI rejects another draft asset set and failed lookup does not create a release (27.643209ms)
+✔ CI imports only supplied certificate data and cleans up its own temporary keychain (7.42475ms)
+✔ CI tool failures suppress passwords from command error details (0.751042ms)
+✔ signed runtime probes disable pyc writes and fail if the probe damages the seal (0.523ms)
+✔ pnpm platform pruning removes only macOS/Windows targets and preserves Linux ARM64 native bytes (52.85425ms)
+✔ guest archive audit rejects residual Mach-O and PE even outside pnpm (41.615667ms)
+✔ guest audit rejects wrong ELF architecture or a missing required native executable (17.325459ms)
+✔ download refuses hash and registry-integrity mismatch (1.816541ms)
+✔ interrupted and corrupt downloads never publish a cache hit (33.66125ms)
+✔ safe archive validation rejects parent and absolute traversal (9.455417ms)
+✔ safe archive validation rejects escaping symlink (6.830166ms)
+✔ archives are byte reproducible including links and executable modes (8.623167ms)
+✔ release rejects missing/development signing and incomplete notarization (0.60275ms)
+✔ payload gate rejects an absent manifest (1.251208ms)
+✔ service audit rejects unbundled required assets while accepting optional accelerators (4.65225ms)
+✔ notarization failure does not leak secret-bearing exec argv (0.881709ms)
+✔ safe archive validation rejects writes through a symlink (9.212708ms)
+✔ payload gate rejects a changed source version and corrupted payload bytes (9.775166ms)
+✔ release documents are required and nonempty before artifact publication (4.533125ms)
+✔ release attachments preserve Chinese documents and signed App manifests byte for byte (12.562417ms)
+✔ formal builder selector removes only the Developer ID prefix and preserves full signing identity (0.6425ms)
+✔ installed electron-builder selects the same Developer ID certificate with the sanitized qualifier (263.441375ms)
+✔ template archive accepts Linux ARM64 and rejects foreign binaries, missing target and missing execute bit (59.692334ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 473.432458
+
+> web-studio-lab@ test:external-builds /Users/huaodong/workspace/_worktrees/pr-ready-20261013
+> node --test scripts/external-builds.test.mjs
+
+✔ setup preserves paths, writes through external links and remains idempotent (20.630959ms)
+✔ existing artifacts reject setup before any directory is linked (6.051167ms)
+✔ verification rejects missing external directories and replaced links (12.936584ms)
+✔ checkout identity follows physical paths and isolates separate checkouts (3.601667ms)
+✔ a normal directory cannot stand in for a mounted external volume (2.199416ms)
+✔ invalid opt-in config is rejected before setup changes artifacts (3.223458ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 126.334417

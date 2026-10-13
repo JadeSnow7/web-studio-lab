@@ -1,0 +1,28 @@
+Original branch refs unchanged: 20
+source-00 {"status.z": "different", "staged.patch": "same", "unstaged.patch": "same"}
+source-01 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-02 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-03 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-04 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-05 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-06 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-07 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-08 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-09 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-11 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-12 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-13 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-14 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-15 {"status.z": "undetermined: timeout 12s", "staged.patch": "same", "unstaged.patch": "undetermined: timeout 12s"}
+source-16 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-17 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-18 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-19 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-20 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-21 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-22 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-23 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+source-24 {"status.z": "same", "staged.patch": "same", "unstaged.patch": "same"}
+Imported original snapshot unchanged: repairs 241 e1bc2f49b09f2411c0501b2491d193f09b63a91f
+Imported original snapshot unchanged: wiki 17 be74c9936932e14c2c8db9bcfe281501222513fb
+Original source indexes, branches and imported snapshots preserved; Documents physical status/diff remains undetermined.

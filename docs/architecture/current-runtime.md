@@ -1,6 +1,6 @@
 # 当前运行时与目标架构的边界
 
-本记录描述2026-10-11候选树的实际接线；来源去向、审查修复、最终验证与未运行项见[本轮整合记录](../acceptance/consolidation-20261011/README.md)。2026-10-08[INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)和[SR-1](../acceptance/space-remake/SPEC.md)保留各自源码基线与历史窗口证据，历史通过不能替代当前版本复验。
+本记录描述2026-10-13候选树的实际接线；本轮范围、审查修复、验证与未运行项见[当前 PR 说明](../acceptance/consolidation-20261011/PR.md)。[2026-10-11 整合记录](../acceptance/consolidation-20261011/README.md)保留当时的来源去向与验证边界。2026-10-08[INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)和[SR-1](../acceptance/space-remake/SPEC.md)保留各自源码基线与历史窗口证据，历史通过不能替代当前版本复验。
 
 ## 已有能力和缺口
 
@@ -143,7 +143,7 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 设计、计划与取舍见[控制面设计](../design/2026-10-11-app-control-plane.md)、[实施计划](../plans/2026-10-11-app-control-plane.md)与 [ADR-0002](adr/0002-app-control-plane.md)；本轮验证结果见[验证记录](../verification/2026-10-11-app-control-plane/README.md)。
 
 - 通道：guest MCP 的 `app_*` 保留观察的临时 Unix socket；每轮安装的 `wsl-app` CLI 通过 `WSL_APP_CHANNEL` 使用私有临时目录内四槽文件 IPC，适配仍禁止 socket 连接的 Codex 命令沙箱。两者合计共享 64 次/4 在途预算，CLI 只承载既有 `app.*`，不重试或回退，不调整沙箱权限。service `CodexChat` 把 `app.` 开头的调用改发 `app-call`，Main `ChatService` 交 `WorkbenchApplication.appControlForTurn`，唯一 dispatcher 为 `workbench/app-control.ts`。观察工具的路径与 `ObservationRecord` 不变。轮次清理先取消在途调用并释放通道、删除临时目录，再确认成功。
-- 授权：`appControlContext` 只认 Main 冻结的轮次 scope，run 须为 `starting/running` 且非 `cancelling`；写操作另需请求 `appInstanceId` 等于当前运行实例、host 租约有效、未被用户暂停。除用于恢复的 `app.restart` 外，还需 manifest 与运行构建均不 stale；UI 写还需当前文档代次；`app.data.reset` 需任务版本 `allowedScopes` 含 `app.data.reset`。出队与异步修订读取后复核归属及取消；run 结束时 dispatcher 中止该 run 的在途调用并解除 Browser 操控指示。
+- 授权：`appControlContext` 只认 Main 冻结的轮次 scope，run 须为 `starting/running` 且非 `cancelling`；写操作另需请求 `appInstanceId` 等于当前运行实例、host 租约有效、未被用户暂停。除用于恢复的 `app.restart` 外，还需 manifest 与运行构建均不 stale；UI 写还需当前文档代次；`app.data.reset` 需任务版本 `allowedScopes` 含 `app.data.reset`。出队与异步修订读取后复核归属及取消；seed/reset 在能力查询及 pending 持久化完成后、实际派发前再次复核 run、实例、租约和用户暂停。若此时拒绝，只撤回本次确定未派发的记录；撤回持久化失败继续保留保护。run 结束时 dispatcher 中止该 run 的在途调用并解除 Browser 操控指示。
 - 执行：L1 与前端 L2 由 `preview/app-ui.ts` 在受管 App 的同一 Browser `webContents` 上经 CDP 执行，页面函数固定、参数仅作 JSON 值；`WorkbenchHost.appUi` 只给 `appBrowserProjects` 中当前租约有效的资源。L0/后端 L2 由 service `AppService.agent/logs` 执行：运行实例走回环 HTTP 与每次启动随机生成的实例令牌，停止时经 `app-helper.py` 的只读 `agent` 操作在 guest cwd 执行 agent-cli。
 - 数据写入完成事实：Main 在派发 seed/reset 前持久保存 operationId、实例及原任务归属；模板声明 `operationTrackingVersion: 1`，按实例登记、去重和查询终态，记录最多 1024 条且不驱逐。取消先到留下墓碑，已开始的操作继续到真实终态；取消回执、断线或 not_found 不证明结束。取消保持 App 运行，立即及每秒核对，单轮最多 30 秒，未知继续阻止控制面写入、启动、重启和导出。原任务的 `reconcileRunCleanup` 可在无模型 scope 时再核对。
 - 清理投影：TaskRun 保存独立模型执行事实，Conversation 与 TaskRun 合并模型、App 清理占用，全部确认前保持 `cancelling / cleanupPending`。CLI 未确认或异常保留句柄，应用进程或端口的成功不能覆盖它。`app-control/pending.json` 只持久保存身份、不保存令牌；重启不重放操作。旧模型进程缺少停止证据时，即使 App 已结清仍保留未知，不能借 App 终态宣称模型退出。

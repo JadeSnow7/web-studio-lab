@@ -1,0 +1,9 @@
+GET / 200
+GET /app.js 200
+HEAD /sources.js 200
+GET /package.json 404
+GET /../../package.json 404
+GET /%2e%2e/%2e%2e/package.json 404
+POST / 404
+GET http://[ 400
+Preview remains available after rejected requests.

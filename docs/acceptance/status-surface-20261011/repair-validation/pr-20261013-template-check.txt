@@ -1,0 +1,31 @@
+
+> @wsl/standard-app@1.1.0 check
+> tsc --noEmit && tsc -p tsconfig.server.json --noEmit && node --import tsx --test tests/*.test.ts
+
+(node:16488) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ 只读事务是第二道防线：绕过静态检查的写函数仍被拒绝 (5981.603959ms)
+✔ /api/__agent 端点只在提供令牌时挂载，并要求同值令牌 (3637.669833ms)
+✔ real JSONB snapshot retains nested content, stabilizes keys/rows, hashes beyond sample (2423.857291ms)
+(node:16489) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ seed: registered work remains running after cancel and executes once on replay (6301.889ms)
+✔ reset: registered work remains running after cancel and executes once on replay (3518.3185ms)
+✔ cancel before admission blocks late POST, validates auth/input, retains capacity identities (2553.026625ms)
+✔ database failure is a retained terminal result, no replay of side effects (1885.602459ms)
+(node:16490) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ bridge 只调用已登记命令，输入经目录 schema 校验并返回可读错误 (4.54775ms)
+✔ 状态只读快照、描述与不可替换的挂载点 (0.749333ms)
+✔ 结果超过预算或不可序列化时返回 command_failed (1.152625ms)
+(node:16491) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ disk persistence, idempotent migration/seed, A/B isolation and input/session boundaries (6450.811ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16762.2275

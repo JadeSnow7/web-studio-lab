@@ -1,0 +1,9 @@
+PR local links tracked and resolvable: 28
+Tested product/test bytes unchanged: 5d67dae7263711cc37eb6a6f7e6a7d79ea49dbd0a74bc68686cac9b29a386bc9
+Frozen VS001 and dependency lock inputs unchanged from origin/main
+Full PR whitespace check exit: 2 warning files: 154 all confined to docs evidence/receipts
+Current raw receipt whitespace: docs/acceptance/status-surface-20261011/repair-validation/pr-20261013-e2e.txt
+Current raw receipt whitespace: docs/acceptance/status-surface-20261011/repair-validation/pr-20261013-typecheck.txt
+Changed blobs: 2073 largest: (1086151, 'packaging/icon.icns') no private/cache path names
+Original worktree HEADs unchanged: 28 total worktrees including candidate: 29
+Staged tree before this audit receipt: 26814d25c79e5a69dd55efa4fac2d26953cdb107
