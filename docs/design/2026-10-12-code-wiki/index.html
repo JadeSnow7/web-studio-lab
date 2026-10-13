@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>工作台架构 · Code Wiki</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#content">跳到内容</a>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">W</span>
+          <div>Code Wiki<small>Web Studio Lab</small></div>
+        </div>
+        <label class="sr-only" for="search">搜索模块、职责或路径</label>
+        <div class="search-box">
+          <span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜索模块、职责、路径" autocomplete="off" /><button
+            type="button"
+            id="clear"
+            onclick="wikiAction('clear')"
+            aria-label="清除搜索"
+            hidden
+          >
+            ×
+          </button>
+        </div>
+        <nav aria-label="Wiki 导航" id="navigation">
+          <button type="button" data-page="overview" onclick="wikiAction('page', 'overview')">▦ <span>架构总览</span></button
+          ><button type="button" data-page="flows" onclick="wikiAction('page', 'flows')">↳ <span>关键流程</span></button
+          ><button type="button" data-page="conventions" onclick="wikiAction('page', 'conventions')">≡ <span>设计约定</span></button>
+        </nav>
+        <div class="sidebar-label">源码模块 <span>08</span></div>
+        <div id="module-list"></div>
+        <div id="empty" hidden>没有匹配的模块。<br />清除搜索后查看全部模块。</div>
+        <div class="sidebar-bottom"><span class="status-dot"></span>本地源码快照<small>2026.10.12 · 含工作区改动</small></div>
+      </aside>
+      <main id="content" tabindex="-1">
+        <header class="topbar">
+          <span>Web Studio Lab <span class="slash">/</span> <span id="breadcrumb">架构总览</span></span>
+          <div><code>ea3bad9</code><span class="prototype">交互原型</span></div>
+        </header>
+        <div class="page-head">
+          <div class="eyebrow">CODE ATLAS <span>/ 01</span></div>
+          <h1 id="title">工作台架构</h1>
+          <p id="intro">沿着模块与连接，理解职责、状态归属和代码入口。</p>
+        </div>
+        <section id="overview">
+          <div class="architecture-layout">
+            <div class="map-panel">
+              <div class="map-toolbar">
+                <div class="segment" aria-label="关系类型">
+                  <button type="button" data-mode="runtime" onclick="wikiAction('mode', 'runtime')">运行通信</button
+                  ><button type="button" data-mode="imports" onclick="wikiAction('mode', 'imports')">源码依赖</button>
+                </div>
+                <button type="button" id="reset" onclick="wikiAction('reset')" class="plain">返回全图 ↗</button>
+              </div>
+              <div class="graph-scroll">
+                <div class="graph" id="graph">
+                  <svg id="connections" viewBox="0 0 800 545" aria-hidden="true">
+                    <defs>
+                      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" />
+                      </marker>
+                    </defs>
+                    <g id="paths"></g>
+                  </svg>
+
+                  <div id="nodes"></div>
+                </div>
+              </div>
+              <div class="map-caption">
+                <span><i></i> <span id="legend">调用 / 跨进程通信</span></span
+                ><span>点击模块查看直接上下游</span>
+              </div>
+              <div class="relation-section">
+                <div class="section-label">连接索引 <span id="edge-count"></span></div>
+                <div id="edge-list"></div>
+              </div>
+            </div>
+            <aside class="detail-panel" id="detail" aria-label="模块详情"></aside>
+          </div>
+          <p class="scope-note">
+            图中节点按阅读目的聚合。Host 包含 Main 的 ChatService 中转；sbx 节点包含宿主适配器与 guest
+            进程。箭头来自静态接线，不代表本轮运行或产品验收。
+          </p>
+        </section>
+        <section id="flows" hidden>
+          <div class="flow-tabs" id="flow-tabs"></div>
+          <p class="flow-note" id="flow-note"></p>
+          <div class="flow-layout">
+            <div id="step-list"></div>
+            <article class="step-detail" id="step-detail"></article>
+          </div>
+          <div class="flow-controls">
+            <button type="button" id="previous" onclick="wikiAction('previous')">← 上一步</button><span id="step-count"></span
+            ><button type="button" id="next" onclick="wikiAction('next')">下一步 →</button>
+          </div>
+        </section>
+        <section id="conventions" hidden><div id="convention-list"></div></section>
+        <footer><span>阅读边界：静态结构 · 引用源码快照</span><span>设计、实现与验收分别记录</span></footer>
+      </main>
+    </div>
+    <dialog id="source-dialog" aria-labelledby="source-title">
+      <div class="dialog-head">
+        <div>
+          <small>源码快照 · 只读</small>
+          <h2 id="source-title"></h2>
+        </div>
+        <button type="button" id="close-source" onclick="wikiAction('close-source')" aria-label="关闭源码">×</button>
+      </div>
+      <p id="source-meta"></p>
+      <pre id="source-code"></pre>
+      <div class="dialog-foot">2026-10-12 工作树的历史摘录，非当前 PR 源码；仅覆盖引用文件。完整文件 SHA256 见快照清单。</div>
+    </dialog>
+    <div id="status" class="sr-only" role="status" aria-live="polite"></div>
+    <script src="data.js"></script>
+    <script src="sources.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

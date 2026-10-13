@@ -1,0 +1,294 @@
+{
+  "commit": "ea3bad9e6602ccec3484cc55b247bae5815975b4",
+  "scope": "Only referenced source files; current working-tree bytes including uncommitted changes, not a whole-repository snapshot.",
+  "entries": [
+    {
+      "path": "CONTRIBUTING.md",
+      "start": 17,
+      "end": 51,
+      "sha256": "4cb0adc0a33ffb3c914d16d8217d2fa7f3c148b9a157c382688e4ccfe083cc96"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "start": 36,
+      "end": 70,
+      "sha256": "4cb0adc0a33ffb3c914d16d8217d2fa7f3c148b9a157c382688e4ccfe083cc96"
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.ts",
+      "start": 280,
+      "end": 314,
+      "sha256": "3ba427098e005cd85ece69ccfc16c3e065b08f88a3e78d931e5bd18210dbb457"
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.ts",
+      "start": 330,
+      "end": 364,
+      "sha256": "3ba427098e005cd85ece69ccfc16c3e065b08f88a3e78d931e5bd18210dbb457"
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.ts",
+      "start": 390,
+      "end": 424,
+      "sha256": "3ba427098e005cd85ece69ccfc16c3e065b08f88a3e78d931e5bd18210dbb457"
+    },
+    {
+      "path": "apps/desktop/src/main/ipc.ts",
+      "start": 73,
+      "end": 107,
+      "sha256": "07d262473daa429258d5c29c463e26cf92e2f275b711b82e59f9b106bad672e0"
+    },
+    {
+      "path": "apps/desktop/src/main/ipc.ts",
+      "start": 103,
+      "end": 137,
+      "sha256": "07d262473daa429258d5c29c463e26cf92e2f275b711b82e59f9b106bad672e0"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller-resource.test.ts",
+      "start": 1,
+      "end": 35,
+      "sha256": "65e465aaef0a7fe43ba8fbaee1eabd76ba5f43c8e275aa28d4195efb0cbe1b39"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/controller.ts",
+      "start": 41,
+      "end": 75,
+      "sha256": "a094d0038c5eccff1b765a23c9db67096fa321054edd00ad35b4480bc8cd0951"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.test.ts",
+      "start": 1,
+      "end": 35,
+      "sha256": "1dfebbee438b51c9bc92b83bb00069ea421a75d348ecd70a239f7c77d62a18e7"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.ts",
+      "start": 1,
+      "end": 35,
+      "sha256": "600a76900135df522967e0c8ffaa889c2a0727f2c062eff66eaf83befd70278f"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.ts",
+      "start": 405,
+      "end": 439,
+      "sha256": "600a76900135df522967e0c8ffaa889c2a0727f2c062eff66eaf83befd70278f"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.ts",
+      "start": 492,
+      "end": 526,
+      "sha256": "600a76900135df522967e0c8ffaa889c2a0727f2c062eff66eaf83befd70278f"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.ts",
+      "start": 1720,
+      "end": 1754,
+      "sha256": "600a76900135df522967e0c8ffaa889c2a0727f2c062eff66eaf83befd70278f"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/host.ts",
+      "start": 1,
+      "end": 35,
+      "sha256": "aa3b327b288cf2d4fc071240778260da265af40abab7afc7e7f36850e38b85dc"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/host.ts",
+      "start": 45,
+      "end": 79,
+      "sha256": "aa3b327b288cf2d4fc071240778260da265af40abab7afc7e7f36850e38b85dc"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/host.ts",
+      "start": 87,
+      "end": 121,
+      "sha256": "aa3b327b288cf2d4fc071240778260da265af40abab7afc7e7f36850e38b85dc"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/host.ts",
+      "start": 325,
+      "end": 342,
+      "sha256": "aa3b327b288cf2d4fc071240778260da265af40abab7afc7e7f36850e38b85dc"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/ports.ts",
+      "start": 17,
+      "end": 51,
+      "sha256": "1b0fea2c6b06cfc57edb9e69f2df856c2f02800084c30031a9e1bbcd076353a5"
+    },
+    {
+      "path": "apps/desktop/src/preload/index.ts",
+      "start": 1,
+      "end": 35,
+      "sha256": "6eb2d0cb451eafc28f5a8a7bfff3225ba0e97901d2e64c1c2d1f97b312da3887"
+    },
+    {
+      "path": "apps/desktop/src/preload/index.ts",
+      "start": 36,
+      "end": 67,
+      "sha256": "6eb2d0cb451eafc28f5a8a7bfff3225ba0e97901d2e64c1c2d1f97b312da3887"
+    },
+    {
+      "path": "apps/desktop/src/preload/index.ts",
+      "start": 44,
+      "end": 67,
+      "sha256": "6eb2d0cb451eafc28f5a8a7bfff3225ba0e97901d2e64c1c2d1f97b312da3887"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/chat.ts",
+      "start": 38,
+      "end": 71,
+      "sha256": "6569450b1d47fb1a4b17b38d1419287b758abcab95b196597208cb04ce752e67"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workspace.test.ts",
+      "start": 1,
+      "end": 35,
+      "sha256": "a57e3d38f36e144dbccb0a3cc226f9445411b16f233eedf458db4ab80ac21eb5"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workspace.ts",
+      "start": 1,
+      "end": 35,
+      "sha256": "b6826fd4f244b582569682543a8dbdcdb3e9a1831187e8d17673d50b2fa0792f"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workspace.ts",
+      "start": 51,
+      "end": 85,
+      "sha256": "b6826fd4f244b582569682543a8dbdcdb3e9a1831187e8d17673d50b2fa0792f"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/ManagedAppDialog.tsx",
+      "start": 14,
+      "end": 48,
+      "sha256": "ec3ab38cb3b0dbb99fdb22a77e6a94cfef2bc226ba146fc727547d1c31b38d46"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Session.tsx",
+      "start": 489,
+      "end": 523,
+      "sha256": "1daf11bfb691bc01dc57ff2a08da7d94ad661270c5dfa8e83313009c2d036fd0"
+    },
+    {
+      "path": "apps/service/src/app-service.test.ts",
+      "start": 1,
+      "end": 35,
+      "sha256": "9cffe5ec8bbaa729901ebb12a0f50672e99f616df741b8b4c6e00ffed832123c"
+    },
+    {
+      "path": "apps/service/src/app-service.ts",
+      "start": 394,
+      "end": 428,
+      "sha256": "172f2ce30ea34afc31df8f7fe6580abddd34ace97cba54c7dd48007351d88b9d"
+    },
+    {
+      "path": "apps/service/src/codex-chat.ts",
+      "start": 380,
+      "end": 414,
+      "sha256": "76896e8c8b54be6c9bc1d83f55c5bae7a6319f07d9d6bf47659c947b42d316fb"
+    },
+    {
+      "path": "apps/service/src/codex-chat.ts",
+      "start": 516,
+      "end": 550,
+      "sha256": "76896e8c8b54be6c9bc1d83f55c5bae7a6319f07d9d6bf47659c947b42d316fb"
+    },
+    {
+      "path": "apps/service/src/codex-chat.ts",
+      "start": 525,
+      "end": 559,
+      "sha256": "76896e8c8b54be6c9bc1d83f55c5bae7a6319f07d9d6bf47659c947b42d316fb"
+    },
+    {
+      "path": "apps/service/src/guest-helper.py",
+      "start": 1,
+      "end": 35,
+      "sha256": "52790befba7b6836865cd3d1f22a6cfe8c13c593270a94038ef010f124fbd28f"
+    },
+    {
+      "path": "apps/service/src/index.ts",
+      "start": 1,
+      "end": 35,
+      "sha256": "dbe895491e5b6d049f57faa38b6a5462cd670b08675e54a8e412056301466677"
+    },
+    {
+      "path": "apps/service/src/index.ts",
+      "start": 10,
+      "end": 44,
+      "sha256": "dbe895491e5b6d049f57faa38b6a5462cd670b08675e54a8e412056301466677"
+    },
+    {
+      "path": "apps/service/src/index.ts",
+      "start": 208,
+      "end": 242,
+      "sha256": "dbe895491e5b6d049f57faa38b6a5462cd670b08675e54a8e412056301466677"
+    },
+    {
+      "path": "apps/service/src/sbx-contract.test.ts",
+      "start": 1,
+      "end": 35,
+      "sha256": "bf5f321b78764b6707d8c18c21564f75c0a484064df47fdd5b54aaa6f5c9190a"
+    },
+    {
+      "path": "apps/service/src/sbx.ts",
+      "start": 257,
+      "end": 275,
+      "sha256": "644b34e223c453cc8467659db1068507f13589377a4e9e148702b8f6b926c770"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "start": 1,
+      "end": 35,
+      "sha256": "3e9c0b150b6a844402e9676c99d5c783269cc0d81d6e3325b08e6fb1f08998e2"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "start": 14,
+      "end": 48,
+      "sha256": "3e9c0b150b6a844402e9676c99d5c783269cc0d81d6e3325b08e6fb1f08998e2"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "start": 130,
+      "end": 155,
+      "sha256": "3e9c0b150b6a844402e9676c99d5c783269cc0d81d6e3325b08e6fb1f08998e2"
+    },
+    {
+      "path": "packages/protocol/src/index.ts",
+      "start": 1,
+      "end": 27,
+      "sha256": "7019b8c6acafc364ed5ffb24bb7d86c321219368261f631c1ee51045cf02c3aa"
+    },
+    {
+      "path": "packages/protocol/src/protocol.test.ts",
+      "start": 1,
+      "end": 35,
+      "sha256": "069c3389db2cf3d6bd1cba3680d927b0f9c51a5b9492131b826a60ce5850a957"
+    },
+    {
+      "path": "packages/protocol/src/workspace.ts",
+      "start": 164,
+      "end": 198,
+      "sha256": "4d94d8e87f557123d06d793d92395ed37571f573a0f5859b3b5b13f0082cfcd0"
+    },
+    {
+      "path": "templates/standard-app/server/app.ts",
+      "start": 18,
+      "end": 52,
+      "sha256": "47b34041ac0bdce83e3b64cd25696fb54f785b21620c6e08a77ec1cc0f1e129f"
+    },
+    {
+      "path": "templates/standard-app/src/agent/bridge.ts",
+      "start": 18,
+      "end": 52,
+      "sha256": "37112fae86c11d22c3535f62b6f30ebff9c376e4e42bc01bc1f8020e875c4afe"
+    },
+    {
+      "path": "templates/standard-app/tests/app.test.ts",
+      "start": 1,
+      "end": 35,
+      "sha256": "7c517373fc04e2fa7c033c4fb2edccf8829510e917322896228021a3767fe0dd"
+    }
+  ]
+}
