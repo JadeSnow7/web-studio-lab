@@ -420,9 +420,14 @@ export class AppControl {
     return context.app!.appInstanceId;
   }
   /** 写操作门控：当前运行实例、请求绑定的 appInstanceId 与 host 租约必须一致。 */
-  private writable(context: AppControlContext, appInstanceId: string, signal: AbortSignal) {
+  private writable(context: AppControlContext, appInstanceId: string, signal: AbortSignal, reservedOperationId?: string) {
     signal.throwIfAborted();
-    if (this.hasPending(context.workspaceId)) throw new AppControlFailure('app_busy', 'App 数据操作结果仍待确认');
+    if (
+      [...this.pending.values()].some(
+        (operation) => operation.workspaceId === context.workspaceId && operation.operationId !== reservedOperationId,
+      )
+    )
+      throw new AppControlFailure('app_busy', 'App 数据操作结果仍待确认');
     const current = this.running(context);
     if (appInstanceId !== current)
       throw new AppControlFailure('stale_instance', `请求绑定的实例 ${appInstanceId} 已不是当前实例 ${current}`);
@@ -674,14 +679,22 @@ export class AppControl {
         this.pending.set(pending.operationId, pending);
         await this.savePending();
         let result: AppAgentResult;
+        let dispatched = false;
         this.reconciling.add(context.runId);
         try {
+          context = await refresh();
+          this.writable(context, appInstanceId, signal, pending.operationId);
+          dispatched = true;
           result = await this.ports.agent(this.target(context), appInstanceId, { op: operation, operationId: pending.operationId }, signal);
           await this.acceptReceipt(pending, result);
         } finally {
-          this.reconciling.delete(context.runId);
-          if (this.pending.has(pending.operationId)) this.retryAvailable.add(context.runId);
-          this.ports.pendingChanged?.(context.workspaceId, context.runId);
+          try {
+            if (!dispatched) await this.removePending([pending.operationId]);
+          } finally {
+            this.reconciling.delete(context.runId);
+            if (this.pending.has(pending.operationId)) this.retryAvailable.add(context.runId);
+            this.ports.pendingChanged?.(context.workspaceId, context.runId);
+          }
         }
         signal.throwIfAborted();
         if (!result.envelope.ok) throw new AppControlFailure('unavailable', result.envelope.error.message);

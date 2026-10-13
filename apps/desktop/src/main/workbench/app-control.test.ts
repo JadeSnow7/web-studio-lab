@@ -337,6 +337,54 @@ describe('AppControl authorization and risk levels', () => {
       change === 'pause' ? 'paused_by_user' : change === 'instance' ? 'stale_instance' : change === 'run' ? 'no_active_run' : 'cancelled',
     );
   });
+  it.each(
+    ['app.data.seed', 'app.data.reset'].flatMap((tool) =>
+      ['tracking', 'publication'].flatMap((boundary) =>
+        ['pause', 'cancel', 'lease', 'instance', 'run'].map((change) => ({ tool, boundary, change })),
+      ),
+    ),
+  )('$tool rechecks $change after $boundary before dispatch', async ({ tool, boundary, change }) => {
+    const test = harness({ allowsReset: true });
+    const controller = new AbortController();
+    const changeAuthority = () => {
+      if (change === 'pause') test.setControl({ state: 'paused_by_user', runId: 'run-1', since: 'now', lastAction: 'click' });
+      if (change === 'cancel') controller.abort();
+      if (change === 'lease') test.setLease(false);
+      if (change === 'instance')
+        test.setContext({
+          app: { projectId: 'p', appInstanceId: 'app-2', state: 'running', url: 'x', cleanupConfirmed: false, error: null },
+        });
+      if (change === 'run') test.setContext({ runId: 'ended' });
+    };
+    let descriptions = 0;
+    const original = test.ports.agent;
+    test.ports.agent = async (...args) => {
+      const result = await original(...args);
+      if (args[2].op === 'describe' && ++descriptions === 2 && boundary === 'tracking') changeAuthority();
+      return result;
+    };
+    let persisted: Parameters<NonNullable<typeof test.ports.store.savePending>>[0] = [];
+    test.ports.store.savePending = async (operations) => {
+      persisted = structuredClone(operations);
+      if (boundary === 'publication' && operations.length) changeAuthority();
+    };
+    const result = await test.call(
+      tool,
+      { appInstanceId: 'app-1', ...(tool === 'app.data.reset' ? { confirm: 'reset-instance-data' } : {}) },
+      controller.signal,
+    );
+    expect(test.agentOps.filter((operation) => operation.op === 'seed' || operation.op === 'reset')).toEqual([]);
+    const errors: Record<string, string> = {
+      pause: 'paused_by_user',
+      cancel: 'cancelled',
+      lease: 'stale_lease',
+      instance: 'stale_instance',
+      run: 'no_active_run',
+    };
+    expect(error(result)).toBe(errors[change]);
+    expect(persisted).toEqual([]);
+    expect(test.control.hasPending('w')).toBe(false);
+  });
   it.each(['instance', 'browser', 'run'])('rejects a late describe result after %s changes', async (change) => {
     const test = harness();
     const open = test.gateDescribe();
@@ -561,6 +609,20 @@ describe('persistent operation ownership', () => {
 });
 
 describe('pending publication failures', () => {
+  it('keeps protection when withdrawal of an unstarted operation cannot be persisted', async () => {
+    const test = harness();
+    test.ports.store.savePending = async (operations) => {
+      if (!operations.length) throw new Error('disk full');
+      test.setControl({ state: 'paused_by_user', runId: 'run-1', since: 'now', lastAction: 'click' });
+    };
+    expect(error(await test.call('app.data.seed', { appInstanceId: 'app-1' }))).toBe('unavailable');
+    expect(test.agentOps.filter((operation) => operation.op !== 'describe')).toEqual([]);
+    expect(test.control.hasPending('w')).toBe(true);
+    expect(test.control.canRetryCleanup('run-1')).toBe(true);
+    expect(test.control.isReconciling('run-1')).toBe(false);
+    expect(error(await test.call('app.restart', { appInstanceId: 'app-1' }))).toBe('app_busy');
+    expect(test.restart).not.toHaveBeenCalled();
+  });
   it('keeps protection if publishing terminal removal fails', async () => {
     const test = harness();
     let publications = 0;
