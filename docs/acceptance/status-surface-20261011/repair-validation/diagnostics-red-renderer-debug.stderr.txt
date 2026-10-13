@@ -1,0 +1,55 @@
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/renderer/src/state/debug.test.ts > 诊断快照加载（debug:facts-changed） > 订阅先于初读；在途期间的通知使旧响应失效，连续通知合并为一次重读
+TypeError: loadDebugSnapshots is not a function
+ ❯ harness apps/desktop/src/renderer/src/state/debug.test.ts:105:18
+    103|     const calls: string[] = [];
+    104|     let listener: (() => void) | null = null;
+    105|     const stop = loadDebugSnapshots(
+       |                  ^
+    106|       {
+    107|         status: () => {
+ ❯ apps/desktop/src/renderer/src/state/debug.test.ts:126:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  apps/desktop/src/renderer/src/state/debug.test.ts > 诊断快照加载（debug:facts-changed） > 无通知时初读结果应用一次，不轮询
+TypeError: loadDebugSnapshots is not a function
+ ❯ harness apps/desktop/src/renderer/src/state/debug.test.ts:105:18
+    103|     const calls: string[] = [];
+    104|     let listener: (() => void) | null = null;
+    105|     const stop = loadDebugSnapshots(
+       |                  ^
+    106|       {
+    107|         status: () => {
+ ❯ apps/desktop/src/renderer/src/state/debug.test.ts:143:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  apps/desktop/src/renderer/src/state/debug.test.ts > 诊断快照加载（debug:facts-changed） > 读取失败进入错误出口；下一次通知恢复读取
+TypeError: loadDebugSnapshots is not a function
+ ❯ harness apps/desktop/src/renderer/src/state/debug.test.ts:105:18
+    103|     const calls: string[] = [];
+    104|     let listener: (() => void) | null = null;
+    105|     const stop = loadDebugSnapshots(
+       |                  ^
+    106|       {
+    107|         status: () => {
+ ❯ apps/desktop/src/renderer/src/state/debug.test.ts:153:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  apps/desktop/src/renderer/src/state/debug.test.ts > 诊断快照加载（debug:facts-changed） > 关闭后解除订阅：迟到响应不应用，通知不再触发读取
+TypeError: loadDebugSnapshots is not a function
+ ❯ harness apps/desktop/src/renderer/src/state/debug.test.ts:105:18
+    103|     const calls: string[] = [];
+    104|     let listener: (() => void) | null = null;
+    105|     const stop = loadDebugSnapshots(
+       |                  ^
+    106|       {
+    107|         status: () => {
+ ❯ apps/desktop/src/renderer/src/state/debug.test.ts:166:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+

@@ -1,4 +1,4 @@
-import type { PageCapture, StatusDomain, StatusFact, StatusKind } from '@wsl/protocol';
+import type { DebugStatusSnapshot, PageCapture, StatusDomain, StatusFact, StatusKind } from '@wsl/protocol';
 import { createStore, useStore } from '../lib/store';
 import { chatStore } from './chat';
 import { environmentStore } from './execution';
@@ -36,6 +36,48 @@ export const debugActions = {
     else await debugActions.open();
   },
 };
+
+export interface DebugStatusSource {
+  status(): Promise<DebugStatusSnapshot>;
+  onFactsChanged(listener: () => void): () => void;
+}
+
+export function loadDebugSnapshots(
+  source: DebugStatusSource,
+  apply: (snapshot: DebugStatusSnapshot) => void,
+  fail: (message: string) => void,
+): () => void {
+  let active = true;
+  let running = false;
+  let again = false;
+  const load = async () => {
+    if (!active) return;
+    if (running) {
+      again = true;
+      return;
+    }
+    running = true;
+    try {
+      do {
+        again = false;
+        try {
+          const next = await source.status();
+          if (active && !again) apply(next);
+        } catch (error) {
+          if (active && !again) fail(error instanceof Error ? error.message : String(error));
+        }
+      } while (again && active);
+    } finally {
+      running = false;
+    }
+  };
+  const unsubscribe = source.onFactsChanged(() => void load());
+  void load();
+  return () => {
+    active = false;
+    unsubscribe();
+  };
+}
 
 /* ---------- 事实列表 ---------- */
 

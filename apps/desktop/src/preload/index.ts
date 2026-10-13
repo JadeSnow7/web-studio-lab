@@ -69,6 +69,7 @@ if (process.argv.includes(DEBUG_PRELOAD_ARGUMENT)) {
   studio.debug = {
     status: () => invoke('debug:status'),
     onTransition: (listener) => subscribe('debug:status', listener),
+    onFactsChanged: (listener) => subscribe('debug:facts-changed', () => listener()),
     onTogglePanel: (listener) => subscribe('debug:panel', () => listener()),
   };
 }

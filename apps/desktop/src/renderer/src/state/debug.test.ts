@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { PageCaptureSchema, type StatusFact } from '@wsl/protocol';
-import { DISPLAY_STRING_LIMIT, describeCapture, groupFacts, kindCounts, matchesFilter } from './debug';
+import { PageCaptureSchema, type DebugStatusSnapshot, type StatusFact } from '@wsl/protocol';
+import { DISPLAY_STRING_LIMIT, describeCapture, groupFacts, kindCounts, loadDebugSnapshots, matchesFilter } from './debug';
 
 const fact = (key: string, domain: StatusFact['domain'], kind: StatusFact['kind']) =>
   ({
@@ -83,5 +83,127 @@ describe('会话现场的屏幕显示', () => {
     expect(performance.now() - started).toBeLessThan(50);
     expect(shown.page.title.length).toBeLessThan(DISPLAY_STRING_LIMIT + 100);
     expect(shown.page.title).toContain('已截断');
+  });
+});
+
+describe('诊断快照加载（debug:facts-changed）', () => {
+  const snapshot = (seq: number): DebugStatusSnapshot => ({
+    appInstanceId: 'app-inst-1',
+    seq,
+    generatedAt: '2026-10-11T00:00:00Z',
+    facts: [],
+    transitions: [],
+  });
+  const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+  function harness() {
+    const requests: Array<{ resolve: (value: DebugStatusSnapshot) => void; reject: (error: unknown) => void }> = [];
+    const applied: DebugStatusSnapshot[] = [];
+    const errors: string[] = [];
+    const calls: string[] = [];
+    let listener: (() => void) | null = null;
+    let savedListener: (() => void) | null = null;
+    const stop = loadDebugSnapshots(
+      {
+        status: () => {
+          calls.push('status');
+          return new Promise<DebugStatusSnapshot>((resolve, reject) => requests.push({ resolve, reject }));
+        },
+        onFactsChanged: (l) => {
+          calls.push('subscribe');
+          listener = l;
+          savedListener = l;
+          return () => {
+            listener = null;
+          };
+        },
+      },
+      (next) => applied.push(next),
+      (message) => errors.push(message),
+    );
+    return {
+      requests,
+      applied,
+      errors,
+      calls,
+      stop,
+      notify: () => listener?.(),
+      savedNotify: () => savedListener?.(),
+      subscribed: () => listener !== null,
+    };
+  }
+
+  it('订阅先于初读；在途期间的通知使旧响应失效，连续通知合并为一次重读', async () => {
+    const h = harness();
+    expect(h.calls).toEqual(['subscribe', 'status']);
+    expect(h.requests).toHaveLength(1);
+    h.notify();
+    h.notify();
+    h.requests[0]!.resolve(snapshot(1));
+    await flush();
+    expect(h.applied).toEqual([]);
+    expect(h.requests).toHaveLength(2);
+    h.requests[1]!.resolve(snapshot(2));
+    await flush();
+    expect(h.applied.map((item) => item.seq)).toEqual([2]);
+    h.stop();
+  });
+
+  it('无通知时初读结果应用一次，不轮询', async () => {
+    const h = harness();
+    h.requests[0]!.resolve(snapshot(1));
+    await flush();
+    await flush();
+    expect(h.applied.map((item) => item.seq)).toEqual([1]);
+    expect(h.requests).toHaveLength(1);
+    h.stop();
+  });
+
+  it('读取失败进入错误出口；下一次通知恢复读取', async () => {
+    const h = harness();
+    h.requests[0]!.reject(new Error('boom'));
+    await flush();
+    expect(h.errors).toEqual(['boom']);
+    h.notify();
+    expect(h.requests).toHaveLength(2);
+    h.requests[1]!.resolve(snapshot(3));
+    await flush();
+    expect(h.applied.map((item) => item.seq)).toEqual([3]);
+    h.stop();
+  });
+
+  it('在途期间收到通知后再 reject：不进错误出口，合并通知仍补读一次', async () => {
+    const h = harness();
+    h.notify();
+    h.requests[0]!.reject(new Error('stale boom'));
+    await flush();
+    expect(h.errors).toEqual([]);
+    expect(h.requests).toHaveLength(2);
+    h.requests[1]!.resolve(snapshot(4));
+    await flush();
+    expect(h.applied.map((item) => item.seq)).toEqual([4]);
+    h.stop();
+  });
+
+  it('停止后保存的旧订阅再被调用也不发请求', async () => {
+    const h = harness();
+    h.requests[0]!.resolve(snapshot(1));
+    await flush();
+    h.stop();
+    h.savedNotify();
+    await flush();
+    expect(h.requests).toHaveLength(1);
+  });
+
+  it('关闭后解除订阅：迟到响应不应用，通知不再触发读取', async () => {
+    const h = harness();
+    h.stop();
+    expect(h.subscribed()).toBe(false);
+    h.requests[0]!.resolve(snapshot(9));
+    await flush();
+    expect(h.applied).toEqual([]);
+    h.notify();
+    await flush();
+    expect(h.requests).toHaveLength(1);
   });
 });

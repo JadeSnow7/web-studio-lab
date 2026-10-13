@@ -107,7 +107,6 @@ export function Files({ workspace, resource }: { workspace: WorkspaceSnapshot; r
       {/* 状态槽固定在内容滚动区之上：进行中（取消读取）、读取失败、覆盖不完整、文件可能变化与首次说明。 */}
       <StatusSlot scope={scope} onAction={onAction} />
       <div className="file-panel-body">
-        {!available ? <p role="status">{resource.unavailableReason ?? '此资源没有授权环境，请新建标签并明确选择已配置环境。'}</p> : null}
         <form
           noValidate
           {...ime.handlers}

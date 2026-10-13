@@ -1,0 +1,10 @@
+{
+  "command": "pnpm exec vitest run apps/desktop/src/renderer/src/state/debug.test.ts",
+  "cwd": "/Users/huaodong/workspace/_worktrees/status-surface-20261011",
+  "phase": "green",
+  "exitCode": 0,
+  "stdout": "diagnostics-green-renderer-debug.stdout.txt",
+  "stderr": "diagnostics-green-renderer-debug.stderr.txt",
+  "result": "passed",
+  "summary": "8 tests passed。loadDebugSnapshots：订阅先于初读、在途通知使旧响应失效、连续通知合并、失败后恢复、关闭后迟到响应与通知均忽略。"
+}

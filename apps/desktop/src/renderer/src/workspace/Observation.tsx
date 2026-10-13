@@ -9,7 +9,14 @@ import type {
 } from '@wsl/protocol';
 import { useImeForm } from '../lib/ime';
 import { StatusDot } from '../components/Status';
-import { useStatusViewByKey, type StatusView } from '../state/status-view';
+import {
+  observationErrorLine,
+  observationRecordStateLabel,
+  observationSourceState,
+  useResourceUnavailableView,
+  useStatusViewByKey,
+  type StatusView,
+} from '../state/status-view';
 import { observationImage } from './presentation';
 import { workspaceCommand } from '../state/workspace';
 
@@ -68,26 +75,6 @@ const sourceNames: Record<string, string> = {
   terminal_output: '终端输出',
   terminal_commands: '终端命令',
 };
-const recordStateNames: Record<ObservationRecord['state'], string> = {
-  pending: '读取中',
-  completed: '已完成',
-  cancelled: '已取消',
-  failed: '失败',
-};
-const errorNames: Record<string, string> = {
-  cancelled: '已取消',
-  unavailable: '不可用',
-  unauthorized: '未获授权',
-  unsupported: '不支持',
-  not_found: '未找到',
-  stale_cursor: '续读已失效',
-  stale_ref: '引用已失效',
-  gap: '输出有缺口',
-  invalid_request: '输入无效',
-  timeout: '读取超时',
-  unstable: '内容不稳定',
-  budget_exceeded: '超出读取预算',
-};
 /**
  * 观察结果。顶部只有健康稳态的形状（覆盖完整）与「来源」折叠区；来源、环境、时间、范围、版本 / 散列是结果元数据，展开即可见。
  * 进行中、失败、覆盖不完整 / 未知、文件可能变化是状态：由展示层的 observation:<requestId>:* / file:<id>:hint 视图提供，
@@ -111,7 +98,7 @@ export function ObservationResult({
   if ('error' in result)
     return (
       <p role={announce ? 'alert' : undefined} className={announce ? undefined : 'muted'}>
-        {errorNames[result.error]} · {result.message}。请核对来源或重新读取。
+        {observationErrorLine(result)}
       </p>
     );
   if ('kind' in result)
@@ -123,8 +110,7 @@ export function ObservationResult({
             {source.resource.environmentId
               ? (environmentNames[source.resource.environmentId] ?? source.resource.environmentId)
               : '未绑定环境'}{' '}
-            · {{ live: '活动', closed: '已关闭', unavailable: '不可用' }[source.state]}
-            {source.reason ? ` · ${source.reason}` : ''}
+            · {observationSourceState(source)}
           </li>
         ))}
       </ul>
@@ -202,7 +188,7 @@ export function ObservationHistory({ records, scope }: { records: ObservationRec
         [...records].reverse().map((record) => (
           <details key={record.request.requestId}>
             <summary>
-              {toolLabels[record.request.tool] ?? record.request.tool} · {recordStateNames[record.state]} ·{' '}
+              {toolLabels[record.request.tool] ?? record.request.tool} · {observationRecordStateLabel(record.state)} ·{' '}
               {new Date(record.startedAt).toLocaleString('zh-CN')}
             </summary>
             <HistoryResult scope={scope} record={record} />
@@ -257,6 +243,7 @@ export function SessionObservation({ workspace, session }: { workspace: Workspac
     [workspace.workspaceId, resourceId],
   );
   const hint = useStatusViewByKey(resourceScope, `file:${resourceId}:hint`);
+  const unavailable = useResourceUnavailableView(resourceScope);
   return (
     <section className="observation-context" aria-label="会话统一观察">
       <h3>资源观察</h3>
@@ -372,7 +359,7 @@ export function SessionObservation({ workspace, session }: { workspace: Workspac
           </button>
         ) : null}
       </form>
-      {resource?.unavailableReason ? <p role="status">{resource.unavailableReason}</p> : null}
+      {unavailable ? <p role="status">{unavailable.label}</p> : null}
       {hint ? (
         <p className="status-field" role="status">
           <StatusDot view={hint} visibleLabel title={`${hint.label}（提示不是完整监视）`} />

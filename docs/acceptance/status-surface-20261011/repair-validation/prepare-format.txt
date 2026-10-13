@@ -1,0 +1,25 @@
+apps/desktop/src/main/index.ts 96ms (unchanged)
+apps/desktop/src/preload/index.ts 14ms (unchanged)
+packages/protocol/src/ipc.ts 13ms (unchanged)
+apps/desktop/src/shared/status/facts.ts 75ms (unchanged)
+apps/desktop/src/shared/status/facts.test.ts 86ms
+apps/desktop/src/shared/status/index.ts 2ms (unchanged)
+apps/desktop/src/renderer/src/state/status-view.ts 71ms (unchanged)
+apps/desktop/src/renderer/src/state/status-view.test.ts 113ms (unchanged)
+apps/desktop/src/renderer/src/workspace/Files.tsx 24ms (unchanged)
+apps/desktop/src/renderer/src/workspace/Observation.tsx 27ms (unchanged)
+apps/desktop/src/renderer/src/workspace/Terminal.tsx 12ms (unchanged)
+e2e/helpers.ts 51ms
+e2e/status-surface.spec.ts 204ms
+e2e/debug-status.spec.ts 31ms
+e2e/ssh-product.spec.ts 38ms (unchanged)
+UX-CONTRACT.md 96ms
+docs/acceptance/status-surface-20261011/final-validation/check-delta.json 19ms
+docs/acceptance/status-surface-20261011/repair-validation/diagnostics-green-debug-status.json 1ms (unchanged)
+docs/acceptance/status-surface-20261011/repair-validation/diagnostics-green-ipc-guard.json 1ms (unchanged)
+docs/acceptance/status-surface-20261011/repair-validation/diagnostics-green-renderer-debug.json 1ms (unchanged)
+docs/acceptance/status-surface-20261011/repair-validation/diagnostics-red-debug-status.json 1ms (unchanged)
+docs/acceptance/status-surface-20261011/repair-validation/diagnostics-red-renderer-debug.json 1ms (unchanged)
+docs/acceptance/status-surface-20261011/repair-validation/environment.json 1ms (unchanged)
+docs/acceptance/status-surface-20261011/repair-validation/compare-checks.mjs 16ms
+docs/acceptance/status-surface-20261011/repair-validation/run-command.mjs 12ms

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { StatusFact, StatusKind, StatusScope, WorkbenchSnapshot } from '@wsl/protocol';
-import { projectFacts } from '../../../shared/status';
+import type { ObservationError, StatusFact, StatusKind, StatusScope, WorkbenchSnapshot } from '@wsl/protocol';
+import { OBSERVATION_ERROR_LABEL, projectFacts } from '../../../shared/status';
 import { dismissError, reportError } from './errors';
 import { workspaceStore } from './workspace';
 import {
@@ -14,6 +14,9 @@ import {
   deriveStatus,
   derivedStatus,
   groupForScope,
+  observationErrorLine,
+  observationRecordStateLabel,
+  observationSourceState,
   presentStatus,
   presentToasts,
   scopeKey,
@@ -317,6 +320,7 @@ const snapshotOf = (overrides: {
   sessions?: unknown[];
   runs?: unknown[];
   observations?: unknown[];
+  fileHints?: unknown[];
 }): WorkbenchSnapshot =>
   ({
     appInstanceId: 'app-1',
@@ -923,7 +927,7 @@ describe('Toast 队列与错误出口', () => {
   });
 });
 
-const terminalSnapshot = (state: string): WorkbenchSnapshot =>
+const terminalSnapshot = (state: string, cleanupPending = false): WorkbenchSnapshot =>
   snapshotOf({
     resources: [
       {
@@ -943,7 +947,7 @@ const terminalSnapshot = (state: string): WorkbenchSnapshot =>
           state,
           output: '',
           outputOffset: 0,
-          cleanupPending: false,
+          cleanupPending,
           error: null,
         },
         unavailableReason: null,
@@ -1248,5 +1252,141 @@ describe('首页空间卡片状态', () => {
       phase: 'pending',
     });
     expect(workspaceRunStatus(present([validating, connecting]), WS)).toBeNull();
+  });
+});
+
+describe('文件资源不可用的展示', () => {
+  const fileSnapshot = (overrides: Record<string, unknown>): WorkbenchSnapshot =>
+    snapshotOf({
+      resources: [
+        {
+          resourceId: 'f1',
+          kind: 'file',
+          title: 'f',
+          url: null,
+          instanceId: null,
+          generation: 1,
+          preview: null,
+          terminal: null,
+          ...overrides,
+        },
+      ],
+    });
+
+  it('未绑定环境或带原因的 file:<id>:unavailable 进问题通道；健康文件无事实', () => {
+    const missing = fileSnapshot({ environmentId: null, unavailableReason: null });
+    const slot = forScope(present(factsOf(missing), {}, missing), resource('f1'));
+    expect(slot.problem).toMatchObject({
+      key: 'file:f1:unavailable',
+      phase: 'degraded',
+      kind: 'problem',
+      channel: 'problem',
+      label: '此资源没有授权环境，请新建标签并明确选择已配置环境。',
+    });
+    const reason = fileSnapshot({ environmentId: 'local', unavailableReason: '授权根已移除' });
+    expect(forScope(present(factsOf(reason), {}, reason), resource('f1')).problem).toMatchObject({
+      key: 'file:f1:unavailable',
+      label: '授权根已移除',
+    });
+    const healthy = fileSnapshot({ environmentId: 'local', unavailableReason: null });
+    expect(forScope(present(factsOf(healthy), {}, healthy), resource('f1')).problem).toBeNull();
+    expect(factsOf(healthy).some((f) => f.key === 'file:f1:unavailable')).toBe(false);
+  });
+
+  it('file:unavailable（60）优先于 file:hint（45），同资源两个 facet 各自成键', () => {
+    const snapshot = snapshotOf({
+      resources: [
+        {
+          resourceId: 'f1',
+          kind: 'file',
+          environmentId: 'local',
+          title: 'f',
+          url: null,
+          instanceId: null,
+          generation: 1,
+          preview: null,
+          terminal: null,
+          unavailableReason: '授权根已移除',
+        },
+      ],
+      fileHints: [
+        {
+          workspaceId: WS,
+          environmentId: 'local',
+          resourceId: 'f1',
+          kind: 'file',
+          instanceId: 'fi',
+          instanceGeneration: 1,
+          generation: 'g',
+          watchGeneration: 1,
+          sequence: 1,
+          capturedAt: '2026-10-11T00:00:00.000Z',
+          change: 'change',
+          coverage: { scope: 'observed-directories', recursive: false, lossy: true },
+        },
+      ],
+    });
+    const slot = forScope(present(factsOf(snapshot), {}, snapshot), resource('f1'));
+    expect(slot.problem?.key).toBe('file:f1:unavailable');
+    expect(slot.more.map((v) => v.key)).toEqual(['file:f1:hint']);
+  });
+});
+
+describe('终端连接动作的展示', () => {
+  const stateView = (state: string, cleanupPending: boolean) => {
+    const snapshot = terminalSnapshot(state, cleanupPending);
+    return find(present(factsOf(snapshot), {}, snapshot), 'terminal:term-1:state');
+  };
+
+  it('failed / closed / idle 且 cleanupPending true 时 terminal.connect 禁用，false 时恢复可用', () => {
+    for (const state of ['failed', 'closed', 'idle'] as const) {
+      expect(stateView(state, true).action, state).toEqual({ id: 'terminal.connect', label: '连接终端', disabled: true });
+      expect(stateView(state, false).action, state).toEqual({ id: 'terminal.connect', label: '连接终端' });
+    }
+  });
+
+  it('starting / closing 不提供连接动作（防重复仍由组件 busy 保证）；未确认在 cleanup facet 上', () => {
+    for (const state of ['starting', 'closing'] as const) {
+      const snapshot = terminalSnapshot(state, true);
+      const views = present(factsOf(snapshot), {}, snapshot);
+      expect(find(views, 'terminal:term-1:state').action, state).toBeUndefined();
+      expect(views.some((v) => v.key === 'terminal:term-1:cleanup')).toBe(false);
+    }
+  });
+});
+
+describe('观察结果的展示文字', () => {
+  const record = (requestId: string, state: string, result: unknown) => ({
+    request: { requestId, workspaceId: WS, sessionId: 's1', runId: null, target: null, tool: 'files.list', args: {} },
+    state,
+    startedAt: '2026-10-11T00:00:00.000Z',
+    endedAt: '2026-10-11T00:00:01.000Z',
+    result,
+  });
+
+  it('历史四种状态的文字由展示函数给出（completed / cancelled 仍不产出事实）', () => {
+    const expected = { pending: '读取中', completed: '已完成', cancelled: '已取消', failed: '失败' } as const;
+    for (const [state, label] of Object.entries(expected))
+      expect(observationRecordStateLabel(state as keyof typeof expected), state).toBe(label);
+  });
+
+  it('错误行整段由展示函数给出，错误标签与事实层 OBSERVATION_ERROR_LABEL 同源', () => {
+    for (const [error, label] of Object.entries(OBSERVATION_ERROR_LABEL))
+      expect(observationErrorLine({ error: error as ObservationError['error'], message: '细节' }), error).toBe(
+        `${label} · 细节。请核对来源或重新读取。`,
+      );
+    const snapshot = snapshotOf({
+      sessions: [sessionRecord('s1', { observations: [record('o1', 'failed', { error: 'unauthorized', message: 'm' })] })],
+    });
+    expect(find(present(factsOf(snapshot), {}, snapshot), 'observation:o1:state').label).toBe('读取失败：未获授权');
+    expect(observationErrorLine({ error: 'unauthorized', message: 'm' })).toBe('未获授权 · m。请核对来源或重新读取。');
+  });
+
+  it('来源状态 live / closed / unavailable 与原因段由展示函数给出', () => {
+    expect(observationSourceState({ state: 'live', reason: null })).toBe('活动');
+    expect(observationSourceState({ state: 'closed', reason: null })).toBe('已关闭');
+    expect(observationSourceState({ state: 'unavailable', reason: null })).toBe('不可用');
+    expect(observationSourceState({ state: 'unavailable', reason: '环境未配置' })).toBe('不可用 · 环境未配置');
+    expect(observationSourceState({ state: 'closed', reason: '实例已释放' })).toBe('已关闭 · 实例已释放');
   });
 });

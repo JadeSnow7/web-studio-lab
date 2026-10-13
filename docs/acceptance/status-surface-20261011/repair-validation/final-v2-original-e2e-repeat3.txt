@@ -1,0 +1,14 @@
+
+Running 9 tests using 1 worker
+
+  ✓  1 e2e/status-surface.spec.ts:476:1 › 终端已关闭：提示可见；与窗格交互后视觉消失而圆点文字仍在；重新连接再关闭后再次可见 (3.0s)
+  ✓  2 e2e/status-surface.spec.ts:605:1 › SSH 断线后进程未确认：交互后提示仍可见（unresolved 不降级） (1.8s)
+  ✓  3 e2e/status-surface.spec.ts:1546:1 › 会话状态条：取消中与「App 数据操作仍待确认」同时可见；「重新核对」Tab 可达、核对中禁用；状态变化不抢焦点 (2.0s)
+  ✓  4 e2e/status-surface.spec.ts:476:1 › 终端已关闭：提示可见；与窗格交互后视觉消失而圆点文字仍在；重新连接再关闭后再次可见 (2.3s)
+  ✓  5 e2e/status-surface.spec.ts:605:1 › SSH 断线后进程未确认：交互后提示仍可见（unresolved 不降级） (1.6s)
+  ✓  6 e2e/status-surface.spec.ts:1546:1 › 会话状态条：取消中与「App 数据操作仍待确认」同时可见；「重新核对」Tab 可达、核对中禁用；状态变化不抢焦点 (1.9s)
+  ✓  7 e2e/status-surface.spec.ts:476:1 › 终端已关闭：提示可见；与窗格交互后视觉消失而圆点文字仍在；重新连接再关闭后再次可见 (2.2s)
+  ✓  8 e2e/status-surface.spec.ts:605:1 › SSH 断线后进程未确认：交互后提示仍可见（unresolved 不降级） (1.6s)
+  ✓  9 e2e/status-surface.spec.ts:1546:1 › 会话状态条：取消中与「App 数据操作仍待确认」同时可见；「重新核对」Tab 可达、核对中禁用；状态变化不抢焦点 (2.1s)
+
+  9 passed (20.5s)

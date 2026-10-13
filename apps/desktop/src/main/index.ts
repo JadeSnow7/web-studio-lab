@@ -44,6 +44,7 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
       extraRoots: developmentEnv.filter((value): value is string => !!value),
       extraSshIdentities: developmentSsh.filter((value): value is string => !!value),
       emit: (transition) => sendToRenderer(window, 'debug:status', transition),
+      emitFactsChanged: () => sendToRenderer(window, 'debug:facts-changed', 'changed'),
       reportError: (message, error) => console.error(message, error),
     });
     // 基线：启动时已知的安装记录与固定的执行状态；对话与工作台快照在各自发布时订阅。

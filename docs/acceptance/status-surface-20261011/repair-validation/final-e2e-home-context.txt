@@ -1,0 +1,181 @@
+diff --git "a/test-results/e2e/status-surface-\351\246\226\351\241\265\346\210\252\345\233\276\357\274\232\347\231\275-\346\232\227-\346\232\226-\303\227-1440-960\357\274\214\346\255\243\345\270\270\344\270\216\345\274\202\345\270\270\357\274\210\345\217\221\351\200\201\350\242\253\351\230\273\346\255\242\357\274\211/error-context.md" "b/test-results/e2e/status-surface-\351\246\226\351\241\265\346\210\252\345\233\276\357\274\232\347\231\275-\346\232\227-\346\232\226-\303\227-1440-960\357\274\214\346\255\243\345\270\270\344\270\216\345\274\202\345\270\270\357\274\210\345\217\221\351\200\201\350\242\253\351\230\273\346\255\242\357\274\211/error-context.md"
+new file mode 100644
+index 0000000..557e50a
+--- /dev/null
++++ "b/test-results/e2e/status-surface-\351\246\226\351\241\265\346\210\252\345\233\276\357\274\232\347\231\275-\346\232\227-\346\232\226-\303\227-1440-960\357\274\214\346\255\243\345\270\270\344\270\216\345\274\202\345\270\270\357\274\210\345\217\221\351\200\201\350\242\253\351\230\273\346\255\242\357\274\211/error-context.md"
+@@ -0,0 +1,174 @@
++# Instructions
++
++- Following Playwright test failed.
++- Explain why, be concise, respect Playwright best practices.
++- Provide a snippet of code with the fix, if possible.
++
++# Test info
++
++- Name: status-surface.spec.ts >> 首页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（发送被阻止）
++- Location: e2e/status-surface.spec.ts:1860:1
++
++# Error details
++
++```
++TimeoutError: locator.click: Timeout 30000ms exceeded.
++Call log:
++  - waiting for getByRole('navigation', { name: 'Workshop 导航' }).getByRole('button', { name: '首页', exact: true })
++    - locator resolved to <button type="button" class="rail-item" aria-current="page">…</button>
++  - attempting click action
++    - waiting for element to be visible, enabled and stable
++  - element was detached from the DOM, retrying
++
++```
++
++# Test source
++
++```ts
++  353 |     const transform = <T>(snapshot: T): T => {
++  354 |       const next = structuredClone(snapshot) as T & Snapshot;
++  355 |       for (const workspace of next.workspaces)
++  356 |         for (const resource of workspace.resources) {
++  357 |           const patch = shim.resource[resource.resourceId];
++  358 |           if (patch) {
++  359 |             if ('environmentId' in patch) resource.environmentId = patch.environmentId ?? null;
++  360 |             if ('unavailableReason' in patch) resource.unavailableReason = patch.unavailableReason ?? null;
++  361 |           }
++  362 |           if (resource.kind === 'web' && resource.preview && shim.agentControl) resource.preview.agentControl = shim.agentControl;
++  363 |           if (resource.resourceId in shim.terminal) resource.terminal = shim.terminal[resource.resourceId];
++  364 |         }
++  365 |       return next;
++  366 |     };
++  367 |     type Handler = (event: Electron.IpcMainInvokeEvent, request?: { type?: string }) => Promise<unknown>;
++  368 |     const handlers = (ipcMain as unknown as { _invokeHandlers: Map<string, Handler> })._invokeHandlers;
++  369 |     const get = handlers.get('workbench:get-snapshot')!;
++  370 |     const command = handlers.get('workbench:command')!;
++  371 |     ipcMain.removeHandler('workbench:get-snapshot');
++  372 |     ipcMain.handle('workbench:get-snapshot', async (event) => transform((await get(event)) as Snapshot));
++  373 |     ipcMain.removeHandler('workbench:command');
++  374 |     ipcMain.handle('workbench:command', async (event, request) => {
++  375 |       if (request?.type === 'browserAction') {
++  376 |         const { action, workspaceId, resourceId } = request as { action: string; workspaceId: string; resourceId: string };
++  377 |         shim.browserActions.push({ action, workspaceId, resourceId });
++  378 |       }
++  379 |       const result = (await command(event, request)) as { snapshot: Snapshot };
++  380 |       return { ...result, snapshot: transform(result.snapshot) };
++  381 |     });
++  382 |     const contents = BrowserWindow.getAllWindows()[0]!.webContents;
++  383 |     const send = contents.send.bind(contents);
++  384 |     contents.send = ((channel: string, ...args: Array<{ snapshot?: Snapshot }>) => {
++  385 |       const payload = args[0];
++  386 |       if (channel === 'workbench:event' && payload?.snapshot) return send(channel, { ...payload, snapshot: transform(payload.snapshot) });
++  387 |       return send(channel, ...args);
++  388 |     }) as typeof contents.send;
++  389 |   });
++  390 | }
++  391 | 
++  392 | export const setStatusShim = (
++  393 |   app: ElectronApplication,
++  394 |   patch: {
++  395 |     agentControl?: StatusShimAgentControl | null;
++  396 |     terminal?: Record<string, Record<string, unknown> | null>;
++  397 |     resource?: Record<string, { environmentId?: 'local' | 'sandbox' | 'ssh' | null; unavailableReason?: string | null }>;
++  398 |   },
++  399 | ) =>
++  400 |   app.evaluate((_electron, next) => {
++  401 |     const shim = (globalThis as unknown as { __wslStatusShim: Record<string, unknown> }).__wslStatusShim;
++  402 |     if ('agentControl' in next) shim.agentControl = next.agentControl ?? null;
++  403 |     if (next.terminal) for (const [id, value] of Object.entries(next.terminal)) (shim.terminal as Record<string, unknown>)[id] = value;
++  404 |     if (next.resource) for (const [id, value] of Object.entries(next.resource)) (shim.resource as Record<string, unknown>)[id] = value;
++  405 |   }, patch);
++  406 | 
++  407 | export const statusShimBrowserActions = (app: ElectronApplication) =>
++  408 |   app.evaluate(
++  409 |     () =>
++  410 |       (globalThis as unknown as { __wslStatusShim: { browserActions: Array<{ action: string; workspaceId: string; resourceId: string }> } })
++  411 |         .__wslStatusShim.browserActions,
++  412 |   );
++  413 | 
++  414 | export async function pushWorkbenchSnapshot(page: Page) {
++  415 |   const snapshot = await workspaceSnapshot(page);
++  416 |   const workspace = snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)!;
++  417 |   const result = await page.evaluate((command) => window.studio.workbench.command(command as never), {
++  418 |     commandId: crypto.randomUUID(),
++  419 |     type: 'focusPane',
++  420 |     workspaceId: workspace.workspaceId,
++  421 |     paneId: workspace.activePaneId,
++  422 |   });
++  423 |   if (!result?.ok) throw new Error(`focusPane 触发快照失败：${JSON.stringify(result)}`);
++  424 | }
++  425 | export async function browserState(page: Page) {
++  426 |   const snapshot = await workspaceSnapshot(page);
++  427 |   const resource = snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)?.resources.find((r) => r.kind === 'web');
++  428 |   if (!resource?.preview) throw new Error('browser snapshot unavailable');
++  429 |   return resource.preview;
++  430 | }
++  431 | export async function terminalSnapshot(page: Page) {
++  432 |   const snapshot = await workspaceSnapshot(page);
++  433 |   const resource = snapshot.workspaces
++  434 |     .find((w) => w.workspaceId === snapshot.activeWorkspaceId)
++  435 |     ?.resources.find((r) => r.kind === 'terminal');
++  436 |   if (!resource?.terminal) throw new Error('terminal snapshot unavailable');
++  437 |   return resource.terminal;
++  438 | }
++  439 | /**
++  440 |  * 打开网页工具栏的弹出层：「采集到会话」（非模态 dialog，内含关联会话与三个按钮）或「更多网页操作」（menu）。
++  441 |  * 已展开时不重复点击（触发器是开关）。scope 用于多个网页窗格同时存在时限定在某个 .workspace-browser 内。
++  442 |  */
++  443 | export async function openBrowserMenu(page: Page, name: '采集到会话' | '更多网页操作', scope: Page | Locator = page) {
++  444 |   const popup = scope.getByRole(name === '采集到会话' ? 'dialog' : 'menu', { name, exact: true });
++  445 |   if (!(await popup.isVisible())) await scope.getByRole('button', { name, exact: true }).click();
++  446 |   await popup.waitFor({ state: 'visible' });
++  447 |   return popup;
++  448 | }
++  449 | 
++  450 | export async function workshopNavigate(page: Page, label: string) {
++  451 |   const navigation = page.getByRole('navigation', { name: 'Workshop 导航' });
++  452 |   if (!(await navigation.isVisible())) await page.getByRole('button', { name: '展开 Workshop', exact: true }).click();
++> 453 |   await navigation.getByRole('button', { name: label, exact: true }).click();
++      |                                                                      ^ TimeoutError: locator.click: Timeout 30000ms exceeded.
++  454 | }
++  455 | 
++  456 | export async function resourceCollection(page: Page) {
++  457 |   const snapshot = await workspaceSnapshot(page);
++  458 |   const catalog = snapshot.catalog;
++  459 |   if (!catalog) throw new Error('account catalogue unavailable');
++  460 |   const spaceId = snapshot.activeWorkspaceId;
++  461 |   const resources = await page.evaluate(
++  462 |     async ({ links, spaceId }) => {
++  463 |       const resources = [];
++  464 |       for (const link of links) {
++  465 |         const snapshot = await window.studio.workbench.resourceRevision(link.resourceId, link.referenceVersion!);
++  466 |         if (snapshot.evidence.kind === 'web')
++  467 |           resources.push({ ...snapshot.evidence.snapshot, resourceId: snapshot.resourceId, version: snapshot.version, spaceId });
++  468 |       }
++  469 |       return resources;
++  470 |     },
++  471 |     {
++  472 |       links: catalog.links
++  473 |         .filter(
++  474 |           (link) =>
++  475 |             link.workspaceId === spaceId && catalog.resources.some((item) => item.resourceId === link.resourceId && item.latestVersion),
++  476 |         )
++  477 |         .map((link) => ({
++  478 |           ...link,
++  479 |           referenceVersion: link.referenceVersion ?? catalog.resources.find((item) => item.resourceId === link.resourceId)!.latestVersion,
++  480 |         })),
++  481 |       spaceId,
++  482 |     },
++  483 |   );
++  484 |   return { spaceId, revision: catalog.revision, resources };
++  485 | }
++  486 | 
++  487 | export async function setWorkspaceTheme(page: Page, theme: string) {
++  488 |   await workshopNavigate(page, '设置');
++  489 |   await page.getByLabel(/^空间主题 · /).selectOption(theme);
++  490 |   await expectTheme(page, theme);
++  491 |   await workshopNavigate(page, '空间');
++  492 | }
++  493 | async function expectTheme(page: Page, theme: string) {
++  494 |   const snapshot = await workspaceSnapshot(page);
++  495 |   assert.equal(snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)?.theme, theme);
++  496 | }
++  497 | 
++```
+\ No newline at end of file

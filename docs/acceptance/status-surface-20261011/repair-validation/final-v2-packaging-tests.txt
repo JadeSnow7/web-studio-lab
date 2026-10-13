@@ -1,0 +1,35 @@
+✔ CI rejects mismatched or injected tags and corrupted asset bytes (46.399417ms)
+✔ CI publishes only after uploading and verifying every asset, including prereleases (61.228709ms)
+✔ CI finds a matching draft on later pages and retries without replacing assets (33.1795ms)
+✔ CI refuses published releases and refuses publication after a remote tag moves (32.705708ms)
+✔ CI rejects another draft asset set and failed lookup does not create a release (25.927584ms)
+✔ CI imports only supplied certificate data and cleans up its own temporary keychain (6.754167ms)
+✔ CI tool failures suppress passwords from command error details (0.754417ms)
+✔ signed runtime probes disable pyc writes and fail if the probe damages the seal (0.218917ms)
+✔ pnpm platform pruning removes only macOS/Windows targets and preserves Linux ARM64 native bytes (42.485875ms)
+✔ guest archive audit rejects residual Mach-O and PE even outside pnpm (34.234625ms)
+✔ guest audit rejects wrong ELF architecture or a missing required native executable (12.478667ms)
+✔ download refuses hash and registry-integrity mismatch (1.910917ms)
+✔ interrupted and corrupt downloads never publish a cache hit (35.314292ms)
+✔ safe archive validation rejects parent and absolute traversal (9.557916ms)
+✔ safe archive validation rejects escaping symlink (4.27725ms)
+✔ archives are byte reproducible including links and executable modes (8.210875ms)
+✔ release rejects missing/development signing and incomplete notarization (0.53725ms)
+✔ payload gate rejects an absent manifest (1.413416ms)
+✔ service audit rejects unbundled required assets while accepting optional accelerators (3.009292ms)
+✔ notarization failure does not leak secret-bearing exec argv (0.490125ms)
+✔ safe archive validation rejects writes through a symlink (5.808875ms)
+✔ payload gate rejects a changed source version and corrupted payload bytes (7.745208ms)
+✔ release documents are required and nonempty before artifact publication (4.504125ms)
+✔ release attachments preserve Chinese documents and signed App manifests byte for byte (11.835708ms)
+✔ formal builder selector removes only the Developer ID prefix and preserves full signing identity (0.38ms)
+✔ installed electron-builder selects the same Developer ID certificate with the sanitized qualifier (223.022209ms)
+✔ template archive accepts Linux ARM64 and rejects foreign binaries, missing target and missing execute bit (54.044333ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 422.522125

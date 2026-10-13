@@ -1,0 +1,29 @@
+Scope: all 4 workspace projects
+Lockfile is up to date, resolution step is skipped
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +467
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 467, reused 467, downloaded 0, added 207
+Progress: resolved 467, reused 467, downloaded 0, added 467, done
+
+devDependencies:
++ @eslint/js 10.0.1
++ @playwright/test 1.63.0
++ @types/node 22.19.11
++ @types/react 19.2.14
++ @types/react-dom 19.2.3
++ eslint 10.12.0
++ eslint-plugin-react-hooks 7.1.1
++ globals 17.13.0
++ prettier 3.9.9
++ react 19.2.4
++ react-dom 19.2.4
++ tsx 4.21.0
++ typescript 6.0.3
++ typescript-baseline <- typescript 5.9.3
++ typescript-eslint 8.71.1
++ vite 7.3.1
++ vitest 5.0.3
++ zod 4.3.6
+
+Done in 2.3s using pnpm v10.34.6

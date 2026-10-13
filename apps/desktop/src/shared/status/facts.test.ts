@@ -354,6 +354,19 @@ describe('projectFacts: 终端', () => {
     }
   });
 
+  it('cleanupPending 恢复为 false 后连接动作重新可用；starting / closing 不提供连接动作（由 busy 防重复）', () => {
+    for (const state of ['failed', 'closed', 'idle'] as const) {
+      const facts = terminalFact(terminalState({ state, cleanupPending: false, error: state === 'failed' ? 'x' : null }));
+      expect(find(facts, 'terminal:t1:cleanup')).toBeUndefined();
+      expect(find(facts, 'terminal:t1:state')!.action, state).toEqual({ id: 'terminal.connect', label: '连接终端' });
+    }
+    for (const state of ['starting', 'closing'] as const) {
+      const facts = terminalFact(terminalState({ state, cleanupPending: true }));
+      expect(find(facts, 'terminal:t1:state')!.action, state).toBeUndefined();
+      expect(find(facts, 'terminal:t1:cleanup')).toBeUndefined();
+    }
+  });
+
   it('starting / running / closing 期间 PTY 本来就持有进程：cleanupPending 不产出 cleanup 事实，由 state 文案表达', () => {
     for (const state of ['starting', 'running', 'closing'] as const) {
       const facts = terminalFact(terminalState({ state, cleanupPending: true }));
@@ -968,6 +981,54 @@ describe('projectFacts: 观察与文件', () => {
     const facts = factsOf({ observations: [record] });
     expect(keys(facts)).toEqual(['observation:o2:state', 'observation:o2:coverage']);
     expect(find(facts, 'observation:o2:state')!.scope).toEqual({ kind: 'workspace', workspaceId: WS });
+  });
+
+  it('文件资源不可用：未绑定环境或带 unavailableReason 产出 file:<id>:unavailable；健康文件不产出', () => {
+    const fileFacts = (overrides: Record<string, unknown>) => factsOf({ resources: [resource('f1', { kind: 'file', ...overrides })] });
+    expect(find(fileFacts({ environmentId: null }), 'file:f1:unavailable')).toMatchObject({
+      phase: 'degraded',
+      kind: 'problem',
+      priority: 60,
+      label: '此资源没有授权环境，请新建标签并明确选择已配置环境。',
+      scope: { kind: 'resource', workspaceId: WS, resourceId: 'f1' },
+      instanceToken: 'f1-inst:1',
+      raw: {},
+    });
+    const empty = find(fileFacts({ environmentId: null, unavailableReason: '' }), 'file:f1:unavailable')!;
+    expect(empty.label).toBe('此资源没有授权环境，请新建标签并明确选择已配置环境。');
+    expect(StatusFactSchema.safeParse(empty).success).toBe(true);
+    expect(find(fileFacts({ unavailableReason: '授权根已移除' }), 'file:f1:unavailable')).toMatchObject({
+      phase: 'degraded',
+      kind: 'problem',
+      label: '授权根已移除',
+    });
+    expect(find(fileFacts({}), 'file:f1:unavailable')).toBeUndefined();
+  });
+
+  it('file:unavailable 与 file:hint 同存时 key 两两不同，互不压制', () => {
+    const hint = {
+      workspaceId: WS,
+      environmentId: 'local',
+      resourceId: 'f1',
+      kind: 'file',
+      instanceId: 'fi',
+      instanceGeneration: 1,
+      generation: 'g',
+      watchGeneration: 1,
+      sequence: 1,
+      capturedAt: '2026-10-11T00:00:00.000Z',
+      change: 'change',
+      coverage: { scope: 'observed-directories', recursive: false, lossy: true },
+    };
+    const facts = factsOf({
+      resources: [resource('f1', { kind: 'file', unavailableReason: '授权根已移除' })],
+      fileHints: [hint],
+    });
+    expect(
+      keys(facts)
+        .filter((key) => key.startsWith('file:'))
+        .sort(),
+    ).toEqual(['file:f1:hint', 'file:f1:unavailable']);
   });
 
   it('文件变化提示：每个 change 都有标签', () => {

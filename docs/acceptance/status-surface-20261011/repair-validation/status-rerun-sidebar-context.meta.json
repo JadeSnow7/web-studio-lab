@@ -1,0 +1,25 @@
+{
+  "name": "status-rerun-sidebar-context",
+  "command": [
+    "git",
+    "diff",
+    "--no-index",
+    "--",
+    "/dev/null",
+    "test-results/e2e/status-surface-侧栏：「后台资源-已关闭标签」没有内容时不出现，有内容时摘要保留原文并附计数/error-context.md"
+  ],
+  "cwd": "/Users/huaodong/workspace/_worktrees/status-surface-20261011",
+  "head": "1bce260678c5d60e6889a093e0c523c333019fca",
+  "startedAt": "2026-10-12T11:38:55.655Z",
+  "endedAt": "2026-10-12T11:38:55.865Z",
+  "exitCode": 1,
+  "signal": null,
+  "error": null,
+  "envOverrides": { "WSL_E2E_TARGET": "build", "WSL_APP_HASH_REJECTION": "0" },
+  "productSourceDiff": {
+    "sha256Before": "ab248a5aad1a2352e0be796f32c6af3a99425e546de4c3fd58c55f8314ec7008",
+    "sha256After": "ab248a5aad1a2352e0be796f32c6af3a99425e546de4c3fd58c55f8314ec7008",
+    "changedDuringRun": false
+  },
+  "notes": "txt 为子进程 stdout 与 stderr 原始字节按到达顺序的交错记录，未经过 shell；meta 只记录上方 envOverrides，不转储其他环境变量。"
+}

@@ -1,0 +1,17 @@
+
+Running 8 tests using 1 worker
+
+  ✓  1 e2e/workspace-migration.spec.ts:23:1 › R1 可见导航进入真实任务历史，查看日志/diff/报告不执行 (3.2s)
+  ✓  2 e2e/workspace-migration.spec.ts:47:1 › R2 通信栏菜单控制通知，独立专注入口控制布局 (1.6s)
+  ✓  3 e2e/workspace-migration.spec.ts:65:1 › R1 通知定位后台同一运行，打开与已读分离且重启保持回执 (3.7s)
+  ✓  4 e2e/workspace-migration.spec.ts:101:1 › R7 首页空间卡片由当前快照生成，按稳定身份切换 (1.7s)
+  ✓  5 e2e/workspace-migration.spec.ts:126:1 › R4 单窗格窄窗从网页关联会话并采集 (2.3s)
+  ✓  6 e2e/workspace-migration.spec.ts:153:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 (4.5s)
+RENDERER Error: WSL_STARTUP_NEGATIVE_CONTROL
+    at <anonymous>:1:26
+  ✓  7 e2e/workspace-migration.spec.ts:250:1 › E2E 异常门槛负控：build启动前注入异常必须失败 (1.5s)
+RENDERER Error: WSL_LATE_NEGATIVE_CONTROL
+    at eval (eval at evaluate (:311:30), <anonymous>:3:13)
+  ✓  8 e2e/workspace-migration.spec.ts:256:1 › E2E 异常门槛负控：运行期异常必须失败 (1.6s)
+
+  8 passed (20.8s)

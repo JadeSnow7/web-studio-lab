@@ -131,6 +131,7 @@ export function Terminal({
   }, [active, visible, occluded]);
   const running = resource.terminal?.state === 'running',
     busy = resource.terminal?.state === 'starting' || resource.terminal?.state === 'closing';
+  const connectRefused = stateView?.action?.id === 'terminal.connect' && stateView.action.disabled === true;
   const connect = () => {
     focusTerminal();
     void workspaceCommand(workspaceId, {
@@ -211,7 +212,12 @@ export function Terminal({
             </button>
           </div>
         ) : (
-          <button type="button" className="btn" disabled={busy || !resource.environmentId || !!unavailable} onClick={connect}>
+          <button
+            type="button"
+            className="btn"
+            disabled={busy || !resource.environmentId || !!unavailable || connectRefused}
+            onClick={connect}
+          >
             连接终端
           </button>
         )}

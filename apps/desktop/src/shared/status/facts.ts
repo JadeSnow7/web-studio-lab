@@ -295,7 +295,7 @@ const OBSERVATION_COVERAGE = {
 } satisfies Record<Observation['coverage']['status'], Mapping>;
 
 /** 错误标签：沿用现有界面文案（Observation.tsx errorNames 与 e2e/ssh-product.spec.ts 断言的「未获授权」）；修订 1 的对照表不在仓库中。 */
-const OBSERVATION_ERROR_LABEL = {
+export const OBSERVATION_ERROR_LABEL = {
   unsupported: '不支持',
   unauthorized: '未获授权',
   unavailable: '不可用',
@@ -784,6 +784,27 @@ function observationFacts(workspaceId: string, owner: string | null, record: Obs
   return facts;
 }
 
+function fileFacts(workspaceId: string, resource: WorkbenchResource): StatusFact[] {
+  if (resource.environmentId && !resource.unavailableReason) return [];
+  const label = resource.unavailableReason || '此资源没有授权环境，请新建标签并明确选择已配置环境。';
+  const entity: Entity<'file'> = {
+    domain: 'file',
+    entityId: resource.resourceId,
+    scope: resourceScope(workspaceId, resource.resourceId),
+    instanceToken: `${resource.instanceId ?? 'none'}:${resource.generation}`,
+  };
+  return [
+    build(entity, 'unavailable', {
+      phase: 'degraded',
+      kind: 'problem',
+      priority: 60,
+      label,
+      detail: resource.unavailableReason && resource.unavailableReason.length > LABEL_LIMIT ? resource.unavailableReason : undefined,
+      raw: {},
+    }),
+  ];
+}
+
 function fileHintFact(workspaceId: string, hint: FileInvalidationHint): StatusFact {
   const entity: Entity<'file'> = {
     domain: 'file',
@@ -808,6 +829,7 @@ function workspaceFacts(workspace: WorkspaceSnapshot, environments: readonly Env
   for (const resource of workspace.resources) {
     if (resource.kind === 'web') facts.push(...webFacts(workspaceId, resource));
     else if (resource.kind === 'terminal' || resource.kind === 'ssh') facts.push(...terminalFacts(workspaceId, resource, environments));
+    else if (resource.kind === 'file') facts.push(...fileFacts(workspaceId, resource));
   }
   for (const session of workspace.sessions) facts.push(...contextFacts(workspaceId, session));
   for (const run of workspace.runs) facts.push(...runFacts(workspaceId, run));

@@ -319,6 +319,109 @@ export function setWindowSize(app: ElectronApplication, width: number, height: n
 export async function workspaceSnapshot(page: Page) {
   return page.evaluate(() => window.studio.workbench.getSnapshot());
 }
+
+export interface StatusShimAgentControl {
+  state: 'idle' | 'active' | 'paused_by_user';
+  runId: string | null;
+  since: string | null;
+  lastAction: string | null;
+}
+
+export async function installStatusShim(app: ElectronApplication) {
+  await app.evaluate(({ ipcMain, BrowserWindow }) => {
+    type Shim = {
+      agentControl: StatusShimAgentControl | null;
+      terminal: Record<string, Record<string, unknown> | null>;
+      resource: Record<string, { environmentId?: string | null; unavailableReason?: string | null }>;
+      browserActions: Array<{ action: string; workspaceId: string; resourceId: string }>;
+    };
+    const shim: Shim = ((globalThis as unknown as { __wslStatusShim: Shim }).__wslStatusShim = {
+      agentControl: null,
+      terminal: {},
+      resource: {},
+      browserActions: [],
+    });
+    type Resource = {
+      resourceId: string;
+      kind: string;
+      environmentId?: string | null;
+      unavailableReason?: string | null;
+      preview?: { agentControl?: unknown } | null;
+      terminal?: unknown;
+    };
+    type Snapshot = { workspaces: Array<{ resources: Resource[] }> };
+    const transform = <T>(snapshot: T): T => {
+      const next = structuredClone(snapshot) as T & Snapshot;
+      for (const workspace of next.workspaces)
+        for (const resource of workspace.resources) {
+          const patch = shim.resource[resource.resourceId];
+          if (patch) {
+            if ('environmentId' in patch) resource.environmentId = patch.environmentId ?? null;
+            if ('unavailableReason' in patch) resource.unavailableReason = patch.unavailableReason ?? null;
+          }
+          if (resource.kind === 'web' && resource.preview && shim.agentControl) resource.preview.agentControl = shim.agentControl;
+          if (resource.resourceId in shim.terminal) resource.terminal = shim.terminal[resource.resourceId];
+        }
+      return next;
+    };
+    type Handler = (event: Electron.IpcMainInvokeEvent, request?: { type?: string }) => Promise<unknown>;
+    const handlers = (ipcMain as unknown as { _invokeHandlers: Map<string, Handler> })._invokeHandlers;
+    const get = handlers.get('workbench:get-snapshot')!;
+    const command = handlers.get('workbench:command')!;
+    ipcMain.removeHandler('workbench:get-snapshot');
+    ipcMain.handle('workbench:get-snapshot', async (event) => transform((await get(event)) as Snapshot));
+    ipcMain.removeHandler('workbench:command');
+    ipcMain.handle('workbench:command', async (event, request) => {
+      if (request?.type === 'browserAction') {
+        const { action, workspaceId, resourceId } = request as { action: string; workspaceId: string; resourceId: string };
+        shim.browserActions.push({ action, workspaceId, resourceId });
+      }
+      const result = (await command(event, request)) as { snapshot: Snapshot };
+      return { ...result, snapshot: transform(result.snapshot) };
+    });
+    const contents = BrowserWindow.getAllWindows()[0]!.webContents;
+    const send = contents.send.bind(contents);
+    contents.send = ((channel: string, ...args: Array<{ snapshot?: Snapshot }>) => {
+      const payload = args[0];
+      if (channel === 'workbench:event' && payload?.snapshot) return send(channel, { ...payload, snapshot: transform(payload.snapshot) });
+      return send(channel, ...args);
+    }) as typeof contents.send;
+  });
+}
+
+export const setStatusShim = (
+  app: ElectronApplication,
+  patch: {
+    agentControl?: StatusShimAgentControl | null;
+    terminal?: Record<string, Record<string, unknown> | null>;
+    resource?: Record<string, { environmentId?: 'local' | 'sandbox' | 'ssh' | null; unavailableReason?: string | null }>;
+  },
+) =>
+  app.evaluate((_electron, next) => {
+    const shim = (globalThis as unknown as { __wslStatusShim: Record<string, unknown> }).__wslStatusShim;
+    if ('agentControl' in next) shim.agentControl = next.agentControl ?? null;
+    if (next.terminal) for (const [id, value] of Object.entries(next.terminal)) (shim.terminal as Record<string, unknown>)[id] = value;
+    if (next.resource) for (const [id, value] of Object.entries(next.resource)) (shim.resource as Record<string, unknown>)[id] = value;
+  }, patch);
+
+export const statusShimBrowserActions = (app: ElectronApplication) =>
+  app.evaluate(
+    () =>
+      (globalThis as unknown as { __wslStatusShim: { browserActions: Array<{ action: string; workspaceId: string; resourceId: string }> } })
+        .__wslStatusShim.browserActions,
+  );
+
+export async function pushWorkbenchSnapshot(page: Page) {
+  const snapshot = await workspaceSnapshot(page);
+  const workspace = snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)!;
+  const result = await page.evaluate((command) => window.studio.workbench.command(command as never), {
+    commandId: crypto.randomUUID(),
+    type: 'focusPane',
+    workspaceId: workspace.workspaceId,
+    paneId: workspace.activePaneId,
+  });
+  if (!result?.ok) throw new Error(`focusPane 触发快照失败：${JSON.stringify(result)}`);
+}
 export async function browserState(page: Page) {
   const snapshot = await workspaceSnapshot(page);
   const resource = snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)?.resources.find((r) => r.kind === 'web');

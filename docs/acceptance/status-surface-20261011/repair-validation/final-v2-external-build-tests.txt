@@ -1,0 +1,18 @@
+
+> web-studio-lab@ test:external-builds /Users/huaodong/workspace/_worktrees/status-surface-20261011
+> node --test scripts/external-builds.test.mjs
+
+✔ setup preserves paths, writes through external links and remains idempotent (20.812667ms)
+✔ existing artifacts reject setup before any directory is linked (5.005958ms)
+✔ verification rejects missing external directories and replaced links (10.769125ms)
+✔ checkout identity follows physical paths and isolates separate checkouts (3.257917ms)
+✔ a normal directory cannot stand in for a mounted external volume (1.999541ms)
+✔ invalid opt-in config is rejected before setup changes artifacts (2.531833ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 121.58875

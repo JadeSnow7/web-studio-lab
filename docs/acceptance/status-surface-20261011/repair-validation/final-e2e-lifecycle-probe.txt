@@ -1,0 +1,8 @@
+
+Running 3 tests using 1 worker
+
+  ✓  1 e2e/status-surface.spec.ts:324:1 › 侧栏：「后台资源 / 已关闭标签」没有内容时不出现，有内容时摘要保留原文并附计数 (2.6s)
+  ✓  2 e2e/status-surface.spec.ts:476:1 › 终端已关闭：提示可见；与窗格交互后视觉消失而圆点文字仍在；重新连接再关闭后再次可见 (2.9s)
+  ✓  3 e2e/status-surface.spec.ts:2566:1 › App 对话框截图：白 / 暗 / 暖 × 1440 / 960，正常（已创建）与异常（运行失败） (8.9s)
+
+  3 passed (15.3s)

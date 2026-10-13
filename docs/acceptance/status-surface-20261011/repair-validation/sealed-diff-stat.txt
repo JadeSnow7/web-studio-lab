@@ -1,0 +1,27 @@
+ UX-CONTRACT.md                                     |  36 +--
+ apps/desktop/src/main/debug-status.test.ts         | 154 +++++++++++-
+ apps/desktop/src/main/debug-status.ts              |  65 ++---
+ apps/desktop/src/main/index.ts                     |   1 +
+ apps/desktop/src/preload/index.ts                  |   1 +
+ apps/desktop/src/renderer/src/shell/DebugPanel.tsx |  41 +--
+ apps/desktop/src/renderer/src/state/debug.test.ts  | 126 +++++++++-
+ apps/desktop/src/renderer/src/state/debug.ts       |  44 +++-
+ .../src/renderer/src/state/status-view.test.ts     | 148 ++++++++++-
+ apps/desktop/src/renderer/src/state/status-view.ts |  36 ++-
+ apps/desktop/src/renderer/src/workspace/Files.tsx  |   1 -
+ .../src/renderer/src/workspace/Observation.tsx     |  39 +--
+ .../src/renderer/src/workspace/Terminal.tsx        |   8 +-
+ apps/desktop/src/shared/status/facts.test.ts       |  61 +++++
+ apps/desktop/src/shared/status/facts.ts            |  24 +-
+ apps/desktop/src/shared/status/index.ts            |   2 +-
+ docs/acceptance/status-surface-20261011/README.md  | 180 ++++++++++++--
+ .../final-validation/check-delta.json              |  48 +++-
+ .../2026-10-11-status-surface/contract-changes.md  |  13 +
+ docs/design/2026-10-11-status-surface/plan.md      |  10 +-
+ .../2026-10-11-status-surface/status-interface.md  |  30 ++-
+ e2e/debug-status.spec.ts                           | 131 ++++++++++
+ e2e/helpers.ts                                     | 103 ++++++++
+ e2e/ssh-product.spec.ts                            |  19 +-
+ e2e/status-surface.spec.ts                         | 276 ++++++++++++++++++++-
+ packages/protocol/src/ipc.ts                       |   2 +
+ 26 files changed, 1434 insertions(+), 165 deletions(-)

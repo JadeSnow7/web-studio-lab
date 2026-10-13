@@ -1,0 +1,5 @@
+apps/desktop/src/main/debug-status.ts 202ms
+apps/desktop/src/main/debug-status.test.ts 175ms (unchanged)
+apps/desktop/src/renderer/src/state/debug.ts 53ms (unchanged)
+apps/desktop/src/renderer/src/state/debug.test.ts 48ms (unchanged)
+apps/desktop/src/renderer/src/shell/DebugPanel.tsx 115ms (unchanged)

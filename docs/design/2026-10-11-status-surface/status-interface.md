@@ -84,7 +84,7 @@ export interface FactInput {
 | `review` | runId | `state` |
 | `context` | sessionId | `applicability`、`capture`、`history-restored` |
 | `observation` | requestId | `state`、`coverage` |
-| `file` | resourceId | `hint` |
+| `file` | resourceId | `hint`、`unavailable` |
 
 测试要求：构造每个 domain 所有 facet 同时成立的输入，断言 key 两两不同；任一 facet 消失只影响自己的 key。
 
@@ -121,7 +121,7 @@ export interface FactInput {
 | `terminal:<id>:cleanup` | `cleanupPending` 且 state ∈ {`failed`, `closed`, `idle`} | unknown | unresolved | 所属进程退出未确认 | — |
 | `terminal:<id>:unavailable` | `unavailableReason` | degraded | problem | {unavailableReason} | — |
 
-`cleanupPending` 在源码中表示「所属进程尚未确认退出」，进程存活期间始终为 true（`apps/service/src/terminal.ts` 启动时置位），因此只在进程应已结束的状态产出未确认事实；`starting` / `running` / `closing` 由 state 文案表达（运行同理，见 §4.5；实施期修订，用户确认）。SSH 断线后远端进程状态不明属于 `terminal:<id>:cleanup`（`unresolved`）：只要事实未变就持续显式，不因交互降级。此时「连接终端」动作为 `disabled`，与合同「重连明确拒绝」一致。
+`cleanupPending` 在源码中表示「所属进程尚未确认退出」，进程存活期间始终为 true（`apps/service/src/terminal.ts` 启动时置位），因此只在进程应已结束的状态产出未确认事实；`starting` / `running` / `closing` 由 state 文案表达（运行同理，见 §4.5；实施期修订，用户确认）。SSH 断线后远端进程状态不明属于 `terminal:<id>:cleanup`（`unresolved`）：只要事实未变就持续显式，不因交互降级。此时 `terminal:<id>:state` 事实携带的「连接终端」动作带 `disabled: true`（`failed` / `closed` / `idle` 且 `cleanupPending` 时），终端工具栏的连接按钮消费该 `disabled`，保持可见但禁用，与合同「重连明确拒绝」一致；Main 侧直接重连仍被拒绝。`starting` / `closing` 不提供连接动作，防重复仍由组件忙态保证；`cleanupPending` 恢复为 false 后动作重新可用。
 
 ### 4.3 网页 `PreviewState`
 
@@ -205,10 +205,13 @@ problem 内优先级：load-error > pick-error > cdp > blocked-nav > unavailable
 | | `unknown` | unknown | problem | 覆盖情况未知 |
 | | `complete` | ok | steady | 覆盖完整 |
 | `file:<id>:hint` | 任一 change | degraded | problem | 文件可能变化 · {变化标签}；请重新读取 |
+| `file:<id>:unavailable` | 未绑定授权环境（`!environmentId`）或 `unavailableReason` | degraded | problem | `{unavailableReason || '此资源没有授权环境，请新建标签并明确选择已配置环境。'}`（空串视同无原因，label 不为空） |
+
+`file:<id>:unavailable` 的 priority 为 60，高于 `file:<id>:hint` 的 45；同资源两 facet 各自成键互不压制（修复轮，2026-10-12）。该事实呈现后 Files 不再渲染第二份行内不可用说明，读取表单的启用条件不变。
 
 来源、环境、时间、范围与**版本 / 散列**属于结果元数据，不是状态：在结果的「来源」折叠区中显示（合同要求散列可见）。`evidenceRef` 等内部引用只在诊断面板。
 
-错误标签与变化标签沿用修订 1 的对照（`unauthorized` 无权限、`stale_ref` 已过期请重新读取、`root_replaced` 根目录被替换等），实现时作为 `satisfies Record` 表。
+错误标签沿用现有界面文案（`unauthorized`「未获授权」、`stale_ref`「引用已失效」等；本节原引用的修订 1 对照表不在仓库中，以既有代码与 E2E 断言为准，见 review-response.md），变化标签沿用修订 1 的对照；均实现为 `satisfies Record` 表。错误标签的单一来源是事实层导出的 `OBSERVATION_ERROR_LABEL`：`observation:<req>:state` 的 label 与观察历史错误行（`{标签} · {message}。请核对来源或重新读取。`）同取此表。历史记录四状态（读取中 / 已完成 / 已取消 / 失败）与来源可用性（活动 / 已关闭 / 不可用，含 reason 段）文案由展示层函数给出；`completed` / `cancelled` 不产出当前 state 事实，历史错误不逐条升级为 alert（修复轮，2026-10-12）。
 
 ## 5. 通道（第 ②层）
 
@@ -291,7 +294,7 @@ export function useStatusView(scope: StatusScope): { persistent: StatusView[]; p
 
 | id | 执行 |
 | -- | ---- |
-| `terminal.connect` | `terminalOpen` |
+| `terminal.connect` | `terminalOpen`（事实可携带 `disabled: true`：进程退出未确认期间禁用，见 §4.2） |
 | `web.reload` / `web.reattach` / `web.resumeAgent` | `browserAction: reload / reattach / resumeAgent` |
 | `web.cancelPick` | `cancelContextCapture` |
 | `run.cancel` | `cancelRun` |
@@ -309,7 +312,7 @@ export function useStatusView(scope: StatusScope): { persistent: StatusView[]; p
 
 - 「开发构建」指 `pnpm dev` 的开发服务器（沿用 `main/window.ts` 现有判定）。E2E 使用的 `pnpm build` 产物虽未打包，但不是开发服务器，**默认关闭**，因此 `workspace-debug.spec.ts:7` 的六键断言不变。
 - 正式包默认关闭；显式设置 `WSL_DEBUG_STATUS=1` 才开启。
-- 未启用时不注册 `debug:status` 通道，不出现菜单项，preload 不增加 `debug` 键。Main 通过 `webPreferences.additionalArguments: ['--wsl-debug-status']` 告知 preload。
+- 未启用时不注册 `debug:status`、`debug:facts-changed` 与 `debug:panel` 通道，不出现菜单项，preload 不增加 `debug` 键，`window.studio` 仍为既有六键；未启用时的诊断 invoke 被 ipc-guard 拒绝。Main 通过 `webPreferences.additionalArguments: ['--wsl-debug-status']` 告知 preload。
 
 ### 8.2 raw 白名单
 
@@ -352,9 +355,9 @@ export function useStatusView(scope: StatusScope): { persistent: StatusView[]; p
 | `detail` | 300 字符 |
 | 单条 `raw` 序列化 | 2 KiB，超出截断并标 `truncated: true` |
 | 转换环形缓冲 | 500 条 |
-| NDJSON 文件 | 5 MiB；到达上限写一行 `{"type":"limit"}` 后停止写入，不轮转、不删除 |
+| NDJSON 文件 | 5 MiB（含为 `limit` 行预留的余量，总字节不超上限）；到达上限写一行 `{"type":"limit"}` 后停止写入，不轮转、不备份、不迁移 |
 
-日志写入失败只记录一次 Main 错误并停用，不影响应用。
+日志目标路径只允许独占新建（`wx`，权限 `0600`）：任何已存在的路径一律拒绝并保持原字节——包括真实的旧诊断日志、以 `{"type":"snapshot"` 前缀开头但并非本日志的文件、空文件、符号链接与悬空符号链接。拒绝与写入失败一样只记录一次 Main 错误并停用本轮 NDJSON（此后 `startLog` 与后续更新都不再准备或写入该文件），不影响应用（修复轮，2026-10-12）。2026-10-13 审查补充：记录独占创建时的设备与 inode；每次追加在同一写入句柄上核对普通文件、身份、单硬链接及已写长度。路径替换、新增硬链接或外部长度变化均停写，不接管替换后的文件。这是追加前的归属检查，不承诺排除任意外部并发写入。
 
 ### 8.6 协议
 
@@ -363,10 +366,19 @@ export function useStatusView(scope: StatusScope): { persistent: StatusView[]; p
 interface DebugStatusSnapshot { appInstanceId: string; seq: number; generatedAt: string; facts: StatusFact[]; transitions: StatusTransition[] }
 // event 'debug:status'
 interface StatusTransition { key: string; from: { phase; kind; label } | null; to: { phase; kind; label } | null; at: string; seq: number }
+// event 'debug:facts-changed'（payload 为字面量 'changed'）：事实集合变化——新增 / 消失或 detail / raw / action / scope / appInstanceId 等任一字段变化——每次输入投影通知一次。
+// 合法的新增 / 消失或 phase / kind / label 变化仍照常产生 StatusTransition、seq 与 NDJSON 行；只有本通知自身及 detail / raw 等字段的独变不新增转换、seq 或 NDJSON。
+// 完全相同的投影不通知；emit 失败只报告一次，不打断事实更新、转换与 NDJSON。
 // preload，仅启用时
-studio.debug = { status(): Promise<DebugStatusSnapshot>; onTransition(listener): () => void; onTogglePanel(listener): () => void };
+studio.debug = {
+  status(): Promise<DebugStatusSnapshot>;
+  onTransition(listener): () => void;
+  onFactsChanged(listener: () => void): () => void;
+  onTogglePanel(listener): () => void;
+};
 // event 'debug:panel'（payload 'toggle'）：菜单「诊断」（CmdOrCtrl+Alt+Shift+D）通知 Renderer 切换面板；与 debug:status 一样只在启用时注册。
-// 首版面板提供「复制 JSON」；mockups 中的「暂停刷新」「导出 NDJSON」按钮不做，NDJSON 由 WSL_STATUS_LOG 开启。
+// 面板加载：订阅先于初读；在途期间到达的通知使在途响应失效、连续通知合并为一次重读，不轮询；读取失败进入错误出口、下一次通知恢复读取；卸载或停止后迟到的响应与通知都不应用。
+// 首版面板提供「复制 JSON」；mockups 中的「暂停刷新」「导出 NDJSON」按钮不做，NDJSON 由 WSL_STATUS_LOG 开启。PageCapture 只在面板内查看，不复制、不写入日志。
 ```
 
 ## 9. DOM 约定

@@ -1,0 +1,10 @@
+{
+  "command": "pnpm exec vitest run apps/desktop/src/renderer/src/state/debug.test.ts",
+  "cwd": "/Users/huaodong/workspace/_worktrees/status-surface-20261011",
+  "phase": "red",
+  "exitCode": 1,
+  "stdout": "diagnostics-red-renderer-debug.stdout.txt",
+  "stderr": "diagnostics-red-renderer-debug.stderr.txt",
+  "result": "failed",
+  "summary": "8 tests: 4 failed / 4 passed。loadDebugSnapshots 尚不存在，加载器（订阅先于初读、旧响应失效、合并重读、关闭后忽略）未实现。"
+}

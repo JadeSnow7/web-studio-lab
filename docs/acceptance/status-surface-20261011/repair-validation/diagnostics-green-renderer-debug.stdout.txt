@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/_worktrees/status-surface-20261011
+
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  12:12:01
+   Duration  591ms (transform 65%, import 32%, tests 2%, worker 1%)
+

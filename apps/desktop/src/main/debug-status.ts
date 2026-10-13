@@ -1,4 +1,4 @@
-import { closeSync, constants, fstatSync, ftruncateSync, lstatSync, openSync, readSync, writeFileSync, writeSync } from 'node:fs';
+import { closeSync, constants, fstatSync, openSync, writeFileSync } from 'node:fs';
 import type {
   ChatStatus,
   DebugStatusSnapshot,
@@ -43,6 +43,7 @@ export interface DebugStatusOptions {
   extraSshIdentities?: readonly string[];
   /** 每条转换（已脱敏）的推送出口，对应 `debug:status` 事件。 */
   emit?: (transition: StatusTransition) => void;
+  emitFactsChanged?: () => void;
   /** 写入失败等 Main 错误的出口；每个实例最多调用一次（日志写入失败后停用）。 */
   reportError?: (message: string, error: unknown) => void;
   now?: () => Date;
@@ -52,39 +53,39 @@ export interface DebugStatusOptions {
   prepareLogFile?: (path: string) => void;
 }
 
+type LogIdentity = { dev: number; ino: number };
 type Endpoint = NonNullable<StatusTransition['from']>;
 const endpointOf = (fact: StatusFact): Endpoint => ({ phase: fact.phase, kind: fact.kind, label: fact.label });
 
-const SNAPSHOT_PREFIX = '{"type":"snapshot"';
-
 /**
- * 准备 WSL_STATUS_LOG：新文件用 `wx` 创建；已存在时只有「普通文件、非符号链接、且以上次诊断的 snapshot 行开头」
- * 才截断重建，其他一律拒绝（抛错），不改动已有文件。打开使用 O_NOFOLLOW 并对同一个 fd 校验，避免检查与截断之间被换成链接。
+ * 准备 WSL_STATUS_LOG：只用 `wx` 独占创建 0600 新文件。路径已存在——无论是普通文件、目录还是
+ * 符号链接（含悬空链接，`wx` 对其同样返回 EEXIST）——一律拒绝，原字节不变。不读取旧内容，
+ * 也不尝试识别并重建上次诊断留下的日志：任何已有路径都不是本进程可以接管的文件。
  */
-export function prepareLogFile(path: string): void {
+export function prepareLogFile(path: string): LogIdentity {
+  const fd = openSync(path, 'wx', 0o600);
   try {
-    writeFileSync(path, '', { flag: 'wx', mode: 0o600 });
-    return;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
-  }
-  if (lstatSync(path).isSymbolicLink()) throw new Error('拒绝使用符号链接作为状态日志');
-  const fd = openSync(path, constants.O_RDWR | constants.O_NOFOLLOW);
-  try {
-    if (!fstatSync(fd).isFile()) throw new Error('状态日志路径不是普通文件');
-    const head = Buffer.alloc(SNAPSHOT_PREFIX.length);
-    const read = readSync(fd, head, 0, head.length, 0);
-    if (head.toString('utf8', 0, read) !== SNAPSHOT_PREFIX) throw new Error('已有文件不是上次诊断留下的状态日志，拒绝覆盖');
-    ftruncateSync(fd, 0);
+    const { dev, ino } = fstatSync(fd);
+    return { dev, ino };
   } finally {
     closeSync(fd);
   }
 }
 
-function defaultWriteLogFile(path: string, data: string): void {
-  const fd = openSync(path, constants.O_WRONLY | constants.O_APPEND | constants.O_NOFOLLOW);
+function defaultWriteLogFile(path: string, data: string, identity: LogIdentity | undefined, writtenBytes: number): void {
+  const fd = openSync(path, constants.O_WRONLY | constants.O_APPEND | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
-    writeSync(fd, data);
+    const file = fstatSync(fd);
+    if (
+      !identity ||
+      !file.isFile() ||
+      file.dev !== identity.dev ||
+      file.ino !== identity.ino ||
+      file.nlink !== 1 ||
+      file.size !== writtenBytes
+    )
+      throw new Error('状态日志文件身份或长度已变化，拒绝追加');
+    writeFileSync(fd, data);
   } finally {
     closeSync(fd);
   }
@@ -101,13 +102,20 @@ export class DebugStatus {
   private projectionFailed = false;
   private readonly now: () => Date;
   private emitFailed = false;
+  private factsEmitFailed = false;
+  private factsSignature = '';
   private readonly writeLogFile: NonNullable<DebugStatusOptions['writeLogFile']>;
   private readonly prepareLogFile: NonNullable<DebugStatusOptions['prepareLogFile']>;
 
   constructor(private readonly options: DebugStatusOptions) {
     this.now = options.now ?? (() => new Date());
-    this.writeLogFile = options.writeLogFile ?? defaultWriteLogFile;
-    this.prepareLogFile = options.prepareLogFile ?? prepareLogFile;
+    let identity: LogIdentity | undefined;
+    this.writeLogFile = options.writeLogFile ?? ((path, data) => defaultWriteLogFile(path, data, identity, this.logWritten));
+    this.prepareLogFile =
+      options.prepareLogFile ??
+      ((path) => {
+        identity = prepareLogFile(path);
+      });
   }
 
   /* ---------- 订阅入口：只接收 Main 已发布的快照 ---------- */
@@ -156,14 +164,19 @@ export class DebugStatus {
     }
     for (const [key, fact] of this.facts) if (!next.has(key)) produced.push({ key, from: endpointOf(fact), to: null, at, seq: ++this.seq });
     this.facts = next;
-    if (!produced.length) return;
-    this.transitions.push(...produced);
-    if (this.transitions.length > TRANSITION_LIMIT) this.transitions.splice(0, this.transitions.length - TRANSITION_LIMIT);
-    const context = this.redactContext();
-    const safe = produced.map((transition) => redactTransition(transition, context));
-    // 先写日志、再推送：推送（sendToRenderer）失败不得中断同批转换的 NDJSON，也不算投影失败。
-    for (const transition of safe) this.log({ type: 'transition', ...transition });
-    for (const transition of safe) this.push(transition);
+    const signature = JSON.stringify([this.input.snapshot?.appInstanceId ?? PENDING_APP_INSTANCE, this.redactContext(), ...next.values()]);
+    const factsChanged = signature !== this.factsSignature;
+    this.factsSignature = signature;
+    if (produced.length) {
+      this.transitions.push(...produced);
+      if (this.transitions.length > TRANSITION_LIMIT) this.transitions.splice(0, this.transitions.length - TRANSITION_LIMIT);
+      const context = this.redactContext();
+      const safe = produced.map((transition) => redactTransition(transition, context));
+      // 先写日志、再推送：推送（sendToRenderer）失败不得中断同批转换的 NDJSON，也不算投影失败。
+      for (const transition of safe) this.log({ type: 'transition', ...transition });
+      for (const transition of safe) this.push(transition);
+    }
+    if (factsChanged) this.notifyFactsChanged();
   }
 
   private push(transition: StatusTransition): void {
@@ -173,6 +186,16 @@ export class DebugStatus {
       if (this.emitFailed) return;
       this.emitFailed = true;
       this.options.reportError?.('状态诊断事件推送失败；面板将不再实时更新', error);
+    }
+  }
+
+  private notifyFactsChanged(): void {
+    try {
+      this.options.emitFactsChanged?.();
+    } catch (error) {
+      if (this.factsEmitFailed) return;
+      this.factsEmitFailed = true;
+      this.options.reportError?.('状态诊断事实更新通知失败；面板将不再实时更新', error);
     }
   }
 
@@ -193,8 +216,8 @@ export class DebugStatus {
   }
 
   /**
-   * 开始写 NDJSON：新建文件（或重建上次诊断留下的日志，见 prepareLogFile），首行为事实快照，不含 WorkbenchSnapshot；
-   * 此后每条转换追加一行。路径指向其他已有文件或符号链接时只报告一次并停用。
+   * 开始写 NDJSON：独占创建新文件（见 prepareLogFile，任何已有路径都拒绝），首行为事实快照，不含 WorkbenchSnapshot；
+   * 此后每条转换追加一行。路径已存在或被拒绝时只报告一次并停用。
    * 在装配处先放入启动时已知的输入，再调用本方法，使首行成为后续转换的基线。
    */
   startLog(): void {

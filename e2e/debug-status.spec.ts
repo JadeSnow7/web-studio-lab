@@ -14,6 +14,7 @@ import {
   setWorkspaceTheme,
   shot,
   target,
+  workspaceSnapshot,
 } from './helpers';
 
 /*
@@ -45,6 +46,61 @@ async function connectTerminal(page: Page) {
   await panel.getByRole('button', { name: '连接终端', exact: true }).click();
   await expect(panel).toContainText('已连接');
 }
+
+async function installDebugShim(app: ElectronApplication, target: string) {
+  await app.evaluate(({ ipcMain }, key) => {
+    type Shim = {
+      requests: number;
+      gate: boolean;
+      deliveries: Array<() => void>;
+      detail: string | null;
+      outputOffset: number | null;
+      target: string;
+    };
+    const shim: Shim = ((globalThis as unknown as { __wslDebugShim: Shim }).__wslDebugShim = {
+      requests: 0,
+      gate: false,
+      deliveries: [],
+      detail: null,
+      outputOffset: null,
+      target: key,
+    });
+    type Handler = (event: Electron.IpcMainInvokeEvent) => Promise<unknown>;
+    const real = (ipcMain as unknown as { _invokeHandlers: Map<string, Handler> })._invokeHandlers.get('debug:status')!;
+    ipcMain.removeHandler('debug:status');
+    ipcMain.handle('debug:status', async (event) => {
+      shim.requests++;
+      const snapshot = (await real(event)) as {
+        facts: Array<{ key: string; detail?: string; raw: Record<string, unknown> }>;
+      };
+      const next = structuredClone(snapshot);
+      for (const fact of next.facts) {
+        if (fact.key !== shim.target) continue;
+        if (shim.detail !== null) fact.detail = shim.detail;
+        if (shim.outputOffset !== null) fact.raw.outputOffset = shim.outputOffset;
+      }
+      if (shim.gate) await new Promise<void>((resolve) => shim.deliveries.push(resolve));
+      return next;
+    });
+  }, target);
+}
+const setDebugShim = (app: ElectronApplication, patch: { detail?: string | null; outputOffset?: number | null; gate?: boolean }) =>
+  app.evaluate(
+    (_electron, next) => Object.assign((globalThis as unknown as { __wslDebugShim: Record<string, unknown> }).__wslDebugShim, next),
+    patch,
+  );
+const debugShimRequests = (app: ElectronApplication) =>
+  app.evaluate(() => (globalThis as unknown as { __wslDebugShim: { requests: number } }).__wslDebugShim.requests);
+const releaseDebugShim = (app: ElectronApplication, keepGate = false) =>
+  app.evaluate((_electron, keep) => {
+    const shim = (globalThis as unknown as { __wslDebugShim: { gate: boolean; deliveries: Array<() => void> } }).__wslDebugShim;
+    if (!keep) shim.gate = false;
+    for (const resolve of shim.deliveries.splice(0)) resolve();
+  }, keepGate);
+const emitFactsChanged = (app: ElectronApplication) =>
+  app.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()[0]!.webContents.send('debug:facts-changed', 'changed');
+  });
 
 test.describe('build 产物', () => {
   test.skip(target === 'packaged', 'packaged 的矩阵行见文件末尾');
@@ -164,6 +220,81 @@ test.describe('build 产物', () => {
     } finally {
       await app.close();
       await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('修复复验：面板持续打开时 detail 与 raw 更新即时显示；seq/转换不变、单请求合并、关闭后不查询', async () => {
+    const { app, page } = await launchApp({ sbxBin, debugStatus: true });
+    try {
+      await mkdir(path.join(screensDir, 'status-surface'), { recursive: true });
+      await setWindowSize(app, 1440, 900);
+      await connectTerminal(page);
+      const resourceId = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((item) => item.kind === 'terminal')!.resourceId;
+      const factKey = `terminal:${resourceId}:state`;
+      await installDebugShim(app, factKey);
+      await page.evaluate(() => {
+        (window as Window & { __transitions?: unknown[] }).__transitions = [];
+        window.studio.debug!.onTransition((transition) =>
+          (window as Window & { __transitions?: unknown[] }).__transitions!.push(transition),
+        );
+      });
+      const baseline = DebugStatusSnapshotSchema.parse(await debugSnapshot(page));
+      await clickAppMenu(app, '诊断');
+      const panel = page.getByRole('dialog', { name: '诊断', exact: true });
+      await expect(panel).toBeVisible();
+      await panel.locator(`tr[data-status-key="${factKey}"]`).getByRole('button').click();
+      const detail = panel.getByRole('region', { name: '事实详情' });
+      await expect(detail).toContainText('已连接');
+
+      const before = await debugShimRequests(app);
+      await setDebugShim(app, { detail: '第一次改写 detail' });
+      await emitFactsChanged(app);
+      await expect(detail).toContainText('detail：第一次改写 detail');
+      await setDebugShim(app, { outputOffset: 42 });
+      await emitFactsChanged(app);
+      await expect(detail.locator('pre')).toContainText('"outputOffset": 42');
+      expect(await debugShimRequests(app)).toBe(before + 2);
+      expect(await page.evaluate(() => (window as Window & { __transitions?: unknown[] }).__transitions)).toHaveLength(0);
+      const stable = DebugStatusSnapshotSchema.parse(await debugSnapshot(page));
+      expect(stable.seq).toBe(baseline.seq);
+      expect(stable.transitions).toHaveLength(baseline.transitions.length);
+      await shot(page, 'status-surface/debug-panel-live-update-1440');
+
+      const merged = await debugShimRequests(app);
+      await setDebugShim(app, { gate: true, detail: '闸内旧值' });
+      await emitFactsChanged(app);
+      await expect.poll(() => debugShimRequests(app)).toBe(merged + 1);
+      await setDebugShim(app, { detail: '闸内新值' });
+      await emitFactsChanged(app);
+      await emitFactsChanged(app);
+      await releaseDebugShim(app, true);
+      await expect.poll(() => debugShimRequests(app)).toBe(merged + 2);
+      await expect(detail).toContainText('detail：第一次改写 detail');
+      await expect(detail).not.toContainText('闸内旧值');
+      await releaseDebugShim(app);
+      await expect(detail).toContainText('detail：闸内新值');
+      await expect(detail).not.toContainText('闸内旧值');
+
+      await app.evaluate(({ clipboard }) => clipboard.writeText(''));
+      await panel.getByRole('button', { name: '复制 JSON（已脱敏）' }).click();
+      await expect(panel.getByRole('status').filter({ hasText: '已复制' })).toBeVisible();
+      const copied = DebugStatusSnapshotSchema.parse(JSON.parse(await app.evaluate(({ clipboard }) => clipboard.readText())));
+      const copiedFact = copied.facts.find((fact) => fact.key === factKey);
+      expect(copiedFact?.detail).toBe('闸内新值');
+      expect((copiedFact?.raw as { outputOffset?: number } | undefined)?.outputOffset).toBe(42);
+
+      const closing = await debugShimRequests(app);
+      await setDebugShim(app, { gate: true });
+      await emitFactsChanged(app);
+      await expect.poll(() => debugShimRequests(app)).toBe(closing + 1);
+      await page.keyboard.press('Escape');
+      await expect(panel).toHaveCount(0);
+      await releaseDebugShim(app);
+      await emitFactsChanged(app);
+      DebugStatusSnapshotSchema.parse(await debugSnapshot(page));
+      expect(await debugShimRequests(app)).toBe(closing + 2);
+    } finally {
+      await app.close();
     }
   });
 

@@ -78,3 +78,16 @@
 
 - （已于 P3 消除）「诊断详情」（PageCapture JSON）、观察中的 runId / 各类 ID / `evidenceRef`、运行日志的执行绑定已从产品界面移到诊断面板。观察结果自身的「结果详情」与读取范围 JSON 属于结果元数据，不是页面现场。
 - 「文件可能变化」在用户重新读取后不会自动消失（Main 只替换、不清除提示，属既有业务语义），本次不改。
+
+## E. 修复轮修订（2026-10-12）
+
+验收复核后确认六项修复；本节只记对应条款增量，A–D 节与原实施期修订继续有效，未列条款不变。
+
+| 修复 | 条款变化 |
+| ---- | -------- |
+| 1 日志文件 | UX-CONTRACT「状态呈现与诊断」、status-interface.md §8.5：NDJSON 只在目标路径不存在时独占新建（`wx`，权限 `0600`）；任何已存在路径——真实的旧诊断日志、以 `{"type":"snapshot"` 前缀开头的其他 JSON、空文件、符号链接与悬空链接——拒绝并保持原字节；拒绝或写入失败只记录一次并停用本轮日志，不影响应用；5 MiB 上限含 `limit` 行预留，无轮转 / 备份 / 迁移。 |
+| 2 文件不可用与观察文案 | status-interface.md §3 / §4.8、UX-CONTRACT「统一观察」：新增 `file:<resourceId>:unavailable` 事实（未绑定授权环境或带 `unavailableReason`，degraded / problem，priority 60，高于 `file:<id>:hint` 的 45），label 取 `unavailableReason || 默认说明`（空串视同无原因，label 必非空）；Files 不再有第二份行内说明，表单启用条件不变；错误标签以事实层 `OBSERVATION_ERROR_LABEL` 为单一来源（沿用既有中文文案，如 `unauthorized`「未获授权」、`stale_ref`「引用已失效」，12 项已接受偏差保留），历史记录四状态与来源可用性文案由展示层提供；completed / cancelled 不新增当前 state 事实，历史不升级为告警，当前 / 历史播报策略不变。 |
+| 3 debug:facts-changed | status-interface.md §8.1 / §8.6、UX-CONTRACT Canonical UI Map 与「状态呈现与诊断」：新增只读事件 `debug:facts-changed`（payload 为字面量 `changed`）与 `StudioDebugApi.onFactsChanged(listener: () => void): () => void`，仅诊断开启时暴露；事实新增 / 消失及 detail / raw / action / scope 等变化每批通知一次；合法的新增 / 消失或 phase / kind / label 变化仍照常产生转换与 seq，只有本通知自身及 detail / raw 独变不新增转换、seq 或 NDJSON，相同投影不通知；面板订阅先于初读、在途响应失效后合并为一次重读、卸载后迟到响应不应用，不轮询；默认关闭时 `window.studio` 仍恰为六键、无菜单项、无诊断 invoke；PageCapture 不可复制与 NDJSON 边界不变。 |
+| 4 终端连接禁用 | status-interface.md §4.2 / §7、UX-CONTRACT 终端段、plan.md §5：`failed` / `closed` / `idle` 且 `cleanupPending` 时 `terminal.connect` 动作带 `disabled: true`，终端工具栏按钮可见但禁用；`starting` / `closing` 不提供连接动作（忙态防重复不变）；Main 侧直接重连仍被拒绝，Ctrl-C 可访问名称不变。 |
+| 5 plan §5 验收覆盖与用例命名 | plan.md §5：正式覆盖 AI 操控 + 页面加载失败 + 已拦截导航同屏、已暂停 + 页面控制断开两动作的 Tab / Enter 与对应网页 scope、多个折叠问题的方向键 / Esc / 原生网页真实让位、文件资源不可用进问题通道、SSH 未确认期间连接禁用、诊断面板 detail / raw 刷新；本轮修复新增的验收用例统一以「修复复验：」前缀命名。 |
+| 6 验证一致性约定 | 原 `final-validation/check-delta.json` 自身未格式化造成 802 / 801 条记录差异、封存 `typecheck.txt` 的 EOF 空行告警：历史原始 txt 证据保持原字节不改；汇总 check-delta 在修复轮按当前证据集合格式化并重算为新证据。修复轮全部新证据落 `docs/acceptance/status-surface-20261011/repair-validation/`（经 `run-command.mjs` 记录）：保留原失败记录、失败项独立复跑与降并行运行的记录各留一份。全部新证据落盘后，最终 lint 错误数与出错文件集合、format 失败文件集合须与 `917f375` 基线比对；未实际测得的数字不得写成通过。验收 README 与汇总由主代理负责。 |

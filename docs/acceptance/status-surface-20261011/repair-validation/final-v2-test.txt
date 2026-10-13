@@ -1,0 +1,36 @@
+
+> web-studio-lab@ test /Users/huaodong/workspace/_worktrees/status-surface-20261011
+> vitest run && node --test scripts/packaging/*.test.mjs && pnpm test:external-builds
+
+
+ RUN  v5.0.3 /Users/huaodong/workspace/_worktrees/status-surface-20261011
+
+ ❯ apps/desktop/src/main/setup-adapter.test.ts (6 tests | 1 failed) 8006ms
+   ❯ installer native boundaries (6)
+     × accepts actual sanitized sbx inspect shape, rejects mounts and daemon drift 5012ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/setup-adapter.test.ts > installer native boundaries > accepts actual sanitized sbx inspect shape, rejects mounts and daemon drift
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/desktop/src/main/setup-adapter.test.ts:42:3
+     40| afterEach(() => vi.unstubAllGlobals());
+     41| describe('installer native boundaries', () => {
+     42|   it('accepts actual sanitized sbx inspect shape, rejects mounts and d…
+       |   ^
+     43|     const inspection = {
+     44|       name: 'owned',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 86 passed | 6 skipped (93)
+      Tests  1 failed | 914 passed | 15 skipped (930)
+   Start at  00:07:34
+   Duration  19.54s (tests 73%, import 19%, transform 8%, worker 1%)
+
+    Isolate  93 workers spawned · ~286ms startup each (spawn + environment, per file)
+             at least ~2.67s faster with isolate: false — reuses workers across files instead of one per file
+
+ ELIFECYCLE  Test failed. See above for more details.

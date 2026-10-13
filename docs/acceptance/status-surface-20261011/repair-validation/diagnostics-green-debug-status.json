@@ -1,0 +1,10 @@
+{
+  "command": "pnpm exec vitest run apps/desktop/src/main/debug-status.test.ts",
+  "cwd": "/Users/huaodong/workspace/_worktrees/status-surface-20261011",
+  "phase": "green",
+  "exitCode": 0,
+  "stdout": "diagnostics-green-debug-status.stdout.txt",
+  "stderr": "diagnostics-green-debug-status.stderr.txt",
+  "result": "passed",
+  "summary": "28 tests passed。prepareLogFile 仅 wx/0600 新建、已有路径全拒；detail/raw 变化只通知不产生转换；emitFactsChanged 异常旁路只报一次。"
+}

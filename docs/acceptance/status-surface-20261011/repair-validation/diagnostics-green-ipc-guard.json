@@ -1,0 +1,10 @@
+{
+  "command": "pnpm exec vitest run apps/desktop/src/main/ipc-guard.test.ts",
+  "cwd": "/Users/huaodong/workspace/_worktrees/status-surface-20261011",
+  "phase": "green",
+  "exitCode": 0,
+  "stdout": "diagnostics-green-ipc-guard.stdout.txt",
+  "stderr": "diagnostics-green-ipc-guard.stderr.txt",
+  "result": "passed",
+  "summary": "7 tests passed。新事件通道 debug:facts-changed 不涉及 invoke 通道与启用开关，既有断言不受影响。"
+}

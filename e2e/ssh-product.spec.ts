@@ -148,8 +148,23 @@ test('产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例�
     expect((await resource(page, '回环真PTY')).terminal!.cleanupPending).toBe(true);
     cleanupUnknown = true;
     await expect.poll(() => fixture.evidence.ptysCleaned).toBe(2);
-    await terminal.getByRole('button', { name: '连接终端', exact: true }).click();
-    await expect(page.locator('.workspace-error')).toContainText('清理未确认');
+    await expect(terminal.getByRole('button', { name: '连接终端', exact: true })).toBeVisible();
+    await expect(terminal.getByRole('button', { name: '连接终端', exact: true })).toBeDisabled();
+    const rejected = await page.evaluate(async () => {
+      const snapshot = await window.studio.workbench.getSnapshot();
+      const workspace = snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)!;
+      const target = workspace.resources.find((r) => r.title === '回环真PTY')!;
+      return window.studio.workbench.command({
+        commandId: crypto.randomUUID(),
+        type: 'terminalOpen',
+        workspaceId: workspace.workspaceId,
+        resourceId: target.resourceId,
+        cols: 80,
+        rows: 24,
+      } as never);
+    });
+    expect(rejected.ok).toBe(false);
+    if (!rejected.ok) expect(rejected.error.message).toContain('清理未确认');
     expect(fixture.evidence.ptysStarted).toBe(2);
   } catch (error) {
     originalFailure = error;

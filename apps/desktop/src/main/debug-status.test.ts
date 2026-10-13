@@ -1,4 +1,4 @@
-import { lstatSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { linkSync, lstatSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -110,7 +110,7 @@ function memoryLog() {
   return {
     writes,
     prepared,
-    // 内存日志：不触碰真实文件系统；真实文件的创建 / 重建 / 拒绝规则见下方「真实文件」用例。
+    // 内存日志：不触碰真实文件系统；真实文件的创建 / 拒绝规则见下方「真实文件」用例。
     io: {
       prepareLogFile: (path: string) => void prepared.push(path),
       writeLogFile: (path: string, data: string) => {
@@ -421,6 +421,59 @@ describe('WSL_STATUS_LOG 真实文件', () => {
       expect(errors).toEqual([]);
     }));
 
+  it.each(['file', 'hardlink'])('启动后日志路径被 %s 替换时拒绝追加，保留两份文件', (replacement) =>
+    withDir((dir) => {
+      const file = path.join(dir, 'status.ndjson');
+      const original = path.join(dir, 'original.ndjson');
+      const target = path.join(dir, 'notes.txt');
+      const content = '用户内容，不能追加诊断数据\n';
+      const { debug, errors } = create({ logPath: file });
+      debug.startLog();
+      const snapshot = readFileSync(file, 'utf8');
+      renameSync(file, original);
+      if (replacement === 'hardlink') {
+        writeFileSync(target, content);
+        linkSync(target, file);
+      } else writeFileSync(file, content);
+      debug.onChat(chat());
+      debug.onChat(chat({ available: false }));
+      debug.startLog();
+      expect(readFileSync(file, 'utf8')).toBe(content);
+      if (replacement === 'hardlink') expect(readFileSync(target, 'utf8')).toBe(content);
+      expect(readFileSync(original, 'utf8')).toBe(snapshot);
+      expect(errors).toHaveLength(1);
+      expect(debug.snapshot().transitions).toHaveLength(2);
+    }),
+  );
+
+  it('日志新增硬链接后拒绝继续写入共享的文件', () =>
+    withDir((dir) => {
+      const file = path.join(dir, 'status.ndjson');
+      const target = path.join(dir, 'shared.ndjson');
+      const { debug, errors } = create({ logPath: file });
+      debug.startLog();
+      const snapshot = readFileSync(file, 'utf8');
+      linkSync(file, target);
+      debug.onChat(chat());
+      expect(readFileSync(target, 'utf8')).toBe(snapshot);
+      expect(errors).toHaveLength(1);
+      expect(debug.snapshot().transitions).toHaveLength(1);
+    }));
+
+  it('日志内容被外部追加后停止写入，不把外部字节排除在上限之外', () =>
+    withDir((dir) => {
+      const file = path.join(dir, 'status.ndjson');
+      const { debug, errors } = create({ logPath: file });
+      debug.startLog();
+      writeFileSync(file, '外部追加\n', { flag: 'a' });
+      const changed = readFileSync(file, 'utf8');
+      debug.onChat(chat());
+      debug.onChat(chat({ available: false }));
+      expect(readFileSync(file, 'utf8')).toBe(changed);
+      expect(errors).toHaveLength(1);
+      expect(debug.snapshot().transitions).toHaveLength(2);
+    }));
+
   it('已有的非诊断文件不被改动：报告一次并停用 NDJSON', () =>
     withDir((dir) => {
       const file = path.join(dir, 'notes.txt');
@@ -461,17 +514,155 @@ describe('WSL_STATUS_LOG 真实文件', () => {
       expect(errors).toHaveLength(1);
     }));
 
-  it('上次诊断留下的日志可以重建：旧内容被替换', () =>
+  it('空文件同样拒绝，不当作可重建的日志', () =>
     withDir((dir) => {
       const file = path.join(dir, 'status.ndjson');
-      writeFileSync(file, '{"type":"snapshot","facts":[]}\n{"type":"transition","key":"old"}\n');
+      writeFileSync(file, '');
+      const { debug, errors } = create({ logPath: file });
+      debug.startLog();
+      debug.onChat(chat());
+      expect(readFileSync(file, 'utf8')).toBe('');
+      expect(errors).toHaveLength(1);
+    }));
+
+  it('以 snapshot 前缀开头但不是诊断日志的文件同样拒绝，原字节不变', () =>
+    withDir((dir) => {
+      const file = path.join(dir, 'inventory.ndjson');
+      const content = '{"type":"snapshot","system":"inventory","records":[{"sku":"A1","quantity":50}]}\n';
+      writeFileSync(file, content);
+      const { debug, errors } = create({ logPath: file });
+      debug.startLog();
+      debug.onChat(chat());
+      debug.onChat(chat({ available: false }));
+      expect(readFileSync(file, 'utf8')).toBe(content);
+      expect(errors).toHaveLength(1);
+      expect(debug.snapshot().transitions).toHaveLength(2);
+    }));
+
+  it('上次诊断留下的日志同样拒绝，旧内容原样保留', () =>
+    withDir((dir) => {
+      const file = path.join(dir, 'status.ndjson');
+      const content = '{"type":"snapshot","facts":[]}\n{"type":"transition","key":"old"}\n';
+      writeFileSync(file, content);
       const { debug, errors } = create({ logPath: file });
       debug.onChat(chat());
       debug.startLog();
-      const lines = readFileSync(file, 'utf8').split('\n').filter(Boolean);
-      expect(lines).toHaveLength(1);
-      expect(JSON.parse(lines[0]!)).toMatchObject({ type: 'snapshot' });
-      expect(readFileSync(file, 'utf8')).not.toContain('"old"');
-      expect(errors).toEqual([]);
+      expect(readFileSync(file, 'utf8')).toBe(content);
+      expect(errors).toHaveLength(1);
     }));
+
+  it('路径被拒绝后，重复 startLog 与后续更新不再准备或写入文件', () => {
+    let prepares = 0;
+    let writes = 0;
+    const { debug, errors } = create({
+      logPath: '/tmp/existing.ndjson',
+      prepareLogFile: () => {
+        prepares += 1;
+        throw new Error('EEXIST');
+      },
+      writeLogFile: () => {
+        writes += 1;
+      },
+    });
+    debug.startLog();
+    debug.startLog();
+    debug.onChat(chat());
+    debug.onChat(chat({ available: false }));
+    expect(prepares).toBe(1);
+    expect(writes).toBe(0);
+    expect(errors).toHaveLength(1);
+    expect(debug.snapshot().transitions).toHaveLength(2);
+  });
+});
+
+describe('事实更新通知（debug:facts-changed）', () => {
+  it('新增事实与 detail / raw 变化每批通知一次；detail / raw 不产生转换、不增加 seq、不写 NDJSON', () => {
+    const log = memoryLog();
+    let notified = 0;
+    const { debug } = create({ logPath: '/tmp/status.ndjson', ...log.io, emitFactsChanged: () => (notified += 1) });
+    debug.startLog();
+    debug.onChat(chat({ version: '1' }));
+    expect(notified).toBe(1);
+    const seqAfterAdd = debug.snapshot().seq;
+    const writesAfterAdd = log.writes.length;
+
+    debug.onChat(chat({ version: '2' }));
+    expect(notified).toBe(2);
+    expect(debug.snapshot().seq).toBe(seqAfterAdd);
+    expect(log.writes).toHaveLength(writesAfterAdd);
+    expect(debug.snapshot().facts.find((fact) => fact.key === 'chat:global:state')?.detail).toContain('2');
+
+    debug.onWorkbench(workbench(1, terminal('running')));
+    expect(notified).toBe(3);
+    const seqAfterWorkbench = debug.snapshot().seq;
+    const writesAfterWorkbench = log.writes.length;
+
+    debug.onWorkbench(workbench(2, terminal('running', { outputOffset: 42 })));
+    expect(notified).toBe(4);
+    expect(debug.snapshot().seq).toBe(seqAfterWorkbench);
+    expect(log.writes).toHaveLength(writesAfterWorkbench);
+  });
+
+  it('完全相同的投影不通知；仅 appInstanceId 变化也通知一次、不产生转换', () => {
+    let notified = 0;
+    const { debug } = create({ emitFactsChanged: () => (notified += 1) });
+    debug.onChat(chat());
+    debug.onChat(chat());
+    expect(notified).toBe(1);
+
+    debug.onWorkbench(workbench(1, null));
+    expect(notified).toBe(2);
+    const seqBefore = debug.snapshot().seq;
+    debug.onWorkbench(workbench(2, null));
+    expect(notified).toBe(2);
+    expect(debug.snapshot().seq).toBe(seqBefore);
+
+    const otherInstance = workbench(3, null);
+    otherInstance.appInstanceId = 'app-inst-2';
+    debug.onWorkbench(otherInstance);
+    expect(notified).toBe(3);
+    expect(debug.snapshot().seq).toBe(seqBefore);
+    expect(debug.snapshot().appInstanceId).toBe('app-inst-2');
+  });
+
+  it('授权根变化只改变脱敏结果时也通知一次，不产生转换、seq 不变', () => {
+    let notified = 0;
+    const { debug } = create({ emitFactsChanged: () => (notified += 1) });
+    debug.onChat(chat({ available: false, reason: '读取 /opt/private-root/a 失败' }));
+    expect(notified).toBe(1);
+    expect(debug.snapshot().facts.find((fact) => fact.key === 'chat:global:state')!.detail).toContain('/opt/private-root');
+    const seqBefore = debug.snapshot().seq;
+    const transitionsBefore = debug.snapshot().transitions.length;
+
+    debug.onSetup(setup({}, { localRoot: '/opt/private-root' }));
+    expect(notified).toBe(2);
+    expect(debug.snapshot().seq).toBe(seqBefore);
+    expect(debug.snapshot().transitions).toHaveLength(transitionsBefore);
+    expect(debug.snapshot().facts.find((fact) => fact.key === 'chat:global:state')!.detail).not.toContain('/opt/private-root');
+  });
+
+  it('emitFactsChanged 抛错只报告一次，不打断事实更新、转换与 NDJSON', () => {
+    const log = memoryLog();
+    let calls = 0;
+    const { debug, errors } = create({
+      logPath: '/tmp/status.ndjson',
+      ...log.io,
+      emitFactsChanged: () => {
+        calls += 1;
+        throw new Error('window destroyed');
+      },
+    });
+    debug.startLog();
+    expect(() => {
+      debug.onChat(chat());
+      debug.onChat(chat({ version: '2' }));
+      debug.onChat(chat({ available: false }));
+    }).not.toThrow();
+    expect(calls).toBe(3);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('通知失败');
+    expect(debug.snapshot().transitions).toHaveLength(2);
+    expect(log.lines().filter((line) => line['type'] === 'transition')).toHaveLength(2);
+    expect(debug.snapshot().facts.find((fact) => fact.key === 'chat:global:state')?.phase).toBe('failed');
+  });
 });

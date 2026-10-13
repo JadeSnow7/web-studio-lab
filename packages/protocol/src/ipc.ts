@@ -63,6 +63,7 @@ export const eventChannels = {
   'shell:command': ShellCommandSchema,
   /** 诊断事件：每条转换（已脱敏）；仅诊断通道启用时发送。 */
   'debug:status': StatusTransitionSchema,
+  'debug:facts-changed': z.literal('changed'),
   /** 菜单「诊断面板」：通知 renderer 打开或关闭诊断面板；仅诊断通道启用时发送。 */
   'debug:panel': z.literal('toggle'),
 } as const;
@@ -83,5 +84,6 @@ export const DEBUG_PRELOAD_ARGUMENT = '--wsl-debug-status';
 export interface StudioDebugApi {
   status(): Promise<DebugStatusSnapshot>;
   onTransition(listener: (transition: StatusTransition) => void): () => void;
+  onFactsChanged(listener: () => void): () => void;
   onTogglePanel(listener: () => void): () => void;
 }

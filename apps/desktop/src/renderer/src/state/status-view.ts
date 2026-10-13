@@ -2,6 +2,9 @@ import { useMemo } from 'react';
 import type {
   ChatStatus,
   ExecutionStatus,
+  ObservationError,
+  ObservationRecord,
+  ObservationSources,
   SetupSnapshot,
   StatusDomain,
   StatusFact,
@@ -12,7 +15,7 @@ import type {
   TargetRef,
   WorkbenchSnapshot,
 } from '@wsl/protocol';
-import { projectFacts } from '../../../shared/status';
+import { OBSERVATION_ERROR_LABEL, projectFacts } from '../../../shared/status';
 import { createStore, useStore } from '../lib/store';
 import { chatStore } from './chat';
 import { environmentStore } from './execution';
@@ -28,6 +31,32 @@ import { workspaceStore } from './workspace';
  * - workspaceError 不迁移所有权：仍由 workspaceStore.error 单点写入，这里只把它作为 presentToasts 的输入读取。
  * - occlusion 不镜像进 PresentationState：需要遮挡的组件（StatusSlot 的「另有 N 项」菜单）直接使用 occlusion.open / close。
  */
+
+const OBSERVATION_RECORD_STATE = {
+  pending: '读取中',
+  completed: '已完成',
+  cancelled: '已取消',
+  failed: '失败',
+} satisfies Record<ObservationRecord['state'], string>;
+
+export function observationRecordStateLabel(state: ObservationRecord['state']): string {
+  return OBSERVATION_RECORD_STATE[state];
+}
+
+export function observationErrorLine(result: ObservationError): string {
+  return `${OBSERVATION_ERROR_LABEL[result.error]} · ${result.message}。请核对来源或重新读取。`;
+}
+
+const OBSERVATION_SOURCE_STATE = {
+  live: '活动',
+  closed: '已关闭',
+  unavailable: '不可用',
+} satisfies Record<ObservationSources['sources'][number]['state'], string>;
+
+export function observationSourceState(source: Pick<ObservationSources['sources'][number], 'state' | 'reason'>): string {
+  const label = OBSERVATION_SOURCE_STATE[source.state];
+  return source.reason ? `${label} · ${source.reason}` : label;
+}
 
 /* ---------- 展示状态 ---------- */
 
@@ -879,6 +908,11 @@ export function useStatusView(scope: StatusScope): StatusViewResult {
 export function useStatusViewByKey(scope: StatusScope, key: string): StatusView | null {
   const { byScope } = useDerivedStatus();
   return byScope.get(scopeKey(scope))?.find((view) => view.key === key) ?? null;
+}
+
+export function useResourceUnavailableView(scope: StatusScope): StatusView | null {
+  const { byScope } = useDerivedStatus();
+  return byScope.get(scopeKey(scope))?.find((view) => view.facet === 'unavailable') ?? null;
 }
 
 /** 某个 scope 内的全部视图（不论通道与是否可见），已按通道优先级排序；详情页按 key 取中文 label 时使用。 */

@@ -6,13 +6,17 @@ import { promisify } from 'node:util';
 import { expect, test, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import {
   fixtureSandbox,
+  installStatusShim,
   launchApp,
   openBrowserMenu,
   previewInfo,
+  pushWorkbenchSnapshot,
   screensDir,
+  setStatusShim,
   setWindowSize,
   setWorkspaceTheme,
   shot,
+  statusShimBrowserActions,
   target,
   workshopNavigate,
   workspaceSnapshot,
@@ -613,10 +617,13 @@ test('SSH 断线后进程未确认：交互后提示仍可见（unresolved 不�
     const unresolved = terminalSlotItems(page).filter({ hasText: '所属进程退出未确认' });
     await expect(unresolved).toBeVisible();
     await expect(unresolved).toHaveAttribute('data-status-channel', 'persistent');
-    // 点击窗格、按键之后仍然可见。工具栏的「连接终端」保持可点：重连由 Main 明确拒绝并给出「清理未确认」（ssh-product.spec 覆盖）。
+    // 点击窗格、按键之后仍然可见。工具栏的「连接终端」保持可见但禁用：清理未确认时重连由 Main 明确拒绝（ssh-product.spec 经命令通道核对）。
+    await expect(connectButton(page)).toBeVisible();
+    await expect(connectButton(page)).toBeDisabled();
     await terminalPanel(page).locator('.terminal-surface').click();
     await page.keyboard.press('Shift+Tab');
     await expect(unresolved).toBeVisible();
+    await expect(connectButton(page)).toBeDisabled();
     await expect(capsuleOf(page).locator('[data-status="terminal:failed"]')).toBeVisible();
   } finally {
     // 产品有意拒绝在远端清理未确认时正常关闭窗口（同 ssh-product.spec）：fixture 独立确认其 PTY 已退出后强制结束本测试拥有的进程。
@@ -626,6 +633,55 @@ test('SSH 断线后进程未确认：交互后提示仍可见（unresolved 不�
       await exited;
     }
     await fixture.stop();
+  }
+});
+
+test('修复复验：终端清理未确认时连接按钮禁用（failed/closed/idle 均成立），消除后恢复，starting/closing 仍禁用，中断名称保留', async () => {
+  const { app, page } = await launchApp({ sbxBin });
+  try {
+    await mkdir(path.join(screensDir, 'status-surface'), { recursive: true });
+    await resize(app, page, 1440, 900);
+    await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '开发终端', exact: true }).click();
+    const connect = connectButton(page);
+    const unresolved = terminalSlotItems(page).filter({ hasText: '所属进程退出未确认' });
+    const resourceId = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((r) => r.kind === 'terminal')!.resourceId;
+    await installStatusShim(app);
+    const terminal = (over: Record<string, unknown>) => ({
+      seq: 0,
+      sessionId: 'shim-session',
+      sandbox: 'fixture-sandbox',
+      cwd: '/home/agent/workspace',
+      output: '',
+      outputOffset: 0,
+      error: null,
+      ...over,
+    });
+    for (const state of ['failed', 'closed', 'idle'] as const) {
+      await setStatusShim(app, {
+        terminal: { [resourceId]: terminal({ state, cleanupPending: true, error: state === 'failed' ? 'fixture 断线' : null }) },
+      });
+      await pushWorkbenchSnapshot(page);
+      await expect(unresolved).toBeVisible();
+      await expect(connect).toBeVisible();
+      await expect(connect).toBeDisabled();
+    }
+    await shot(page, 'status-surface/terminal-cleanup-pending-disabled-1440');
+    await setStatusShim(app, { terminal: { [resourceId]: terminal({ state: 'idle', cleanupPending: false }) } });
+    await pushWorkbenchSnapshot(page);
+    await expect(unresolved).toHaveCount(0);
+    await expect(connect).toBeEnabled();
+    for (const state of ['starting', 'closing'] as const) {
+      await setStatusShim(app, { terminal: { [resourceId]: terminal({ state, cleanupPending: true }) } });
+      await pushWorkbenchSnapshot(page);
+      await expect(connect).toBeDisabled();
+    }
+    await setStatusShim(app, { terminal: { [resourceId]: terminal({ state: 'running', cleanupPending: true }) } });
+    await pushWorkbenchSnapshot(page);
+    await expect(connect).toHaveCount(0);
+    await expect(interruptButton(page)).toBeVisible();
+    await expect(closeButton(page)).toBeVisible();
+  } finally {
+    await app.close();
   }
 });
 
@@ -1077,6 +1133,149 @@ test('网页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（加载失
     } finally {
       await app.close();
     }
+  }
+});
+
+/* ---------- 修复复验：组合可见性 ---------- */
+
+test('修复复验：AI 操控中 + 页面加载失败 + 已拦截导航同时成立——控制提示与失败文本同时可见，另有 1 项展开看到拦截导航', async () => {
+  const { app, page } = await launchApp();
+  try {
+    await mkdir(path.join(screensDir, 'status-surface'), { recursive: true });
+    await resize(app, page, 1440, 900);
+    await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
+    await installStatusShim(app);
+    await setStatusShim(app, {
+      agentControl: { state: 'active', runId: 'run-status-combo-active', since: '2026-10-12T01:00:00.000Z', lastAction: '点击提交按钮' },
+    });
+    await failPageLoad(app, page);
+    await onPreview(app, 'block-navigation');
+    const control = browserSlotItems(page).filter({ hasText: 'AI 正在操控此页面' });
+    const failure = browserSlotItems(page).filter({ hasText: '页面加载失败' });
+    await expect(control).toBeVisible();
+    await expect(control).toHaveAttribute('data-status-channel', 'persistent');
+    await expect(control).toHaveAttribute('data-testid', 'agent-control-active');
+    await expect(control).toContainText('点击提交按钮');
+    await expect(failure).toBeVisible();
+    await expect(failure).toHaveAttribute('data-status-channel', 'problem');
+    const more = browserSlotItems(page).getByRole('button', { name: '另有 1 项', exact: true });
+    await expect(more).toBeVisible();
+    await more.focus();
+    await page.keyboard.press('Enter');
+    const menu = page.getByRole('menu', { name: '其他问题', exact: true });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole('menuitem')).toContainText('已拦截导航：http://blocked.example/path');
+    await shot(page, 'status-surface/combo-ai-loaderror-blockednav-1440');
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    await resize(app, page, 960, 700);
+    await expect(control).toBeVisible();
+    await expect(failure).toBeVisible();
+    await expect(more).toBeVisible();
+    await shot(page, 'status-surface/combo-ai-loaderror-blockednav-960');
+  } finally {
+    await app.close();
+  }
+});
+
+test('修复复验：已暂停 AI + 页面控制断开——「允许 AI 继续」与「重新附着」同时可见、真实 Tab 各到达、Enter 下发既有命令', async () => {
+  const { app, page } = await launchApp();
+  try {
+    await mkdir(path.join(screensDir, 'status-surface'), { recursive: true });
+    await resize(app, page, 1440, 900);
+    await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
+    await browserActionByCommand(page, 'reattach');
+    const { workspaceId, resource } = await activeWebResource(page);
+    await installStatusShim(app);
+    await setStatusShim(app, {
+      agentControl: {
+        state: 'paused_by_user',
+        runId: 'run-status-combo-paused',
+        since: '2026-10-12T01:05:00.000Z',
+        lastAction: '填写表单',
+      },
+    });
+    await onPreview(app, 'detach-cdp');
+    const paused = browserSlotItems(page).filter({ hasText: '已暂停 AI 操控' });
+    const detached = browserSlotItems(page).filter({ hasText: '页面控制已断开' });
+    await expect(paused).toBeVisible();
+    await expect(paused).toHaveAttribute('data-status-channel', 'persistent');
+    await expect(paused).toHaveAttribute('data-testid', 'agent-control-paused');
+    await expect(detached).toBeVisible();
+    await expect(detached).toHaveAttribute('data-status-channel', 'problem');
+    const resume = paused.getByRole('button', { name: '允许 AI 继续', exact: true });
+    const reattach = detached.getByRole('button', { name: '重新附着', exact: true });
+    await expect(resume).toBeVisible();
+    await expect(reattach).toBeVisible();
+    await shot(page, 'status-surface/combo-paused-detached-1440');
+    await resize(app, page, 960, 700);
+    await expect(paused).toBeVisible();
+    await expect(detached).toBeVisible();
+    await shot(page, 'status-surface/combo-paused-detached-960');
+    await resize(app, page, 1440, 900);
+    await moreTrigger(page).focus();
+    await page.keyboard.press('Tab');
+    await expect(resume).toBeFocused();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Tab');
+    await expect(reattach).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(detached).toHaveCount(0);
+    expect(await statusShimBrowserActions(app)).toEqual([
+      { action: 'resumeAgent', workspaceId, resourceId: resource.resourceId },
+      { action: 'reattach', workspaceId, resourceId: resource.resourceId },
+    ]);
+    await setStatusShim(app, { agentControl: null });
+    await pushWorkbenchSnapshot(page);
+    await expect(browserSlotItems(page)).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});
+
+test('修复复验：问题通道另有 2 项——真实键盘展开菜单、方向键移动、Esc 回焦触发器、原生网页让位恢复', async () => {
+  const { app, page } = await launchApp();
+  try {
+    await mkdir(path.join(screensDir, 'status-surface'), { recursive: true });
+    await resize(app, page, 1440, 900);
+    await expect(browserSlotItems(page)).toHaveCount(0);
+    await failPageLoad(app, page);
+    await onPreview(app, 'block-navigation');
+    await browserActionByCommand(page, 'reattach');
+    await onPreview(app, 'detach-cdp');
+    const failure = browserSlotItems(page).filter({ hasText: '页面加载失败' });
+    await expect(failure).toBeVisible();
+    const more = browserSlotItems(page).getByRole('button', { name: '另有 2 项', exact: true });
+    await expect(more).toBeVisible();
+    await moreTrigger(page).focus();
+    await page.keyboard.press('Tab');
+    await expect(failure.getByRole('button', { name: '重新加载', exact: true })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(more).toBeFocused();
+    await page.keyboard.press('Enter');
+    const menu = page.getByRole('menu', { name: '其他问题', exact: true });
+    await expect(menu).toBeVisible();
+    const items = menu.getByRole('menuitem');
+    await expect(items).toHaveCount(2);
+    await expect(items.nth(0)).toContainText('页面控制已断开');
+    await expect(items.nth(1)).toContainText('已拦截导航：http://blocked.example/path');
+    await expect(items.nth(0)).toBeFocused();
+    await expectNativePage(app, page, false);
+    await page.keyboard.press('ArrowDown');
+    await expect(items.nth(1)).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await expect(items.nth(0)).toBeFocused();
+    await shot(page, 'status-surface/combo-problem-more-1440');
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    await expect(more).toBeFocused();
+    await expectNativePage(app, page, true);
+    await resize(app, page, 960, 700);
+    await expect(failure).toBeVisible();
+    await expect(more).toBeVisible();
+    await shot(page, 'status-surface/combo-problem-more-960');
+  } finally {
+    await app.close();
   }
 });
 
@@ -2147,6 +2346,81 @@ test('文件截图：白 / 暗 / 暖 × 1440 / 960，正常（小文件读取完
       await app.close();
       await rm(root, { recursive: true, force: true });
     }
+  }
+});
+
+test('修复复验：文件资源不可用进唯一状态槽——缺环境与不可用原因两条件，body 无重复、表单禁用、恢复可用', async () => {
+  const root = await fileRoot();
+  const { app, page } = await launchApp({ observationRoot: root });
+  try {
+    await mkdir(path.join(screensDir, 'status-surface'), { recursive: true });
+    await resize(app, page, 1440, 900);
+    await createFileTab(page, '不可用文件');
+    await filesSlotItems(page).getByRole('button', { name: '知道了', exact: true }).click();
+    const resourceId = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((item) => item.title === '不可用文件')!.resourceId;
+    const unavailable = () => filesSlot(page).locator(`.status-item[data-status-key="file:${resourceId}:unavailable"]`);
+    await installStatusShim(app);
+
+    await setStatusShim(app, { resource: { [resourceId]: { environmentId: null } } });
+    await pushWorkbenchSnapshot(page);
+    await expect(unavailable()).toBeVisible();
+    await expect(unavailable()).toHaveAttribute('data-status-channel', 'problem');
+    await expect(unavailable().getByRole('alert')).toContainText('此资源没有授权环境，请新建标签并明确选择已配置环境。');
+    await expect(filesPanel(page).locator('.file-panel-body').getByText('此资源没有授权环境', { exact: false })).toHaveCount(0);
+    await expect(filesPanel(page).locator('p[role="status"]')).toHaveCount(0);
+    for (const name of ['列出目录', '读取文件', '搜索文件'])
+      await expect(filesPanel(page).getByRole('button', { name, exact: true })).toBeDisabled();
+    await shot(page, 'status-surface/files-unavailable-no-env-1440');
+
+    await setStatusShim(app, { resource: { [resourceId]: { environmentId: 'local', unavailableReason: '授权环境已下线' } } });
+    await pushWorkbenchSnapshot(page);
+    await expect(unavailable()).toBeVisible();
+    await expect(unavailable().getByRole('alert')).toContainText('授权环境已下线');
+    await expect(filesPanel(page).locator('.file-panel-body').getByText('授权环境已下线')).toHaveCount(0);
+    await expect(filesPanel(page).getByRole('button', { name: '列出目录', exact: true })).toBeDisabled();
+    await shot(page, 'status-surface/files-unavailable-reason-1440');
+
+    await setStatusShim(app, { resource: { [resourceId]: { environmentId: 'local', unavailableReason: null } } });
+    await pushWorkbenchSnapshot(page);
+    await expect(unavailable()).toHaveCount(0);
+    const list = filesPanel(page).getByRole('button', { name: '列出目录', exact: true });
+    await expect(list).toBeEnabled();
+    await list.click();
+    await expect(filesResult(page)).toContainText('small.txt');
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('修复复验：观察历史错误与当前结果分离——旧失败不占当前槽、不增加另有项；历史内失败摘要与未获授权可见且不播报', async () => {
+  const root = await fileRoot();
+  const { app, page } = await launchApp({ observationRoot: root });
+  try {
+    await mkdir(path.join(screensDir, 'status-surface'), { recursive: true });
+    await resize(app, page, 1440, 900);
+    await createFileTab(page, '历史分离文件');
+    await filesSlotItems(page).getByRole('button', { name: '知道了', exact: true }).click();
+    await readFile(page, '../outside.txt');
+    await expect(filesSlot(page).locator('.status-item[data-status="observation:failed"]')).toBeVisible();
+    await readFile(page, 'small.txt');
+    const current = filesResult(page);
+    await expect(current).toContainText('SMALL_FILE_OK');
+    await expect(current.locator('[data-status="observation:ok"]')).toBeVisible();
+    await expect(filesSlot(page).locator('.status-item[data-status="observation:failed"]')).toHaveCount(0);
+    await expect(filesSlot(page).getByRole('button', { name: /^另有 \d+ 项$/ })).toHaveCount(0);
+    await expect(filesSlotItems(page)).toHaveCount(0);
+    const history = filesPanel(page).locator('details.observation-history');
+    await history.locator('summary').first().click();
+    const failedEntry = history.locator('details').filter({ hasText: '读取文件 · 失败' });
+    await expect(failedEntry).toHaveCount(1);
+    await failedEntry.locator('summary').click();
+    await expect(failedEntry.getByText('未获授权', { exact: false })).toBeVisible();
+    await expect(failedEntry.getByRole('alert')).toHaveCount(0);
+    await shot(page, 'status-surface/files-observation-history-1440');
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true, force: true });
   }
 });
 

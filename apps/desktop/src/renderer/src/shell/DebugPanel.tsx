@@ -9,6 +9,7 @@ import {
   describeCapture,
   groupFacts,
   kindCounts,
+  loadDebugSnapshots,
   matchesFilter,
   useRendererViews,
   type DebugFilter,
@@ -77,40 +78,18 @@ function DebugDialog() {
     };
   }, []);
 
-  // 实时订阅：每条转换到达后重新读取（读取合并，避免并发请求乱序）。
+  // 实时订阅：事实投影变化（含不产生转换的 detail / raw 变化）后重新读取；读取合并，旧响应不应用。
   useEffect(() => {
     const debug = window.studio.debug;
     if (!debug) return;
-    let active = true;
-    let running = false;
-    let again = false;
-    const load = async () => {
-      if (running) {
-        again = true;
-        return;
-      }
-      running = true;
-      try {
-        do {
-          again = false;
-          const next = await debug.status();
-          if (active) {
-            setData(next);
-            setLoadError(null);
-          }
-        } while (again && active);
-      } catch (error) {
-        if (active) setLoadError(error instanceof Error ? error.message : String(error));
-      } finally {
-        running = false;
-      }
-    };
-    void load();
-    const unsubscribe = debug.onTransition(() => void load());
-    return () => {
-      active = false;
-      unsubscribe();
-    };
+    return loadDebugSnapshots(
+      debug,
+      (next) => {
+        setData(next);
+        setLoadError(null);
+      },
+      setLoadError,
+    );
   }, []);
 
   const facts = useMemo(() => data?.facts ?? [], [data]);

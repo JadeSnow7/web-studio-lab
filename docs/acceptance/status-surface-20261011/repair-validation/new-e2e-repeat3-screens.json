@@ -1,0 +1,124 @@
+{
+  "runName": "new-e2e-repeat3",
+  "meta": "new-e2e-repeat3.meta.json",
+  "productSourceDiff": {
+    "sha256Before": "ab248a5aad1a2352e0be796f32c6af3a99425e546de4c3fd58c55f8314ec7008",
+    "sha256After": "ab248a5aad1a2352e0be796f32c6af3a99425e546de4c3fd58c55f8314ec7008",
+    "changedDuringRun": false
+  },
+  "window": { "startedAt": "2026-10-12T07:11:08.826Z", "endedAt": "2026-10-12T07:12:06.579Z" },
+  "count": 11,
+  "files": [
+    {
+      "file": "combo-ai-loaderror-blockednav-1440.png",
+      "source": "test-results/screens/build/status-surface/combo-ai-loaderror-blockednav-1440.png",
+      "target": "docs/acceptance/status-surface-20261011/repair-validation/screens/new-e2e-repeat3/combo-ai-loaderror-blockednav-1440.png",
+      "sha256": "e3b887b95d79c45592f2ad66fdf7c09c1743fcc2be6422e6a1f897cd2570ecdc",
+      "width": 2880,
+      "height": 1718,
+      "bytes": 200980,
+      "mtime": "2026-10-12T07:11:55.654Z"
+    },
+    {
+      "file": "combo-ai-loaderror-blockednav-960.png",
+      "source": "test-results/screens/build/status-surface/combo-ai-loaderror-blockednav-960.png",
+      "target": "docs/acceptance/status-surface-20261011/repair-validation/screens/new-e2e-repeat3/combo-ai-loaderror-blockednav-960.png",
+      "sha256": "2909f6d7c017860f403cf1a55a03c9511bb657ab3ba43ef885f17b00db489d39",
+      "width": 1920,
+      "height": 1400,
+      "bytes": 110988,
+      "mtime": "2026-10-12T07:11:55.827Z"
+    },
+    {
+      "file": "combo-paused-detached-1440.png",
+      "source": "test-results/screens/build/status-surface/combo-paused-detached-1440.png",
+      "target": "docs/acceptance/status-surface-20261011/repair-validation/screens/new-e2e-repeat3/combo-paused-detached-1440.png",
+      "sha256": "94c603a13a6d9070e595b2822544a94c11024317d8e19f9c4164382acb2be2b5",
+      "width": 2880,
+      "height": 1718,
+      "bytes": 144216,
+      "mtime": "2026-10-12T07:11:57.858Z"
+    },
+    {
+      "file": "combo-paused-detached-960.png",
+      "source": "test-results/screens/build/status-surface/combo-paused-detached-960.png",
+      "target": "docs/acceptance/status-surface-20261011/repair-validation/screens/new-e2e-repeat3/combo-paused-detached-960.png",
+      "sha256": "a85f50ac6d58c646207501bf566d5df9845a06a6f7daf30fe9579b8f86614406",
+      "width": 1920,
+      "height": 1400,
+      "bytes": 83480,
+      "mtime": "2026-10-12T07:11:58.011Z"
+    },
+    {
+      "file": "combo-problem-more-1440.png",
+      "source": "test-results/screens/build/status-surface/combo-problem-more-1440.png",
+      "target": "docs/acceptance/status-surface-20261011/repair-validation/screens/new-e2e-repeat3/combo-problem-more-1440.png",
+      "sha256": "6de69f3546b44295c2f27cdd33f2225c6ffb30f6fd3e0425568043e1ac6d6aa4",
+      "width": 2880,
+      "height": 1718,
+      "bytes": 192357,
+      "mtime": "2026-10-12T07:12:00.256Z"
+    },
+    {
+      "file": "combo-problem-more-960.png",
+      "source": "test-results/screens/build/status-surface/combo-problem-more-960.png",
+      "target": "docs/acceptance/status-surface-20261011/repair-validation/screens/new-e2e-repeat3/combo-problem-more-960.png",
+      "sha256": "b9425a89aa616d9c6350a4efb75ed7f0b55976c0ae30e4be62386e8c1b7678a8",
+      "width": 1920,
+      "height": 1400,
+      "bytes": 95485,
+      "mtime": "2026-10-12T07:12:00.470Z"
+    },
+    {
+      "file": "files-unavailable-no-env-1440.png",
+      "source": "test-results/screens/build/status-surface/files-unavailable-no-env-1440.png",
+      "target": "docs/acceptance/status-surface-20261011/repair-validation/screens/new-e2e-repeat3/files-unavailable-no-env-1440.png",
+      "sha256": "6dcbc275f366d9401000ccde90295209ee3bffb026dc87391dabe468f0f47f72",
+      "width": 2880,
+      "height": 1718,
+      "bytes": 153013,
+      "mtime": "2026-10-12T07:12:02.820Z"
+    },
+    {
+      "file": "files-unavailable-reason-1440.png",
+      "source": "test-results/screens/build/status-surface/files-unavailable-reason-1440.png",
+      "target": "docs/acceptance/status-surface-20261011/repair-validation/screens/new-e2e-repeat3/files-unavailable-reason-1440.png",
+      "sha256": "af49101d0975f30c05db7373933c6b34510dd8ee05d90c6870cd20a57c24daf3",
+      "width": 2880,
+      "height": 1718,
+      "bytes": 140892,
+      "mtime": "2026-10-12T07:12:03.001Z"
+    },
+    {
+      "file": "files-observation-history-1440.png",
+      "source": "test-results/screens/build/status-surface/files-observation-history-1440.png",
+      "target": "docs/acceptance/status-surface-20261011/repair-validation/screens/new-e2e-repeat3/files-observation-history-1440.png",
+      "sha256": "84168846a09d5dd2a6cd4cddcc6422e64ee682c5771169e43bd94a14485e1721",
+      "width": 2880,
+      "height": 1718,
+      "bytes": 202069,
+      "mtime": "2026-10-12T07:12:05.964Z"
+    },
+    {
+      "file": "terminal-cleanup-pending-disabled-1440.png",
+      "source": "test-results/screens/build/status-surface/terminal-cleanup-pending-disabled-1440.png",
+      "target": "docs/acceptance/status-surface-20261011/repair-validation/screens/new-e2e-repeat3/terminal-cleanup-pending-disabled-1440.png",
+      "sha256": "adb85cb66d96466d0e84554c0b56bbb4be016359338fce51cbbc3447d4042cf2",
+      "width": 2880,
+      "height": 1718,
+      "bytes": 113335,
+      "mtime": "2026-10-12T07:11:53.168Z"
+    },
+    {
+      "file": "debug-panel-live-update-1440.png",
+      "source": "test-results/screens/build/status-surface/debug-panel-live-update-1440.png",
+      "target": "docs/acceptance/status-surface-20261011/repair-validation/screens/new-e2e-repeat3/debug-panel-live-update-1440.png",
+      "sha256": "994d5d310707b90bc4dd7579ac327b963cabbee253c5c0d675ace9a82ecba331",
+      "width": 2880,
+      "height": 1718,
+      "bytes": 527971,
+      "mtime": "2026-10-12T07:11:50.540Z"
+    }
+  ],
+  "note": "PNG只能证明静态画面；键盘焦点到达、方向键移动、原生网页让位/恢复、禁用与命令参数由正式E2E断言证明。"
+}
