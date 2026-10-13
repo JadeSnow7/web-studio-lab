@@ -1,0 +1,133 @@
+{
+  "head": "1bce260678c5d60e6889a093e0c523c333019fca",
+  "productSourceDiffSha256": "ab248a5aad1a2352e0be796f32c6af3a99425e546de4c3fd58c55f8314ec7008",
+  "scope": "本轮六项修复的第一轮窗口验证（删除未使用的 E2E panel 变量之前）；只记录实际失败、独立复跑与只读审查，不把局部通过拼为全量通过，也不冒充 final-v2 终版运行。",
+  "runs": [
+    {
+      "meta": "final-e2e.meta.json",
+      "output": "final-e2e.txt",
+      "exitCode": 1,
+      "passed": 153,
+      "failed": 2,
+      "skipped": 16,
+      "runnerErrors": 0,
+      "result": "failed"
+    },
+    {
+      "meta": "final-e2e-status-file-rerun.meta.json",
+      "output": "final-e2e-status-file-rerun.txt",
+      "exitCode": 1,
+      "passed": 61,
+      "failed": 3,
+      "skipped": 0,
+      "runnerErrors": 2,
+      "result": "failed",
+      "note": "全量失败的首页截图在本次通过，但另三条失败且有两次 90000ms worker teardown 超时。"
+    },
+    {
+      "meta": "final-e2e-migration-file-rerun.meta.json",
+      "output": "final-e2e-migration-file-rerun.txt",
+      "exitCode": 0,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "runnerErrors": 0,
+      "result": "passed",
+      "note": "全量失败的原生焦点用例通过；日志中两条 Renderer 异常为明确通过的负控。"
+    },
+    {
+      "meta": "final-e2e-lifecycle-probe.meta.json",
+      "output": "final-e2e-lifecycle-probe.txt",
+      "exitCode": 0,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "runnerErrors": 0,
+      "result": "passed",
+      "note": "对状态文件复跑新增失败做一次独立诊断运行，--trace=retain-on-failure；未改变重试、断言或超时。不代表默认文件或全量通过。"
+    }
+  ],
+  "failures": [
+    {
+      "test": "e2e/workspace-migration.spec.ts:153",
+      "assertion": "e2e/workspace-migration.spec.ts:181 webContents.isFocused() expected true, received false",
+      "matchesRecordedSymptom": true,
+      "record": "docs/design/2026-10-11-status-surface/review-response.md:54",
+      "testFileModifiedByRepair": false,
+      "independentRerunPassed": true,
+      "baselineWindowRerunThisCycle": false,
+      "context": "final-e2e-focus-context.txt"
+    },
+    {
+      "test": "e2e/status-surface.spec.ts:1860",
+      "assertion": "e2e/helpers.ts:453 首页导航按钮已解析，等待 stable 时 detached，随后 locator.click 30000ms 超时",
+      "causalAttribution": "undetermined",
+      "matchesRecordedBaselineSymptom": false,
+      "independentRerunCasePassed": true,
+      "independentRerunFilePassed": false,
+      "context": "final-e2e-home-context.txt",
+      "readOnlyReview": {
+        "implementationRole": "SWE-2",
+        "unchangedPaths": [
+          "首页截图用例本体",
+          "e2e/helpers.ts: launchApp, workshopNavigate, setWorkspaceTheme",
+          "e2e/status-surface.spec.ts: resize, homeRegion, blockHomeSend",
+          "apps/desktop/src/renderer/src/shell/Workshop.tsx",
+          "apps/desktop/src/renderer/src/App.tsx",
+          "apps/desktop/src/renderer/src/state/shell.ts",
+          "apps/desktop/src/renderer/src/state/panels.ts",
+          "apps/desktop/src/renderer/src/state/occlusion.ts"
+        ],
+        "newShimCalledByCase": false,
+        "newShimModuleLevelSideEffects": false,
+        "diagnosticsEnabledByCase": false,
+        "hypothesis": "窄窗 peek 导航在 shell navigate 时关闭并卸载导航子树，可能与 Playwright 点击时序竞争；没有运行时 trace 证明这就是首次失败根因。",
+        "limitation": "未发现本轮修复到该失败的具体因果路径，但不从静态 diff 或复跑通过推导完全无回归。917f375 没有此状态截图用例，不声称其在该基线复现。"
+      }
+    },
+    {
+      "test": "e2e/status-surface.spec.ts:324",
+      "assertion": "侧栏后台资源/已关闭标签用例 Test timeout 90000ms；无更细失败栈",
+      "causalAttribution": "undetermined",
+      "diagnosticRerunPassed": true,
+      "context": "status-rerun-sidebar-context.txt"
+    },
+    {
+      "test": "e2e/status-surface.spec.ts:476",
+      "assertion": "launchApp 在 helpers.ts:216 等待 div.app 10000ms 超时，Renderer startup []；尚未进入终端业务断言",
+      "causalAttribution": "undetermined",
+      "diagnosticRerunPassed": true,
+      "context": "status-rerun-startup-context.txt"
+    },
+    {
+      "test": "e2e/status-surface.spec.ts:2566",
+      "assertion": "helpers.ts:227 page.screenshot: Target page, context or browser has been closed",
+      "causalAttribution": "undetermined",
+      "diagnosticRerunPassed": true,
+      "context": "status-rerun-screenshot-context.txt"
+    }
+  ],
+  "resourceCheck": {
+    "phase": "状态文件复跑结束之后，不是失败瞬间的采样",
+    "electronProcessQuery": "post-rerun-electron-processes.meta.json",
+    "electronProcessQueryExitCode": 1,
+    "electronProcessQueryOutputEmpty": true,
+    "meaning": "按本工作树 Electron 可执行路径未匹配到残留进程；不声称检查了系统中所有进程。",
+    "disk": "post-rerun-disk.txt",
+    "diskAvailable": "13 GiB",
+    "load": "post-rerun-load.txt",
+    "memory": "post-rerun-memory.txt",
+    "resourceCausalityProven": false
+  },
+  "preservation": "error-context 在下一轮 Playwright 清理输出目录前，通过 git diff --no-index -- /dev/null <path> 完整归档；其退出码 1 是存在内容差异，不是额外测试失败。原始命令 stdout/stderr 未编辑。",
+  "boundaries": {
+    "assertionsChangedToPass": false,
+    "timeoutsIncreased": false,
+    "retriesAdded": false,
+    "businessStateMachinesChanged": false,
+    "baselineWindowTestsClaimedPassed": false,
+    "liveOrPackagedRun": false,
+    "cacheOrExistingEvidenceDeleted": false
+  },
+  "conclusion": "针对六项修复的定向与规定重复验证通过；默认全量 E2E 及其状态文件复跑失败仍保留，部分归因未确定。后续若要求全量稳定绿色，需要独立的窗口生命周期/时序调查，不能把这些症状仅凭文件名归为已知负载问题。"
+}

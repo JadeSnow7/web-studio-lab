@@ -1,0 +1,141 @@
+
+ RUN  v5.0.3 /private/tmp/wsl-p1-red-round12
+
+ ❯ apps/desktop/src/main/workbench/app-control.test.ts (29 tests | 4 failed | 25 skipped) 22ms
+   ❯ persistent operation ownership (2)
+     × persists before dispatch, survives run release and restart, and rejects writes until a matching terminal receipt 18ms
+     × retains stopped CLI cleanup ownership and only a confirmed owned stop clears it 1ms
+   ❯ pending publication failures (2)
+     × keeps protection if publishing terminal removal fails 1ms
+     × safe cancellation between persistence and adapter dispatch removes only a proven unstarted operation 1ms
+ ❯ apps/service/src/app-service.test.ts (44 tests | 6 failed | 38 skipped) 313ms
+   ❯ managed app control plane (11)
+     × retains an unconfirmed CLI handle and prevents reuse even after repeated close 16ms
+     × reconciles lost_response without replaying a database write 78ms
+     × reconciles cancelled without replaying a database write 55ms
+     × reconciles wrong_instance without replaying a database write 55ms
+     × reconciles missing without replaying a database write 53ms
+     × reconciles malformed without replaying a database write 53ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app control plane > retains an unconfirmed CLI handle and prevents reuse even after repeated close
+AssertionError: expected { ok: false, error: { …(2) } } to match object { ok: false, …(1) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "error": {
+-     "code": "app_busy",
++     "code": "unavailable",
+    },
+    "ok": false,
+  }
+
+ ❯ apps/service/src/app-service.test.ts:733:110
+    731|     expect(result.cleanupConfirmed).toBe(false);
+    732|     const before = test.starts();
+    733|     expect((await test.service.agent(key, null, { op: 'describe' }, ne…
+       |                                                                                                              ^
+    734|       ok: false,
+    735|       error: { code: 'app_busy' },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app control plane > reconciles lost_response without replaying a database write
+ FAIL  apps/service/src/app-service.test.ts > managed app control plane > reconciles cancelled without replaying a database write
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ apps/service/src/app-service.test.ts:782:62
+    780|       expect(result.cleanupConfirmed).toBe(kind === 'lost_response' ||…
+    781|       expect(calls.filter((call) => call.endsWith('/db/seed'))).toHave…
+    782|       expect(calls.some((call) => call.endsWith('/cancel'))).toBe(true…
+       |                                                              ^
+    783|       expect(calls.some((call) => call.startsWith('GET /api/__agent/op…
+    784|       if (result.cleanupConfirmed) expect(result.operation).toMatchObj…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app control plane > reconciles wrong_instance without replaying a database write
+ FAIL  apps/service/src/app-service.test.ts > managed app control plane > reconciles missing without replaying a database write
+ FAIL  apps/service/src/app-service.test.ts > managed app control plane > reconciles malformed without replaying a database write
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ apps/service/src/app-service.test.ts:780:39
+    778|       instanceId = (await controlled.start(key)).appInstanceId!;
+    779|       const result = await controlled.agent(key, instanceId, { op: 'se…
+    780|       expect(result.cleanupConfirmed).toBe(kind === 'lost_response' ||…
+       |                                       ^
+    781|       expect(calls.filter((call) => call.endsWith('/db/seed'))).toHave…
+    782|       expect(calls.some((call) => call.endsWith('/cancel'))).toBe(true…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control.test.ts > persistent operation ownership > persists before dispatch, survives run release and restart, and rejects writes until a matching terminal receipt
+TypeError: test.control.hasPending is not a function
+ ❯ apps/desktop/src/main/workbench/app-control.test.ts:485:25
+    483|     expect((await test.call('app.data.seed', { appInstanceId: 'app-1' …
+    484|     test.control.releaseRun(scope.runId);
+    485|     expect(test.control.hasPending('w', scope.runId)).toBe(true);
+       |                         ^
+    486|     expect(error(await test.call('app.command.invoke', invoke('health.…
+    487|     const resumed = new AppControl({ ...test.ports, store: { ...test.p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control.test.ts > persistent operation ownership > retains stopped CLI cleanup ownership and only a confirmed owned stop clears it
+TypeError: test.control.hasPending is not a function
+ ❯ apps/desktop/src/main/workbench/app-control.test.ts:526:25
+    524|     });
+    525|     await test.call('app.describe');
+    526|     expect(test.control.hasPending('w', scope.runId)).toBe(true);
+       |                         ^
+    527|     await test.control.reconcileRun('w', scope.runId);
+    528|     expect(test.control.hasPending('w')).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control.test.ts > pending publication failures > keeps protection if publishing terminal removal fails
+TypeError: test.control.hasPending is not a function
+ ❯ apps/desktop/src/main/workbench/app-control.test.ts:544:25
+    542|     };
+    543|     await test.call('app.data.seed', { appInstanceId: 'app-1' });
+    544|     expect(test.control.hasPending('w')).toBe(true);
+       |                         ^
+    545|     expect(error(await test.call('app.restart', { appInstanceId: 'app-…
+    546|     expect(test.restart).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control.test.ts > pending publication failures > safe cancellation between persistence and adapter dispatch removes only a proven unstarted operation
+TypeError: test.control.hasPending is not a function
+ ❯ apps/desktop/src/main/workbench/app-control.test.ts:578:25
+    576|     );
+    577|     expect(error(await test.call('app.data.seed', { appInstanceId: 'ap…
+    578|     expect(test.control.hasPending('w')).toBe(false);
+       |                         ^
+    579|   });
+    580| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  10 failed | 63 skipped (73)
+   Start at  15:12:54
+   Duration  823ms (transform 44%, tests 30%, import 26%, worker 1%)
+

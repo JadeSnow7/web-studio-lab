@@ -1,5 +1,5 @@
 import { expect, test, type ElectronApplication } from '@playwright/test';
-import { launchApp, setWindowSize, workspaceSnapshot, workshopNavigate, target } from './helpers';
+import { launchApp, openBrowserMenu, setWindowSize, workspaceSnapshot, workshopNavigate, target } from './helpers';
 
 const fixture = new URL('./fixtures/sbx.mjs', import.meta.url).pathname;
 
@@ -81,7 +81,8 @@ test('R1 通知定位后台同一运行，打开与已读分离且重启保持�
     const item = page.getByRole('region', { name: '通知' }).locator(`[data-run-id="${run.runId}"]`);
     await expect(item).toContainText('未读');
     await item.getByRole('button', { name: '打开运行', exact: true }).click();
-    await expect(page.getByRole('region', { name: 'Agent 会话内容' })).toContainText(run.runId);
+    // 运行标识不再外露在界面文字里：以展示层视图的实体键确认打开的正是这条后台运行。
+    await expect(page.getByRole('region', { name: 'Agent 会话内容' }).locator(`[data-status-key="run:${run.runId}:state"]`)).toBeVisible();
     expect((await workspaceSnapshot(page)).workspaces[0]!.runs).toEqual(before);
     await page.getByRole('button', { name: /^通知 · / }).click();
     await expect(item).toContainText('未读');
@@ -127,6 +128,7 @@ test('R4 单窗格窄窗从网页关联会话并采集', async () => {
   try {
     await setWindowSize(app, 900, 700);
     await expect(page.locator('[data-pane-id]:visible')).toHaveCount(1);
+    await openBrowserMenu(page, '采集到会话');
     await page.getByLabel('关联会话').selectOption({ label: 'Agent 会话' });
     await page.getByRole('button', { name: '采集到关联会话', exact: true }).click();
     await expect(page.getByRole('button', { name: '选择中 · Esc 取消' })).toBeVisible();

@@ -1,0 +1,11 @@
+--- docs/acceptance/space-app-live-20261010/model-03/App.before.txt	2026-10-10 12:34:06
++++ docs/acceptance/space-app-live-20261010/model-03/App.after.txt	2026-10-10 12:34:06
+@@ -36,7 +36,7 @@
+   return (
+     <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
+       <p className="mb-8 text-sm font-medium tracking-wide text-slate-500">WEB STUDIO LAB / 标准应用</p>
+-      <h1 className="mb-4 text-3xl font-semibold tracking-tight text-slate-900">从这里开始构建</h1>
++      <h1 className="mb-4 text-3xl font-semibold tracking-tight text-slate-900">WSL_APP_MODEL_b026b5a262064f4bb4618886392fe946</h1>
+       <p className="max-w-xl leading-7 text-slate-600">这是你的应用起点。在工作台中描述需求，逐步构建页面和功能。</p>
+       <section aria-labelledby="service-heading" className="mt-10 rounded-xl border border-slate-200 bg-white p-6">
+         <div className="flex flex-wrap items-center justify-between gap-4">

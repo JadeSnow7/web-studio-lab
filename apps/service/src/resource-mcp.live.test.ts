@@ -7,7 +7,7 @@ describe.skipIf(!live)('真实 sandbox 的资源 helper（不调模型）', () =
   it.each([
     { conversationId: 'conv-personal-default', spaceId: null },
     { conversationId: 'session-7189a675-2a3d-4ede-b5b5-d615c486aa28', spaceId: 'taskflow-demo' },
-    { conversationId: 'session-other-space', spaceId: null },
+    { conversationId: 'session-other-space', spaceId: 'other-space' },
   ] as const)(
     '固定与动态会话 $conversationId 资源注入后 Codex 帮助命令与 helper 正常收尾',
     async ({ conversationId, spaceId }) => {
@@ -23,8 +23,10 @@ describe.skipIf(!live)('真实 sandbox 的资源 helper（不调模型）', () =
             conversationId,
             generation: 'probe',
             turnId: 'probe',
-            spaceId,
-            collectionRevision: 0,
+            accountId: 'live-test',
+            workspaceId: spaceId,
+            sessionId: conversationId,
+            catalogRevision: 0,
             resources: [],
           },
         },

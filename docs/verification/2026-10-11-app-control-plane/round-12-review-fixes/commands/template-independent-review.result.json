@@ -1,0 +1,13 @@
+{
+  "command": [
+    "node",
+    "--import",
+    "tsx",
+    "--test",
+    "tests/agent-data.test.ts",
+    "tests/agent-operations.test.ts"
+  ],
+  "cwd": "templates/standard-app",
+  "exitCode": 0,
+  "seconds": 9.711463928222656
+}

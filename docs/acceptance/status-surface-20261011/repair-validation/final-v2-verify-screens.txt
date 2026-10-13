@@ -1,0 +1,11 @@
+docs/acceptance/status-surface-20261011/repair-validation/screens/final-v2-new-e2e-repeat3/combo-ai-loaderror-blockednav-1440.png: OK
+docs/acceptance/status-surface-20261011/repair-validation/screens/final-v2-new-e2e-repeat3/combo-ai-loaderror-blockednav-960.png: OK
+docs/acceptance/status-surface-20261011/repair-validation/screens/final-v2-new-e2e-repeat3/combo-paused-detached-1440.png: OK
+docs/acceptance/status-surface-20261011/repair-validation/screens/final-v2-new-e2e-repeat3/combo-paused-detached-960.png: OK
+docs/acceptance/status-surface-20261011/repair-validation/screens/final-v2-new-e2e-repeat3/combo-problem-more-1440.png: OK
+docs/acceptance/status-surface-20261011/repair-validation/screens/final-v2-new-e2e-repeat3/combo-problem-more-960.png: OK
+docs/acceptance/status-surface-20261011/repair-validation/screens/final-v2-new-e2e-repeat3/files-unavailable-no-env-1440.png: OK
+docs/acceptance/status-surface-20261011/repair-validation/screens/final-v2-new-e2e-repeat3/files-unavailable-reason-1440.png: OK
+docs/acceptance/status-surface-20261011/repair-validation/screens/final-v2-new-e2e-repeat3/files-observation-history-1440.png: OK
+docs/acceptance/status-surface-20261011/repair-validation/screens/final-v2-new-e2e-repeat3/terminal-cleanup-pending-disabled-1440.png: OK
+docs/acceptance/status-surface-20261011/repair-validation/screens/final-v2-new-e2e-repeat3/debug-panel-live-update-1440.png: OK

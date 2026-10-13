@@ -1,0 +1,15 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/_worktrees/status-surface-20261011
+
+ ❯ apps/desktop/src/renderer/src/state/debug.test.ts (8 tests | 4 failed) 22ms
+   ❯ 诊断快照加载（debug:facts-changed） (4)
+     × 订阅先于初读；在途期间的通知使旧响应失效，连续通知合并为一次重读 4ms
+     × 无通知时初读结果应用一次，不轮询 1ms
+     × 读取失败进入错误出口；下一次通知恢复读取 1ms
+     × 关闭后解除订阅：迟到响应不应用，通知不再触发读取 1ms
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 4 passed (8)
+   Start at  12:06:55
+   Duration  761ms (transform 66%, import 30%, tests 4%, worker 1%)
+

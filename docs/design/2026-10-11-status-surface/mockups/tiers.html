@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 审核用静态设计稿（修订 2），来源：状态降噪画布；示例内容为占位数据 -->
+<title>状态种类与三通道</title>
+</head>
+<body>
+<style>
+body{margin:0}
+a{color:#0a67d1}a:hover{color:#084f9f}
+.sbtn{font:inherit;font-size:12px;color:#1d1d1f;background:#fff;border:1px solid #d9dce3;border-radius:7px;padding:0 10px;height:26px;display:inline-flex;align-items:center;gap:4px;cursor:pointer;flex:none}
+.ring{width:8px;height:8px;border-radius:5px;border:2px solid #0a67d1;border-right-color:transparent;flex:none}
+.tri{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid #b42318;flex:none}
+.dash{width:8px;height:8px;border-radius:5px;border:2px dashed #b25c00;flex:none}
+th,td{text-align:left;vertical-align:top;padding:11px 14px;border-bottom:1px solid #e6e8ed;font-size:13px;line-height:20px}
+th{font-size:12px;font-weight:600;color:#4a4d55;background:#f3f4f7}
+code{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:12px}
+</style>
+<div style="width: 100%; box-sizing: border-box; padding: 48px 40px; background: #ffffff; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 36px">
+  <div style="display: flex; flex-direction: column; gap: 8px; max-width: 940px">
+    <p style="margin: 0; font-size: 13px; font-weight: 600; color: #0a67d1">规则 · 修订 2</p>
+    <h1 style="margin: 0; font-size: 30px; line-height: 38px; font-weight: 650">按事实的种类决定位置：控制权、进行中、未确认从不被折叠</h1>
+    <p style="margin: 0; font-size: 15px; line-height: 24px; color: #4a4d55">首稿让所有显式状态按一个优先级竞争一个位置，AI 操控和清理未确认可能被错误挤掉。修订后每条事实带一个种类，种类决定通道；只有终态确认和一次性提示会因交互消失。</p>
+  </div>
+
+  <div style="overflow-x: auto; border: 1px solid #e1e4ea; border-radius: 12px">
+    <table style="border-collapse: collapse; width: 100%; min-width: 980px">
+      <thead><tr><th style="width: 130px">种类</th><th>例子</th><th style="width: 200px">呈现</th><th style="width: 220px">何时消失</th></tr></thead>
+      <tbody>
+        <tr><td><b>control</b></td><td>AI 正在操控此页面；已暂停 AI 操控（允许 AI 继续）</td><td>常驻通道</td><td>事实消失</td></tr>
+        <tr><td><b>unresolved</b></td><td>模型已停止，App 数据操作仍待确认（重新核对）；所属进程退出未确认；SSH 远端进程未确认</td><td>常驻通道</td><td>事实消失，<b>交互不降级</b></td></tr>
+        <tr><td><b>progress</b></td><td>正在执行…（取消回复）；正在取消并核实退出…；正在连接…；正在启动应用…</td><td>常驻通道</td><td>事实消失</td></tr>
+        <tr><td><b>problem</b></td><td>页面加载失败；已拦截导航；页面控制已断开；连接失败；检查已不适用；现场已失效；覆盖不完整</td><td>问题通道：最高一条 + 另有 N 项</td><td>事实消失</td></tr>
+        <tr><td><b>confirmation</b> / hint</td><td>已关闭，所属进程已确认退出；历史已恢复；采集指引；已收藏 / 快照已保存</td><td>提示通道，一次一条</td><td>与该窗格交互后；实例更换会重新出现</td></tr>
+        <tr><td><b>steady</b></td><td>已连接；服务运行中；执行完成；检查通过；现场适用性：有效</td><td>StatusDot + 视觉隐藏文字</td><td>—</td></tr>
+        <tr><td><b>capability</b></td><td>比赛执行与验收（T04）：尚未接入</td><td>仅设置页与诊断面板</td><td>—（不是故障，不报警）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 16px">
+    <div style="flex: 2 1 600px; border: 1px solid #e1e4ea; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+      <strong style="font-size: 15px">StatusSlot · 每个窗格一个，三条通道</strong>
+      <p style="margin: 0; font-size: 12px; font-weight: 600; color: #4a4d55">常驻通道 · 全部显示</p>
+      <div role="status" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; background: #f1f6fd; color: #0a4f9f; font-size: 13px"><span class="ring" aria-hidden="true"></span><span style="flex: 1">AI 正在操控此页面（点击）。你在页面中点击或输入会立即暂停 AI</span></div>
+      <div role="status" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; background: #fdf6ea; color: #7a4300; font-size: 13px"><span class="dash" aria-hidden="true"></span><span style="flex: 1">模型已停止，App 数据操作仍待确认</span><button type="button" class="sbtn">重新核对</button></div>
+      <p style="margin: 6px 0 0; font-size: 12px; font-weight: 600; color: #4a4d55">问题通道 · 最高一条</p>
+      <div role="alert" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; background: #fdf0ee; color: #8f1d13; font-size: 13px"><span class="tri" aria-hidden="true"></span><span style="flex: 1">页面加载失败：[错误描述]</span><button type="button" class="sbtn">重新加载</button><button type="button" class="sbtn" aria-haspopup="menu" style="border-color: transparent; background: transparent; color: #8f1d13">另有 2 项</button></div>
+      <p style="margin: 6px 0 0; font-size: 12px; font-weight: 600; color: #4a4d55">提示通道 · 一次一条</p>
+      <div role="status" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; background: #f3f4f7; color: #3a3d45; font-size: 13px"><span style="width: 8px; height: 8px; background: #8a8f98; flex: none" aria-hidden="true"></span><span style="flex: 1">已关闭，所属进程已确认退出</span><button type="button" class="sbtn" style="border-color: transparent; background: transparent">知道了</button></div>
+      <p style="margin: 4px 0 0; font-size: 13px; line-height: 20px; color: #4a4d55">三条通道都空时高度为 0。条目进入时播报一次；折叠与降级只改变视觉，不重复播报。</p>
+    </div>
+    <div style="flex: 1 1 320px; border: 1px solid #e1e4ea; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+      <strong style="font-size: 15px">StatusDot · steady</strong>
+      <p style="margin: 0; font-size: 13px; line-height: 20px; color: #4a4d55">沿用 Badges.tsx 的形状 + 颜色约定；形状 aria-hidden，文字为视觉隐藏文本。</p>
+      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px">
+        <span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #2e8b57" aria-hidden="true"></span>点 · 正常</span>
+        <span style="display: inline-flex; align-items: center; gap: 8px"><span class="ring" aria-hidden="true"></span>环 · 进行中</span>
+        <span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; background: #8a8f98" aria-hidden="true"></span>方块 · 已停止</span>
+        <span style="display: inline-flex; align-items: center; gap: 8px"><span class="tri" aria-hidden="true"></span>三角 · 失败</span>
+        <span style="display: inline-flex; align-items: center; gap: 8px"><span class="dash" aria-hidden="true"></span>虚环 · 未知 / 未确认</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px">
+    <h2 style="margin: 0; font-size: 20px">键：domain:entityId:facet</h2>
+    <p style="margin: 0; font-size: 14px; line-height: 22px; color: #4a4d55">同一实体上可能同时成立的条件各有 facet，例如 <code>web:&lt;id&gt;:agent-control</code>、<code>web:&lt;id&gt;:load-error</code>、<code>web:&lt;id&gt;:blocked-nav</code>、<code>web:&lt;id&gt;:cdp</code>，不会重键。React key、确认记录和 Main 的转换计算都用它；测试覆盖全 facet 同时成立。</p>
+    <div style="overflow-x: auto; border: 1px solid #e1e4ea; border-radius: 12px">
+      <table style="border-collapse: collapse; width: 100%; min-width: 980px">
+        <thead><tr><th style="width: 110px">域</th><th>常驻（control / unresolved / progress）</th><th>问题（problem）</th><th>提示 / 稳态</th></tr></thead>
+        <tbody>
+          <tr><td><b>网页</b></td><td>agent-control；picking</td><td>load-error &gt; pick-error &gt; cdp &gt; blocked-nav &gt; unavailable</td><td>采集指引、收藏结果（hint）；loading、console（steady）</td></tr>
+          <tr><td><b>终端</b></td><td>starting、closing；cleanup（含 SSH 未确认，期间禁用连接）</td><td>failed；unavailable</td><td>closed（confirmation）；输出缺口（hint）；running（steady）</td></tr>
+          <tr><td><b>运行</b></td><td>starting / running / cancelling；process-cleanup；app-cleanup（重新核对）</td><td>failed、interrupted</td><td>completed、cancelled（steady）</td></tr>
+          <tr><td><b>检查</b></td><td>running</td><td>failed、blocked；applicability stale</td><td>passed、not_run（steady）</td></tr>
+          <tr><td><b>上下文</b></td><td>capture pending</td><td>stale；capture failed</td><td>历史已恢复（confirmation）；current（steady）；查看历史时改写为「历史采集」</td></tr>
+          <tr><td><b>受管 App</b></td><td>starting、stopping；cleanup 未确认</td><td>failed</td><td>running、stopped（steady）；名称与说明是内容</td></tr>
+          <tr><td><b>观察 / 文件</b></td><td>读取中</td><td>failed；覆盖 partial / unknown；文件可能变化</td><td>来源、时间、范围、版本 / 散列在「来源」展开区</td></tr>
+          <tr><td><b>全局</b></td><td>setup 等待登录</td><td>对话不可用（标题栏 + Toast）；环境未就绪；界面错误（Toast）；持久化失败（横幅）</td><td>执行与验收能力（capability，仅设置页）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

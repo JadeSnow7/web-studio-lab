@@ -1,0 +1,36 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/app-service.test.ts (54 tests | 2 failed | 52 skipped) 154ms
+   ❯ Main read reservation follows actual Service transport (2)
+     × clears a read reservation when frozen context is starting and Service is already running 95ms
+     × clears a read reservation when frozen context is stopped and Service is already running 57ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/app-service.test.ts > Main read reservation follows actual Service transport > clears a read reservation when frozen context is starting and Service is already running
+ FAIL  apps/service/src/app-service.test.ts > Main read reservation follows actual Service transport > clears a read reservation when frozen context is stopped and Service is already running
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ apps/service/src/app-service.test.ts:994:58
+    992|       expect(await control.call({ workspaceId: key.workspaceId, sessio…
+    993|       expect(test.prompts().filter((prompt) => prompt.operation === 'a…
+    994|       expect(control.hasPending(key.workspaceId, 'run')).toBe(false);
+       |                                                          ^
+    995|     } finally { await test.service.stop(key); }
+    996|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 1 passed | 81 skipped (84)
+   Start at  15:43:38
+   Duration  803ms (transform 55%, import 30%, tests 14%, worker 1%)
+

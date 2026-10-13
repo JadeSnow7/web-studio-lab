@@ -1,0 +1,7 @@
+{
+  "apps/desktop/src/main/workbench/application.ts": "0912ba0f7f10be4bb3ff470ea315691eb22936d1a0343830aa57ba53d9f124c9",
+  "apps/desktop/src/main/workbench/app-control-application.test.ts": "d500a0dca3f30aec55947bf79d5fd4e8b37ea2bdd355074f535dfeb96735555a",
+  "e2e/app-control-cancel-live.spec.ts": "3d26a48fcf659bf4477b7026be7dc859800286c9c263bafb8c8f324d8e00dcd8",
+  "e2e/fixtures/app-control-cancel-gate.ts": "f675aecd72582764dc45b87aba4cc89a34a3abbdb43c38062b3e5df36c310c97",
+  "e2e/helpers.ts": "410d671bbd39e2469fd86bfae54f4ccc757867b7d035c195e787330f1d4e08e6"
+}

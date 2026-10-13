@@ -1,7 +1,9 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import path from 'node:path';
 import { expect, it } from 'vitest';
 import helper from './local-terminal.py?raw';
+const python = path.resolve(process.env['WSL_TEST_PYTHON'] ?? '/usr/bin/python3');
 
 it('cleans an inherited owned child after fork, reparenting and setsid without claiming an OS sandbox', async () => {
   const probe = String.raw`
@@ -15,7 +17,7 @@ with tempfile.TemporaryDirectory(prefix='wsl-owned-detached-test-') as tmp:
     path = tmp + '/owned.pid'
     env = dict(os.environ)
     env['WSL_TEST_CHILD'] = owner.split(b'=', 1)[1].decode('ascii')
-    p = subprocess.Popen(['/usr/bin/python3', '-u', '-c', helper], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+    p = subprocess.Popen([sys.executable, '-I', '-B', '-u', '-c', helper], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
     child = None
     identity = None
     def send(value):
@@ -26,7 +28,7 @@ with tempfile.TemporaryDirectory(prefix='wsl-owned-detached-test-') as tmp:
         assert json.loads(p.stdout.readline())['type'] == 'ready'
         # Publish only the complete PID: exists() must not expose the writer's empty file.
         code = "import os,time,signal; p=os.fork(); os._exit(0) if p else None; os.setsid(); signal.signal(signal.SIGHUP,signal.SIG_IGN); f=open(" + repr(path + '.tmp') + ",'w'); f.write(str(os.getpid())); f.close(); os.replace(" + repr(path + '.tmp') + "," + repr(path) + "); time.sleep(60)"
-        send(dict(type='input', data='/usr/bin/python3 -c ' + shlex.quote(code) + '\n'))
+        send(dict(type='input', data=shlex.quote(sys.executable) + ' -I -B -c ' + shlex.quote(code) + '\n'))
         deadline = time.monotonic() + 5
         while not os.path.exists(path) and time.monotonic() < deadline:
             time.sleep(.02)
@@ -48,7 +50,7 @@ with tempfile.TemporaryDirectory(prefix='wsl-owned-detached-test-') as tmp:
             p.kill()
             p.wait()
 `;
-  const { stdout } = await promisify(execFile)('/usr/bin/python3', ['-c', 'import sys\n' + probe, helper], { timeout: 10000 });
+  const { stdout } = await promisify(execFile)(python, ['-I', '-B', '-c', 'import sys\n' + probe, helper], { timeout: 10000 });
   expect(JSON.parse(stdout)).toEqual({ returncode: 0, cleanup: [true], detachedAlive: false });
 }, 15000);
 
@@ -75,6 +77,6 @@ except PermissionError:
 assert not signals
 print(json.dumps(dict(reusedSignal=False, unreadableSignal=False, unknown=unknown)))
 `;
-  const { stdout } = await promisify(execFile)('/usr/bin/python3', ['-c', probe, helper], { timeout: 5000 });
+  const { stdout } = await promisify(execFile)(python, ['-I', '-B', '-c', probe, helper], { timeout: 5000 });
   expect(JSON.parse(stdout)).toEqual({ reusedSignal: false, unreadableSignal: false, unknown: true });
 });

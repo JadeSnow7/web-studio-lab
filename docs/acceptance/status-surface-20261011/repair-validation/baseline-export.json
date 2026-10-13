@@ -1,0 +1,15 @@
+{
+  "sourceWorktree": "/Users/huaodong/workspace/_worktrees/status-surface-20261011",
+  "baselineRevision": "917f3755865c5c90e1d1bcee73bc1dfa8ebbebe4",
+  "exportedDirectory": "/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-status-repair-baseline-917f375-ry7FTZ",
+  "exportMethod": "在指定工作树内以 mktemp 创建全新系统临时目录，git archive 917f375 | tar -x -C <目录>；不创建或切换 Git 工作树。",
+  "archiveExitCode": 0,
+  "dependencyComparisonCommand": "git diff 917f375 HEAD -- package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc",
+  "dependencyComparisonExitCode": 0,
+  "dependencyComparisonOutput": "",
+  "installationReceipt": "baseline-install-frozen.meta.json",
+  "installation": "pnpm install --frozen-lockfile --ignore-scripts：冻结锁文件，467 个包从现有缓存复用，下载 0 个；此阶段仅为 lint/format 集合比较准备依赖，不执行生命周期脚本。",
+  "otherWorktreesAccessed": false,
+  "electronBinaryCopied": false,
+  "notes": "此目录是本工作树 Git 对象导出的基线副本，不是主工作树或其他已存在工作树。若需运行涉及 Electron 的基线复跑，只从本工作树复制 dist/path.txt，并另行记录。"
+}

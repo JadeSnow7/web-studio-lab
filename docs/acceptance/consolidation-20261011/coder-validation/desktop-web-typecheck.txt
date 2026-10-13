@@ -1,0 +1,3 @@
+$ node node_modules/typescript/bin/tsc -p apps/desktop/tsconfig.web.json --noEmit
+
+exitCode=0

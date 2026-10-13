@@ -1,0 +1,3 @@
+Browser 155.0.8059.40
+Snapshot references 48
+Desktop and 390px: graphs, search, source modal/Escape/focus, cancel flow and hash restore passed.

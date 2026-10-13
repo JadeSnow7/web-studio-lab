@@ -1,0 +1,501 @@
+import { test, expect, _electron, type ElectronApplication } from '@playwright/test';
+import { execFile, spawn, type ChildProcess } from 'node:child_process';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { appendFile, copyFile, cp, mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { createServer } from 'node:net';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+import { build } from 'vite';
+import { AppScenarioSchema, comparableTrace, type AppControlResult, type AppScenarioTrace } from '../packages/protocol/src';
+
+/**
+ * 真实 Electron + 真实 CDP + 本机构建的 standard-app（非 sandbox、无模型）。
+ * 产品窗口内的 sandbox 受管实例流程另由显式授权的 live 验收覆盖；本测试不替代它。
+ */
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const template = path.join(root, 'templates/standard-app');
+const fixed = path.join(root, 'tests/app-control/fixed-task');
+const execute = promisify(execFile);
+const evidenceRoot = path.resolve(process.env['WSL_APP_CONTROL_EVIDENCE'] ?? path.join(root, 'test-results/app-control', randomUUID()));
+const results: Record<string, unknown> = {};
+
+type Harness = {
+  call(tool: string, args?: Record<string, unknown>, callId?: string): Promise<AppControlResult>;
+};
+
+async function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      server.close(() => resolve(typeof address === 'object' && address ? address.port : 0));
+    });
+  });
+}
+
+async function project(name: string, app?: string) {
+  const directory = path.join(await mkdtemp(path.join(tmpdir(), `wsl-app-control-${name}-`)), 'project');
+  await cp(template, directory, {
+    recursive: true,
+    filter: (source) => !/[\\/](node_modules|dist|\.data|\.test-data)([\\/]|$)/.test(source.slice(template.length)),
+  });
+  await symlink(path.join(template, 'node_modules'), path.join(directory, 'node_modules'), 'dir');
+  if (app) await copyFile(app, path.join(directory, 'src/App.tsx'));
+  return directory;
+}
+
+async function npm(directory: string, ...args: string[]) {
+  return execute('npm', args, {
+    cwd: directory,
+    env: { ...process.env, WSL_AGENT_TOKEN: '', WSL_AGENT_URL: '' },
+    timeout: 240_000,
+    maxBuffer: 16 * 1024 * 1024,
+  });
+}
+
+async function serve(directory: string, port: number, options: { token: string | null; appInstanceId: string; dataDir: string }) {
+  const child = spawn(process.execPath, ['dist/server/index.js'], {
+    cwd: directory,
+    env: {
+      ...process.env,
+      HOST: '127.0.0.1',
+      PORT: String(port),
+      WSL_DATA_DIR: options.dataDir,
+      WSL_DEV_SESSIONS: '1',
+      WSL_WORKSPACE_ID: 'harness-space',
+      WSL_ENVIRONMENT_ID: 'harness',
+      WSL_PROJECT_ID: 'harness-project',
+      WSL_APP_INSTANCE_ID: options.appInstanceId,
+      WSL_AGENT_TOKEN: options.token ?? '',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let output = '';
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`server not ready: ${output}`)), 30_000);
+    child.stdout!.on('data', (chunk: Buffer) => {
+      output += chunk.toString();
+      if (output.includes('"app-ready"')) {
+        clearTimeout(timer);
+        resolve();
+      }
+    });
+    child.stderr!.on('data', (chunk: Buffer) => (output += chunk.toString()));
+    child.once('exit', (code) => reject(new Error(`server exited ${code}: ${output}`)));
+  });
+  return child;
+}
+
+async function stop(child: ChildProcess) {
+  if (child.exitCode !== null) return;
+  const exited = new Promise((resolve) => child.once('exit', resolve));
+  child.kill('SIGTERM');
+  await exited;
+}
+
+let bundle: string | null = null;
+async function harnessBundle() {
+  if (bundle) return bundle;
+  const outDir = await mkdtemp(path.join(tmpdir(), 'wsl-app-control-harness-'));
+  await build({
+    configFile: false,
+    root,
+    logLevel: 'warn',
+    build: {
+      ssr: path.join(root, 'e2e/fixtures/app-control-harness-main.ts'),
+      outDir,
+      target: 'node22',
+      minify: false,
+      rollupOptions: { external: ['electron'], output: { format: 'cjs', entryFileNames: 'main.cjs' } },
+    },
+    ssr: { noExternal: true },
+  });
+  bundle = path.join(outDir, 'main.cjs');
+  return bundle;
+}
+
+async function launch(url: string, token: string, appInstanceId: string, evidence: string) {
+  const executablePath = createRequire(path.join(root, 'apps/desktop/package.json'))('electron') as unknown as string;
+  const app = await _electron.launch({
+    executablePath,
+    args: [await harnessBundle(), `--user-data-dir=${await mkdtemp(path.join(tmpdir(), 'wsl-app-control-profile-'))}`],
+    env: { ...process.env, WSL_HARNESS_CONFIG: JSON.stringify({ url, token, appInstanceId, evidence }) },
+  });
+  await expect
+    .poll(() => app.evaluate(() => (globalThis as unknown as { __harness?: { ready(): boolean } }).__harness?.ready() ?? false), {
+      timeout: 30_000,
+    })
+    .toBe(true);
+  return app;
+}
+
+/** 有界关闭：超时后只结束本测试启动的 Electron 进程。 */
+async function closeApp(app: ElectronApplication) {
+  const child = app.process();
+  await Promise.race([app.close().catch(() => undefined), new Promise((resolve) => setTimeout(resolve, 10_000))]);
+  if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+}
+
+const call = (app: ElectronApplication, tool: string, args: Record<string, unknown> = {}, callId?: string) =>
+  app.evaluate((_app, input) => (globalThis as unknown as { __harness: Harness }).__harness.call(input.tool, input.args, input.callId), {
+    tool,
+    args,
+    callId,
+  });
+const harness = <T>(app: ElectronApplication, method: string, ...args: unknown[]) =>
+  app.evaluate(
+    (_app, input) =>
+      (globalThis as unknown as { __harness: Record<string, (...values: unknown[]) => unknown> }).__harness[input.method]!(...input.args),
+    { method, args },
+  ) as Promise<T>;
+const code = (result: AppControlResult) => (result.ok ? 'ok' : result.error.code);
+const data = <T = Record<string, unknown>>(result: AppControlResult): T => {
+  if (!result.ok) throw new Error(JSON.stringify(result.error));
+  return result.data as T;
+};
+async function record(name: string, value: unknown) {
+  results[name] = value;
+  await mkdir(evidenceRoot, { recursive: true });
+  await writeFile(path.join(evidenceRoot, 'results.json'), JSON.stringify(results, null, 2) + '\n');
+}
+
+test.describe.configure({ mode: 'serial' });
+test.setTimeout(600_000);
+
+test('reference implementation: describe, snapshot→act, stale refs/leases/runs, schema errors, user takeover, cancel, replay, stale source', async () => {
+  const scenario = AppScenarioSchema.parse(JSON.parse(await readFile(path.join(fixed, 'scenario.json'), 'utf8')));
+  const directory = await project('reference', path.join(fixed, 'reference/App.tsx'));
+  const dataDir = path.join(path.dirname(directory), 'data/pglite');
+  await npm(directory, 'run', 'build:agent');
+  await execute(process.execPath, ['--import', 'tsx', 'server/agent-cli.ts', 'db', 'seed'], {
+    cwd: directory,
+    env: { ...process.env, WSL_DATA_DIR: dataDir },
+  });
+  const port = await freePort();
+  const token = randomBytes(32).toString('hex');
+  let appInstanceId = 'harness-app-1';
+  let server = await serve(directory, port, { token, appInstanceId, dataDir });
+  const evidence = path.join(evidenceRoot, 'reference');
+  const app = await launch(`http://127.0.0.1:${port}/`, token, appInstanceId, evidence);
+  try {
+    // A01：自描述与修订一致。
+    const described = data<{
+      stale: unknown;
+      manifest: {
+        testids: { testid: string }[];
+        commands: { name: string }[];
+        states: { name: string }[];
+        routes: unknown[];
+        dataModel: { table: string }[];
+      };
+      currentRevision: string;
+      buildRevision: string;
+      manifestRevision: string;
+    }>(await call(app, 'app.describe'));
+    expect(described.stale).toEqual({ manifest: false, build: false });
+    expect(described.manifest.testids.map((item) => item.testid)).toEqual(
+      expect.arrayContaining(['welcome-input', 'welcome-save', 'welcome-value', 'welcome-error']),
+    );
+    expect(described.manifest.states.map((item) => item.name)).toEqual(['app.health', 'welcome']);
+    expect(described.manifest.dataModel.map((table) => table.table)).toEqual(['records', 'sessions']);
+    await record('A01.describe', {
+      stale: described.stale,
+      revisions: [described.currentRevision, described.manifestRevision, described.buildRevision],
+      testids: described.manifest.testids.length,
+      commands: described.manifest.commands.map((item) => item.name),
+      states: described.manifest.states.map((item) => item.name),
+      routes: described.manifest.routes,
+      tables: described.manifest.dataModel.map((table) => table.table),
+    });
+
+    // A03：快照 → 引用动作完成固定流程的关键步骤。
+    await expect
+      .poll(async () => JSON.stringify(data(await call(app, 'app.state.read', { names: ['welcome'] }))), { timeout: 15_000 })
+      .toContain('"value":"Ready"');
+    const snapshot = data<{ documentGeneration: number; elements: { ref: string; testid: string | null; role: string }[] }>(
+      await call(app, 'app.ui.snapshot'),
+    );
+    const ref = (testid: string) => snapshot.elements.find((element) => element.testid === testid)!.ref;
+    const binding = { appInstanceId, documentGeneration: snapshot.documentGeneration };
+    expect(
+      code(
+        await call(app, 'app.ui.act', { ...binding, action: { type: 'type', target: { ref: ref('welcome-input') }, text: 'UI 引用写入' } }),
+      ),
+    ).toBe('ok');
+    expect(code(await call(app, 'app.ui.act', { ...binding, action: { type: 'click', target: { ref: ref('welcome-save') } } }))).toBe('ok');
+    await expect
+      .poll(async () => JSON.stringify(data(await call(app, 'app.state.read', { names: ['welcome'] }))), { timeout: 10_000 })
+      .toContain('UI 引用写入');
+    const query = data<{ rows: unknown[] }>(
+      await call(app, 'app.data.query', { sql: "SELECT value FROM records WHERE user_id = 'A' AND key = 'welcome'" }),
+    );
+    expect(query.rows).toEqual([{ value: 'UI 引用写入' }]);
+    await record('A03.refFlow', { elements: snapshot.elements.length, query: query.rows });
+
+    // A04：导航后的旧引用、旧代次；旧租约；无活动 run。均无副作用。
+    const navigated = data<{ documentGeneration: number }>(
+      await call(app, 'app.ui.act', { ...binding, action: { type: 'navigate', path: '/' } }),
+    );
+    expect(navigated.documentGeneration).toBeGreaterThan(binding.documentGeneration);
+    const staleDocument = await call(app, 'app.ui.act', { ...binding, action: { type: 'click', target: { ref: ref('welcome-save') } } });
+    const staleRef = await call(app, 'app.ui.act', {
+      appInstanceId,
+      documentGeneration: navigated.documentGeneration,
+      action: { type: 'click', target: { ref: ref('welcome-save') } },
+    });
+    await harness(app, 'set', { leaseValid: false });
+    const staleLease = await call(app, 'app.ui.act', {
+      appInstanceId,
+      documentGeneration: navigated.documentGeneration,
+      action: { type: 'press', key: 'Tab' },
+    });
+    await harness(app, 'set', { leaseValid: true, runActive: false });
+    const noRun = await call(app, 'app.ui.act', {
+      appInstanceId,
+      documentGeneration: navigated.documentGeneration,
+      action: { type: 'press', key: 'Tab' },
+    });
+    await harness(app, 'set', { runActive: true });
+    const oldInstance = await call(app, 'app.data.seed', { appInstanceId: 'harness-app-0' });
+    expect([code(staleDocument), code(staleRef), code(staleLease), code(noRun), code(oldInstance)]).toEqual([
+      'stale_document',
+      'stale_ref',
+      'stale_lease',
+      'no_active_run',
+      'stale_instance',
+    ]);
+    expect(
+      data<{ rows: unknown[] }>(
+        await call(app, 'app.data.query', { sql: "SELECT value FROM records WHERE user_id = 'A' AND key = 'welcome'" }),
+      ).rows,
+    ).toEqual([{ value: 'UI 引用写入' }]);
+    await record('A04.rejections', { staleDocument, staleRef, staleLease, noRun, oldInstance });
+
+    // A05：命令登记、参数校验与任意 JS 拒绝（真实页面 zod）。
+    const generation = () =>
+      harness<{ page: { documentGeneration: number } }>(app, 'previewState').then((state) => state.page.documentGeneration);
+    const invokeBinding = async () => ({ appInstanceId, documentGeneration: await generation() });
+    const invoked = await call(app, 'app.command.invoke', { ...(await invokeBinding()), name: 'health.refresh', input: {} });
+    const badInput = await call(app, 'app.command.invoke', { ...(await invokeBinding()), name: 'health.refresh', input: { extra: 1 } });
+    const unknown = await call(app, 'app.command.invoke', { ...(await invokeBinding()), name: 'welcome.forceSave', input: {} });
+    const script = await call(app, 'app.ui.act', {
+      ...(await invokeBinding()),
+      action: { type: 'evaluate', expression: 'document.cookie' },
+    });
+    const coordinates = await call(app, 'app.ui.act', { ...(await invokeBinding()), action: { type: 'click', x: 10, y: 10 } });
+    const tool = await call(app, 'app.eval', { expression: '1' });
+    expect([code(invoked), code(badInput), code(unknown), code(script), code(coordinates), code(tool)]).toEqual([
+      'ok',
+      'command_invalid_input',
+      'command_not_found',
+      'invalid_request',
+      'invalid_request',
+      'unsupported',
+    ]);
+    await record('A05.schema', { invoked, badInput, unknown, script, coordinates, tool });
+
+    // A06：只读查询拒绝写入；无授权重置被拒，授权后只作用于本实例数据目录。
+    const write = await call(app, 'app.data.query', { sql: "UPDATE records SET value = 'x'" });
+    const unauthorized = await call(app, 'app.data.reset', { appInstanceId, confirm: 'reset-instance-data' });
+    expect([code(write), code(unauthorized)]).toEqual(['write_rejected', 'authorization_required']);
+    await harness(app, 'set', { allowsReset: true });
+    const reset = await call(app, 'app.data.reset', { appInstanceId, confirm: 'reset-instance-data' });
+    expect(code(reset)).toBe('ok');
+    expect(
+      data<{ rows: unknown[] }>(
+        await call(app, 'app.data.query', { sql: "SELECT value FROM records WHERE user_id = 'A' AND key = 'welcome'" }),
+      ).rows,
+    ).toEqual([{ value: 'Ready' }]);
+    await record('A06.data', { write, unauthorized, reset });
+
+    // A07：AI 动作进行中用户在 Browser 区点击 → paused_by_user；焦点不被抢；需用户恢复。
+    await harness(app, 'focusWorkbench');
+    const focusBefore = await harness(app, 'focus');
+    const waiting = call(app, 'app.ui.act', {
+      ...(await invokeBinding()),
+      action: { type: 'waitFor', target: { testid: 'never-appears' }, timeoutMs: 8000 },
+    });
+    await expect.poll(() => harness<{ state: string }>(app, 'agentControl').then((state) => state.state), { timeout: 5000 }).toBe('active');
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await harness(app, 'userClick', 900, 600);
+    const paused = await waiting;
+    const pausedState = await harness<{ state: string }>(app, 'agentControl');
+    const blocked = await call(app, 'app.ui.act', { ...(await invokeBinding()), action: { type: 'press', key: 'Tab' } });
+    const focusAfter = await harness(app, 'focus');
+    await harness(app, 'resume');
+    const resumed = await call(app, 'app.ui.act', { ...(await invokeBinding()), action: { type: 'press', key: 'Tab' } });
+    await record('A07.takeover', {
+      paused,
+      pausedState,
+      blocked,
+      resumed: code(resumed),
+      focusBefore,
+      focusAfter,
+      previewIndicator: (await harness<{ agentControl?: unknown }>(app, 'previewState')).agentControl,
+    });
+    expect(code(paused)).toBe('paused_by_user');
+    expect(pausedState.state).toBe('paused_by_user');
+    expect(code(blocked)).toBe('paused_by_user');
+    expect(focusAfter).toEqual(focusBefore);
+    expect(code(resumed)).toBe('ok');
+
+    // A08：取消进行中的场景：停止新步骤、在途步骤结算、保留已产生修改。
+    const cancelScenario = {
+      name: 'cancel-mid-way',
+      steps: [
+        { type: 'act', action: { type: 'navigate', path: '/' } },
+        { type: 'act', action: { type: 'waitFor', target: { testid: 'welcome-input' }, timeoutMs: 8000 } },
+        { type: 'act', action: { type: 'type', target: { testid: 'welcome-input' }, text: '取消前已保存', clear: true } },
+        { type: 'act', action: { type: 'click', target: { testid: 'welcome-save' } } },
+        { type: 'act', action: { type: 'waitFor', target: { testid: 'never-appears' }, timeoutMs: 10000 } },
+        { type: 'screenshot', label: 'never' },
+      ],
+    };
+    const cancelling = call(app, 'app.scenario.run', { appInstanceId, scenario: cancelScenario }, 'cancel-1');
+    await expect
+      .poll(
+        async () =>
+          JSON.stringify(
+            data(await call(app, 'app.data.query', { sql: "SELECT value FROM records WHERE user_id = 'A' AND key = 'welcome'" })),
+          ),
+        { timeout: 20_000 },
+      )
+      .toContain('取消前已保存');
+    await harness(app, 'abort', 'cancel-1');
+    const cancelled = await cancelling;
+    expect(code(cancelled)).toBe('cancelled');
+    const traceFiles = await execute('find', [path.join(evidence), '-name', 'trace.json']);
+    const traces = await Promise.all(
+      traceFiles.stdout
+        .trim()
+        .split('\n')
+        .filter(Boolean)
+        .map(async (file) => JSON.parse(await readFile(file, 'utf8')) as AppScenarioTrace),
+    );
+    const cancelledTrace = traces.find((trace) => trace.scenarioName === 'cancel-mid-way')!;
+    expect(cancelledTrace.outcome).toBe('cancelled');
+    expect(cancelledTrace.inFlight).toEqual({ kind: 'act', settled: true });
+    expect(cancelledTrace.steps.at(-1)!.outcome).toBe('cancelled');
+    expect(
+      data<{ rows: unknown[] }>(
+        await call(app, 'app.data.query', { sql: "SELECT value FROM records WHERE user_id = 'A' AND key = 'welcome'" }),
+      ).rows,
+    ).toEqual([{ value: '取消前已保存' }]);
+    await record('A08.cancel', { result: cancelled, trace: cancelledTrace });
+
+    // A09 + A03：固定基准场景在参考实现上两次回放一致，证据绑定修订与实例。
+    const runs: AppScenarioTrace[] = [];
+    for (let attempt = 0; attempt < 2; attempt++) {
+      expect(code(await call(app, 'app.data.reset', { appInstanceId, confirm: 'reset-instance-data' }))).toBe('ok');
+      const result = await call(app, 'app.scenario.run', { appInstanceId, scenario });
+      const payload = data<{ trace: AppScenarioTrace; evidence: unknown }>(result);
+      runs.push(payload.trace);
+      await record(`A09.fixedScenario.${attempt + 1}`, {
+        outcome: payload.trace.outcome,
+        evidence: payload.evidence,
+        steps: payload.trace.steps.map((step) => [step.summary, step.outcome, step.error?.code ?? null]),
+        stateDiff: payload.trace.stateDiff,
+      });
+    }
+    expect(runs.map((trace) => trace.outcome)).toEqual(['passed', 'passed']);
+    expect(comparableTrace(runs[0]!)).toEqual(comparableTrace(runs[1]!));
+    expect(runs[0]!).toMatchObject({ appInstanceId, sourceRevision: described.currentRevision });
+    const post = data<{ rows: unknown[] }>(
+      await call(app, 'app.data.query', { sql: "SELECT value FROM records WHERE user_id = 'A' AND key = 'welcome'" }),
+    );
+    expect(post.rows).toEqual([{ value: '固定验收 2026' }]);
+    await record('A09.replay', { comparableEqual: true, postQuery: post.rows });
+
+    // A02：改源码 → manifest_stale；只重建 manifest → build_stale；重建并重启实例 → 恢复。
+    await appendFile(path.join(directory, 'src/components/Button.tsx'), '\n// harness edit\n');
+    const gen = await generation();
+    const staleManifest = await call(app, 'app.ui.act', { appInstanceId, documentGeneration: gen, action: { type: 'press', key: 'Tab' } });
+    await npm(directory, 'run', 'agent:manifest');
+    const staleBuild = await call(app, 'app.ui.act', { appInstanceId, documentGeneration: gen, action: { type: 'press', key: 'Tab' } });
+    const describeStale = data<{ stale: unknown }>(await call(app, 'app.describe')).stale;
+    await stop(server);
+    await npm(directory, 'run', 'build:agent');
+    appInstanceId = 'harness-app-2';
+    server = await serve(directory, port, { token, appInstanceId, dataDir });
+    await harness(app, 'set', { appInstanceId });
+    await harness(app, 'reload');
+    await expect.poll(() => harness<boolean>(app, 'ready'), { timeout: 15_000 }).toBe(true);
+    const recovered = data<{ stale: unknown; currentRevision: string }>(await call(app, 'app.describe'));
+    const after = await call(app, 'app.ui.act', {
+      appInstanceId,
+      documentGeneration: await generation(),
+      action: { type: 'press', key: 'Tab' },
+    });
+    const oldInstanceAfterRestart = await call(app, 'app.ui.act', {
+      appInstanceId: 'harness-app-1',
+      documentGeneration: await generation(),
+      action: { type: 'press', key: 'Tab' },
+    });
+    expect([code(staleManifest), code(staleBuild)]).toEqual(['manifest_stale', 'build_stale']);
+    expect(describeStale).toEqual({ manifest: false, build: true });
+    expect(recovered.stale).toEqual({ manifest: false, build: false });
+    expect([code(after), code(oldInstanceAfterRestart)]).toEqual(['ok', 'stale_instance']);
+    await record('A02.stale', {
+      staleManifest,
+      staleBuild,
+      describeStale,
+      recovered: recovered.stale,
+      after: code(after),
+      oldInstanceAfterRestart,
+    });
+  } finally {
+    await closeApp(app);
+    await stop(server);
+  }
+});
+
+test('original template: fixed baseline detects the missing feature; production build has no bridge', async () => {
+  const scenario = AppScenarioSchema.parse(JSON.parse(await readFile(path.join(fixed, 'scenario.json'), 'utf8')));
+  const directory = await project('original');
+  const dataDir = path.join(path.dirname(directory), 'data/pglite');
+  await npm(directory, 'run', 'build:agent');
+  await execute(process.execPath, ['--import', 'tsx', 'server/agent-cli.ts', 'db', 'seed'], {
+    cwd: directory,
+    env: { ...process.env, WSL_DATA_DIR: dataDir },
+  });
+  const port = await freePort();
+  const token = randomBytes(32).toString('hex');
+  const appInstanceId = 'harness-original-1';
+  let server = await serve(directory, port, { token, appInstanceId, dataDir });
+  const app = await launch(`http://127.0.0.1:${port}/`, token, appInstanceId, path.join(evidenceRoot, 'original'));
+  try {
+    const result = data<{ trace: AppScenarioTrace }>(await call(app, 'app.scenario.run', { appInstanceId, scenario }));
+    expect(result.trace.outcome).toBe('failed');
+    expect(result.trace.steps[1]).toMatchObject({ outcome: 'failed', error: { code: 'wait_timeout' } });
+    await record('Precheck.original', { outcome: result.trace.outcome, failedStep: result.trace.steps[1] });
+
+    // A10：生产构建的页面没有桥接；控制面明确返回 bridge_unavailable。
+    await stop(server);
+    await npm(directory, 'run', 'build');
+    const scan = await execute(process.execPath, ['scripts/agent-exclusion-check.mjs', 'dist/client'], { cwd: directory });
+    server = await serve(directory, port, { token: null, appInstanceId, dataDir });
+    await harness(app, 'reload');
+    await expect.poll(() => harness<boolean>(app, 'ready'), { timeout: 15_000 }).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const typeofBridge = await harness<string>(app, 'evaluateInPage', 'typeof window.__WSL_AGENT__');
+    const state = await call(app, 'app.state.read');
+    expect(typeofBridge).toBe('undefined');
+    expect(code(state)).toBe('bridge_unavailable');
+    await record('A10.production', { scan: JSON.parse(scan.stdout), typeofBridge, state });
+  } finally {
+    await closeApp(app);
+    await stop(server);
+  }
+});
+
+test.afterAll(async () => {
+  await record('environment', {
+    node: process.version,
+    platform: `${process.platform}-${process.arch}`,
+    finishedAt: new Date().toISOString(),
+  });
+});

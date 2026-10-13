@@ -1,0 +1,41 @@
+Verified template sha256:ffd15361c0af94bd69d747350d48e3a961e1a8a5260bd088e909d1c15933c39b
+
+added 91 packages in 1s
+{
+  "template": {
+    "path": "template-dependencies.tar.gz",
+    "sha256": "fa12446d82c6e4c069f8bd4540ff4ed489e39460b73ee6931d8a7231fe983e4f",
+    "expandedBytes": 126692992,
+    "source": "https://registry.npmjs.org/",
+    "license": "SEE licenses/template/manifest.json",
+    "lockSha256": "741d02cb3b2758bca20ed5d4a229931cb75e72eedf75354bf17c2a03ceecd10b",
+    "contentSha256": "ffd15361c0af94bd69d747350d48e3a961e1a8a5260bd088e909d1c15933c39b",
+    "platform": "linux",
+    "arch": "arm64",
+    "libc": "glibc"
+  },
+  "schemaVersion": 1,
+  "platform": "darwin-arm64",
+  "minimumFreeBytes": 10176081420,
+  "python": {
+    "path": "python/bin/python3",
+    "executable": "python/bin/python3",
+    "sha256": "bf4ea26231212e330b8e9b6f24969a30f894fec88665bf42754070d114ac7fc6",
+    "archiveSha256": "6f304f4ec30854611f23316578302235fb517cd970519ecdd11a8c4db87fd843",
+    "expandedBytes": 49076095,
+    "source": "https://github.com/astral-sh/python-build-standalone/releases/download/20260414/cpython-3.14.4%2B20260414-aarch64-apple-darwin-install_only_stripped.tar.gz",
+    "license": "Python-2.0 and PSF; bundled third-party licenses",
+    "version": "3.14.4+20260414"
+  },
+  "guest": {
+    "path": "guest-tools.tar.gz",
+    "sha256": "ae36ded1968afb362aa3b208fc75cdc128039cadfa3c851a2e0ece27675615cf",
+    "expandedBytes": 617304327,
+    "source": "https://github.com/JadeSnow7/web-studio-lab/blob/main/packaging/dependencies.lock.json",
+    "license": "Node.js MIT and bundled third-party notices; pnpm MIT; Codex Apache-2.0 and bundled third-party notices",
+    "node": "24.21.0",
+    "pnpm": "10.34.6",
+    "codex": "0.160.0"
+  },
+  "baseImage": "docker.io/docker/sandbox-templates@sha256:8b4cd0a46c8b600bc6b6a64af23c03d4c2807fbfc61f47568092a93fb9dc88b0"
+}

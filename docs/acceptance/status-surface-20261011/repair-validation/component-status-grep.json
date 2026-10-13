@@ -1,0 +1,35 @@
+{
+  "tool": "专用 grep 工具（非 shell 命令，无进程退出码）",
+  "files": ["apps/desktop/src/renderer/src/workspace/Files.tsx", "apps/desktop/src/renderer/src/workspace/Observation.tsx"],
+  "checks": [
+    {
+      "file": "Observation.tsx",
+      "pattern": "recordStateNames|errorNames|source\\.state\\]|\\$\\{result\\.message\\}",
+      "matches": 0,
+      "result": "本次指出的组件局部状态映射与错误文案拼接已移除。"
+    },
+    {
+      "pattern": "unavailableReason",
+      "matches": 2,
+      "locations": ["Files.tsx:37", "Observation.tsx:349"],
+      "result": "仅保留表单启用条件，不用于直接渲染状态文字；不机械搬迁业务操作条件。"
+    },
+    {
+      "pattern": "observationErrorLine|observationRecordStateLabel|observationSourceState|useResourceUnavailableView|<StatusSlot",
+      "matches": 9,
+      "locations": [
+        "Files.tsx:108",
+        "Observation.tsx:13",
+        "Observation.tsx:14",
+        "Observation.tsx:15",
+        "Observation.tsx:16",
+        "Observation.tsx:101",
+        "Observation.tsx:113",
+        "Observation.tsx:191",
+        "Observation.tsx:246"
+      ],
+      "result": "状态槽、观察历史四态、错误行、来源状态和资源不可用文字均从统一事实/展示入口取得。"
+    }
+  ],
+  "scope": "静态检索，不代替单元测试或真实 Electron 窗口断言。"
+}

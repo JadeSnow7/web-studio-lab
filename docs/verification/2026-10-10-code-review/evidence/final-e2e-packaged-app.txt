@@ -1,0 +1,62 @@
+
+Running 1 test using 1 worker
+
+(node:59415) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /private/tmp/wsl-review-packaged-app-20261010-1f4709e3/profile ELECTRON_PID 59416
+ELECTRON_STDERR (node:59416) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Web Studio Lab --trace-warnings ...` to show where the warning was created)
+
+MANAGED_APP_SCREEN_READY {"url":"http://127.0.0.1:49163","webContentsId":3}
+MANAGED_APP_EVIDENCE /private/tmp/wsl-review-packaged-app-20261010-1f4709e3
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:58275/8dfd1923-a5e2-4bf4-899b-fb3c47dae7aa
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+ELECTRON_STDERR [59416:1010/213227.661006:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
+
+  ✘  1 e2e/managed-app-live.spec.ts:9:1 › real sbx standard app through product Browser, persistence, export and cancellation (2.1m)
+
+
+  1) e2e/managed-app-live.spec.ts:9:1 › real sbx standard app through product Browser, persistence, export and cancellation 
+
+    TimeoutError: locator.click: Timeout 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: '停止应用', exact: true })
+        - locator resolved to <button class="btn" type="button">停止应用</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <dialog open="" aria-label="切换空间" class="space-switcher">…</dialog> intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <dialog open="" aria-label="切换空间" class="space-switcher">…</dialog> intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        58 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <dialog open="" aria-label="切换空间" class="space-switcher">…</dialog> intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+
+
+      155 |     expect(persistence.writeB.body.value).toBe('B-' + nonce);
+      156 |     evidence['storageBefore'] = persistence;
+    > 157 |     await page.getByRole('button', { name: '停止应用', exact: true }).click();
+          |                                                                   ^
+      158 |     await waitState('stopped');
+      159 |     expect((await state()).managedApp?.cleanupConfirmed).toBe(true);
+      160 |     const firstStoppedPorts = await portMappings();
+        at /Users/huaodong/workspace/web-studio-lab/e2e/managed-app-live.spec.ts:157:67
+
+    Error Context: docs/verification/2026-10-10-code-review/evidence/e2e-packaged-app-results/managed-app-live-real-sbx--7ad7a-nce-export-and-cancellation/error-context.md
+
+  1 failed
+    e2e/managed-app-live.spec.ts:9:1 › real sbx standard app through product Browser, persistence, export and cancellation 

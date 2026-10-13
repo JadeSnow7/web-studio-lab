@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { app, BrowserWindow } from 'electron';
+import { DEBUG_PRELOAD_ARGUMENT } from '@wsl/protocol';
 import type { TrustedRenderer } from './ipc-guard';
 
 export const MIN_WINDOW = { width: 960, height: 640 } as const;
@@ -11,7 +12,13 @@ export function rendererSource(): TrustedRenderer {
   return { kind: 'file', url: pathToFileURL(path.join(__dirname, '../renderer/index.html')).toString() };
 }
 
-export function createMainWindow(trusted: TrustedRenderer): BrowserWindow {
+export function createMainWindow(trusted: TrustedRenderer, options: { debugStatus?: boolean } = {}): BrowserWindow {
+  // appPath resolves the same shipped asset in the checkout and inside app.asar.
+  const icon = path.join(app.getAppPath(), 'resources/branding/icon.png');
+  if (process.platform === 'darwin' && !app.isPackaged) {
+    if (!app.dock) throw new Error('macOS Dock is unavailable');
+    app.dock.setIcon(icon);
+  }
   const window = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -19,6 +26,7 @@ export function createMainWindow(trusted: TrustedRenderer): BrowserWindow {
     minHeight: MIN_WINDOW.height,
     show: false,
     title: 'Web Studio Lab',
+    icon,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 15 },
     backgroundColor: '#F6F7F9',
@@ -29,6 +37,8 @@ export function createMainWindow(trusted: TrustedRenderer): BrowserWindow {
       nodeIntegration: false,
       webSecurity: true,
       spellcheck: false,
+      // 诊断通道启用时才告知 preload 暴露 `debug`；不携带任何数据（status-interface.md §8.1）。
+      ...(options.debugStatus ? { additionalArguments: [DEBUG_PRELOAD_ARGUMENT] } : {}),
     },
   });
 

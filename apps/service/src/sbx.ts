@@ -4,7 +4,13 @@ import { constants } from 'node:fs';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { z } from 'zod';
-import { ResourceBundleSchema, type ChatStatus, type ResourceBundle, type WorkspaceObservationResult } from '@wsl/protocol';
+import {
+  ResourceBundleSchema,
+  type AppControlResult,
+  type ChatStatus,
+  type ResourceBundle,
+  type WorkspaceObservationResult,
+} from '@wsl/protocol';
 import helper from './guest-helper.py?raw';
 import resourceMcp from './resource_mcp.py?raw';
 import terminalRc from './terminal-bash-integration.sh?raw';
@@ -15,6 +21,9 @@ const guestHelper = helper
 
 export const GUEST_CWD = '/home/agent/workspace';
 const PREFIX = 'WSL_GUEST_FRAME:';
+const workspaceFile = z.object({ path: z.string().min(1), base64: z.string() }).strict();
+const workspaceSchema = z.object({ runId: z.uuid(), files: z.array(workspaceFile).max(256) }).strict();
+export type GuestWorkspace = z.infer<typeof workspaceSchema>;
 const FrameSchema = z.discriminatedUnion('type', [
   z
     .object({
@@ -27,6 +36,7 @@ const FrameSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('observation-cancel'), id: z.string().uuid() }).strict(),
   z.object({ type: z.literal('ready'), pid: z.number().int().positive() }),
   z.object({ type: z.literal('output'), stream: z.enum(['stdout', 'stderr']), data: z.string() }),
+  z.object({ type: z.literal('workspace'), ...workspaceSchema.shape }).strict(),
   z.object({ type: z.literal('exit'), exitCode: z.number().int().nullable() }),
   z.object({ type: z.literal('cleanup'), ok: z.boolean(), error: z.string().optional() }),
   z.object({ type: z.literal('error'), error: z.string() }),
@@ -46,6 +56,7 @@ export type GuestStart =
       resourceBundle?: ResourceBundle;
       observation?: boolean;
       observationImages?: boolean;
+      workspace?: GuestWorkspace;
     }
   | { type: 'start'; mode: 'terminal'; cols: number; rows: number };
 
@@ -85,8 +96,15 @@ export class GuestProcess {
   private ended = false;
   private stderr = '';
   private timer: ReturnType<typeof setTimeout>;
-  constructor(binary: string, sandbox: string, start: GuestStart, onFrame: (frame: GuestFrame) => void) {
+  constructor(
+    binary: string,
+    sandbox: string,
+    start: GuestStart,
+    onFrame: (frame: GuestFrame) => void,
+    onTransportOutput?: (stream: 'stdout' | 'stderr', text: string) => void,
+  ) {
     if (start.mode === 'codex' && start.resourceBundle) ResourceBundleSchema.parse(start.resourceBundle);
+    if (start.mode === 'codex' && start.workspace) workspaceSchema.parse(start.workspace);
     this.done = new Promise((resolve) => {
       this.finish = resolve;
     });
@@ -97,6 +115,7 @@ export class GuestProcess {
     const lines = createInterface({ input: this.child.stdout });
     lines.on('line', (line) => {
       try {
+        onTransportOutput?.('stdout', line + '\n');
         if (line === `Sandbox ${sandbox} started successfully`) return;
         if (!line.startsWith(PREFIX)) throw new Error('收到未封装的 sbx 输出');
         const frame = FrameSchema.parse(JSON.parse(line.slice(PREFIX.length)));
@@ -118,6 +137,11 @@ export class GuestProcess {
       }
     });
     this.child.stderr.on('data', (chunk: Buffer) => {
+      try {
+        onTransportOutput?.('stderr', chunk.toString());
+      } catch (error) {
+        this.fail(`guest transport output: ${String(error)}`);
+      }
       this.stderr = (this.stderr + chunk.toString()).slice(-4000);
     });
     this.child.on('error', (error) => {
@@ -139,7 +163,7 @@ export class GuestProcess {
   }
   write(
     frame:
-      | { type: 'observation-result'; id: string; result: WorkspaceObservationResult }
+      | { type: 'observation-result'; id: string; result: WorkspaceObservationResult | AppControlResult }
       | GuestStart
       | { type: 'input'; data: string }
       | { type: 'resize'; cols: number; rows: number }
@@ -174,7 +198,7 @@ export class SbxConnection {
   private binary: string | null = null;
   private status: ChatStatus = { available: false, reason: '正在检查 sbx…', version: null, sandbox: null, cwd: null };
   constructor(private readonly config?: { sbxBinary: string | null; sandbox: string | null }) {}
-  async initialize(): Promise<ChatStatus> {
+  async initialize(onTransportOutput?: (stream: 'stdout' | 'stderr', text: string) => void): Promise<ChatStatus> {
     const sandbox = this.config ? this.config.sandbox : process.env['WSL_SBX_NAME']?.trim();
     this.status.sandbox = sandbox || null;
     this.status.cwd = sandbox ? GUEST_CWD : null;
@@ -183,6 +207,8 @@ export class SbxConnection {
       this.binary = await resolveSbxBinary(this.config ? (this.config.sbxBinary ?? '/missing-sbx') : undefined);
       if (this.closing) throw new Error('sbx 服务正在关闭');
       const inspect = spawnSync(this.binary, ['inspect', '--json', sandbox], { encoding: 'utf8', timeout: 20000 });
+      if (inspect.stdout) onTransportOutput?.('stdout', inspect.stdout);
+      if (inspect.stderr) onTransportOutput?.('stderr', inspect.stderr);
       if (inspect.error || inspect.status !== 0) throw new Error(inspect.error?.message ?? (inspect.stderr.trim() || 'sbx inspect 失败'));
       const target = z
         .object({
@@ -193,10 +219,17 @@ export class SbxConnection {
         })
         .parse(JSON.parse(inspect.stdout));
       this.status.sandbox = target.name;
+      if (this.closing) throw new Error('sbx 服务正在关闭');
       let version = '';
-      const probe = new GuestProcess(this.binary, sandbox, { type: 'start', mode: 'codex', argv: ['codex', '--version'] }, (frame) => {
-        if (frame.type === 'output' && frame.stream === 'stdout') version += frame.data;
-      });
+      const probe = new GuestProcess(
+        this.binary,
+        sandbox,
+        { type: 'start', mode: 'codex', argv: ['codex', '--version'] },
+        (frame) => {
+          if (frame.type === 'output' && frame.stream === 'stdout') version += frame.data;
+        },
+        onTransportOutput,
+      );
       this.probe = probe;
       const outcome = await probe.done;
       if (outcome.confirmed) this.probe = null;
@@ -208,6 +241,10 @@ export class SbxConnection {
       this.status = { ...this.status, available: false, reason: `sbx 不可用：${(error as Error).message}`, version: null };
     }
     return this.getStatus();
+  }
+  runtimeTarget(): { binary: string; sandbox: string } {
+    if (this.closing || !this.status.available || !this.binary || !this.status.sandbox) throw new Error(this.status.reason ?? 'sbx 不可用');
+    return { binary: this.binary, sandbox: this.status.sandbox };
   }
   getStatus(): ChatStatus {
     return { ...this.status };
@@ -222,10 +259,14 @@ export class SbxConnection {
     if (outcome.confirmed) this.probe = null;
     if (!outcome.confirmed) throw new Error(outcome.error ?? 'guest probe 清理未确认');
   }
-  start(start: GuestStart, onFrame: (frame: GuestFrame) => void): GuestProcess {
+  start(
+    start: GuestStart,
+    onFrame: (frame: GuestFrame) => void,
+    onTransportOutput?: (stream: 'stdout' | 'stderr', text: string) => void,
+  ): GuestProcess {
     if (this.closing) throw new Error('sbx 服务正在关闭');
     if (!this.status.available || !this.binary || !this.status.sandbox) throw new Error(this.status.reason ?? 'sbx 不可用');
-    const guest = new GuestProcess(this.binary, this.status.sandbox, start, onFrame);
+    const guest = new GuestProcess(this.binary, this.status.sandbox, start, onFrame, onTransportOutput);
     void guest.done.then((outcome) => {
       if (!outcome.confirmed) this.cleanupUnknown = true;
     });

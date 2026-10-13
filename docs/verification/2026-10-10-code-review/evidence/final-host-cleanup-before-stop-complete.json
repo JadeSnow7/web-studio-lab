@@ -1,0 +1,65 @@
+{
+  "recordedElectronPids": [
+    54295,
+    59062,
+    59137,
+    59272,
+    59304,
+    59357,
+    59416,
+    59727,
+    59929,
+    61248,
+    61316,
+    61647,
+    62293
+  ],
+  "remainingProcesses": "",
+  "psExitCode": 1,
+  "ownedPortChecks": [
+    {
+      "port": 49152,
+      "acceptingConnections": true
+    },
+    {
+      "port": 49153,
+      "acceptingConnections": false
+    },
+    {
+      "port": 49154,
+      "acceptingConnections": false
+    },
+    {
+      "port": 49160,
+      "acceptingConnections": false
+    },
+    {
+      "port": 49161,
+      "acceptingConnections": false
+    },
+    {
+      "port": 49163,
+      "acceptingConnections": false
+    },
+    {
+      "port": 49164,
+      "acceptingConnections": false
+    },
+    {
+      "port": 56341,
+      "acceptingConnections": false
+    },
+    {
+      "port": 56342,
+      "acceptingConnections": false
+    },
+    {
+      "port": 61404,
+      "acceptingConnections": false
+    },
+    {
+      "port": 61407,
+      "acceptingConnections": false
+    }
+  ]
+}

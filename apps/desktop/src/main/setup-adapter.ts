@@ -104,7 +104,7 @@ export class NativeSetupAdapter implements SetupAdapter {
     } catch {
       throw new SetupError('payload-missing', '安装载荷缺失或清单无效，请重新获取完整安装包');
     }
-    for (const payload of [manifest.python, manifest.guest]) {
+    for (const payload of [manifest.python, manifest.guest, ...(manifest.template ? [manifest.template] : [])]) {
       let bytes: Buffer;
       try {
         bytes = await readFile(path.join(this.resourceRoot, payload.path));

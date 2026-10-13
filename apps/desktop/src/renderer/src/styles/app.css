@@ -496,6 +496,12 @@ p {
   width: 76px;
   flex: none;
 }
+.brand-logo {
+  display: block;
+  flex: none;
+  pointer-events: none;
+  user-select: none;
+}
 .titlebar-title {
   flex: 1;
   min-width: 0;
@@ -590,28 +596,6 @@ p {
   box-shadow:
     0 0 0 1px var(--line),
     0 18px 48px rgba(29, 29, 31, 0.18);
-}
-.workshop-edge {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 10px;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-}
-.edge-handle {
-  width: 6px;
-  height: 52px;
-  margin-left: 2px;
-  border: 0;
-  border-radius: 3px;
-  background: #b8c0cc;
-  cursor: pointer;
-}
-.edge-handle:hover {
-  background: var(--accent);
 }
 .rail {
   width: var(--rail-w);
@@ -1234,22 +1218,14 @@ p {
 .composer textarea:focus {
   box-shadow: none;
 }
-.composer-target {
-  font-size: 12px;
-  color: var(--accent-ink);
-  font-weight: 600;
-}
 .composer-foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
 }
-.composer-hint {
-  font-size: 11.5px;
-  color: var(--text-3);
-}
 .composer-notice {
+  margin-right: auto;
   font-size: 12px;
   color: var(--warn-ink);
 }
@@ -1370,6 +1346,12 @@ p {
 }
 .home h1 {
   font-size: 26px;
+}
+.home-greeting {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 100%;
 }
 .home-card {
   width: 100%;
@@ -1526,8 +1508,23 @@ p {
 .terminal-error {
   overflow-wrap: anywhere;
 }
-.terminal-hint {
-  flex: none;
+.terminal-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--glass);
+  box-shadow: 0 0 0 1px var(--line-soft);
+  font-size: 12px;
+}
+.terminal-capsule-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .chat-tools {
   border: 1px solid var(--line);
@@ -1573,9 +1570,6 @@ p {
 }
 
 /* 网页资源复用管理页滚动、语义按钮和全局 token。 */
-.resource-browser-actions {
-  min-height: 30px;
-}
 .resource-feedback {
   min-height: 20px;
   overflow-wrap: anywhere;
@@ -1954,9 +1948,13 @@ textarea.resize-none {
 }
 .workspace-browser .browser-toolbar {
   flex: none;
-  height: 48px;
+  min-height: 48px;
   padding: 7px 10px;
   border-bottom: 1px solid var(--line-soft);
+}
+.workspace-browser .status-slot {
+  flex: none;
+  padding: 6px 10px;
 }
 .workspace-browser .preview-host {
   position: relative;
@@ -1971,9 +1969,6 @@ textarea.resize-none {
   padding: 32px 22px;
   color: var(--text-2);
   line-height: 1.7;
-}
-.workspace-inline-error {
-  padding: 10px;
 }
 .session-workspace {
   background: var(--content);
@@ -2017,10 +2012,6 @@ textarea.resize-none {
   flex-direction: column;
   gap: 8px;
 }
-.workspace-composer > label {
-  color: var(--text-2);
-  font-size: 11px;
-}
 .workspace-composer textarea {
   width: 100%;
   padding: 10px;
@@ -2030,9 +2021,15 @@ textarea.resize-none {
   min-height: 68px;
   resize: none;
 }
-.session-status {
-  padding: 8px 12px;
+/* 会话的状态槽：沿用网页 / 终端窗格的状态槽，位于消息区与输入区之间；三条通道都空时高度为 0。 */
+.session-workspace .status-slot {
+  flex: none;
+  padding: 6px 10px;
   border-top: 1px solid var(--line-soft);
+}
+.workspace-composer-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 .context-image {
   width: 100%;
@@ -2203,7 +2200,7 @@ textarea.resize-none {
 .btn:disabled {
   background: var(--content);
   color: var(--muted);
-  border-color: var(--border);
+  border-color: var(--line);
 }
 
 .workspace-notifications {
@@ -2231,41 +2228,30 @@ textarea.resize-none {
 .remake-app .titlebar {
   height: var(--titlebar-h);
 }
-.remake-app .workshop-edge {
-  position: relative;
-  width: 44px;
-  flex: none;
-}
-.remake-app .edge-handle {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 34px;
-  height: 42px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--content);
-  color: var(--accent);
-  box-shadow: 0 3px 14px #0001;
-}
 .remake-app .workshop-overlay {
   background: var(--glass);
 }
-.notification-edge {
-  width: 44px;
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 20;
+.titlebar-panel-trigger {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 34px;
 }
-.remake-app .notification-trigger {
-  flex-direction: column;
-  height: 52px;
+.titlebar-panel-trigger[aria-expanded='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 15px;
+  padding: 1px 3px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--content);
   font-size: 10px;
+  line-height: 13px;
 }
 .remake-app .right-panel {
   width: 340px;
@@ -2277,7 +2263,7 @@ textarea.resize-none {
 }
 .remake-app .right-panel-overlay {
   position: absolute;
-  inset: 8px 48px 8px auto;
+  inset: 8px 8px 8px auto;
   z-index: 35;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -2329,23 +2315,39 @@ textarea.resize-none {
 .remake-app .workspace-error {
   z-index: 80;
 }
-.remake-app .app-body {
-  padding-right: 44px;
-}
 .remake-app .content {
   margin-right: 0;
 }
-.notification-edge {
-  pointer-events: none;
-}
-.notification-edge button {
-  pointer-events: auto;
-}
 
+/* 文件窗格：状态槽与标题固定在顶部，内容区单独滚动（与网页 / 终端窗格一致，状态不会被滚出视野）。 */
 .file-panel {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  overflow: hidden;
+}
+.file-panel-header {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 20px 8px;
+}
+.file-panel-header h2 {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.file-panel .status-slot {
+  flex: none;
+  padding: 0 20px 8px;
+}
+.file-panel-body {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
-  padding: 20px;
+  padding: 8px 20px 20px;
 }
 .file-panel pre,
 .observation-result pre {
@@ -2365,4 +2367,708 @@ textarea.resize-none {
 }
 .observation-history {
   margin-block: 16px;
+}
+/* 观察结果顶部：覆盖稳态的形状 + 「来源」折叠区（来源、环境、时间、范围、版本 / 散列）。 */
+.observation-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.observation-coverage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  min-height: 1.6em;
+}
+.observation-source {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.observation-source summary {
+  cursor: pointer;
+}
+.observation-source p {
+  margin: 4px 0;
+}
+
+/* Header actions share the existing compact macOS control density. */
+.sidebar-heading > strong {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sidebar-create-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+}
+.sidebar-create-actions .icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+}
+.managed-app-dialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+}
+.managed-app-content {
+  display: grid;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.managed-app-content h2,
+.managed-app-content p {
+  margin: 0;
+}
+.managed-app-content .row {
+  flex-wrap: wrap;
+}
+
+.resource-bookmark-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin-top: 20px;
+}
+.resource-bookmark-form .field {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.resource-filters {
+  margin: 20px 0;
+  align-items: end;
+}
+.resource-search {
+  flex: 1 1 240px;
+}
+.resource-catalog-list {
+  display: grid;
+  border-top: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+.resource-catalog-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.resource-catalog-row > div {
+  min-width: 0;
+}
+.resource-title {
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.resource-location {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.resource-detail {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.resource-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 360px;
+  overflow: auto;
+  font-family: var(--mono);
+}
+.space-resource-section {
+  margin: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.space-resource-section summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.space-resource-section select {
+  width: 100%;
+  min-width: 0;
+}
+.space-resource-row {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+  margin-top: 12px;
+}
+.space-resource-row .btn {
+  padding: 5px 8px;
+}
+.personal-references {
+  margin: 8px 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.personal-references summary {
+  cursor: pointer;
+}
+.personal-references .field {
+  min-width: 0;
+  flex: 1 1 160px;
+}
+@media (max-width: 760px) {
+  .resource-catalog-row {
+    flex-direction: column;
+  }
+  .resource-detail {
+    padding: 12px;
+  }
+}
+
+.space-resource-section {
+  flex: 0 1 auto;
+  max-height: 38%;
+  overflow: auto;
+  min-height: 34px;
+}
+.resource-catalog-row:has([aria-pressed='true']) {
+  background: var(--accent-soft);
+}
+
+/* 统一状态接口：StatusDot / StatusSlot / Toast（status-interface.md §5、§9）。 */
+/* 工作区错误沿用原横幅的位置（底部居中，不压住右下角的发送按钮）；容器本身是 fixed，所以这里也用 fixed。 */
+.toasts .workspace-error {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + var(--storage-banner-h, 0px));
+  transform: translateX(-50%);
+  max-width: 80%;
+}
+/* 存储横幅出现时 App 根节点设置 --storage-banner-h，Toast 容器整体上移。 */
+.toasts {
+  bottom: calc(16px + var(--storage-banner-h, 0px));
+}
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+}
+.status-dot[data-phase='ok'] {
+  color: var(--ok);
+}
+.status-dot[data-phase='pending'],
+.status-dot[data-phase='active'] {
+  color: var(--accent);
+}
+.status-dot[data-phase='failed'] {
+  color: var(--bad);
+}
+.status-dot[data-phase='unknown'],
+.status-dot[data-phase='degraded'] {
+  color: var(--warn);
+}
+.shape-arc {
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+}
+.status-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: 0 0 0 1px var(--line-soft);
+  font-size: 12px;
+}
+.status-item .status-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.status-item .btn {
+  flex: none;
+}
+.status-item[data-status-channel='problem'] {
+  background: var(--bad-soft);
+  color: var(--bad);
+  box-shadow: 0 0 0 1px var(--bad);
+}
+.status-item[data-status-channel='persistent'][data-status$=':degraded'],
+.status-item[data-status-channel='persistent'][data-status$=':unknown'] {
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+  box-shadow: 0 0 0 1px var(--warn);
+}
+.status-more {
+  position: relative;
+}
+.status-more-menu {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 240px;
+  max-width: 420px;
+  margin-top: 4px;
+  padding: 6px;
+  background: var(--content);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  box-shadow: 0 8px 24px #0003;
+}
+.status-more-menu [role='menuitem'] {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  text-align: left;
+}
+.status-more-menu [role='menuitem']:hover,
+.status-more-menu [role='menuitem']:focus-visible {
+  background: var(--accent-soft);
+}
+.status-item .status-live {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.status-item .status-live .shape {
+  margin-top: 4px;
+}
+.status-detail {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--text-2);
+}
+.status-item[data-status-channel='problem'] .status-detail {
+  color: inherit;
+  opacity: 0.85;
+}
+.status-more-menu .status-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 网页工具栏：「采集到会话 ⌄」与「⋯」弹出层（组件见 workspace/Browser.tsx）。 */
+.browser-popup-anchor {
+  position: relative;
+  flex: none;
+}
+.browser-app-status {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 0 4px;
+}
+.browser-popup {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  max-width: min(420px, calc(100vw - 24px));
+  margin-top: 4px;
+  padding: 6px;
+  background: var(--content);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  box-shadow: 0 8px 24px #0003;
+  outline: none;
+}
+.browser-popup[role='menu'] [role='menuitem'] {
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  text-align: left;
+  color: var(--text);
+}
+.browser-popup[role='menu'] [role='menuitem']:disabled {
+  color: var(--text-2);
+}
+.browser-popup[role='menu'] [role='menuitem']:not(:disabled):hover,
+.browser-popup[role='menu'] [role='menuitem']:focus-visible {
+  background: var(--accent-soft);
+}
+.browser-popup-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 4px;
+}
+.browser-popup-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+.browser-popup-form .btn {
+  justify-content: center;
+}
+
+.titlebar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 280px;
+}
+.titlebar-status > .status-text-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.titlebar-status[data-phase='failed'] {
+  color: var(--bad);
+}
+.titlebar-status[data-phase='degraded'],
+.titlebar-status[data-phase='unknown'] {
+  color: var(--warn-ink);
+}
+@media (max-width: 1080px) {
+  .titlebar-status {
+    max-width: 180px;
+  }
+}
+
+/* 侧栏：标签行尾状态点与「后台资源」计数。 */
+.vertical-tab .tab-status {
+  display: inline-flex;
+  flex: none;
+}
+.background-resources > summary .count {
+  margin-left: 4px;
+  color: var(--text-2);
+}
+
+/* 会话：「运行记录 ⌄」菜单（组件见 workspace/Session.tsx）与详情页里的状态字段。 */
+.session-views .session-run-anchor {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+.session-views .session-run-anchor > .btn {
+  flex: 1;
+}
+.session-run-menu {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  margin-top: 4px;
+  padding: 6px;
+  background: var(--content);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  box-shadow: 0 8px 24px #0003;
+}
+.session-run-menu [role='menuitem'] {
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  text-align: left;
+  color: var(--text);
+}
+.session-run-menu [role='menuitem'][aria-current='true'] {
+  background: var(--glass);
+  font-weight: 600;
+}
+.session-run-menu [role='menuitem']:hover,
+.session-run-menu [role='menuitem']:focus-visible {
+  background: var(--accent-soft);
+}
+.status-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+.status-dot .status-label {
+  color: var(--text);
+}
+.session-run-state {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+/* 首页空间卡片与任务历史运行行的状态点：与文字同行并留出间距。 */
+.space-card strong .status-dot {
+  margin-left: 6px;
+}
+.conv-row.run-row-status {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+/* App 对话框「错误详情」：完整 app.error 是结果内容，默认收起；长文本在框内滚动。 */
+.managed-app-error summary {
+  cursor: pointer;
+}
+.managed-app-error pre {
+  max-height: 200px;
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: 0 0 0 1px var(--line-soft);
+}
+
+/* 诊断面板（仅 Main 启用诊断通道时可打开）：浮层，沿用主题 token。 */
+dialog.debug-panel {
+  width: min(1180px, calc(100vw - 48px));
+  height: min(760px, calc(100vh - 48px));
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  color: var(--text);
+  background: var(--content);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px #0003;
+}
+dialog.debug-panel[open] {
+  display: flex;
+  flex-direction: column;
+}
+dialog.debug-panel::backdrop {
+  background: rgba(29, 29, 31, 0.35);
+}
+.debug-head,
+.debug-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.debug-head strong {
+  font-size: 15px;
+}
+.debug-meta {
+  color: var(--text-2);
+}
+.debug-spacer {
+  flex: 1;
+}
+.debug-filters {
+  background: var(--glass);
+}
+.debug-kinds {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.debug-kinds button {
+  padding: 5px 10px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: var(--content);
+}
+.debug-kinds button:first-child {
+  border-left: 0;
+}
+.debug-kinds button[aria-checked='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.debug-domain {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.debug-error {
+  margin: 0;
+  padding: 8px 18px;
+  color: var(--bad);
+  background: var(--bad-soft);
+}
+.debug-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.debug-facts {
+  flex: 3 1 0;
+  min-width: 0;
+  overflow: auto;
+  border-right: 1px solid var(--line-soft);
+}
+.debug-side {
+  flex: 2 1 0;
+  min-width: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 18px;
+}
+.debug-group h3 {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-2);
+  background: var(--glass);
+}
+.debug-group table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.debug-group th,
+.debug-group td {
+  padding: 7px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line-soft);
+  line-height: 18px;
+}
+.debug-group th {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.debug-group td:nth-child(5) {
+  overflow-wrap: anywhere;
+}
+.debug-key {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+.debug-key[aria-pressed='true'] code {
+  font-weight: 700;
+}
+.debug-row-selected {
+  background: var(--accent-soft);
+}
+.debug-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.debug-detail code,
+.debug-timeline code {
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.debug-detail pre,
+.debug-session pre {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  max-height: 260px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 18px;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: 0 0 0 1px var(--line-soft);
+}
+.debug-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.debug-timeline ol {
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow: auto;
+  list-style: none;
+  font-size: 12px;
+  line-height: 18px;
+}
+.debug-session {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+}
+.debug-session-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.debug-session-head > span {
+  flex: 1;
+  line-height: 19px;
+}
+.debug-session-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.debug-ids {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  margin: 0;
+}
+.debug-ids dt {
+  color: var(--text-2);
+}
+.debug-ids dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.debug-list {
+  margin: 0;
+  padding-left: 18px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  .debug-body {
+    flex-direction: column;
+    overflow: auto;
+  }
+  .debug-facts,
+  .debug-side {
+    flex: none;
+    overflow: visible;
+    border-right: 0;
+  }
 }

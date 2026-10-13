@@ -1,0 +1,23 @@
+EnvironmentResources shutdown admission investigation (2026-10-10)
+
+Direct class fixture, not the product Main IPC path:
+- Bundled environment-resources.ts in memory with esbuild 0.28.2; raw Python/shell imports loaded as text. No source file changes.
+- Sandbox stub: unavailable; no sbx or SSH operation.
+- Authorized local root: isolated /private/tmp/wsl-env-shutdown-*.
+- await resources.shutdown(); await resources.register(localTerminalIdentity); await resources.openTerminal(identity,80,24).
+Actual stdout:
+registerAfterShutdown: success
+terminalAfterShutdown: starting sessionIdPresent: true snapshotEmissions: 1
+ownedCleanup: completed
+- A second resources.shutdown() cleaned the fixture child, then the temporary root was removed.
+- starting proves helper spawn admission, not successful interactive PTY readiness.
+
+Product reachability correction:
+ChatService.shutdown sets stopped=true synchronously before sending shutdown.
+ChatService.request rejects every subsequent method except shutdown.
+WorkbenchApplication.requestTerminalOpen awaits runtime.registerResource before runtime.terminalOpen; the latter goes through the same stopped gate.
+Thus a register continuation after shutdown cannot send a new terminal.open through the product Main path.
+Existing in-flight local open constructs/spawns the terminal synchronously before yielding; the entry is included by EnvironmentResources shutdown. SSH open rechecks entry identity after awaiting connection. File open checks retired/current entry and closes a late provider.
+An in-flight replacement register can restore a descriptor after clear, but no new provider/process is opened by registration itself, and Main blocks follow-up actions.
+
+Disposition: direct-class closing admission gap reproduced, but no product-reachable new-process or unclosed-handle path established. Keep as unconfirmed, not a confirmed product defect or required fix. No Electron, sbx, real SSH, or model run.

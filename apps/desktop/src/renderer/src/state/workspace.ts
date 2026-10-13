@@ -1,4 +1,4 @@
-import type { WorkbenchCommand, WorkbenchSnapshot, WorkspaceSnapshot, PaneLayout } from '@wsl/protocol';
+import type { CatalogAction, WorkbenchCommand, WorkbenchSnapshot, WorkspaceSnapshot, PaneLayout } from '@wsl/protocol';
 import { occlusion, installOcclusionHider } from './occlusion';
 import { createStore } from '../lib/store';
 
@@ -37,6 +37,12 @@ export function panes(layout: PaneLayout): Array<Extract<PaneLayout, { kind: 'pa
 }
 const metadataQueues = new Map<string, Promise<unknown>>();
 const runtimeCommands = new Set([
+  'startRun',
+  'cancelRun',
+  'createApp',
+  'startApp',
+  'stopApp',
+  'exportApp',
   'browserLayout',
   'browserAction',
   'terminalOpen',
@@ -59,7 +65,7 @@ async function executeCommand(workspaceId: string, payload: Payload, revision?: 
     projectSnapshot(result.snapshot);
     // Resource business errors have one owner in the workspace snapshot.
     // Transport exceptions still use the global error surface below.
-    if (!result.ok && payload.type !== 'capturePublicResource' && payload.type !== 'removePublicResource')
+    if (!result.ok)
       workspaceStore.set((s) => ({
         ...s,
         error: result.error.code === 'pane_limit' ? '最多四个窗格；请先关闭一个窗格。' : result.error.message,
@@ -71,6 +77,7 @@ async function executeCommand(workspaceId: string, payload: Payload, revision?: 
   }
 }
 export function workspaceCommand(workspaceId: string, payload: Payload, revision?: number) {
+  if (['activateTab', 'openTab', 'createTab', 'closeTab', 'focusPane', 'splitPane', 'closePane'].includes(payload.type)) beginNavigation();
   if (runtimeCommands.has(payload.type)) return executeCommand(workspaceId, payload);
   const previous = metadataQueues.get(workspaceId) ?? Promise.resolve();
   const next = previous.then(() => {
@@ -79,6 +86,20 @@ export function workspaceCommand(workspaceId: string, payload: Payload, revision
   });
   metadataQueues.set(workspaceId, next);
   return next;
+}
+type CatalogPayload = CatalogAction extends infer C
+  ? C extends CatalogAction
+    ? Omit<C, 'commandId' | 'expectedCatalogRevision'>
+    : never
+  : never;
+export async function catalogCommand(payload: CatalogPayload) {
+  const result = await window.studio.workbench.catalogCommand({
+    ...payload,
+    commandId: crypto.randomUUID(),
+    expectedCatalogRevision: workspaceStore.get().snapshot?.catalog?.revision ?? 0,
+  } as CatalogAction);
+  projectSnapshot(result.snapshot);
+  return result;
 }
 export function command(payload: Payload) {
   const w = selectedWorkspace();
@@ -91,9 +112,14 @@ export const isCurrentNavigation = (token: number) => token === navigation;
 export async function switchWorkspace(workspaceId: string, tabId?: string) {
   const token = beginNavigation();
   const result = await workspaceCommand(workspaceId, { type: 'switchWorkspace' });
-  if (!result?.ok || token !== navigation) return;
+  if (!result?.ok || token !== navigation) return false;
   workspaceStore.set((s) => ({ ...s, selectedId: workspaceId }));
-  if (tabId) await workspaceCommand(workspaceId, { type: 'activateTab', tabId });
+  if (tabId) {
+    const pending = workspaceCommand(workspaceId, { type: 'activateTab', tabId });
+    const activationToken = navigation;
+    return (await pending)?.ok === true && activationToken === navigation;
+  }
+  return true;
 }
 let subscribed = false;
 let initializing: Promise<void> | null = null;

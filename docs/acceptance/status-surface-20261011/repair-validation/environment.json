@@ -1,0 +1,16 @@
+{
+  "worktree": "/Users/huaodong/workspace/_worktrees/status-surface-20261011",
+  "remote": "https://github.com/JadeSnow7/web-studio-lab.git",
+  "branch": "agent/status-surface",
+  "reviewedHead": "1bce260678c5d60e6889a093e0c523c333019fca",
+  "comparisonBaseline": "917f375",
+  "initialGitStatusShort": "",
+  "node": "v26.5.0",
+  "pnpm": "10.34.6",
+  "electronPackageVersion": "44.5.1",
+  "platform": "macOS",
+  "implementationModel": "swe-2-high",
+  "delegation": "主要实现由独立 Devin CLI 子进程完成；用户授权交互式确认本工作树信任；未关闭信任或工具权限检查。非交互尝试因信任检查及工具确认要求停止，之后改用交互式子进程。后续截图采集脚本的父目录修正、E2E 失败只读审查及未使用变量清理由 Harness 的 swe2-implementer 角色完成；源码/检查脚本实现继续使用 SWE-2。",
+  "verificationPolicy": "测试与 Electron 窗口套件串行；只运行默认离线/fixture 检查，不启用真实模型、sandbox live 或 packaged E2E。",
+  "deliveryPolicy": "不提交、不推送、不创建 PR、不发布、不部署、不打包、不签名、不公证。"
+}

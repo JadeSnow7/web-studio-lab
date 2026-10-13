@@ -1,0 +1,44 @@
+{
+  "managedApp": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "35145afa-56af-4d4b-bcfe-a2640e94ca26",
+    "environmentId": "sandbox",
+    "appInstanceId": "ebdb789b-c136-47e6-9746-bd3be04cc08b",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/35145afa-56af-4d4b-bcfe-a2640e94ca26",
+    "guestPort": 36667,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "runs": [
+    {
+      "runId": "5fc7f370-9cd1-476e-bd02-24d2df48d946",
+      "state": "cancelled",
+      "endedAt": "2026-10-11T05:55:06.362Z",
+      "cleanupPending": false,
+      "validation": {
+        "state": "not_run",
+        "applicability": "unknown",
+        "reason": null
+      },
+      "review": null
+    },
+    {
+      "runId": "53524e0f-e606-4ce4-9011-cd2c8ff4b9cf",
+      "state": "completed",
+      "endedAt": "2026-10-11T05:55:35.584Z",
+      "cleanupPending": false,
+      "validation": {
+        "state": "not_run",
+        "applicability": "unknown",
+        "reason": null
+      },
+      "review": null
+    }
+  ],
+  "sourceFileCount": 45,
+  "cancelElapsedMs": 3356,
+  "lateResponseDelayMs": 25434,
+  "postCancelCalls": 0
+}

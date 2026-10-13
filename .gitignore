@@ -38,7 +38,16 @@ Thumbs.db
 playwright-report/
 test-results/
 
-# Competition installer reproducible downloads and assembled payloads
-/packaging/cache/
-/packaging/generated/
-/apps/desktop/release-internal/
+# Competition installer reproducible downloads and assembled payloads.
+# Build outputs that scripts/external-builds.mjs may replace with symlinks; no
+# trailing slash, because a directory pattern does not match a symlink.
+/apps/desktop/out
+/apps/service/out
+/apps/desktop/release
+/apps/desktop/release-internal
+/packaging/generated
+/packaging/cache
+
+# Python test caches
+__pycache__/
+*.py[cod]

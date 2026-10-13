@@ -1,0 +1,35 @@
+F..E/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/tempfile.py:961: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-app-socket-jtlyba8a'>
+  _warnings.warn(warn_message, ResourceWarning)
+/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/case.py:668: ResourceWarning: unclosed <socket.socket fd=3, family=1, type=1, proto=0>
+  with outcome.testPartExecutor(self):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+E/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/tempfile.py:961: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-app-socket-d25yggiu'>
+  _warnings.warn(warn_message, ResourceWarning)
+
+======================================================================
+ERROR: test_cli_uses_same_socket_and_meaningful_exit_codes (__main__.AppControlMcpTests.test_cli_uses_same_socket_and_meaningful_exit_codes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<string>", line 106, in test_cli_uses_same_socket_and_meaningful_exit_codes
+  File "<string>", line 21, in __init__
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_mcp_call_forwards_app_frame_and_marks_failures (__main__.AppControlMcpTests.test_mcp_call_forwards_app_frame_and_marks_failures)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<string>", line 86, in test_mcp_call_forwards_app_frame_and_marks_failures
+  File "<string>", line 21, in __init__
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+FAIL: test_channel_is_explicit_and_does_not_connect_socket (__main__.AppCliTransportTests.test_channel_is_explicit_and_does_not_connect_socket)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<string>", line 143, in test_channel_is_explicit_and_does_not_connect_socket
+AssertionError: False is not true : CLI must have bounded file transport
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.010s
+
+FAILED (failures=1, errors=2)

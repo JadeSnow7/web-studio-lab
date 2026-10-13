@@ -1,0 +1,20 @@
+
+Running 13 tests using 1 worker
+
+(node:67941) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/space-app.spec.ts:7:1 › App form validates, cancels, creates and edits within its space; missing sandbox keeps draft and registered identity (1.6s)
+  ✓   2 e2e/space-app.spec.ts:52:1 › controlled UI transport fixture: successful App creation and edit, duplicate prevention and revision conflict (1.3s)
+  ✓   3 e2e/space-app.spec.ts:162:1 › App form preserves long Chinese input during IME confirmation and stays reachable in a dark narrow window (1.3s)
+  ✓   4 e2e/workbench.spec.ts:23:1 › 启动：窗口、安全边界与 Browser 区真实加载 (121ms)
+  ✓   5 e2e/workbench.spec.ts:55:1 › 点选：明确目标后采集摘要、截图与页面身份，先采集后确认不会崩溃 (672ms)
+  ✓   6 e2e/workbench.spec.ts:76:1 › 任务确认：中文目标生成权威不可变版本，重复点击不生成双版本 (109ms)
+  ✓   7 e2e/workbench.spec.ts:96:1 › 导航：页面跳转后旧现场失效，历史版本仍保留原目标 (617ms)
+  ✓   8 e2e/workbench.spec.ts:111:1 › 选择模式中导航：退出选择模式，之后页面点击正常生效 (512ms)
+  ✓   9 e2e/workbench.spec.ts:125:1 › 运行、检查、审阅分别记录；没有独立检查器不会显示通过 (251ms)
+  ✓  10 e2e/workbench.spec.ts:147:1 › 导航与草稿：个人作用域不沿用空间输入，回空间恢复草稿 (105ms)
+  ✓  11 e2e/workbench.spec.ts:159:1 › 侧栏：隐藏和临时展开使网页让位，按钮路径可固定恢复 (178ms)
+  ✓  12 e2e/workbench.spec.ts:175:1 › 菜单快捷键：应用菜单⌘B与⌘L仍走明确导航路径 (46ms)
+  ✓  13 e2e/workbench.spec.ts:198:1 › 窄窗口：活动窗格保留原生bounds，扩大恢复多窗格 (159ms)
+
+  13 passed (7.9s)

@@ -1,0 +1,41 @@
+
+> web-studio-lab@ build /Users/huaodong/workspace/web-studio-lab
+> pnpm build:service && pnpm --filter @wsl/desktop build
+
+
+> web-studio-lab@ build:service /Users/huaodong/workspace/web-studio-lab
+> node scripts/external-builds.mjs verify && pnpm --filter @wsl/desktop exec vite build --config ../service/vite.config.ts
+
+vite v7.3.6 building ssr environment for production...
+transforming...
+../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js (74:0): A comment
+
+"/** Anchors a pattern source. The interpolation lives here rather than at the call site because
+ * esbuild will not drop a `@__PURE__` call whose own argument interpolates a variable, but it
+ * will drop `anchor(dateSource)`. Keeping it inline pinned `date` into every bundle. */"
+
+in "../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js (400:0): A comment
+
+"// Wrapped in a `@__PURE__` IIFE: esbuild never tree-shakes a top-level initializer that contains a member access on `Number`, so the bare object literal survived into every bundle."
+
+in "../../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 193 modules transformed.
+✗ Build failed in 2.05s
+error during build:
+[vite:prepare-out-dir] EPERM, Operation not permitted: /Users/huaodong/workspace/web-studio-lab/apps/service/out/index.cjs '/Users/huaodong/workspace/web-studio-lab/apps/service/out/index.cjs'
+    at Object.rmSync (node:fs:1484:18)
+    at emptyDir (file:///Users/huaodong/workspace/web-studio-lab/node_modules/.pnpm/vite@7.3.6_@types+node@24.19.1_jiti@2.7.0_tsx@4.21.0/node_modules/vite/dist/node/chunks/config.js:2167:11)
+    at prepareOutDir (file:///Users/huaodong/workspace/web-studio-lab/node_modules/.pnpm/vite@7.3.6_@types+node@24.19.1_jiti@2.7.0_tsx@4.21.0/node_modules/vite/dist/node/chunks/config.js:33405:55)
+    at Object.handler (file:///Users/huaodong/workspace/web-studio-lab/node_modules/.pnpm/vite@7.3.6_@types+node@24.19.1_jiti@2.7.0_tsx@4.21.0/node_modules/vite/dist/node/chunks/config.js:33395:6)
+    at Object.handler (file:///Users/huaodong/workspace/web-studio-lab/node_modules/.pnpm/vite@7.3.6_@types+node@24.19.1_jiti@2.7.0_tsx@4.21.0/node_modules/vite/dist/node/chunks/config.js:33823:13)
+    at file:///Users/huaodong/workspace/web-studio-lab/node_modules/.pnpm/rollup@4.64.0/node_modules/rollup/dist/es/shared/node-entry.js:23456:40
+    at async Promise.all (index 0)
+    at async PluginDriver.hookParallel (file:///Users/huaodong/workspace/web-studio-lab/node_modules/.pnpm/rollup@4.64.0/node_modules/rollup/dist/es/shared/node-entry.js:23366:9)
+    at async Bundle.generate (file:///Users/huaodong/workspace/web-studio-lab/node_modules/.pnpm/rollup@4.64.0/node_modules/rollup/dist/es/shared/node-entry.js:21482:13)
+    at async file:///Users/huaodong/workspace/web-studio-lab/node_modules/.pnpm/rollup@4.64.0/node_modules/rollup/dist/es/shared/node-entry.js:24445:27
+undefined
+/Users/huaodong/workspace/web-studio-lab/apps/desktop:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vite build --config ../service/vite.config.ts
+ ELIFECYCLE  Command failed with exit code 1.
+ ELIFECYCLE  Command failed with exit code 1.

@@ -7,6 +7,7 @@ const fixture = vi.hoisted(() => ({
 vi.mock('./codex-chat', () => ({
   CodexChat: class {
     setObservationReader = vi.fn();
+    setAppControlReader = vi.fn();
     connection = {
       getCleanupPending: () => false,
       getStatus: () => ({ available: false, reason: 'initializing', sandbox: null, version: null, cwd: null }),
@@ -27,11 +28,6 @@ vi.mock('./codex-chat', () => ({
       threadId: null,
       turnId: null,
     });
-  },
-}));
-vi.mock('./resource-store', () => ({
-  ResourceStore: class {
-    list = async (spaceId: string) => ({ spaceId, revision: 1, resources: [] });
   },
 }));
 vi.mock('./terminal', () => ({
@@ -68,7 +64,6 @@ describe('R6 service boundary initialization', () => {
       { id: 'register', method: 'register', payload: { conversationId: 'session-fixture', workspaceId: 'taskflow-demo' } },
       { id: 'status', method: 'status' },
       { id: 'get', method: 'get', payload: { conversationId: 'session-fixture' } },
-      { id: 'resources', method: 'resources.list', payload: { spaceId: 'taskflow-demo' } },
       {
         id: 'lease',
         method: 'resource.register',
@@ -91,7 +86,7 @@ describe('R6 service boundary initialization', () => {
             .filter(([message]) => message.type === 'response')
             .map(([message]) => message.id)
             .sort(),
-        ).toEqual(['get', 'lease', 'register', 'resources', 'status', 'terminal']),
+        ).toEqual(['get', 'lease', 'register', 'status', 'terminal']),
       { timeout: 100 },
     );
   });

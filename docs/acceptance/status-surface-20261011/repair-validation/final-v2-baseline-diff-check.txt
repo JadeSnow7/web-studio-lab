@@ -1,0 +1,1 @@
+docs/acceptance/status-surface-20261011/final-validation/typecheck.txt:15: new blank line at EOF.

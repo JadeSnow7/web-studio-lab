@@ -1,0 +1,9 @@
+
+Running 2 tests using 1 worker
+
+(node:97467) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/branding.spec.ts:4:1 › 品牌资产：本地加载、三主题与窄窗保持可见且不改变导航 (3.1s)
+  ✓  2 e2e/space-remake.spec.ts:21:1 › SR01/02/07/09：六个入口、空间专属标签、设置主题、草稿与原实例保持 (1.2s)
+
+  2 passed (4.5s)

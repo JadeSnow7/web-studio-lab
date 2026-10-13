@@ -1,0 +1,16 @@
+$ node node_modules/vitest/vitest.mjs run apps/desktop/src/main/workbench/managed-app.test.ts apps/desktop/src/main/workbench/space-app-persistence.test.ts apps/desktop/src/main/workbench/resource-catalog-repository.test.ts apps/desktop/src/main/workbench/observation-persistence.test.ts apps/desktop/src/main/workbench/app-control.test.ts apps/desktop/src/main/workbench/app-control-application.test.ts apps/desktop/src/main/preview/app-ui.test.ts apps/desktop/src/main/chat-service.test.ts apps/service/src/app-service.test.ts apps/service/src/app-control-routing.test.ts packages/protocol/src/app-control.test.ts
+
+ RUN  v5.0.3 /private/tmp/wsl-consolidate-review-20261011
+
+
+ Test Files  11 passed (11)
+      Tests  195 passed (195)
+   Start at  16:23:40
+   Duration  5.53s (tests 57%, transform 27%, import 16%)
+
+  Transform  transforming modules took 4.06s · 27% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+
+
+exitCode=0

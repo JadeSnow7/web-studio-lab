@@ -1,0 +1,83 @@
+ M .gitignore
+ M .prettierignore
+ M AGENTS.md
+ M CLAUDE.md
+ M README.md
+ M UX-CONTRACT.md
+ M apps/desktop/src/main/chat-service.test.ts
+ M apps/desktop/src/main/chat-service.ts
+ M apps/desktop/src/main/index.ts
+ M apps/desktop/src/main/preview/controller.ts
+ M apps/desktop/src/main/window-close.test.ts
+ M apps/desktop/src/main/workbench/application.ts
+ M apps/desktop/src/main/workbench/host.ts
+ M apps/desktop/src/main/workbench/ports.ts
+ M apps/desktop/src/renderer/src/workspace/Browser.tsx
+ M apps/desktop/src/renderer/src/workspace/Session.tsx
+ M apps/service/src/app-helper.py
+ M apps/service/src/app-service.test.ts
+ M apps/service/src/app-service.ts
+ M apps/service/src/codex-chat.ts
+ M apps/service/src/fixtures/observation-sbx.mjs
+ M apps/service/src/guest-helper.py
+ M apps/service/src/index.ts
+ M apps/service/src/initialization-migration.test.ts
+ M apps/service/src/observation_mcp_tests.py
+ M apps/service/src/resource_mcp.py
+ M apps/service/src/sbx.ts
+ M docs/ARCHITECTURE.md
+ M docs/architecture/current-runtime.md
+ M e2e/helpers.ts
+ M packages/protocol/src/chat.ts
+ M packages/protocol/src/index.ts
+ M packages/protocol/src/preview.ts
+ M packages/protocol/src/workspace.ts
+ M scripts/check-docs.mjs
+ M templates/standard-app/README.md
+ M templates/standard-app/package.json
+ M templates/standard-app/scripts/template-hash.mjs
+ M templates/standard-app/server/app.ts
+ D templates/standard-app/server/db-cli.ts
+ M templates/standard-app/server/index.ts
+ M templates/standard-app/src/App.tsx
+ M templates/standard-app/src/main.tsx
+ M templates/standard-app/template-manifest.json
+ M templates/standard-app/vite.config.ts
+?? apps/desktop/src/main/preview/app-ui.test.ts
+?? apps/desktop/src/main/preview/app-ui.ts
+?? apps/desktop/src/main/workbench/app-control-application.test.ts
+?? apps/desktop/src/main/workbench/app-control-failure.ts
+?? apps/desktop/src/main/workbench/app-control.test.ts
+?? apps/desktop/src/main/workbench/app-control.ts
+?? apps/service/src/__pycache__/
+?? apps/service/src/app-control-mcp.test.ts
+?? apps/service/src/app-control-routing.test.ts
+?? apps/service/src/app_cli_transport_tests.py
+?? apps/service/src/app_control_mcp_tests.py
+?? docs/architecture/adr/0002-app-control-plane.md
+?? docs/design/2026-10-11-app-control-plane.md
+?? docs/plans/2026-10-11-app-control-plane.md
+?? docs/verification/2026-10-11-app-control-plane/
+?? e2e/app-control-cancel-live.spec.ts
+?? e2e/app-control-data-cancel-live.spec.ts
+?? e2e/app-control-harness.spec.ts
+?? e2e/app-control-live.spec.ts
+?? e2e/app-control-model-live.spec.ts
+?? e2e/fixtures/app-control-cancel-gate.ts
+?? e2e/fixtures/app-control-data-gate.ts
+?? e2e/fixtures/app-control-harness-main.ts
+?? e2e/fixtures/app-control-injection.ts
+?? packages/protocol/src/app-control.test.ts
+?? packages/protocol/src/app-control.ts
+?? premium-audit.json
+?? templates/standard-app/AGENTS.md
+?? templates/standard-app/agent/
+?? templates/standard-app/scripts/agent-exclusion-check.mjs
+?? templates/standard-app/server/agent-cli.ts
+?? templates/standard-app/server/agent/
+?? templates/standard-app/src/agent/
+?? templates/standard-app/tests/agent-data.test.ts
+?? templates/standard-app/tests/agent-operations.test.ts
+?? templates/standard-app/tests/agent-registry.test.ts
+?? templates/standard-app/tests/agent/
+?? tests/app-control/

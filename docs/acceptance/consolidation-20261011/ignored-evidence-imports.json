@@ -1,0 +1,80 @@
+[
+  {
+    "path": "docs/verification/2026-10-11-app-control-plane/round-02/commands/format-check-after-evidence-ignore.log",
+    "sha256": "5325a65bb87cb1311692a02937949fee49c167f13ac0adc90c11f8b413dac71b",
+    "bytes": 90330
+  },
+  {
+    "path": "docs/verification/2026-10-11-app-control-plane/round-04-live/playwright.log",
+    "sha256": "3a3433be703cc2277d1065ed5f7db3d27a42c46a5cc6fd97c71d35dc643ed664",
+    "bytes": 1426
+  },
+  {
+    "path": "docs/verification/2026-10-11-app-control-plane/round-06-live/e2e-regression.log",
+    "sha256": "661815bb4352e7f1718f206d8d915f2187b652683e8dd4fbb631bf070b31fbad",
+    "bytes": 14626
+  },
+  {
+    "path": "docs/verification/2026-10-11-app-control-plane/round-07-review/commands/e2e-final.log",
+    "sha256": "ab1825897fb70f04fa21ef29edf5534b002b4cb8f86b4531519fbab21991991f",
+    "bytes": 13630
+  },
+  {
+    "path": "docs/verification/2026-10-11-app-control-plane/round-08-live-review/playwright.log",
+    "sha256": "bbf872ae8316371383d55a1e1bd0362da6edaf79abcc68dc52364b769280f34a",
+    "bytes": 794
+  },
+  {
+    "path": "docs/verification/2026-10-11-app-control-plane/round-09-model-live/playwright.log",
+    "sha256": "6402e35e153ab526e6dca3c0396472ab81c8b5ccdaed91fc63d0446a5e538d58",
+    "bytes": 967
+  },
+  {
+    "path": "docs/acceptance/space-app-live-20261010/runtime-01.log",
+    "sha256": "f520619783864db77abea1beb34d5e1baeef8a7abbed2ebba904a47fac4641a9",
+    "bytes": 2330,
+    "source": "source-01"
+  },
+  {
+    "path": "docs/acceptance/space-app-live-20261010/model-01.log",
+    "sha256": "a85e63a56def955f9c2d7689b2ddbbc0803c73d84b26634bc08635a7d8a040ef",
+    "bytes": 2528,
+    "source": "source-01"
+  },
+  {
+    "path": "docs/acceptance/space-app-live-20261010/model-02.log",
+    "sha256": "8608307330ee9f107f81c969426e75e7b3a361c349ccfe53ed4516ed687a8d4f",
+    "bytes": 2659,
+    "source": "source-01"
+  },
+  {
+    "path": "docs/acceptance/space-app-live-20261010/typecheck.log",
+    "sha256": "7d1c4ff6788d8dd560f51db56f03a41e0108f2535f498a8b4182288956500d92",
+    "bytes": 607,
+    "source": "source-01"
+  },
+  {
+    "path": "docs/acceptance/space-app-live-20261010/focused-regression.log",
+    "sha256": "d317c4a7fc1bb546c5c7cb09c927c5763266f38fd150a0332a06f6558f61a35c",
+    "bytes": 206,
+    "source": "source-01"
+  },
+  {
+    "path": "docs/acceptance/space-app-live-20261010/model-03.log",
+    "sha256": "f85e089a3f9e8b798cfea337e1876c7078b750c34cd0ad9313a8e0ba37ad75b4",
+    "bytes": 972,
+    "source": "source-01"
+  },
+  {
+    "path": "docs/acceptance/space-app-live-20261010/e2e-regression.log",
+    "sha256": "2702c20bb0d0c0d673f101731788737b39ca215a2c7b68c6183e9121faa1f55f",
+    "bytes": 1946,
+    "source": "source-01"
+  },
+  {
+    "path": "docs/acceptance/space-app-live-20261010/default-live-gate.log",
+    "sha256": "52c869568e989dfe31b4222e4a4459754fdd8e406945496b9bfda49161f86216",
+    "bytes": 354,
+    "source": "source-01"
+  }
+]

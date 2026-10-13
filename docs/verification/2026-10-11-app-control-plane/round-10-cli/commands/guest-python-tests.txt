@@ -1,0 +1,20 @@
+Sandbox wsl-sbx-smoke-20261006 started successfully
+test_actual_helper_cleanup_failure_retains_owner_and_never_confirms_success (__main__.AppCliTransportTests.test_actual_helper_cleanup_failure_retains_owner_and_never_confirms_success) ... ok
+test_actual_helper_routing_shared_budget_and_cancellation (__main__.AppCliTransportTests.test_actual_helper_routing_shared_budget_and_cancellation) ... ok
+test_channel_is_explicit_and_does_not_connect_socket (__main__.AppCliTransportTests.test_channel_is_explicit_and_does_not_connect_socket) ... ok
+test_client_and_helper_deadlines_cancel (__main__.AppCliTransportTests.test_client_and_helper_deadlines_cancel) ... ok
+test_four_slots_and_shared_capacity_budget (__main__.AppCliTransportTests.test_four_slots_and_shared_capacity_budget) ... ok
+test_invalid_identity_frame_and_hardlink_are_explicitly_rejected (__main__.AppCliTransportTests.test_invalid_identity_frame_and_hardlink_are_explicitly_rejected) ... ok
+test_invalid_oversized_and_non_app_frames_never_forwarded (__main__.AppCliTransportTests.test_invalid_oversized_and_non_app_frames_never_forwarded) ... ok
+test_killed_caller_cancels_and_late_result_cannot_reach_reused_slot (__main__.AppCliTransportTests.test_killed_caller_cancels_and_late_result_cannot_reach_reused_slot) ... ok
+test_main_error_exit_code_is_preserved (__main__.AppCliTransportTests.test_main_error_exit_code_is_preserved) ... ok
+test_run_budget_exhaustion_does_not_forward (__main__.AppCliTransportTests.test_run_budget_exhaustion_does_not_forward) ... ok
+test_symlink_root_and_slot_and_nonregular_lease_rejected (__main__.AppCliTransportTests.test_symlink_root_and_slot_and_nonregular_lease_rejected) ... ok
+test_app_tools_listed_only_with_turn_socket (__main__.AppControlMcpTests.test_app_tools_listed_only_with_turn_socket) ... ok
+test_cli_rejects_locally_without_touching_socket (__main__.AppControlMcpTests.test_cli_rejects_locally_without_touching_socket) ... ok
+test_mcp_call_forwards_app_frame_and_marks_failures (__main__.AppControlMcpTests.test_mcp_call_forwards_app_frame_and_marks_failures) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 1.071s
+
+OK

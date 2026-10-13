@@ -1,0 +1,39 @@
+
+Running 1 test using 1 worker
+
+(node:67654) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /private/tmp/wsl-space-app-model-live-20261010/WSL_APP_MODEL_7752ba8954504c37acf4f39079d51c11/profile ELECTRON_PID 67655
+ELECTRON_STDERR (node:67655) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:49890/75848665-9ee4-44e1-b977-cc2a932d36a0
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+ELECTRON_STDERR [67655:1010/115216.254420:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
+
+ELECTRON_STDERR [67655:1010/115216.270361:ERROR:base/process/process_mac.cc:53] task_policy_set TASK_CATEGORY_POLICY: (os/kern) invalid argument (4)
+[67655:1010/115216.270472:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
+
+SPACE_APP_MODEL_LIVE_EVIDENCE /private/tmp/wsl-space-app-model-live-20261010/WSL_APP_MODEL_7752ba8954504c37acf4f39079d51c11
+  ✘  1 e2e/space-app-model-live.spec.ts:45:1 › live: real App creation, native element capture and product model edit rebuild the same project (1.6m)
+
+
+  1) e2e/space-app-model-live.spec.ts:45:1 › live: real App creation, native element capture and product model edit rebuild the same project 
+
+    Error: Product model run failed: Reconnecting... 1/5 (unexpected status 401 Unauthorized: Your authentication token has expired. Please try refreshing it., url: https://chatgpt.com/backend-api/codex/responses, cf-ray: a482ab381d1b91fd-BOS, auth error: 401, auth error code: token_expired)
+
+      198 |           if (run?.state === 'failed' || run?.state === 'cancelled') {
+      199 |             evidence['failedRun'] = run;
+    > 200 |             throw new Error(`Product model run ${run.state}: ${run.error}`);
+          |                   ^
+      201 |           }
+      202 |           return run?.state;
+      203 |         },
+        at expect.poll.timeout (/private/tmp/web-studio-lab-space-app-model/e2e/space-app-model-live.spec.ts:200:19)
+        at /private/tmp/web-studio-lab-space-app-model/e2e/space-app-model-live.spec.ts:193:5
+
+    Error Context: test-results/e2e/space-app-model-live-live--baa9e-it-rebuild-the-same-project/error-context.md
+
+  1 failed
+    e2e/space-app-model-live.spec.ts:45:1 › live: real App creation, native element capture and product model edit rebuild the same project 

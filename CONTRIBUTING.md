@@ -72,7 +72,7 @@ git status --short
 | 构建/依赖/进程配置       | 实际存在的类型、lint、构建和相关集成检查；进程生命周期改动需检查实际退出   | 不用日志停止或进程启动替代完整结果 |
 | UI 行为                  | 对应设计状态的真实窗口交互与必要截图；打包行为另验                         | 构建成功不等于窗口验收             |
 
-根 `package.json` 与 `pnpm-lock.yaml` 是当前安装和运行入口。`pnpm check` 检查产品及基线类型、lint、格式和离线单测；`pnpm baseline:selftest` 单独运行 VS001 合成负例，不调用模型。`pnpm baseline` 是需要真实产品 adapter 的独立验收入口，不纳入默认检查；adapter 尚未实现。原 main 的 npm manifest/lock 按原字节保留用于历史复现与版本溯源；固定验收指纹所需文件也保留，当前安装仍只使用 pnpm，不在根目录执行旧 `npm ci`。
+根 `package.json` 与 `pnpm-lock.yaml` 是当前安装和运行入口。`pnpm check` 检查产品及基线类型、lint、格式和离线单测；`pnpm baseline:selftest` 单独运行 VS001 合成负例，不调用模型。`pnpm baseline` 是需要真实产品 adapter 的独立验收入口，不纳入默认检查；adapter 的接入、运行前置条件与未执行项见 [VS001 接入记录](docs/acceptance/integrated-app-installer-public-20261009/README.md)。原 main 的 npm manifest/lock 按原字节保留用于历史复现与版本溯源；固定验收指纹所需文件也保留，当前安装仍只使用 pnpm，不在根目录执行旧 `npm ci`。
 
 桌面端到端入口为 `pnpm test:e2e`；打包入口为 `pnpm package` 与 `pnpm test:e2e:packaged`。这些命令的存在不代表本次已运行，真实模型和 sandbox live 检查必须显式授权。
 

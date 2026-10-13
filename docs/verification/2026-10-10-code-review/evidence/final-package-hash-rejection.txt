@@ -1,0 +1,12 @@
+
+Running 1 test using 1 worker
+
+(node:61306) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /private/tmp/wsl-review-package-hash-20261010-final/profile ELECTRON_PID 61316
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:61484/f9972e46-d22b-4c02-bc24-b8c457176df6
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✓  1 e2e/managed-app-packaged-rejection.spec.ts:7:1 › packaged template archive hash rejection is visible and disables all sandbox capability (9.6s)
+
+  1 passed (9.8s)

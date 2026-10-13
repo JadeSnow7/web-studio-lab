@@ -1,0 +1,75 @@
+{
+  "createdAt": "2026-10-11T04:59:57.074086+00:00",
+  "head": "ea3bad9e6602ccec3484cc55b247bae5815975b4",
+  "branch": "codex/app-control-plane",
+  "sourceInputs": 354,
+  "sourceDrift": [],
+  "runtimeInputs": 6,
+  "runtimeDrift": [],
+  "stagedPaths": [],
+  "evidenceIgnoredPaths": [],
+  "checks": {
+    "typecheck": {
+      "exitCode": 0
+    },
+    "build": {
+      "exitCode": 0
+    },
+    "testInitial": {
+      "exitCode": 1,
+      "passed": 661,
+      "failed": 1,
+      "failure": "unchanged observation-application.test.ts budget case 5000 ms timeout while build also ran"
+    },
+    "testIsolated": {
+      "exitCode": 0,
+      "vitestPassed": 662,
+      "vitestSkipped": 15,
+      "packagingPassed": 27,
+      "externalBuildsPassed": 6
+    },
+    "guestPython": {
+      "exitCode": 0,
+      "passed": 14
+    },
+    "modelLive01": {
+      "exitCode": 1,
+      "cliOutcome": "budget exhausted",
+      "hostFixedOutcome": "not_run"
+    },
+    "modelLive02": {
+      "exitCode": 0,
+      "cliCallsVerified": 11,
+      "cliExpectedRejections": 2,
+      "mainAuditCount": 35,
+      "hostStepsPassed": 16
+    },
+    "nonLiveE2e": {
+      "exitCode": 0,
+      "passed": 84,
+      "skipped": 9,
+      "failed": 0
+    },
+    "targetedLint": {
+      "exitCode": 0
+    },
+    "fullLintAndFormat": "not_run this round; historical baseline only",
+    "productValidation": "not_run",
+    "humanInput": "not_run",
+    "checkDocs": {
+      "exitCode": 0,
+      "normativeFiles": 19
+    },
+    "targetedDocsFormat": {
+      "exitCode": 0
+    },
+    "diffCheck": {
+      "exitCode": 0
+    },
+    "roundReportLinks": {
+      "missing": []
+    }
+  },
+  "committed": false,
+  "pushed": false
+}

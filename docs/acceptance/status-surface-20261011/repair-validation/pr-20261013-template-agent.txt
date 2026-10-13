@@ -1,0 +1,25 @@
+
+> @wsl/standard-app@1.1.0 test:agent
+> node --import tsx --test tests/agent/*.test.ts
+
+(node:16706) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ 生产构建不含 Agent 桥接与注册表入口；agent 构建包含，检查脚本能区分 (5401.32125ms)
+(node:16707) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ agent-cli 直连模式：只读查询拒绝写入，seed/reset/snapshot 只作用于本实例数据目录 (41772.004417ms)
+✔ agent-cli 拒绝打开运行中实例占用的数据目录、越界路由和未知命令 (11751.981208ms)
+(node:16708) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ 模板自带的 manifest 与当前源码一致，并导出路由、数据模型、命令 schema、状态和 testid (340.870584ms)
+✔ manifest --check：缺 testid、命令缺 schema、注册名重复与过期 manifest 都失败 (237.156083ms)
+✔ 修订：改源码后 manifest 与构建都过期；重建 manifest 后仅构建过期；写入构建戳后恢复 (986.898083ms)
+✔ JSX 扫描：非字面量 testid 与注册名被报告，透传 props 的封装组件不要求 testid (1.977792ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 53916.11125

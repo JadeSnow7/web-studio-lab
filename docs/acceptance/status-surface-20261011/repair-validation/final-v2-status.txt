@@ -1,0 +1,27 @@
+ M UX-CONTRACT.md
+ M apps/desktop/src/main/debug-status.test.ts
+ M apps/desktop/src/main/debug-status.ts
+ M apps/desktop/src/main/index.ts
+ M apps/desktop/src/preload/index.ts
+ M apps/desktop/src/renderer/src/shell/DebugPanel.tsx
+ M apps/desktop/src/renderer/src/state/debug.test.ts
+ M apps/desktop/src/renderer/src/state/debug.ts
+ M apps/desktop/src/renderer/src/state/status-view.test.ts
+ M apps/desktop/src/renderer/src/state/status-view.ts
+ M apps/desktop/src/renderer/src/workspace/Files.tsx
+ M apps/desktop/src/renderer/src/workspace/Observation.tsx
+ M apps/desktop/src/renderer/src/workspace/Terminal.tsx
+ M apps/desktop/src/shared/status/facts.test.ts
+ M apps/desktop/src/shared/status/facts.ts
+ M apps/desktop/src/shared/status/index.ts
+ M docs/acceptance/status-surface-20261011/README.md
+ M docs/acceptance/status-surface-20261011/final-validation/check-delta.json
+ M docs/design/2026-10-11-status-surface/contract-changes.md
+ M docs/design/2026-10-11-status-surface/plan.md
+ M docs/design/2026-10-11-status-surface/status-interface.md
+ M e2e/debug-status.spec.ts
+ M e2e/helpers.ts
+ M e2e/ssh-product.spec.ts
+ M e2e/status-surface.spec.ts
+ M packages/protocol/src/ipc.ts
+?? docs/acceptance/status-surface-20261011/repair-validation/

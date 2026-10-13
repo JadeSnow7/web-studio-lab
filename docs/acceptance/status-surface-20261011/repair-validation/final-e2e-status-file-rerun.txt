@@ -1,0 +1,159 @@
+
+Running 64 tests using 1 worker
+
+  ✓   1 e2e/status-surface.spec.ts:45:1 › 对话不可用：标题栏按钮可见，键盘 Tab 可达，Enter 进入设置页 (3.6s)
+  ✓   2 e2e/status-surface.spec.ts:71:1 › 对话可用：标题栏没有 Codex CLI 按钮，也没有对话类 Toast (2.5s)
+  ✓   3 e2e/status-surface.spec.ts:88:1 › 环境按钮：默认环境下可见、Tab 可达、Enter 进入设置页；全局 problem 不出现为 Toast (2.5s)
+  ✓   4 e2e/status-surface.spec.ts:119:1 › 960 宽：两个标题栏按钮与铃铛都在视口内且互不重叠 (2.3s)
+  ✓   5 e2e/status-surface.spec.ts:155:1 › 存储横幅与工作区错误 Toast 叠放：同时可见、互不遮挡，Toast 的关闭按钮可点击 (2.7s)
+  ✓   6 e2e/status-surface.spec.ts:183:1 › 标题栏截图：白 / 暗 / 暖 × 1440 / 960，正常与对话不可用 (30.5s)
+  ✓   7 e2e/status-surface.spec.ts:266:1 › 侧栏：终端连接后行尾出现成功色实心点；没有「已显示」与页脚说明；方向键导航不变 (1.7s)
+  ✘   8 e2e/status-surface.spec.ts:324:1 › 侧栏：「后台资源 / 已关闭标签」没有内容时不出现，有内容时摘要保留原文并附计数 (1.7m)
+Worker teardown timeout of 90000ms exceeded.
+
+Failed worker ran 8 tests:
+e2e/status-surface.spec.ts:45:1 › 对话不可用：标题栏按钮可见，键盘 Tab 可达，Enter 进入设置页
+e2e/status-surface.spec.ts:71:1 › 对话可用：标题栏没有 Codex CLI 按钮，也没有对话类 Toast
+e2e/status-surface.spec.ts:88:1 › 环境按钮：默认环境下可见、Tab 可达、Enter 进入设置页；全局 problem 不出现为 Toast
+e2e/status-surface.spec.ts:119:1 › 960 宽：两个标题栏按钮与铃铛都在视口内且互不重叠
+e2e/status-surface.spec.ts:155:1 › 存储横幅与工作区错误 Toast 叠放：同时可见、互不遮挡，Toast 的关闭按钮可点击
+e2e/status-surface.spec.ts:183:1 › 标题栏截图：白 / 暗 / 暖 × 1440 / 960，正常与对话不可用
+e2e/status-surface.spec.ts:266:1 › 侧栏：终端连接后行尾出现成功色实心点；没有「已显示」与页脚说明；方向键导航不变
+e2e/status-surface.spec.ts:324:1 › 侧栏：「后台资源 / 已关闭标签」没有内容时不出现，有内容时摘要保留原文并附计数
+  ✓   9 e2e/status-surface.spec.ts:353:1 › 侧栏：会话执行失败时行尾是失败三角，状态文字进入标签描述 (1.6s)
+  ✓  10 e2e/status-surface.spec.ts:371:1 › 侧栏截图：白 / 暗 / 暖 × 1440 / 960，正常（终端已连接）与异常（会话执行失败） (5.7s)
+  ✓  11 e2e/status-surface.spec.ts:435:1 › 终端已连接：胶囊与成功色实心点可见，悬停含沙箱全名与绝对 cwd；中断与关闭是图标按钮且名称不变、Tab 可达 (1.6s)
+Renderer startup [] 
+  ✘  12 e2e/status-surface.spec.ts:476:1 › 终端已关闭：提示可见；与窗格交互后视觉消失而圆点文字仍在；重新连接再关闭后再次可见 (1.4m)
+  ✓  13 e2e/status-surface.spec.ts:532:1 › 终端已关闭：切换标签再切回（程序性聚焦）不确认提示；随后点击终端区域才消失 (1.6s)
+  ✓  14 e2e/status-surface.spec.ts:555:1 › 终端不可用：问题通道条目可见，连接按钮禁用 (1.2s)
+  ✓  15 e2e/status-surface.spec.ts:572:1 › 终端连接失败：问题通道显示失败与可见的 detail；工具栏连接按钮可 Tab 到达 (1.5s)
+  ✓  16 e2e/status-surface.spec.ts:605:1 › SSH 断线后进程未确认：交互后提示仍可见（unresolved 不降级） (1.4s)
+  ✓  17 e2e/status-surface.spec.ts:639:1 › 修复复验：终端清理未确认时连接按钮禁用（failed/closed/idle 均成立），消除后恢复，starting/closing 仍禁用，中断名称保留 (1.7s)
+  ✓  18 e2e/status-surface.spec.ts:689:1 › 终端截图：白 / 暗 / 暖 × 1440 / 960，正常（已连接）与异常（连接失败） (5.0s)
+  ✓  19 e2e/status-surface.spec.ts:783:1 › 网页：工具栏收为「选择元素 / 采集到会话 ⌄ / ⋯」，两整行动作区与规则说明不再外露 (1.3s)
+  ✓  20 e2e/status-surface.spec.ts:811:1 › 网页「采集到会话 ⌄」：Tab 到触发器、Enter 打开，方向键在控件间移动，Esc 关闭并回到触发器，原生网页让位后恢复 (1.6s)
+  ✓  21 e2e/status-surface.spec.ts:870:1 › 网页「⋯」菜单：Tab 到触发器、Enter 打开，方向键 / Home / End 移动，Esc 关闭并回到触发器；菜单项名称与原按钮一致 (1.4s)
+  ✓  22 e2e/status-surface.spec.ts:914:1 › 网页：「收藏到资源」结果是提示通道的 hint，点「知道了」或与窗格交互后消失 (1.8s)
+  ✓  23 e2e/status-surface.spec.ts:946:1 › 网页：采集指引是 hint（role=status，文案不变）；点「知道了」或与窗格交互后消失 (1.5s)
+  ✓  24 e2e/status-surface.spec.ts:975:1 › 网页：加载失败 + 已拦截导航——加载失败在问题通道可见，「另有 1 项」展开看到拦截导航；槽高度变化后原生网页位置随之更新 (1.7s)
+  ✓  25 e2e/status-surface.spec.ts:1022:1 › 网页：页面控制断开——「重新附着」可见，Tab 可达，Enter 触发后问题消失 (1.3s)
+  ✓  26 e2e/status-surface.spec.ts:1044:1 › 网页：选择中两个弹出层触发器禁用（不会因让位而取消点选）；取消选择后恢复可用 (1.5s)
+  ✓  27 e2e/status-surface.spec.ts:1079:1 › 网页：「新建关联会话」不关闭弹出层，完成后 select 指向新会话且焦点留在弹出层内 (1.4s)
+  ✓  28 e2e/status-surface.spec.ts:1097:1 › 网页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（加载失败 + 已拦截导航）；两个弹出层展开态 (5.1s)
+  ✓  29 e2e/status-surface.spec.ts:1142:1 › 修复复验：AI 操控中 + 页面加载失败 + 已拦截导航同时成立——控制提示与失败文本同时可见，另有 1 项展开看到拦截导航 (1.9s)
+  ✓  30 e2e/status-surface.spec.ts:1182:1 › 修复复验：已暂停 AI + 页面控制断开——「允许 AI 继续」与「重新附着」同时可见、真实 Tab 各到达、Enter 下发既有命令 (1.7s)
+  ✓  31 e2e/status-surface.spec.ts:1237:1 › 修复复验：问题通道另有 2 项——真实键盘展开菜单、方向键移动、Esc 回焦触发器、原生网页让位恢复 (1.7s)
+  ✓  32 e2e/status-surface.spec.ts:1371:1 › 会话「运行记录 ⌄」：视图收为五项，Tab 到触发器、Enter 打开，方向键 / Home / End 移动，Esc 回到触发器；原生网页让位后恢复 (2.0s)
+  ✓  33 e2e/status-surface.spec.ts:1440:1 › 会话检查页：执行 / 检查 / 审阅是中文 label + StatusDot，「检查无法执行」在问题通道可见，没有英文原始枚举 (1.7s)
+  ✓  34 e2e/status-surface.spec.ts:1483:1 › 会话输入区：可访问名称仍是「会话消息」，「发送到 · …」是描述，快捷键说明在发送按钮 title (1.3s)
+  ✓  35 e2e/status-surface.spec.ts:1502:1 › 会话历史选择：执行记录用中文状态；选择历史后现场适用性显示「历史采集」，回到最新后恢复 (1.7s)
+  ✓  36 e2e/status-surface.spec.ts:1527:1 › 会话「历史已恢复」：重启后在提示通道可见（带句号），与会话交互后消失 (2.9s)
+  ✓  37 e2e/status-surface.spec.ts:1547:1 › 会话状态条：取消中与「App 数据操作仍待确认」同时可见；「重新核对」Tab 可达、核对中禁用；状态变化不抢焦点 (1.6s)
+  ✓  38 e2e/status-surface.spec.ts:1598:1 › 会话截图：白 / 暗 / 暖 × 1440 / 960，正常（执行完成）与异常（检查无法执行） (5.8s)
+  ✓  39 e2e/status-surface.spec.ts:1634:1 › 会话对话视图：状态点的悬停含对话的沙箱 · cwd（不新增可见文字） (1.5s)
+  ✓  40 e2e/status-surface.spec.ts:1649:1 › 会话状态槽「取消采集」：采集进行中可见，点击后采集取消、条目消失 (1.5s)
+  ✓  41 e2e/status-surface.spec.ts:1671:1 › 会话：执行中点「取消回复」后焦点交给输入框，不落到 body (1.5s)
+  ✓  42 e2e/status-surface.spec.ts:1688:1 › 会话：「历史已恢复」提示在场时，一次点击「重新核对」即生效（确认不吞首次点击） (1.1m)
+  ✓  43 e2e/status-surface.spec.ts:1739:1 › 首页输入区：可访问名称不变；两条说明与快捷键说明不再常驻，改为描述与发送按钮 title (1.8s)
+  ✓  44 e2e/status-surface.spec.ts:1775:1 › 首页输入区：发送被阻止时原因显式可见，按钮 title 为阻止原因；改动草稿后提示消失 (1.4s)
+  ✓  45 e2e/status-surface.spec.ts:1794:1 › 首页空间卡片：有进行中的任务时标题旁出现状态点（文字视觉隐藏），计数文字不变；结束后消失 (1.9s)
+  ✓  46 e2e/status-surface.spec.ts:1830:1 › 通知与任务历史：检查 / 审阅用中文 label，运行按钮不含英文状态，runId 在 title (1.8s)
+  ✓  47 e2e/status-surface.spec.ts:1860:1 › 首页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（发送被阻止） (5.8s)
+  ✓  48 e2e/status-surface.spec.ts:1927:1 › 文件：首次打开说明是提示通道的 hint，「知道了」（键盘）或窗格交互后消失，重新打开同一标签不再出现 (1.9s)
+  ✓  49 e2e/status-surface.spec.ts:1973:1 › 文件：从窗格外真实 Tab 进入，首次说明仍在且「知道了」获得焦点；Enter 关闭后焦点落在路径输入框；说明常在描述中可得 (1.4s)
+  ✓  50 e2e/status-surface.spec.ts:2005:1 › 文件观察结果：来源折叠区默认收起，Enter / 空格可展开，展开后版本 / 散列可见；覆盖完整只有形状 + 视觉隐藏文字 (1.7s)
+  ✓  51 e2e/status-surface.spec.ts:2050:1 › 文件观察结果：覆盖不完整在问题通道可见（含 reasons detail），「来源」展开后可见读取范围 (1.6s)
+  ✓  52 e2e/status-surface.spec.ts:2078:1 › 文件观察：读取失败在问题通道 alert 可见（错误标签 + message），结果区只留一行说明且不重复播报 (1.5s)
+  ✓  53 e2e/status-surface.spec.ts:2108:1 › 文件可能变化：观察过的目录里出现变化后，问题通道显示中文变化标签，原始枚举不外露 (1.6s)
+  ✓  54 e2e/status-surface.spec.ts:2139:1 › 会话观察：进行中在会话状态槽常驻通道可见，「取消读取」可 Tab 到达并用 Enter 取消；已取消的结果行仍是区域内唯一的 alert (1.5s)
+  ✓  55 e2e/status-surface.spec.ts:2201:1 › 会话观察：读取失败与覆盖不完整进入会话状态槽的问题通道，观察面板只留结果 (1.6s)
+  ✓  56 e2e/status-surface.spec.ts:2236:1 › 文件：进行中在资源槽常驻通道可见，「取消读取」真实 Tab 可达，Enter 取消后焦点回到路径输入框 (1.5s)
+  ✓  57 e2e/status-surface.spec.ts:2280:1 › 会话最新执行失败时读取越权路径：执行失败仍可见，读取失败恰有一个 alert（折叠在「另有 1 项」时由结果行播报） (1.8s)
+  ✓  58 e2e/status-surface.spec.ts:2311:1 › 文件截图：白 / 暗 / 暖 × 1440 / 960，正常（小文件读取完成）与异常（读取失败） (6.7s)
+  ✓  59 e2e/status-surface.spec.ts:2353:1 › 修复复验：文件资源不可用进唯一状态槽——缺环境与不可用原因两条件，body 无重复、表单禁用、恢复可用 (1.9s)
+  ✓  60 e2e/status-surface.spec.ts:2397:1 › 修复复验：观察历史错误与当前结果分离——旧失败不占当前槽、不增加另有项；历史内失败摘要与未获授权可见且不播报 (1.8s)
+  ✓  61 e2e/status-surface.spec.ts:2460:1 › App 对话框：标题是 App 名称，说明为空不显示占位；服务状态是 StatusDot + 可见 label；空间 / 工程类型说明改为描述 (3.2s)
+  ✓  62 e2e/status-surface.spec.ts:2492:1 › App 对话框：启动中在常驻通道可见且不重复动作；取消启动后为已停止；再次启动失败时问题条目与 detail 可见；Tab 顺序与 Esc 回焦不变 (5.7s)
+  ✘  63 e2e/status-surface.spec.ts:2566:1 › App 对话框截图：白 / 暗 / 暖 × 1440 / 960，正常（已创建）与异常（运行失败） (4.9s)
+Worker teardown timeout of 90000ms exceeded.
+
+Failed worker ran 51 tests, last 10 tests were:
+e2e/status-surface.spec.ts:2139:1 › 会话观察：进行中在会话状态槽常驻通道可见，「取消读取」可 Tab 到达并用 Enter 取消；已取消的结果行仍是区域内唯一的 alert
+e2e/status-surface.spec.ts:2201:1 › 会话观察：读取失败与覆盖不完整进入会话状态槽的问题通道，观察面板只留结果
+e2e/status-surface.spec.ts:2236:1 › 文件：进行中在资源槽常驻通道可见，「取消读取」真实 Tab 可达，Enter 取消后焦点回到路径输入框
+e2e/status-surface.spec.ts:2280:1 › 会话最新执行失败时读取越权路径：执行失败仍可见，读取失败恰有一个 alert（折叠在「另有 1 项」时由结果行播报）
+e2e/status-surface.spec.ts:2311:1 › 文件截图：白 / 暗 / 暖 × 1440 / 960，正常（小文件读取完成）与异常（读取失败）
+e2e/status-surface.spec.ts:2353:1 › 修复复验：文件资源不可用进唯一状态槽——缺环境与不可用原因两条件，body 无重复、表单禁用、恢复可用
+e2e/status-surface.spec.ts:2397:1 › 修复复验：观察历史错误与当前结果分离——旧失败不占当前槽、不增加另有项；历史内失败摘要与未获授权可见且不播报
+e2e/status-surface.spec.ts:2460:1 › App 对话框：标题是 App 名称，说明为空不显示占位；服务状态是 StatusDot + 可见 label；空间 / 工程类型说明改为描述
+e2e/status-surface.spec.ts:2492:1 › App 对话框：启动中在常驻通道可见且不重复动作；取消启动后为已停止；再次启动失败时问题条目与 detail 可见；Tab 顺序与 Esc 回焦不变
+e2e/status-surface.spec.ts:2566:1 › App 对话框截图：白 / 暗 / 暖 × 1440 / 960，正常（已创建）与异常（运行失败）
+  ✓  64 e2e/status-surface.spec.ts:2602:1 › App 对话框：启动中强制结束应用后重启，恢复为 failed + 清理未确认时，「应用进程清理未确认」常驻可见，交互后不消失；启动被禁用 (3.6s)
+
+
+  1) e2e/status-surface.spec.ts:324:1 › 侧栏：「后台资源 / 已关闭标签」没有内容时不出现，有内容时摘要保留原文并附计数 ───────────────────
+
+    Test timeout of 90000ms exceeded.
+
+    Error Context: test-results/e2e/status-surface-侧栏：「后台资源-已关闭标签」没有内容时不出现，有内容时摘要保留原文并附计数/error-context.md
+
+  2) e2e/status-surface.spec.ts:476:1 › 终端已关闭：提示可见；与窗格交互后视觉消失而圆点文字仍在；重新连接再关闭后再次可见 ──────────────────
+
+    TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.
+    Call log:
+      - waiting for locator('div.app') to be visible
+
+
+       at helpers.ts:216
+
+      214 |   };
+      215 |   try {
+    > 216 |     await page.waitForSelector('div.app', { timeout: 10000 });
+          |                ^
+      217 |     if (!options.cleanInstall) await page.waitForSelector('[data-pane-id]', { state: 'attached', timeout: options.live ? 60000 : 10000 });
+      218 |   } catch (error) {
+      219 |     console.error('Renderer startup', rendererErrors, await page.locator('body').innerText());
+        at launchApp (/Users/huaodong/workspace/_worktrees/status-surface-20261011/e2e/helpers.ts:216:16)
+        at /Users/huaodong/workspace/_worktrees/status-surface-20261011/e2e/status-surface.spec.ts:477:25
+
+    Error Context: test-results/e2e/status-surface-终端已关闭：提示可见；与窗格交互后视觉消失而圆点文字仍在；重新连接再关闭后再次可见/error-context.md
+
+  3) e2e/status-surface.spec.ts:2566:1 › App 对话框截图：白 / 暗 / 暖 × 1440 / 960，正常（已创建）与异常（运行失败） ─────────
+
+    Error: page.screenshot: Target page, context or browser has been closed
+    Browser logs:
+
+    <launching> /Users/huaodong/workspace/_worktrees/status-surface-20261011/node_modules/.pnpm/electron@44.5.1/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron --inspect=0 --remote-debugging-port=0 /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-e2e-bootstrap-am3rUf/main.cjs --user-data-dir=/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-e2e-dWje4w
+    <launched> pid=16292
+    [pid=16292][err] Debugger listening on ws://127.0.0.1:54043/676aea90-d2f3-44d4-99d9-c905e423a2bc
+    [pid=16292][err] For help, see: https://nodejs.org/learn/getting-started/debugging
+    [pid=16292][err] Debugger attached.
+    [pid=16292][err] 
+    [pid=16292][err] DevTools listening on ws://127.0.0.1:54045/devtools/browser/8dc6a73c-b642-4839-bb84-3e97df44fec2
+    Call log:
+      - taking page screenshot
+      - waiting for fonts to load...
+      - fonts loaded
+
+
+       at helpers.ts:227
+
+      225 |
+      226 | export async function shot(page: Page, name: string): Promise<void> {
+    > 227 |   await page.screenshot({ path: path.join(screensDir, `${name}.png`) });
+          |              ^
+      228 | }
+      229 |
+      230 | /**
+        at shot (/Users/huaodong/workspace/_worktrees/status-surface-20261011/e2e/helpers.ts:227:14)
+        at /Users/huaodong/workspace/_worktrees/status-surface-20261011/e2e/status-surface.spec.ts:2591:17
+
+    Error Context: test-results/e2e/status-surface-App-对话框截图：白-暗-暖-×-1440-960，正常（已创建）与异常（运行失败）/error-context.md
+
+  3 failed
+    e2e/status-surface.spec.ts:324:1 › 侧栏：「后台资源 / 已关闭标签」没有内容时不出现，有内容时摘要保留原文并附计数 ────────────────────
+    e2e/status-surface.spec.ts:476:1 › 终端已关闭：提示可见；与窗格交互后视觉消失而圆点文字仍在；重新连接再关闭后再次可见 ───────────────────
+    e2e/status-surface.spec.ts:2566:1 › App 对话框截图：白 / 暗 / 暖 × 1440 / 960，正常（已创建）与异常（运行失败） ──────────
+  61 passed (10.1m)
+  2 errors were not a part of any test, see above for details

@@ -12,6 +12,12 @@ const paths: Record<string, ReactElement> = {
   ),
   folder: <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z" />,
   chat: <path d="M4 5h16v11H9l-5 4z" />,
+  bell: (
+    <>
+      <path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5z" />
+      <path d="M10 20h4M12 2v2" />
+    </>
+  ),
   task: (
     <>
       <rect x="4" y="4" width="16" height="16" rx="2" />

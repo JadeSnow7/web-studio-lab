@@ -1,0 +1,10 @@
+{
+  "command": "pnpm exec vitest run apps/desktop/src/main/debug-status.test.ts",
+  "cwd": "/Users/huaodong/workspace/_worktrees/status-surface-20261011",
+  "phase": "red",
+  "exitCode": 1,
+  "stdout": "diagnostics-red-debug-status.stdout.txt",
+  "stderr": "diagnostics-red-debug-status.stderr.txt",
+  "result": "failed",
+  "summary": "28 tests: 5 failed / 23 passed。旧实现会截断以 snapshot 前缀开头的非诊断文件与旧诊断日志（问题 1 复现）；emitFactsChanged 未实现（问题 3）。"
+}

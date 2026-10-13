@@ -1,0 +1,181 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts (8 tests | 8 failed) 28ms
+   ❯ control-plane authorization context (4)
+     × derives app, browser and reset authorization only from the frozen active run 16ms
+     × without the user marker reset is not authorized 2ms
+     × run end releases the control plane and later calls see no active run 1ms
+     × a cancelling run cannot use the control plane 1ms
+   ❯ control-plane restart preserves user navigation (4)
+     × does not replace the active session pane when the App restarts 2ms
+     × keeps navigation made by the user while the restart is pending 1ms
+     × recreates the browser through the runtime without activating its tab 2ms
+     × still opens the App tab for an explicit user start 2ms
+ ❯ apps/desktop/src/main/workbench/app-control.test.ts (25 tests | 1 failed) 625ms
+   ❯ AppControl authorization and risk levels (19)
+     × data.reset needs the user authorization marker and only ever targets the current instance 9ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > control-plane authorization context > derives app, browser and reset authorization only from the frozen active run
+TypeError: this.appControl?.ready is not a function
+ ❯ WorkbenchApplication.executeAppCommand apps/desktop/src/main/workbench/application.ts:445:28
+    443|     activateApp: boolean,
+    444|   ): Promise<WorkbenchResult> {
+    445|     await this.appControl?.ready();
+       |                            ^
+    446|     let target: { workspaceId: string; projectId: string } | undefined;
+    447|     try {
+ ❯ WorkbenchApplication.appCommand apps/desktop/src/main/workbench/application.ts:437:26
+ ❯ WorkbenchApplication.command apps/desktop/src/main/workbench/application.ts:390:19
+ ❯ command apps/desktop/src/main/workbench/app-control-application.test.ts:108:9
+ ❯ setup apps/desktop/src/main/workbench/app-control-application.test.ts:109:17
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:130:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > control-plane authorization context > without the user marker reset is not authorized
+TypeError: this.appControl?.ready is not a function
+ ❯ WorkbenchApplication.executeAppCommand apps/desktop/src/main/workbench/application.ts:445:28
+    443|     activateApp: boolean,
+    444|   ): Promise<WorkbenchResult> {
+    445|     await this.appControl?.ready();
+       |                            ^
+    446|     let target: { workspaceId: string; projectId: string } | undefined;
+    447|     try {
+ ❯ WorkbenchApplication.appCommand apps/desktop/src/main/workbench/application.ts:437:26
+ ❯ WorkbenchApplication.command apps/desktop/src/main/workbench/application.ts:390:19
+ ❯ command apps/desktop/src/main/workbench/app-control-application.test.ts:108:9
+ ❯ setup apps/desktop/src/main/workbench/app-control-application.test.ts:109:17
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:144:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > control-plane authorization context > run end releases the control plane and later calls see no active run
+TypeError: this.appControl?.ready is not a function
+ ❯ WorkbenchApplication.executeAppCommand apps/desktop/src/main/workbench/application.ts:445:28
+    443|     activateApp: boolean,
+    444|   ): Promise<WorkbenchResult> {
+    445|     await this.appControl?.ready();
+       |                            ^
+    446|     let target: { workspaceId: string; projectId: string } | undefined;
+    447|     try {
+ ❯ WorkbenchApplication.appCommand apps/desktop/src/main/workbench/application.ts:437:26
+ ❯ WorkbenchApplication.command apps/desktop/src/main/workbench/application.ts:390:19
+ ❯ command apps/desktop/src/main/workbench/app-control-application.test.ts:108:9
+ ❯ setup apps/desktop/src/main/workbench/app-control-application.test.ts:109:17
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:148:48
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > control-plane authorization context > a cancelling run cannot use the control plane
+TypeError: this.appControl?.ready is not a function
+ ❯ WorkbenchApplication.executeAppCommand apps/desktop/src/main/workbench/application.ts:445:28
+    443|     activateApp: boolean,
+    444|   ): Promise<WorkbenchResult> {
+    445|     await this.appControl?.ready();
+       |                            ^
+    446|     let target: { workspaceId: string; projectId: string } | undefined;
+    447|     try {
+ ❯ WorkbenchApplication.appCommand apps/desktop/src/main/workbench/application.ts:437:26
+ ❯ WorkbenchApplication.command apps/desktop/src/main/workbench/application.ts:390:19
+ ❯ command apps/desktop/src/main/workbench/app-control-application.test.ts:108:9
+ ❯ setup apps/desktop/src/main/workbench/app-control-application.test.ts:109:17
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:155:37
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > control-plane restart preserves user navigation > does not replace the active session pane when the App restarts
+TypeError: this.appControl?.ready is not a function
+ ❯ WorkbenchApplication.executeAppCommand apps/desktop/src/main/workbench/application.ts:445:28
+    443|     activateApp: boolean,
+    444|   ): Promise<WorkbenchResult> {
+    445|     await this.appControl?.ready();
+       |                            ^
+    446|     let target: { workspaceId: string; projectId: string } | undefined;
+    447|     try {
+ ❯ WorkbenchApplication.appCommand apps/desktop/src/main/workbench/application.ts:437:26
+ ❯ WorkbenchApplication.command apps/desktop/src/main/workbench/application.ts:390:19
+ ❯ command apps/desktop/src/main/workbench/app-control-application.test.ts:108:9
+ ❯ setup apps/desktop/src/main/workbench/app-control-application.test.ts:109:17
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:165:41
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > control-plane restart preserves user navigation > keeps navigation made by the user while the restart is pending
+TypeError: this.appControl?.ready is not a function
+ ❯ WorkbenchApplication.executeAppCommand apps/desktop/src/main/workbench/application.ts:445:28
+    443|     activateApp: boolean,
+    444|   ): Promise<WorkbenchResult> {
+    445|     await this.appControl?.ready();
+       |                            ^
+    446|     let target: { workspaceId: string; projectId: string } | undefined;
+    447|     try {
+ ❯ WorkbenchApplication.appCommand apps/desktop/src/main/workbench/application.ts:437:26
+ ❯ WorkbenchApplication.command apps/desktop/src/main/workbench/application.ts:390:19
+ ❯ command apps/desktop/src/main/workbench/app-control-application.test.ts:108:9
+ ❯ setup apps/desktop/src/main/workbench/app-control-application.test.ts:109:17
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:176:50
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > control-plane restart preserves user navigation > recreates the browser through the runtime without activating its tab
+TypeError: this.appControl?.ready is not a function
+ ❯ WorkbenchApplication.executeAppCommand apps/desktop/src/main/workbench/application.ts:445:28
+    443|     activateApp: boolean,
+    444|   ): Promise<WorkbenchResult> {
+    445|     await this.appControl?.ready();
+       |                            ^
+    446|     let target: { workspaceId: string; projectId: string } | undefined;
+    447|     try {
+ ❯ WorkbenchApplication.appCommand apps/desktop/src/main/workbench/application.ts:437:26
+ ❯ WorkbenchApplication.command apps/desktop/src/main/workbench/application.ts:390:19
+ ❯ command apps/desktop/src/main/workbench/app-control-application.test.ts:108:9
+ ❯ setup apps/desktop/src/main/workbench/app-control-application.test.ts:109:17
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:198:50
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control-application.test.ts > control-plane restart preserves user navigation > still opens the App tab for an explicit user start
+TypeError: this.appControl?.ready is not a function
+ ❯ WorkbenchApplication.executeAppCommand apps/desktop/src/main/workbench/application.ts:445:28
+    443|     activateApp: boolean,
+    444|   ): Promise<WorkbenchResult> {
+    445|     await this.appControl?.ready();
+       |                            ^
+    446|     let target: { workspaceId: string; projectId: string } | undefined;
+    447|     try {
+ ❯ WorkbenchApplication.appCommand apps/desktop/src/main/workbench/application.ts:437:26
+ ❯ WorkbenchApplication.command apps/desktop/src/main/workbench/application.ts:390:19
+ ❯ command apps/desktop/src/main/workbench/app-control-application.test.ts:108:9
+ ❯ setup apps/desktop/src/main/workbench/app-control-application.test.ts:109:17
+ ❯ apps/desktop/src/main/workbench/app-control-application.test.ts:212:41
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  apps/desktop/src/main/workbench/app-control.test.ts > AppControl authorization and risk levels > data.reset needs the user authorization marker and only ever targets the current instance
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ apps/desktop/src/main/workbench/app-control.test.ts:238:22
+    236|     test.setContext({ allowsReset: true });
+    237|     const reset = await test.call('app.data.reset', args);
+    238|     expect(reset.ok).toBe(true);
+       |                      ^
+    239|     expect(test.agent).toHaveBeenLastCalledWith({ workspaceId: 'w', pr…
+    240|     expect(error(await test.call('app.data.query', { sql: 'DELETE FROM…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  2 failed | 3 passed (5)
+      Tests  9 failed | 90 passed (99)
+   Start at  15:07:10
+   Duration  4.30s (tests 66%, transform 22%, import 12%)
+

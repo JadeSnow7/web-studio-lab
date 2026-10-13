@@ -45,6 +45,8 @@ WSL_SBX_NAME=wsl-sbx-smoke-20261006 npx pnpm@10.34.6 dev
 
 已有全局 pnpm 且版本为 10.34.6 时，可将上面命令中的 `npx pnpm@10.34.6` 替换为 `pnpm`。首次安装及 Electron 二进制下载需要网络；不要改锁文件或升级依赖来绕过安装失败。原始错误与实际使用的 Node/pnpm 版本应随验证记录保存。
 
+应用从 Electron `userData` 目录中的 `runtime.json` 读取持久运行配置；本机默认路径为 `~/Library/Application Support/Web Studio Lab/runtime.json`。该文件保存完整的 `SetupSnapshotSchema` 安装记录，沙箱配置位于 `config.sandbox`，sbx 绝对路径位于 `config.sbxBinary`；已有沙箱名如 `wsl-sbx-smoke-20261006` 可保存，名称长度为 1–200 字符。配置保存后，退出并直接运行 `npx pnpm@10.34.6 dev` 即可使用，无需每次传入环境变量。开发模式下显式传入 `WSL_SBX_NAME`、`WSL_SBX_BIN`、`WSL_OBSERVATION_ROOT` 或 `WSL_SSH_HOST` 时仍使用启动环境覆盖，且不会自动保存这些覆盖值。保存配置不代表安装流程、连接检查或真实模型回复已通过；这些状态须分别验证。
+
 ## 独立沙箱工具 sbx
 
 `sbx` 是桌面对话和终端所需的宿主工具，独立安装，不加入 pnpm workspace 或 npm 锁文件。xterm.js 6.0.0 和 fit addon 0.11.0 由桌面 package 与锁文件管理；PTY 由 guest Python 标准库实现，无需安装 host node-pty。

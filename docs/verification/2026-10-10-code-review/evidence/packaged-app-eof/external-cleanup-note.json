@@ -1,0 +1,19 @@
+{
+  "failure": "sbx exec EOF during second app start; daemon had restarted",
+  "applicationCleanup": "unconfirmed, preserved as failed; not rewritten",
+  "externalCleanup": [
+    "sbx stop exited 0",
+    "inspect state=stopped, sessions=0",
+    "ports=[]"
+  ],
+  "receipts": [
+    "../eof-sandbox-stop.txt",
+    "../eof-sandbox-stopped.json",
+    "../eof-sandbox-ports.json"
+  ],
+  "localExit": "After independent stop proof, same CUA still-exit action approved and executed. Initial auto-review rejection preserved in tool transcript.",
+  "hostPids": [
+    59929,
+    59727
+  ]
+}

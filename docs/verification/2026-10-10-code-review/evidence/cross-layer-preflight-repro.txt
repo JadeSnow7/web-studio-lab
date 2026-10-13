@@ -1,0 +1,23 @@
+Cross-layer preflight cancellation reproduction (2026-10-10)
+
+Runtime: node v26.5.0, node --import tsx with CommonJS require.
+Actual WorkbenchApplication and FileWorkbenchRepository; temporary repository under /tmp/wsl-preflight-repro-*.
+Service was simulated, not executed: send is held by an explicit promise gate and returns idle on release; cancel returns the same idle conversation (seq=0, turnId=null, cleanupPending=false).
+This matches CodexChat.cancel when slot.preparing exists and slot.active is null: it marks preparing.cancelled then returns this.get(id), without publishing a new cancelled conversation.
+
+Steps:
+1. Load initial workspace/session and confirmTask(goal=test,targetRef=null).
+2. Dispatch startRun; wait until runtime.send gate is entered.
+3. Read durable runId and await cancelRun.
+4. Wait 20 ms for asynchronous requestCancellation updateRuntime to settle; read run.state.
+5. Release send gate, await startRun; read run.state.
+
+Actual stdout:
+afterCancel completed
+afterLatePreflight completed
+
+Expected: cancelled (no executor was started).
+Main path: requestCancellation -> applyConversation -> idle maps to completed.
+Variant from code inspection: when the prior idle conversation with equal seq is already projected, applyConversation's seq guard discards the cancellation receipt, leaving cancelling instead. That variant was not executed in this reproduction.
+
+This is simulated-Service/real-Main evidence. A real CodexChat + Main Vitest gate regression is delegated separately; do not describe this receipt as a live model/sandbox execution.

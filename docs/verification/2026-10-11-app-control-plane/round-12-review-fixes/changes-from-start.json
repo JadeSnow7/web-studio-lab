@@ -1,0 +1,264 @@
+{
+  "changes": [
+    {
+      "path": "UX-CONTRACT.md",
+      "kind": "modified",
+      "before": "df9471dcd0fc01b7d484e7c2b7c5b17a5791a2f27907bc326830591f7c885599",
+      "after": "af3721697a2fc35fa8229dfc8b1d8efce04d1ea85542f7b98a104a9e0acc3fca"
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.test.ts",
+      "kind": "modified",
+      "before": "63d91680246afc77b5fb353ec01edbc45bdb2ee0b89fce2ec81df2b0e4d4c6b0",
+      "after": "d3fb093d1a1ce55930a460949e529c13f578b7d242e827ed51c17683a76695af"
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.ts",
+      "kind": "modified",
+      "before": "4cd2d68fa7a65bca7b40fce0fcc4ca4229e95e4a38bc954f1cc7f5f755667936",
+      "after": "3ba427098e005cd85ece69ccfc16c3e065b08f88a3e78d931e5bd18210dbb457"
+    },
+    {
+      "path": "apps/desktop/src/main/index.ts",
+      "kind": "modified",
+      "before": "16edb640e152d1cc0939a0cd25e9a6b54cf7f1a0e09b1bceab3855487c9a9cf5",
+      "after": "4aa1a95046bc0f7b43091129092f6b10e21bd394c35c7f3ef9248e167bf044fe"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/app-ui.test.ts",
+      "kind": "modified",
+      "before": "a04c88a6befc340d3e3172e056b05badea21c7dfd86c457b7cf22817596c14c8",
+      "after": "5c6e5b4e8cf0d8058c8ce56fb273489e929d6a0741e6013862681fabccfc918a"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/app-ui.ts",
+      "kind": "modified",
+      "before": "76023de02eac5f862edf426d7f52637277320ef1ad412964f9728fae3a4b3d30",
+      "after": "229f031aa8a88dcdbcfc15b310f3a659a55a7943f06b2f713b3dda2374cae5aa"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/app-control-application.test.ts",
+      "kind": "modified",
+      "before": "d500a0dca3f30aec55947bf79d5fd4e8b37ea2bdd355074f535dfeb96735555a",
+      "after": "f8b6cf749c43d4bf2337a741db2d3a4b506f3971dcd30592b5476186b964af4a"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/app-control.test.ts",
+      "kind": "modified",
+      "before": "c1632de2ae369435b76b94fd803ff671a1e26dd120440c2f22db2f47b76bc684",
+      "after": "459d88685f6f7928a85fb97f86d6df82e7e82a83832ab93dd85510b46c00fcb1"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/app-control.ts",
+      "kind": "modified",
+      "before": "f010dc1c4ff33c801c88cc3ac0771412b83320d3433015472b4228315695956a",
+      "after": "cdf194dbbe621584af039b572576bd4a4a7a6d11d0053b5d779e68e029e829b8"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.ts",
+      "kind": "modified",
+      "before": "0912ba0f7f10be4bb3ff470ea315691eb22936d1a0343830aa57ba53d9f124c9",
+      "after": "600a76900135df522967e0c8ffaa889c2a0727f2c062eff66eaf83befd70278f"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Session.tsx",
+      "kind": "modified",
+      "before": "4849d192a9223c72d7ee084e4d822069dd1a9e36a75e093d9478cefeb9a6e7cb",
+      "after": "1daf11bfb691bc01dc57ff2a08da7d94ad661270c5dfa8e83313009c2d036fd0"
+    },
+    {
+      "path": "apps/service/src/app-service.test.ts",
+      "kind": "modified",
+      "before": "f4a4f5e734f4ed83b0593740852dfa276776e95d5e2dea51469d9a012f5c2e81",
+      "after": "66383ca22b4c181253e2e8644f6971579fff7391ab0f4b135374f31f2e2bf474"
+    },
+    {
+      "path": "apps/service/src/app-service.ts",
+      "kind": "modified",
+      "before": "11d1f8341e39cefe9501bf10e48155bd68e40412cec545c99033fd273dcd9190",
+      "after": "45c0f157fdc83d1a37829079057d139e7bb5459374b5ddc77fc5a545c71d3e3f"
+    },
+    {
+      "path": "apps/service/src/app_control_mcp_tests.py",
+      "kind": "modified",
+      "before": "1b331db48f6e9b2e98072023ac968eaab28bc5b88efe02c3a6204d90a51b61a3",
+      "after": "c2743e3cf1d0e96a8d56c3826874806ddedaccab39fa5b795d5af2cedb263d7b"
+    },
+    {
+      "path": "apps/service/src/resource_mcp.py",
+      "kind": "modified",
+      "before": "36087de5ac277ca3a03099b876b35b82efd7043ce8d54d63ae867af437678809",
+      "after": "e70961de370050b305ce80d8639e816a02fb449c2624cf705ea4e6dfee7bf16e"
+    },
+    {
+      "path": "docs/architecture/current-runtime.md",
+      "kind": "modified",
+      "before": "c5e70113035abfae66241c39df2eae8e71c5869b1ffc9e49e0d8dbc82ee5c99f",
+      "after": "feb7d98d9576e0af3f842ea3da5fb93097abcfa1ca6f8c9d0f0ae4ec853c167c"
+    },
+    {
+      "path": "docs/design/2026-10-11-app-control-plane.md",
+      "kind": "modified",
+      "before": "9269a2306a1fc591d9aaea2e9cc7b7b88fb87eefbd73e1b622f6c6294ad8d7fd",
+      "after": "b994662f3e00ee0018f383df143bb97e3caaf24e84aec26e1baca84365ff8555"
+    },
+    {
+      "path": "e2e/app-control-data-cancel-live.spec.ts",
+      "kind": "new",
+      "before": null,
+      "after": "ee95b0b0298b58f7c1c6c4c796c656d279ff4b6533186ed486896adec546b866"
+    },
+    {
+      "path": "e2e/app-control-harness.spec.ts",
+      "kind": "modified",
+      "before": "42550fe8b353ef483d64768865c83f872fce89ce3ae35afc5b52406bfa8adef3",
+      "after": "8b2dc721fe58977b345a8709c6c47a67f366e7adc76c006b777cc6bb1b11d50f"
+    },
+    {
+      "path": "e2e/app-control-live.spec.ts",
+      "kind": "modified",
+      "before": "d41c741d093eae5f73809831c5d9a3c6b80a79f7592ce2eff032102616fba9b3",
+      "after": "4cca57ddf87983af43eac8dc7742ded0a2488ec9536891bfcbb15f669385f2b7"
+    },
+    {
+      "path": "e2e/app-control-model-live.spec.ts",
+      "kind": "modified",
+      "before": "7a5dda6d505601d594efdcfbacc181d5f009ec471925026da546d38f9f8c3870",
+      "after": "a60a6a3681bc1e05dffbf2785e50bf781ac8287c3bc37f6fb5d22ec0cbc1d96a"
+    },
+    {
+      "path": "e2e/fixtures/app-control-data-gate.ts",
+      "kind": "new",
+      "before": null,
+      "after": "305f6b6436b8665cfde7b8da0c0ba2eb69aab148b9fc1f9f54aac17773bae72d"
+    },
+    {
+      "path": "e2e/fixtures/app-control-harness-main.ts",
+      "kind": "modified",
+      "before": "b30ce54ed0d66d98bc7afd1d571919bbe7024850f2a35281addeac9ce42e97da",
+      "after": "846ff1f867342508dd4f1705af64952354eb23888bd73102e30d0797b81968da"
+    },
+    {
+      "path": "packages/protocol/src/app-control.test.ts",
+      "kind": "modified",
+      "before": "176167f915f073d3045c0211a3226f3f7b236416619546eb73b5fe8db5bedaa5",
+      "after": "3fcdd8d7ed2bc9b5d2cb5891ce924da60c1c7a1b703263bff5d9d7f71f7a81af"
+    },
+    {
+      "path": "packages/protocol/src/app-control.ts",
+      "kind": "modified",
+      "before": "947be97f0fcf8ada6e9bed687e8157818e789029b8a8774b4768130662647cdd",
+      "after": "c6addd4c24d8d6d3f7ff05251cc39909e4529d6f9ea53553735dce4196999312"
+    },
+    {
+      "path": "packages/protocol/src/workspace.ts",
+      "kind": "modified",
+      "before": "e7fd2c3b099df930e32d88eb13a997e7e4ff6ea9df8639030773147830cd4fee",
+      "after": "4d94d8e87f557123d06d793d92395ed37571f573a0f5859b3b5b13f0082cfcd0"
+    },
+    {
+      "path": "templates/standard-app/AGENTS.md",
+      "kind": "modified",
+      "before": "525f0a8b163b565ae4504f9af92f6a5878e8730aa1de29fc2b73c8ec0570c770",
+      "after": "0c05d20ae6dadb2c72a02ead78f528ef50c7853a6f8659bcb0d86327b35b5a31"
+    },
+    {
+      "path": "templates/standard-app/README.md",
+      "kind": "modified",
+      "before": "ca168c3f379a6275d6f3e7b17647cd39f18f0f5cc5e22b81d9b075e2c8f436cd",
+      "after": "a0bb20aeea631b16441b53cba1533eb0eb3bd8e60012dc62c9f015097a3c9daa"
+    },
+    {
+      "path": "templates/standard-app/agent/AGENTS.md",
+      "kind": "modified",
+      "before": "6c9852dfc0c676c501de7268a8c076c5654a71d33bff54b947e9441050acbcf9",
+      "after": "d052f669c691cc62bde1d3d0d41d190d0a11dfd2e67f76fb9d27d4d16e84b35d"
+    },
+    {
+      "path": "templates/standard-app/agent/app.manifest.json",
+      "kind": "modified",
+      "before": "ae4dd65bed90927564a3713a59e4e93c61af99da4731be8d1085325e0f3b6275",
+      "after": "50ae4f0292fce4b3cd0d40b9a684d0c9f9f6a06de7b9ce55fbf1c2b1eca6c470"
+    },
+    {
+      "path": "templates/standard-app/server/agent-cli.ts",
+      "kind": "modified",
+      "before": "99696ed596282db933964d8bbf164dcf486890d3a6a612e570cadac7ca5f2d07",
+      "after": "d177d3436e5759ed9dedf1b04a9c934bc3644b0139527e11e391937c21325fa3"
+    },
+    {
+      "path": "templates/standard-app/server/agent/data.ts",
+      "kind": "modified",
+      "before": "cde9b355f70e26f3559f22a100742ac4a3e6eb3dbefda772161e270dcb54838b",
+      "after": "d4f1a57f506298e764597ff3a4be2cfc71ab4a44f2ae5bc2bac6095ea6e55ab7"
+    },
+    {
+      "path": "templates/standard-app/server/agent/describe.ts",
+      "kind": "modified",
+      "before": "110fe811563db676f36ba0b265c4ce1519b0f2f94e786673d743266fbf97f802",
+      "after": "9d5db2af000f7788e2c4536e808f0bee2d7ae6e8dcd92fe3d29c27a8757fdb7f"
+    },
+    {
+      "path": "templates/standard-app/server/agent/manifest.ts",
+      "kind": "modified",
+      "before": "a98293fb05269ad01a84fc77bba0a65cfdfcdff23c1656671e5cac438a2f506f",
+      "after": "bed016175656b06a89b62c6de8de2c6395029991bf2c65c449d948c36a333151"
+    },
+    {
+      "path": "templates/standard-app/server/agent/operations.ts",
+      "kind": "new",
+      "before": null,
+      "after": "8114fdea6d797ce2e5b549426dc639a50eee7d218182f9aee43d90f2b2daaa3f"
+    },
+    {
+      "path": "templates/standard-app/server/agent/routes.ts",
+      "kind": "modified",
+      "before": "5934d225061af65a868c488d7b38f48eba6c5aba66c1a071b1f0602936b4cc5c",
+      "after": "fe02cf30ea64610ddd4f5e4205d0db067e76878c4e022db24c3a36e911e14044"
+    },
+    {
+      "path": "templates/standard-app/template-manifest.json",
+      "kind": "modified",
+      "before": "ef35b1772233864e26dc600a1c8e2af8fb1182b1c4f3859093c6761aadc75dcb",
+      "after": "42608985b9615cd522a90dbf946d6a1ef75d1223cad0f6718dcea04bf3597f14"
+    },
+    {
+      "path": "templates/standard-app/tests/agent-data.test.ts",
+      "kind": "modified",
+      "before": "4b3b7898e32f95155b96558a2070e81622912ce78e4efd69f7053a5100f4a010",
+      "after": "fb0033f52b73e34155e2a72650d2502908996eb800cc7bc76f0bc77790b69615"
+    },
+    {
+      "path": "templates/standard-app/tests/agent-operations.test.ts",
+      "kind": "new",
+      "before": null,
+      "after": "2356f5099f4ef3d90e1d6a1ce6af44b8d44ce5d13762bd33730576d5b240217d"
+    }
+  ],
+  "additionalFingerprintedNotClaimedChanged": [
+    "scripts/branding/export-icons.mjs",
+    "scripts/check-docs.mjs",
+    "scripts/external-builds.mjs",
+    "scripts/external-builds.test.mjs",
+    "scripts/packaging/before-pack.cjs",
+    "scripts/packaging/before-pack.mjs",
+    "scripts/packaging/ci-signing.mjs",
+    "scripts/packaging/ci.test.mjs",
+    "scripts/packaging/collect-licenses.mjs",
+    "scripts/packaging/guest-platform.mjs",
+    "scripts/packaging/guest-platform.test.mjs",
+    "scripts/packaging/package-release.mjs",
+    "scripts/packaging/packaging.test.mjs",
+    "scripts/packaging/payload-lib.mjs",
+    "scripts/packaging/prepare-payloads.mjs",
+    "scripts/packaging/release-attachments.mjs",
+    "scripts/packaging/release-ci.mjs",
+    "scripts/packaging/release-gates.mjs",
+    "scripts/packaging/signed-runtime.mjs",
+    "scripts/packaging/template-payload.mjs",
+    "scripts/packaging/template-payload.test.mjs",
+    "scripts/packaging/test-runtime.mjs",
+    "scripts/sbx-prepare-guest.sh",
+    "scripts/sbx-read-smoke.py"
+  ]
+}

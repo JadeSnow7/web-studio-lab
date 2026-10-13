@@ -1,0 +1,13 @@
+typecheck exit=0 seconds=21
+lint exit=1 seconds=19
+format-check exit=1 seconds=56
+test exit=0 seconds=26
+build exit=0 seconds=13
+baseline-selftest exit=0 seconds=6
+template-check exit=0 seconds=11
+template-test-agent exit=0 seconds=60
+template-verify exit=0 seconds=0
+template-agent-check exit=0 seconds=2
+template-prod-exclusion exit=0 seconds=2
+harness-e2e exit=0 seconds=78
+done

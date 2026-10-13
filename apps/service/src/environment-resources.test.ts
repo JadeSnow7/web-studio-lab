@@ -114,3 +114,19 @@ it('reports failed SSH connection before shell acquisition as confirmed no proce
     connect.mockRestore();
   }
 });
+
+it('releases a file observation lease without closing another space using the same authorized root', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-release-files-'));
+  cleanup.push(() => rm(root, { recursive: true, force: true }));
+  await writeFile(path.join(root, 'x'), 'shared root');
+  const resources = registry({ WSL_OBSERVATION_ROOT: root });
+  const other = { ...identity, workspaceId: 'w-b', resourceId: 'file-b', instanceId: 'i-b' };
+  await resources.register(identity);
+  await resources.register(other);
+  expect(await resources.observe(request(identity))).not.toHaveProperty('error');
+  expect(await resources.observe(request(other))).not.toHaveProperty('error');
+  await expect(resources.release({ ...identity, workspaceId: 'forged' })).rejects.toMatchObject({ code: 'unauthorized' });
+  await resources.release(identity);
+  expect(await resources.observe(request(identity))).toMatchObject({ error: 'unauthorized' });
+  expect(await resources.observe(request(other))).not.toHaveProperty('error');
+});

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "--output",
+    "test-results/round-12-e2e"
+  ],
+  "exitCode": 1,
+  "seconds": 174.96880912780762,
+  "builtFrom": "build-02"
+}

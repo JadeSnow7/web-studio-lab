@@ -1,0 +1,15 @@
+
+Running 1 test using 1 worker
+
+(node:56288) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-app-control-live-eJdXaj ELECTRON_PID 56298
+ELECTRON_STDERR (node:56298) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:53976/eb0db257-9b99-4909-a312-31e9a22179b2
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✓  1 e2e/app-control-live.spec.ts:66:1 › product window + live sandbox app: control plane A03/A07 without model (2.5m)
+
+  1 passed (2.5m)

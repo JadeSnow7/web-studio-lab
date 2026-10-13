@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 审核用静态设计稿（修订 2），来源：状态降噪画布；示例内容为占位数据 -->
+<title>状态接口与数据边界</title>
+</head>
+<body>
+<style>
+body{margin:0}
+a{color:#0a67d1}a:hover{color:#084f9f}
+code{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:12.5px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid #e6e8ed;font-size:13px;line-height:20px}
+th{font-size:12px;font-weight:600;color:#4a4d55;background:#f3f4f7}
+</style>
+<div style="width: 100%; box-sizing: border-box; padding: 48px 40px; background: #ffffff; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 32px">
+  <div style="display: flex; flex-direction: column; gap: 8px; max-width: 940px">
+    <p style="margin: 0; font-size: 13px; font-weight: 600; color: #0a67d1">接口 · 修订 2</p>
+    <h1 style="margin: 0; font-size: 30px; line-height: 38px; font-weight: 650">事实可以共享，展示留在界面，诊断数据有边界</h1>
+    <p style="margin: 0; font-size: 15px; line-height: 24px; color: #4a4d55">落点遵循 ARCHITECTURE.md：<code>packages/protocol</code> 只容纳跨进程 schema 与 DTO。事实投影放 desktop 内 Main 与 Renderer 共用的公开模块，展示投影只在 Renderer。</p>
+  </div>
+
+  <div style="overflow-x: auto; border: 1px solid #e1e4ea; border-radius: 12px">
+    <table style="border-collapse: collapse; width: 100%; min-width: 900px">
+      <thead><tr><th style="width: 160px">层</th><th style="width: 330px">落点</th><th>输入</th><th>负责</th></tr></thead>
+      <tbody>
+        <tr><td><b>DTO</b></td><td><code>packages/protocol/src/status.ts</code></td><td>—</td><td>StatusFact、StatusTransition、DebugStatusSnapshot 与按域 raw 白名单 schema</td></tr>
+        <tr><td><b>① 业务事实</b></td><td><code>apps/desktop/src/shared/status/</code></td><td>Main 已发布的快照：Workbench、Chat、Setup、Execution</td><td>键、phase、kind、中文 label、动作、instanceToken、白名单 raw；脱敏工具</td></tr>
+        <tr><td><b>② 展示</b></td><td><code>renderer/src/state/status-view.ts</code></td><td>事实 + 选择、确认、hint、界面错误、遮挡、输出缺口</td><td>三通道分配、历史改写、确认失效与重置；<code>useStatusView(scope)</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 20px">
+    <pre style="flex: 3 1 600px; min-width: 0; margin: 0; overflow-x: auto; background: #f6f7f9; border: 1px solid #e1e4ea; border-radius: 12px; padding: 22px 24px; font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px; line-height: 20px; color: #1d1d1f">export interface StatusFact {
+  key: string;          // domain:entityId:facet，并发条件不重键
+  domain: StatusDomain;
+  facet: string;        // 'state' | 'load-error' | 'agent-control' | …
+  scope: StatusScope;
+  phase: StatusPhase;   // StatusDot 形状
+  kind: 'progress' | 'control' | 'unresolved' | 'problem'
+      | 'confirmation' | 'steady' | 'capability';
+  priority: number;     // 只在同一通道内比较
+  label: string;        // ≤120 字
+  detail?: string;      // ≤300 字
+  action?: StatusAction;
+  instanceToken: string; // 实例更换 → 确认失效
+  raw: StatusRaw;       // 按域白名单，≤2 KiB
+}
+
+projectFacts(input: FactInput): StatusFact[]          // ① Main + Renderer
+presentStatus(facts, presentation): StatusView[]       // ② 仅 Renderer
+useStatusView(scope) → { persistent, problem, more, notice, ambient }</pre>
+    <div style="flex: 2 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+      <div style="border: 1px solid #e1e4ea; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+        <strong style="font-size: 15px">诊断启用</strong>
+        <p style="margin: 0; font-size: 13px; line-height: 21px"><code>dev-server || WSL_DEBUG_STATUS=1</code>。E2E 用的 build 产物和正式包默认关闭，<code>window.studio</code> 保持 6 键；packaged helper 清除 <code>WSL_*</code> 后由 <code>debugStatus</code> 选项重新写入。</p>
+      </div>
+      <div style="border: 1px solid #e1e4ea; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+        <strong style="font-size: 15px">三种出口</strong>
+        <p style="margin: 0; font-size: 13px; line-height: 21px"><b>面板</b>：事实 + 白名单 raw；当前会话 PageCapture 仅可在面板内查看，标注不可导出。</p>
+        <p style="margin: 0; font-size: 13px; line-height: 21px"><b>复制 / 导出</b>与 <b>NDJSON</b>：只含事实与转换，经过脱敏；NDJSON 上限 5 MiB，到限停止写入。</p>
+      </div>
+      <div style="border: 1px solid #e1e4ea; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+        <strong style="font-size: 15px">脱敏</strong>
+        <p style="margin: 0; font-size: 13px; line-height: 21px">URL 去查询串与片段；家目录换 <code>~</code>，授权根内改相对路径；SSH 主机换 <code>ssh:&lt;hash8&gt;</code>；私钥、OpenAI / GitHub token、AWS key 替换为 <code>[redacted]</code>。永不进入：截图、终端输出、消息与草稿、文件内容、凭据。</p>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

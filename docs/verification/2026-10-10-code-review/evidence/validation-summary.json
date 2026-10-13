@@ -1,0 +1,96 @@
+{
+  "verifiedAt": "2026-10-10T13:53:30.203582+00:00",
+  "confirmedDefects": 11,
+  "defectStatus": {
+    "F01": "closed: reproduced, minimally fixed, regression passed",
+    "F02": "closed: reproduced, minimally fixed, regression passed",
+    "F03": "closed: reproduced, minimally fixed, regression passed",
+    "F04": "closed: reproduced, minimally fixed, regression passed",
+    "F05": "closed: reproduced, minimally fixed, regression passed",
+    "F06": "closed: reproduced, minimally fixed, regression passed",
+    "F07": "closed: reproduced, minimally fixed, regression passed",
+    "F08": "closed: reproduced, minimally fixed, regression passed",
+    "F09": "closed: reproduced, minimally fixed, regression passed",
+    "F10": "closed: reproduced, minimally fixed, regression passed",
+    "F11": "closed: reproduced, minimally fixed, regression passed"
+  },
+  "checks": {
+    "typecheck": "passed",
+    "activeSourceLint": "passed",
+    "activeSourceFormat": "passed",
+    "wholeRepositoryLint": "failed: archived and generated files; retained",
+    "wholeRepositoryFormat": "failed: archived and generated files; retained",
+    "unit": {
+      "passed": 564,
+      "skipped": 15
+    },
+    "packagingUnit": {
+      "passed": 27
+    },
+    "offlineVS001Selftest": {
+      "passed": 12
+    },
+    "template": "check/build/template:verify passed",
+    "buildAndUnsignedPackage": "passed",
+    "electronBuild": {
+      "passed": 76,
+      "skipped": 7
+    },
+    "electronPackaged": {
+      "passed": 69,
+      "skipped": 14
+    },
+    "electronRealModel": {
+      "passed": 5
+    },
+    "sandboxLifecycle": {
+      "passed": 6
+    },
+    "serviceModelMCP": {
+      "passed": 1
+    },
+    "managedAppService": "passed",
+    "managedAppFailurePhases": "passed: import cancel, guest start cancel, health timeout",
+    "packagedManagedApp": "passed on unchanged third run; two earlier failures preserved",
+    "packagedCorruptPayload": {
+      "passed": 1
+    },
+    "finalFrozenVS001": {
+      "runId": "7fac3715-79a1-43f3-9f1a-53962655713a",
+      "passed": [
+        "B01",
+        "B02",
+        "B03",
+        "B04",
+        "B05"
+      ],
+      "cleanupErrors": []
+    }
+  },
+  "cleanup": {
+    "ownedSandboxesStopped": 2,
+    "ownedSandboxMounts": 0,
+    "awakePortMappingsEmpty": true,
+    "recordedElectronPidsExited": 13,
+    "historicalFailureCleanupRecordsNotRewritten": true,
+    "unrelatedSystemListenerPreserved": "rapportd PID 650 on port 49152"
+  },
+  "undeterminedOrNotRun": [
+    "real remote SSH account",
+    "guest-browser dedicated live test hardcoded historical sandbox",
+    "manual Chinese IME candidate-window workflow",
+    "user acceptance"
+  ],
+  "notImplemented": [
+    "complete competition task loop",
+    "independent verification adapter"
+  ],
+  "delivery": {
+    "committed": false,
+    "pushed": false,
+    "signed": false,
+    "notarized": false,
+    "published": false,
+    "deployed": false
+  }
+}

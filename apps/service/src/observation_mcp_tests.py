@@ -60,7 +60,7 @@ class ObservationSocketTests(unittest.TestCase):
         healthy, receiver = socket.socketpair()
         emitted = []
         clients = {'disconnected': (disconnected, None, 0), 'healthy': (healthy, None, 0)}
-        namespace = {'json': json, 'kind': 'observation-result', 'terminal': False, 'observer_clients': clients,
+        namespace = {'json': json, 'kind': 'observation-result', 'terminal': False, 'observer_clients': clients, 'cli_channel': None,
                      'emit': lambda kind, **fields: emitted.append({'type': kind, **fields}),
                      'frame': {'id': 'disconnected', 'result': {'error': 'not_found', 'message': 'result'}}}
         gone.close()
@@ -134,7 +134,7 @@ class ControlFrameParserTests(unittest.TestCase):
         parser = compile(ast.fix_missing_locations(ast.Module(body=[loop], type_ignores=[])), '<actual-guest-stdin-parser>', 'exec')
         sizes = []
         namespace = {'os': types.SimpleNamespace(read=lambda _fd, _size: namespace['chunk']), 'stdin': 0, 'buffer': b'', 'json': json,
-                     'terminal': True, 'closing': False, 'master': 1, 'pending_input': b'', 'resize': lambda _master, cols, rows: sizes.append((cols, rows))}
+                     'terminal': True, 'cli_channel': None, 'closing': False, 'master': 1, 'pending_input': b'', 'resize': lambda _master, cols, rows: sizes.append((cols, rows))}
         return parser, namespace, sizes
 
     def test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget(self):

@@ -1,0 +1,4 @@
+
+> @wsl/service@0.1.0 typecheck /Users/huaodong/workspace/web-studio-lab/apps/service
+> tsc -p tsconfig.json
+

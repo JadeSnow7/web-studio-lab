@@ -1,0 +1,6 @@
+{
+  "reason": "Injected gate also blocked template unit-test instance during managed startup; release only this owned fixture so normal cleanup can proceed",
+  "exitCode": 0,
+  "stdout": "{\"nonce\":\"cdb117f7-64c0-404e-89e6-a41f22b2eb15\",\"operationId\":\"0944ed3d-87b3-4b5b-b639-1f41e7752f28\",\"operation\":\"reset\",\"appInstanceId\":\"instance-1\",\"pid\":370,\"at\":1791703468480}\n",
+  "stderr": ""
+}

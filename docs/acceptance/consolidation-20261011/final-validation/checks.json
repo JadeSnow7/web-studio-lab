@@ -1,0 +1,38 @@
+[
+  {
+    "name": "docs",
+    "command": ["node", "scripts/check-docs.mjs"],
+    "exit_code": 0,
+    "seconds": 0.08
+  },
+  {
+    "name": "typecheck",
+    "command": ["pnpm", "typecheck"],
+    "exit_code": 0,
+    "seconds": 19.96
+  },
+  {
+    "name": "lint",
+    "command": ["pnpm", "lint"],
+    "exit_code": 1,
+    "seconds": 11.22
+  },
+  {
+    "name": "format",
+    "command": ["pnpm", "format:check"],
+    "exit_code": 1,
+    "seconds": 32.89
+  },
+  {
+    "name": "build",
+    "command": ["pnpm", "build"],
+    "exit_code": 0,
+    "seconds": 10.29
+  },
+  {
+    "name": "baseline-selftest",
+    "command": ["pnpm", "baseline:selftest"],
+    "exit_code": 0,
+    "seconds": 1.59
+  }
+]

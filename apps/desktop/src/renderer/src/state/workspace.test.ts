@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkbenchSnapshot, WorkbenchResult, WorkbenchCommand, WorkspaceSnapshot } from '@wsl/protocol';
-import { projectSnapshot, workspaceCommand, workspaceStore, switchWorkspace } from './workspace';
+import { projectSnapshot, catalogCommand, workspaceCommand, workspaceStore, switchWorkspace } from './workspace';
 import { locateSession } from './location';
 const workspace = (workspaceId: string, revision = 0): WorkspaceSnapshot => ({
   workspaceId,
@@ -15,8 +15,6 @@ const workspace = (workspaceId: string, revision = 0): WorkspaceSnapshot => ({
   fileHints: [],
   observations: [],
   theme: 'light',
-  publicResources: null,
-  publicResourcesError: null,
 });
 const snapshot = (seq: number, appInstanceId = 'epoch-one', revision = 0): WorkbenchSnapshot => ({
   seq,
@@ -42,26 +40,22 @@ describe('空间应用客户端', () => {
   it('资源业务错误仅消费Main投影，失败保留集合，成功重试清Main错误', async () => {
     projectSnapshot(snapshot(1));
     const failed = snapshot(2);
-    failed.workspaces[0]!.publicResourcesError = '资源保存失败';
     const invoke = vi
       .fn()
       .mockResolvedValueOnce({ ok: false, error: { code: 'execution_failed', message: '资源保存失败' }, snapshot: failed })
       .mockResolvedValueOnce({ ok: true, snapshot: snapshot(3) });
-    vi.stubGlobal('window', { studio: { workbench: { command: invoke } } });
-    await workspaceCommand('A', { type: 'capturePublicResource', resourceId: 'web' });
-    expect(workspaceStore.get().snapshot?.workspaces[0]!.publicResourcesError).toBe('资源保存失败');
+    vi.stubGlobal('window', { studio: { workbench: { command: invoke, catalogCommand: invoke } } });
+    await catalogCommand({ type: 'captureResourceRevision', workspaceId: 'A', runtimeResourceId: 'web' });
     expect(workspaceStore.get().error).toBeNull();
-    expect(workspaceStore.get().snapshot?.workspaces[0]!.publicResources).toBeNull();
-    await workspaceCommand('A', { type: 'capturePublicResource', resourceId: 'web' });
+    await catalogCommand({ type: 'captureResourceRevision', workspaceId: 'A', runtimeResourceId: 'web' });
     expect(workspaceStore.get().error).toBeNull();
-    expect(workspaceStore.get().snapshot?.workspaces[0]!.publicResourcesError).toBeNull();
   });
   it('资源成功不能清除并发无关命令的错误，即使文案相同', async () => {
     projectSnapshot(snapshot(1));
     const retry = deferred<WorkbenchResult>();
     let attempts = 0;
-    const invoke = vi.fn((c: WorkbenchCommand): Promise<WorkbenchResult> => {
-      if (c.type === 'capturePublicResource') {
+    const invoke = vi.fn((c: { type: string }): Promise<WorkbenchResult> => {
+      if (c.type === 'captureResourceRevision') {
         attempts++;
         return attempts === 1
           ? Promise.resolve({ ok: false, error: { code: 'execution_failed', message: '失败' }, snapshot: snapshot(2) })
@@ -69,9 +63,9 @@ describe('空间应用客户端', () => {
       }
       return Promise.resolve({ ok: false, error: { code: 'execution_failed', message: '失败' }, snapshot: snapshot(3) });
     });
-    vi.stubGlobal('window', { studio: { workbench: { command: invoke } } });
-    await workspaceCommand('A', { type: 'capturePublicResource', resourceId: 'web' });
-    const pending = workspaceCommand('A', { type: 'capturePublicResource', resourceId: 'web' });
+    vi.stubGlobal('window', { studio: { workbench: { command: invoke, catalogCommand: invoke } } });
+    await catalogCommand({ type: 'captureResourceRevision', workspaceId: 'A', runtimeResourceId: 'web' });
+    const pending = catalogCommand({ type: 'captureResourceRevision', workspaceId: 'A', runtimeResourceId: 'web' });
     await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));
     await workspaceCommand('A', { type: 'browserAction', resourceId: 'other', action: 'reload' });
     retry.resolve({ ok: true, snapshot: snapshot(4) });
@@ -89,7 +83,7 @@ describe('空间应用客户端', () => {
             snapshot: { ...snapshot(c.type === 'locateSession' ? 2 : 3), activeWorkspaceId: c.workspaceId },
           }),
     );
-    vi.stubGlobal('window', { studio: { workbench: { command: invoke } } });
+    vi.stubGlobal('window', { studio: { workbench: { command: invoke, catalogCommand: invoke } } });
     const save = workspaceCommand('B', { type: 'saveDraft', sessionId: 'session', draft: 'old' });
     await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
     await locateSession({ workspaceId: 'B', sessionId: 'session', runId: 'run', taskVersionId: 'version', view: 'log' });
@@ -120,7 +114,7 @@ describe('空间应用客户端', () => {
         ? first.promise
         : Promise.resolve({ ok: true as const, snapshot: snapshot(3, 'epoch-one', 2) }),
     );
-    vi.stubGlobal('window', { studio: { workbench: { command: invoke } } });
+    vi.stubGlobal('window', { studio: { workbench: { command: invoke, catalogCommand: invoke } } });
     const a = workspaceCommand('A', { type: 'saveDraft', sessionId: 'session', draft: 'first' });
     const b = workspaceCommand('A', { type: 'saveDraft', sessionId: 'session', draft: 'second' });
     await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
@@ -155,4 +149,24 @@ describe('空间应用客户端', () => {
     expect(workspaceStore.get().selectedId).toBe('C');
     expect(workspaceStore.get().snapshot?.activeWorkspaceId).toBe('C');
   });
+});
+
+it('dispatches cancellation while startRun is pending without waiting on the renderer metadata queue', async () => {
+  projectSnapshot(snapshot(1));
+  const launch = deferred<WorkbenchResult>();
+  const invoke = vi.fn((command: WorkbenchCommand) =>
+    command.type === 'startRun' ? launch.promise : Promise.resolve({ ok: true as const, snapshot: snapshot(2) }),
+  );
+  vi.stubGlobal('window', { studio: { workbench: { command: invoke, catalogCommand: invoke } } });
+  const starting = workspaceCommand('A', { type: 'startRun', sessionId: 'session', taskVersionId: 'version' });
+  await vi.waitFor(() => expect(invoke).toHaveBeenCalledOnce());
+  const cancelling = workspaceCommand('A', { type: 'cancelRun', runId: 'run' });
+  try {
+    await vi.waitFor(() => expect(invoke.mock.calls.map(([command]) => command.type)).toEqual(['startRun', 'cancelRun']), { timeout: 250 });
+  } finally {
+    launch.resolve({ ok: true, snapshot: snapshot(1) });
+    await Promise.all([starting, cancelling]);
+  }
+  expect(invoke.mock.calls[0]![0].expectedRevision).toBeUndefined();
+  expect(invoke.mock.calls[1]![0].expectedRevision).toBeUndefined();
 });

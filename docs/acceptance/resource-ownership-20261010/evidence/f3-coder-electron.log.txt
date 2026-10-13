@@ -1,0 +1,21 @@
+
+Running 14 tests using 1 worker
+
+(node:135) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/public-document.spec.ts:17:1 › controlled-network fixture：真实 Electron 协议跳转、显示、绑定与空间持久化 (1.2s)
+  ✓   2 e2e/resources.spec.ts:30:1 › account favorite→A/B connections→explicit frozen personal reference→restart, using real Main (3.5s)
+  ✓   3 e2e/resources.spec.ts:188:1 › collection search, paging, IME, deletion recovery, focus and narrow dark UI (2.1s)
+  ✓   4 e2e/resources.spec.ts:232:1 › file and development entries can be explicitly favorited, classified and reopened in their authorized environment (1.5s)
+  ✓   5 e2e/resources.spec.ts:281:1 › a delayed space switch after opening a favorite cannot steal a newer route (1.0s)
+  ✓   6 e2e/resources.spec.ts:313:1 › legacy sparse v4 is the only selectable body version after import (969ms)
+  ✓   7 e2e/workspace-observation.spec.ts:44:1 › 本地文件明确绑定、只读读取、续读、后台重开及会话观察归属 (1.8s)
+  ✓   8 e2e/workspace-observation.spec.ts:124:1 › 未配置环境明确禁用能力，不创建未授权文件标签 (839ms)
+  ✓   9 e2e/workspace-observation.spec.ts:146:1 › 历史版本与运行选择联动，对话内容来自同一执行 (1.1s)
+  ✓  10 e2e/workspace-observation.spec.ts:180:1 › 环境目录失败保留新建表单和显式错误，不使用默认环境 (736ms)
+  ✓  11 e2e/workspace-observation.spec.ts:214:1 › 标签自落点不改变顺序，正常拖放保持排序入口 (688ms)
+  ✓  12 e2e/workspace-observation.spec.ts:233:1 › 本地同一PTY重复输出与保留窗口滚动仍更新终端显示 (4.0s)
+  ✓  13 e2e/workspace-observation.spec.ts:285:1 › 受控环境延迟：UI取消不启动Provider，换空间后的迟到观察仍归原会话 (1.2s)
+  ✓  14 e2e/workspace-observation.spec.ts:367:1 › 程序IME确认不提交名称、文件路径或观察表单 (888ms)
+
+  14 passed (21.8s)

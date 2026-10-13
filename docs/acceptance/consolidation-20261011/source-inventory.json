@@ -1,0 +1,689 @@
+{
+  "baseline": "ea3bad9e6602ccec3484cc55b247bae5815975b4",
+  "remote_main_verified": "f77ff9620d3d83d78eb4f62490c684b8155e48b2",
+  "source_count": 24,
+  "dirty_source_count": 10,
+  "local_backup": "/private/tmp/wsl-consolidation-20261011",
+  "sources": [
+    {
+      "id": "source-00",
+      "head": "ea3bad9e6602ccec3484cc55b247bae5815975b4",
+      "dirty_paths": 986,
+      "source_path": "/Users/huaodong/workspace/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "4a67ad3efee7947883960d72340245c6f019426cb77ec51b97613550794662d8",
+          "bytes": 112353
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "b6ccb36a22825b4e6fee463d2b6f5520d2da190920c703f3d08719023ed6ee29",
+          "bytes": 195148
+        },
+        "manifest.json": {
+          "sha256": "d73f2619c219aac3d9ced56e50d8324d2f515db956b44be6f64935fbb97571d9",
+          "bytes": 1055082
+        },
+        "dirty-files.tar.gz": {
+          "sha256": "59338d47deba0a0652721f2d44c33ad6e892fa952f0ee3ac8a9c7380477413e5",
+          "bytes": 17530305
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-01",
+      "head": "cf62dc74f49e7f9e81598be7b9e5109cf5946e9c",
+      "dirty_paths": 76,
+      "source_path": "/private/tmp/web-studio-lab-space-app-model",
+      "artifacts": {
+        "status.z": {
+          "sha256": "54cefd5c9423b40461ebc3ab40203b490bbf728b0340bd36d4010b6a4d658f0f",
+          "bytes": 4563
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "dc216a41fef8b8b3fff5bdeefec99e21db870b5c32d041d736bf0cd142dfaeee",
+          "bytes": 42672
+        },
+        "manifest.json": {
+          "sha256": "4e78725186c45b0b7d9d26ac89747332844077de5e4cc463f67e184c38572119",
+          "bytes": 731558
+        },
+        "dirty-files.tar.gz": {
+          "sha256": "8062cf53577ea8ae2f9f9176b84039633426b320ea63711306273da55193ea8c",
+          "bytes": 1061545
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-02",
+      "head": "2466936454658153e47a430ce1da853826f69f69",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/.codex/worktrees/1799/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "375822648e8c9419c4d310fe9010000218547b1c49f445556e13486e828d33cc",
+          "bytes": 19136
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-03",
+      "head": "2466936454658153e47a430ce1da853826f69f69",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/.codex/worktrees/4820/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "375822648e8c9419c4d310fe9010000218547b1c49f445556e13486e828d33cc",
+          "bytes": 19136
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-04",
+      "head": "643c1e2baedbc0129c21404665de8ff69c69b472",
+      "dirty_paths": 227,
+      "source_path": "/Users/huaodong/.codex/worktrees/7ba6/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "d0bcce6ab5db566a0d835bdcf1210071da05b789290e120a3176633d8942c288",
+          "bytes": 13535
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "96f6a8ebf94cc6e9bb307ff5651b964ead179c7ba95ccf70896af8f8d5175786",
+          "bytes": 53521
+        },
+        "manifest.json": {
+          "sha256": "a6acd1ebc23411d50d27c4f03249a42356fb002c7501bbc117fa7152bb4aa5a0",
+          "bytes": 42822
+        },
+        "dirty-files.tar.gz": {
+          "sha256": "a35eff228ad86fdc01edf8c5689648e09018374f3de1ef73e339c0c26e34c68f",
+          "bytes": 15393134
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-05",
+      "head": "536f0a1948e522a09310aa20784ec512476dc7be",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/.codex/worktrees/89a8/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "9d057fd030c80526aa7130f0a62c71910f19cdbe88e42f1f432aa3f7f4832046",
+          "bytes": 425
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-06",
+      "head": "0318a622e1f83c8bfd42c0d0962e06be5f9701eb",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/.codex/worktrees/95ba/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "0752b75c03c66c8888292a12dbe55bec00be9f8432c3b9126f8efce4836ac331",
+          "bytes": 1690
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-07",
+      "head": "536f0a1948e522a09310aa20784ec512476dc7be",
+      "dirty_paths": 320,
+      "source_path": "/Users/huaodong/.codex/worktrees/9630/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "fddc404ed43c6da9909866282596f5962b47af2493bf4307508205925c1cca8b",
+          "bytes": 18723
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "af629e37967a92259998b5a857a74a9503d1dbf6559dc6414faa7dd92b57d397",
+          "bytes": 13792
+        },
+        "manifest.json": {
+          "sha256": "4e07673625b0923f370554184fa5442ffbc7b1625ac4b5bf6ef6430c076f80eb",
+          "bytes": 59887
+        },
+        "dirty-files.tar.gz": {
+          "sha256": "f135f27035e47dd492653e0969fe72017be363c1780f908c5ccc4a588ef4bec5",
+          "bytes": 15189791
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-08",
+      "head": "2466936454658153e47a430ce1da853826f69f69",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/.codex/worktrees/b8ac/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "375822648e8c9419c4d310fe9010000218547b1c49f445556e13486e828d33cc",
+          "bytes": 19136
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-09",
+      "head": "b1e4f432f150526c5d117dfd929b47c8fb49cb7d",
+      "dirty_paths": 1,
+      "source_path": "/Users/huaodong/.codex/worktrees/bf64/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "3b3cada422d84e3042e34f84b780f30f6c5ea9bbddfd1c0abfdc7d35b9b4c215",
+          "bytes": 22
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "c297f341630345bca4e7574ea9f4cf51740d3c830f9a82611dd941b537587ca9",
+          "bytes": 704285
+        },
+        "dirty-files.tar.gz": {
+          "sha256": "5fe25741685e763e73cd124b695af6a80abdbbd3a1ff22a9792e6360a6b76fca",
+          "bytes": 361
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-11",
+      "head": "2466936454658153e47a430ce1da853826f69f69",
+      "dirty_paths": 458,
+      "source_path": "/Users/huaodong/.codex/worktrees/eb15/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "4889e02932aea625b4c6ed5cee3fda14858fb5bed2963254f3e3b31102e80878",
+          "bytes": 27115
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "0dff272c6648b7dd6ffbb64d4770735f007a3b182a367c2554b13e2e51931d45",
+          "bytes": 19535
+        },
+        "manifest.json": {
+          "sha256": "ad9966f17cddde706cf34a62fbd3902565ae791cc2817c6af5c643d0829e0abc",
+          "bytes": 104377
+        },
+        "dirty-files.tar.gz": {
+          "sha256": "af6cde7653c1a2a8d88eb00c1abf13a9ad0c5fb0abbbd8544bda97c3cf7c086d",
+          "bytes": 14060483
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-12",
+      "head": "c0edaf65424bda56bf7c7bb93492910d6d9ae27e",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/.codex/worktrees/f0c5/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "190d30f30f773aad253c7786b28d88b8d8e70a79bf915d6830b51aa54840ab6e",
+          "bytes": 596
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-13",
+      "head": "2466936454658153e47a430ce1da853826f69f69",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/.codex/worktrees/fcd0/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "375822648e8c9419c4d310fe9010000218547b1c49f445556e13486e828d33cc",
+          "bytes": 19136
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-14",
+      "head": "536f0a1948e522a09310aa20784ec512476dc7be",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/.codex/worktrees/fd9f/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "9d057fd030c80526aa7130f0a62c71910f19cdbe88e42f1f432aa3f7f4832046",
+          "bytes": 425
+        }
+      },
+      "manifest_scope": "tracked-and-untracked physical file hashes"
+    },
+    {
+      "id": "source-15",
+      "head": "4ab5581b611cff88629160dd1f598d1f7d550b74",
+      "dirty_paths": 49,
+      "source_path": "/Users/huaodong/Documents/Codex/2026-10-07/task-5/web-studio-lab",
+      "artifacts": {
+        "status.z": {
+          "sha256": "3620077f8737c0a16c1531056f1f22d76566851f145635ffb99487b70377529e",
+          "bytes": 1935
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "1609a1378d66274732570e58750e39369c6640775b223f86449437d80a0bec7a",
+          "bytes": 87021
+        },
+        "manifest.json": {
+          "sha256": "4af877d508b7a2e33ce950f7e11e644a8e64b781f24b3ab12ba0ed38b0cc1368",
+          "bytes": 69680
+        },
+        "index.z": {
+          "sha256": "74de61929c27fcc11ca16119f97d98845f13116dc9232f221c4e0f0e9734bb5c",
+          "bytes": 37693
+        },
+        "dirty-files.tar.gz": {
+          "sha256": "b239fd3a220ba5fd66bc454dbd5a09e2343741e45890e17ad18966bbcef643e8",
+          "bytes": 153356
+        }
+      },
+      "manifest_scope": "dirty-and-untracked; clean files in index.z"
+    },
+    {
+      "id": "source-16",
+      "head": "5c4edb7ef72f3c9e946e791f4fb9545fa27fad1d",
+      "dirty_paths": 336,
+      "source_path": "/Users/huaodong/workspace/_worktrees/integrated-app-installer-20261009",
+      "artifacts": {
+        "status.z": {
+          "sha256": "930aceff329e66ca8d62071412de39531ae4f88b4fcd53590fee229c1f6ddb72",
+          "bytes": 25798
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "51e94e083c6df6be2a0c3fa10fa0b1db6b89243cd457e7e0709526c569e33656",
+          "bytes": 788274
+        },
+        "index.z": {
+          "sha256": "4596ae89023cc4b8bc88be73e8b8d99c3d4a37e93eb240939522717fd6419bf0",
+          "bytes": 465377
+        },
+        "dirty-files.tar.gz": {
+          "sha256": "6fe56d380a7c6f2325428525d91bc6b7c0d36606061bacc243d1a0f18f7b8203",
+          "bytes": 2668774
+        }
+      },
+      "manifest_scope": "dirty-and-untracked; clean files in index.z"
+    },
+    {
+      "id": "source-17",
+      "head": "4ab5581b611cff88629160dd1f598d1f7d550b74",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/workspace/_worktrees/lab-integration-20261007",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "9bdce65093c5873c4c4d2373360984ae51a878b7bcd8700717738bfe962ed69f",
+          "bytes": 66249
+        },
+        "index.z": {
+          "sha256": "74de61929c27fcc11ca16119f97d98845f13116dc9232f221c4e0f0e9734bb5c",
+          "bytes": 37693
+        }
+      },
+      "manifest_scope": "dirty-and-untracked; clean files in index.z"
+    },
+    {
+      "id": "source-18",
+      "head": "729bf58da7d89dab81f8e588aa2b1f0b0da8e586",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/workspace/_worktrees/lab-pr1-review-fixes-20261007",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "375822648e8c9419c4d310fe9010000218547b1c49f445556e13486e828d33cc",
+          "bytes": 19136
+        },
+        "index.z": {
+          "sha256": "065fa92c93c4a53ca391d7a7947491aa455c9ef48b14877ddb95facc855ce690",
+          "bytes": 11933
+        }
+      },
+      "manifest_scope": "dirty-and-untracked; clean files in index.z"
+    },
+    {
+      "id": "source-19",
+      "head": "4ab5581b611cff88629160dd1f598d1f7d550b74",
+      "dirty_paths": 57,
+      "source_path": "/Users/huaodong/workspace/_worktrees/lab-unified-observation-20261007",
+      "artifacts": {
+        "status.z": {
+          "sha256": "5e1e9ad9d932a7e8bdc2d26ba31d46288704ee915278096bd13a38fccc97e7da",
+          "bytes": 2311
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "ab43787292ac9c02f9ca66ec846109b55c0bf2aad74fdb4a330626588b6a50cb",
+          "bytes": 91430
+        },
+        "manifest.json": {
+          "sha256": "73abaae40967bb226213b276b4f32870c54cc0bdfcd29b948a6d62d28b090353",
+          "bytes": 70584
+        },
+        "index.z": {
+          "sha256": "74de61929c27fcc11ca16119f97d98845f13116dc9232f221c4e0f0e9734bb5c",
+          "bytes": 37693
+        },
+        "dirty-files.tar.gz": {
+          "sha256": "9960b2735568e409b3050fc799a5e4afb66cb170274849e28adc194ef7f90a41",
+          "bytes": 175588
+        }
+      },
+      "manifest_scope": "dirty-and-untracked; clean files in index.z"
+    },
+    {
+      "id": "source-20",
+      "head": "5c95c0750fe5acc165e70671590b3c690224dd8a",
+      "dirty_paths": 159,
+      "source_path": "/Users/huaodong/workspace/_worktrees/minimal-app-loop-20261009",
+      "artifacts": {
+        "status.z": {
+          "sha256": "a39fd60f12f3d80cad554da8424342ea9d8534f85dbd451bdd4d83e7e939ce6f",
+          "bytes": 10281
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "12459aedf3fbca798f30945e9f23fd06c6f20ba9c3ecd671d07aa2ac9ff08ab2",
+          "bytes": 69181
+        },
+        "manifest.json": {
+          "sha256": "8a38d2d9f6dfb454dea41e622c8125f3f7b7b2bb98262ec1ab1275e28f71c988",
+          "bytes": 753614
+        },
+        "index.z": {
+          "sha256": "8f390267fd3ba1effe7af1af265f01b67697ed258c81f6b0dad0bf3257f67979",
+          "bytes": 470458
+        },
+        "dirty-files.tar.gz": {
+          "sha256": "46c2f1a0bc0fb366b7d4cb891327db2517096f263d34724ec3dc947083bcd857",
+          "bytes": 1242680
+        }
+      },
+      "manifest_scope": "dirty-and-untracked; clean files in index.z"
+    },
+    {
+      "id": "source-21",
+      "head": "cf62dc74f49e7f9e81598be7b9e5109cf5946e9c",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/workspace/_worktrees/release-smoke-fix-20261009",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+          "bytes": 3
+        },
+        "index.z": {
+          "sha256": "188038bee180595112c4039fe4cb119e637ea3f8d74e3a61408679a26edeb333",
+          "bytes": 465377
+        }
+      },
+      "manifest_scope": "dirty-and-untracked; clean files in index.z"
+    },
+    {
+      "id": "source-22",
+      "head": "fb71ab7795a95aad3ce9b20a3b2581a857298645",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/workspace/_worktrees/signing-diagnostics-20261009",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+          "bytes": 3
+        },
+        "index.z": {
+          "sha256": "1be94951b36dc3058eccf581fda2d1f03b4ae5a9ed3cb7d2071c575192834cdc",
+          "bytes": 465658
+        }
+      },
+      "manifest_scope": "dirty-and-untracked; clean files in index.z"
+    },
+    {
+      "id": "source-23",
+      "head": "8a7f9d981cc550507a29cc2a6734ea0249217b38",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/workspace/_worktrees/web-studio-public-resources-20261006",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+          "bytes": 3
+        },
+        "index.z": {
+          "sha256": "882719f1ad09189fb27f610b31c89bdb8d892ee26ee88373fbb3247d5d2f8b2c",
+          "bytes": 25228
+        }
+      },
+      "manifest_scope": "dirty-and-untracked; clean files in index.z"
+    },
+    {
+      "id": "source-24",
+      "head": "d792ee53fbe24bd144f2d9df65a1cce95a3ebf47",
+      "dirty_paths": 0,
+      "source_path": "/Users/huaodong/workspace/web-studio-lab/.local/competition-installer",
+      "artifacts": {
+        "status.z": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "staged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "unstaged.patch": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "manifest.json": {
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+          "bytes": 3
+        },
+        "index.z": {
+          "sha256": "44df5c8af5279c1bc7fa10192318bb5dee7a8a5a78da4b56c48e955e0cf5d8c2",
+          "bytes": 460982
+        }
+      },
+      "manifest_scope": "dirty-and-untracked; clean files in index.z"
+    }
+  ]
+}

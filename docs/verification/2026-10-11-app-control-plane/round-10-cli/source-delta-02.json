@@ -1,0 +1,30 @@
+{
+  "apps/service/src/app-control-mcp.test.ts": {
+    "before": "60f469d7cc8341a960ce4072bd3dd41c9853c41faaf43bff0827acd0d6b122f0",
+    "after": "7f2822640e406fe9b6e7b171cb91e7a1dc53bed82c607447b201bd5782921e3c"
+  },
+  "apps/service/src/app_cli_transport_tests.py": {
+    "before": null,
+    "after": "9c660cd37f5dd5e6e15726be19e8e722b3d7b0640a5b8d7c7d3142e8f81b599b"
+  },
+  "apps/service/src/app_control_mcp_tests.py": {
+    "before": "c82b73601c4a9c6f0d372948a8e57f5d04528f2c240ba0d7d28cabb709c15d75",
+    "after": "1b331db48f6e9b2e98072023ac968eaab28bc5b88efe02c3a6204d90a51b61a3"
+  },
+  "apps/service/src/guest-helper.py": {
+    "before": "ca679b8ac624f0babd934c002815eb2f5b381487f286bdc2da916128ee65965e",
+    "after": "52790befba7b6836865cd3d1f22a6cfe8c13c593270a94038ef010f124fbd28f"
+  },
+  "apps/service/src/observation_mcp_tests.py": {
+    "before": "b95fe485558bb2ca3c2474e83ecd059ad7ff7fc3373d6f1e8c33ad3bf5a67f86",
+    "after": "9c392671d853434d8328e691f85f29cb10df6716cc131434f4cb1161721b416a"
+  },
+  "apps/service/src/resource_mcp.py": {
+    "before": "2798928bc1e4770b8960afd92565fdb46959a2300e3afb9fbd6a8c6b9c9a4e4f",
+    "after": "36087de5ac277ca3a03099b876b35b82efd7043ce8d54d63ae867af437678809"
+  },
+  "e2e/app-control-model-live.spec.ts": {
+    "before": "88e0c21e67122effef467bb71a8e243797da14bd3b5e7bd65e5905487139e10f",
+    "after": "7a5dda6d505601d594efdcfbacc181d5f009ec471925026da546d38f9f8c3870"
+  }
+}

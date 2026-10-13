@@ -1,0 +1,5 @@
+
+> @wsl/standard-app@1.0.0 template:verify
+> node scripts/template-hash.mjs --verify
+
+Verified template sha256:ffd15361c0af94bd69d747350d48e3a961e1a8a5260bd088e909d1c15933c39b

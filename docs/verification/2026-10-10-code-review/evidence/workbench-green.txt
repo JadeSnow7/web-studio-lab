@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+
+ Test Files  15 passed (15)
+      Tests  111 passed (111)
+   Start at  21:01:38
+   Duration  2.34s (tests 53%, transform 26%, import 20%, worker 1%)
+

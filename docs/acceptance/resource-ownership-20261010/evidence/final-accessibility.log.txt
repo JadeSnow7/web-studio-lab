@@ -1,0 +1,24 @@
+
+Running 16 tests using 1 worker
+
+(node:5658) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/chat.spec.ts:21:1 › fixture：续聊、新对话隔离、共享消息、IME、重复提交和取消 (1.5s)
+  ✓   2 e2e/chat.spec.ts:66:1 › fixture：非零退出、坏 JSON、缺完成事件显示失败并可继续 (1.2s)
+  ✓   3 e2e/chat.spec.ts:81:1 › CLI 不存在时明确不可用并保留草稿 (708ms)
+  -   4 e2e/chat.spec.ts:91:1 › live：中文对话、上下文续聊、新会话隔离
+  ✓   5 e2e/resources.spec.ts:30:1 › account favorite→A/B connections→explicit frozen personal reference→restart, using real Main (3.6s)
+  ✓   6 e2e/resources.spec.ts:188:1 › collection search, paging, IME, deletion recovery, focus and narrow dark UI (1.9s)
+  ✓   7 e2e/resources.spec.ts:232:1 › file and development entries can be explicitly favorited, classified and reopened in their authorized environment (1.4s)
+  ✓   8 e2e/resources.spec.ts:281:1 › a delayed space switch after opening a favorite cannot steal a newer route (1.0s)
+  ✓   9 e2e/resources.spec.ts:313:1 › legacy sparse v4 is the only selectable body version after import (944ms)
+  ✓  10 e2e/sbx.spec.ts:32:1 › PTY 文本：规范化控制字符后只匹配完整输出行 (1ms)
+  ✓  11 e2e/sbx.spec.ts:42:1 › sbx：空间提供独立终端标签，切换时隐藏原生预览 (617ms)
+  ✓  12 e2e/sbx.spec.ts:57:1 › sbx：对话显示执行来源，连接失败不允许发送 (696ms)
+  ✓  13 e2e/sbx.spec.ts:69:1 › 空间会话：执行器不可用时保留草稿并记录失败运行 (846ms)
+  ✓  14 e2e/sbx.spec.ts:80:1 › fixture：终端持久 cwd、Ctrl-C、resize、切标签保留与确认关闭 (1.3s)
+  ✓  15 e2e/sbx.spec.ts:118:1 › fixture：活动终端直接关闭应用需确认 Electron 进程退出 (845ms)
+  -  16 e2e/sbx.spec.ts:160:1 › live：应用终端与 Codex 共享 guest 文件并确认交互与清理
+
+  2 skipped
+  14 passed (16.8s)

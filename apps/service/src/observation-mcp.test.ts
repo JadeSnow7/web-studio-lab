@@ -1,3 +1,4 @@
+import { emptyReferences } from './reference-test-fixture';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -25,8 +26,10 @@ describe('per-turn observation MCP host', () => {
   it('binds real session/run identity and rejects another session or registered workspace', async () => {
     const reader = vi.fn().mockResolvedValue({ error: 'not_found', message: 'fixture' });
     chat.setObservationReader(reader);
-    await expect(chat.send(scope.sessionId, 'single', { ...scope, workspaceId: 'other' })).rejects.toThrow('观察会话');
-    await chat.send(scope.sessionId, 'single', scope);
+    await expect(
+      chat.send(scope.sessionId, 'single', { ...scope, workspaceId: 'other' }, emptyReferences(scope.sessionId, scope.workspaceId)),
+    ).rejects.toThrow('观察会话');
+    await chat.send(scope.sessionId, 'single', scope, emptyReferences(scope.sessionId, scope.workspaceId));
     await vi.waitFor(() => expect(chat.get(scope.sessionId).state).toBe('idle'));
     expect(reader).toHaveBeenCalledOnce();
     expect(reader.mock.calls[0]!.slice(0, 3)).toEqual([scope, 'files.read', { resourceId: 'resource-a', path: 'note.txt' }]);
@@ -42,7 +45,7 @@ describe('per-turn observation MCP host', () => {
       });
     });
     chat.setObservationReader(reader);
-    await chat.send(scope.sessionId, 'pending', scope);
+    await chat.send(scope.sessionId, 'pending', scope, emptyReferences(scope.sessionId, scope.workspaceId));
     await vi.waitFor(() => expect(reader).toHaveBeenCalledOnce());
     await chat.cancel(scope.sessionId);
     expect(signal.aborted).toBe(true);
@@ -58,7 +61,7 @@ describe('per-turn observation MCP host', () => {
         abort.addEventListener('abort', () => resolve({ error: 'cancelled', message: 'disconnected' }), { once: true }),
       );
     });
-    await chat.send(scope.sessionId, 'disconnect', scope);
+    await chat.send(scope.sessionId, 'disconnect', scope, emptyReferences(scope.sessionId, scope.workspaceId));
     await vi.waitFor(() => expect(chat.get(scope.sessionId).state).toBe('idle'));
     expect(signal.aborted).toBe(true);
   });
@@ -70,7 +73,7 @@ describe('per-turn observation MCP host', () => {
         signal.addEventListener('abort', () => resolve({ error: 'cancelled', message: 'stopped' }), { once: true }),
       );
     });
-    await chat.send(scope.sessionId, 'concurrent', scope);
+    await chat.send(scope.sessionId, 'concurrent', scope, emptyReferences(scope.sessionId, scope.workspaceId));
     await vi.waitFor(() => {
       expect(signals).toHaveLength(4);
       expect(chat.get(scope.sessionId).messages.at(-1)?.text).toContain('budget_exceeded');
@@ -88,14 +91,14 @@ describe('per-turn observation MCP host', () => {
   it('enforces the independent 64 request budget for sequential calls in one turn', async () => {
     const reader = vi.fn().mockResolvedValue({ error: 'not_found', message: 'fixture' });
     chat.setObservationReader(reader);
-    await chat.send(scope.sessionId, 'budget', scope);
+    await chat.send(scope.sessionId, 'budget', scope, emptyReferences(scope.sessionId, scope.workspaceId));
     await vi.waitFor(() => expect(chat.get(scope.sessionId).state).toBe('idle'));
     expect(reader).toHaveBeenCalledTimes(64);
     expect(chat.get(scope.sessionId).messages.at(-1)?.text).toContain('budget_exceeded');
   });
   it('returns a bounded error through the framed process for an oversized multibyte Provider result', async () => {
     chat.setObservationReader(async () => ({ error: 'unavailable', message: '中'.repeat(400000) }));
-    await chat.send(scope.sessionId, 'large', scope);
+    await chat.send(scope.sessionId, 'large', scope, emptyReferences(scope.sessionId, scope.workspaceId));
     await vi.waitFor(() => expect(chat.get(scope.sessionId).state).toBe('idle'));
     expect(chat.get(scope.sessionId).messages.at(-1)?.text).toContain('budget_exceeded');
     expect(chat.get(scope.sessionId).cleanupPending).toBe(false);

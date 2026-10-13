@@ -1,0 +1,1266 @@
+{
+  "sandbox": "wsl-sbx-smoke-20261006",
+  "profile": "/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-cli-cancel-R9vvy8",
+  "nonce": "95d3cde7-da37-4697-b7cd-a5e12a71e731",
+  "cleanupErrors": [],
+  "portsBefore": [],
+  "projectCwd": "/home/agent/workspace/.wsl-apps/e3909ad1-6c43-415e-ae8a-91b35a3c719d",
+  "navigationBeforeRun": {
+    "layout": {
+      "kind": "pane",
+      "paneId": "de06d398-03df-47e3-b7d5-3e60c5a1c707",
+      "tabId": "f84e40b9-f6e2-4c77-b34f-60806feb1ece"
+    },
+    "activePaneId": "de06d398-03df-47e3-b7d5-3e60c5a1c707"
+  },
+  "sourceHashesInitial": {
+    ".gitignore": "2250f792a81ef17939fac2c95b0c8b6f27ba5c61a78e7b1cb459890b194f7cee",
+    ".npmrc": "f5690c4ec4d1dffdd94a8cf7795aecde5abaaf5841a78604864d7a41cdf7a205",
+    "AGENTS.md": "0c05d20ae6dadb2c72a02ead78f528ef50c7853a6f8659bcb0d86327b35b5a31",
+    "README.md": "a0bb20aeea631b16441b53cba1533eb0eb3bd8e60012dc62c9f015097a3c9daa",
+    "index.html": "62194eb6c27b580e6f1c0b11b781ce621dbd516acd592fe64b8e2516993b3676",
+    "package-lock.json": "741d02cb3b2758bca20ed5d4a229931cb75e72eedf75354bf17c2a03ceecd10b",
+    "package.json": "09595c811884bcfdbe717f1dfc9b83198df8260c1cbf322d7fa319c4c363b55d",
+    "template-manifest.json": "42608985b9615cd522a90dbf946d6a1ef75d1223cad0f6718dcea04bf3597f14",
+    "tsconfig.json": "2d64d1a9064666a15c912600fd826339ac4961c40e6950c8c08cbb83160f89a0",
+    "tsconfig.server.json": "331ed5303c8905d3857236d3e2f78428aefe8cb7a2e7fa143bfd5f0ed596273f",
+    "vite.config.ts": "586cfd0a16652eb0d7187776ab578b6a5572a07bc00850daa386e31228d76582",
+    "agent/AGENTS.md": "d052f669c691cc62bde1d3d0d41d190d0a11dfd2e67f76fb9d27d4d16e84b35d",
+    "agent/app.manifest.json": "50ae4f0292fce4b3cd0d40b9a684d0c9f9f6a06de7b9ce55fbf1c2b1eca6c470",
+    "migrations/0000_initial.sql": "c51adece91b7712a2b131deec1055a959f301332c8dbc314bf3ec06bca94182e",
+    "migrations/meta/_journal.json": "d8c5fd65074bc676961cbc88039fd15d316cc23a87d9130812cdc8916addd40c",
+    "scripts/agent-exclusion-check.mjs": "08fad5eef22830e81c9b2590ff2f6596b56fb14e43c2cdb4b3caad83e2129109",
+    "scripts/dev.mjs": "da89c9a1031e8ba1c67eddb2d4cb4ef9787cc847b6a3a86970503ce2ea1dcc7a",
+    "scripts/http-smoke.mjs": "442516ecfa4de49a10cd668014a5e4d897c91b04ef50f01021d2174775f648fa",
+    "scripts/prepare-offline-dependencies.mjs": "587353ac823837b806bfde65ebd0c9edfe6519fa8b21b0127a2ccb41b37c7ce4",
+    "scripts/template-hash.mjs": "93cbaaa3fcc0c5165cbe11d3d62e891d874489b1cfe99b080bc447206ce6a19b",
+    "server/agent-cli.ts": "d177d3436e5759ed9dedf1b04a9c934bc3644b0139527e11e391937c21325fa3",
+    "server/app.ts": "47b34041ac0bdce83e3b64cd25696fb54f785b21620c6e08a77ec1cc0f1e129f",
+    "server/db.ts": "4fdae0b6d3bfcad7632b6a62f2367c9c2db34798543d90b81ea1692c3a437f6e",
+    "server/index.ts": "274c9041e100488f030502f3cd07c142505cc87c3df4534158cd44955e215e50",
+    "server/schema.ts": "793fcc74a3649f48ff302902aeeef2b391d50cb4092c96546c29f6145eb60b09",
+    "server/agent/data.ts": "d4f1a57f506298e764597ff3a4be2cfc71ab4a44f2ae5bc2bac6095ea6e55ab7",
+    "server/agent/describe.ts": "9d5db2af000f7788e2c4536e808f0bee2d7ae6e8dcd92fe3d29c27a8757fdb7f",
+    "server/agent/manifest.ts": "bed016175656b06a89b62c6de8de2c6395029991bf2c65c449d948c36a333151",
+    "server/agent/operations.ts": "8114fdea6d797ce2e5b549426dc639a50eee7d218182f9aee43d90f2b2daaa3f",
+    "server/agent/revision.ts": "2a1018158b8a78b90e6f9c0a2f14c82438dc7f9073a1b2f8c991beee7a594dd2",
+    "server/agent/routes.ts": "fe02cf30ea64610ddd4f5e4205d0db067e76878c4e022db24c3a36e911e14044",
+    "src/App.tsx": "870c1668c25b78617aaf4237e08c28fc71380975bf47c9b5464906f1ff2ce03f",
+    "src/main.tsx": "3f5cc61a224daed0273ee98af9d61197c6ab0ad7ba8ae62d17d2d3163fbae289",
+    "src/styles.css": "4a935b8291c436b94c058517c0439229da24da97c03e3aa1ebf13a51b76d9aed",
+    "src/agent/bridge.ts": "37112fae86c11d22c3535f62b6f30ebff9c376e4e42bc01bc1f8020e875c4afe",
+    "src/agent/commands.ts": "dad8f7c630955f85d39f7670a83be08fadc0d2f648d1a481d7a835c99ce06ebe",
+    "src/agent/env.d.ts": "019f86dfc267c8a0636085eb764aae6563ab42c19e5d9ce563f83e1a6a361510",
+    "src/agent/registry.ts": "09c5154826f415e3103707d98659b698f37867df2f6269ce781e19d84d1206d6",
+    "src/components/Button.tsx": "fe62518647d6a94d7d0e6adfdf42f87c2e8bc5d20265029b5b0faf9a9a3ee225",
+    "tests/agent-data.test.ts": "fb0033f52b73e34155e2a72650d2502908996eb800cc7bc76f0bc77790b69615",
+    "tests/agent-operations.test.ts": "2356f5099f4ef3d90e1d6a1ce6af44b8d44ce5d13762bd33730576d5b240217d",
+    "tests/agent-registry.test.ts": "c6c4ea757cfde31f3719bc1e34a2936864b4f4181704d9529713503e432a80ef",
+    "tests/app.test.ts": "7c517373fc04e2fa7c033c4fb2edccf8829510e917322896228021a3767fe0dd",
+    "tests/agent/build-exclusion.test.ts": "527bbac86ee9c1e33717db61b1c1bd72069a47fb4da55cd898955afbb8d3d411",
+    "tests/agent/cli.test.ts": "fc82c035018981b20e602c89bcf72af35fc05f51a1a5b441a3863c71eef8227a",
+    "tests/agent/manifest.test.ts": "8d0f1c5a258b8415f5c41e172a6a16bf7cf01e739cb22dc4e4be296cc84cd536"
+  },
+  "runIds": [
+    "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+    "cf781cb2-7b86-403f-8605-a59deeede64c"
+  ],
+  "inflightOwnership": {
+    "cli": {
+      "pid": 976,
+      "ppid": 974,
+      "starttime": "18157",
+      "comm": "python3"
+    },
+    "helper": {
+      "pid": 550,
+      "ppid": 0,
+      "starttime": "8580",
+      "comm": "python3"
+    },
+    "ancestors": [
+      {
+        "pid": 976,
+        "ppid": 974,
+        "starttime": "18157",
+        "comm": "python3"
+      },
+      {
+        "pid": 974,
+        "ppid": 973,
+        "starttime": "18142",
+        "comm": "python3"
+      },
+      {
+        "pid": 973,
+        "ppid": 972,
+        "starttime": "18142",
+        "comm": "bash"
+      },
+      {
+        "pid": 972,
+        "ppid": 971,
+        "starttime": "18141",
+        "comm": "codex"
+      },
+      {
+        "pid": 971,
+        "ppid": 966,
+        "starttime": "18141",
+        "comm": "bwrap"
+      },
+      {
+        "pid": 966,
+        "ppid": 559,
+        "starttime": "18140",
+        "comm": "codex-linux-san"
+      },
+      {
+        "pid": 559,
+        "ppid": 551,
+        "starttime": "8599",
+        "comm": "codex"
+      },
+      {
+        "pid": 551,
+        "ppid": 550,
+        "starttime": "8592",
+        "comm": "MainThread"
+      },
+      {
+        "pid": 550,
+        "ppid": 0,
+        "starttime": "8580",
+        "comm": "python3"
+      }
+    ],
+    "tree": [
+      {
+        "pid": 550,
+        "ppid": 0,
+        "starttime": "8580",
+        "comm": "python3"
+      },
+      {
+        "pid": 551,
+        "ppid": 550,
+        "starttime": "8592",
+        "comm": "MainThread"
+      },
+      {
+        "pid": 559,
+        "ppid": 551,
+        "starttime": "8599",
+        "comm": "codex"
+      },
+      {
+        "pid": 609,
+        "ppid": 559,
+        "starttime": "8630",
+        "comm": "python3"
+      },
+      {
+        "pid": 642,
+        "ppid": 559,
+        "starttime": "9193",
+        "comm": "codex-code-mode"
+      },
+      {
+        "pid": 966,
+        "ppid": 559,
+        "starttime": "18140",
+        "comm": "codex-linux-san"
+      },
+      {
+        "pid": 971,
+        "ppid": 966,
+        "starttime": "18141",
+        "comm": "bwrap"
+      },
+      {
+        "pid": 972,
+        "ppid": 971,
+        "starttime": "18141",
+        "comm": "codex"
+      },
+      {
+        "pid": 973,
+        "ppid": 972,
+        "starttime": "18142",
+        "comm": "bash"
+      },
+      {
+        "pid": 974,
+        "ppid": 973,
+        "starttime": "18142",
+        "comm": "python3"
+      },
+      {
+        "pid": 976,
+        "ppid": 974,
+        "starttime": "18157",
+        "comm": "python3"
+      }
+    ],
+    "channel": "/tmp/wsl-observe-y2oc_t52/app-channel",
+    "lease": {
+      "path": "/tmp/wsl-observe-y2oc_t52/app-channel/0/lease",
+      "held": true,
+      "mode": 384
+    },
+    "sourceHashes": {
+      ".gitignore": "2250f792a81ef17939fac2c95b0c8b6f27ba5c61a78e7b1cb459890b194f7cee",
+      ".npmrc": "f5690c4ec4d1dffdd94a8cf7795aecde5abaaf5841a78604864d7a41cdf7a205",
+      "AGENTS.md": "0c05d20ae6dadb2c72a02ead78f528ef50c7853a6f8659bcb0d86327b35b5a31",
+      "README.md": "a0bb20aeea631b16441b53cba1533eb0eb3bd8e60012dc62c9f015097a3c9daa",
+      "index.html": "62194eb6c27b580e6f1c0b11b781ce621dbd516acd592fe64b8e2516993b3676",
+      "package-lock.json": "741d02cb3b2758bca20ed5d4a229931cb75e72eedf75354bf17c2a03ceecd10b",
+      "package.json": "09595c811884bcfdbe717f1dfc9b83198df8260c1cbf322d7fa319c4c363b55d",
+      "template-manifest.json": "42608985b9615cd522a90dbf946d6a1ef75d1223cad0f6718dcea04bf3597f14",
+      "tsconfig.json": "2d64d1a9064666a15c912600fd826339ac4961c40e6950c8c08cbb83160f89a0",
+      "tsconfig.server.json": "331ed5303c8905d3857236d3e2f78428aefe8cb7a2e7fa143bfd5f0ed596273f",
+      "vite.config.ts": "586cfd0a16652eb0d7187776ab578b6a5572a07bc00850daa386e31228d76582",
+      "agent/AGENTS.md": "44256a10ee862f101e26b1a0f71045009cf6debc596550cf089ce7ea1fedd0bd",
+      "agent/app.manifest.json": "f941e51fcd6d818e16c91cd31d314512bb5aea5a46636ce842f38c8cea8023d8",
+      "migrations/0000_initial.sql": "c51adece91b7712a2b131deec1055a959f301332c8dbc314bf3ec06bca94182e",
+      "migrations/meta/_journal.json": "d8c5fd65074bc676961cbc88039fd15d316cc23a87d9130812cdc8916addd40c",
+      "scripts/agent-exclusion-check.mjs": "08fad5eef22830e81c9b2590ff2f6596b56fb14e43c2cdb4b3caad83e2129109",
+      "scripts/dev.mjs": "da89c9a1031e8ba1c67eddb2d4cb4ef9787cc847b6a3a86970503ce2ea1dcc7a",
+      "scripts/http-smoke.mjs": "442516ecfa4de49a10cd668014a5e4d897c91b04ef50f01021d2174775f648fa",
+      "scripts/prepare-offline-dependencies.mjs": "587353ac823837b806bfde65ebd0c9edfe6519fa8b21b0127a2ccb41b37c7ce4",
+      "scripts/template-hash.mjs": "93cbaaa3fcc0c5165cbe11d3d62e891d874489b1cfe99b080bc447206ce6a19b",
+      "server/agent-cli.ts": "d177d3436e5759ed9dedf1b04a9c934bc3644b0139527e11e391937c21325fa3",
+      "server/app.ts": "47b34041ac0bdce83e3b64cd25696fb54f785b21620c6e08a77ec1cc0f1e129f",
+      "server/db.ts": "4fdae0b6d3bfcad7632b6a62f2367c9c2db34798543d90b81ea1692c3a437f6e",
+      "server/index.ts": "274c9041e100488f030502f3cd07c142505cc87c3df4534158cd44955e215e50",
+      "server/schema.ts": "793fcc74a3649f48ff302902aeeef2b391d50cb4092c96546c29f6145eb60b09",
+      "server/agent/data.ts": "d4f1a57f506298e764597ff3a4be2cfc71ab4a44f2ae5bc2bac6095ea6e55ab7",
+      "server/agent/describe.ts": "9d5db2af000f7788e2c4536e808f0bee2d7ae6e8dcd92fe3d29c27a8757fdb7f",
+      "server/agent/manifest.ts": "bed016175656b06a89b62c6de8de2c6395029991bf2c65c449d948c36a333151",
+      "server/agent/operations.ts": "8114fdea6d797ce2e5b549426dc639a50eee7d218182f9aee43d90f2b2daaa3f",
+      "server/agent/revision.ts": "2a1018158b8a78b90e6f9c0a2f14c82438dc7f9073a1b2f8c991beee7a594dd2",
+      "server/agent/routes.ts": "fe02cf30ea64610ddd4f5e4205d0db067e76878c4e022db24c3a36e911e14044",
+      "src/App.tsx": "870c1668c25b78617aaf4237e08c28fc71380975bf47c9b5464906f1ff2ce03f",
+      "src/main.tsx": "3f5cc61a224daed0273ee98af9d61197c6ab0ad7ba8ae62d17d2d3163fbae289",
+      "src/styles.css": "4a935b8291c436b94c058517c0439229da24da97c03e3aa1ebf13a51b76d9aed",
+      "src/agent/bridge.ts": "37112fae86c11d22c3535f62b6f30ebff9c376e4e42bc01bc1f8020e875c4afe",
+      "src/agent/commands.ts": "dad8f7c630955f85d39f7670a83be08fadc0d2f648d1a481d7a835c99ce06ebe",
+      "src/agent/env.d.ts": "019f86dfc267c8a0636085eb764aae6563ab42c19e5d9ce563f83e1a6a361510",
+      "src/agent/registry.ts": "09c5154826f415e3103707d98659b698f37867df2f6269ce781e19d84d1206d6",
+      "src/components/Button.tsx": "fe62518647d6a94d7d0e6adfdf42f87c2e8bc5d20265029b5b0faf9a9a3ee225",
+      "src/components/cli-cancel-retained.txt": "14acc52d6a8b6f61a5ecb764fb88a17c5c3a96704db9332dd2323be4fc3f935e",
+      "tests/agent-data.test.ts": "fb0033f52b73e34155e2a72650d2502908996eb800cc7bc76f0bc77790b69615",
+      "tests/agent-operations.test.ts": "2356f5099f4ef3d90e1d6a1ce6af44b8d44ce5d13762bd33730576d5b240217d",
+      "tests/agent-registry.test.ts": "c6c4ea757cfde31f3719bc1e34a2936864b4f4181704d9529713503e432a80ef",
+      "tests/app.test.ts": "7c517373fc04e2fa7c033c4fb2edccf8829510e917322896228021a3767fe0dd",
+      "tests/agent/build-exclusion.test.ts": "527bbac86ee9c1e33717db61b1c1bd72069a47fb4da55cd898955afbb8d3d411",
+      "tests/agent/cli.test.ts": "fc82c035018981b20e602c89bcf72af35fc05f51a1a5b441a3863c71eef8227a",
+      "tests/agent/manifest.test.ts": "8d0f1c5a258b8415f5c41e172a6a16bf7cf01e739cb22dc4e4be296cc84cd536"
+    },
+    "markers": {
+      "retained": "95d3cde7-da37-4697-b7cd-a5e12a71e731",
+      "forbidden": null
+    }
+  },
+  "gateBeforeCancel": {
+    "target": {
+      "id": "3558392a-590f-48d2-b896-eea4199ff1ec",
+      "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+      "tool": "app.ui.act",
+      "args": {
+        "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+        "documentGeneration": 1,
+        "action": {
+          "type": "waitFor",
+          "target": {
+            "testid": "cancel-wait-95d3cde7-da37-4697-b7cd-a5e12a71e731"
+          },
+          "state": "visible",
+          "timeoutMs": 10000
+        }
+      },
+      "at": 1791704490333
+    },
+    "second": null,
+    "held": null,
+    "calls": [
+      {
+        "id": "3d08d00e-e30c-4ae8-a74d-641f2a9bf1df",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.status",
+        "at": 1791704422359,
+        "actionType": null
+      },
+      {
+        "id": "6431c77c-9b20-4f27-a7c7-2debc7cf8a0b",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.restart",
+        "at": 1791704426523,
+        "actionType": null
+      },
+      {
+        "id": "e98ab656-4931-46f2-ac70-83fccedc5fc4",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.status",
+        "at": 1791704441640,
+        "actionType": null
+      },
+      {
+        "id": "ee2442b4-31cb-4053-aee8-4a2365b7382d",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.status",
+        "at": 1791704459773,
+        "actionType": null
+      },
+      {
+        "id": "d3a428e2-144a-473f-835f-b1b0b806a012",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.status",
+        "at": 1791704482397,
+        "actionType": null
+      },
+      {
+        "id": "96aa5d6d-9123-4a47-b41b-7ae08a338580",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.ui.snapshot",
+        "at": 1791704490184,
+        "actionType": null
+      },
+      {
+        "id": "3558392a-590f-48d2-b896-eea4199ff1ec",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.ui.act",
+        "at": 1791704490333,
+        "actionType": "waitFor"
+      }
+    ],
+    "events": [
+      {
+        "type": "entered",
+        "at": 1791704490333,
+        "callId": "3558392a-590f-48d2-b896-eea4199ff1ec"
+      }
+    ]
+  },
+  "sourceBeforeCancel": {
+    "retained": "95d3cde7-da37-4697-b7cd-a5e12a71e731",
+    "forbidden": null
+  },
+  "sourceHashesBeforeCancel": {
+    ".gitignore": "2250f792a81ef17939fac2c95b0c8b6f27ba5c61a78e7b1cb459890b194f7cee",
+    ".npmrc": "f5690c4ec4d1dffdd94a8cf7795aecde5abaaf5841a78604864d7a41cdf7a205",
+    "AGENTS.md": "0c05d20ae6dadb2c72a02ead78f528ef50c7853a6f8659bcb0d86327b35b5a31",
+    "README.md": "a0bb20aeea631b16441b53cba1533eb0eb3bd8e60012dc62c9f015097a3c9daa",
+    "index.html": "62194eb6c27b580e6f1c0b11b781ce621dbd516acd592fe64b8e2516993b3676",
+    "package-lock.json": "741d02cb3b2758bca20ed5d4a229931cb75e72eedf75354bf17c2a03ceecd10b",
+    "package.json": "09595c811884bcfdbe717f1dfc9b83198df8260c1cbf322d7fa319c4c363b55d",
+    "template-manifest.json": "42608985b9615cd522a90dbf946d6a1ef75d1223cad0f6718dcea04bf3597f14",
+    "tsconfig.json": "2d64d1a9064666a15c912600fd826339ac4961c40e6950c8c08cbb83160f89a0",
+    "tsconfig.server.json": "331ed5303c8905d3857236d3e2f78428aefe8cb7a2e7fa143bfd5f0ed596273f",
+    "vite.config.ts": "586cfd0a16652eb0d7187776ab578b6a5572a07bc00850daa386e31228d76582",
+    "agent/AGENTS.md": "44256a10ee862f101e26b1a0f71045009cf6debc596550cf089ce7ea1fedd0bd",
+    "agent/app.manifest.json": "f941e51fcd6d818e16c91cd31d314512bb5aea5a46636ce842f38c8cea8023d8",
+    "migrations/0000_initial.sql": "c51adece91b7712a2b131deec1055a959f301332c8dbc314bf3ec06bca94182e",
+    "migrations/meta/_journal.json": "d8c5fd65074bc676961cbc88039fd15d316cc23a87d9130812cdc8916addd40c",
+    "scripts/agent-exclusion-check.mjs": "08fad5eef22830e81c9b2590ff2f6596b56fb14e43c2cdb4b3caad83e2129109",
+    "scripts/dev.mjs": "da89c9a1031e8ba1c67eddb2d4cb4ef9787cc847b6a3a86970503ce2ea1dcc7a",
+    "scripts/http-smoke.mjs": "442516ecfa4de49a10cd668014a5e4d897c91b04ef50f01021d2174775f648fa",
+    "scripts/prepare-offline-dependencies.mjs": "587353ac823837b806bfde65ebd0c9edfe6519fa8b21b0127a2ccb41b37c7ce4",
+    "scripts/template-hash.mjs": "93cbaaa3fcc0c5165cbe11d3d62e891d874489b1cfe99b080bc447206ce6a19b",
+    "server/agent-cli.ts": "d177d3436e5759ed9dedf1b04a9c934bc3644b0139527e11e391937c21325fa3",
+    "server/app.ts": "47b34041ac0bdce83e3b64cd25696fb54f785b21620c6e08a77ec1cc0f1e129f",
+    "server/db.ts": "4fdae0b6d3bfcad7632b6a62f2367c9c2db34798543d90b81ea1692c3a437f6e",
+    "server/index.ts": "274c9041e100488f030502f3cd07c142505cc87c3df4534158cd44955e215e50",
+    "server/schema.ts": "793fcc74a3649f48ff302902aeeef2b391d50cb4092c96546c29f6145eb60b09",
+    "server/agent/data.ts": "d4f1a57f506298e764597ff3a4be2cfc71ab4a44f2ae5bc2bac6095ea6e55ab7",
+    "server/agent/describe.ts": "9d5db2af000f7788e2c4536e808f0bee2d7ae6e8dcd92fe3d29c27a8757fdb7f",
+    "server/agent/manifest.ts": "bed016175656b06a89b62c6de8de2c6395029991bf2c65c449d948c36a333151",
+    "server/agent/operations.ts": "8114fdea6d797ce2e5b549426dc639a50eee7d218182f9aee43d90f2b2daaa3f",
+    "server/agent/revision.ts": "2a1018158b8a78b90e6f9c0a2f14c82438dc7f9073a1b2f8c991beee7a594dd2",
+    "server/agent/routes.ts": "fe02cf30ea64610ddd4f5e4205d0db067e76878c4e022db24c3a36e911e14044",
+    "src/App.tsx": "870c1668c25b78617aaf4237e08c28fc71380975bf47c9b5464906f1ff2ce03f",
+    "src/main.tsx": "3f5cc61a224daed0273ee98af9d61197c6ab0ad7ba8ae62d17d2d3163fbae289",
+    "src/styles.css": "4a935b8291c436b94c058517c0439229da24da97c03e3aa1ebf13a51b76d9aed",
+    "src/agent/bridge.ts": "37112fae86c11d22c3535f62b6f30ebff9c376e4e42bc01bc1f8020e875c4afe",
+    "src/agent/commands.ts": "dad8f7c630955f85d39f7670a83be08fadc0d2f648d1a481d7a835c99ce06ebe",
+    "src/agent/env.d.ts": "019f86dfc267c8a0636085eb764aae6563ab42c19e5d9ce563f83e1a6a361510",
+    "src/agent/registry.ts": "09c5154826f415e3103707d98659b698f37867df2f6269ce781e19d84d1206d6",
+    "src/components/Button.tsx": "fe62518647d6a94d7d0e6adfdf42f87c2e8bc5d20265029b5b0faf9a9a3ee225",
+    "src/components/cli-cancel-retained.txt": "14acc52d6a8b6f61a5ecb764fb88a17c5c3a96704db9332dd2323be4fc3f935e",
+    "tests/agent-data.test.ts": "fb0033f52b73e34155e2a72650d2502908996eb800cc7bc76f0bc77790b69615",
+    "tests/agent-operations.test.ts": "2356f5099f4ef3d90e1d6a1ce6af44b8d44ce5d13762bd33730576d5b240217d",
+    "tests/agent-registry.test.ts": "c6c4ea757cfde31f3719bc1e34a2936864b4f4181704d9529713503e432a80ef",
+    "tests/app.test.ts": "7c517373fc04e2fa7c033c4fb2edccf8829510e917322896228021a3767fe0dd",
+    "tests/agent/build-exclusion.test.ts": "527bbac86ee9c1e33717db61b1c1bd72069a47fb4da55cd898955afbb8d3d411",
+    "tests/agent/cli.test.ts": "fc82c035018981b20e602c89bcf72af35fc05f51a1a5b441a3863c71eef8227a",
+    "tests/agent/manifest.test.ts": "8d0f1c5a258b8415f5c41e172a6a16bf7cf01e739cb22dc4e4be296cc84cd536"
+  },
+  "changedSourcePaths": [
+    "agent/AGENTS.md",
+    "agent/app.manifest.json",
+    "src/components/cli-cancel-retained.txt"
+  ],
+  "navigationBeforeCancel": {
+    "layout": {
+      "kind": "pane",
+      "paneId": "de06d398-03df-47e3-b7d5-3e60c5a1c707",
+      "tabId": "f84e40b9-f6e2-4c77-b34f-60806feb1ece"
+    },
+    "activePaneId": "de06d398-03df-47e3-b7d5-3e60c5a1c707",
+    "sessionVisible": true,
+    "cancelVisible": true,
+    "at": 1791704492215
+  },
+  "cancelButtonClickedAt": 1791704492217,
+  "cancelButtonClickFinishedAt": 1791704492240,
+  "firstRun": {
+    "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+    "state": "cancelled",
+    "cleanupPending": false
+  },
+  "firstAudit": [
+    {
+      "recordId": "eac96b33-7496-418f-95ab-58abee553cab",
+      "at": "2026-10-11T07:40:22.361Z",
+      "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-d04d5a9f-b32b-44f2-8af7-e29fe75c6da6",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "1dbfc4b0-c4ce-49fc-b584-a9ee844b88fb",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 1
+    },
+    {
+      "recordId": "2a043c32-9168-4fae-b0b5-b2f4ab20dffa",
+      "at": "2026-10-11T07:40:26.526Z",
+      "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-d04d5a9f-b32b-44f2-8af7-e29fe75c6da6",
+      "tool": "app.restart",
+      "level": "write",
+      "args": {
+        "sha256": "744b541605a209bdd564e0e8ace614a365baed169038df51bdc6a2fcca8bf5a9",
+        "summary": {
+          "appInstanceId": "1dbfc4b0-c4ce-49fc-b584-a9ee844b88fb"
+        }
+      },
+      "outcome": "ok",
+      "appInstanceId": "1dbfc4b0-c4ce-49fc-b584-a9ee844b88fb",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 3
+    },
+    {
+      "recordId": "974fe876-8f67-4dec-8165-115427248828",
+      "at": "2026-10-11T07:40:41.640Z",
+      "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-d04d5a9f-b32b-44f2-8af7-e29fe75c6da6",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "1dbfc4b0-c4ce-49fc-b584-a9ee844b88fb",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "bbf52a5d-68a9-488f-bdac-4d3471e08c34",
+      "at": "2026-10-11T07:40:59.774Z",
+      "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-d04d5a9f-b32b-44f2-8af7-e29fe75c6da6",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "1dbfc4b0-c4ce-49fc-b584-a9ee844b88fb",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "e3714883-c1e7-4948-bceb-9190e539ffe8",
+      "at": "2026-10-11T07:41:22.397Z",
+      "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-d04d5a9f-b32b-44f2-8af7-e29fe75c6da6",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "910f0aa9-526b-4d2e-9fbe-05a36d4ff084",
+      "at": "2026-10-11T07:41:30.207Z",
+      "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-d04d5a9f-b32b-44f2-8af7-e29fe75c6da6",
+      "tool": "app.ui.snapshot",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": 1,
+      "durationMs": 23
+    },
+    {
+      "recordId": "89c08694-f9fa-494f-9f2f-615c0586843f",
+      "at": "2026-10-11T07:41:32.243Z",
+      "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-d04d5a9f-b32b-44f2-8af7-e29fe75c6da6",
+      "tool": "app.ui.act",
+      "level": "write",
+      "args": {
+        "sha256": "6e79a85a56d8a99941f2d180c4574643337ba1677bf87b032c0059522e9acf60",
+        "summary": {
+          "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+          "documentGeneration": 1,
+          "action.type": "waitFor",
+          "action.target.testid": "cancel-wait-95d3cde7-da37-4697-b7cd-a5e12a71e731",
+          "action.state": "visible",
+          "action.timeoutMs": 10000
+        }
+      },
+      "outcome": "cancelled",
+      "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+      "documentGenerationBefore": 1,
+      "documentGenerationAfter": null,
+      "durationMs": 1910
+    }
+  ],
+  "stoppedOwnership": {
+    "remaining": [],
+    "channelExists": false
+  },
+  "sourceAfterCancel": {
+    "retained": "95d3cde7-da37-4697-b7cd-a5e12a71e731",
+    "forbidden": null
+  },
+  "sourceHashesAfterCancel": {
+    ".gitignore": "2250f792a81ef17939fac2c95b0c8b6f27ba5c61a78e7b1cb459890b194f7cee",
+    ".npmrc": "f5690c4ec4d1dffdd94a8cf7795aecde5abaaf5841a78604864d7a41cdf7a205",
+    "AGENTS.md": "0c05d20ae6dadb2c72a02ead78f528ef50c7853a6f8659bcb0d86327b35b5a31",
+    "README.md": "a0bb20aeea631b16441b53cba1533eb0eb3bd8e60012dc62c9f015097a3c9daa",
+    "index.html": "62194eb6c27b580e6f1c0b11b781ce621dbd516acd592fe64b8e2516993b3676",
+    "package-lock.json": "741d02cb3b2758bca20ed5d4a229931cb75e72eedf75354bf17c2a03ceecd10b",
+    "package.json": "09595c811884bcfdbe717f1dfc9b83198df8260c1cbf322d7fa319c4c363b55d",
+    "template-manifest.json": "42608985b9615cd522a90dbf946d6a1ef75d1223cad0f6718dcea04bf3597f14",
+    "tsconfig.json": "2d64d1a9064666a15c912600fd826339ac4961c40e6950c8c08cbb83160f89a0",
+    "tsconfig.server.json": "331ed5303c8905d3857236d3e2f78428aefe8cb7a2e7fa143bfd5f0ed596273f",
+    "vite.config.ts": "586cfd0a16652eb0d7187776ab578b6a5572a07bc00850daa386e31228d76582",
+    "agent/AGENTS.md": "44256a10ee862f101e26b1a0f71045009cf6debc596550cf089ce7ea1fedd0bd",
+    "agent/app.manifest.json": "f941e51fcd6d818e16c91cd31d314512bb5aea5a46636ce842f38c8cea8023d8",
+    "migrations/0000_initial.sql": "c51adece91b7712a2b131deec1055a959f301332c8dbc314bf3ec06bca94182e",
+    "migrations/meta/_journal.json": "d8c5fd65074bc676961cbc88039fd15d316cc23a87d9130812cdc8916addd40c",
+    "scripts/agent-exclusion-check.mjs": "08fad5eef22830e81c9b2590ff2f6596b56fb14e43c2cdb4b3caad83e2129109",
+    "scripts/dev.mjs": "da89c9a1031e8ba1c67eddb2d4cb4ef9787cc847b6a3a86970503ce2ea1dcc7a",
+    "scripts/http-smoke.mjs": "442516ecfa4de49a10cd668014a5e4d897c91b04ef50f01021d2174775f648fa",
+    "scripts/prepare-offline-dependencies.mjs": "587353ac823837b806bfde65ebd0c9edfe6519fa8b21b0127a2ccb41b37c7ce4",
+    "scripts/template-hash.mjs": "93cbaaa3fcc0c5165cbe11d3d62e891d874489b1cfe99b080bc447206ce6a19b",
+    "server/agent-cli.ts": "d177d3436e5759ed9dedf1b04a9c934bc3644b0139527e11e391937c21325fa3",
+    "server/app.ts": "47b34041ac0bdce83e3b64cd25696fb54f785b21620c6e08a77ec1cc0f1e129f",
+    "server/db.ts": "4fdae0b6d3bfcad7632b6a62f2367c9c2db34798543d90b81ea1692c3a437f6e",
+    "server/index.ts": "274c9041e100488f030502f3cd07c142505cc87c3df4534158cd44955e215e50",
+    "server/schema.ts": "793fcc74a3649f48ff302902aeeef2b391d50cb4092c96546c29f6145eb60b09",
+    "server/agent/data.ts": "d4f1a57f506298e764597ff3a4be2cfc71ab4a44f2ae5bc2bac6095ea6e55ab7",
+    "server/agent/describe.ts": "9d5db2af000f7788e2c4536e808f0bee2d7ae6e8dcd92fe3d29c27a8757fdb7f",
+    "server/agent/manifest.ts": "bed016175656b06a89b62c6de8de2c6395029991bf2c65c449d948c36a333151",
+    "server/agent/operations.ts": "8114fdea6d797ce2e5b549426dc639a50eee7d218182f9aee43d90f2b2daaa3f",
+    "server/agent/revision.ts": "2a1018158b8a78b90e6f9c0a2f14c82438dc7f9073a1b2f8c991beee7a594dd2",
+    "server/agent/routes.ts": "fe02cf30ea64610ddd4f5e4205d0db067e76878c4e022db24c3a36e911e14044",
+    "src/App.tsx": "870c1668c25b78617aaf4237e08c28fc71380975bf47c9b5464906f1ff2ce03f",
+    "src/main.tsx": "3f5cc61a224daed0273ee98af9d61197c6ab0ad7ba8ae62d17d2d3163fbae289",
+    "src/styles.css": "4a935b8291c436b94c058517c0439229da24da97c03e3aa1ebf13a51b76d9aed",
+    "src/agent/bridge.ts": "37112fae86c11d22c3535f62b6f30ebff9c376e4e42bc01bc1f8020e875c4afe",
+    "src/agent/commands.ts": "dad8f7c630955f85d39f7670a83be08fadc0d2f648d1a481d7a835c99ce06ebe",
+    "src/agent/env.d.ts": "019f86dfc267c8a0636085eb764aae6563ab42c19e5d9ce563f83e1a6a361510",
+    "src/agent/registry.ts": "09c5154826f415e3103707d98659b698f37867df2f6269ce781e19d84d1206d6",
+    "src/components/Button.tsx": "fe62518647d6a94d7d0e6adfdf42f87c2e8bc5d20265029b5b0faf9a9a3ee225",
+    "src/components/cli-cancel-retained.txt": "14acc52d6a8b6f61a5ecb764fb88a17c5c3a96704db9332dd2323be4fc3f935e",
+    "tests/agent-data.test.ts": "fb0033f52b73e34155e2a72650d2502908996eb800cc7bc76f0bc77790b69615",
+    "tests/agent-operations.test.ts": "2356f5099f4ef3d90e1d6a1ce6af44b8d44ce5d13762bd33730576d5b240217d",
+    "tests/agent-registry.test.ts": "c6c4ea757cfde31f3719bc1e34a2936864b4f4181704d9529713503e432a80ef",
+    "tests/app.test.ts": "7c517373fc04e2fa7c033c4fb2edccf8829510e917322896228021a3767fe0dd",
+    "tests/agent/build-exclusion.test.ts": "527bbac86ee9c1e33717db61b1c1bd72069a47fb4da55cd898955afbb8d3d411",
+    "tests/agent/cli.test.ts": "fc82c035018981b20e602c89bcf72af35fc05f51a1a5b441a3863c71eef8227a",
+    "tests/agent/manifest.test.ts": "8d0f1c5a258b8415f5c41e172a6a16bf7cf01e739cb22dc4e4be296cc84cd536"
+  },
+  "appAfterCancel": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "e3909ad1-6c43-415e-ae8a-91b35a3c719d",
+    "environmentId": "sandbox",
+    "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+    "state": "running",
+    "url": "http://127.0.0.1:49270",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/e3909ad1-6c43-415e-ae8a-91b35a3c719d",
+    "guestPort": 42509,
+    "error": null,
+    "cleanupConfirmed": false
+  },
+  "gateAfterSecond": {
+    "target": {
+      "id": "3558392a-590f-48d2-b896-eea4199ff1ec",
+      "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+      "tool": "app.ui.act",
+      "args": {
+        "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+        "documentGeneration": 1,
+        "action": {
+          "type": "waitFor",
+          "target": {
+            "testid": "cancel-wait-95d3cde7-da37-4697-b7cd-a5e12a71e731"
+          },
+          "state": "visible",
+          "timeoutMs": 10000
+        }
+      },
+      "at": 1791704490333
+    },
+    "second": {
+      "id": "91184398-de9a-4905-b434-25567e6618e2",
+      "runId": "cf781cb2-7b86-403f-8605-a59deeede64c",
+      "tool": "app.status",
+      "args": {},
+      "at": 1791704515317
+    },
+    "held": {
+      "id": "3558392a-590f-48d2-b896-eea4199ff1ec",
+      "result": {
+        "ok": false,
+        "tool": "app.ui.act",
+        "error": {
+          "code": "cancelled",
+          "message": "控制面调用已取消"
+        }
+      },
+      "at": 1791704492245
+    },
+    "calls": [
+      {
+        "id": "3d08d00e-e30c-4ae8-a74d-641f2a9bf1df",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.status",
+        "at": 1791704422359,
+        "actionType": null
+      },
+      {
+        "id": "6431c77c-9b20-4f27-a7c7-2debc7cf8a0b",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.restart",
+        "at": 1791704426523,
+        "actionType": null
+      },
+      {
+        "id": "e98ab656-4931-46f2-ac70-83fccedc5fc4",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.status",
+        "at": 1791704441640,
+        "actionType": null
+      },
+      {
+        "id": "ee2442b4-31cb-4053-aee8-4a2365b7382d",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.status",
+        "at": 1791704459773,
+        "actionType": null
+      },
+      {
+        "id": "d3a428e2-144a-473f-835f-b1b0b806a012",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.status",
+        "at": 1791704482397,
+        "actionType": null
+      },
+      {
+        "id": "96aa5d6d-9123-4a47-b41b-7ae08a338580",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.ui.snapshot",
+        "at": 1791704490184,
+        "actionType": null
+      },
+      {
+        "id": "3558392a-590f-48d2-b896-eea4199ff1ec",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.ui.act",
+        "at": 1791704490333,
+        "actionType": "waitFor"
+      },
+      {
+        "id": "91184398-de9a-4905-b434-25567e6618e2",
+        "runId": "cf781cb2-7b86-403f-8605-a59deeede64c",
+        "tool": "app.status",
+        "at": 1791704515317,
+        "actionType": null
+      },
+      {
+        "id": "9da64772-9641-45c1-8fcb-ee761d83d9c5",
+        "runId": "cf781cb2-7b86-403f-8605-a59deeede64c",
+        "tool": "app.describe",
+        "at": 1791704515365,
+        "actionType": null
+      }
+    ],
+    "events": [
+      {
+        "type": "entered",
+        "at": 1791704490333,
+        "callId": "3558392a-590f-48d2-b896-eea4199ff1ec"
+      },
+      {
+        "type": "cancel-forwarded",
+        "at": 1791704492240
+      },
+      {
+        "type": "abort",
+        "at": 1791704492241,
+        "callId": "3558392a-590f-48d2-b896-eea4199ff1ec"
+      },
+      {
+        "type": "held",
+        "at": 1791704492245,
+        "callId": "3558392a-590f-48d2-b896-eea4199ff1ec"
+      },
+      {
+        "type": "released",
+        "at": 1791704515317,
+        "reason": "second-real-request",
+        "callId": "3558392a-590f-48d2-b896-eea4199ff1ec"
+      }
+    ]
+  },
+  "secondCliCommands": [
+    {
+      "id": "item_3",
+      "turnId": "82ce57e6-e12c-4efc-9414-4b39ccd0653d",
+      "exitCode": 0,
+      "truncated": false,
+      "outputSha256": "72dc3e1bbf7dbe57b7a17ddd4003a3bbe86fee21b04b293eab45cfe696605768"
+    }
+  ],
+  "secondAudit": [
+    {
+      "recordId": "3410ae7f-1c79-4e2f-8c13-259f67f08895",
+      "at": "2026-10-11T07:41:55.318Z",
+      "runId": "cf781cb2-7b86-403f-8605-a59deeede64c",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-d04d5a9f-b32b-44f2-8af7-e29fe75c6da6",
+      "tool": "app.status",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 0
+    },
+    {
+      "recordId": "6e39123a-fd14-441c-8b9b-09bab01d8573",
+      "at": "2026-10-11T07:41:55.401Z",
+      "runId": "cf781cb2-7b86-403f-8605-a59deeede64c",
+      "workspaceId": "taskflow-demo",
+      "sessionId": "session-d04d5a9f-b32b-44f2-8af7-e29fe75c6da6",
+      "tool": "app.describe",
+      "level": "read",
+      "args": {
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "summary": {}
+      },
+      "outcome": "ok",
+      "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+      "documentGenerationBefore": null,
+      "documentGenerationAfter": null,
+      "durationMs": 36
+    }
+  ],
+  "secondCliReceipt": {
+    "version": 1,
+    "calls": [
+      {
+        "tool": "app.status",
+        "exitCode": 0,
+        "result": {
+          "ok": true,
+          "tool": "app.status",
+          "data": {
+            "app": {
+              "projectId": "e3909ad1-6c43-415e-ae8a-91b35a3c719d",
+              "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+              "state": "running",
+              "url": "http://127.0.0.1:49270",
+              "cleanupConfirmed": false,
+              "error": null
+            },
+            "browser": {
+              "resourceId": "9c4fb231-28e9-46f0-b681-eee572a3f002",
+              "documentGeneration": 1,
+              "url": "http://127.0.0.1:49270/",
+              "cdp": {
+                "state": "idle"
+              },
+              "agentControl": {
+                "state": "idle",
+                "runId": null,
+                "since": null,
+                "lastAction": null
+              }
+            },
+            "runId": "cf781cb2-7b86-403f-8605-a59deeede64c"
+          }
+        }
+      },
+      {
+        "tool": "app.describe",
+        "exitCode": 0,
+        "result": {
+          "ok": true,
+          "tool": "app.describe",
+          "data": {
+            "app": {
+              "projectId": "e3909ad1-6c43-415e-ae8a-91b35a3c719d",
+              "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+              "state": "running",
+              "url": "http://127.0.0.1:49270",
+              "cleanupConfirmed": false,
+              "error": null
+            },
+            "browser": {
+              "resourceId": "9c4fb231-28e9-46f0-b681-eee572a3f002",
+              "documentGeneration": 1,
+              "url": "http://127.0.0.1:49270/",
+              "cdp": {
+                "state": "idle"
+              },
+              "agentControl": {
+                "state": "idle",
+                "runId": null,
+                "since": null,
+                "lastAction": null
+              }
+            },
+            "operationTrackingVersion": 1,
+            "currentRevision": "8053e7603ea0e9b947b0637254a78a2812713f21dd7d50b2dd4748856fb26b9b",
+            "manifestRevision": "8053e7603ea0e9b947b0637254a78a2812713f21dd7d50b2dd4748856fb26b9b",
+            "buildRevision": "8053e7603ea0e9b947b0637254a78a2812713f21dd7d50b2dd4748856fb26b9b",
+            "manifest": {
+              "schemaVersion": 1,
+              "templateId": "wsl-standard-app",
+              "templateVersion": "1.1.0",
+              "sourceRevision": "8053e7603ea0e9b947b0637254a78a2812713f21dd7d50b2dd4748856fb26b9b",
+              "pages": [
+                {
+                  "path": "/",
+                  "source": "src/App.tsx",
+                  "testids": [
+                    "app-instance-id",
+                    "health-refresh",
+                    "health-status",
+                    "project-id"
+                  ]
+                }
+              ],
+              "routes": [
+                {
+                  "method": "POST",
+                  "path": "/api/dev/session"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/health"
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/kv/:key"
+                },
+                {
+                  "method": "PUT",
+                  "path": "/api/kv/:key"
+                }
+              ],
+              "dataModel": [
+                {
+                  "table": "records",
+                  "columns": [
+                    {
+                      "name": "user_id",
+                      "type": "text",
+                      "notNull": true,
+                      "primaryKey": true
+                    },
+                    {
+                      "name": "key",
+                      "type": "text",
+                      "notNull": true,
+                      "primaryKey": true
+                    },
+                    {
+                      "name": "value",
+                      "type": "text",
+                      "notNull": true,
+                      "primaryKey": false
+                    }
+                  ],
+                  "primaryKey": [
+                    "user_id",
+                    "key"
+                  ]
+                },
+                {
+                  "table": "sessions",
+                  "columns": [
+                    {
+                      "name": "token",
+                      "type": "text",
+                      "notNull": true,
+                      "primaryKey": true
+                    },
+                    {
+                      "name": "user_id",
+                      "type": "text",
+                      "notNull": true,
+                      "primaryKey": false
+                    },
+                    {
+                      "name": "expires_at",
+                      "type": "bigint",
+                      "notNull": true,
+                      "primaryKey": false
+                    }
+                  ],
+                  "primaryKey": [
+                    "token"
+                  ]
+                }
+              ],
+              "commands": [
+                {
+                  "name": "health.refresh",
+                  "description": "重新请求 /api/health 并返回应用服务连接状态（只读观察）",
+                  "inputSchema": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false
+                  },
+                  "sources": [
+                    "src/App.tsx:45"
+                  ]
+                }
+              ],
+              "states": [
+                {
+                  "name": "app.health",
+                  "sources": [
+                    "src/App.tsx:44"
+                  ]
+                }
+              ],
+              "testids": [
+                {
+                  "testid": "app-instance-id",
+                  "element": "dd",
+                  "source": "src/App.tsx:84"
+                },
+                {
+                  "testid": "health-refresh",
+                  "element": "Button",
+                  "source": "src/App.tsx:64"
+                },
+                {
+                  "testid": "health-status",
+                  "element": "p",
+                  "source": "src/App.tsx:60"
+                },
+                {
+                  "testid": "project-id",
+                  "element": "dd",
+                  "source": "src/App.tsx:78"
+                }
+              ],
+              "checks": []
+            },
+            "manifestError": null,
+            "stale": {
+              "manifest": false,
+              "build": false
+            },
+            "guide": "agent/AGENTS.md",
+            "rules": [
+              "语义命令只用于准备数据与观察状态：seed、读 state、读日志、读库。",
+              "判定“用户能完成某操作”必须经 app.ui.act 的 UI 动作，再用状态断言佐证；禁止用语义命令直接制造被验收的行为结果。",
+              "固定验收基准在 Agent 写入范围外；Agent 自写场景只是开发辅助，不算验收通过。"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "sourceAfterSecond": {
+    "retained": "95d3cde7-da37-4697-b7cd-a5e12a71e731",
+    "forbidden": null
+  },
+  "sourceHashesAfterSecond": {
+    ".gitignore": "2250f792a81ef17939fac2c95b0c8b6f27ba5c61a78e7b1cb459890b194f7cee",
+    ".npmrc": "f5690c4ec4d1dffdd94a8cf7795aecde5abaaf5841a78604864d7a41cdf7a205",
+    "AGENTS.md": "0c05d20ae6dadb2c72a02ead78f528ef50c7853a6f8659bcb0d86327b35b5a31",
+    "README.md": "a0bb20aeea631b16441b53cba1533eb0eb3bd8e60012dc62c9f015097a3c9daa",
+    "index.html": "62194eb6c27b580e6f1c0b11b781ce621dbd516acd592fe64b8e2516993b3676",
+    "package-lock.json": "741d02cb3b2758bca20ed5d4a229931cb75e72eedf75354bf17c2a03ceecd10b",
+    "package.json": "09595c811884bcfdbe717f1dfc9b83198df8260c1cbf322d7fa319c4c363b55d",
+    "template-manifest.json": "42608985b9615cd522a90dbf946d6a1ef75d1223cad0f6718dcea04bf3597f14",
+    "tsconfig.json": "2d64d1a9064666a15c912600fd826339ac4961c40e6950c8c08cbb83160f89a0",
+    "tsconfig.server.json": "331ed5303c8905d3857236d3e2f78428aefe8cb7a2e7fa143bfd5f0ed596273f",
+    "vite.config.ts": "586cfd0a16652eb0d7187776ab578b6a5572a07bc00850daa386e31228d76582",
+    "agent/AGENTS.md": "44256a10ee862f101e26b1a0f71045009cf6debc596550cf089ce7ea1fedd0bd",
+    "agent/app.manifest.json": "f941e51fcd6d818e16c91cd31d314512bb5aea5a46636ce842f38c8cea8023d8",
+    "migrations/0000_initial.sql": "c51adece91b7712a2b131deec1055a959f301332c8dbc314bf3ec06bca94182e",
+    "migrations/meta/_journal.json": "d8c5fd65074bc676961cbc88039fd15d316cc23a87d9130812cdc8916addd40c",
+    "scripts/agent-exclusion-check.mjs": "08fad5eef22830e81c9b2590ff2f6596b56fb14e43c2cdb4b3caad83e2129109",
+    "scripts/dev.mjs": "da89c9a1031e8ba1c67eddb2d4cb4ef9787cc847b6a3a86970503ce2ea1dcc7a",
+    "scripts/http-smoke.mjs": "442516ecfa4de49a10cd668014a5e4d897c91b04ef50f01021d2174775f648fa",
+    "scripts/prepare-offline-dependencies.mjs": "587353ac823837b806bfde65ebd0c9edfe6519fa8b21b0127a2ccb41b37c7ce4",
+    "scripts/template-hash.mjs": "93cbaaa3fcc0c5165cbe11d3d62e891d874489b1cfe99b080bc447206ce6a19b",
+    "server/agent-cli.ts": "d177d3436e5759ed9dedf1b04a9c934bc3644b0139527e11e391937c21325fa3",
+    "server/app.ts": "47b34041ac0bdce83e3b64cd25696fb54f785b21620c6e08a77ec1cc0f1e129f",
+    "server/db.ts": "4fdae0b6d3bfcad7632b6a62f2367c9c2db34798543d90b81ea1692c3a437f6e",
+    "server/index.ts": "274c9041e100488f030502f3cd07c142505cc87c3df4534158cd44955e215e50",
+    "server/schema.ts": "793fcc74a3649f48ff302902aeeef2b391d50cb4092c96546c29f6145eb60b09",
+    "server/agent/data.ts": "d4f1a57f506298e764597ff3a4be2cfc71ab4a44f2ae5bc2bac6095ea6e55ab7",
+    "server/agent/describe.ts": "9d5db2af000f7788e2c4536e808f0bee2d7ae6e8dcd92fe3d29c27a8757fdb7f",
+    "server/agent/manifest.ts": "bed016175656b06a89b62c6de8de2c6395029991bf2c65c449d948c36a333151",
+    "server/agent/operations.ts": "8114fdea6d797ce2e5b549426dc639a50eee7d218182f9aee43d90f2b2daaa3f",
+    "server/agent/revision.ts": "2a1018158b8a78b90e6f9c0a2f14c82438dc7f9073a1b2f8c991beee7a594dd2",
+    "server/agent/routes.ts": "fe02cf30ea64610ddd4f5e4205d0db067e76878c4e022db24c3a36e911e14044",
+    "src/App.tsx": "870c1668c25b78617aaf4237e08c28fc71380975bf47c9b5464906f1ff2ce03f",
+    "src/main.tsx": "3f5cc61a224daed0273ee98af9d61197c6ab0ad7ba8ae62d17d2d3163fbae289",
+    "src/styles.css": "4a935b8291c436b94c058517c0439229da24da97c03e3aa1ebf13a51b76d9aed",
+    "src/agent/bridge.ts": "37112fae86c11d22c3535f62b6f30ebff9c376e4e42bc01bc1f8020e875c4afe",
+    "src/agent/commands.ts": "dad8f7c630955f85d39f7670a83be08fadc0d2f648d1a481d7a835c99ce06ebe",
+    "src/agent/env.d.ts": "019f86dfc267c8a0636085eb764aae6563ab42c19e5d9ce563f83e1a6a361510",
+    "src/agent/registry.ts": "09c5154826f415e3103707d98659b698f37867df2f6269ce781e19d84d1206d6",
+    "src/components/Button.tsx": "fe62518647d6a94d7d0e6adfdf42f87c2e8bc5d20265029b5b0faf9a9a3ee225",
+    "src/components/cli-cancel-retained.txt": "14acc52d6a8b6f61a5ecb764fb88a17c5c3a96704db9332dd2323be4fc3f935e",
+    "tests/agent-data.test.ts": "fb0033f52b73e34155e2a72650d2502908996eb800cc7bc76f0bc77790b69615",
+    "tests/agent-operations.test.ts": "2356f5099f4ef3d90e1d6a1ce6af44b8d44ce5d13762bd33730576d5b240217d",
+    "tests/agent-registry.test.ts": "c6c4ea757cfde31f3719bc1e34a2936864b4f4181704d9529713503e432a80ef",
+    "tests/app.test.ts": "7c517373fc04e2fa7c033c4fb2edccf8829510e917322896228021a3767fe0dd",
+    "tests/agent/build-exclusion.test.ts": "527bbac86ee9c1e33717db61b1c1bd72069a47fb4da55cd898955afbb8d3d411",
+    "tests/agent/cli.test.ts": "fc82c035018981b20e602c89bcf72af35fc05f51a1a5b441a3863c71eef8227a",
+    "tests/agent/manifest.test.ts": "8d0f1c5a258b8415f5c41e172a6a16bf7cf01e739cb22dc4e4be296cc84cd536"
+  },
+  "secondRun": {
+    "runId": "cf781cb2-7b86-403f-8605-a59deeede64c",
+    "state": "completed",
+    "cleanupPending": false
+  },
+  "outcome": "passed",
+  "rescueGateReleased": false,
+  "gateAtCleanup": {
+    "target": {
+      "id": "3558392a-590f-48d2-b896-eea4199ff1ec",
+      "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+      "tool": "app.ui.act",
+      "args": {
+        "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+        "documentGeneration": 1,
+        "action": {
+          "type": "waitFor",
+          "target": {
+            "testid": "cancel-wait-95d3cde7-da37-4697-b7cd-a5e12a71e731"
+          },
+          "state": "visible",
+          "timeoutMs": 10000
+        }
+      },
+      "at": 1791704490333
+    },
+    "second": {
+      "id": "91184398-de9a-4905-b434-25567e6618e2",
+      "runId": "cf781cb2-7b86-403f-8605-a59deeede64c",
+      "tool": "app.status",
+      "args": {},
+      "at": 1791704515317
+    },
+    "held": {
+      "id": "3558392a-590f-48d2-b896-eea4199ff1ec",
+      "result": {
+        "ok": false,
+        "tool": "app.ui.act",
+        "error": {
+          "code": "cancelled",
+          "message": "控制面调用已取消"
+        }
+      },
+      "at": 1791704492245
+    },
+    "calls": [
+      {
+        "id": "3d08d00e-e30c-4ae8-a74d-641f2a9bf1df",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.status",
+        "at": 1791704422359,
+        "actionType": null
+      },
+      {
+        "id": "6431c77c-9b20-4f27-a7c7-2debc7cf8a0b",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.restart",
+        "at": 1791704426523,
+        "actionType": null
+      },
+      {
+        "id": "e98ab656-4931-46f2-ac70-83fccedc5fc4",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.status",
+        "at": 1791704441640,
+        "actionType": null
+      },
+      {
+        "id": "ee2442b4-31cb-4053-aee8-4a2365b7382d",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.status",
+        "at": 1791704459773,
+        "actionType": null
+      },
+      {
+        "id": "d3a428e2-144a-473f-835f-b1b0b806a012",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.status",
+        "at": 1791704482397,
+        "actionType": null
+      },
+      {
+        "id": "96aa5d6d-9123-4a47-b41b-7ae08a338580",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.ui.snapshot",
+        "at": 1791704490184,
+        "actionType": null
+      },
+      {
+        "id": "3558392a-590f-48d2-b896-eea4199ff1ec",
+        "runId": "95c5c209-6862-4a25-b9a2-3c2d8b7e3b54",
+        "tool": "app.ui.act",
+        "at": 1791704490333,
+        "actionType": "waitFor"
+      },
+      {
+        "id": "91184398-de9a-4905-b434-25567e6618e2",
+        "runId": "cf781cb2-7b86-403f-8605-a59deeede64c",
+        "tool": "app.status",
+        "at": 1791704515317,
+        "actionType": null
+      },
+      {
+        "id": "9da64772-9641-45c1-8fcb-ee761d83d9c5",
+        "runId": "cf781cb2-7b86-403f-8605-a59deeede64c",
+        "tool": "app.describe",
+        "at": 1791704515365,
+        "actionType": null
+      }
+    ],
+    "events": [
+      {
+        "type": "entered",
+        "at": 1791704490333,
+        "callId": "3558392a-590f-48d2-b896-eea4199ff1ec"
+      },
+      {
+        "type": "cancel-forwarded",
+        "at": 1791704492240
+      },
+      {
+        "type": "abort",
+        "at": 1791704492241,
+        "callId": "3558392a-590f-48d2-b896-eea4199ff1ec"
+      },
+      {
+        "type": "held",
+        "at": 1791704492245,
+        "callId": "3558392a-590f-48d2-b896-eea4199ff1ec"
+      },
+      {
+        "type": "released",
+        "at": 1791704515317,
+        "reason": "second-real-request",
+        "callId": "3558392a-590f-48d2-b896-eea4199ff1ec"
+      }
+    ]
+  },
+  "ownershipAtCleanup": {
+    "remaining": [],
+    "channelExists": false
+  },
+  "sourceAtCleanup": {
+    "retained": "95d3cde7-da37-4697-b7cd-a5e12a71e731",
+    "forbidden": null
+  },
+  "appAtCleanup": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "e3909ad1-6c43-415e-ae8a-91b35a3c719d",
+    "environmentId": "sandbox",
+    "appInstanceId": "63b8698a-3274-46ba-8fa7-824ebd93ef8a",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/e3909ad1-6c43-415e-ae8a-91b35a3c719d",
+    "guestPort": 42509,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "portsAfter": [
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49265,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    },
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49266,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    },
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49267,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    },
+    {
+      "host_ip": "127.0.0.1",
+      "host_port": 49268,
+      "sandbox_port": 8081,
+      "protocol": "tcp4"
+    }
+  ],
+  "remainingOwnedMappings": [],
+  "applicationExited": true
+}

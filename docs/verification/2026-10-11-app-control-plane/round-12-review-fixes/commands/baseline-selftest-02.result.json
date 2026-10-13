@@ -1,0 +1,8 @@
+{
+  "command": [
+    "pnpm",
+    "baseline:selftest"
+  ],
+  "exitCode": 0,
+  "seconds": 1.0516490936279297
+}

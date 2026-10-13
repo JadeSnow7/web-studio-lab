@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 审核用静态设计稿（修订 2），来源：状态降噪画布；示例内容为占位数据 -->
+<title>降噪后的异常状态</title>
+</head>
+<body>
+<style>
+body{margin:0}
+a{color:#0a67d1}a:hover{color:#084f9f}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.btn{font:inherit;font-size:13px;color:#1d1d1f;background:#fff;border:1px solid #d9dce3;border-radius:8px;padding:0 12px;height:32px;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.sbtn{font:inherit;font-size:12px;color:#1d1d1f;background:#fff;border:1px solid #d9dce3;border-radius:7px;padding:0 10px;height:26px;display:inline-flex;align-items:center;gap:4px;cursor:pointer;flex:none}
+.ibtn{font:inherit;color:#4a4d55;background:transparent;border:0;border-radius:6px;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.mk{position:absolute;min-width:22px;height:22px;padding:0 4px;box-sizing:border-box;border-radius:11px;background:#0a67d1;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 0 0 2px #fff}
+.ring{width:8px;height:8px;border-radius:5px;border:2px solid #0a67d1;border-right-color:transparent;flex:none}
+.tri{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid #b42318;flex:none}
+.dash{width:8px;height:8px;border-radius:5px;border:2px dashed #b25c00;flex:none}
+</style>
+<div style="width: 100%; box-sizing: border-box; padding: 40px; background: #f6f7f9; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 28px">
+  <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+    <div style="display: flex; flex-direction: column; gap: 8px; max-width: 900px">
+      <p style="margin: 0; font-size: 13px; font-weight: 600; color: #0a67d1">降噪后 · 与现状相同的异常集合</p>
+      <h1 style="margin: 0; font-size: 30px; line-height: 38px; font-weight: 650">出问题的时候，一条都不少</h1>
+      <p style="margin: 0; font-size: 15px; line-height: 24px; color: #4a4d55">同时成立：AI 正在操控网页、网页加载失败、导航被拦截、页面控制断开；终端连接失败且进程退出未确认；会话取消中且 App 数据操作待确认、检查已不适用；对话服务不可用；一次保存失败；持久化失败。控制权、进行中与未确认的事实在常驻通道里全部可见，不和错误抢位置。</p>
+    </div>
+    <span style="font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #fdf6ea; color: #7a4300">错误描述为占位</span>
+  </div>
+
+  <div style="position: relative; border: 1px solid #d9dce3; border-radius: 12px; overflow: hidden; background: #eef0f4; box-shadow: 0 1px 2px rgba(20,24,33,.06)">
+    <div style="position: relative; height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid #e1e4ea">
+      <span style="display: flex; gap: 8px" aria-hidden="true"><span style="width: 12px; height: 12px; border-radius: 6px; background: #ff5f57"></span><span style="width: 12px; height: 12px; border-radius: 6px; background: #febc2e"></span><span style="width: 12px; height: 12px; border-radius: 6px; background: #28c840"></span></span>
+      <button type="button" class="ibtn" aria-label="显示或隐藏 Workshop" style="margin-left: 12px; background: #e3e8f2; color: #4d5bd6"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4l2.5 8 3-6 3 6 2.5-8"></path></svg></button>
+      <button type="button" class="btn" aria-label="切换空间" style="height: 36px; font-weight: 600"><span style="width: 22px; height: 22px; border-radius: 6px; background: #2f5fd0" aria-hidden="true"></span>TaskFlow<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg></button>
+      <span style="flex: 1"></span>
+      <button type="button" class="sbtn" style="height: 30px; border-color: #f0c7c2; background: #fdf0ee; color: #8f1d13"><span class="tri" aria-hidden="true"></span>Codex CLI · 对话不可用</button>
+      <button type="button" class="ibtn" aria-label="通知，1 条未读" style="position: relative"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 11V7a4 4 0 018 0v4l1 1.5H3z"></path><path d="M6.5 14h3"></path></svg><span style="position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 4px; background: #b42318" aria-hidden="true"></span></button>
+      <span class="mk" style="right: 230px; top: 15px">A</span>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; min-height: 760px">
+      <div style="width: 56px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 16px 0; font-size: 11px; color: #4a4d55"><span>首页</span><span style="color: #0a67d1">空间</span><span>资源</span><span>会话</span><span>任务</span><span style="flex: 1"></span><span>设置</span></div>
+      <aside aria-label="空间标签" style="position: relative; width: 252px; flex: none; box-sizing: border-box; padding: 14px 12px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid #e1e4ea">
+        <div style="display: flex; align-items: center; padding: 0 4px 8px"><strong style="flex: 1; font-size: 15px">TaskFlow</strong></div>
+        <button type="button" aria-label="TaskFlow 预览，页面加载失败" style="font: inherit; font-size: 14px; color: #0a67d1; background: #dfe6f3; border: 0; border-radius: 8px; height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 10px; text-align: left"><span style="flex: 1">TaskFlow 预览</span><span class="tri" aria-hidden="true"></span></button>
+        <button type="button" aria-label="开发终端，连接失败" style="font: inherit; font-size: 14px; color: #1d1d1f; background: transparent; border: 0; border-radius: 8px; height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 10px; text-align: left"><span style="flex: 1">开发终端</span><span class="tri" aria-hidden="true"></span></button>
+        <button type="button" aria-label="Agent 会话，取消中" style="font: inherit; font-size: 14px; color: #1d1d1f; background: transparent; border: 0; border-radius: 8px; height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 10px; text-align: left"><span style="flex: 1">Agent 会话</span><span class="ring" aria-hidden="true"></span></button>
+        <span class="mk" style="left: 124px; top: 60px">B</span>
+        <span style="flex: 1"></span>
+        <p style="margin: 0 0 6px; padding: 0 10px; font-size: 13px; color: #4a4d55">空间资源 · 2</p>
+        <button type="button" class="btn" style="justify-content: center; height: 38px">＋ 新建标签</button>
+      </aside>
+
+      <main style="position: relative; flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 8px; display: flex; flex-wrap: wrap; gap: 8px">
+        <div style="flex: 3 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+          <section aria-label="TaskFlow 预览" style="position: relative; flex: 1; min-height: 420px; display: flex; flex-direction: column; background: #fff; border: 1px solid #e1e4ea; border-radius: 10px; overflow: hidden">
+            <div style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 8px 0 14px; border-bottom: 1px solid #eceef2"><span style="flex: 1; font-size: 14px">TaskFlow 预览</span></div>
+            <div style="display: flex; align-items: center; gap: 4px; padding: 8px 10px; border-bottom: 1px solid #eceef2">
+              <span style="flex: 1; min-width: 0; height: 32px; box-sizing: border-box; padding: 0 12px; border: 1px solid #d9dce3; border-radius: 8px; background: #f8f9fb; display: flex; align-items: center; font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 13px">http://localhost:5173/</span>
+              <button type="button" class="btn">选择元素</button>
+              <button type="button" class="btn" aria-haspopup="menu">采集到会话<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg></button>
+              <button type="button" class="ibtn" aria-haspopup="menu" aria-label="更多网页操作"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h.01M8 8h.01M12.5 8h.01" stroke-width="2.4"></path></svg></button>
+            </div>
+            <div style="position: relative; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-bottom: 1px solid #eceef2">
+              <div role="status" data-status-channel="persistent" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; background: #f1f6fd; color: #0a4f9f; font-size: 13px"><span class="ring" aria-hidden="true"></span><span style="flex: 1">AI 正在操控此页面（点击）。你在页面中点击或输入会立即暂停 AI</span></div>
+              <div role="alert" data-status-channel="problem" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; background: #fdf0ee; color: #8f1d13; font-size: 13px"><span class="tri" aria-hidden="true"></span><span style="flex: 1">页面加载失败：[错误描述]</span><button type="button" class="sbtn">重新加载</button><button type="button" class="sbtn" aria-haspopup="menu" style="border-color: transparent; background: transparent; color: #8f1d13">另有 2 项<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg></button></div>
+              <span class="mk" style="left: -6px; top: 4px">C</span>
+              <span class="mk" style="left: -6px; top: 42px">D</span>
+            </div>
+            <div style="flex: 1; margin: 10px; border-radius: 8px; background: #f4f5f7; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #6a6d75">页面未能加载</div>
+          </section>
+
+          <section aria-label="开发终端" style="position: relative; height: 250px; display: flex; flex-direction: column; background: #fff; border: 1px solid #e1e4ea; border-radius: 10px; overflow: hidden">
+            <div style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 8px 0 14px; border-bottom: 1px solid #eceef2">
+              <span style="font-size: 14px">开发终端</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #4a4d55; background: #f1f3f6; border-radius: 999px; padding: 3px 10px"><span class="tri" aria-hidden="true"></span>ssh · workspace</span>
+              <span style="flex: 1"></span>
+            </div>
+            <div style="position: relative; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-bottom: 1px solid #eceef2">
+              <div role="status" data-status-channel="persistent" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; background: #fdf6ea; color: #7a4300; font-size: 13px"><span class="dash" aria-hidden="true"></span><span style="flex: 1">所属进程退出未确认</span></div>
+              <div role="alert" data-status-channel="problem" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; background: #fdf0ee; color: #8f1d13; font-size: 13px"><span class="tri" aria-hidden="true"></span><span style="flex: 1">连接失败：[错误描述]</span><button type="button" class="sbtn" disabled="" title="进程退出未确认，暂不能重连" style="opacity: 0.5; cursor: not-allowed">连接终端</button></div>
+              <span class="mk" style="left: -6px; top: 4px">E</span>
+            </div>
+            <pre style="margin: 0; flex: 1; padding: 10px 16px; font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 13px; line-height: 20px; color: #4a4d55">[保留的输出]</pre>
+          </section>
+        </div>
+
+        <section aria-label="Agent 会话" style="position: relative; flex: 2 1 360px; min-width: 0; min-height: 680px; display: flex; flex-direction: column; background: #fff; border: 1px solid #e1e4ea; border-radius: 10px; overflow: hidden">
+          <div style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 8px 0 14px; border-bottom: 1px solid #eceef2">
+            <span style="font-size: 14px">Agent 会话</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #0a4f9f; background: #e6f0fb; border-radius: 999px; padding: 3px 10px"><span class="ring" aria-hidden="true"></span>取消中</span>
+          </div>
+          <nav aria-label="会话视图" style="display: flex; gap: 2px; padding: 8px 12px; border-bottom: 1px solid #eceef2; font-size: 13px">
+            <button type="button" aria-pressed="false" style="font: inherit; height: 30px; padding: 0 12px; border-radius: 7px; border: 0; background: transparent; color: #4a4d55">对话</button>
+            <button type="button" aria-pressed="false" style="font: inherit; height: 30px; padding: 0 12px; border-radius: 7px; border: 0; background: transparent; color: #4a4d55">任务</button>
+            <button type="button" aria-pressed="false" style="font: inherit; height: 30px; padding: 0 12px; border-radius: 7px; border: 0; background: transparent; color: #4a4d55">上下文</button>
+            <button type="button" aria-pressed="true" style="font: inherit; height: 30px; padding: 0 12px; border-radius: 7px; border: 0; background: #e6f0fb; color: #0a4f9f; font-weight: 600">检查</button>
+          </nav>
+          <div style="position: relative; padding: 8px 12px; border-bottom: 1px solid #eceef2">
+            <div role="alert" data-status-channel="problem" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; background: #fdf6ea; color: #7a4300; font-size: 13px"><span class="dash" aria-hidden="true"></span><span style="flex: 1">检查已不适用于当前版本</span></div>
+            <span class="mk" style="left: -6px; top: 4px">F</span>
+          </div>
+          <div style="flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 10px; font-size: 14px">
+            <p style="margin: 0; display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #2e8b57" aria-hidden="true"></span>检查通过（适用于旧版本）</p>
+            <p style="margin: 0; display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; background: #8a8f98" aria-hidden="true"></span>尚未审阅</p>
+          </div>
+          <div style="position: relative; display: flex; flex-direction: column; gap: 6px; margin: 0 12px">
+            <div role="status" data-status-channel="persistent" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: #f1f6fd; font-size: 13px; color: #0a4f9f"><span class="ring" aria-hidden="true"></span><span style="flex: 1">正在取消并核实退出…</span></div>
+            <div role="status" data-status-channel="persistent" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: #fdf6ea; font-size: 13px; color: #7a4300"><span class="dash" aria-hidden="true"></span><span style="flex: 1">模型已停止，App 数据操作仍待确认</span><button type="button" class="sbtn">重新核对</button></div>
+            <span class="mk" style="left: -6px; top: -10px">G</span>
+          </div>
+          <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px">
+            <textarea aria-label="会话消息" rows="3" placeholder="继续描述想修改的内容…" style="font: inherit; font-size: 14px; resize: none; box-sizing: border-box; width: 100%; padding: 10px 12px; border: 1px solid #d9dce3; border-radius: 10px"></textarea>
+            <div style="display: flex; justify-content: flex-end"><button type="button" class="btn" disabled="" style="background: #9dbde6; color: #fff; border-color: #9dbde6">发送</button></div>
+          </div>
+        </section>
+
+        <div role="alert" style="position: absolute; right: 24px; top: 470px; z-index: 3; width: 300px; display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #fff; border: 1px solid #f0c7c2; box-shadow: 0 6px 20px rgba(20,24,33,.12); font-size: 13px; line-height: 20px"><span class="tri" aria-hidden="true" style="margin-top: 5px"></span><span style="flex: 1">保存草稿失败：[原因]</span><button type="button" class="ibtn" aria-label="关闭错误提示" style="width: 24px; height: 24px">×</button></div>
+        <span class="mk" style="right: 314px; top: 460px; z-index: 4">H</span>
+      </main>
+    </div>
+    <div role="alert" style="position: relative; border-top: 1px solid #f0c7c2; background: #fdf0ee; color: #8f1d13; padding: 10px 16px; font-size: 13px">持久化失败：[原因]。当前状态仅保留在内存中。<span class="mk" style="right: 14px; top: 9px">I</span></div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); gap: 12px 28px; font-size: 14px; line-height: 22px">
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #0a67d1; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">A</b><span>对话不可用才出现标题栏按钮，进入设置。「比赛执行与验收（T04）尚未接入」是能力说明，不在这里报警。</span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #0a67d1; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">B</b><span>侧栏形状随最严重的事实变化：三角＝失败，环＝进行中；可访问名称带状态文字。</span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #0a67d1; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">C</b><span>常驻通道：AI 操控提示不与错误竞争，加载失败不会把它挤进「另有 N 项」。暂停后「允许 AI 继续」同样常驻。</span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #0a67d1; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">D</b><span>问题通道：加载失败（最高）带动作；拦截导航与控制断开在「另有 2 项」里，可用方向键浏览。</span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #0a67d1; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">E</b><span>进程退出未确认是常驻条目，与终端交互后仍可见；「连接终端」在未确认期间禁用，与合同「重连明确拒绝」一致。</span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #0a67d1; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">F</b><span>检查已不适用进入会话的问题通道；英文枚举不再出现。</span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #0a67d1; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">G</b><span>会话常驻通道：「取消中」与「App 数据操作仍待确认 · 重新核对」同时可见，对应合同原文。</span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #0a67d1; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">H</b><span>无窗格归属的界面错误进 Toast 队列（替代原横幅与 ErrorToasts），失败类不自动消失。</span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #0a67d1; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">I</b><span>持久化失败保留底部横幅，持续可见，不被 Toast 遮挡。</span></p>
+  </div>
+</div>
+</body>
+</html>

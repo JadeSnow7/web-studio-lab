@@ -1,0 +1,28 @@
+{
+  "name": "new-e2e-repeat3",
+  "command": [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "e2e/status-surface.spec.ts",
+    "e2e/debug-status.spec.ts",
+    "--grep",
+    "修复复验：",
+    "--repeat-each=3"
+  ],
+  "cwd": "/Users/huaodong/workspace/_worktrees/status-surface-20261011",
+  "head": "1bce260678c5d60e6889a093e0c523c333019fca",
+  "startedAt": "2026-10-12T07:11:08.826Z",
+  "endedAt": "2026-10-12T07:12:06.579Z",
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "envOverrides": { "WSL_E2E_TARGET": "build", "WSL_APP_HASH_REJECTION": "0" },
+  "productSourceDiff": {
+    "sha256Before": "ab248a5aad1a2352e0be796f32c6af3a99425e546de4c3fd58c55f8314ec7008",
+    "sha256After": "ab248a5aad1a2352e0be796f32c6af3a99425e546de4c3fd58c55f8314ec7008",
+    "changedDuringRun": false
+  },
+  "notes": "txt 为子进程 stdout 与 stderr 原始字节按到达顺序的交错记录，未经过 shell；meta 只记录上方 envOverrides，不转储其他环境变量。"
+}

@@ -1,0 +1,206 @@
+{
+  "original": "/Users/huaodong/workspace/web-studio-lab/apps/desktop/release-internal/mac-arm64/Web Studio Lab.app",
+  "copy": "/private/tmp/wsl-review-package-hash-20261010-final/Corrupted Template.app",
+  "setup": {
+    "schemaVersion": 1,
+    "stage": "check",
+    "busy": false,
+    "error": {
+      "code": "payload-corrupt",
+      "message": "标准模板依赖归档校验失败"
+    },
+    "pendingLogin": null,
+    "modelCredentialsConfigured": true,
+    "modelConnectionVerified": false,
+    "config": {
+      "schemaVersion": 1,
+      "sbxBinary": "/Users/huaodong/Applications/Sbx.app/Contents/MacOS/sbx",
+      "sandbox": "wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1",
+      "pythonBinary": "/private/tmp/wsl-review-package-hash-20261010-final/Corrupted Template.app/Contents/Resources/runtime/python/bin/python3",
+      "localRoot": null,
+      "ssh": null
+    },
+    "restartRequired": true
+  },
+  "snapshot": {
+    "appInstanceId": "71dc0d77-55e1-439a-959b-d7d67533b200",
+    "storageError": null,
+    "activeWorkspaceId": "taskflow-demo",
+    "seq": 9,
+    "workspaces": [
+      {
+        "workspaceId": "taskflow-demo",
+        "name": "TaskFlow",
+        "revision": 0,
+        "tabs": [
+          {
+            "tabId": "dccfc987-a958-4672-a4a4-91afddf1af11",
+            "title": "TaskFlow 预览",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "web",
+              "resourceId": "24eb892f-71ea-4694-8d21-d8cf07b34399"
+            }
+          },
+          {
+            "tabId": "99aff1e1-10e8-4321-83be-cbd7eb9a0778",
+            "title": "开发终端",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "terminal",
+              "resourceId": "d181af80-9c15-40b1-a793-c19fb0acc873"
+            }
+          },
+          {
+            "tabId": "9004a913-e9dd-4917-90ab-6d2cee32c349",
+            "title": "Agent 会话",
+            "pinned": false,
+            "group": null,
+            "targetRef": {
+              "kind": "session",
+              "resourceId": "6e59fb78-115a-4562-ae1e-9617fc6e7267"
+            }
+          }
+        ],
+        "resources": [
+          {
+            "resourceId": "24eb892f-71ea-4694-8d21-d8cf07b34399",
+            "environmentId": "local",
+            "kind": "web",
+            "title": "TaskFlow 预览",
+            "url": "wsl-demo://taskflow/index.html",
+            "instanceId": "f398b776-e391-4585-a767-c0d52ed79b50",
+            "generation": 1,
+            "preview": {
+              "page": {
+                "webContentsId": 2,
+                "documentGeneration": 1,
+                "url": "wsl-demo://taskflow/index.html",
+                "title": "任务 · TaskFlow 演示",
+                "partition": "preview-taskflow-demo-f398b776-e391-4585-a767-c0d52ed79b50"
+              },
+              "loading": true,
+              "canGoBack": false,
+              "canGoForward": false,
+              "picking": false,
+              "cdp": {
+                "state": "idle"
+              },
+              "consoleIssueCount": 3,
+              "loadError": null,
+              "blockedNavigation": null,
+              "pickError": null
+            },
+            "terminal": null,
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "d181af80-9c15-40b1-a793-c19fb0acc873",
+            "environmentId": "sandbox",
+            "kind": "terminal",
+            "title": "开发终端",
+            "url": null,
+            "instanceId": null,
+            "generation": 0,
+            "preview": null,
+            "terminal": null,
+            "unavailableReason": null
+          },
+          {
+            "resourceId": "6e59fb78-115a-4562-ae1e-9617fc6e7267",
+            "environmentId": null,
+            "kind": "session",
+            "title": "Agent 会话",
+            "url": null,
+            "instanceId": null,
+            "generation": 0,
+            "preview": null,
+            "terminal": null,
+            "unavailableReason": null
+          }
+        ],
+        "layout": {
+          "kind": "pane",
+          "paneId": "3ea29be3-c743-4a46-9692-6900d5dde238",
+          "tabId": "dccfc987-a958-4672-a4a4-91afddf1af11"
+        },
+        "activePaneId": "3ea29be3-c743-4a46-9692-6900d5dde238",
+        "sessions": [
+          {
+            "sessionId": "session-62448bba-b61b-4d96-9ecc-22a38b221ac3",
+            "resourceId": "6e59fb78-115a-4562-ae1e-9617fc6e7267",
+            "title": "Agent 会话",
+            "draft": "",
+            "conversation": null,
+            "historyRestored": false,
+            "observations": [],
+            "context": null,
+            "captureRequest": null,
+            "contextTarget": null,
+            "taskTargetRef": null,
+            "taskAcceptance": [],
+            "taskAllowedScopes": [],
+            "contextApplicability": "unknown",
+            "taskVersions": []
+          }
+        ],
+        "runs": [],
+        "publicResources": {
+          "spaceId": "taskflow-demo",
+          "revision": 0,
+          "resources": []
+        },
+        "publicResourcesError": null,
+        "fileHints": [],
+        "observations": [],
+        "theme": "system"
+      }
+    ],
+    "environments": [
+      {
+        "environmentId": "local",
+        "kind": "local",
+        "label": "本设备",
+        "state": "configured",
+        "reason": "未授权本地目录；本地文件和终端不可用",
+        "capabilities": {
+          "files": false,
+          "terminal": false,
+          "browser": true
+        }
+      },
+      {
+        "environmentId": "sandbox",
+        "kind": "sandbox",
+        "label": "Codex sandbox",
+        "state": "unavailable",
+        "reason": "sbx 不可用：尚未完成比赛环境安装",
+        "capabilities": {
+          "files": false,
+          "terminal": false,
+          "browser": false
+        }
+      },
+      {
+        "environmentId": "ssh",
+        "kind": "ssh",
+        "label": "SSH",
+        "state": "unavailable",
+        "reason": "未配置可信 SSH 环境",
+        "capabilities": {
+          "files": false,
+          "terminal": false,
+          "browser": false
+        }
+      }
+    ],
+    "notificationReadReceipts": [],
+    "notifications": []
+  },
+  "environment": {
+    "path": "/usr/bin:/bin:/usr/sbin:/sbin",
+    "injected": []
+  }
+}

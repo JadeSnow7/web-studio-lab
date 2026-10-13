@@ -1,0 +1,20 @@
+{
+  "base": "cf62dc74f49e7f9e81598be7b9e5109cf5946e9c",
+  "branch": "codex/space-app-model",
+  "files": {
+    "apps/desktop/src/main/workbench/application.ts": "fdbf6ae7dea3c695815988dbd8736eea1bb2d0a0c17f1558a21571cde2560ac3",
+    "apps/desktop/src/main/workbench/managed-app.test.ts": "4e98391e7ddff1cb058dc7a04e1702dda159d7d921aed423bd316935bcd4b4b4",
+    "apps/desktop/src/main/workbench/observation-persistence.test.ts": "2f528713116a22e0e56b0ec257e8c3344031cfc71a3f4ad5e675e7543e9c8bd3",
+    "apps/desktop/src/main/workbench/repository.ts": "ac65c6819e97ff411f7d0c82494cd378a3c9bc97cf2e44accf0f9a02db9aecd5",
+    "apps/desktop/src/main/workbench/space-app-persistence.test.ts": "1ef295eaafc7abc8ec3efcc24863a84020f52f57d34c8ea14d58a002c1c7912c",
+    "apps/desktop/src/renderer/src/pages/SpacePage.tsx": "b873426bcd5557b09a4aa4819302071dc1311be5cd551ba55e41af3098d64063",
+    "apps/desktop/src/renderer/src/shell/Overlays.tsx": "f705ec031db1dfc68e1108dd6e6600ae91184f742ec6ddc5494c92bdf98ba527",
+    "apps/desktop/src/renderer/src/state/space-ui.ts": "e78366721672b05b0ab19a1fc3d23a8cc367b2429c17e0997ba0e484f2097d62",
+    "apps/desktop/src/renderer/src/workspace/AppEditor.tsx": "90f7ecb58fe9191b71b10fbc3fd5554b296b154e6aefef67a441129f8effd6f0",
+    "apps/desktop/src/renderer/src/workspace/Sidebar.tsx": "950eeb113758c2edf39fc76ac0754ae5063cfcafbfa296db66b2542d89536b4f",
+    "e2e/managed-app-live.spec.ts": "f2b2ff1f31d6ec29efdccb36794234dbf90e221b4496c783935cadbde5edbf76",
+    "e2e/space-app.spec.ts": "a5b5b48d5d513a9e234c54d91012dd4baca2f56df0590140bfeaae89698942c3",
+    "packages/protocol/src/managed-app.ts": "f209af03f5292605233bc82eba66efd4b17f188badff8deac3bf953db21cc8f2",
+    "packages/protocol/src/workspace.ts": "c0018859e5a209d43566a5b1b3d481638dabc3c9fd4aaa90f456730da8202f14"
+  }
+}

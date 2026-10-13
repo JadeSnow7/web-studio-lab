@@ -1,0 +1,203 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/app-service.test.ts (28 tests | 3 failed) 1483ms
+   ❯ managed app ownership (25)
+     × rejects export after shutdown and closes admission before loading settles 7ms
+     × shares stop cleanup and rejects new operations until its receipt settles 113ms
+     × serializes registry publication across projects so an older write cannot win 1ms
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts (6 tests | 6 failed) 784ms
+   ❯ review: durable terminal cleanup (4)
+     × persists stop before an immediate repository restart 117ms
+     × persists natural exit before an immediate repository restart 54ms
+     × persists no-process launch failure before an immediate repository restart 53ms
+     × reports lifecycle save failures instead of silently acknowledging durable cleanup 51ms
+   ❯ review: cancellable Main launch I/O (2)
+     × cancels while registration is suspended and ignores its late receipt 254ms
+     × cancels while send preflight is suspended and ignores its late receipt 254ms
+ ❯ apps/desktop/src/main/preview/public-protocol.test.ts (6 tests | 1 failed) 22ms
+   ❯ managed app write capability (1)
+     × requires an active exact-origin lease and owning webContents; public and demo POST remain denied 4ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app ownership > rejects export after shutdown and closes admission before loading settles
+AssertionError: promise resolved "{ files: [ { …(2) } ], …(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "files": [
++     {
++       "base64": "e30=",
++       "path": "package.json",
++     },
++   ],
++   "sha256": "bc749ea62790ebf59c4635242e1e31f16340181417a2f3e8f6b2e34c8c4fd0b4",
+  }
+
+ ❯ apps/service/src/app-service.test.ts:151:42
+    149|     await test.service.create({ ...key, files });
+    150|     await test.service.shutdown();
+    151|     await expect(test.service.export(key)).rejects.toThrow('关闭');
+       |                                          ^
+    152|     const other = fixture();
+    153|     const creation = other.service.create({ ...key, files });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app ownership > shares stop cleanup and rejects new operations until its receipt settles
+AssertionError: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ apps/service/src/app-service.test.ts:171:29
+    169|       await expect(test.service.start(key)).rejects.toThrow(/进行中|清理/);
+    170|       await expect(test.service.export(key)).rejects.toThrow(/停止|进行中/);
+    171|       expect(test.closes()).toBe(1);
+       |                             ^
+    172|     } finally {
+    173|       release();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app ownership > serializes registry publication across projects so an older write cannot win
+TypeError: Cannot spy on export "writeFile". Module namespace is not configurable in ESM. See: https://vitest.dev/guide/mocking/modules#mocking-a-module
+ ❯ apps/service/src/app-service.test.ts:185:24
+    183|     const gate = new Promise<void>((resolve) => { release = resolve; }…
+    184|     let writes = 0;
+    185|     const writing = vi.spyOn(fs, 'writeFile').mockImplementation(async…
+       |                        ^
+    186|       writes++;
+    187|       if (writes === 1) await gate;
+
+Caused by: TypeError: Cannot redefine property: writeFile
+ ❯ apps/service/src/app-service.test.ts:185:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  apps/desktop/src/main/preview/public-protocol.test.ts > managed app write capability > requires an active exact-origin lease and owning webContents; public and demo POST remain denied
+AssertionError: expected "vi.fn()" to be called with arguments: [ { cancel: true } ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+    {
+-     "cancel": true,
++     "cancel": false,
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ check apps/desktop/src/main/preview/public-protocol.test.ts:165:24
+    163|       const callback = vi.fn();
+    164|       before({ url: 'http://127.0.0.1:49152/api/kv/test', method: 'POS…
+    165|       expect(callback).toHaveBeenCalledWith({ cancel });
+       |                        ^
+    166|     };
+    167|     for (const method of ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELE…
+ ❯ apps/desktop/src/main/preview/public-protocol.test.ts:179:89
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: durable terminal cleanup > persists stop before an immediate repository restart
+AssertionError: expected { seq: 1, sessionId: null, …(6) } to match object { state: 'closed', …(1) }
+(6 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "cleanupPending": false,
+-   "state": "closed",
++   "cleanupPending": true,
++   "state": "failed",
+  }
+
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts:51:130
+     49|     await vi.waitFor(async () => expect((await app.getSnapshot()).work…
+     50|     const restarted = new WorkbenchApplication(repository, runtime, vi…
+     51|     expect((await restarted.getSnapshot()).workspaces[0]!.resources.fi…
+       |                                                                                                                                  ^
+     52|   });
+     53|   it('reports lifecycle save failures instead of silently acknowledgin…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: durable terminal cleanup > persists natural exit before an immediate repository restart
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: durable terminal cleanup > persists no-process launch failure before an immediate repository restart
+AssertionError: expected { seq: +0, sessionId: null, …(7) } to match object { state: 'closed', …(1) }
+(7 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "cleanupPending": false,
+-   "state": "closed",
++   "cleanupPending": true,
++   "state": "failed",
+  }
+
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts:51:130
+     49|     await vi.waitFor(async () => expect((await app.getSnapshot()).work…
+     50|     const restarted = new WorkbenchApplication(repository, runtime, vi…
+     51|     expect((await restarted.getSnapshot()).workspaces[0]!.resources.fi…
+       |                                                                                                                                  ^
+     52|   });
+     53|   it('reports lifecycle save failures instead of silently acknowledgin…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: durable terminal cleanup > reports lifecycle save failures instead of silently acknowledging durable cleanup
+AssertionError: the given combination of arguments (null and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ apps/desktop/src/main/workbench/review-lifecycle.test.ts:61:52
+     59|     vi.spyOn(repository, 'save').mockRejectedValue(new Error('lifecycl…
+     60|     app.onTerminal(resource.resourceId, { ...terminal, seq: 2, state: …
+     61|     expect((await app.getSnapshot()).storageError).toContain('lifecycl…
+       |                                                    ^
+     62|   });
+     63| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: cancellable Main launch I/O > cancels while registration is suspended and ignores its late receipt
+ FAIL  apps/desktop/src/main/workbench/review-lifecycle.test.ts > review: cancellable Main launch I/O > cancels while send preflight is suspended and ignores its late receipt
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ vi.waitFor.timeout apps/desktop/src/main/workbench/review-lifecycle.test.ts:82:52
+     80|     let cancelled = false;
+     81|     const cancelling = command({ type: 'cancelRun', runId }).then((res…
+     82|     try { await vi.waitFor(() => expect(cancelled).toBe(true), { timeo…
+       |                                                    ^
+     83|     finally { release.resolve(); await starting; await cancelling; }
+     84|     await vi.waitFor(async () => expect((await app.getSnapshot()).work…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+
+ Test Files  3 failed | 69 passed | 6 skipped (78)
+      Tests  10 failed | 530 passed | 15 skipped (555)
+   Start at  21:00:46
+   Duration  17.74s (tests 89%, import 8%, transform 2%)
+
+    Isolate  78 workers spawned · ~57ms startup each (spawn + environment, per file)
+             at least ~2.15s faster with isolate: false — reuses workers across files instead of one per file
+

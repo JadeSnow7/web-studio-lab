@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertTrustedSender, isTrustedRendererUrl, type TrustedRenderer } from './ipc-guard';
+import { activeInvokeChannels, assertChannelEnabled, assertTrustedSender, isTrustedRendererUrl, type TrustedRenderer } from './ipc-guard';
 
 const dev: TrustedRenderer = { kind: 'dev-server', origin: 'http://localhost:5173' };
 const file: TrustedRenderer = {
@@ -29,5 +29,21 @@ describe('IPC 发送者校验', () => {
     expect(() => assertTrustedSender({ ...ok, isTopFrame: false }, dev)).toThrow();
     expect(() => assertTrustedSender({ ...ok, frameUrl: null }, dev)).toThrow();
     expect(() => assertTrustedSender({ ...ok, frameUrl: 'wsl-demo://taskflow/index.html' }, dev)).toThrow();
+  });
+});
+
+describe('诊断通道（debug:status）', () => {
+  it('未启用时不注册该通道，并拒绝调用', () => {
+    expect(activeInvokeChannels(false)).not.toContain('debug:status');
+    expect(() => assertChannelEnabled('debug:status', false)).toThrow('诊断通道未启用');
+  });
+  it('启用时注册该通道，且不影响其他通道', () => {
+    expect(activeInvokeChannels(true)).toContain('debug:status');
+    expect(() => assertChannelEnabled('debug:status', true)).not.toThrow();
+    expect(activeInvokeChannels(true).filter((channel) => channel !== 'debug:status')).toEqual(activeInvokeChannels(false));
+  });
+  it('普通通道不受启用开关影响', () => {
+    expect(() => assertChannelEnabled('workbench:get-snapshot', false)).not.toThrow();
+    expect(activeInvokeChannels(false)).toContain('workbench:get-snapshot');
   });
 });

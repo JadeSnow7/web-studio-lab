@@ -1,0 +1,266 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/shutdown.test.ts (0 test)
+ ❯ apps/desktop/src/main/shutdown.test.ts (7 tests | 6 failed) 6ms
+   × shows concrete causes and defaults to cancel with an explicit unsafe exit warning 2ms
+   × successful cleanup closes without prompting 0ms
+   × failed cleanup only closes for explicit still-exit response (1) 0ms
+   × failed cleanup only closes for explicit still-exit response (2) 0ms
+   × retry performs fresh cleanup after rejection 0ms
+   × times out visibly and retries the in-flight attempt without repeating side effects 1ms
+ ❯ apps/desktop/src/main/chat-service.test.ts (16 tests | 1 failed) 64ms
+   ❯ 对话服务宿主故障 (16)
+     × shutdown failure can be retried after repair and only kills utility after success 2ms
+ ❯ apps/service/src/app-service.test.ts (24 tests | 5 failed) 1304ms
+   ❯ managed app ownership (21)
+     × preserves an invalid registry and retries reading after external repair: {broken 6ms
+     × preserves an invalid registry and retries reading after external repair: {"version":1,"sandbox":null,"apps":[]} 2ms
+     × preserves an invalid registry and retries reading after external repair: {"version":2,"sandbox":"sandbox-test","apps":[]} 1ms
+     × rejects missing sandbox identity before guest or registry effects 3ms
+     × keeps validated registry identity when runtime status becomes unavailable during cleanup 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/shutdown.test.ts [ apps/service/src/shutdown.test.ts ]
+Error: Cannot find module './shutdown' imported from /Users/huaodong/workspace/web-studio-lab/apps/service/src/shutdown.test.ts
+ ❯ apps/service/src/shutdown.test.ts:2:1
+      1| import { expect, it, vi } from 'vitest';
+      2| import { shutdownServiceOwners } from './shutdown';
+       | ^
+      3|
+      4| it('waits for app cleanup before closing connections, and attempts eve…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app ownership > preserves an invalid registry and retries reading after external repair: {broken
+AssertionError: promise rejected "SyntaxError: Expected property name or '}…" instead of resolving
+ ❯ apps/service/src/app-service.test.ts:157:40
+    155|         expect(test.starts()).toBe(0);
+    156|         await writeFile(registryPath, JSON.stringify({ version: 1, san…
+    157|         await expect(service.shutdown()).resolves.toBeUndefined();
+       |                                        ^
+    158|       } finally {
+    159|         await rm(root, { recursive: true, force: true });
+
+Caused by: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+ ❯ AppService.load apps/service/src/app-service.ts:102:19
+ ❯ AppService.shutdown apps/service/src/app-service.ts:615:5
+ ❯ apps/service/src/app-service.test.ts:153:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app ownership > preserves an invalid registry and retries reading after external repair: {"version":1,"sandbox":null,"apps":[]}
+AssertionError: promise rejected "ZodError: [
+  {
+    "expected": "string",… { …(3) }" instead of resolving
+ ❯ apps/service/src/app-service.test.ts:157:40
+    155|         expect(test.starts()).toBe(0);
+    156|         await writeFile(registryPath, JSON.stringify({ version: 1, san…
+    157|         await expect(service.shutdown()).resolves.toBeUndefined();
+       |                                        ^
+    158|       } finally {
+    159|         await rm(root, { recursive: true, force: true });
+
+Caused by: ZodError: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "sandbox"
+    ],
+    "message": "Invalid input: expected string, received null"
+  }
+]
+ ❯ AppService.load apps/service/src/app-service.ts:119:8
+ ❯ AppService.shutdown apps/service/src/app-service.ts:615:5
+ ❯ apps/service/src/app-service.test.ts:153:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { def: [ { expected: 'string', code: 'invalid_type', path: [ 'sandbox' ], message: 'Invalid input: expected string, received null' } ], constr: 'Function<ZodError>', traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', difference: 'Function<difference>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', intersection: 'Function<intersection>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>', size: 2, symmetricDifference: 'Function<symmetricDifference>', union: 'Function<union>', values: 'Function<values>', keys: 'Function<values>' }, message: '[
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "sandbox"
+    ],
+    "message": "Invalid input: expected string, received null"
+  }
+]' }, issues: [ { expected: 'string', code: 'invalid_type', path: [ 'sandbox' ], message: 'Invalid input: expected string, received null' } ], format: 'Function<anonymous>', flatten: 'Function<anonymous>', addIssue: 'Function<anonymous>', addIssues: 'Function<anonymous>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app ownership > preserves an invalid registry and retries reading after external repair: {"version":2,"sandbox":"sandbox-test","apps":[]}
+AssertionError: promise rejected "ZodError: [
+  {
+    "code": "invalid_valu… { …(3) }" instead of resolving
+ ❯ apps/service/src/app-service.test.ts:157:40
+    155|         expect(test.starts()).toBe(0);
+    156|         await writeFile(registryPath, JSON.stringify({ version: 1, san…
+    157|         await expect(service.shutdown()).resolves.toBeUndefined();
+       |                                        ^
+    158|       } finally {
+    159|         await rm(root, { recursive: true, force: true });
+
+Caused by: ZodError: [
+  {
+    "code": "invalid_value",
+    "values": [
+      1
+    ],
+    "path": [
+      "version"
+    ],
+    "message": "Invalid input: expected 1"
+  }
+]
+ ❯ AppService.load apps/service/src/app-service.ts:119:8
+ ❯ AppService.shutdown apps/service/src/app-service.ts:615:5
+ ❯ apps/service/src/app-service.test.ts:153:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { def: [ { code: 'invalid_value', values: [ 1 ], path: [ 'version' ], message: 'Invalid input: expected 1' } ], constr: 'Function<ZodError>', traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', difference: 'Function<difference>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', intersection: 'Function<intersection>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>', size: 2, symmetricDifference: 'Function<symmetricDifference>', union: 'Function<union>', values: 'Function<values>', keys: 'Function<values>' }, message: '[
+  {
+    "code": "invalid_value",
+    "values": [
+      1
+    ],
+    "path": [
+      "version"
+    ],
+    "message": "Invalid input: expected 1"
+  }
+]' }, issues: [ { code: 'invalid_value', values: [ 1 ], path: [ 'version' ], message: 'Invalid input: expected 1' } ], format: 'Function<anonymous>', flatten: 'Function<anonymous>', addIssue: 'Function<anonymous>', addIssues: 'Function<anonymous>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app ownership > rejects missing sandbox identity before guest or registry effects
+AssertionError: promise resolved "{ workspaceId: 'space-test', …(9) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "appInstanceId": null,
++   "cleanupConfirmed": true,
++   "environmentId": "sandbox",
++   "error": null,
++   "guestCwd": "/home/agent/workspace/.wsl-apps/project-test",
++   "guestPort": null,
++   "projectId": "project-test",
++   "state": "created",
++   "url": null,
++   "workspaceId": "space-test",
+  }
+
+ ❯ apps/service/src/app-service.test.ts:170:53
+    168|       const connection = { ...test.connection, getStatus: () => ({ ...…
+    169|       const service = new AppService(connection, { ...test.options, re…
+    170|       await expect(service.create({ ...key, files })).rejects.toThrow(…
+       |                                                     ^
+    171|       expect(test.starts()).toBe(0);
+    172|       await expect(readFile(registryPath)).rejects.toMatchObject({ cod…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app ownership > keeps validated registry identity when runtime status becomes unavailable during cleanup
+AssertionError: expected null to be 'sandbox-test' // Object.is equality
+
+- Expected:
+"sandbox-test"
+
++ Received:
+null
+
+ ❯ apps/service/src/app-service.test.ts:188:72
+    186|       sandbox = null;
+    187|       await service.shutdown();
+    188|       expect(JSON.parse(await readFile(registryPath, 'utf8')).sandbox)…
+       |                                                                        ^
+    189|     } finally {
+    190|       await rm(root, { recursive: true, force: true });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  apps/desktop/src/main/chat-service.test.ts > 对话服务宿主故障 > shutdown failure can be retried after repair and only kills utility after success
+AssertionError: expected '4bb41e53-ae9f-4c3e-8402-41fb40c87103' not to be '4bb41e53-ae9f-4c3e-8402-41fb40c87103' // Object.is equality
+ ❯ apps/desktop/src/main/chat-service.test.ts:286:27
+    284|     const retry = service.shutdown();
+    285|     const second = mock.postMessage.mock.calls.at(-1)![0];
+    286|     expect(second.id).not.toBe(first.id);
+       |                           ^
+    287|     expect(service.shutdown()).toBe(retry);
+    288|     mock.callbacks.get('message')?.({ type: 'response', id: second.id,…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  apps/desktop/src/main/shutdown.test.ts > shows concrete causes and defaults to cancel with an explicit unsafe exit warning
+TypeError: exitFailureDialog is not a function
+ ❯ apps/desktop/src/main/shutdown.test.ts:18:19
+     16|
+     17| it('shows concrete causes and defaults to cancel with an explicit unsa…
+     18|   const options = exitFailureDialog(new AggregateError([new Error('app…
+       |                   ^
+     19|   expect(options.buttons).toEqual(['重试清理', '取消退出', '仍然退出']);
+     20|   expect(options.defaultId).toBe(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  apps/desktop/src/main/shutdown.test.ts > successful cleanup closes without prompting
+TypeError: ExitCoordinator is not a constructor
+ ❯ apps/desktop/src/main/shutdown.test.ts:29:16
+     27| it('successful cleanup closes without prompting', async () => {
+     28|   const prompt = vi.fn();
+     29|   await expect(new ExitCoordinator(async () => undefined, prompt).requ…
+       |                ^
+     30|   expect(prompt).not.toHaveBeenCalled();
+     31| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
+
+ FAIL  apps/desktop/src/main/shutdown.test.ts > failed cleanup only closes for explicit still-exit response (1)
+ FAIL  apps/desktop/src/main/shutdown.test.ts > failed cleanup only closes for explicit still-exit response (2)
+TypeError: ExitCoordinator is not a constructor
+ ❯ apps/desktop/src/main/shutdown.test.ts:35:16
+     33|   const cleanup = vi.fn(async () => { throw new Error('sandbox:null');…
+     34|   const prompt = vi.fn(async () => response);
+     35|   await expect(new ExitCoordinator(cleanup, prompt).request()).resolve…
+       |                ^
+     36|   expect(cleanup).toHaveBeenCalledOnce();
+     37|   expect(prompt).toHaveBeenCalledWith(expect.objectContaining({ detail…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
+
+ FAIL  apps/desktop/src/main/shutdown.test.ts > retry performs fresh cleanup after rejection
+TypeError: ExitCoordinator is not a constructor
+ ❯ apps/desktop/src/main/shutdown.test.ts:42:16
+     40|   const cleanup = vi.fn().mockRejectedValueOnce(new Error('registry br…
+     41|   const prompt = vi.fn(async () => 0);
+     42|   await expect(new ExitCoordinator(cleanup, prompt).request()).resolve…
+       |                ^
+     43|   expect(cleanup).toHaveBeenCalledTimes(2);
+     44|   expect(prompt).toHaveBeenCalledOnce();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
+
+ FAIL  apps/desktop/src/main/shutdown.test.ts > times out visibly and retries the in-flight attempt without repeating side effects
+TypeError: ExitCoordinator is not a constructor
+ ❯ apps/desktop/src/main/shutdown.test.ts:52:25
+     50|     const cleanup = vi.fn(() => new Promise<void>((done) => { resolve …
+     51|     const prompt = vi.fn().mockResolvedValueOnce(0).mockResolvedValueO…
+     52|     const coordinator = new ExitCoordinator(cleanup, prompt, 100);
+       |                         ^
+     53|     const closing = coordinator.request();
+     54|     await vi.advanceTimersByTimeAsync(200);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯
+
+
+ Test Files  4 failed (4)
+      Tests  12 failed | 35 passed (47)
+   Start at  13:02:20
+   Duration  1.55s (tests 78%, transform 15%, import 6%, worker 1%)
+

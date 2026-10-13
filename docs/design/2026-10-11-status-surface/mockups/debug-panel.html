@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 审核用静态设计稿（修订 2），来源：状态降噪画布；示例内容为占位数据 -->
+<title>诊断面板</title>
+</head>
+<body>
+<style>
+body{margin:0}
+a{color:#0a67d1}a:hover{color:#084f9f}
+.btn{font:inherit;font-size:13px;color:#1d1d1f;background:#fff;border:1px solid #d9dce3;border-radius:8px;padding:0 12px;height:32px;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid #eceef2;font-size:13px;line-height:19px;white-space:nowrap}
+th{font-size:12px;font-weight:600;color:#4a4d55;background:#f6f7f9}
+code{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:12px}
+</style>
+<div style="width: 100%; box-sizing: border-box; padding: 40px; background: #f6f7f9; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 24px">
+  <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+    <div style="display: flex; flex-direction: column; gap: 8px; max-width: 900px">
+      <p style="margin: 0; font-size: 13px; font-weight: 600; color: #0a67d1">显示 › 诊断（⌥⌘D）· 仅开发服务器或 WSL_DEBUG_STATUS=1</p>
+      <h1 style="margin: 0; font-size: 30px; line-height: 38px; font-weight: 650">界面藏起来的，这里都有；带出去的，都脱过敏</h1>
+      <p style="margin: 0; font-size: 15px; line-height: 24px; color: #4a4d55">面板合并 Main 的事实与 Renderer 的展示结果，可按种类、通道、来源过滤。raw 只含按域白名单的字段；复制与导出经过脱敏；会话现场截图与 PageCapture 只能在面板内查看，不进入复制、导出或日志。</p>
+    </div>
+    <span style="font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #fdf6ea; color: #7a4300">表格内容为示例数据</span>
+  </div>
+
+  <div role="dialog" aria-label="诊断" style="border: 1px solid #d9dce3; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 8px 28px rgba(20,24,33,.10)">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #eceef2">
+      <strong style="font-size: 16px">诊断 · 状态</strong>
+      <code style="color: #4a4d55">appInstanceId [id] · seq [n] · 空间 TaskFlow</code>
+      <span style="flex: 1"></span>
+      <button type="button" class="btn" aria-pressed="false">暂停刷新</button>
+      <button type="button" class="btn">复制 JSON（已脱敏）</button>
+      <button type="button" class="btn">导出 NDJSON（已脱敏）</button>
+      <button type="button" class="btn" aria-label="关闭诊断" style="width: 32px; padding: 0; justify-content: center">×</button>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid #eceef2; background: #fafbfc">
+      <div role="radiogroup" aria-label="通道" style="display: inline-flex; border: 1px solid #d9dce3; border-radius: 8px; overflow: hidden; font-size: 13px">
+        <button type="button" role="radio" aria-checked="true" style="font: inherit; border: 0; padding: 6px 12px; background: #e6f0fb; color: #0a4f9f; font-weight: 600">全部 · 8</button>
+        <button type="button" role="radio" aria-checked="false" style="font: inherit; border: 0; border-left: 1px solid #d9dce3; padding: 6px 12px; background: #fff">常驻 · 3</button>
+        <button type="button" role="radio" aria-checked="false" style="font: inherit; border: 0; border-left: 1px solid #d9dce3; padding: 6px 12px; background: #fff">问题 · 2</button>
+        <button type="button" role="radio" aria-checked="false" style="font: inherit; border: 0; border-left: 1px solid #d9dce3; padding: 6px 12px; background: #fff">稳态 · 2</button>
+        <button type="button" role="radio" aria-checked="false" style="font: inherit; border: 0; border-left: 1px solid #d9dce3; padding: 6px 12px; background: #fff">能力 · 1</button>
+      </div>
+      <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px">来源<select style="font: inherit; font-size: 13px; height: 30px"><option>Main + Renderer</option><option>Main</option><option>Renderer</option></select></label>
+      <label for="dbg-q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">搜索键或文案</label>
+      <input id="dbg-q" placeholder="搜索 key / label…" style="flex: 1 1 220px; min-width: 0; font: inherit; font-size: 13px; height: 30px; box-sizing: border-box; padding: 0 10px; border: 1px solid #d9dce3; border-radius: 8px">
+    </div>
+    <div style="display: flex; flex-wrap: wrap">
+      <div style="flex: 3 1 620px; min-width: 0; overflow-x: auto; border-right: 1px solid #eceef2">
+        <table style="border-collapse: collapse; width: 100%">
+          <thead><tr><th>种类</th><th>key</th><th>phase</th><th>label</th><th>来源</th></tr></thead>
+          <tbody>
+            <tr style="background: #f1f6fd"><td>unresolved</td><td><code>run:[runId]:app-cleanup</code></td><td>unknown</td><td>模型已停止，App 数据操作仍待确认</td><td>main</td></tr>
+            <tr><td>progress</td><td><code>run:[runId]:state</code></td><td>pending</td><td>正在取消并核实退出…</td><td>main</td></tr>
+            <tr><td>control</td><td><code>web:[resourceId]:agent-control</code></td><td>active</td><td>AI 正在操控此页面（点击）</td><td>main</td></tr>
+            <tr><td>problem</td><td><code>web:[resourceId]:load-error</code></td><td>failed</td><td>页面加载失败：[错误描述]</td><td>main</td></tr>
+            <tr><td>problem</td><td><code>web:[resourceId]:blocked-nav</code></td><td>degraded</td><td>已拦截导航：https://example.test/path</td><td>main</td></tr>
+            <tr><td>steady</td><td><code>terminal:[resourceId]:state</code></td><td>ok</td><td>已连接</td><td>main</td></tr>
+            <tr><td>steady</td><td><code>app:[workspaceId]:state</code></td><td>ok</td><td>服务运行中</td><td>main</td></tr>
+            <tr><td>capability</td><td><code>execution:global:state</code></td><td>idle</td><td>比赛执行与验收（T04）：尚未接入</td><td>main</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="flex: 2 1 380px; min-width: 0; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <strong style="font-size: 14px">模型已停止，App 数据操作仍待确认</strong>
+          <code style="color: #4a4d55">run:[runId]:app-cleanup · 通道 常驻</code>
+          <span style="font-size: 13px; color: #4a4d55">动作：重新核对 → <code>reconcileRunCleanup</code></span>
+        </div>
+        <pre style="margin: 0; padding: 12px 14px; border-radius: 8px; background: #f6f7f9; font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; line-height: 18px; overflow-x: auto">raw（run 白名单）{
+  "state": "cancelling",
+  "appCleanupPending": true,
+  "executorState": { "state": "cancelled", "cleanupPending": false },
+  "cleanupRetryAvailable": true,
+  "cleanupReconciling": false
+}</pre>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <strong style="font-size: 13px">最近转换</strong>
+          <p style="margin: 0; font-size: 12px; line-height: 18px; font-family: 'SF Mono', Menlo, Consolas, monospace; color: #4a4d55">[时间] null → unknown/unresolved · seq [n]</p>
+        </div>
+        <div style="border: 1px dashed #c9ccd3; border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+          <span style="flex: 1; font-size: 13px; line-height: 19px">当前会话现场（PageCapture）<br><span style="color: #6a6d75">仅面板内查看 · 不可复制、导出或写入日志</span></span>
+          <button type="button" class="btn">查看</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

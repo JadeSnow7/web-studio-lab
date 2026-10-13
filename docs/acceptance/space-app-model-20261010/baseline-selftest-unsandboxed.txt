@@ -1,0 +1,26 @@
+
+> web-studio-lab@ baseline:selftest /private/tmp/web-studio-lab-space-app-model
+> tsx --test tests/vertical-slice/selftest.test.ts
+
+(node:43891) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ synthetic: strict task and event contracts reject relaxed goals and extra pass claims (1.379667ms)
+✔ synthetic: postcondition rejects initial/wrong/hidden/duplicate/mixed-run/exception observations (0.437208ms)
+✔ synthetic: mixed run/hash, sequence, lifecycle, logs and nonzero exit are rejected (0.711542ms)
+✔ synthetic: diff detects add/delete and paths/CDP URLs cannot escape boundaries (0.640208ms)
+✔ synthetic: manifest refuses content tampering, missing evidence and mixed-run events (3.023958ms)
+✔ synthetic: complete empty DOM returns immediately and B03 rejects it (8.924667ms)
+✔ synthetic: navigation waits for complete state and the expected URL (205.911333ms)
+✔ synthetic: complete single-match DOM returns on the first evaluation (1.832834ms)
+✔ synthetic: B03 partial success needs its own identity, observation and raw evaluation (12.134583ms)
+✔ synthetic: B04 partial success must match independently re-evaluated postcondition (7.55125ms)
+✔ synthetic: no passed check may claim it was not performed; target_missing remains valid (5.319666ms)
+✔ synthetic: identity key order is irrelevant but changed identity fields are rejected (2.825334ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 733.457542

@@ -1,0 +1,10 @@
+
+Running 3 tests using 1 worker
+
+(node:47518) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/space-app.spec.ts:7:1 › App form validates, cancels, creates and edits within its space; missing sandbox keeps draft and registered identity (1.8s)
+  ✓  2 e2e/space-app.spec.ts:52:1 › controlled UI transport fixture: successful App creation and edit, duplicate prevention and revision conflict (1.5s)
+  ✓  3 e2e/space-app.spec.ts:162:1 › App form preserves long Chinese input during IME confirmation and stays reachable in a dark narrow window (1.3s)
+
+  3 passed (4.9s)

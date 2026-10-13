@@ -12,20 +12,17 @@ import unittest
 
 def fixture_bundle():
     body = "Example Domain\nThis domain is for use in illustrative examples in documents."
-    return {"conversationId": "conv-space-taskflow-demo-impl", "generation": "generation-1", "turnId": "turn-1", "spaceId": "taskflow-demo", "collectionRevision": 1,
-            "resources": [{"resourceId": "e6b3d0b2-891e-4f7b-a49b-5990aef2b911", "version": 1, "spaceId": "taskflow-demo", "page": {"webContentsId": 2, "documentGeneration": 3, "url": "https://example.com/", "title": "Example Domain", "partition": "persist:wsl-preview"},
-                           "requestedUrl": "https://example.com/", "url": "https://example.com/", "title": "Example Domain", "text": body, "capturedAt": "2026-10-06T12:00:00.000Z", "sourceSha256": "a" * 64,
-                           "contentSha256": hashlib.sha256(body.encode()).hexdigest(), "extractionVersion": "html-text-v1", "truncated": False}]}
+    snapshot = {"page": {"webContentsId": 2, "documentGeneration": 3, "url": "https://example.com/", "title": "Example Domain", "partition": "persist:wsl-preview"}, "requestedUrl": "https://example.com/", "url": "https://example.com/", "title": "Example Domain", "text": body, "capturedAt": "2026-10-06T12:00:00.000Z", "sourceSha256": "a" * 64, "contentSha256": hashlib.sha256(body.encode()).hexdigest(), "extractionVersion": "html-text-v1", "truncated": False}
+    revision = {key: snapshot[key] for key in ("text", "capturedAt", "sourceSha256", "contentSha256", "truncated")}
+    revision.update(resourceId="e6b3d0b2-891e-4f7b-a49b-5990aef2b911", version=1, evidence={"kind": "web", "snapshot": snapshot})
+    return {"conversationId": "conv-space-taskflow-demo-impl", "sessionId": "conv-space-taskflow-demo-impl", "accountId": "test-account", "generation": "generation-1", "turnId": "turn-1", "workspaceId": "taskflow-demo", "catalogRevision": 1, "resources": [revision]}
 
 
 def guest_fixture_bundle():
     bundle = fixture_bundle()
-    record = bundle["resources"][0]
-    record.update(extractionVersion="rendered-dom-text-v1", sourceKind="decoded-main-response",
-                  captureId="9106578b-e2ce-4c19-a8b7-06753245eaa5", screenshotSha256="c" * 64)
-    record["page"] = {"kind": "sandbox-chromium", "sandboxName": "wsl-sbx-smoke-20261006",
-                      "browserInstanceId": "5cd9a82c-d94e-4774-854d-e58083e49e9b", "targetId": "CDP-TARGET-1", "navigationEpoch": 1,
-                      "url": record["url"], "title": record["title"]}
+    record = bundle["resources"][0]["evidence"]["snapshot"]
+    record.update(extractionVersion="rendered-dom-text-v1", sourceKind="decoded-main-response", captureId="9106578b-e2ce-4c19-a8b7-06753245eaa5", screenshotSha256="c" * 64)
+    record["page"] = {"kind": "sandbox-chromium", "sandboxName": "wsl-sbx-smoke-20261006", "browserInstanceId": "5cd9a82c-d94e-4774-854d-e58083e49e9b", "targetId": "CDP-TARGET-1", "navigationEpoch": 1, "url": record["url"], "title": record["title"]}
     return bundle
 
 
@@ -45,27 +42,21 @@ class ResourceMcpTests(unittest.TestCase):
         self.assertTrue(all(tool["annotations"]["readOnlyHint"] and not tool["annotations"]["destructiveHint"] for tool in tools))
 
     def test_dynamic_host_registered_conversation_bundle(self):
-        # The helper invokes this same validator before creating the per-turn sealed descriptor.
         bundle = fixture_bundle()
-        bundle["conversationId"] = "session-7189a675-2a3d-4ede-b5b5-d615c486aa28"
+        bundle.update(conversationId="session-dynamic", sessionId="session-dynamic", workspaceId="another-workspace")
         mcp.validate_bundle(bundle)
         listed = mcp.dispatch(bundle, "tools/call", {"name": "list_resources", "arguments": {}})["structuredContent"]["data"]
-        self.assertEqual(listed["spaceId"], "taskflow-demo")
+        self.assertEqual(listed["workspaceId"], "another-workspace")
         self.assertEqual(len(listed["resources"]), 1)
-        other = copy.deepcopy(bundle)
-        other.update(spaceId=None, collectionRevision=0, resources=[])
-        mcp.validate_bundle(other)
-        self.assertEqual(mcp.dispatch(other, "tools/call", {"name": "list_resources", "arguments": {}})["structuredContent"]["data"]["resources"], [])
-        for mutate in [lambda b: b.update(conversationId="session-../file"), lambda b: b.update(conversationId="session-"),
-                       lambda b: b.update(conversationId="session-" + "a" * 194), lambda b: b.update(conversationId="unknown"),
-                       lambda b: b.update(spaceId="other-space"), lambda b: b.update(conversationId="conv-personal-default")]:
+        personal = copy.deepcopy(bundle)
+        personal.update(conversationId="conv-personal-default", sessionId="conv-personal-default", workspaceId=None)
+        mcp.validate_bundle(personal)
+        self.assertEqual(len(personal["resources"]), 1)
+        for mutate in [lambda b: b.update(sessionId="other"), lambda b: b.update(conversationId="session-../file", sessionId="session-../file"), lambda b: b.update(workspaceId="../other"), lambda b: b.update(conversationId="conv-personal-default", sessionId="conv-personal-default")]:
             invalid = copy.deepcopy(bundle)
             mutate(invalid)
             with self.subTest(bundle=invalid), self.assertRaises(ValueError):
                 mcp.validate_bundle(invalid)
-        other["collectionRevision"] = 1
-        with self.assertRaises(ValueError):
-            mcp.validate_bundle(other)
 
     def test_observed_codex_metadata_envelope_grants_no_capability(self):
         bundle = fixture_bundle()
@@ -82,7 +73,7 @@ class ResourceMcpTests(unittest.TestCase):
             mcp.dispatch(bundle, "tools/call", {"name": "write_resource", "arguments": {}, **metadata})
         with self.assertRaises(mcp.RpcError):
             mcp.dispatch(bundle, "tools/call", {"name": "list_resources", "arguments": {"path": "/etc/passwd"}, **metadata})
-        self.assertEqual(mcp.dispatch(bundle, "tools/call", {"name": "list_resources", "arguments": {}, **metadata})["structuredContent"]["data"]["spaceId"], "taskflow-demo")
+        self.assertEqual(mcp.dispatch(bundle, "tools/call", {"name": "list_resources", "arguments": {}, **metadata})["structuredContent"]["data"]["workspaceId"], "taskflow-demo")
 
     def test_no_unknown_arguments_paths_urls_or_write_methods(self):
         bundle = fixture_bundle()
@@ -108,7 +99,7 @@ class ResourceMcpTests(unittest.TestCase):
         self.assertEqual(mcp.dispatch(bundle, "tools/call", {"name": "list_resources"})["structuredContent"]["data"]["resources"], [])
 
     def test_bundle_scope_and_boundary_validation(self):
-        mutations = [lambda b: b.update(spaceId="other"), lambda b: b.update(conversationId="conv-personal-default"), lambda b: b.update(path="/tmp"),
+        mutations = [lambda b: b.update(sessionId="other"), lambda b: b.update(conversationId="conv-personal-default"), lambda b: b.update(path="/tmp"),
                      lambda b: b["resources"][0].update(spaceId="other"), lambda b: b["resources"][0].update(text="tampered"),
                      lambda b: b["resources"][0].update(text="x" * 65537), lambda b: b["resources"][0].update(version=True),
                      lambda b: b["resources"].append(copy.deepcopy(b["resources"][0])), lambda b: b["resources"][0].update(resourceId="../../etc/passwd")]
@@ -118,7 +109,7 @@ class ResourceMcpTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 mcp.validate_bundle(bundle)
         personal = fixture_bundle()
-        personal.update(conversationId="conv-personal-default", spaceId=None, collectionRevision=0, resources=[])
+        personal.update(conversationId="conv-personal-default", sessionId="conv-personal-default", workspaceId=None, catalogRevision=0, resources=[])
         mcp.validate_bundle(personal)
         self.assertEqual(mcp.dispatch(personal, "tools/call", {"name": "list_resources"})["structuredContent"]["data"]["resources"], [])
 
@@ -140,7 +131,7 @@ class ResourceMcpTests(unittest.TestCase):
     def test_guest_provenance_requires_exact_variant_and_bounded_identity(self):
         mutations = [lambda r: r.update(sourceKind="wire-bytes"), lambda r: r.update(captureId="../capture"),
                      lambda r: r.update(screenshotSha256="invalid"), lambda r: r.update(path="/tmp/forged"),
-                     lambda r: r.update(extractionVersion="html-text-v1"), lambda r: r.update(page=fixture_bundle()["resources"][0]["page"]),
+                     lambda r: r.update(extractionVersion="html-text-v1"), lambda r: r.update(page=fixture_bundle()["resources"][0]["evidence"]["snapshot"]["page"]),
                      lambda r: r["page"].update(webContentsId=1), lambda r: r["page"].update(partition="forged-host"),
                      lambda r: r["page"].update(kind="electron"), lambda r: r["page"].update(sandboxName="../sandbox"),
                      lambda r: r["page"].update(browserInstanceId="not-a-uuid"), lambda r: r["page"].update(targetId=""),
@@ -156,16 +147,16 @@ class ResourceMcpTests(unittest.TestCase):
                      lambda r: r.update(text="tampered")]
         for index, mutate in enumerate(mutations):
             bundle = guest_fixture_bundle()
-            mutate(bundle["resources"][0])
+            mutate(bundle["resources"][0]["evidence"]["snapshot"])
             with self.subTest(index=index), self.assertRaises(ValueError):
                 mcp.validate_bundle(bundle)
         for key in ("captureId", "screenshotSha256", "sourceKind"):
             bundle = guest_fixture_bundle()
-            del bundle["resources"][0][key]
+            del bundle["resources"][0]["evidence"]["snapshot"][key]
             with self.subTest(missing=key), self.assertRaises(ValueError):
                 mcp.validate_bundle(bundle)
             bundle = fixture_bundle()
-            bundle["resources"][0][key] = guest_fixture_bundle()["resources"][0][key]
+            bundle["resources"][0]["evidence"]["snapshot"][key] = guest_fixture_bundle()["resources"][0]["evidence"]["snapshot"][key]
             with self.subTest(legacy_extra=key), self.assertRaises(ValueError):
                 mcp.validate_bundle(bundle)
 

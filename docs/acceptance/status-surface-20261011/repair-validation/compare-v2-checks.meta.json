@@ -1,0 +1,27 @@
+{
+  "name": "compare-v2-checks",
+  "command": [
+    "node",
+    "docs/acceptance/status-surface-20261011/repair-validation/compare-checks.mjs",
+    "/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-status-repair-baseline-917f375-ry7FTZ",
+    "baseline-lint-json",
+    "baseline-format",
+    "final-v2-lint-json",
+    "final-v2-format-fixed",
+    "check-delta-v2"
+  ],
+  "cwd": "/Users/huaodong/workspace/_worktrees/status-surface-20261011",
+  "head": "1bce260678c5d60e6889a093e0c523c333019fca",
+  "startedAt": "2026-10-12T23:12:25.114Z",
+  "endedAt": "2026-10-12T23:12:25.336Z",
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "envOverrides": { "WSL_E2E_TARGET": "build", "WSL_APP_HASH_REJECTION": "0" },
+  "productSourceDiff": {
+    "sha256Before": "d18e5e9dbf25264d65e80843f6d9aa5ee7b5f9b08e2bc900b494ab62e42206ab",
+    "sha256After": "d18e5e9dbf25264d65e80843f6d9aa5ee7b5f9b08e2bc900b494ab62e42206ab",
+    "changedDuringRun": false
+  },
+  "notes": "txt 为子进程 stdout 与 stderr 原始字节按到达顺序的交错记录，未经过 shell；meta 只记录上方 envOverrides，不转储其他环境变量。"
+}

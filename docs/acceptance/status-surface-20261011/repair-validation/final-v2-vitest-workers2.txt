@@ -1,0 +1,12 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/_worktrees/status-surface-20261011
+
+
+ Test Files  87 passed | 6 skipped (93)
+      Tests  915 passed | 15 skipped (930)
+   Start at  06:51:01
+   Duration  36.24s (tests 80%, import 15%, transform 5%, worker 1%)
+
+    Isolate  93 workers spawned · ~117ms startup each (spawn + environment, per file)
+             at least ~5.32s faster with isolate: false — reuses workers across files instead of one per file
+

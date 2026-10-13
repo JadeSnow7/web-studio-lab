@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 审核用静态设计稿（修订 2），来源：状态降噪画布；示例内容为占位数据 -->
+<title>分阶段落地与风险</title>
+</head>
+<body>
+<style>
+body{margin:0}
+a{color:#0a67d1}a:hover{color:#084f9f}
+code{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:12px}
+</style>
+<div style="width: 100%; box-sizing: border-box; padding: 48px 40px; background: #ffffff; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 32px">
+  <div style="display: flex; flex-direction: column; gap: 8px; max-width: 940px">
+    <p style="margin: 0; font-size: 13px; font-weight: 600; color: #0a67d1">落地 · 修订 2</p>
+    <h1 style="margin: 0; font-size: 30px; line-height: 38px; font-weight: 650">先建事实与展示两层，再换组件，最后改合同</h1>
+    <p style="margin: 0; font-size: 15px; line-height: 24px; color: #4a4d55">基于 <code>917f375</code>，分支 <code>agent/status-surface</code>。基线 <code>pnpm check</code> 本身不全绿（217 lint、801 格式既有失败），每阶段按增量判定。P0、P1 不改变任何可见界面。</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 14px">
+    <div style="border: 1px solid #e1e4ea; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 12px; font-weight: 700; color: #0a67d1">P0 · 事实层与 DTO · 1 天</span>
+      <p style="margin: 0; font-size: 14px; line-height: 22px">协议 DTO 与 raw 白名单；<code>src/shared/status</code> 事实投影与脱敏；两个 tsconfig 的 include。</p>
+      <p style="margin: 0; font-size: 12px; line-height: 19px; color: #4a4d55">穷举、全 facet 键唯一、ExecutionStatus 只产出 capability、白名单与脱敏单测</p>
+    </div>
+    <div style="border: 1px solid #e1e4ea; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 12px; font-weight: 700; color: #0a67d1">P1 · 展示层与错误出口 · 1 天</span>
+      <p style="margin: 0; font-size: 14px; line-height: 22px"><code>presentStatus</code>、展示状态 store、三通道组件；Toast 队列替代横幅与 ErrorToasts。</p>
+      <p style="margin: 0; font-size: 12px; line-height: 19px; color: #4a4d55">通道分配、确认失效、历史改写、hint 生命周期单测</p>
+    </div>
+    <div style="border: 1px solid #e1e4ea; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 12px; font-weight: 700; color: #0a67d1">P2 · 逐区域降噪 · 2.5 天</span>
+      <p style="margin: 0; font-size: 14px; line-height: 22px">8 个提交：标题栏、侧栏、终端、网页、会话、输入区、观察 / 文件、App 对话框。</p>
+      <p style="margin: 0; font-size: 12px; line-height: 19px; color: #4a4d55">每个提交带可见性与键盘用例；正常 / 异常 × 三主题 × 窄窗截图复核</p>
+    </div>
+    <div style="border: 1px solid #e1e4ea; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 12px; font-weight: 700; color: #0a67d1">P3 · 诊断通道 · 1 天</span>
+      <p style="margin: 0; font-size: 14px; line-height: 22px"><code>debug:status</code>、面板、NDJSON；<code>launchApp({ debugStatus })</code>。</p>
+      <p style="margin: 0; font-size: 12px; line-height: 19px; color: #4a4d55">5 种启用场景矩阵；脱敏、5 MiB 上限、未启用时拒绝</p>
+    </div>
+    <div style="border: 1px solid #e1e4ea; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 12px; font-weight: 700; color: #0a67d1">P4 · 合同与收尾 · 0.5 天</span>
+      <p style="margin: 0; font-size: 14px; line-height: 22px">按草案修订 UX-CONTRACT 与 DESIGN；本轮验收记录。</p>
+      <p style="margin: 0; font-size: 12px; line-height: 19px; color: #4a4d55">docs / typecheck / build / test / Electron 全量；live 用例另行授权复跑</p>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <h2 style="margin: 0; font-size: 20px">修订 2 解决的审核问题</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 12px">
+      <p style="margin: 0; padding: 14px 16px; border-radius: 10px; background: #eef5fd; font-size: 14px; line-height: 22px"><b>必须持续可见的提示被折叠</b> → 三通道；control / unresolved / progress 常驻，SSH 未确认不降级。</p>
+      <p style="margin: 0; padding: 14px 16px; border-radius: 10px; background: #eef5fd; font-size: 14px; line-height: 22px"><b>输入不足以推导展示</b> → 事实层 + 展示层，选择、确认、hint 与重置规则进展示状态。</p>
+      <p style="margin: 0; padding: 14px 16px; border-radius: 10px; background: #eef5fd; font-size: 14px; line-height: 22px"><b>网页键冲突</b> → <code>domain:entityId:facet</code>，全 facet 组合唯一性测试。</p>
+      <p style="margin: 0; padding: 14px 16px; border-radius: 10px; background: #eef5fd; font-size: 14px; line-height: 22px"><b>ExecutionStatus 误判为故障</b> → capability，只在设置页说明。</p>
+      <p style="margin: 0; padding: 14px 16px; border-radius: 10px; background: #eef5fd; font-size: 14px; line-height: 22px"><b>诊断在 E2E 默认开启、输入名称变化</b> → 启用判定改为开发服务器或显式变量；「会话消息」名称不变。</p>
+      <p style="margin: 0; padding: 14px 16px; border-radius: 10px; background: #eef5fd; font-size: 14px; line-height: 22px"><b>协议包边界、诊断落盘</b> → 协议包只放 DTO；raw 白名单、三出口、脱敏与上限。</p>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <h2 style="margin: 0; font-size: 20px">决策</h2>
+    <ol style="margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 22px">
+      <li>诊断仅在 <code>pnpm dev</code> 开发服务器或 <code>WSL_DEBUG_STATUS=1</code> 时可用；E2E 用的 build 产物默认关闭（修订 2 细化，已确认）。</li>
+      <li>健康终端在侧栏保留绿点。</li>
+      <li>同意修订 UX-CONTRACT / DESIGN 中要求常驻显示的条款。</li>
+      <li>设计已确认；按 <code>implementation-prompt.md</code> 在独立工作树 <code>agent/status-surface</code> 中实施（主代理 Opus 5.5 / high，子代理 Sonnet 5.5 / high）。</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

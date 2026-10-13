@@ -1,0 +1,212 @@
+
+Running 8 tests using 1 worker
+
+(node:50978) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/review-regressions.spec.ts:68:1 › rejected address navigation preserves the typed URL and focus (7.1s)
+(node:51077) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/review-regressions.spec.ts:82:1 › navigation deduplicates pending submits, honors IME, and retains newer edits after success (1.1s)
+(node:51118) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 e2e/review-regressions.spec.ts:116:3 › confirm freezes visible criteria despite autosave failure and keeps failed input (926ms)
+(node:51148) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 e2e/review-regressions.spec.ts:116:3 › send freezes visible criteria despite autosave failure and keeps failed input (889ms)
+(node:51160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 e2e/review-regressions.spec.ts:136:1 › failed confirmation does not navigate away from the view chosen during the pending request (5.9s)
+(node:51180) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from tab (1.4s)
+(node:51199) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  7 e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from route (1.2s)
+(node:51211) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  8 e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from space (31.1s)
+
+
+  1) e2e/review-regressions.spec.ts:68:1 › rejected address navigation preserves the typed URL and focus 
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator:  getByLabel('页面地址')
+    Expected: "file:///review-forbidden"
+    Received: "wsl-demo://taskflow/index.html"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveValue" getByLabel('页面地址') with timeout 5000ms
+      - waiting for getByLabel('页面地址')
+        14 × locator resolved to <input value="wsl-demo://taskflow/index.html" id="address-e2c431c6-923a-4cc5-a659-90b9d9cc7f58"/>
+           - unexpected value "wsl-demo://taskflow/index.html"
+
+
+      76 |       .first(),
+      77 |   ).toBeVisible();
+    > 78 |   await expect(address).toHaveValue('file:///review-forbidden');
+         |                         ^
+      79 |   await expect(address).toBeFocused();
+      80 | });
+      81 |
+        at /Users/huaodong/workspace/web-studio-lab/e2e/review-regressions.spec.ts:78:25
+
+    Error Context: test-results/e2e/review-regressions-rejecte-09042-ves-the-typed-URL-and-focus/error-context.md
+
+  2) e2e/review-regressions.spec.ts:82:1 › navigation deduplicates pending submits, honors IME, and retains newer edits after success 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 2
+
+      103 |         () => (globalThis as ReviewGlobal).reviewGate.commands.filter((c) => c.type === 'browserAction' && c.action === 'navigate').length,
+      104 |       ),
+    > 105 |     ).toBe(1);
+          |       ^
+      106 |   } finally {
+      107 |     await release();
+      108 |   }
+        at /Users/huaodong/workspace/web-studio-lab/e2e/review-regressions.spec.ts:105:7
+
+    Error Context: test-results/e2e/review-regressions-navigat-1ab13-s-newer-edits-after-success/error-context.md
+
+  3) e2e/review-regressions.spec.ts:116:3 › confirm freezes visible criteria despite autosave failure and keeps failed input 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 4
+    + Received  + 1
+
+    - Array [
+    -   "当前验收一",
+    -   "当前验收二",
+    - ]
+    + Array []
+
+      128 |     await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions.length).toBe(1);
+      129 |     const version = (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions[0]!;
+    > 130 |     expect(version.acceptance).toEqual(['当前验收一', '当前验收二']);
+          |                                ^
+      131 |     expect(version.allowedScopes).toEqual(['src/current.ts']);
+      132 |     await expect(session().getByLabel('会话消息')).toHaveValue('保留当前目标');
+      133 |     await expect(session().getByLabel('验收条件（每行一条）')).toHaveValue('当前验收一\n当前验收二');
+        at /Users/huaodong/workspace/web-studio-lab/e2e/review-regressions.spec.ts:130:32
+
+    Error Context: test-results/e2e/review-regressions-confirm-d0492-lure-and-keeps-failed-input/error-context.md
+
+  4) e2e/review-regressions.spec.ts:116:3 › send freezes visible criteria despite autosave failure and keeps failed input 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 4
+    + Received  + 1
+
+    - Array [
+    -   "当前验收一",
+    -   "当前验收二",
+    - ]
+    + Array []
+
+      128 |     await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions.length).toBe(1);
+      129 |     const version = (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions[0]!;
+    > 130 |     expect(version.acceptance).toEqual(['当前验收一', '当前验收二']);
+          |                                ^
+      131 |     expect(version.allowedScopes).toEqual(['src/current.ts']);
+      132 |     await expect(session().getByLabel('会话消息')).toHaveValue('保留当前目标');
+      133 |     await expect(session().getByLabel('验收条件（每行一条）')).toHaveValue('当前验收一\n当前验收二');
+        at /Users/huaodong/workspace/web-studio-lab/e2e/review-regressions.spec.ts:130:32
+
+    Error Context: test-results/e2e/review-regressions-send-fr-85f0e-lure-and-keeps-failed-input/error-context.md
+
+  5) e2e/review-regressions.spec.ts:136:1 › failed confirmation does not navigate away from the view chosen during the pending request 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('region', { name: 'Agent 会话内容' }).getByRole('button', { name: '对话', exact: true })
+    Expected: "true"
+    Received: "false"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('region', { name: 'Agent 会话内容' }).getByRole('button', { name: '对话', exact: true }) with timeout 5000ms
+      - waiting for getByRole('region', { name: 'Agent 会话内容' }).getByRole('button', { name: '对话', exact: true })
+        14 × locator resolved to <button class="btn " type="button" aria-pressed="false">对话</button>
+           - unexpected value "false"
+
+
+      144 |   await session().getByRole('button', { name: '对话', exact: true }).click();
+      145 |   await release();
+    > 146 |   await expect(session().getByRole('button', { name: '对话', exact: true })).toHaveAttribute('aria-pressed', 'true');
+          |                                                                            ^
+      147 |   await expect(session().getByLabel('会话消息')).toHaveValue('确认失败后保留');
+      148 |   expect((await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions).toHaveLength(0);
+      149 | });
+        at /Users/huaodong/workspace/web-studio-lab/e2e/review-regressions.spec.ts:146:76
+
+    Error Context: test-results/e2e/review-regressions-failed--1d7be--during-the-pending-request/error-context.md
+
+  6) e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from tab 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      193 |     expect(
+      194 |       await app.evaluate(() => (globalThis as ReviewGlobal).reviewGate.commands.filter((c) => c.type === 'locateSession').length),
+    > 195 |     ).toBe(0);
+          |       ^
+      196 |     if (destination === 'route') await expect(page.getByRole('heading', { name: '任务与运行' })).toBeVisible();
+      197 |     else if (destination === 'space')
+      198 |       await expect(page.getByRole('button', { name: '切换空间', exact: true })).toContainText('Review 其它空间');
+        at /Users/huaodong/workspace/web-studio-lab/e2e/review-regressions.spec.ts:195:7
+
+    Error Context: test-results/e2e/review-regressions-late-sc-670c5--without-returning-from-tab/error-context.md
+
+  7) e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from route 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      193 |     expect(
+      194 |       await app.evaluate(() => (globalThis as ReviewGlobal).reviewGate.commands.filter((c) => c.type === 'locateSession').length),
+    > 195 |     ).toBe(0);
+          |       ^
+      196 |     if (destination === 'route') await expect(page.getByRole('heading', { name: '任务与运行' })).toBeVisible();
+      197 |     else if (destination === 'space')
+      198 |       await expect(page.getByRole('button', { name: '切换空间', exact: true })).toContainText('Review 其它空间');
+        at /Users/huaodong/workspace/web-studio-lab/e2e/review-regressions.spec.ts:195:7
+
+    Error Context: test-results/e2e/review-regressions-late-sc-935db-ithout-returning-from-route/error-context.md
+
+  8) e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from space 
+
+    TimeoutError: locator.click: Timeout 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog', { name: '新建空间', exact: true }).getByRole('button', { name: '创建', exact: true })
+
+
+      182 |       const create = page.getByRole('dialog', { name: '新建空间', exact: true });
+      183 |       await create.getByLabel('名称').fill('Review 其它空间');
+    > 184 |       await create.getByRole('button', { name: '保存', exact: true }).click();
+          |                                                                     ^
+      185 |     }
+      186 |     await app.evaluate(() => (globalThis as ReviewGlobal).screenshotGate.release!());
+      187 |     await expect
+        at /Users/huaodong/workspace/web-studio-lab/e2e/review-regressions.spec.ts:184:69
+
+    Error Context: test-results/e2e/review-regressions-late-sc-93623-ithout-returning-from-space/error-context.md
+
+  8 failed
+    e2e/review-regressions.spec.ts:68:1 › rejected address navigation preserves the typed URL and focus 
+    e2e/review-regressions.spec.ts:82:1 › navigation deduplicates pending submits, honors IME, and retains newer edits after success 
+    e2e/review-regressions.spec.ts:116:3 › confirm freezes visible criteria despite autosave failure and keeps failed input 
+    e2e/review-regressions.spec.ts:116:3 › send freezes visible criteria despite autosave failure and keeps failed input 
+    e2e/review-regressions.spec.ts:136:1 › failed confirmation does not navigate away from the view chosen during the pending request 
+    e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from tab 
+    e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from route 
+    e2e/review-regressions.spec.ts:152:3 › late screenshot preserves its owner without returning from space 

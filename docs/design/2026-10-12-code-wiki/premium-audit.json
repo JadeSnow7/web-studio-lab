@@ -1,0 +1,13 @@
+{
+  "findings": [],
+  "mode": "strict",
+  "projectRoot": "/Users/huaodong/workspace/web-studio-lab/docs/design/2026-10-12-code-wiki",
+  "schemaVersion": 1,
+  "summary": {
+    "errors": 0,
+    "total": 0,
+    "unresolved": 0,
+    "violations": 0,
+    "warnings": 0
+  }
+}

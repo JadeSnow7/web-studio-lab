@@ -1,0 +1,7 @@
+{
+  "command": ["pnpm", "exec", "playwright", "test"],
+  "exit_code": 0,
+  "seconds": 236.64,
+  "source_change_since_initial_suite": ["e2e/workshop-actions.spec.ts"],
+  "build": "reused the successful build from pnpm test:e2e; only the E2E test source changed"
+}

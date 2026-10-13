@@ -1,10 +1,25 @@
 import { useState } from 'react';
+import type { WorkbenchRun } from '@wsl/protocol';
 import { useStore } from '../lib/store';
 import { workspaceStore } from '../state/workspace';
 import { locateSession } from '../state/location';
 import { DEMO_RUNS } from '../demo/runScenarios';
 import { LogView, DiffView, ReportView } from '../workbench/RunViews';
 import { RunDetails, type RunView } from '../workspace/RunDetails';
+import { StatusDot } from '../components/Status';
+import { useStatusViewByKey } from '../state/status-view';
+
+/** 运行记录行：状态是展示层的形状（中文 label 视觉隐藏），runId 只在悬停里。 */
+function RunRow({ run, goal, onSelect }: { run: WorkbenchRun; goal: string; onSelect: () => void }) {
+  const view = useStatusViewByKey({ kind: 'session', workspaceId: run.workspaceId, sessionId: run.sessionId }, `run:${run.runId}:state`);
+  return (
+    <button type="button" className="conv-row run-row-status" title={run.runId} onClick={onSelect}>
+      运行 · {goal}
+      {view ? <StatusDot view={view} /> : null}
+    </button>
+  );
+}
+
 export function TasksPage() {
   const snapshot = useStore(workspaceStore, (s) => s.snapshot);
   const [selection, setSelection] = useState<{ workspaceId: string; runId: string } | null>(null);
@@ -40,17 +55,15 @@ export function TasksPage() {
                   {w.runs
                     .filter((r) => r.taskVersionId === v.taskVersionId)
                     .map((r) => (
-                      <button
-                        type="button"
-                        className="conv-row"
+                      <RunRow
                         key={r.runId}
-                        onClick={() => {
+                        run={r}
+                        goal={v.goal}
+                        onSelect={() => {
                           setSelection({ workspaceId: w.workspaceId, runId: r.runId });
                           setDemoId('');
                         }}
-                      >
-                        运行 · {v.goal} · {r.runId} · {r.state}
-                      </button>
+                      />
                     ))}
                 </div>
               )),

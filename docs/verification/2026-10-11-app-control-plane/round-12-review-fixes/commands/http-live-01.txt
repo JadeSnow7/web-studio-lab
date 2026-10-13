@@ -1,0 +1,117 @@
+
+Running 3 tests using 1 worker
+
+(node:25030) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-aVlPwK ELECTRON_PID 25154
+ELECTRON_STDERR (node:25154) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:51910/b68e329d-26fb-4145-96c8-947d6d87e507
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✘  1 e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend automatic cancellation keeps App alive until operation termination is reconciled (22.3s)
+(node:25666) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-R0VddJ ELECTRON_PID 25667
+ELECTRON_STDERR (node:25667) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:51973/15279035-624c-44a4-9209-c4ddc9443c68
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✘  2 e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend manual cancellation keeps App alive until operation termination is reconciled (17.4s)
+(node:25772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-data-cancel-peGRvp ELECTRON_PID 25774
+ELECTRON_STDERR (node:25774) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:52044/e6faf1a7-e490-40e3-99c0-ff1b2d7c8843
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✘  3 e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend failure cancellation keeps App alive until operation termination is reconciled (19.6s)
+
+
+  1) e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend automatic cancellation keeps App alive until operation termination is reconciled 
+
+    Error: Command failed: /opt/homebrew/bin/sbx exec wsl-sbx-smoke-20261006 sh -c cd "$1" && npm run agent:manifest sh /home/agent/workspace/.wsl-apps/6af31476-4501-46a4-a445-3abc980379bb
+    node:internal/modules/package_json_reader:331
+      throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+            ^
+
+    Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'tsx' imported from /home/agent/workspace/.wsl-apps/6af31476-4501-46a4-a445-3abc980379bb/
+        at Object.getPackageJSONURL (node:internal/modules/package_json_reader:331:9)
+        at packageResolve (node:internal/modules/esm/resolve:784:25)
+        at moduleResolve (node:internal/modules/esm/resolve:873:18)
+        at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+        at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+        at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+        at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+        at #resolve (node:internal/modules/esm/loader:687:17)
+        at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+        at node:internal/modules/esm/loader:636:32 {
+      code: 'ERR_MODULE_NOT_FOUND'
+    }
+
+    Node.js v24.21.0
+
+
+    Error Context: test-results/round-12-http-live-01/app-control-data-cancel-li-8588f-n-termination-is-reconciled/error-context.md
+
+  2) e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend manual cancellation keeps App alive until operation termination is reconciled 
+
+    Error: Command failed: /opt/homebrew/bin/sbx exec wsl-sbx-smoke-20261006 sh -c cd "$1" && npm run agent:manifest sh /home/agent/workspace/.wsl-apps/85fd7272-3873-4ffc-a6ab-b6e32b8a96de
+    node:internal/modules/package_json_reader:331
+      throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+            ^
+
+    Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'tsx' imported from /home/agent/workspace/.wsl-apps/85fd7272-3873-4ffc-a6ab-b6e32b8a96de/
+        at Object.getPackageJSONURL (node:internal/modules/package_json_reader:331:9)
+        at packageResolve (node:internal/modules/esm/resolve:784:25)
+        at moduleResolve (node:internal/modules/esm/resolve:873:18)
+        at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+        at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+        at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+        at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+        at #resolve (node:internal/modules/esm/loader:687:17)
+        at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+        at node:internal/modules/esm/loader:636:32 {
+      code: 'ERR_MODULE_NOT_FOUND'
+    }
+
+    Node.js v24.21.0
+
+
+    Error Context: test-results/round-12-http-live-01/app-control-data-cancel-li-f4b54-n-termination-is-reconciled/error-context.md
+
+  3) e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend failure cancellation keeps App alive until operation termination is reconciled 
+
+    Error: Command failed: /opt/homebrew/bin/sbx exec wsl-sbx-smoke-20261006 sh -c cd "$1" && npm run agent:manifest sh /home/agent/workspace/.wsl-apps/4c9e492d-08ca-41dc-97fa-fbab5b7c5eb1
+    node:internal/modules/package_json_reader:331
+      throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+            ^
+
+    Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'tsx' imported from /home/agent/workspace/.wsl-apps/4c9e492d-08ca-41dc-97fa-fbab5b7c5eb1/
+        at Object.getPackageJSONURL (node:internal/modules/package_json_reader:331:9)
+        at packageResolve (node:internal/modules/esm/resolve:784:25)
+        at moduleResolve (node:internal/modules/esm/resolve:873:18)
+        at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+        at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+        at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+        at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+        at #resolve (node:internal/modules/esm/loader:687:17)
+        at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+        at node:internal/modules/esm/loader:636:32 {
+      code: 'ERR_MODULE_NOT_FOUND'
+    }
+
+    Node.js v24.21.0
+
+
+    Error Context: test-results/round-12-http-live-01/app-control-data-cancel-li-0d6ab-n-termination-is-reconciled/error-context.md
+
+  3 failed
+    e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend automatic cancellation keeps App alive until operation termination is reconciled 
+    e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend manual cancellation keeps App alive until operation termination is reconciled 
+    e2e/app-control-data-cancel-live.spec.ts:41:3 › real backend failure cancellation keeps App alive until operation termination is reconciled 

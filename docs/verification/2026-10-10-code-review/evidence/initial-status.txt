@@ -1,0 +1,70 @@
+ M DESIGN.md
+ M UX-CONTRACT.md
+ M apps/desktop/electron-builder.yml
+ M apps/desktop/src/main/chat-service.test.ts
+ M apps/desktop/src/main/chat-service.ts
+ M apps/desktop/src/main/index.ts
+ M apps/desktop/src/main/shutdown.test.ts
+ M apps/desktop/src/main/shutdown.ts
+ M apps/desktop/src/main/window-close.test.ts
+ M apps/desktop/src/main/window.ts
+ M apps/desktop/src/renderer/index.html
+ M apps/desktop/src/renderer/src/App.tsx
+ M apps/desktop/src/renderer/src/components/Icon.tsx
+ M apps/desktop/src/renderer/src/pages/HomePage.tsx
+ M apps/desktop/src/renderer/src/shell/RightPanel.tsx
+ M apps/desktop/src/renderer/src/shell/TitleBar.tsx
+ M apps/desktop/src/renderer/src/shell/Workshop.tsx
+ M apps/desktop/src/renderer/src/state/shell.test.ts
+ M apps/desktop/src/renderer/src/state/shell.ts
+ M apps/desktop/src/renderer/src/styles/app.css
+ M apps/service/src/app-service.test.ts
+ M apps/service/src/app-service.ts
+ M apps/service/src/index.ts
+ M docs/architecture/current-runtime.md
+ M e2e/space-remake.spec.ts
+ M e2e/workbench.spec.ts
+ M e2e/workspace-observation.spec.ts
+ M e2e/workspace-upgrade.spec.ts
+?? apps/desktop/resources/branding/README.md
+?? apps/desktop/resources/branding/icon.png
+?? apps/desktop/resources/branding/logo-small.svg
+?? apps/desktop/resources/branding/logo.svg
+?? apps/desktop/src/renderer/src/components/BrandLogo.tsx
+?? apps/service/src/shutdown.test.ts
+?? apps/service/src/shutdown.ts
+?? docs/verification/2026-10-10-branding-evidence/build.txt
+?? docs/verification/2026-10-10-branding-evidence/electron.txt
+?? docs/verification/2026-10-10-branding-evidence/home-before.png
+?? docs/verification/2026-10-10-branding-evidence/home-dark.png
+?? docs/verification/2026-10-10-branding-evidence/home-light.png
+?? docs/verification/2026-10-10-branding-evidence/home-warm-960.png
+?? docs/verification/2026-10-10-branding-evidence/logo-preview.png
+?? docs/verification/2026-10-10-branding-evidence/typecheck.txt
+?? docs/verification/2026-10-10-branding-evidence/ui-audit.json
+?? docs/verification/2026-10-10-branding-evidence/unit.txt
+?? docs/verification/2026-10-10-branding.md
+?? docs/verification/2026-10-10-shutdown-evidence/build.txt
+?? docs/verification/2026-10-10-shutdown-evidence/electron.txt
+?? docs/verification/2026-10-10-shutdown-evidence/focused.txt
+?? docs/verification/2026-10-10-shutdown-evidence/full-lint-failed.txt
+?? docs/verification/2026-10-10-shutdown-evidence/full-sandbox-failed.txt
+?? docs/verification/2026-10-10-shutdown-evidence/full-unsandboxed.txt
+?? docs/verification/2026-10-10-shutdown-evidence/native-dialog.png
+?? docs/verification/2026-10-10-shutdown-evidence/red.txt
+?? docs/verification/2026-10-10-shutdown-evidence/typecheck.txt
+?? docs/verification/2026-10-10-shutdown.md
+?? docs/verification/2026-10-10-titlebar-panels-evidence/before-collapsed.png
+?? docs/verification/2026-10-10-titlebar-panels-evidence/collapsed-dark.png
+?? docs/verification/2026-10-10-titlebar-panels-evidence/collapsed-light.png
+?? docs/verification/2026-10-10-titlebar-panels-evidence/collapsed-warm-960.png
+?? docs/verification/2026-10-10-titlebar-panels-evidence/notifications-dark.png
+?? docs/verification/2026-10-10-titlebar-panels-evidence/notifications-light.png
+?? docs/verification/2026-10-10-titlebar-panels-evidence/ui-audit.json
+?? docs/verification/2026-10-10-titlebar-panels-evidence/visual-metrics.json
+?? docs/verification/2026-10-10-titlebar-panels-evidence/workshop-light.png
+?? docs/verification/2026-10-10-titlebar-panels.md
+?? e2e/branding.spec.ts
+?? e2e/shutdown.spec.ts
+?? packaging/icon.icns
+?? scripts/branding/export-icons.mjs

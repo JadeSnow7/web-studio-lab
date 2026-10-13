@@ -11,6 +11,7 @@ import select
 import socket
 import uuid
 import signal
+import shutil
 import struct
 import subprocess
 import sys
@@ -22,6 +23,112 @@ PREFIX = "WSL_GUEST_FRAME:"
 CWD = "/home/agent/workspace"
 TERMINAL_RC_BASE64 = ""
 RESOURCE_MCP_BASE64 = ""  # Replaced only by the trusted host build, never by a page or frame.
+WORKSPACE_BYTES = 524288
+
+
+class GuestWorkspaceOwner:
+    # Unknown process cleanup must retain its cwd and modifications. No destructor
+    # removes this directory; only the explicit confirmed-cleanup path may do so.
+    def __init__(self, run_id):
+        self.name = tempfile.mkdtemp(prefix="wsl-vs001-" + run_id + "-", dir=CWD)
+        self.removed = False
+
+    def cleanup(self):
+        if not self.removed:
+            try:
+                shutil.rmtree(self.name)
+            except FileNotFoundError:
+                pass
+            self.removed = True
+
+
+def report_retained_workspace(workspace, start, reason):
+    if workspace is not None:
+        emit("error", error="guest workspace retained after unconfirmed cleanup: " + str(reason),
+             runId=start["workspace"]["runId"], workspaceDir=workspace.name, cleanupConfirmed=False)
+
+
+def workspace_path(root, relative):
+    if (not isinstance(relative, str) or not relative or "\\" in relative or
+            any(part in ("", ".", "..") for part in relative.split("/")) or "\x00" in relative):
+        raise ValueError("unsafe guest workspace path")
+    return os.path.join(root, relative)
+
+
+def create_workspace(payload):
+    if (not isinstance(payload, dict) or set(payload) != {"runId", "files"} or
+            str(uuid.UUID(payload["runId"])) != payload["runId"] or
+            not isinstance(payload["files"], list) or not 0 < len(payload["files"]) <= 256):
+        raise ValueError("invalid guest workspace payload")
+    # Hold explicit ownership before populating any files. A failed initial write
+    # has no child process and can be safely cleaned immediately.
+    directory = GuestWorkspaceOwner(payload["runId"])
+    try:
+        total = 0
+        for entry in payload["files"]:
+            if not isinstance(entry, dict) or set(entry) != {"path", "base64"}:
+                raise ValueError("invalid guest workspace file")
+            destination = workspace_path(directory.name, entry["path"])
+            content = base64.b64decode(entry["base64"], validate=True)
+            total += len(content)
+            if total > WORKSPACE_BYTES:
+                raise ValueError("guest workspace exceeds byte budget")
+            os.makedirs(os.path.dirname(destination), exist_ok=True)
+            with open(destination, "xb") as target:
+                target.write(content)
+        return directory
+    except BaseException:
+        directory.cleanup()
+        raise
+
+
+def snapshot_workspace(root, run_id):
+    files = []
+    total = 0
+    def walk(directory, prefix=""):
+        nonlocal total
+        for entry in sorted(os.scandir(directory), key=lambda item: item.name):
+            relative = prefix + entry.name
+            workspace_path(root, relative)
+            if entry.is_symlink():
+                raise ValueError("guest workspace symlink: " + relative)
+            if not prefix and entry.name in ("node_modules", "dist", ".vite") and entry.is_dir(follow_symlinks=False):
+                continue
+            if entry.is_dir(follow_symlinks=False):
+                walk(entry.path, relative + "/")
+            elif entry.is_file(follow_symlinks=False):
+                with open(entry.path, "rb") as source:
+                    content = source.read(WORKSPACE_BYTES + 1)
+                total += len(content)
+                if total > WORKSPACE_BYTES or len(files) >= 256:
+                    raise ValueError("guest workspace snapshot exceeds budget")
+                files.append({"path": relative, "base64": base64.b64encode(content).decode("ascii")})
+            else:
+                raise ValueError("guest workspace non-file: " + relative)
+    walk(root)
+    emit("workspace", runId=run_id, files=files)
+
+
+def drain_streams(streams):
+    # Cancel and protocol failure still retain the tail produced before children stopped.
+    deadline = time.monotonic() + 2
+    while streams:
+        readable, _, _ = select.select(list(streams), [], [], max(0, deadline - time.monotonic()))
+        if not readable:
+            raise RuntimeError("guest output drain not confirmed")
+        for fd in readable:
+            stream, decoder = streams[fd]
+            try:
+                data = os.read(fd, 65536)
+            except OSError as error:
+                if error.errno != errno.EIO:
+                    raise
+                data = b""
+            text = decoder.decode(data, final=not data)
+            if text:
+                emit("output", stream=stream, data=text)
+            if not data:
+                del streams[fd]
 
 
 def emit(kind, **fields):
@@ -109,7 +216,7 @@ def read_start():
     start = json.loads(first)
     if not isinstance(start, dict) or start.get("type") != "start" or start.get("mode") not in ("codex", "terminal"):
         raise ValueError("invalid start frame")
-    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "prompt", "resourceBundle", "observation", "observationImages"}
+    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "prompt", "resourceBundle", "observation", "observationImages", "workspace"}
     for key in ("observation", "observationImages"):
         if key in start and type(start[key]) is not bool:
             raise ValueError("invalid observation capability")
@@ -128,9 +235,30 @@ def main(start):
     resource_fd = None
     observer = None
     observer_dir = None
+    cli_channel = None
     observer_clients = {}
     observation_count = 0
     terminal_rc = None
+    workspace = None
+    streams = {}
+    def close_observers():
+        nonlocal cli_channel, observer, observer_dir
+        for call_id, (client, _, _) in observer_clients.items():
+            emit("observation-cancel", id=call_id)
+            client.close()
+        observer_clients.clear()
+        if cli_channel is not None:
+            for call_id in list(cli_channel.active):
+                emit("observation-cancel", id=call_id)
+            cli_channel.close()
+            cli_channel = None
+        if observer is not None:
+            observer.close()
+            observer = None
+        if observer_dir is not None:
+            observer_dir.cleanup()
+            observer_dir = None
+
     try:
         if terminal:
             master, slave = pty.openpty()
@@ -170,12 +298,26 @@ def main(start):
                     observer.listen(4)
                     observer.setblocking(False)
                     observation_args = [observation_path, "images" if start.get("observationImages") is True else "text"]
+                    # CLI uses filesystem IPC inside the unchanged command sandbox.
+                    cli_channel_path = observer_dir.name + "/app-channel"
+                    cli_channel = module["AppCliSlots"](cli_channel_path)
+                    cli_source = observer_dir.name + "/wsl_app.py"
+                    with open(cli_source, "w", encoding="utf-8") as target:
+                        target.write(source)
+                    cli = observer_dir.name + "/wsl-app"
+                    with open(cli, "w", encoding="utf-8") as target:
+                        target.write("#!/bin/sh\nexec python3 -I -u '" + cli_source + "' --cli \"$@\"\n")
+                    os.chmod(cli, 0o755)
+                    env["WSL_APP_CHANNEL"] = cli_channel_path
+                    env["PATH"] = observer_dir.name + ":" + env["PATH"]
                 # TOML basic strings/arrays use the same escaping used here by JSON.
                 config = ["-c", 'mcp_servers.wsl_space.command="python3"', "-c",
                           "mcp_servers.wsl_space.args=" + json.dumps(["-I", "-u", "-c", source, descriptor, *observation_args]),
                           "-c", "mcp_servers.wsl_space.required=true"]
                 argv = [argv[0], *config, *argv[1:]]
-            child = subprocess.Popen(argv, cwd=CWD, env=env, stdin=subprocess.PIPE,
+            if "workspace" in start:
+                workspace = create_workspace(start["workspace"])
+            child = subprocess.Popen(argv, cwd=workspace.name if workspace else CWD, env=env, stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
             child.stdin.write(start.get("prompt", "").encode())
             child.stdin.close()
@@ -191,6 +333,13 @@ def main(start):
         pending_input = b""
         leader_cleaned = False
         while (streams or child.poll() is None) and not closing:
+            if cli_channel is not None:
+                calls, cancelled, admitted = cli_channel.poll(4 - len(observer_clients) - len(cli_channel.active), 64 - observation_count)
+                observation_count += admitted
+                for call_id in cancelled:
+                    emit("observation-cancel", id=call_id)
+                for call_id, request in calls:
+                    emit("observation-call", id=call_id, tool=request["tool"], args=request["args"])
             readable, writable, _ = select.select([stdin, *streams, *([observer.fileno()] if observer else []), *[client.fileno() for client, pending, _ in observer_clients.values()]], [master] if pending_input else [], [], 0.1)
             if writable:
                 written = os.write(master, pending_input)
@@ -205,7 +354,7 @@ def main(start):
                 if observer and fd == observer.fileno():
                     client, _ = observer.accept()
                     client.setblocking(False)
-                    if len(observer_clients) >= 4 or observation_count >= 64:
+                    if len(observer_clients) + (len(cli_channel.active) if cli_channel else 0) >= 4 or observation_count >= 64:
                         client.close()
                     else:
                         observer_clients[str(uuid.uuid4())] = (client, b"", time.monotonic() + 20)
@@ -240,6 +389,9 @@ def main(start):
                             del observer_clients[observer_id]
                             continue
                         emit("observation-call", id=observer_id, tool=request["tool"], args=request["args"])
+                        # Control-plane calls (scenario/waitFor) may run up to Codex's 60s MCP limit.
+                        if request["tool"].startswith("app."):
+                            deadline += 40
                         observer_clients[observer_id] = (client, None, deadline)
                     else:
                         observer_clients[observer_id] = (client, pending, deadline)
@@ -261,6 +413,8 @@ def main(start):
                         keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "input": {"type", "data"}, "resize": {"type", "cols", "rows"}}
                         if kind not in keys or set(frame) != keys[kind]:
                             raise ValueError("invalid control fields")
+                        if cli_channel is not None:
+                            cli_channel.receive(frame)
                         if kind == "observation-result" and not terminal:
                             pending = observer_clients.pop(frame["id"], None)
                             if pending:
@@ -311,35 +465,52 @@ def main(start):
                 leader_cleaned = True
         if closing:
             cleanup(child.pid, child)
+            drain_streams(streams)
         else:
             child.wait()
             cleanup(child.pid, child)
         emit("exit", exitCode=child.returncode)
-        for call_id, (client, _, _) in observer_clients.items():
-            emit("observation-cancel", id=call_id)
-            client.close()
-        observer_clients.clear()
+        if workspace is not None:
+            snapshot_workspace(workspace.name, start["workspace"]["runId"])
+            workspace.cleanup()
+            workspace = None
+        close_observers()
         emit("cleanup", ok=True)
     except BaseException as error:
         emit("error", error=str(error))
         if child is not None:
             try:
                 cleanup(child.pid, child)
+                drain_streams(streams)
             except BaseException as cleanup_error:
+                report_retained_workspace(workspace, start, cleanup_error)
                 emit("cleanup", ok=False, error=str(cleanup_error))
                 return
-        for call_id, (client, _, _) in observer_clients.items():
-            emit("observation-cancel", id=call_id)
-            client.close()
-        observer_clients.clear()
+        if workspace is not None:
+            try:
+                snapshot_workspace(workspace.name, start["workspace"]["runId"])
+            except BaseException as snapshot_error:
+                emit("error", error=str(snapshot_error))
+            try:
+                workspace.cleanup()
+                workspace = None
+            except BaseException as cleanup_error:
+                report_retained_workspace(workspace, start, cleanup_error)
+                emit("cleanup", ok=False, error=str(cleanup_error))
+                return
+        try:
+            close_observers()
+        except BaseException as cleanup_error:
+            emit("error", error=str(cleanup_error))
+            emit("cleanup", ok=False, error=str(cleanup_error))
+            return
         emit("cleanup", ok=True)
     finally:
-        for client, _, _ in observer_clients.values():
-            client.close()
-        if observer is not None:
-            observer.close()
-        if observer_dir is not None:
-            observer_dir.cleanup()
+        try:
+            close_observers()
+        except BaseException as cleanup_error:
+            emit("error", error=str(cleanup_error))
+            emit("cleanup", ok=False, error=str(cleanup_error))
         if terminal_rc is not None:
             terminal_rc.close()
         if master is not None:

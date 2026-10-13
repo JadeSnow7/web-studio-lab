@@ -1,0 +1,158 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: workshop-actions.spec.ts >> App operations stay with their workspace after closing and switching
+- Location: e2e/workshop-actions.spec.ts:117:1
+
+# Error details
+
+```
+TimeoutError: locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: '新建 App', exact: true })
+
+```
+
+# Test source
+
+```ts
+  47  |       expect(tabs[0]!.targetRef.kind).toBe(kind);
+  48  |       if (kind === 'terminal') {
+  49  |         await expect(page.getByRole('button', { name: '连接终端', exact: true })).toBeEnabled();
+  50  |         expect(workspace.resources.find((r) => r.resourceId === tabs[0]!.targetRef.resourceId)?.terminal?.state).not.toBe('running');
+  51  |       }
+  52  |       if (kind === 'session') expect(workspace.runs).toHaveLength(0);
+  53  |     }
+  54  |     await page.getByRole('button', { name: '关闭错误提示', exact: true }).click();
+  55  |     await setWindowSize(app, 900, 700);
+  56  |     await page.getByRole('button', { name: '展开 Workshop', exact: true }).click();
+  57  |     for (const name of ['新建网页', '新建终端', '新建会话', '新建 App'])
+  58  |       await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
+  59  |     await page.screenshot({ path: 'test-results/screens/workshop-actions-narrow.png' });
+  60  |   } finally {
+  61  |     await app.close();
+  62  |   }
+  63  | });
+  64  | 
+  65  | test('Workshop App dialog creates, exports, reports startup failure and restores persisted ownership', async () => {
+  66  |   const profile = await mkdtemp(path.join(tmpdir(), 'wsl-workshop-app-'));
+  67  |   const options = { userData: profile, sbxBin: new URL('./fixtures/sbx-app-actions.mjs', import.meta.url).pathname };
+  68  |   let { app, page } = await launchApp(options);
+  69  |   try {
+  70  |     await page.getByRole('button', { name: '新建 App', exact: true }).click();
+  71  |     const dialog = page.getByRole('dialog', { name: '空间 App' });
+  72  |     await expect(dialog.getByRole('button', { name: '关闭', exact: true })).toBeFocused();
+  73  |     await expect.poll(async () => (await previewInfo(app)).visible).toBe(false);
+  74  |     expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')!.managedApp).toBeUndefined();
+  75  |     await dialog.getByRole('button', { name: '创建标准应用', exact: true }).evaluate((node) => {
+  76  |       (node as HTMLButtonElement).click();
+  77  |       (node as HTMLButtonElement).click();
+  78  |     });
+  79  |     const form = page.getByRole('dialog', { name: '创建 App', exact: true });
+  80  |     await form.getByLabel('App 名称').fill('Workshop 测试应用');
+  81  |     await form.getByRole('button', { name: '保存 App' }).evaluate((node) => {
+  82  |       (node as HTMLButtonElement).click();
+  83  |       (node as HTMLButtonElement).click();
+  84  |     });
+  85  |     await expect(form).not.toBeVisible();
+  86  |     await page.getByRole('button', { name: '管理 App', exact: true }).click();
+  87  |     await expect(dialog.getByRole('status').first()).toHaveText('已创建');
+  88  |     const getApp = async () => (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')!.managedApp!;
+  89  |     const projectId = (await getApp()).projectId;
+  90  |     await page.screenshot({ path: 'test-results/screens/workshop-actions-app.png' });
+  91  |     expect((await getApp()).appInstanceId).toBeNull();
+  92  |     await dialog.getByRole('button', { name: '导出源码', exact: true }).click();
+  93  |     await expect(dialog.getByText(/源码已导出/)).toBeVisible();
+  94  |     const exported = (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')!.appExport!;
+  95  |     expect(await readFile(path.join(exported.path, 'README.md'), 'utf8')).toBe('fixture source\n');
+  96  |     await dialog.getByRole('button', { name: '启动应用', exact: true }).click();
+  97  |     await expect(dialog.getByRole('button', { name: '取消启动', exact: true })).toBeEnabled();
+  98  |     await dialog.getByRole('button', { name: '取消启动', exact: true }).click();
+  99  |     await expect.poll(async () => (await getApp()).state).toBe('stopped');
+  100 |     expect((await getApp()).cleanupConfirmed).toBe(true);
+  101 |     await expect(dialog.getByRole('button', { name: '启动应用', exact: true })).toBeEnabled();
+  102 |     await dialog.getByRole('button', { name: '启动应用', exact: true }).click();
+  103 |     await expect.poll(async () => (await getApp()).state).toBe('failed');
+  104 |     await expect(dialog.getByRole('alert').first()).toBeVisible();
+  105 |     await page.keyboard.press('Escape');
+  106 |     await expect(page.getByRole('button', { name: '管理 App', exact: true })).toBeFocused();
+  107 |     await app.close();
+  108 |     ({ app, page } = await launchApp(options));
+  109 |     await page.getByRole('button', { name: '管理 App', exact: true }).click();
+  110 |     expect((await getApp()).projectId).toBe(projectId);
+  111 |     await expect(page.getByRole('dialog', { name: '空间 App' }).getByRole('button', { name: '启动应用', exact: true })).toBeEnabled();
+  112 |   } finally {
+  113 |     await app.close();
+  114 |   }
+  115 | });
+  116 | 
+  117 | test('App operations stay with their workspace after closing and switching', async () => {
+  118 |   const { app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx-app-actions.mjs', import.meta.url).pathname });
+  119 |   try {
+  120 |     await page.evaluate(() =>
+  121 |       window.studio.workbench.command({
+  122 |         type: 'createWorkspace',
+  123 |         workspaceId: 'other-app-space',
+  124 |         commandId: crypto.randomUUID(),
+  125 |         name: '另一个 App 空间',
+  126 |       }),
+  127 |     );
+  128 |     await page.getByRole('button', { name: '新建 App', exact: true }).click();
+  129 |     const dialog = page.getByRole('dialog', { name: '空间 App' });
+  130 |     await dialog.getByRole('button', { name: '创建标准应用', exact: true }).click();
+  131 |     const form = page.getByRole('dialog', { name: '创建 App', exact: true });
+  132 |     await form.getByLabel('App 名称').fill('固定原空间的 App');
+  133 |     await form.getByRole('button', { name: '保存 App' }).click();
+  134 |     await expect(form.getByRole('status')).toHaveText('正在保存 App…');
+  135 |     await page.keyboard.press('Escape');
+  136 |     await expect(form).toBeVisible();
+  137 |     // Navigation may arrive from another window while saving; it cannot redirect the frozen recipient.
+  138 |     await page.evaluate(() =>
+  139 |       window.studio.workbench.command({
+  140 |         type: 'switchWorkspace',
+  141 |         commandId: crypto.randomUUID(),
+  142 |         workspaceId: 'other-app-space',
+  143 |       }),
+  144 |     );
+  145 |     expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.managedApp?.state).toBe('starting');
+  146 |     await expect(form).not.toBeVisible();
+> 147 |     await page.getByRole('button', { name: '新建 App', exact: true }).click();
+      |                                                                     ^ TimeoutError: locator.click: Timeout 30000ms exceeded.
+  148 |     await expect(dialog.getByRole('button', { name: '创建标准应用', exact: true })).toBeEnabled();
+  149 |     expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.managedApp?.state).toBe('created');
+  150 |     await expect(dialog.getByRole('alert')).toHaveCount(0);
+  151 |     await expect(dialog.getByRole('button', { name: '创建标准应用', exact: true })).toBeEnabled();
+  152 |     expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'other-app-space')?.managedApp).toBeUndefined();
+  153 |     await page.keyboard.press('Escape');
+  154 |     await page.getByRole('button', { name: '切换空间', exact: true }).click();
+  155 |     await page
+  156 |       .getByRole('dialog', { name: '切换空间' })
+  157 |       .getByRole('button', { name: /TaskFlow.*个标签/ })
+  158 |       .click();
+  159 |     await page.getByRole('button', { name: '管理 App', exact: true }).click();
+  160 |     await dialog.getByRole('button', { name: '启动应用', exact: true }).click();
+  161 |     await expect(dialog.getByRole('button', { name: '取消启动', exact: true })).toBeEnabled();
+  162 |     await page.keyboard.press('Escape');
+  163 |     await page.getByRole('button', { name: '切换空间', exact: true }).click();
+  164 |     await page
+  165 |       .getByRole('dialog', { name: '切换空间' })
+  166 |       .getByRole('button', { name: /另一个 App 空间.*个标签/ })
+  167 |       .click();
+  168 |     await page.getByRole('button', { name: '新建 App', exact: true }).click();
+  169 |     expect((await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.managedApp?.state).toBe('starting');
+  170 |     await expect
+  171 |       .poll(async () => (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')?.managedApp?.state)
+  172 |       .toBe('failed');
+  173 |     await expect(dialog.getByRole('alert')).toHaveCount(0);
+  174 |     await expect(dialog.getByRole('button', { name: '创建标准应用', exact: true })).toBeEnabled();
+  175 |   } finally {
+  176 |     await app.close();
+  177 |   }
+  178 | });
+  179 | 
+```

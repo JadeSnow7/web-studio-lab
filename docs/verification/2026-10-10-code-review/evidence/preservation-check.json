@@ -1,0 +1,109 @@
+{
+  "initialFileCount": 3177,
+  "preservedInitialFiles": 3158,
+  "changedInitialFiles": [
+    {
+      "path": "apps/desktop/src/main/preview/public-protocol.test.ts",
+      "before": "f4caf4e0df863fe83fe5c8d1ba03e7ade8b704241252080855f6b8de8ba1def7",
+      "after": "cf8735146ac5a5b89745c099f95a8c0cd843664be42e428b68f6154b2a5c50b7"
+    },
+    {
+      "path": "apps/desktop/src/main/preview/public-protocol.ts",
+      "before": "372da6b7b2c42fcb0aec7983738c58a665039138073608c197f5f558d69362f3",
+      "after": "ff9e4d115ed1be521fc06b046aa79fb5533b01fcdd319308faf3ffd345325cdb"
+    },
+    {
+      "path": "apps/desktop/src/main/setup.test.ts",
+      "before": "b5ced604fd76c9f584f07c4c235a20bba50387c3b75734da444afbf0bc8119a6",
+      "after": "000b2ee50c83c479e1989567b455ab98eca9f9ef4532c64b664a22b03db1e7b0"
+    },
+    {
+      "path": "apps/desktop/src/main/setup.ts",
+      "before": "897c2d003a045c50dfcdc2104eb3d2c34ebc8a78d625e4c007e9ba6c90debee9",
+      "after": "1bf3206b9b2185c8c06d48fbf93552b6d689b13c11e8c51c6998a6ceead17385"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.ts",
+      "before": "361f356e705336bb8ef58f2fba90c95c61d9b53f884b1ea3b54042fa7090ccb0",
+      "after": "65eb16f8d8797def688f1caffd3d3b1ab77fb814097497358dcbea91080255e3"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/capture.test.ts",
+      "before": "a7cc0d1eb5f6a59e8676701307004c6fb0614e54428904034bfe323caf0a6469",
+      "after": "a7f13f12f20c3eadf4d377a5e289fe7f269172ace1c81284351f22703412cbb3"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/capture.ts",
+      "before": "9a021d6e45dd8db964ced3acd2d4629bb8c393998f46d6fcc39a6ce632166157",
+      "after": "e42930a4b56e3435e5460fe6d810b1bc06ea6fb67131519cac594e17a6023196"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/shell.ts",
+      "before": "6f47ae746888b59bb51801daee4818934124cdbcefdcebf8f1edd47d9a2df94b",
+      "after": "9637d977076b517fb95ee335484ea3eab69c85811626cf3c74f6a634135c5e01"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workspace.test.ts",
+      "before": "8fa4d61d03684a3c1e5966f39605f0666f5285f5a06bf66bcd5b9ff4a82519f6",
+      "after": "0ec536cc082f346ab2bbf1272348774b0ee4fa8b6f60ee0e530c96b3ff0c12c3"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/state/workspace.ts",
+      "before": "0a78feb21154eb3965a5e415765d49dfeb67ab4fcdc57086dd5dda531bab9c3b",
+      "after": "a1223936f50894792a8a11b257b85f15f4cd88a2ac5e59cedde6ddb2994a7d90"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Browser.tsx",
+      "before": "7498410c39bac67cd7d06ebd9b27d1ad0b5ba15de62545e7d41e12b26e84d092",
+      "after": "77afb04a9fa87307e39c6f5e99848fa1c88b939903a688108c975fec3faaaf24"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Session.tsx",
+      "before": "84b08563b30028836310f250ed48e69eb8b1e250b5cfa7e0e715ec5ecb2d760e",
+      "after": "4849d192a9223c72d7ee084e4d822069dd1a9e36a75e093d9478cefeb9a6e7cb"
+    },
+    {
+      "path": "apps/service/src/app-helper.py",
+      "before": "37925fc5ea0760861a6c6c234edc90fd84a5d95079eee6039f4a65056653d7d2",
+      "after": "e0f6b8be535f9c79cc99ebf57328d37af6266c255be66ec4395c5c63595f92dc"
+    },
+    {
+      "path": "apps/service/src/app-service.test.ts",
+      "before": "0c135a9283e8c8c726bc3bf762f11a08fd49729469e9f50ab31d476b7aeeef07",
+      "after": "13678c52b7f6d34c42fe84855d86a6195dfbbd457f3429eac4d7ac77e6bc40a0"
+    },
+    {
+      "path": "apps/service/src/app-service.ts",
+      "before": "9f90daf609e3731e2519ea3082e26ada5ba80a82f5cbea69970d2cd8180717c4",
+      "after": "c9f666d6fcfe47d2c08fe26320c0edfc955fd91ba8e86a4b4c2a8a0d2e6697e3"
+    },
+    {
+      "path": "apps/service/src/codex-chat.ts",
+      "before": "95987bc1a6ce2f58abffbf3afce97daa0a508ae268d5101c399cf68d0e83e345",
+      "after": "242ccafd27b12831b9c6873325eef10f9a143bfb9b91c836ce4b0d1281190921"
+    },
+    {
+      "path": "apps/service/src/index.ts",
+      "before": "0b87d916faf1b83188bd9e16aab6491765478d7307c883fb407c8fca9c6d0192",
+      "after": "0a0702a6f2747f4d974ad25d095714c49e646878b9215b8052bb9dc00a9afa67"
+    },
+    {
+      "path": "apps/service/src/resource-chat.test.ts",
+      "before": "72ce74c4876446db2f85d555c204c6e82a4a902ef488e30829ce9eb2568928dd",
+      "after": "b39a5c958ed6115746f8704a28374b67a216e1b2acd650db8ea7f9330efcee78"
+    },
+    {
+      "path": "apps/service/src/resource-dispatch.test.ts",
+      "before": "4da459e1158eba5fd4b353bbbdc1b5096080c4325de2f232077e650938991af1",
+      "after": "624ed1cd33adbdf13eaadf0235cdef4662fd1f887b4774e5d50cdd07215ab129"
+    }
+  ],
+  "missingInitialFiles": [],
+  "newSourceFiles": [
+    "apps/desktop/src/main/workbench/review-lifecycle.test.ts",
+    "apps/service/src/index.test.ts",
+    "e2e/review-regressions.spec.ts"
+  ],
+  "unchangedHistoricalEvidence": true,
+  "frozenBaselineUnchanged": true
+}

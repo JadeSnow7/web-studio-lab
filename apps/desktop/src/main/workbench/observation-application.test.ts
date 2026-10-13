@@ -1,3 +1,4 @@
+import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
@@ -11,6 +12,8 @@ import type { TerminalSnapshot, ObservationRequest, ObservationResult, Workbench
 async function setup() {
   const archived: unknown[] = [];
   const repository: WorkbenchRepository = {
+    migrationPending: false,
+    loadCatalog: catalogForTestSnapshot,
     load: async () => null,
     save: vi.fn(),
     appendObservation: vi.fn(async (record) => {
@@ -46,11 +49,10 @@ async function setup() {
       },
     ]),
     registerResource: vi.fn(),
+    releaseResource: vi.fn(),
     observe: vi.fn(async (request) => result(request)),
     registerSession: vi.fn(),
-    publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
-    publicResourcesCapture: vi.fn(),
-    publicResourcesRemove: vi.fn(),
+    captureResource: vi.fn(),
     validateBrowserUrl: vi.fn(),
     ensureBrowser: vi.fn(),
     browserState: vi.fn(),
@@ -499,7 +501,7 @@ describe('Main observation ownership and lifecycle', () => {
     const root = await mkdtemp(path.join(tmpdir(), 'wsl-observe-restore-'));
     try {
       const repository = new FileWorkbenchRepository(path.join(root, 'workbench.json'));
-      await repository.save(saved);
+      await repository.save(saved, await catalogForTestSnapshot(saved));
       vi.mocked(runtime.send).mockResolvedValue({
         conversationId: session.sessionId,
         generation: 'gen',
@@ -539,6 +541,8 @@ describe('Main observation ownership and lifecycle', () => {
     placeholder.instanceId = null;
     placeholder.unavailableReason = '旧占位资源未绑定授权环境';
     const repository: WorkbenchRepository = {
+      migrationPending: false,
+      loadCatalog: catalogForTestSnapshot,
       load: async () => structuredClone(snapshot),
       save: vi.fn(),
       appendObservation: vi.fn(async () => randomUUID()),

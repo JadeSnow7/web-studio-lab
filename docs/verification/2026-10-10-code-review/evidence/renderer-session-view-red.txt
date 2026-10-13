@@ -1,0 +1,28 @@
+
+Running 1 test using 1 worker
+
+(node:54816) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/review-regressions.spec.ts:166:3 › late screenshot preserves its owner without returning from session-view-keyboard (1.8s)
+
+
+  1) e2e/review-regressions.spec.ts:166:3 › late screenshot preserves its owner without returning from session-view-keyboard 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      224 |     expect(
+      225 |       await app.evaluate(() => (globalThis as ReviewGlobal).reviewGate.commands.filter((c) => c.type === 'locateSession').length),
+    > 226 |     ).toBe(0);
+          |       ^
+      227 |     if (destination === 'route') await expect(page.getByRole('heading', { name: '任务历史' })).toBeVisible();
+      228 |     else if (destination === 'space')
+      229 |       await expect(page.getByRole('button', { name: '切换空间', exact: true })).toContainText('Review 其它空间');
+        at /Users/huaodong/workspace/web-studio-lab/e2e/review-regressions.spec.ts:226:7
+
+    Error Context: test-results/e2e/review-regressions-late-sc-dff88--from-session-view-keyboard/error-context.md
+
+  1 failed
+    e2e/review-regressions.spec.ts:166:3 › late screenshot preserves its owner without returning from session-view-keyboard 

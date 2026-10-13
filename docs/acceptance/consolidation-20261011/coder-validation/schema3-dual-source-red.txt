@@ -1,0 +1,38 @@
+
+ RUN  v5.0.3 /private/tmp/wsl-consolidate-review-20261011
+
+ ❯ apps/desktop/src/main/workbench/space-app-persistence.test.ts (6 tests | 2 failed) 62ms
+   × migrates the actual catalog-free space-app schema3 shape (App present: false) 6ms
+   × migrates the actual catalog-free space-app schema3 shape (App present: true) 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/workbench/space-app-persistence.test.ts > migrates the actual catalog-free space-app schema3 shape (App present: false)
+ FAIL  apps/desktop/src/main/workbench/space-app-persistence.test.ts > migrates the actual catalog-free space-app schema3 shape (App present: true)
+ZodError: [
+  {
+    "expected": "object",
+    "code": "invalid_type",
+    "path": [
+      "catalog"
+    ],
+    "message": "Invalid input: expected object, received undefined"
+  }
+]
+ ❯ FileWorkbenchRepository.load apps/desktop/src/main/workbench/repository.ts:104:31
+    102|       throw error;
+    103|     }
+    104|     const stored = FileSchema.parse(JSON.parse(contents));
+       |                               ^
+    105|     this.loadedFile = stored;
+    106|     if (stored.schemaVersion === 3 || stored.schemaVersion === 4) {
+ ❯ apps/desktop/src/main/workbench/space-app-persistence.test.ts:160:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 4 passed (6)
+   Start at  16:26:29
+   Duration  619ms (transform 57%, import 29%, tests 13%, worker 1%)
+

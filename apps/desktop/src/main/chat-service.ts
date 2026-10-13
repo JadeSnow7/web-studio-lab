@@ -2,6 +2,11 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { app, utilityProcess, type UtilityProcess } from 'electron';
 import {
+  ManagedAppSchema,
+  AppSourceSchema,
+  type AppTarget,
+  type AppSource,
+  type ManagedApp,
   EnvironmentListSchema,
   ServiceRuntimeConfigSchema,
   type ServiceRuntimeConfig,
@@ -11,11 +16,7 @@ import {
   type ObservationTurnScope,
   type WorkspaceObservationResult,
   type FileInvalidationHint,
-  ResourceCollectionSchema,
-  ResourceListRequestSchema,
-  ResourceSaveRequestSchema,
-  ResourceRemoveRequestSchema,
-  type PageResourceSnapshot,
+  type CatalogReferenceSnapshot,
   ChatConversationSchema,
   TerminalSnapshotSchema,
   type TerminalSnapshot,
@@ -26,10 +27,19 @@ import {
   type ChatServiceRequest,
   type ChatSlot,
   type ChatStatus,
+  AppAgentResultSchema,
+  AppLogsSchema,
+  type AppAgentOperation,
+  type AppControlResult,
 } from '@wsl/protocol';
 
 export class ChatService {
   private child: UtilityProcess;
+  private readonly managedApps = new Map<string, ManagedApp>();
+  private appListener: ((snapshot: ManagedApp) => void) | null = null;
+  setAppListener(listener: (snapshot: ManagedApp) => void) {
+    this.appListener = listener;
+  }
   private readonly pending = new Map<
     string,
     {
@@ -61,6 +71,13 @@ export class ChatService {
   setObservationReader(reader: NonNullable<ChatService['observationReader']>) {
     this.observationReader = reader;
   }
+  private appControlReader:
+    ((scope: ObservationTurnScope, tool: string, args: Record<string, unknown>, signal: AbortSignal) => Promise<AppControlResult>) | null =
+    null;
+  private readonly appCalls = new Map<string, AbortController>();
+  setAppControlReader(reader: NonNullable<ChatService['appControlReader']>) {
+    this.appControlReader = reader;
+  }
   private lastStatus: ChatStatus | null = null;
   constructor(
     private readonly onConversation: (conversation: ChatConversation) => void,
@@ -86,10 +103,49 @@ export class ChatService {
     this.child.on('message', (raw: unknown) => {
       try {
         const message = ChatServiceMessageSchema.parse(raw);
+        if (message.type === 'app-event') {
+          this.managedApps.set(message.snapshot.projectId, message.snapshot);
+          this.appListener?.(message.snapshot);
+          return;
+        }
         if (message.type === 'initialized') {
           this.initializationPending = message.cleanupPending;
           this.lastStatus = message.status;
           this.onStatus(message.status);
+          return;
+        }
+        if (message.type === 'app-abort') {
+          this.appCalls.get(message.id)?.abort();
+          return;
+        }
+        if (message.type === 'app-call') {
+          if (this.appCalls.has(message.id)) throw new Error('控制面调用身份重复');
+          const controller = new AbortController();
+          this.appCalls.set(message.id, controller);
+          const call: Promise<AppControlResult> = this.appControlReader
+            ? this.appControlReader(message.scope, message.tool, message.args, controller.signal)
+            : Promise.resolve({ ok: false, tool: message.tool, error: { code: 'unsupported', message: 'Main控制面未接入' } });
+          void call
+            .then(
+              (result) => this.request({ method: 'app.reply', payload: { callId: message.id, result } }),
+              (error) =>
+                this.request({
+                  method: 'app.reply',
+                  payload: {
+                    callId: message.id,
+                    result: { ok: false, tool: message.tool, error: { code: 'unavailable', message: (error as Error).message } },
+                  },
+                }),
+            )
+            .then(
+              () => {
+                this.appCalls.delete(message.id);
+              },
+              (error) => {
+                this.appCalls.delete(message.id);
+                this.fail('控制面返回通道失败：' + (error as Error).message);
+              },
+            );
           return;
         }
         if (message.type === 'observation-abort') {
@@ -167,7 +223,21 @@ export class ChatService {
   }
   private fail(reason: string) {
     for (const controller of this.observationCalls.values()) controller.abort();
+    for (const controller of this.appCalls.values()) controller.abort();
     this.failure ??= reason;
+    for (const current of this.managedApps.values()) {
+      if (current.state === 'running' || current.state === 'starting' || current.state === 'stopping') {
+        const failed: ManagedApp = {
+          ...current,
+          state: 'failed',
+          url: null,
+          error: reason + '；应用进程清理未确认',
+          cleanupConfirmed: false,
+        };
+        this.managedApps.set(current.projectId, failed);
+        this.appListener?.(failed);
+      }
+    }
     for (const request of this.pending.values()) {
       const start = request.start;
       if (!start) continue;
@@ -248,26 +318,61 @@ export class ChatService {
       this.terminals.delete(binding.resourceId);
     this.resourceBindings.set(binding.resourceId, binding);
   }
+  async releaseResource(binding: ResourceInstanceIdentity) {
+    await this.request({ method: 'resource.release', payload: binding });
+    this.resourceBindings.delete(binding.resourceId);
+  }
+  async appGet(target: AppTarget) {
+    const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.get', payload: target }));
+    this.managedApps.set(target.projectId, snapshot);
+    return snapshot;
+  }
+  async appCreate(target: AppTarget, files: AppSource['files']) {
+    const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.create', payload: { ...target, files } }));
+    this.managedApps.set(target.projectId, snapshot);
+    return snapshot;
+  }
+  async appStart(target: AppTarget) {
+    const previous = this.managedApps.get(target.projectId);
+    if (previous) this.managedApps.set(target.projectId, { ...previous, state: 'starting', cleanupConfirmed: false });
+    const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.start', payload: target }));
+    this.managedApps.set(target.projectId, snapshot);
+    return snapshot;
+  }
+  async appStop(target: AppTarget) {
+    const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.stop', payload: target }));
+    this.managedApps.set(target.projectId, snapshot);
+    return snapshot;
+  }
+  async appExport(target: AppTarget) {
+    return AppSourceSchema.parse(await this.request({ method: 'app.export', payload: target }));
+  }
+  /** 控制面后端操作；取消时通知 service 关闭所属 guest 进程并等待其回执。 */
+  async appAgent(target: AppTarget, appInstanceId: string | null, operation: AppAgentOperation, signal: AbortSignal) {
+    if (signal.aborted)
+      return {
+        mode: 'http' as const,
+        cleanupConfirmed: true,
+        ...(operation.op !== 'reconcile' && operation.op !== 'reconcile-cli' ? { operationDispatched: false as const } : {}),
+        envelope: { ok: false as const, error: { code: 'cancelled', message: '控制面请求已取消' } },
+      };
+    const callId = randomUUID();
+    const cancel = () => void this.request({ method: 'app.agent.cancel', payload: { callId } }).catch(() => undefined);
+    signal.addEventListener('abort', cancel, { once: true });
+    try {
+      return AppAgentResultSchema.parse(await this.request({ method: 'app.agent', payload: { callId, target, appInstanceId, operation } }));
+    } finally {
+      signal.removeEventListener('abort', cancel);
+    }
+  }
+  async appLogs(target: AppTarget, maxBytes: number) {
+    return AppLogsSchema.parse(await this.request({ method: 'app.logs', payload: { target, maxBytes } }));
+  }
   async observe(request: ObservationRequest) {
     return ObservationResultSchema.parse(await this.request({ method: 'observation.read', payload: request }));
   }
   async cancelObservation(requestId: string) {
     await this.request({ method: 'observation.cancel', payload: { requestId } });
-  }
-  async resourcesList(spaceId: string) {
-    return ResourceCollectionSchema.parse(
-      await this.request({ method: 'resources.list', payload: ResourceListRequestSchema.parse({ spaceId }) }),
-    );
-  }
-  async resourcesSave(spaceId: string, snapshot: PageResourceSnapshot, resourceId?: string) {
-    return ResourceCollectionSchema.parse(
-      await this.request({ method: 'resources.save', payload: ResourceSaveRequestSchema.parse({ spaceId, snapshot, resourceId }) }),
-    );
-  }
-  async resourcesRemove(spaceId: string, resourceId: string) {
-    return ResourceCollectionSchema.parse(
-      await this.request({ method: 'resources.remove', payload: ResourceRemoveRequestSchema.parse({ spaceId, resourceId }) }),
-    );
   }
   async status() {
     if (this.failure)
@@ -287,8 +392,10 @@ export class ChatService {
   async get(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'get', payload: { conversationId: id } }));
   }
-  async send(id: ChatSlot, text: string, observationScope?: ObservationTurnScope) {
-    return ChatConversationSchema.parse(await this.request({ method: 'send', payload: { conversationId: id, text, observationScope } }));
+  async send(id: ChatSlot, text: string, observationScope: ObservationTurnScope | undefined, references: CatalogReferenceSnapshot) {
+    return ChatConversationSchema.parse(
+      await this.request({ method: 'send', payload: { conversationId: id, text, observationScope, references } }),
+    );
   }
   async cancel(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'cancel', payload: { conversationId: id } }));
@@ -340,7 +447,10 @@ export class ChatService {
         }
       }
       await this.exit;
-    })();
+    })().catch((error: unknown) => {
+      this.shutdownResult = null;
+      throw error;
+    });
     return this.shutdownResult;
   }
 }

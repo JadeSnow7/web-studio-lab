@@ -1,3 +1,4 @@
+import { prepareTemplatePayload } from './template-payload.mjs';
 /* global process */
 import { cp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -66,10 +67,12 @@ export async function preparePayloads(cache = path.join(root, 'packaging/cache')
   const pythonSource = lock.sources.find((source) => source.id === 'python');
   const pythonBytes = await expandedBytes(path.join(runtimeRoot, 'python'));
   const guestBytes = await expandedBytes(guest);
+  const template = await prepareTemplatePayload(runtimeRoot, path.join(temporary, 'template'));
   const manifest = {
+    template,
     schemaVersion: 1,
     platform: 'darwin-arm64',
-    minimumFreeBytes: 2 * (pythonBytes + guestBytes) + 8 * 1024 ** 3,
+    minimumFreeBytes: 2 * (pythonBytes + guestBytes + template.expandedBytes) + 8 * 1024 ** 3,
     python: {
       path: 'python/bin/python3',
       executable: 'python/bin/python3',

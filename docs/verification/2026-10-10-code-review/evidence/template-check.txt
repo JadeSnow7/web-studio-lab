@@ -1,0 +1,15 @@
+
+> @wsl/standard-app@1.0.0 check
+> tsc --noEmit && tsc -p tsconfig.server.json --noEmit && node --import tsx --test tests/*.test.ts
+
+(node:47463) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ disk persistence, idempotent migration/seed, A/B isolation and input/session boundaries (1066.714625ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1829.635875

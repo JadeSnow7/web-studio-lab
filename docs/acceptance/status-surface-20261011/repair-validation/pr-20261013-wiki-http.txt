@@ -1,0 +1,18 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /^HTTP\/1.1 200 /. Input:
+
+''
+
+    at file:///Users/huaodong/workspace/_worktrees/pr-ready-20261013/[eval1]:29:12 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: '',
+  expected: /^HTTP\/1.1 200 /,
+  operator: 'match',
+  diff: 'simple'
+}
+
+Node.js v26.5.0

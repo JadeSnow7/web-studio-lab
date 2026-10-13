@@ -1,0 +1,8 @@
+
+Running 3 tests using 1 worker
+
+  ✓  1 e2e/workspace-migration.spec.ts:153:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 (4.0s)
+  ✓  2 e2e/workspace-migration.spec.ts:153:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 (2.9s)
+  ✓  3 e2e/workspace-migration.spec.ts:153:1 › R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点 (2.9s)
+
+  3 passed (11.4s)

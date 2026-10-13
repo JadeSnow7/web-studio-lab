@@ -1,0 +1,22 @@
+
+sandbox    wsl-review-20261010-5e83a9
+agent      codex
+workspace  none · no workspace bind mount
+image      docker/sandbox-templates:codex-docker
+cpu        2
+memory     4g
+
+Pulling image
+  8b4cd0a46c8b already present
+  4478aac4b542 already present
+  4caad438b9ed already present
+  6db24c2c2317 already present
+  f2fa53ce37dd already present
+  69eddaf8acd5 already present
+  ef1af6345ed8 already present
+✓ Image ready
+Using stored OpenAI OAuth credentials
+✓ Created sandbox wsl-review-20261010-5e83a9
+
+To connect to this sandbox, run:
+  sbx run --name wsl-review-20261010-5e83a9

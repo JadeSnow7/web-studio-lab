@@ -1,0 +1,107 @@
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/debug-status.test.ts > WSL_STATUS_LOG 真实文件 > 以 snapshot 前缀开头但不是诊断日志的文件同样拒绝，原字节不变
+AssertionError: expected '{"type":"snapshot","appInstanceId":"u…' to be '{"type":"snapshot","system":"inventor…' // Object.is equality
+
+- Expected
++ Received
+
+- {"type":"snapshot","system":"inventory","records":[{"sku":"A1","quantity":50}]}
++ {"type":"snapshot","appInstanceId":"unavailable","seq":0,"generatedAt":"2026-10-11T00:00:00.000Z","facts":[]}
++ {"type":"transition","key":"chat:global:state","from":null,"to":{"phase":"ok","kind":"steady","label":"对话可用"},"at":"2026-10-11T00:00:01.000Z","seq":1}
++ {"type":"transition","key":"chat:global:state","from":{"phase":"ok","kind":"steady","label":"对话可用"},"to":{"phase":"failed","kind":"problem","label":"对话不可用"},"at":"2026-10-11T00:00:02.000Z","seq":2}
+
+
+ ❯ apps/desktop/src/main/debug-status.test.ts:484:42
+    482|       debug.onChat(chat());
+    483|       debug.onChat(chat({ available: false }));
+    484|       expect(readFileSync(file, 'utf8')).toBe(content);
+       |                                          ^
+    485|       expect(errors).toHaveLength(1);
+    486|       expect(debug.snapshot().transitions).toHaveLength(2);
+ ❯ withDir apps/desktop/src/main/debug-status.test.ts:405:7
+ ❯ apps/desktop/src/main/debug-status.test.ts:476:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  apps/desktop/src/main/debug-status.test.ts > WSL_STATUS_LOG 真实文件 > 上次诊断留下的日志同样拒绝，旧内容原样保留
+AssertionError: expected '{"type":"snapshot","appInstanceId":"u…' to be '{"type":"snapshot","facts":[]}\n{"typ…' // Object.is equality
+
+- Expected
++ Received
+
+- {"type":"snapshot","facts":[]}
+- {"type":"transition","key":"old"}
++ {"type":"snapshot","appInstanceId":"unavailable","seq":1,"generatedAt":"2026-10-11T00:00:01.000Z","facts":[{"key":"chat:global:state","domain":"chat","facet":"state","scope":{"kind":"global"},"phase":"ok","kind":"steady","priority":10,"label":"对话可用","detail":"0.160.0 · sbx-1 · /work","instanceToken":"global","raw":{"available":true}}]}
+
+
+ ❯ apps/desktop/src/main/debug-status.test.ts:497:42
+    495|       debug.onChat(chat());
+    496|       debug.startLog();
+    497|       expect(readFileSync(file, 'utf8')).toBe(content);
+       |                                          ^
+    498|       expect(errors).toHaveLength(1);
+    499|     }));
+ ❯ withDir apps/desktop/src/main/debug-status.test.ts:405:7
+ ❯ apps/desktop/src/main/debug-status.test.ts:490:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  apps/desktop/src/main/debug-status.test.ts > 事实更新通知（debug:facts-changed） > 新增事实与 detail / raw 变化每批通知一次；detail / raw 不产生转换、不增加 seq、不写 NDJSON
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ apps/desktop/src/main/debug-status.test.ts:532:22
+    530|     debug.startLog();
+    531|     debug.onChat(chat({ version: '1' }));
+    532|     expect(notified).toBe(1);
+       |                      ^
+    533|     const seqAfterAdd = debug.snapshot().seq;
+    534|     const writesAfterAdd = log.writes.length;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  apps/desktop/src/main/debug-status.test.ts > 事实更新通知（debug:facts-changed） > 完全相同的投影不通知；仅 appInstanceId 变化也通知一次、不产生转换
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ apps/desktop/src/main/debug-status.test.ts:560:22
+    558|     debug.onChat(chat());
+    559|     debug.onChat(chat());
+    560|     expect(notified).toBe(1);
+       |                      ^
+    561|
+    562|     debug.onWorkbench(workbench(1, null));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  apps/desktop/src/main/debug-status.test.ts > 事实更新通知（debug:facts-changed） > emitFactsChanged 抛错只报告一次，不打断事实更新、转换与 NDJSON
+AssertionError: expected +0 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 0
+
+ ❯ apps/desktop/src/main/debug-status.test.ts:594:19
+    592|       debug.onChat(chat({ available: false }));
+    593|     }).not.toThrow();
+    594|     expect(calls).toBe(3);
+       |                   ^
+    595|     expect(errors).toHaveLength(1);
+    596|     expect(errors[0]).toContain('通知失败');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+

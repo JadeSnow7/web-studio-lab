@@ -1,0 +1,18 @@
+{
+  "taskId": "app-control-fixed-welcome",
+  "version": 1,
+  "template": { "templateId": "wsl-standard-app", "templateVersion": "1.1.0" },
+  "goal": "在首页“应用服务”区块下方新增“欢迎语”卡片：以开发会话 A 读取 kv 键 welcome 显示于 data-testid=\"welcome-value\"；提供输入框 data-testid=\"welcome-input\" 与“保存欢迎语”按钮 data-testid=\"welcome-save\"；点击后经 PUT /api/kv/welcome 保存并显示新值；去除首尾空白后为空时显示“请输入欢迎语”（data-testid=\"welcome-error\"）且不发请求；刷新页面后仍显示已保存值；用 exposeState('welcome', …) 暴露 {value, saving, error}。不修改其他 API 与测试基准。",
+  "allowedScopes": ["src/App.tsx", "src/components/**", "agent/**"],
+  "acceptance": [
+    "固定场景 scenario.json 全部步骤 passed，经 UI 动作完成",
+    "Host 只读查询 SELECT value FROM records WHERE user_id = 'A' AND key = 'welcome' 返回 固定验收 2026",
+    "npm run agent:check 与 npm run check 通过",
+    "除 allowedScopes 外无源码变更"
+  ],
+  "precondition": "新实例数据：仅 seed（A、B 的 welcome = Ready）",
+  "postQuery": {
+    "sql": "SELECT value FROM records WHERE user_id = 'A' AND key = 'welcome'",
+    "expectedRows": [{ "value": "固定验收 2026" }]
+  }
+}

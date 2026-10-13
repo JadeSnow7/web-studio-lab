@@ -1,0 +1,26 @@
+
+Running 1 test using 1 worker
+
+(node:59928) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /private/tmp/wsl-review-packaged-app-20261010-final/profile ELECTRON_PID 59929
+ELECTRON_STDERR (node:59929) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Web Studio Lab --trace-warnings ...` to show where the warning was created)
+
+MANAGED_APP_EVIDENCE /private/tmp/wsl-review-packaged-app-20261010-final
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:58744/e02da99a-839f-457c-adf3-3ac5ff8255c6
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✘  1 e2e/managed-app-live.spec.ts:9:1 › real sbx standard app through product Browser, persistence, export and cancellation (10.0m)
+
+
+  1) e2e/managed-app-live.spec.ts:9:1 › real sbx standard app through product Browser, persistence, export and cancellation 
+
+    Test timeout of 600000ms exceeded.
+
+    Error Context: docs/verification/2026-10-10-code-review/evidence/e2e-packaged-app-final-results/managed-app-live-real-sbx--7ad7a-nce-export-and-cancellation/error-context.md
+
+  Slow test file: e2e/managed-app-live.spec.ts (10.0m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 failed
+    e2e/managed-app-live.spec.ts:9:1 › real sbx standard app through product Browser, persistence, export and cancellation 

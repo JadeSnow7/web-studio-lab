@@ -1,3 +1,4 @@
+import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -38,8 +39,8 @@ async function runningFixture() {
       },
     ]),
     registerResource: vi.fn(),
+    releaseResource: vi.fn(),
     observe: vi.fn(),
-    publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
     registerSession: vi.fn(),
     send: vi.fn(),
   } as unknown as WorkbenchRuntime;
@@ -75,7 +76,7 @@ async function runningFixture() {
   };
   const runId = saved.workspaces[0]!.runs[0]!.runId;
   saved.notificationReadReceipts = [{ notificationId: w.workspaceId + ':' + runId + ':interrupted', readAt: '2026-10-08T00:00:00.000Z' }];
-  await repository.save(saved);
+  await repository.save(saved, await catalogForTestSnapshot(saved));
   return { repository, runtime, file, runId };
 }
 describe('R1/R6 durable recovery facts', () => {

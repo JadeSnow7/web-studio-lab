@@ -1,5 +1,5 @@
 import { initializeSetup } from './state/setup';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ROUTE_TITLES } from './shell/routes';
 import { useStore } from './lib/store';
 import { useViewportWidth } from './lib/viewport';
@@ -9,6 +9,7 @@ import { ResourcesPage } from './pages/ResourcesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SpacePage } from './pages/SpacePage';
 import { TasksPage } from './pages/TasksPage';
+import { DebugPanel } from './shell/DebugPanel';
 import { ErrorToasts, ModalLayer } from './shell/Overlays';
 import { RightPanel } from './shell/RightPanel';
 import { TitleBar } from './shell/TitleBar';
@@ -16,8 +17,10 @@ import { Workshop } from './shell/Workshop';
 import { shellActions, shellStore, initializeShell } from './state/shell';
 import { panelMode } from './state/panels';
 import { workspaceStore, initializeWorkspace, panes } from './state/workspace';
+import { debugActions } from './state/debug';
 import { occlusion } from './state/occlusion';
 import { spaceActions } from './state/space-ui';
+import { startStatusPresentationSync } from './state/status-view';
 export function App() {
   const shell = useStore(shellStore, (s) => s);
   const state = useStore(workspaceStore, (s) => s);
@@ -28,12 +31,16 @@ export function App() {
     initializeShell();
     void initializeWorkspace();
     const unsubscribe = initializeSetup();
+    const unsyncStatus = startStatusPresentationSync();
     void Promise.all([window.studio.app.getInfo(), window.studio.setup.status()])
       .then(([info, setup]) => {
         if (info.packaged && (setup.stage !== 'ready' || setup.error)) shellActions.navigate('settings');
       })
       .catch((error: unknown) => console.error('安装状态初始化失败', error));
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      unsyncStatus();
+    };
   }, []);
   useEffect(() => {
     document.title = `${ROUTE_TITLES[shell.route]} · ${workspace?.name ?? '加载空间'} · Web Studio Lab`;
@@ -72,8 +79,27 @@ export function App() {
       }),
     [],
   );
+  // 菜单「诊断」（⇧⌥⌘D）：仅 Main 启用诊断通道时 preload 才有 debug。
+  useEffect(() => window.studio.debug?.onTogglePanel(() => void debugActions.toggle()), []);
   const leftMode = shell.focusMode ? 'collapsed' : panelMode(shell.workshop, narrow);
   const rightMode = shell.focusMode ? 'collapsed' : panelMode(shell.rightPanel, narrow);
+  useEffect(() => {
+    const dismiss = (event: MouseEvent) => {
+      const top = occlusion.top();
+      if (top !== 'left' && top !== 'right') return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      // A nested menu/dialog owns dismissal; clicking either pane or its trigger
+      // keeps the other pane open so both can be used together.
+      if (target.closest('dialog, [role="menu"], .workshop, .right-panel, #left-panel-trigger, #right-panel-trigger')) return;
+      const other = top === 'left' ? 'right' : 'left';
+      if (occlusion.store.get()[other]) shellActions.closePanel(other, false);
+      shellActions.closePanel(top, false);
+    };
+    // Bubble after React handlers acquire any nested menu/dialog barrier.
+    document.addEventListener('click', dismiss);
+    return () => document.removeEventListener('click', dismiss);
+  }, []);
   useEffect(() => {
     const clearLeft = leftMode !== 'overlay' && shell.workshop.peek;
     const clearRight = rightMode !== 'overlay' && shell.rightPanel.peek;
@@ -89,9 +115,24 @@ export function App() {
     }
   }, [leftMode, rightMode, shell.workshop.peek, shell.rightPanel.peek]);
   const occluded = Object.keys(barriers).length > 0;
+  // 存储横幅出现时，Toast 整体上移到横幅之上，两者互不遮挡；横幅本身的位置与文案不变。
+  const storageError = state.snapshot?.storageError;
+  const banner = useRef<HTMLParagraphElement>(null);
+  const [bannerHeight, setBannerHeight] = useState(0);
+  useEffect(() => {
+    const node = banner.current;
+    if (!storageError || !node) return;
+    // ResizeObserver 在 observe 之后会立即回调一次，所以不需要在 effect 里同步 setState。
+    const observer = new ResizeObserver(() => setBannerHeight(Math.ceil(node.getBoundingClientRect().height)));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [storageError]);
   return (
-    <div className="app remake-app">
-      <TitleBar />
+    <div
+      className="app remake-app"
+      style={storageError && bannerHeight ? ({ '--storage-banner-h': `${bannerHeight + 8}px` } as React.CSSProperties) : undefined}
+    >
+      <TitleBar leftMode={leftMode} rightMode={rightMode} />
       <div className="app-body">
         <Workshop mode={leftMode} />
         <main className="content">
@@ -117,24 +158,12 @@ export function App() {
         <RightPanel mode={rightMode} />
       </div>
       <ModalLayer />
+      <DebugPanel />
       <ErrorToasts />
-      {state.snapshot?.storageError ? (
-        <p role="alert" className="workspace-error">
-          持久化失败：{state.snapshot.storageError}。当前状态仅保留在内存中。
+      {storageError ? (
+        <p role="alert" className="workspace-error" ref={banner}>
+          持久化失败：{storageError}。当前状态仅保留在内存中。
         </p>
-      ) : null}
-      {state.error ? (
-        <div role="alert" className="workspace-error">
-          <span>{state.error}</span>
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="关闭错误提示"
-            onClick={() => workspaceStore.set((s) => ({ ...s, error: null }))}
-          >
-            ×
-          </button>
-        </div>
       ) : null}
     </div>
   );

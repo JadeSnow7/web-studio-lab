@@ -1,0 +1,28 @@
+{
+  "name": "final-v2-targeted-vitest",
+  "command": [
+    "pnpm",
+    "exec",
+    "vitest",
+    "run",
+    "apps/desktop/src/shared/status",
+    "apps/desktop/src/main/debug-status.test.ts",
+    "apps/desktop/src/main/ipc-guard.test.ts",
+    "apps/desktop/src/renderer/src/state/status-view.test.ts",
+    "apps/desktop/src/renderer/src/state/debug.test.ts"
+  ],
+  "cwd": "/Users/huaodong/workspace/_worktrees/status-surface-20261011",
+  "head": "1bce260678c5d60e6889a093e0c523c333019fca",
+  "startedAt": "2026-10-12T15:53:57.752Z",
+  "endedAt": "2026-10-12T15:54:00.278Z",
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "envOverrides": { "WSL_E2E_TARGET": "build", "WSL_APP_HASH_REJECTION": "0" },
+  "productSourceDiff": {
+    "sha256Before": "d18e5e9dbf25264d65e80843f6d9aa5ee7b5f9b08e2bc900b494ab62e42206ab",
+    "sha256After": "d18e5e9dbf25264d65e80843f6d9aa5ee7b5f9b08e2bc900b494ab62e42206ab",
+    "changedDuringRun": false
+  },
+  "notes": "txt 为子进程 stdout 与 stderr 原始字节按到达顺序的交错记录，未经过 shell；meta 只记录上方 envOverrides，不转储其他环境变量。"
+}

@@ -59,6 +59,7 @@ export function ConversationsPage() {
         )}
       </nav>
       <section className="page-main conv-detail" aria-label="会话详情">
+        <p className="muted small">个人会话仅使用你明确选择的收藏正文版本。空间任务在空间页面执行。</p>
         <button type="button" className="btn" onClick={() => shellActions.navigate('space')}>
           返回空间工作会话
         </button>

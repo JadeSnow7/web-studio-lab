@@ -2,6 +2,7 @@ import { createStore } from '../lib/store';
 import { closePanel, panelMode, pinPanel, restorePanels, togglePanel, persistPanels, type PanelState } from './panels';
 import { occlusion } from './occlusion';
 import { reportError } from './errors';
+import { beginNavigation } from './workspace';
 export type Route = 'home' | 'space' | 'resources' | 'conversations' | 'tasks' | 'settings';
 export interface ShellState {
   route: Route;
@@ -45,33 +46,33 @@ const restoreTrigger = (side: Side) => document.getElementById(side === 'left' ?
 async function updatePanel(side: Side, next: PanelState) {
   const field = key(side);
   if (panelMode(next, narrow()) === 'overlay' && !(await occlusion.open(side))) return;
-  shellStore.set((s) => ({ ...s, [field]: next }));
+  shellStore.set((s) => ({ ...s, focusMode: false, [field]: next }));
   if (panelMode(next, narrow()) !== 'overlay') occlusion.close(side);
+}
+function toggleShellPanel(side: Side) {
+  if (occlusion.store.get()[side] && !occlusion.visible(side)) {
+    shellActions.closePanel(side);
+    return;
+  }
+  const state = shellStore.get();
+  // Focus mode visually collapses both panes, so the first activation opens
+  // the requested pane even if its underlying pinned state was docked.
+  const current = state.focusMode ? closePanel(state[key(side)]) : state[key(side)];
+  return updatePanel(side, togglePanel(current, narrow()));
 }
 export const shellActions = {
   navigate: (route: Route) => {
+    beginNavigation();
     const peeking = shellStore.get().workshop.peek || !!occlusion.store.get()['left'];
     shellStore.set((s) => navigate(s, route));
     if (peeking) shellActions.closePanel('left');
   },
-  toggleWorkshop: () => {
-    if (occlusion.store.get()['left'] && !occlusion.visible('left')) {
-      shellActions.closePanel('left');
-      return;
-    }
-    return updatePanel('left', togglePanel(shellStore.get().workshop, narrow()));
-  },
-  toggleRightPanel: () => {
-    if (occlusion.store.get()['right'] && !occlusion.visible('right')) {
-      shellActions.closePanel('right');
-      return;
-    }
-    return updatePanel('right', togglePanel(shellStore.get().rightPanel, narrow()));
-  },
-  closePanel: (side: Side) => {
+  toggleWorkshop: () => toggleShellPanel('left'),
+  toggleRightPanel: () => toggleShellPanel('right'),
+  closePanel: (side: Side, restoreFocus = true) => {
     occlusion.close(side);
     shellStore.set((s) => ({ ...s, [key(side)]: closePanel(s[key(side)]) }));
-    restoreTrigger(side);
+    if (restoreFocus) restoreTrigger(side);
   },
   setPinned: async (pinned: boolean, side: Side = 'left') => {
     const next = pinPanel(shellStore.get()[key(side)], pinned);

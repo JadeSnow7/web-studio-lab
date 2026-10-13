@@ -1,0 +1,97 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/desktop/src/main/setup.test.ts (9 tests | 2 failed) 96ms
+   ❯ persisted installer (9)
+     × rejects new setup actions after shutdown without invoking adapters or changing persisted settings 5ms
+     × keeps admission closed while cleanup is pending and permits repeated shutdown cleanup recovery 54ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/main/setup.test.ts > persisted installer > rejects new setup actions after shutdown without invoking adapters or changing persisted settings
+AssertionError: promise resolved "{ pendingLogin: null, …(8) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "busy": false,
++   "config": {
++     "localRoot": null,
++     "pythonBinary": "/App/runtime/python/bin/python3",
++     "sandbox": null,
++     "sbxBinary": "/Applications/Sbx.app/Contents/MacOS/sbx",
++     "schemaVersion": 1,
++     "ssh": null,
++   },
++   "error": null,
++   "modelConnectionVerified": false,
++   "modelCredentialsConfigured": false,
++   "pendingLogin": null,
++   "restartRequired": true,
++   "schemaVersion": 1,
++   "stage": "docker-login",
+  }
+
+ ❯ apps/desktop/src/main/setup.test.ts:172:51
+    170|       () => manager.save({ localRoot: null, ssh: null }),
+    171|       () => manager.authorizeLocalRoot('/new-root'),
+    172|     ]) await expect(Promise.resolve().then(action)).rejects.toMatchObj…
+       |                                                   ^
+    173|     expect(implementation.check).not.toHaveBeenCalled();
+    174|     expect(implementation.login).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/main/setup.test.ts > persisted installer > keeps admission closed while cleanup is pending and permits repeated shutdown cleanup recovery
+AssertionError: expected Error: 上次登录进程尚待确认，请重试或取消登录 { code: '…' } to match object { code: 'closing' }
+
+- Expected
++ Received
+
+- {
+-   "code": "closing",
++ SetupError {
++   "code": "login-pending",
+  }
+
+ ❯ apps/desktop/src/main/setup.test.ts:192:27
+    190|     const admission = manager.check();
+    191|     release();
+    192|     await expect(admission).rejects.toMatchObject({ code: 'closing' });
+       |                           ^
+    193|     await expect(shuttingDown).rejects.toThrow('退出未确认');
+    194|     await loggingIn;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: 退出未确认
+ ❯ SetupManager.shutdown apps/desktop/src/main/setup.ts:92:68
+     90|     this.operation?.abort();
+     91|     await this.idle;
+     92|     if (this.snapshot.error?.code === 'cleanup-unconfirmed') throw new…
+       |                                                                    ^
+     93|   }
+     94|   status() {
+
+This error originated in "apps/desktop/src/main/setup.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The last test to run before this error was "preserves interrupted state without replaying installation". This means either:
+- the error was thrown while Vitest was running this test, or
+- the error was thrown after the test completed, and this was the most recent test at that point.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 7 passed (9)
+     Errors  1 error
+   Start at  21:03:29
+   Duration  306ms (tests 41%, transform 34%, import 24%, worker 1%)
+

@@ -1,3 +1,4 @@
+import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { mkdtemp, readFile, writeFile, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -29,7 +30,6 @@ const legacy = () => ({
       activePaneId: 'pane',
       sessions: [],
       runs: [],
-      publicResources: null,
       theme: 'warm',
       resources: ['web', 'terminal', 'file', 'ssh'].map((kind) => ({
         resourceId: kind,
@@ -61,7 +61,7 @@ it('explicitly migrates schema1 environment bindings while retaining resource an
   expect(loaded?.workspaces[0]?.theme).toBe('warm');
   expect(loaded?.workspaces[0]?.resources.filter((r) => ['file', 'ssh'].includes(r.kind)).every((r) => r.unavailableReason)).toBe(true);
 });
-it('writes schema2 business descriptors without runtime handles and rejects future schema unchanged', async () => {
+it('writes schema3 business descriptors without runtime handles and rejects future schema unchanged', async () => {
   const { file, repository } = await setup();
   await writeFile(file, JSON.stringify({ schemaVersion: 1, snapshot: legacy() }));
   const loaded = await repository.load();
@@ -76,9 +76,9 @@ it('writes schema2 business descriptors without runtime handles and rejects futu
     cleanupPending: true,
     error: null,
   };
-  await repository.save(loaded);
+  await repository.save(loaded, await catalogForTestSnapshot(loaded));
   const content = await readFile(file, 'utf8');
-  expect(JSON.parse(content).schemaVersion).toBe(2);
+  expect(JSON.parse(content).schemaVersion).toBe(4);
   expect(content).not.toContain('runtime-secret-handle');
   expect(content).not.toContain('-old-instance');
   const restored = await repository.load();

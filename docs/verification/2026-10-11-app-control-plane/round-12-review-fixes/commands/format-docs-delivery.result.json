@@ -1,0 +1,18 @@
+{
+  "command": [
+    "pnpm",
+    "exec",
+    "prettier",
+    "--ignore-path",
+    "/dev/null",
+    "--check",
+    "README.md",
+    "UX-CONTRACT.md",
+    "docs/architecture/current-runtime.md",
+    "docs/design/2026-10-11-app-control-plane.md",
+    "docs/verification/2026-10-11-app-control-plane/README.md",
+    "docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/README.md"
+  ],
+  "exitCode": 0,
+  "seconds": 0.7380168437957764
+}

@@ -14,7 +14,6 @@ import {
 } from '@wsl/protocol';
 import { z } from 'zod';
 import guestSource from './guest-browser.cjs?raw';
-import type { ResourceStore } from './resource-store';
 
 const sha = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
 export class GuestBrowserError extends Error {
@@ -162,8 +161,8 @@ export async function captureGuestPage(
   });
 }
 
-/** 截图独立保存，资源包只带其摘要；空间存储仍使用既有 ResourceStore。 */
-export async function saveGuestCapture(store: ResourceStore, artifactRoot: string, result: GuestBrowserSuccess) {
+/** 捕获端只产出证据；资源归属和版本提交由 Main 负责。 */
+export async function saveGuestCapture(artifactRoot: string, result: GuestBrowserSuccess) {
   validateGuestCapture(result, {
     operation: 'capture',
     url: GUEST_BROWSER_URL,
@@ -185,7 +184,5 @@ export async function saveGuestCapture(store: ResourceStore, artifactRoot: strin
   } finally {
     await rm(temporary, { force: true });
   }
-  const collection = await store.save('taskflow-demo', result.snapshot);
-  const resource = collection.resources.find((item) => item.url === result.snapshot.url)!;
-  return { collection, resource, screenshotArtifact: artifact };
+  return { snapshot: result.snapshot, screenshotArtifact: artifact };
 }

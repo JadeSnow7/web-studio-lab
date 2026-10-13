@@ -1,0 +1,531 @@
+import { z } from 'zod';
+
+/**
+ * 受管 App 控制面（ADR-0002）。工具输入在 Main dispatcher 处按本文件严格校验；
+ * 未列出的字段（坐标、选择器脚本、任意 JS）一律拒绝。工作空间、会话与 run 身份
+ * 来自 Main 冻结的轮次 scope，从不由模型提供。
+ */
+const utf8Bytes = (value: string) => {
+  let bytes = 0;
+  for (const char of value) {
+    const code = char.codePointAt(0)!;
+    bytes += code < 128 ? 1 : code < 2048 ? 2 : code < 65536 ? 3 : 4;
+  }
+  return bytes;
+};
+const Id = z.string().min(1).max(200);
+const Generation = z.number().int().nonnegative();
+const Sha256 = z.string().regex(/^[a-f0-9]{64}$/);
+const Testid = z
+  .string()
+  .min(1)
+  .max(200)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9_.:-]*$/);
+const Json = z.unknown().refine((value) => {
+  try {
+    return utf8Bytes(JSON.stringify(value) ?? 'null') <= 16384;
+  } catch {
+    return false;
+  }
+}, 'JSON 值无效或超过 16 KiB');
+
+export const AppToolNameSchema = z.enum([
+  'app.describe',
+  'app.status',
+  'app.logs',
+  'app.restart',
+  'app.state.read',
+  'app.command.list',
+  'app.command.invoke',
+  'app.ui.snapshot',
+  'app.ui.act',
+  'app.data.query',
+  'app.data.seed',
+  'app.data.reset',
+  'app.scenario.run',
+]);
+export type AppToolName = z.infer<typeof AppToolNameSchema>;
+/** read：任务内只读；write：仅当前受管开发实例；reset：另需任务授权标记。 */
+export const APP_TOOL_LEVEL: Record<AppToolName, 'read' | 'write' | 'reset'> = {
+  'app.describe': 'read',
+  'app.status': 'read',
+  'app.logs': 'read',
+  'app.restart': 'write',
+  'app.state.read': 'read',
+  'app.command.list': 'read',
+  'app.command.invoke': 'write',
+  'app.ui.snapshot': 'read',
+  'app.ui.act': 'write',
+  'app.data.query': 'read',
+  'app.data.seed': 'write',
+  'app.data.reset': 'reset',
+  'app.scenario.run': 'write',
+};
+/** TaskVersion.allowedScopes 中由用户确认任务时填写的重置授权标记。 */
+export const APP_DATA_RESET_SCOPE = 'app.data.reset';
+/** 阶段 A 只实现 web；android 为阶段 C 预留。 */
+export const AppSurfaceSchema = z.enum(['web', 'android']);
+
+export const AppTargetSelectorSchema = z.union([
+  z.object({ ref: z.string().regex(/^e[1-9][0-9]{0,3}$/), snapshotId: z.uuid() }).strict(),
+  z.object({ testid: Testid }).strict(),
+]);
+export type AppTargetSelector = z.infer<typeof AppTargetSelectorSchema>;
+export const AppKeySchema = z.enum([
+  'Enter',
+  'Tab',
+  'Escape',
+  'Backspace',
+  'Delete',
+  'Space',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'Home',
+  'End',
+  'PageUp',
+  'PageDown',
+]);
+export const AppElementStateSchema = z.enum(['visible', 'hidden', 'attached', 'detached', 'enabled', 'disabled']);
+export const AppUiActionSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('click'), target: AppTargetSelectorSchema }).strict(),
+  z
+    .object({
+      type: z.literal('type'),
+      target: AppTargetSelectorSchema,
+      text: z.string().max(4000),
+      clear: z.boolean().default(true),
+    })
+    .strict(),
+  z.object({ type: z.literal('press'), key: AppKeySchema, target: AppTargetSelectorSchema.optional() }).strict(),
+  z.object({ type: z.literal('select'), target: AppTargetSelectorSchema, value: z.string().max(1000) }).strict(),
+  z
+    .object({
+      type: z.literal('scroll'),
+      target: AppTargetSelectorSchema.optional(),
+      direction: z.enum(['up', 'down']).optional(),
+      amount: z.number().int().min(1).max(5000).optional(),
+    })
+    .strict()
+    .refine((value) => (value.target ? !value.direction && !value.amount : !!value.direction), {
+      message: 'scroll 需要 target，或 direction（可选 amount），二者不能同时给出',
+    }),
+  z
+    .object({
+      type: z.literal('navigate'),
+      path: z
+        .string()
+        .max(2048)
+        .regex(/^\/(?!\/)[^\s\\]*$/, 'navigate 只接受同源绝对路径'),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('waitFor'),
+      target: AppTargetSelectorSchema,
+      state: AppElementStateSchema.default('visible'),
+      timeoutMs: z.number().int().min(0).max(10000).default(5000),
+    })
+    .strict(),
+]);
+export type AppUiAction = z.infer<typeof AppUiActionSchema>;
+
+const WriteBinding = { appInstanceId: Id };
+const PageBinding = { ...WriteBinding, documentGeneration: Generation };
+const CommandName = z
+  .string()
+  .max(100)
+  .regex(/^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*$/);
+const StateName = CommandName;
+
+const AssertionSchema = z.discriminatedUnion('kind', [
+  z
+    .object({
+      kind: z.literal('state'),
+      name: StateName,
+      path: z
+        .string()
+        .max(200)
+        .regex(/^(\/[^/]*)*$/)
+        .default(''),
+      equals: Json,
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('text'),
+      testid: Testid,
+      equals: z.string().max(2000).optional(),
+      contains: z.string().max(2000).optional(),
+      /** 断言在此时限内轮询，覆盖异步保存后的渲染；默认立即判定。 */
+      timeoutMs: z.number().int().min(0).max(10000).default(0),
+    })
+    .strict()
+    .refine((value) => (value.equals === undefined) !== (value.contains === undefined), {
+      message: 'text 断言需要 equals 或 contains 之一',
+    }),
+  z
+    .object({
+      kind: z.literal('testid'),
+      testid: Testid,
+      state: AppElementStateSchema,
+      timeoutMs: z.number().int().min(0).max(10000).default(0),
+    })
+    .strict(),
+  z.object({ kind: z.literal('console-no-error') }).strict(),
+]);
+export const AppScenarioStepSchema = z.discriminatedUnion('type', [
+  z
+    .object({ type: z.literal('act'), action: AppUiActionSchema })
+    .strict()
+    .refine(
+      (step) => !('target' in step.action && step.action.target && 'ref' in step.action.target),
+      '场景只能使用 testid 定位，快照引用不可回放',
+    ),
+  z.object({ type: z.literal('command'), name: CommandName, input: Json.default({}) }).strict(),
+  z.object({ type: z.literal('assert'), assert: AssertionSchema }).strict(),
+  z
+    .object({
+      type: z.literal('screenshot'),
+      label: z
+        .string()
+        .max(80)
+        .regex(/^[A-Za-z0-9_-]+$/),
+    })
+    .strict(),
+]);
+export type AppScenarioStep = z.infer<typeof AppScenarioStepSchema>;
+export const AppScenarioSchema = z
+  .object({
+    name: z.string().min(1).max(120),
+    surface: AppSurfaceSchema.default('web'),
+    steps: z.array(AppScenarioStepSchema).min(1).max(50),
+  })
+  .strict();
+export type AppScenario = z.infer<typeof AppScenarioSchema>;
+
+export const AppToolInputSchemas = {
+  'app.describe': z.object({}).strict(),
+  'app.status': z.object({}).strict(),
+  'app.logs': z.object({ maxBytes: z.number().int().min(1).max(65536).default(16384) }).strict(),
+  'app.restart': z.object(WriteBinding).strict(),
+  'app.state.read': z.object({ names: z.array(StateName).max(50).optional() }).strict(),
+  'app.command.list': z.object({}).strict(),
+  'app.command.invoke': z.object({ ...PageBinding, name: CommandName, input: Json.default({}) }).strict(),
+  'app.ui.snapshot': z.object({ limit: z.number().int().min(1).max(200).default(200), includeHidden: z.boolean().default(false) }).strict(),
+  'app.ui.act': z.object({ ...PageBinding, action: AppUiActionSchema }).strict(),
+  'app.data.query': z.object({ sql: z.string().min(1).max(4000), limit: z.number().int().min(1).max(200).default(50) }).strict(),
+  'app.data.seed': z.object(WriteBinding).strict(),
+  'app.data.reset': z.object({ ...WriteBinding, confirm: z.literal('reset-instance-data') }).strict(),
+  'app.scenario.run': z.object({ ...WriteBinding, scenario: AppScenarioSchema }).strict(),
+} satisfies Record<AppToolName, z.ZodType>;
+export type AppToolInput<T extends AppToolName> = z.infer<(typeof AppToolInputSchemas)[T]>;
+
+export const AppControlErrorCodeSchema = z.enum([
+  'invalid_request',
+  'unsupported',
+  'unauthorized',
+  'no_active_run',
+  'app_missing',
+  'app_not_running',
+  'app_busy',
+  'browser_unavailable',
+  'stale_instance',
+  'stale_lease',
+  'stale_document',
+  'stale_ref',
+  'manifest_missing',
+  'manifest_stale',
+  'build_stale',
+  'command_not_found',
+  'command_invalid_input',
+  'command_failed',
+  'bridge_unavailable',
+  'element_not_found',
+  'ambiguous_target',
+  'element_disabled',
+  'element_obscured',
+  'wait_timeout',
+  'paused_by_user',
+  'cdp_detached',
+  'authorization_required',
+  'write_rejected',
+  'transport_unavailable',
+  'timeout',
+  'cancelled',
+  'unavailable',
+  'budget_exceeded',
+]);
+export type AppControlErrorCode = z.infer<typeof AppControlErrorCodeSchema>;
+export const AppControlErrorSchema = z
+  .object({ code: AppControlErrorCodeSchema, message: z.string().max(4000), details: z.unknown().optional() })
+  .strict();
+export type AppControlError = z.infer<typeof AppControlErrorSchema>;
+export const AppControlResultSchema = z
+  .union([
+    z.object({ ok: z.literal(true), tool: AppToolNameSchema, data: z.record(z.string(), z.unknown()) }).strict(),
+    z.object({ ok: z.literal(false), tool: AppToolNameSchema.nullable(), error: AppControlErrorSchema }).strict(),
+  ])
+  .refine((result) => utf8Bytes(JSON.stringify(result)) <= 1000000, '控制面结果超过 1 MB 预算');
+export type AppControlResult = z.infer<typeof AppControlResultSchema>;
+
+/** L1 快照元素：短引用只在同一 appInstanceId + documentGeneration + snapshotId 内有效。 */
+export const AppUiElementSchema = z
+  .object({
+    ref: z.string().regex(/^e[1-9][0-9]{0,3}$/),
+    role: z.string().max(80),
+    name: z.string().max(1000),
+    testid: z.string().max(200).nullable(),
+    text: z.string().max(2000).nullable(),
+    value: z.string().max(1000).nullable(),
+    visible: z.boolean(),
+    disabled: z.boolean(),
+    focused: z.boolean(),
+    checked: z.union([z.boolean(), z.literal('mixed')]).nullable(),
+  })
+  .strict();
+export const AppUiSnapshotSchema = z
+  .object({
+    appInstanceId: Id,
+    documentGeneration: Generation,
+    snapshotId: z.uuid(),
+    url: z.string().max(4096),
+    title: z.string().max(1000),
+    elements: z.array(AppUiElementSchema).max(200),
+    truncated: z.boolean(),
+    coverage: z.array(z.string().max(500)).max(20),
+  })
+  .strict();
+export type AppUiSnapshot = z.infer<typeof AppUiSnapshotSchema>;
+
+/** window.__WSL_AGENT__.call 的请求与响应；页面返回值一律当作不可信数据重新校验。 */
+export const AppBridgeRequestSchema = z.discriminatedUnion('op', [
+  z.object({ op: z.literal('describe') }).strict(),
+  z.object({ op: z.literal('state'), names: z.array(StateName).max(50).optional() }).strict(),
+  z.object({ op: z.literal('invoke'), name: CommandName, input: Json }).strict(),
+]);
+export type AppBridgeRequest = z.infer<typeof AppBridgeRequestSchema>;
+export const AppBridgeResponseSchema = z.union([
+  z.object({ ok: z.literal(true), data: z.unknown() }).strict(),
+  z
+    .object({
+      ok: z.literal(false),
+      error: z
+        .object({
+          code: z.enum(['command_not_found', 'command_invalid_input', 'command_failed', 'state_not_found', 'invalid_request']),
+          message: z.string().max(4000),
+          issues: z
+            .array(z.object({ path: z.string().max(500), message: z.string().max(1000) }).strict())
+            .max(50)
+            .optional(),
+        })
+        .strict(),
+    })
+    .strict(),
+]);
+export type AppBridgeResponse = z.infer<typeof AppBridgeResponseSchema>;
+export const AppBridgeDescribeSchema = z
+  .object({ version: z.literal(1), commands: z.array(CommandName).max(200), states: z.array(StateName).max(200) })
+  .strict();
+
+/** 构建导出的 agent/app.manifest.json（schemaVersion 1）。 */
+export const AppManifestSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    templateId: z.string().max(100),
+    templateVersion: z.string().max(40),
+    sourceRevision: Sha256,
+    pages: z
+      .array(z.object({ path: z.string().max(500), source: z.string().max(500), testids: z.array(z.string().max(200)).max(500) }).strict())
+      .max(50),
+    routes: z.array(z.object({ method: z.string().max(10), path: z.string().max(500) }).strict()).max(500),
+    dataModel: z
+      .array(
+        z
+          .object({
+            table: z.string().max(200),
+            columns: z
+              .array(
+                z.object({ name: z.string().max(200), type: z.string().max(200), notNull: z.boolean(), primaryKey: z.boolean() }).strict(),
+              )
+              .max(200),
+            primaryKey: z.array(z.string().max(200)).max(20),
+          })
+          .strict(),
+      )
+      .max(200),
+    commands: z
+      .array(
+        z
+          .object({
+            name: CommandName,
+            description: z.string().max(1000),
+            inputSchema: z.record(z.string(), z.unknown()),
+            sources: z.array(z.string().max(500)).max(20),
+          })
+          .strict(),
+      )
+      .max(200),
+    states: z.array(z.object({ name: StateName, sources: z.array(z.string().max(500)).max(20) }).strict()).max(200),
+    testids: z
+      .array(z.object({ testid: z.string().max(200), element: z.string().max(80), source: z.string().max(500) }).strict())
+      .max(2000),
+    checks: z.array(z.object({ code: z.string().max(80), message: z.string().max(1000), source: z.string().max(500) }).strict()).max(500),
+  })
+  .strict();
+export type AppManifest = z.infer<typeof AppManifestSchema>;
+
+/** agent-cli 与 /api/__agent/* 的统一单行 JSON 信封。 */
+export const AgentCliEnvelopeSchema = z.union([
+  z.object({ ok: z.literal(true), data: z.record(z.string(), z.unknown()) }).strict(),
+  z
+    .object({
+      ok: z.literal(false),
+      error: z.object({ code: z.string().min(1).max(80), message: z.string().max(4000) }).strict(),
+      data: z.record(z.string(), z.unknown()).optional(),
+    })
+    .strict(),
+]);
+export type AgentCliEnvelope = z.infer<typeof AgentCliEnvelopeSchema>;
+/** describe 的数据部分；stale 由 Host 按修订重新计算，不采信自述。 */
+export const AppRevisionSchema = z
+  .object({
+    currentRevision: Sha256,
+    manifestRevision: Sha256.nullable(),
+    buildRevision: Sha256.nullable(),
+    manifest: z.unknown(),
+    stale: z.object({ manifest: z.boolean(), build: z.boolean() }).strict().optional(),
+    mode: z.enum(['instance', 'direct']).optional(),
+    appInstanceId: Id.optional(),
+    operationTrackingVersion: z.literal(1).optional(),
+  })
+  .strict();
+export type AppRevision = z.infer<typeof AppRevisionSchema>;
+
+/** Main 请 service 执行的后端操作；service 运行时走回环 HTTP，停止时走 guest agent-cli。 */
+export const AppAgentOperationSchema = z.discriminatedUnion('op', [
+  z.object({ op: z.literal('describe') }).strict(),
+  z.object({ op: z.literal('query'), sql: z.string().min(1).max(4000), limit: z.number().int().min(1).max(200) }).strict(),
+  z.object({ op: z.literal('seed'), operationId: z.uuid() }).strict(),
+  z.object({ op: z.literal('reset'), operationId: z.uuid() }).strict(),
+  z.object({ op: z.literal('snapshot') }).strict(),
+  z.object({ op: z.literal('reconcile-cli') }).strict(),
+  z.object({ op: z.literal('reconcile'), operationId: z.uuid(), operation: z.enum(['seed', 'reset']) }).strict(),
+]);
+export type AppAgentOperation = z.infer<typeof AppAgentOperationSchema>;
+export const AppOperationReceiptSchema = z
+  .object({
+    operationId: z.uuid(),
+    appInstanceId: Id,
+    operation: z.enum(['seed', 'reset']),
+    state: z.enum(['running', 'succeeded', 'failed', 'cancelled_before_start']),
+    envelope: AgentCliEnvelopeSchema.optional(),
+  })
+  .strict()
+  .refine((receipt) => receipt.state === 'running' || receipt.envelope !== undefined, '终态必须包含业务回执');
+export type AppOperationReceipt = z.infer<typeof AppOperationReceiptSchema>;
+export const AppAgentResultSchema = z
+  .object({
+    mode: z.enum(['http', 'cli']),
+    cleanupConfirmed: z.boolean(),
+    envelope: AgentCliEnvelopeSchema,
+    operation: AppOperationReceiptSchema.optional(),
+    operationDispatched: z.literal(false).optional(),
+  })
+  .strict();
+export type AppAgentResult = z.infer<typeof AppAgentResultSchema>;
+export const AppLogsSchema = z
+  .object({ text: z.string().max(65536), truncated: z.boolean(), totalBytes: z.number().int().nonnegative() })
+  .strict();
+export type AppLogs = z.infer<typeof AppLogsSchema>;
+
+/** 每次控制面调用一条追加审计；文本和 SQL 只记长度与散列，不写令牌或页面正文。 */
+export const AppAuditRecordSchema = z
+  .object({
+    recordId: z.uuid(),
+    at: z.iso.datetime(),
+    runId: Id,
+    workspaceId: Id,
+    sessionId: Id,
+    tool: AppToolNameSchema.nullable(),
+    level: z.enum(['read', 'write', 'reset']).nullable(),
+    args: z
+      .object({
+        sha256: Sha256,
+        summary: z.record(z.string(), z.union([z.string().max(300), z.number(), z.boolean(), z.null()])),
+      })
+      .strict(),
+    outcome: z.union([z.literal('ok'), AppControlErrorCodeSchema]),
+    appInstanceId: Id.nullable(),
+    documentGenerationBefore: Generation.nullable(),
+    documentGenerationAfter: Generation.nullable(),
+    durationMs: z.number().int().nonnegative(),
+  })
+  .strict();
+export type AppAuditRecord = z.infer<typeof AppAuditRecordSchema>;
+
+export const AppScenarioStepTraceSchema = z
+  .object({
+    index: z.number().int().nonnegative(),
+    type: z.enum(['act', 'command', 'assert', 'screenshot']),
+    summary: z.string().max(500),
+    outcome: z.enum(['passed', 'failed', 'skipped', 'cancelled']),
+    error: AppControlErrorSchema.nullable(),
+    durationMs: z.number().int().nonnegative(),
+    documentGeneration: Generation.nullable(),
+    screenshot: z
+      .object({ file: z.string().max(200), sha256: Sha256 })
+      .strict()
+      .nullable(),
+  })
+  .strict();
+export const AppScenarioTraceSchema = z
+  .object({
+    traceVersion: z.literal(1),
+    scenarioRunId: z.uuid(),
+    scenarioName: z.string().max(120),
+    scenarioSha256: Sha256,
+    runId: Id,
+    workspaceId: Id,
+    appInstanceId: Id,
+    sourceRevision: Sha256,
+    startedAt: z.iso.datetime(),
+    endedAt: z.iso.datetime(),
+    outcome: z.enum(['passed', 'failed', 'cancelled', 'paused_by_user', 'error']),
+    steps: z.array(AppScenarioStepTraceSchema).max(50),
+    stateDiff: z.array(z.object({ path: z.string().max(500), before: z.unknown(), after: z.unknown() }).strict()).max(500),
+    inFlight: z
+      .object({ kind: z.string().max(40), settled: z.boolean() })
+      .strict()
+      .nullable(),
+    cleanupConfirmed: z.boolean(),
+  })
+  .strict();
+export type AppScenarioTrace = z.infer<typeof AppScenarioTraceSchema>;
+
+/** 回放比较只看与时间无关的字段。 */
+export function comparableTrace(trace: AppScenarioTrace) {
+  return {
+    scenarioSha256: trace.scenarioSha256,
+    outcome: trace.outcome,
+    steps: trace.steps.map((step) => ({
+      index: step.index,
+      type: step.type,
+      summary: step.summary,
+      outcome: step.outcome,
+      error: step.error?.code ?? null,
+    })),
+  };
+}
+
+/** Browser 区“AI 正在操控”展示态，由 PreviewController 持有并随 PreviewState 投影。 */
+export const AgentControlStateSchema = z
+  .object({
+    state: z.enum(['idle', 'active', 'paused_by_user']),
+    runId: Id.nullable(),
+    since: z.string().nullable(),
+    lastAction: z.string().max(200).nullable(),
+  })
+  .strict();
+export type AgentControlState = z.infer<typeof AgentControlStateSchema>;

@@ -1,0 +1,154 @@
+{
+  "startedAt": "2026-10-10T13:34:35.552Z",
+  "profile": "/private/tmp/wsl-review-packaged-app-20261010-final/profile",
+  "sandbox": "wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1",
+  "launchEnvironment": {
+    "path": "/usr/bin:/bin:/usr/sbin:/sbin",
+    "injected": []
+  },
+  "runtimeConfig": {
+    "schemaVersion": 1,
+    "sbxBinary": "/Users/huaodong/Applications/Sbx.app/Contents/MacOS/sbx",
+    "sandbox": "wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1",
+    "pythonBinary": "/bundled/runtime/python/bin/python3",
+    "localRoot": null,
+    "ssh": null
+  },
+  "created": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "fb48821b-3110-40f3-b5c0-2fa408603f52",
+    "environmentId": "sandbox",
+    "appInstanceId": null,
+    "state": "created",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/fb48821b-3110-40f3-b5c0-2fa408603f52",
+    "guestPort": null,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "first": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "fb48821b-3110-40f3-b5c0-2fa408603f52",
+    "environmentId": "sandbox",
+    "appInstanceId": "cc7ac7d2-4cc4-4b02-b0b1-26be847b098e",
+    "state": "running",
+    "url": "http://127.0.0.1:49164",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/fb48821b-3110-40f3-b5c0-2fa408603f52",
+    "guestPort": 43631,
+    "error": null,
+    "cleanupConfirmed": false
+  },
+  "nativeBrowser": {
+    "resource": {
+      "resourceId": "359be7b2-c439-4575-a796-c8303b4a5d61",
+      "environmentId": "sandbox",
+      "appProjectId": "fb48821b-3110-40f3-b5c0-2fa408603f52",
+      "kind": "web",
+      "title": "标准应用",
+      "url": "http://127.0.0.1:49164/",
+      "instanceId": "bdf65836-1875-4153-a26d-f38ad656642e",
+      "generation": 1,
+      "preview": {
+        "page": {
+          "webContentsId": 3,
+          "documentGeneration": 1,
+          "url": "http://127.0.0.1:49164/",
+          "title": "标准应用 · Web Studio Lab",
+          "partition": "preview-taskflow-demo-bdf65836-1875-4153-a26d-f38ad656642e"
+        },
+        "loading": false,
+        "canGoBack": false,
+        "canGoForward": false,
+        "picking": false,
+        "cdp": {
+          "state": "idle"
+        },
+        "consoleIssueCount": 0,
+        "loadError": null,
+        "blockedNavigation": null,
+        "pickError": null
+      },
+      "terminal": null,
+      "unavailableReason": null
+    },
+    "health": {
+      "ok": true,
+      "templateId": "wsl-standard-app",
+      "templateVersion": "1.0.0",
+      "identity": {
+        "workspaceId": "taskflow-demo",
+        "environmentId": "sandbox",
+        "projectId": "fb48821b-3110-40f3-b5c0-2fa408603f52",
+        "appInstanceId": "cc7ac7d2-4cc4-4b02-b0b1-26be847b098e"
+      }
+    },
+    "geometry": {
+      "visible": true,
+      "bounds": {
+        "x": 310,
+        "y": 199,
+        "width": 1129,
+        "height": 657
+      },
+      "webContentsId": 3,
+      "url": "http://127.0.0.1:49164/"
+    },
+    "activePane": {
+      "kind": "pane",
+      "paneId": "7ccba96e-96a7-4cd6-b6d2-bdb1050faf13",
+      "tabId": "e72c6e5e-8d81-4e45-a46a-455887a0b174"
+    }
+  },
+  "storageBefore": {
+    "a": {
+      "status": 200,
+      "body": {
+        "userId": "A"
+      }
+    },
+    "writeA": {
+      "status": 200,
+      "body": {
+        "userId": "A",
+        "key": "welcome",
+        "value": "2a09b9a7-159d-477f-aef9-0fbe646f72e0"
+      }
+    },
+    "b": {
+      "status": 200,
+      "body": {
+        "userId": "B"
+      }
+    },
+    "readB": {
+      "status": 200,
+      "body": {
+        "userId": "B",
+        "key": "welcome",
+        "value": "Ready"
+      }
+    },
+    "writeB": {
+      "status": 200,
+      "body": {
+        "userId": "B",
+        "key": "welcome",
+        "value": "B-2a09b9a7-159d-477f-aef9-0fbe646f72e0"
+      }
+    }
+  },
+  "firstStoppedPorts": [],
+  "error": "Error: App failed: Error: 应用就绪前退出：WSL_APP_PHASE: verified offline Linux dependencies\nWSL_APP_PHASE:npm run db:migrate\n\n> @wsl/standard-app@1.0.0 db:migrate\n> node --import tsx server/db-cli.ts migrate\n\n{\"ok\":true,\"command\":\"migrate\"}\nWSL_APP_PHASE:npm run check\n\n> @wsl/standard-app@1.0.0 check\n> tsc --noEmit && tsc -p tsconfig.server.json --noEmit && node --import tsx --test tests/*.test.ts\n\n; guest 清理未确认：error: Get \"http://socket/sandbox/wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1/exec/a0f7211f78ff8c57ac60f63d9e98c168f3a3823e3cb02b1e9a19c65568d828ba\": EOF",
+  "final": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "fb48821b-3110-40f3-b5c0-2fa408603f52",
+    "environmentId": "sandbox",
+    "appInstanceId": "4995ce0b-1d45-4359-82e1-6222afbf4203",
+    "state": "failed",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/fb48821b-3110-40f3-b5c0-2fa408603f52",
+    "guestPort": null,
+    "error": "Error: 应用就绪前退出：WSL_APP_PHASE: verified offline Linux dependencies\nWSL_APP_PHASE:npm run db:migrate\n\n> @wsl/standard-app@1.0.0 db:migrate\n> node --import tsx server/db-cli.ts migrate\n\n{\"ok\":true,\"command\":\"migrate\"}\nWSL_APP_PHASE:npm run check\n\n> @wsl/standard-app@1.0.0 check\n> tsc --noEmit && tsc -p tsconfig.server.json --noEmit && node --import tsx --test tests/*.test.ts\n\n; guest 清理未确认：error: Get \"http://socket/sandbox/wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1/exec/a0f7211f78ff8c57ac60f63d9e98c168f3a3823e3cb02b1e9a19c65568d828ba\": EOF",
+    "cleanupConfirmed": false
+  }
+}

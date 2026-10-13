@@ -1,0 +1,19 @@
+{
+  "lint_initial": 217,
+  "lint_final": 217,
+  "lint_added": [],
+  "lint_removed": [],
+  "format_initial": 794,
+  "format_final": 801,
+  "format_added": [
+    "docs/acceptance/space-app-live-20261010/model-01/error-context.md",
+    "docs/acceptance/space-app-live-20261010/model-01/evidence.json",
+    "docs/acceptance/space-app-live-20261010/model-02/error-context.md",
+    "docs/acceptance/space-app-live-20261010/model-02/evidence.json",
+    "docs/acceptance/space-app-live-20261010/model-03/evidence.json",
+    "docs/acceptance/space-app-live-20261010/model-03/post-cleanup.json",
+    "docs/acceptance/space-app-live-20261010/runtime-01/evidence.json"
+  ],
+  "format_removed": [],
+  "format_final_log": "format-delivery.txt"
+}

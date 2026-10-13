@@ -1,0 +1,25 @@
+{
+  "kind": "internal-unsigned-not-a-release",
+  "artifacts": [
+    {
+      "path": "apps/desktop/release-internal/mac-arm64/Web Studio Lab.app/Contents/Resources/app.asar",
+      "size": 2912692,
+      "sha256": "ada5a62a130e96ded6d0523274c4773a151d04f77787a58e12c26ca4bf56c780"
+    },
+    {
+      "path": "apps/desktop/release-internal/mac-arm64/Web Studio Lab.app/Contents/Resources/service/index.cjs",
+      "size": 1412505,
+      "sha256": "16efc5080cee00229522c38ebeac8d5df96ada7457adec9605bd8bb515b71305"
+    },
+    {
+      "path": "apps/desktop/release-internal/Web-Studio-Lab-0.1.5-arm64.dmg",
+      "size": 394100773,
+      "sha256": "d670402ff7fcbc3352bea111d96084e23951690e3668f1442675cffb32b649ac"
+    },
+    {
+      "path": "apps/desktop/release-internal/Web-Studio-Lab-0.1.5-arm64.zip",
+      "size": 393447169,
+      "sha256": "7300b51fef87c9767e11597c8fd2e73effec3c1ac0f43e10cef1d9ec55370f57"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+
+Running 9 tests using 1 worker
+
+(node:52373) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/review-regressions.spec.ts:82:1 › rejected address navigation preserves the typed URL and focus (766ms)
+  ✓  2 e2e/review-regressions.spec.ts:96:1 › navigation deduplicates pending submits, honors IME, and retains newer edits after success (816ms)
+  ✓  3 e2e/review-regressions.spec.ts:130:3 › confirm freezes visible criteria despite autosave failure and keeps failed input (745ms)
+  ✓  4 e2e/review-regressions.spec.ts:130:3 › send freezes visible criteria despite autosave failure and keeps failed input (757ms)
+  ✓  5 e2e/review-regressions.spec.ts:150:1 › failed confirmation does not navigate away from the view chosen during the pending request (821ms)
+  ✓  6 e2e/review-regressions.spec.ts:166:3 › late screenshot preserves its owner without returning from tab (1.2s)
+  ✓  7 e2e/review-regressions.spec.ts:166:3 › late screenshot preserves its owner without returning from route (1.2s)
+  ✓  8 e2e/review-regressions.spec.ts:166:3 › late screenshot preserves its owner without returning from space (1.3s)
+  ✘  9 e2e/review-regressions.spec.ts:216:1 › cancel reaches Main and stops the owned run while the startRun response is pending (6.2s)
+
+
+  1) e2e/review-regressions.spec.ts:216:1 › cancel reaches Main and stops the owned run while the startRun response is pending 
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator:  getByRole('region', { name: 'Agent 会话内容' }).getByLabel('会话消息')
+    Expected: "[slow]"
+    Received: ""
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveValue" getByRole('region', { name: 'Agent 会话内容' }).getByLabel('会话消息') with timeout 5000ms
+      - waiting for getByRole('region', { name: 'Agent 会话内容' }).getByLabel('会话消息')
+        14 × locator resolved to <textarea rows="3" aria-label="会话消息" class="resize-none" placeholder="继续描述想修改的内容…" id="draft-session-817e60e3-c5af-4066-a2a9-d87457d708f2"></textarea>
+           - unexpected value ""
+
+
+      229 |     await release();
+      230 |   }
+    > 231 |   await expect(session().getByLabel('会话消息')).toHaveValue('[slow]');
+          |                                              ^
+      232 | });
+      233 |
+        at /Users/huaodong/workspace/web-studio-lab/e2e/review-regressions.spec.ts:231:46
+
+    Error Context: test-results/e2e/review-regressions-cancel--69015-tartRun-response-is-pending/error-context.md
+
+  1 failed
+    e2e/review-regressions.spec.ts:216:1 › cancel reaches Main and stops the owned run while the startRun response is pending 
+  8 passed (14.2s)

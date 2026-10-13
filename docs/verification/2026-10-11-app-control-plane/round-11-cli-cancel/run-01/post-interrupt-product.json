@@ -1,0 +1,24 @@
+{
+  "managedApp": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "ec3a4265-b3ab-4972-b129-f5114ce84092",
+    "environmentId": "sandbox",
+    "appInstanceId": "09862896-3c14-4ee5-b822-2faaf1ec28c5",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/ec3a4265-b3ab-4972-b129-f5114ce84092",
+    "guestPort": 33793,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "runs": [
+    {
+      "runId": "0304af2b-6171-4913-9251-66a648dfaac5",
+      "state": "completed",
+      "cleanupPending": false
+    }
+  ],
+  "hostProcessCheck": "post-interrupt-host.txt lists no processes",
+  "runnerExitCode": 130,
+  "intervention": "Main sent SIGINT to verified Playwright runner PID 81890 after model ended without target; original cleanup races preserved separately"
+}

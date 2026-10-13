@@ -1,0 +1,17 @@
+{
+  "command": [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "e2e/app-control-data-cancel-live.spec.ts",
+    "--grep",
+    "backend (manual|failure)",
+    "--output",
+    "test-results/round-12-http-live-04"
+  ],
+  "flag": "WSL_APP_CONTROL_DATA_CANCEL_LIVE=1",
+  "exitCode": 0,
+  "seconds": 303.778902053833,
+  "build": "build-04"
+}

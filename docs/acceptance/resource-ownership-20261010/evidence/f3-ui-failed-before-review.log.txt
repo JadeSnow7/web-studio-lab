@@ -1,0 +1,12 @@
+
+Running 5 tests using 1 worker
+
+(node:97524) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/public-document.spec.ts:17:1 › controlled-network fixture：真实 Electron 协议跳转、显示、绑定与空间持久化 (1.2s)
+  ✓  2 e2e/resources.spec.ts:29:1 › account favorite→A/B connections→explicit frozen personal reference→restart, using real Main (3.3s)
+  ✓  3 e2e/resources.spec.ts:171:1 › collection search, paging, IME, deletion recovery, focus and narrow dark UI (1.9s)
+  ✓  4 e2e/resources.spec.ts:215:1 › file and development entries can be explicitly favorited, classified and reopened in their authorized environment (1.2s)
+  ✓  5 e2e/resources.spec.ts:252:1 › a delayed space switch after opening a favorite cannot steal a newer route (1.0s)
+
+  5 passed (9.0s)

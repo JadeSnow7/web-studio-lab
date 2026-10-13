@@ -1,0 +1,17 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/_worktrees/status-surface-20261011
+
+ ❯ apps/desktop/src/main/debug-status.test.ts (28 tests | 5 failed) 388ms
+   ❯ WSL_STATUS_LOG 真实文件 (8)
+     × 以 snapshot 前缀开头但不是诊断日志的文件同样拒绝，原字节不变 10ms
+     × 上次诊断留下的日志同样拒绝，旧内容原样保留 3ms
+   ❯ 事实更新通知（debug:facts-changed） (3)
+     × 新增事实与 detail / raw 变化每批通知一次；detail / raw 不产生转换、不增加 seq、不写 NDJSON 1ms
+     × 完全相同的投影不通知；仅 appInstanceId 变化也通知一次、不产生转换 0ms
+     × emitFactsChanged 抛错只报告一次，不打断事实更新、转换与 NDJSON 0ms
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 23 passed (28)
+   Start at  12:02:56
+   Duration  890ms (tests 52%, transform 31%, import 17%)
+

@@ -1,0 +1,124 @@
+import contextlib
+import io
+import json
+import os
+import socket
+import tempfile
+import threading
+import unittest
+
+
+class FakeMain:
+    """A real Unix socket standing in for guest-helper; records frames and returns scripted results."""
+
+    def __init__(self, replies):
+        self.replies = list(replies)
+        self.received = []
+        self.errors = []
+        self.root = tempfile.TemporaryDirectory(prefix='wsl-app-socket-')
+        self.path = os.path.join(self.root.name, 'read.sock')
+        self.server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.server.bind(self.path)
+        self.server.listen(4)
+        self.server.settimeout(5)
+        self.thread = threading.Thread(target=self.serve)
+        self.thread.start()
+
+    def serve(self):
+        try:
+            for reply in list(self.replies):
+                client, _ = self.server.accept()
+                with client, client.makefile('rb') as stream:
+                    self.received.append(json.loads(stream.readline(16385)))
+                    client.sendall((json.dumps(reply) + '\n').encode())
+        except Exception as error:
+            self.errors.append(error)
+
+    def close(self):
+        self.thread.join(6)
+        self.server.close()
+        self.root.cleanup()
+
+
+def run_cli(argv, socket_path):
+    previous = os.environ.get('WSL_APP_CHANNEL')
+    if socket_path is None:
+        os.environ.pop('WSL_APP_CHANNEL', None)
+    else:
+        os.environ['WSL_APP_CHANNEL'] = socket_path
+    out = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out):
+            code = mcp.cli_main(argv)
+    finally:
+        if previous is None:
+            os.environ.pop('WSL_APP_CHANNEL', None)
+        else:
+            os.environ['WSL_APP_CHANNEL'] = previous
+    lines = out.getvalue().strip().splitlines()
+    assert len(lines) == 1, lines
+    return code, json.loads(lines[0])
+
+
+class AppControlMcpTests(unittest.TestCase):
+    def test_app_tools_listed_only_with_turn_socket(self):
+        previous = mcp.OBSERVATION_SOCKET
+        try:
+            mcp.OBSERVATION_SOCKET = None
+            names = [tool['name'] for tool in mcp.dispatch({}, 'tools/list', {})['tools']]
+            self.assertFalse(any(name.startswith('app_') for name in names))
+            mcp.OBSERVATION_SOCKET = '/nonexistent.sock'
+            tools = {tool['name']: tool for tool in mcp.dispatch({}, 'tools/list', {})['tools']}
+            app = sorted(name for name in tools if name.startswith('app_'))
+            self.assertEqual(len(app), 13)
+            self.assertIn('app_ui_act', app)
+            self.assertFalse(tools['app_ui_act']['annotations']['readOnlyHint'])
+            self.assertTrue(tools['app_ui_snapshot']['annotations']['readOnlyHint'])
+            self.assertIn('never fabricate', tools['app_command_invoke']['description'])
+            action = tools['app_ui_act']['inputSchema']['properties']['action']
+            self.assertFalse(action['additionalProperties'])
+            self.assertNotIn('x', action['properties'])
+            self.assertNotIn('expression', action['properties'])
+            targets = action['properties']['target']['oneOf']
+            self.assertEqual(targets[0]['required'], ['ref', 'snapshotId'])
+            self.assertEqual(targets[0]['properties']['snapshotId']['format'], 'uuid')
+            self.assertFalse(targets[0]['additionalProperties'])
+            self.assertEqual(targets[1]['required'], ['testid'])
+            self.assertNotIn('snapshotId', targets[1]['properties'])
+        finally:
+            mcp.OBSERVATION_SOCKET = previous
+
+    def test_mcp_call_forwards_app_frame_and_marks_failures(self):
+        main = FakeMain([
+            {'ok': True, 'tool': 'app.ui.snapshot', 'data': {'documentGeneration': 2, 'elements': []}},
+            {'ok': False, 'tool': 'app.ui.act', 'error': {'code': 'stale_ref', 'message': 'expired'}},
+        ])
+        previous = mcp.OBSERVATION_SOCKET
+        mcp.OBSERVATION_SOCKET = main.path
+        try:
+            ok = mcp.dispatch({}, 'tools/call', {'name': 'app_ui_snapshot', 'arguments': {}})
+            self.assertFalse(ok['isError'])
+            self.assertTrue(ok['structuredContent']['untrusted'])
+            failed = mcp.dispatch({}, 'tools/call', {'name': 'app_ui_act', 'arguments': {'appInstanceId': 'a', 'documentGeneration': 1, 'action': {'type': 'click', 'target': {'ref': 'e1', 'snapshotId': 'c57492e8-1a21-4257-8db7-f49b2d9b8ab1'}}}})
+            self.assertTrue(failed['isError'])
+            self.assertEqual(failed['structuredContent']['data']['error']['code'], 'stale_ref')
+        finally:
+            mcp.OBSERVATION_SOCKET = previous
+            main.close()
+        self.assertEqual(main.errors, [])
+        self.assertEqual([frame['tool'] for frame in main.received], ['app.ui.snapshot', 'app.ui.act'])
+
+    def test_cli_rejects_locally_without_touching_socket(self):
+        self.assertEqual(run_cli(['shell', '{}'], '/nonexistent.sock')[0], 2)
+        self.assertEqual(run_cli(['describe', '[1]'], '/nonexistent.sock')[0], 2)
+        self.assertEqual(run_cli(['describe', 'not json'], '/nonexistent.sock')[0], 2)
+        code, result = run_cli(['describe'], None)
+        self.assertEqual((code, result['error']['code']), (3, 'transport_unavailable'))
+        code, result = run_cli(['describe'], '/nonexistent/wsl.sock')
+        self.assertEqual((code, result['error']['code']), (3, 'transport_unavailable'))
+        code, result = run_cli(['help'], None)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(result['data']['tools']), 13)
+
+
+unittest.main(argv=['app-control-mcp'], exit=True, verbosity=1)

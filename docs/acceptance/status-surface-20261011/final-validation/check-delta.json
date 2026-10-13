@@ -1,0 +1,56 @@
+{
+  "baseline": "917f375",
+  "scope": "六项修复终版 v2；与冻结锁安装的基线导出比较，不把早期检查结果当作终版。完整文件集合及原始输入见 comparison_report。",
+  "head": "1bce260678c5d60e6889a093e0c523c333019fca",
+  "source_diff_sha256": "d18e5e9dbf25264d65e80843f6d9aa5ee7b5f9b08e2bc900b494ab62e42206ab",
+  "comparison_report": "../repair-validation/check-delta-v2.json",
+  "lint": {
+    "baseline_errors": 217,
+    "final_errors": 217,
+    "baseline_warnings": 0,
+    "final_warnings": 0,
+    "files_identical": true,
+    "new": [],
+    "fixed": []
+  },
+  "format": {
+    "baseline_files": 801,
+    "final_files": 801,
+    "files_identical": true,
+    "new": [],
+    "fixed": []
+  },
+  "historical_corrections": [
+    {
+      "phase": "独立复核原实施记录",
+      "recorded_format_files": 801,
+      "observed_format_files": 802,
+      "added_file": "docs/acceptance/status-surface-20261011/final-validation/check-delta.json",
+      "repair": "格式化本记录，历史原始 txt 输出不编辑。"
+    },
+    {
+      "phase": "本轮首轮完整 lint",
+      "observed_errors": 218,
+      "added_file": "e2e/status-surface.spec.ts",
+      "repair": "SWE-2 仅删除新增用例未使用的 panel 变量，不改断言或行为；终版重新执行定向、重复与全量验证。"
+    },
+    {
+      "phase": "终版记录首次完整 format 检查",
+      "observed_format_files": 802,
+      "added_file": "docs/acceptance/status-surface-20261011/repair-validation/component-status-grep.json",
+      "repair": "格式化本轮 grep 记录后重新完整检查，回到 801；失败原始输出 final-v2-format.txt 保留。"
+    }
+  ],
+  "post_write_replay_receipts": {
+    "lint": "../repair-validation/sealed-final-lint.meta.json",
+    "format": "../repair-validation/sealed-format.meta.json",
+    "eslint_json_byte_comparison": "../repair-validation/sealed-lint-replay.meta.json",
+    "format_output_byte_comparison": "../repair-validation/sealed-format-replay.meta.json"
+  },
+  "whitespace": {
+    "command": "git diff 917f375 --check",
+    "exit_code": 2,
+    "warning": "docs/acceptance/status-surface-20261011/final-validation/typecheck.txt:15: new blank line at EOF.",
+    "reason": "原始封存输出的 EOF 空行保持原字节；相对 HEAD 的未提交差异及索引检查均无输出、退出 0。"
+  }
+}

@@ -1,6 +1,7 @@
 # Formal release fails closed in beforePack; root `package:unsigned` is for internal tests.
 appId: dev.webstudiolab.desktop
 productName: Web Studio Lab
+artifactName: 'Web-Studio-Lab-${version}-${arch}.${ext}'
 directories:
   output: release
   buildResources: ../../packaging
@@ -8,6 +9,7 @@ beforePack: ../../scripts/packaging/before-pack.cjs
 forceCodeSigning: true
 files:
   - out/**
+  - resources/branding/**
   - package.json
 extraResources:
   - from: ../service/out
@@ -16,9 +18,17 @@ extraResources:
     to: demo/taskflow
   - from: ../../packaging/generated/runtime
     to: runtime
+  - from: ../../templates/standard-app
+    to: templates/standard-app
+    filter:
+      - '**/*'
+      - '!node_modules/**'
+      - '!dist/**'
+      - '!.data/**'
 asar: true
 npmRebuild: false
 mac:
+  icon: ../../packaging/icon.icns
   category: public.app-category.developer-tools
   minimumSystemVersion: '14.0'
   hardenedRuntime: true

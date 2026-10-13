@@ -1,0 +1,22 @@
+{
+  "name": "fixed-welcome-v1",
+  "surface": "web",
+  "steps": [
+    { "type": "act", "action": { "type": "navigate", "path": "/" } },
+    { "type": "act", "action": { "type": "waitFor", "target": { "testid": "welcome-value" }, "state": "visible", "timeoutMs": 8000 } },
+    { "type": "assert", "assert": { "kind": "text", "testid": "welcome-value", "equals": "Ready", "timeoutMs": 8000 } },
+    { "type": "act", "action": { "type": "type", "target": { "testid": "welcome-input" }, "text": "   ", "clear": true } },
+    { "type": "act", "action": { "type": "click", "target": { "testid": "welcome-save" } } },
+    { "type": "assert", "assert": { "kind": "text", "testid": "welcome-error", "equals": "请输入欢迎语", "timeoutMs": 3000 } },
+    { "type": "assert", "assert": { "kind": "state", "name": "welcome", "path": "/value", "equals": "Ready" } },
+    { "type": "act", "action": { "type": "type", "target": { "testid": "welcome-input" }, "text": "固定验收 2026", "clear": true } },
+    { "type": "act", "action": { "type": "click", "target": { "testid": "welcome-save" } } },
+    { "type": "assert", "assert": { "kind": "text", "testid": "welcome-value", "equals": "固定验收 2026", "timeoutMs": 5000 } },
+    { "type": "assert", "assert": { "kind": "testid", "testid": "welcome-error", "state": "detached", "timeoutMs": 3000 } },
+    { "type": "assert", "assert": { "kind": "state", "name": "welcome", "path": "/value", "equals": "固定验收 2026" } },
+    { "type": "act", "action": { "type": "navigate", "path": "/" } },
+    { "type": "assert", "assert": { "kind": "text", "testid": "welcome-value", "equals": "固定验收 2026", "timeoutMs": 8000 } },
+    { "type": "assert", "assert": { "kind": "console-no-error" } },
+    { "type": "screenshot", "label": "fixed-welcome-saved" }
+  ]
+}

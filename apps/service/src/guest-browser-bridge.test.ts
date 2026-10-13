@@ -4,7 +4,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { GUEST_BROWSER_SANDBOX, GUEST_BROWSER_URL, GuestBrowserRequestSchema, type GuestBrowserSuccess } from '@wsl/protocol';
-import { ResourceStore } from './resource-store';
 import { assertGuestSandboxIdentity, saveGuestCapture, validateGuestCapture } from './guest-browser-bridge';
 
 const sha = (input: string | Buffer) => createHash('sha256').update(input).digest('hex');
@@ -139,14 +138,13 @@ describe('guest browser host boundary (offline synthetic frames)', () => {
   it('preserves exact guest provenance and binds an independent artifact to the stored version', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-guest-store-'));
     roots.push(root);
-    const store = new ResourceStore(path.join(root, 'space'));
     const result = fixture();
-    const saved = await saveGuestCapture(store, path.join(root, 'artifacts'), result);
-    expect(saved.resource.version).toBe(1);
-    expect(saved.resource.page).toEqual(result.snapshot.page);
+    const saved = await saveGuestCapture(path.join(root, 'artifacts'), result);
+    expect(saved.snapshot.captureId).toBe(result.snapshot.captureId);
+    expect(saved.snapshot.page).toEqual(result.snapshot.page);
     expect(sha(await readFile(saved.screenshotArtifact))).toBe(result.snapshot.screenshotSha256);
-    expect(JSON.stringify(saved.collection)).not.toContain(result.screenshot.base64);
-    expect((await saveGuestCapture(store, path.join(root, 'artifacts'), result)).collection.revision).toBe(1);
-    expect((await store.list('taskflow-demo')).resources[0]).toEqual(saved.resource);
+    expect(JSON.stringify(saved.snapshot)).not.toContain(result.screenshot.base64);
+    expect((await saveGuestCapture(path.join(root, 'artifacts'), result)).snapshot).toEqual(result.snapshot);
+    expect(saved.snapshot).toEqual(result.snapshot);
   });
 });

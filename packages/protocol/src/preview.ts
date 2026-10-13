@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AgentControlStateSchema } from './app-control';
 
 /** Browser 区视图在窗口内容区中的位置，单位为 CSS 像素（DIP）。 */
 export const PreviewBoundsSchema = z.object({
@@ -67,6 +68,8 @@ export const PreviewStateSchema = z.object({
   blockedNavigation: z.string().nullable(),
   /** 最近一次点选失败的原因；成功采集后清空。 */
   pickError: z.string().nullable(),
+  /** 控制面在此页面的操控/暂停展示态；缺省视为 idle。 */
+  agentControl: AgentControlStateSchema.optional(),
 });
 export type PreviewState = z.infer<typeof PreviewStateSchema>;
 

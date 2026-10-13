@@ -1,0 +1,12 @@
+# 2026-10-10T20:05:16Z
+Documentation check passed (19 normative files; local link targets and trailing whitespace). Anchors and external URLs are not checked.
+check-docs exit=0
+git diff --check exit=0
+git diff --cached --check exit=0
+staged files:        0
+# 2026-10-10T20:05:28Z (after trailing-space fix)
+Documentation check passed (19 normative files; local link targets and trailing whitespace). Anchors and external URLs are not checked.
+check-docs exit=0
+git diff --check exit=0
+git diff --cached --check exit=0
+untracked trailing-whitespace scan done

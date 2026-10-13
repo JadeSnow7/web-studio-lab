@@ -1,0 +1,221 @@
+diff --git "a/test-results/e2e/workspace-migration-R3-\345\217\214\347\275\221\351\241\265\345\216\237\347\224\237focus\344\272\213\344\273\266\345\206\263\345\256\232\345\234\260\345\235\200\344\270\216\345\210\267\346\226\260\347\233\256\346\240\207\357\274\214\345\270\203\345\261\200\346\233\264\346\226\260\344\277\235\346\214\201\347\204\246\347\202\271/error-context.md" "b/test-results/e2e/workspace-migration-R3-\345\217\214\347\275\221\351\241\265\345\216\237\347\224\237focus\344\272\213\344\273\266\345\206\263\345\256\232\345\234\260\345\235\200\344\270\216\345\210\267\346\226\260\347\233\256\346\240\207\357\274\214\345\270\203\345\261\200\346\233\264\346\226\260\344\277\235\346\214\201\347\204\246\347\202\271/error-context.md"
+new file mode 100644
+index 0000000..7437f94
+--- /dev/null
++++ "b/test-results/e2e/workspace-migration-R3-\345\217\214\347\275\221\351\241\265\345\216\237\347\224\237focus\344\272\213\344\273\266\345\206\263\345\256\232\345\234\260\345\235\200\344\270\216\345\210\267\346\226\260\347\233\256\346\240\207\357\274\214\345\270\203\345\261\200\346\233\264\346\226\260\344\277\235\346\214\201\347\204\246\347\202\271/error-context.md"
+@@ -0,0 +1,214 @@
++# Instructions
++
++- Following Playwright test failed.
++- Explain why, be concise, respect Playwright best practices.
++- Provide a snippet of code with the fix, if possible.
++
++# Test info
++
++- Name: workspace-migration.spec.ts >> R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点
++- Location: e2e/workspace-migration.spec.ts:153:1
++
++# Error details
++
++```
++Error: expect(received).toBe(expected) // Object.is equality
++
++Expected: true
++Received: false
++
++Call Log:
++- Timeout 5000ms exceeded while waiting on the predicate
++```
++
++# Test source
++
++```ts
++  81  |     const item = page.getByRole('region', { name: '通知' }).locator(`[data-run-id="${run.runId}"]`);
++  82  |     await expect(item).toContainText('未读');
++  83  |     await item.getByRole('button', { name: '打开运行', exact: true }).click();
++  84  |     // 运行标识不再外露在界面文字里：以展示层视图的实体键确认打开的正是这条后台运行。
++  85  |     await expect(page.getByRole('region', { name: 'Agent 会话内容' }).locator(`[data-status-key="run:${run.runId}:state"]`)).toBeVisible();
++  86  |     expect((await workspaceSnapshot(page)).workspaces[0]!.runs).toEqual(before);
++  87  |     await page.getByRole('button', { name: /^通知 · / }).click();
++  88  |     await expect(item).toContainText('未读');
++  89  |     await item.getByRole('button', { name: '标记已读', exact: true }).click();
++  90  |     await expect(item).toContainText('已读');
++  91  |     await app.close();
++  92  |     ({ app, page } = await launchApp({ sbxBin: fixture, userData: profile }));
++  93  |     await page.getByRole('button', { name: /^通知 · / }).click();
++  94  |     await expect(page.getByRole('region', { name: '通知' }).locator(`[data-run-id="${run.runId}"]`)).toContainText('已读');
++  95  |     expect((await workspaceSnapshot(page)).workspaces[0]!.runs.map((r) => r.runId)).toEqual(before.map((r) => r.runId));
++  96  |   } finally {
++  97  |     await app.close();
++  98  |   }
++  99  | });
++  100 | 
++  101 | test('R7 首页空间卡片由当前快照生成，按稳定身份切换', async () => {
++  102 |   const { app, page } = await launchApp();
++  103 |   try {
++  104 |     await page.getByRole('button', { name: '切换空间', exact: true }).click();
++  105 |     await page.getByRole('dialog', { name: '切换空间' }).getByRole('button', { name: '新建空间', exact: true }).click();
++  106 |     const dialog = page.getByRole('dialog', { name: '新建空间' });
++  107 |     await dialog.getByLabel('名称').fill('首页真实空间742');
++  108 |     await dialog.getByRole('button', { name: '保存', exact: true }).click();
++  109 |     await expect(dialog).not.toBeVisible();
++  110 |     const id = (await workspaceSnapshot(page)).activeWorkspaceId;
++  111 |     await workshopNavigate(page, '首页');
++  112 |     const cards = page.getByRole('region', { name: '近期空间' });
++  113 |     for (const workspace of (await workspaceSnapshot(page)).workspaces) {
++  114 |       const card = cards.getByRole('button', { name: new RegExp(workspace.name) });
++  115 |       await expect(card).toBeVisible();
++  116 |       await expect(card).toContainText(`任务版本数 ${workspace.sessions.reduce((n, s) => n + s.taskVersions.length, 0)}`);
++  117 |       await expect(card).toContainText(`运行 ${workspace.runs.length}`);
++  118 |     }
++  119 |     await cards.getByRole('button', { name: /首页真实空间742/ }).click();
++  120 |     expect((await workspaceSnapshot(page)).activeWorkspaceId).toBe(id);
++  121 |   } finally {
++  122 |     await app.close();
++  123 |   }
++  124 | });
++  125 | 
++  126 | test('R4 单窗格窄窗从网页关联会话并采集', async () => {
++  127 |   const { app, page } = await launchApp();
++  128 |   try {
++  129 |     await setWindowSize(app, 900, 700);
++  130 |     await expect(page.locator('[data-pane-id]:visible')).toHaveCount(1);
++  131 |     await openBrowserMenu(page, '采集到会话');
++  132 |     await page.getByLabel('关联会话').selectOption({ label: 'Agent 会话' });
++  133 |     await page.getByRole('button', { name: '采集到关联会话', exact: true }).click();
++  134 |     await expect(page.getByRole('button', { name: '选择中 · Esc 取消' })).toBeVisible();
++  135 |     // Native contents receive input, rather than clicking the renderer placeholder.
++  136 |     const web = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((r) => r.kind === 'web')!;
++  137 |     await app.evaluate(async ({ webContents }, id) => {
++  138 |       const contents = webContents.fromId(id)!;
++  139 |       const point = await contents.executeJavaScript(
++  140 |         `(() => { const r = document.querySelector('[data-testid="due-1"]').getBoundingClientRect(); return { x: Math.round(r.x+r.width/2), y: Math.round(r.y+r.height/2) }; })()`,
++  141 |       );
++  142 |       contents.sendInputEvent({ type: 'mouseMove', ...point });
++  143 |       await new Promise((resolve) => setTimeout(resolve, 120));
++  144 |       contents.sendInputEvent({ type: 'mouseDown', ...point, button: 'left', clickCount: 1 });
++  145 |       contents.sendInputEvent({ type: 'mouseUp', ...point, button: 'left', clickCount: 1 });
++  146 |     }, web.preview!.page.webContentsId);
++  147 |     await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.context).not.toBeNull();
++  148 |   } finally {
++  149 |     await app.close();
++  150 |   }
++  151 | });
++  152 | 
++  153 | test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点', async () => {
++  154 |   const { app, page } = await launchApp();
++  155 |   try {
++  156 |     await page.getByRole('button', { name: '左右分屏', exact: true }).click();
++  157 |     await page.getByRole('button', { name: '新建标签', exact: true }).click();
++  158 |     const dialog = page.getByRole('dialog', { name: '新建标签' });
++  159 |     await dialog.getByLabel('名称').fill('第二网页742');
++  160 |     await dialog.getByRole('button', { name: '保存', exact: true }).click();
++  161 |     await expect(dialog).not.toBeVisible();
++  162 |     const secondResource = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((r) => r.title === '第二网页742')!;
++  163 |     await page.locator(`#address-${secondResource.resourceId}`).fill('wsl-demo://taskflow/members.html');
++  164 |     await page.locator(`#address-${secondResource.resourceId}`).press('Enter');
++  165 |     const snapshot = await workspaceSnapshot(page);
++  166 |     const workspace = snapshot.workspaces[0]!;
++  167 |     const web = workspace.resources.find((r) => r.title === 'TaskFlow 预览')!;
++  168 |     await app.evaluate(({ webContents, BrowserWindow }, id) => {
++  169 |       BrowserWindow.getAllWindows()[0]!.focus();
++  170 |       const contents = webContents.fromId(id)!;
++  171 |       contents.focus();
++  172 |       contents.sendInputEvent({ type: 'mouseDown', x: 80, y: 80, button: 'left', clickCount: 1 });
++  173 |       contents.sendInputEvent({ type: 'mouseUp', x: 80, y: 80, button: 'left', clickCount: 1 });
++  174 |     }, web.preview!.page.webContentsId);
++  175 |     const first = page.locator('[data-pane-id]').filter({ has: page.getByRole('button', { name: '聚焦窗格 · TaskFlow 预览' }) });
++  176 |     await expect
++  177 |       .poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.activePaneId)
++  178 |       .toBe(await first.getAttribute('data-pane-id'));
++  179 |     await expect
++  180 |       .poll(() => app.evaluate(({ webContents }, id) => webContents.fromId(id)!.isFocused(), web.preview!.page.webContentsId))
++> 181 |       .toBe(true);
++      |        ^ Error: expect(received).toBe(expected) // Object.is equality
++  182 |     await setWindowSize(app, 1400, 880);
++  183 |     await expect
++  184 |       .poll(() => app.evaluate(({ webContents }, id) => webContents.fromId(id)!.isFocused(), web.preview!.page.webContentsId))
++  185 |       .toBe(true);
++  186 |     await menu(app, '编辑地址');
++  187 |     await expect(page.locator(`#address-${web.resourceId}`)).toBeFocused();
++  188 |     await menu(app, '重新加载 Browser 区页面');
++  189 |     await expect
++  190 |       .poll(
++  191 |         async () =>
++  192 |           (await workspaceSnapshot(page)).workspaces[0]!.resources.find((r) => r.resourceId === web.resourceId)!.preview!.page
++  193 |             .documentGeneration,
++  194 |       )
++  195 |       .toBeGreaterThan(web.preview!.page.documentGeneration);
++  196 |     await expect
++  197 |       .poll(
++  198 |         async () => (await workspaceSnapshot(page)).workspaces[0]!.resources.find((r) => r.resourceId === web.resourceId)!.preview!.loading,
++  199 |       )
++  200 |       .toBe(false);
++  201 |     const ownedFrontend = () =>
++  202 |       app.evaluate(async ({ BrowserWindow, webContents }, id) => {
++  203 |         const tools = webContents.fromId(id)!.devToolsWebContents;
++  204 |         if (!tools || tools.isDestroyed()) return null;
++  205 |         const window = BrowserWindow.fromWebContents(tools);
++  206 |         return {
++  207 |           id: tools.id,
++  208 |           visible: window?.isVisible() ?? false,
++  209 |           url: tools.getURL(),
++  210 |           ready: await tools.executeJavaScript("document.readyState === 'complete' && !!document.querySelector('.root-view')"),
++  211 |         };
++  212 |       }, web.preview!.page.webContentsId);
++  213 |     await menu(app, '打开 Browser 区页面 DevTools');
++  214 |     await expect
++  215 |       .poll(async () => {
++  216 |         const f = await ownedFrontend();
++  217 |         return !!f?.visible && f.ready && f.url.startsWith('devtools://devtools/bundled/devtools_app.html');
++  218 |       })
++  219 |       .toBe(true);
++  220 |     expect(
++  221 |       await app.evaluate(
++  222 |         ({ webContents }, id) => webContents.fromId(id)!.devToolsWebContents?.id ?? null,
++  223 |         secondResource.preview!.page.webContentsId,
++  224 |       ),
++  225 |     ).toBeNull();
++  226 |     const oldDevToolsId = (await ownedFrontend())!.id;
++  227 |     await app.evaluate(
++  228 |       ({ BrowserWindow, webContents }, id) => BrowserWindow.fromWebContents(webContents.fromId(id)!)!.close(),
++  229 |       oldDevToolsId,
++  230 |     );
++  231 |     await expect.poll(() => app.evaluate(({ webContents }, id) => webContents.fromId(id)?.isDestroyed() ?? true, oldDevToolsId)).toBe(true);
++  232 |     await menu(app, '打开 Browser 区页面 DevTools');
++  233 |     await expect
++  234 |       .poll(async () => {
++  235 |         const f = await ownedFrontend();
++  236 |         return !!f?.visible && f.ready && f.id !== oldDevToolsId && f.url.startsWith('devtools://devtools/bundled/devtools_app.html');
++  237 |       })
++  238 |       .toBe(true);
++  239 |     expect(
++  240 |       await app.evaluate(
++  241 |         ({ webContents }, id) => webContents.fromId(id)!.devToolsWebContents?.id ?? null,
++  242 |         secondResource.preview!.page.webContentsId,
++  243 |       ),
++  244 |     ).toBeNull();
++  245 |   } finally {
++  246 |     await app.close();
++  247 |   }
++  248 | });
++  249 | 
++  250 | test('E2E 异常门槛负控：build启动前注入异常必须失败', async () => {
++  251 |   test.skip(target !== 'build', 'not_run：启动前异常依赖build bootstrap注入；packaged未注入，不证明packaged启动门槛');
++  252 |   const { app } = await launchApp({ startupError: 'WSL_STARTUP_NEGATIVE_CONTROL' });
++  253 |   await expect(app.close()).rejects.toThrow('Workbench renderer exceptions/errors');
++  254 | });
++  255 | 
++  256 | test('E2E 异常门槛负控：运行期异常必须失败', async () => {
++  257 |   const { app, page, rendererErrors } = await launchApp();
++  258 |   await page.evaluate(() => {
++  259 |     setTimeout(() => {
++  260 |       throw new Error('WSL_LATE_NEGATIVE_CONTROL');
++  261 |     }, 0);
++  262 |   });
++  263 |   await expect.poll(() => rendererErrors.some((error) => error.includes('WSL_LATE_NEGATIVE_CONTROL'))).toBe(true);
++  264 |   await expect(app.close()).rejects.toThrow('Workbench renderer exceptions/errors');
++  265 | });
++  266 | 
++```
+\ No newline at end of file

@@ -1,0 +1,36 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/app-service.test.ts (52 tests | 2 failed | 50 skipped) 250ms
+   ❯ Main to Service pre-dispatch read exclusion (2)
+     × does not strand a CLI reservation while App lifecycle is starting 143ms
+     × does not strand a CLI reservation while App lifecycle is stopping 106ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/app-service.test.ts > Main to Service pre-dispatch read exclusion > does not strand a CLI reservation while App lifecycle is starting
+ FAIL  apps/service/src/app-service.test.ts > Main to Service pre-dispatch read exclusion > does not strand a CLI reservation while App lifecycle is stopping
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ apps/service/src/app-service.test.ts:947:58
+    945|       expect(result).toMatchObject({ ok: false, error: { code: 'app_bu…
+    946|       expect(test.prompts().filter((prompt) => prompt.operation === 'a…
+    947|       expect(control.hasPending(key.workspaceId, 'run')).toBe(false);
+       |                                                          ^
+    948|     } finally {
+    949|       release();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 50 skipped (52)
+   Start at  15:42:27
+   Duration  863ms (transform 44%, tests 34%, import 21%, worker 1%)
+

@@ -1,0 +1,46 @@
+# Formal release fails closed in beforePack; root `package:unsigned` is for internal tests.
+appId: dev.webstudiolab.desktop
+productName: Web Studio Lab
+artifactName: 'Web-Studio-Lab-${version}-${arch}.${ext}'
+directories:
+  output: release
+  buildResources: ../../packaging
+beforePack: ../../scripts/packaging/before-pack.cjs
+forceCodeSigning: true
+files:
+  - out/**
+  - resources/branding/**
+  - package.json
+extraResources:
+  - from: ../service/out
+    to: service
+  - from: ../../demo/taskflow
+    to: demo/taskflow
+  - from: ../../packaging/generated/runtime
+    to: runtime
+  - from: ../../templates/standard-app
+    to: templates/standard-app
+    filter:
+      - '**/*'
+      - '!node_modules/**'
+      - '!dist/**'
+      - '!.data/**'
+asar: true
+npmRebuild: false
+mac:
+  icon: ../../packaging/icon.icns
+  category: public.app-category.developer-tools
+  minimumSystemVersion: '14.0'
+  hardenedRuntime: true
+  notarize: true
+  # Python is signed in beforePack, before its executable hash is sealed in the manifest.
+  signIgnore:
+    - '/Contents/Resources/runtime/python/'
+  target:
+    - target: dmg
+      arch: [arm64]
+    - target: zip
+      arch: [arm64]
+dmg:
+  sign: true
+  writeUpdateInfo: false

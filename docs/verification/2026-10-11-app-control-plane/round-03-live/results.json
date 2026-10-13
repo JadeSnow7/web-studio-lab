@@ -1,0 +1,351 @@
+{
+  "environment": {
+    "sandbox": "wsl-sbx-smoke-20261006",
+    "projectId": "2c44e3d9-2edd-42d5-950d-54d540cb3c32",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/2c44e3d9-2edd-42d5-950d-54d540cb3c32",
+    "firstInstance": "26187dc4-0441-45f9-8308-6bef76e2bb3f"
+  },
+  "live.describe": {
+    "stale": {
+      "manifest": false,
+      "build": false
+    },
+    "revision": "e14c3dfa2b8099529b2a86361848e58a32b1a410f56538f35d3ccbccb3f0d9b1",
+    "testids": [
+      "app-instance-id",
+      "health-refresh",
+      "health-status",
+      "project-id"
+    ]
+  },
+  "live.precheck": {
+    "clicked": "ok",
+    "outcome": "failed",
+    "failedStep": {
+      "index": 1,
+      "type": "act",
+      "summary": "act waitFor testid=welcome-value visible",
+      "outcome": "failed",
+      "error": {
+        "code": "wait_timeout",
+        "message": "等待 {\"testid\":\"welcome-value\"} 达到 visible 超时"
+      },
+      "durationMs": 8011,
+      "documentGeneration": 2,
+      "screenshot": null
+    }
+  },
+  "live.restart": {
+    "staleAct": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "manifest_stale",
+        "message": "manifest 与当前源码不一致；运行 npm run agent:manifest 后再试",
+        "details": {
+          "currentRevision": "297699b867b275fd820b676ac07c16f38bfab9fc4c4cd7afb5fe5d6339984d75",
+          "manifestRevision": "e14c3dfa2b8099529b2a86361848e58a32b1a410f56538f35d3ccbccb3f0d9b1"
+        }
+      }
+    },
+    "staleDescribe": {
+      "manifest": true,
+      "build": true
+    },
+    "restart": {
+      "ok": true,
+      "tool": "app.restart",
+      "data": {
+        "accepted": true,
+        "previousAppInstanceId": "26187dc4-0441-45f9-8308-6bef76e2bb3f",
+        "next": "用 app.status 等待新实例 running；旧引用与 appInstanceId 均失效"
+      }
+    },
+    "previous": "26187dc4-0441-45f9-8308-6bef76e2bb3f",
+    "next": "f29da0ef-e546-4df0-ae07-9d8dac5d3ab6",
+    "oldInstance": "stale_instance",
+    "recovered": {
+      "manifest": false,
+      "build": false
+    }
+  },
+  "live.A03.scenario.1": {
+    "outcome": "passed",
+    "evidence": {
+      "trace": "app-control/039feb1c-700e-4b23-b497-d7945f1c9466/scenarios/ae9c5675-f879-4c31-a1e9-11f9d70f6411/trace.json",
+      "screenshots": [
+        "app-control/039feb1c-700e-4b23-b497-d7945f1c9466/scenarios/ae9c5675-f879-4c31-a1e9-11f9d70f6411/15-fixed-welcome-saved.png"
+      ]
+    },
+    "steps": [
+      [
+        "act navigate /",
+        "passed",
+        null
+      ],
+      [
+        "act waitFor testid=welcome-value visible",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-value equals",
+        "passed",
+        null
+      ],
+      [
+        "act type testid=welcome-input len=3",
+        "passed",
+        null
+      ],
+      [
+        "act click testid=welcome-save",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-error equals",
+        "passed",
+        null
+      ],
+      [
+        "assert state welcome/value",
+        "passed",
+        null
+      ],
+      [
+        "act type testid=welcome-input len=9",
+        "passed",
+        null
+      ],
+      [
+        "act click testid=welcome-save",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-value equals",
+        "passed",
+        null
+      ],
+      [
+        "assert testid=welcome-error detached",
+        "passed",
+        null
+      ],
+      [
+        "assert state welcome/value",
+        "passed",
+        null
+      ],
+      [
+        "act navigate /",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-value equals",
+        "passed",
+        null
+      ],
+      [
+        "assert console-no-error",
+        "passed",
+        null
+      ],
+      [
+        "screenshot fixed-welcome-saved",
+        "passed",
+        null
+      ]
+    ],
+    "stateDiff": [
+      {
+        "path": "/db/records/sha256",
+        "before": "1470948736a4929db8cdfe3d2a06f3db04dc67e5be62e218604d424f489f9ac7",
+        "after": "a4cd642df566b871df485fe0330cffadf9987cbbbaf7d3ad29aedbee47ddff37"
+      },
+      {
+        "path": "/db/sessions/rowCount",
+        "before": 0,
+        "after": 2
+      },
+      {
+        "path": "/db/sessions/sha256",
+        "before": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "after": "8a915b2ef54d4f06112b3ba0ab33ba85e8fc452f070e5da4cf8b5cd9f2badb30"
+      },
+      {
+        "path": "/state/welcome/value",
+        "before": "Ready",
+        "after": "固定验收 2026"
+      }
+    ]
+  },
+  "live.A03.scenario.2": {
+    "outcome": "passed",
+    "evidence": {
+      "trace": "app-control/039feb1c-700e-4b23-b497-d7945f1c9466/scenarios/c0536f6f-2c39-41ac-98cd-a9add5b99365/trace.json",
+      "screenshots": [
+        "app-control/039feb1c-700e-4b23-b497-d7945f1c9466/scenarios/c0536f6f-2c39-41ac-98cd-a9add5b99365/15-fixed-welcome-saved.png"
+      ]
+    },
+    "steps": [
+      [
+        "act navigate /",
+        "passed",
+        null
+      ],
+      [
+        "act waitFor testid=welcome-value visible",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-value equals",
+        "passed",
+        null
+      ],
+      [
+        "act type testid=welcome-input len=3",
+        "passed",
+        null
+      ],
+      [
+        "act click testid=welcome-save",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-error equals",
+        "passed",
+        null
+      ],
+      [
+        "assert state welcome/value",
+        "passed",
+        null
+      ],
+      [
+        "act type testid=welcome-input len=9",
+        "passed",
+        null
+      ],
+      [
+        "act click testid=welcome-save",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-value equals",
+        "passed",
+        null
+      ],
+      [
+        "assert testid=welcome-error detached",
+        "passed",
+        null
+      ],
+      [
+        "assert state welcome/value",
+        "passed",
+        null
+      ],
+      [
+        "act navigate /",
+        "passed",
+        null
+      ],
+      [
+        "assert text testid=welcome-value equals",
+        "passed",
+        null
+      ],
+      [
+        "assert console-no-error",
+        "passed",
+        null
+      ],
+      [
+        "screenshot fixed-welcome-saved",
+        "passed",
+        null
+      ]
+    ],
+    "stateDiff": [
+      {
+        "path": "/db/records/sha256",
+        "before": "1470948736a4929db8cdfe3d2a06f3db04dc67e5be62e218604d424f489f9ac7",
+        "after": "a4cd642df566b871df485fe0330cffadf9987cbbbaf7d3ad29aedbee47ddff37"
+      },
+      {
+        "path": "/db/sessions/rowCount",
+        "before": 0,
+        "after": 2
+      },
+      {
+        "path": "/db/sessions/sha256",
+        "before": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "after": "04f0b1c87b28154e109bf214f7a246344d7abcccf3d343854776116724858101"
+      }
+    ]
+  },
+  "live.A03.post": {
+    "rows": [
+      {
+        "value": "固定验收 2026"
+      }
+    ],
+    "appInstanceId": "f29da0ef-e546-4df0-ae07-9d8dac5d3ab6",
+    "sourceRevision": "297699b867b275fd820b676ac07c16f38bfab9fc4c4cd7afb5fe5d6339984d75"
+  },
+  "live.A07": {
+    "paused": {
+      "ok": false,
+      "tool": "app.ui.act",
+      "error": {
+        "code": "paused_by_user",
+        "message": "用户正在 Browser 区操作；AI 操控已暂停，等待用户点“允许 AI 继续”"
+      }
+    },
+    "blocked": "paused_by_user",
+    "resumed": "ok",
+    "focusBefore": {
+      "active": "<input id=\"address-38b20f1f-24b4-411b-abd3-274bfa77c59a\" value=\"http://127.0.0.1:49162/\">",
+      "hasFocus": true
+    },
+    "focusDuring": {
+      "active": "<input id=\"address-38b20f1f-24b4-411b-abd3-274bfa77c59a\" value=\"http://127.0.0.1:49162/\">",
+      "hasFocus": true
+    },
+    "previewFocusedAfterUserClick": true
+  },
+  "live.stopped": {
+    "stoppedQuery": {
+      "ok": true,
+      "tool": "app.data.query",
+      "data": {
+        "columns": [
+          "value"
+        ],
+        "rows": [
+          {
+            "value": "固定验收 2026"
+          }
+        ],
+        "rowCount": 1,
+        "truncated": false,
+        "mode": "cli"
+      }
+    },
+    "stoppedWrite": "app_not_running",
+    "afterRun": "no_active_run"
+  },
+  "live.forwardedServiceMethods": [
+    "app.create",
+    "app.start",
+    "app.agent",
+    "app.stop"
+  ],
+  "cleanup.ports": "[\n  {\n    \"host_ip\": \"127.0.0.1\",\n    \"host_port\": 49159,\n    \"sandbox_port\": 8081,\n    \"protocol\": \"tcp4\"\n  },\n  {\n    \"host_ip\": \"127.0.0.1\",\n    \"host_port\": 49160,\n    \"sandbox_port\": 8081,\n    \"protocol\": \"tcp4\"\n  }\n]\n"
+}

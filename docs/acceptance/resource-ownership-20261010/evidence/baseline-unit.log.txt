@@ -1,0 +1,51 @@
+
+> web-studio-lab@ test /Users/huaodong/workspace/web-studio-lab
+> vitest run && node --test scripts/packaging/*.test.mjs
+
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+
+ Test Files  73 passed | 6 skipped (79)
+      Tests  571 passed | 15 skipped (586)
+   Start at  22:55:49
+   Duration  5.23s (tests 85%, import 10%, transform 5%, worker 1%)
+
+    Isolate  79 workers spawned · ~81ms startup each (spawn + environment, per file)
+             at least ~629ms faster with isolate: false — reuses workers across files instead of one per file
+
+✔ CI rejects mismatched or injected tags and corrupted asset bytes (20.037709ms)
+✔ CI publishes only after uploading and verifying every asset, including prereleases (25.250708ms)
+✔ CI finds a matching draft on later pages and retries without replacing assets (10.211625ms)
+✔ CI refuses published releases and refuses publication after a remote tag moves (8.928708ms)
+✔ CI rejects another draft asset set and failed lookup does not create a release (7.572875ms)
+✔ CI imports only supplied certificate data and cleans up its own temporary keychain (2.023958ms)
+✔ CI tool failures suppress passwords from command error details (0.23775ms)
+✔ signed runtime probes disable pyc writes and fail if the probe damages the seal (0.099833ms)
+✔ pnpm platform pruning removes only macOS/Windows targets and preserves Linux ARM64 native bytes (21.318375ms)
+✔ guest archive audit rejects residual Mach-O and PE even outside pnpm (14.421959ms)
+✔ guest audit rejects wrong ELF architecture or a missing required native executable (4.486125ms)
+✔ download refuses hash and registry-integrity mismatch (0.818208ms)
+✔ interrupted and corrupt downloads never publish a cache hit (16.720209ms)
+✔ safe archive validation rejects parent and absolute traversal (4.581542ms)
+✔ safe archive validation rejects escaping symlink (1.769292ms)
+✔ archives are byte reproducible including links and executable modes (3.378042ms)
+✔ release rejects missing/development signing and incomplete notarization (0.210042ms)
+✔ payload gate rejects an absent manifest (0.490625ms)
+✔ service audit rejects unbundled required assets while accepting optional accelerators (1.241375ms)
+✔ notarization failure does not leak secret-bearing exec argv (0.257875ms)
+✔ safe archive validation rejects writes through a symlink (2.3695ms)
+✔ payload gate rejects a changed source version and corrupted payload bytes (2.787625ms)
+✔ release documents are required and nonempty before artifact publication (1.903792ms)
+✔ release attachments preserve Chinese documents and signed App manifests byte for byte (4.22225ms)
+✔ formal builder selector removes only the Developer ID prefix and preserves full signing identity (0.134833ms)
+✔ installed electron-builder selects the same Developer ID certificate with the sanitized qualifier (140.181792ms)
+✔ template archive accepts Linux ARM64 and rejects foreign binaries, missing target and missing execute bit (23.400667ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 229.454792

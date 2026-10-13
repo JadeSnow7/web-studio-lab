@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 e2e/workspace-debug.spec.ts:3:1 › 工作台启动：窄preload接口与真实导航控件 (3.2s)
+
+  1 passed (3.8s)

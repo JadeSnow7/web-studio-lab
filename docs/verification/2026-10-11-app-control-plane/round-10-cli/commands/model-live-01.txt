@@ -1,0 +1,39 @@
+
+Running 1 test using 1 worker
+
+(node:67414) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+LIVE_PROFILE /var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-app-control-model-yaAuFc ELECTRON_PID 67425
+ELECTRON_STDERR (node:67425) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+
+ELECTRON_STDERR Debugger ending on ws://127.0.0.1:59623/ea9e8386-13e2-48c4-86a5-bfc0466dc785
+For help, see: https://nodejs.org/learn/getting-started/debugging
+
+  ✘  1 e2e/app-control-model-live.spec.ts:180:1 › A11: real guest Codex implements and self-verifies the frozen welcome task (6.0m)
+
+
+  1) e2e/app-control-model-live.spec.ts:180:1 › A11: real guest Codex implements and self-verifies the frozen welcome task 
+
+    Error: Python wrapper must finish normally
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      360 |     expect(transcripts, 'Exactly one complete CLI transcript must come from the real Codex command sandbox').toHaveLength(1);
+      361 |     const verified = transcripts[0]!;
+    > 362 |     expect(verified.tool.exitCode, 'Python wrapper must finish normally').toBe(0);
+          |                                                                           ^
+      363 |     expect(verified.tool.truncated).toBe(false);
+      364 |     const labels = [
+      365 |       'describe',
+        at /Users/huaodong/workspace/web-studio-lab/e2e/app-control-model-live.spec.ts:362:75
+
+    Error Context: test-results/e2e/app-control-model-live-A11-a0c0a-ies-the-frozen-welcome-task/error-context.md
+
+  Slow test file: e2e/app-control-model-live.spec.ts (6.0m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 failed
+    e2e/app-control-model-live.spec.ts:180:1 › A11: real guest Codex implements and self-verifies the frozen welcome task 

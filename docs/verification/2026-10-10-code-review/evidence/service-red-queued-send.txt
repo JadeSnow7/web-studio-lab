@@ -1,0 +1,27 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/index.test.ts (4 tests | 1 failed) 830ms
+   ❯ service request cancellation admission (4)
+     × cancel also revokes an earlier send still queued behind resource capture 162ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/index.test.ts > service request cancellation admission > cancel also revokes an earlier send still queued behind resource capture
+AssertionError: expected "vi.fn()" to be called once, but got 2 times
+ ❯ apps/service/src/index.test.ts:111:26
+    109|     release();
+    110|     await vi.waitFor(() => expect(test.messages.some((message) => mess…
+    111|     expect(fixture.list).toHaveBeenCalledOnce();
+       |                          ^
+    112|     expect(fixture.start).not.toHaveBeenCalled();
+    113|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  21:05:36
+   Duration  924ms (tests 96%, transform 3%, import 1%)
+

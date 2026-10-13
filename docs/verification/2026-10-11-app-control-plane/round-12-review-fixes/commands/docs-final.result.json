@@ -1,0 +1,8 @@
+{
+  "command": [
+    "node",
+    "scripts/check-docs.mjs"
+  ],
+  "exitCode": 0,
+  "seconds": 0.10166192054748535
+}

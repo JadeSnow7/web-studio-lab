@@ -1,0 +1,25 @@
+{
+  "name": "baseline-install-frozen",
+  "command": [
+    "pnpm",
+    "--dir",
+    "/private/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-status-repair-baseline-917f375-ry7FTZ",
+    "install",
+    "--frozen-lockfile",
+    "--ignore-scripts"
+  ],
+  "cwd": "/Users/huaodong/workspace/_worktrees/status-surface-20261011",
+  "head": "1bce260678c5d60e6889a093e0c523c333019fca",
+  "startedAt": "2026-10-12T04:34:28.418Z",
+  "endedAt": "2026-10-12T04:34:30.953Z",
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "envOverrides": { "WSL_E2E_TARGET": "build", "WSL_APP_HASH_REJECTION": "0" },
+  "productSourceDiff": {
+    "sha256Before": "66ad2e46eec09eaeba0b443109cc2a0edf7b9758566d4246774a4568010499fa",
+    "sha256After": "66ad2e46eec09eaeba0b443109cc2a0edf7b9758566d4246774a4568010499fa",
+    "changedDuringRun": false
+  },
+  "notes": "txt 为子进程 stdout 与 stderr 原始字节按到达顺序的交错记录，未经过 shell；meta 只记录上方 envOverrides，不转储其他环境变量。"
+}

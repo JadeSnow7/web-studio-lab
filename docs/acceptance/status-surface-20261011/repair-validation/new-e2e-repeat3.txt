@@ -1,0 +1,26 @@
+
+Running 21 tests using 1 worker
+
+  ✓   1 e2e/debug-status.spec.ts:226:3 › build 产物 › 修复复验：面板持续打开时 detail 与 raw 更新即时显示；seq/转换不变、单请求合并、关闭后不查询 (3.5s)
+  ✓   2 e2e/status-surface.spec.ts:639:1 › 修复复验：终端清理未确认时连接按钮禁用（failed/closed/idle 均成立），消除后恢复，starting/closing 仍禁用，中断名称保留 (2.2s)
+  ✓   3 e2e/status-surface.spec.ts:1142:1 › 修复复验：AI 操控中 + 页面加载失败 + 已拦截导航同时成立——控制提示与失败文本同时可见，另有 1 项展开看到拦截导航 (2.3s)
+  ✓   4 e2e/status-surface.spec.ts:1182:1 › 修复复验：已暂停 AI + 页面控制断开——「允许 AI 继续」与「重新附着」同时可见、真实 Tab 各到达、Enter 下发既有命令 (2.2s)
+  ✓   5 e2e/status-surface.spec.ts:1237:1 › 修复复验：问题通道另有 2 项——真实键盘展开菜单、方向键移动、Esc 回焦触发器、原生网页让位恢复 (2.3s)
+  ✓   6 e2e/status-surface.spec.ts:2353:1 › 修复复验：文件资源不可用进唯一状态槽——缺环境与不可用原因两条件，body 无重复、表单禁用、恢复可用 (2.6s)
+  ✓   7 e2e/status-surface.spec.ts:2397:1 › 修复复验：观察历史错误与当前结果分离——旧失败不占当前槽、不增加另有项；历史内失败摘要与未获授权可见且不播报 (2.4s)
+  ✓   8 e2e/debug-status.spec.ts:226:3 › build 产物 › 修复复验：面板持续打开时 detail 与 raw 更新即时显示；seq/转换不变、单请求合并、关闭后不查询 (2.9s)
+  ✓   9 e2e/status-surface.spec.ts:639:1 › 修复复验：终端清理未确认时连接按钮禁用（failed/closed/idle 均成立），消除后恢复，starting/closing 仍禁用，中断名称保留 (2.1s)
+  ✓  10 e2e/status-surface.spec.ts:1142:1 › 修复复验：AI 操控中 + 页面加载失败 + 已拦截导航同时成立——控制提示与失败文本同时可见，另有 1 项展开看到拦截导航 (2.5s)
+  ✓  11 e2e/status-surface.spec.ts:1182:1 › 修复复验：已暂停 AI + 页面控制断开——「允许 AI 继续」与「重新附着」同时可见、真实 Tab 各到达、Enter 下发既有命令 (2.1s)
+  ✓  12 e2e/status-surface.spec.ts:1237:1 › 修复复验：问题通道另有 2 项——真实键盘展开菜单、方向键移动、Esc 回焦触发器、原生网页让位恢复 (2.4s)
+  ✓  13 e2e/status-surface.spec.ts:2353:1 › 修复复验：文件资源不可用进唯一状态槽——缺环境与不可用原因两条件，body 无重复、表单禁用、恢复可用 (2.6s)
+  ✓  14 e2e/status-surface.spec.ts:2397:1 › 修复复验：观察历史错误与当前结果分离——旧失败不占当前槽、不增加另有项；历史内失败摘要与未获授权可见且不播报 (2.5s)
+  ✓  15 e2e/debug-status.spec.ts:226:3 › build 产物 › 修复复验：面板持续打开时 detail 与 raw 更新即时显示；seq/转换不变、单请求合并、关闭后不查询 (2.9s)
+  ✓  16 e2e/status-surface.spec.ts:639:1 › 修复复验：终端清理未确认时连接按钮禁用（failed/closed/idle 均成立），消除后恢复，starting/closing 仍禁用，中断名称保留 (2.3s)
+  ✓  17 e2e/status-surface.spec.ts:1142:1 › 修复复验：AI 操控中 + 页面加载失败 + 已拦截导航同时成立——控制提示与失败文本同时可见，另有 1 项展开看到拦截导航 (2.5s)
+  ✓  18 e2e/status-surface.spec.ts:1182:1 › 修复复验：已暂停 AI + 页面控制断开——「允许 AI 继续」与「重新附着」同时可见、真实 Tab 各到达、Enter 下发既有命令 (2.2s)
+  ✓  19 e2e/status-surface.spec.ts:1237:1 › 修复复验：问题通道另有 2 项——真实键盘展开菜单、方向键移动、Esc 回焦触发器、原生网页让位恢复 (2.4s)
+  ✓  20 e2e/status-surface.spec.ts:2353:1 › 修复复验：文件资源不可用进唯一状态槽——缺环境与不可用原因两条件，body 无重复、表单禁用、恢复可用 (2.9s)
+  ✓  21 e2e/status-surface.spec.ts:2397:1 › 修复复验：观察历史错误与当前结果分离——旧失败不占当前槽、不增加另有项；历史内失败摘要与未获授权可见且不播报 (2.6s)
+
+  21 passed (56.2s)

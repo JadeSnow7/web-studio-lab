@@ -1,0 +1,93 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/desktop/src/main/chat-service.test.ts (20 tests | 2 failed | 18 skipped) 27ms
+   ❯ control-plane relay (3)
+     × pre-cancelled appAgent sends no service request 16ms
+   ❯ CLI read cancellation before adapter dispatch (1)
+     × clears the reserved Main occupancy when real ChatService sees cancellation after pending metadata was saved 9ms
+ ❯ apps/service/src/app-service.test.ts (50 tests | 2 failed | 48 skipped) 96ms
+   ❯ managed app control plane (17)
+     × pre-cancelled agent on running app neither fetches nor starts a guest 93ms
+     × pre-cancelled agent on stopped app neither fetches nor starts a guest 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app control plane > pre-cancelled agent on running app neither fetches nor starts a guest
+ FAIL  apps/service/src/app-service.test.ts > managed app control plane > pre-cancelled agent on stopped app neither fetches nor starts a guest
+AssertionError: expected { mode: 'http', …(2) } to match object { cleanupConfirmed: true, …(2) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+@@ -4,7 +4,6 @@
+      "error": {
+        "code": "cancelled",
+      },
+      "ok": false,
+    },
+-   "operationDispatched": false,
+  }
+
+ ❯ apps/service/src/app-service.test.ts:681:20
+    679|     expect(test.prompts()).toHaveLength(before);
+    680|     expect(test.agentRequests()).toEqual([]);
+    681|     expect(result).toMatchObject({ cleanupConfirmed: true, operationDi…
+       |                    ^
+    682|     if (running) await test.service.stop(key);
+    683|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  apps/desktop/src/main/chat-service.test.ts > control-plane relay > pre-cancelled appAgent sends no service request
+AssertionError: expected { mode: 'http', …(2) } to match object { cleanupConfirmed: true, …(2) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+@@ -4,7 +4,6 @@
+      "error": {
+        "code": "cancelled",
+      },
+      "ok": false,
+    },
+-   "operationDispatched": false,
+  }
+
+ ❯ apps/desktop/src/main/chat-service.test.ts:382:27
+    380|     const pending = service.appAgent({ workspaceId: 'w', projectId: 'p…
+    381|     expect(mock.postMessage.mock.calls.filter(([request]) => request.m…
+    382|     expect(await pending).toMatchObject({ cleanupConfirmed: true, oper…
+       |                           ^
+    383|   });
+    384|   it('appAgent cancels its service call by callId when the dispatcher …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  apps/desktop/src/main/chat-service.test.ts > CLI read cancellation before adapter dispatch > clears the reserved Main occupancy when real ChatService sees cancellation after pending metadata was saved
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ apps/desktop/src/main/chat-service.test.ts:424:44
+    422|     expect(result).toMatchObject({ ok: false, error: { code: 'cancelle…
+    423|     expect(mock.postMessage.mock.calls.filter(([request]) => request.m…
+    424|     expect(control.hasPending('w', 'run')).toBe(false);
+       |                                            ^
+    425|   });
+    426| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  4 failed | 66 skipped (70)
+   Start at  15:18:02
+   Duration  937ms (transform 64%, import 26%, tests 9%, worker 1%)
+

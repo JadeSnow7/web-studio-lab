@@ -1,8 +1,18 @@
+import type { SpaceResource } from '../apps/desktop/src/main/workbench/legacy-resources';
 import path from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import type { ChatConversation, SpaceResource, StudioApi } from '../packages/protocol/src';
-import { launchApp, previewInfo, screensDir, setWindowSize, windowShots, workspaceSnapshot, workshopNavigate } from './helpers';
+import type { ChatConversation, StudioApi } from '../packages/protocol/src';
+import {
+  launchApp,
+  openBrowserMenu,
+  previewInfo,
+  screensDir,
+  setWindowSize,
+  windowShots,
+  workspaceSnapshot,
+  workshopNavigate,
+} from './helpers';
 import { resourceCollection } from './helpers';
 
 let app: ElectronApplication;
@@ -63,7 +73,8 @@ test('live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过
     expect(resource.text).toContain('This domain is for use in');
     expect(resource.page.url).toBe(resource.url);
     expect(resource.version).toBe(1);
-    await page.getByRole('button', { name: '查看空间资源' }).click();
+    await openBrowserMenu(page, '更多网页操作');
+    await page.getByRole('menuitem', { name: '查看空间资源' }).click();
     const detail = page.getByRole('region', { name: '资源详情' });
     await expect(detail).toContainText(resource.resourceId);
     await expect(detail).toContainText(resource.title);
@@ -137,7 +148,6 @@ test('live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过
     expect(empty.resources).toEqual([]);
     expect(empty.revision).toBeGreaterThan(collection.revision);
   } finally {
-    const captureWorkspace = (await workspaceSnapshot(page)).workspaces.find((workspace) => workspace.workspaceId === 'taskflow-demo')!;
     const captureButton = page.getByRole('button', { name: '加入空间', exact: true });
     const captureButtonPresent = (await captureButton.count()) > 0;
     const captureButtonDisabled = captureButtonPresent ? await captureButton.isDisabled() : null;
@@ -164,9 +174,9 @@ test('live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过
             blockedNavigation: preview.blockedNavigation,
           },
           publicCapture: {
-            publicResourcesError: captureWorkspace.publicResourcesError,
-            collectionRevision: captureWorkspace.publicResources?.revision ?? null,
-            resourceCount: captureWorkspace.publicResources?.resources.length ?? null,
+            publicResourcesError: null,
+            collectionRevision: (await workspaceSnapshot(page)).catalog?.revision ?? null,
+            resourceCount: (await workspaceSnapshot(page)).catalog?.resources.length ?? null,
             buttonPresent: captureButtonPresent,
             buttonDisabled: captureButtonDisabled,
             // Main has no public-capture pending field; disabled is raw UI evidence, not proof of pending alone.

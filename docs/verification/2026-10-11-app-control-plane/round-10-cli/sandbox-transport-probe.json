@@ -1,0 +1,1 @@
+{"codexVersion": "0.160.0", "mode": "workspace-write", "baselineUnixSocket": true, "exitCode": 0, "stdout": "{\"unix_socket\": {\"ok\": false, \"type\": \"PermissionError\", \"errno\": 1}, \"temp_write\": {\"ok\": true}, \"outside_write\": {\"ok\": false, \"type\": \"OSError\", \"errno\": 30}, \"flock\": {\"ok\": true}}\n", "stderr": "", "outsideUnchanged": true}

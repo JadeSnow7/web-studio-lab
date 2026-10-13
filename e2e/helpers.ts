@@ -1,7 +1,7 @@
-import type { StudioApi } from '../packages/protocol/src';
+import type { StudioApi, StudioDebugApi } from '../packages/protocol/src';
 declare global {
   interface Window {
-    studio: StudioApi;
+    studio: StudioApi & { debug?: StudioDebugApi };
   }
 }
 import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
@@ -10,7 +10,9 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { _electron, type ElectronApplication, type Page } from '@playwright/test';
+import { _electron, type ElectronApplication, type Locator, type Page } from '@playwright/test';
+import { appControlInjection } from './fixtures/app-control-injection';
+import { appControlCancelGate } from './fixtures/app-control-cancel-gate';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const fixtureSandbox =
@@ -26,6 +28,10 @@ export async function launchApp(
     observationRoot?: string;
     sshEnvironment?: { host: string; port: number; username: string; hostKeySha256: string; root: string; agent: string };
     controlledObservation?: boolean;
+    /** 测试专用：在 Main↔service 边界代替 guest Codex 轮次以驱动控制面，不调用模型。 */
+    appControlInjection?: boolean;
+    /** Test-only: observe real app calls and delay one genuine reply across cancellation. */
+    appControlCancelGate?: boolean;
     controlledTerminal?: boolean;
     codexBin?: string;
     sbxBin?: string;
@@ -34,6 +40,10 @@ export async function launchApp(
     userData?: string;
     startupError?: string;
     cleanInstall?: boolean;
+    /** 写入 WSL_DEBUG_STATUS=1：启用诊断通道（build 产物默认关闭；packaged 清除所有 WSL_* 之后再写入）。 */
+    debugStatus?: boolean;
+    /** 写入 WSL_STATUS_LOG=<path>（需同时启用诊断通道才有效）。 */
+    statusLog?: string;
   } = {},
 ): Promise<{ app: ElectronApplication; page: Page; rendererErrors: string[] }> {
   // 默认回归不得消耗模型；真实模型仅在显式 live 模式使用已选 sbx。
@@ -92,7 +102,13 @@ export async function launchApp(
       );
     }
     for (const key of Object.keys(env)) if (key.startsWith('WSL_')) delete env[key as keyof typeof env];
+    if (options.live) env['PATH'] = '/usr/bin:/bin:/usr/sbin:/sbin';
   }
+  // 诊断开关只由选项决定：先清除继承自外部环境的值，且在上面清除所有 WSL_* 的分支之后写入。
+  delete env['WSL_DEBUG_STATUS'];
+  delete env['WSL_STATUS_LOG'];
+  if (options.debugStatus) env['WSL_DEBUG_STATUS'] = '1';
+  if (options.debugStatus && options.statusLog) env['WSL_STATUS_LOG'] = options.statusLog;
   // Install the observer before the real entrypoint creates any renderer.
   const bootstrap = path.join(await mkdtemp(path.join(tmpdir(), 'wsl-e2e-bootstrap-')), 'main.cjs');
   await writeFile(
@@ -101,6 +117,8 @@ export async function launchApp(
 const { app } = require('electron');
 app.setAppPath(${JSON.stringify(desktopDir)});
 globalThis.__wslRendererErrors = [];
+${options.appControlInjection ? appControlInjection : ''}
+${options.appControlCancelGate ? appControlCancelGate : ''}
 ${
   options.controlledObservation || options.controlledTerminal
     ? `
@@ -262,6 +280,33 @@ export function previewClick(app: ElectronApplication, point: { x: number; y: nu
   }, point);
 }
 
+/** 在应用菜单中按 label 找到菜单项并触发（等同用户点击或按其快捷键）；返回其 accelerator。找不到时抛错。 */
+export function clickAppMenu(app: ElectronApplication, label: string): Promise<string | null> {
+  return app.evaluate(({ Menu, BrowserWindow }, target) => {
+    const find = (items: Electron.MenuItem[]): Electron.MenuItem | undefined => {
+      for (const item of items) {
+        if (item.label === target) return item;
+        const nested = item.submenu ? find(item.submenu.items) : undefined;
+        if (nested) return nested;
+      }
+      return undefined;
+    };
+    const item = find(Menu.getApplicationMenu()?.items ?? []);
+    if (!item) throw new Error(`missing menu ${target}`);
+    item.click(undefined, BrowserWindow.getAllWindows()[0], undefined as never);
+    return item.accelerator ?? null;
+  }, label);
+}
+
+/** 应用菜单中是否存在 label 包含 text 的菜单项（含子菜单）。 */
+export function appMenuHas(app: ElectronApplication, text: string): Promise<boolean> {
+  return app.evaluate(({ Menu }, target) => {
+    const has = (items: Electron.MenuItem[]): boolean =>
+      items.some((item) => item.label.includes(target) || (item.submenu ? has(item.submenu.items) : false));
+    return has(Menu.getApplicationMenu()?.items ?? []);
+  }, text);
+}
+
 export function setWindowSize(app: ElectronApplication, width: number, height: number): Promise<void> {
   return app.evaluate(
     ({ BrowserWindow }, size) => {
@@ -273,6 +318,109 @@ export function setWindowSize(app: ElectronApplication, width: number, height: n
 
 export async function workspaceSnapshot(page: Page) {
   return page.evaluate(() => window.studio.workbench.getSnapshot());
+}
+
+export interface StatusShimAgentControl {
+  state: 'idle' | 'active' | 'paused_by_user';
+  runId: string | null;
+  since: string | null;
+  lastAction: string | null;
+}
+
+export async function installStatusShim(app: ElectronApplication) {
+  await app.evaluate(({ ipcMain, BrowserWindow }) => {
+    type Shim = {
+      agentControl: StatusShimAgentControl | null;
+      terminal: Record<string, Record<string, unknown> | null>;
+      resource: Record<string, { environmentId?: string | null; unavailableReason?: string | null }>;
+      browserActions: Array<{ action: string; workspaceId: string; resourceId: string }>;
+    };
+    const shim: Shim = ((globalThis as unknown as { __wslStatusShim: Shim }).__wslStatusShim = {
+      agentControl: null,
+      terminal: {},
+      resource: {},
+      browserActions: [],
+    });
+    type Resource = {
+      resourceId: string;
+      kind: string;
+      environmentId?: string | null;
+      unavailableReason?: string | null;
+      preview?: { agentControl?: unknown } | null;
+      terminal?: unknown;
+    };
+    type Snapshot = { workspaces: Array<{ resources: Resource[] }> };
+    const transform = <T>(snapshot: T): T => {
+      const next = structuredClone(snapshot) as T & Snapshot;
+      for (const workspace of next.workspaces)
+        for (const resource of workspace.resources) {
+          const patch = shim.resource[resource.resourceId];
+          if (patch) {
+            if ('environmentId' in patch) resource.environmentId = patch.environmentId ?? null;
+            if ('unavailableReason' in patch) resource.unavailableReason = patch.unavailableReason ?? null;
+          }
+          if (resource.kind === 'web' && resource.preview && shim.agentControl) resource.preview.agentControl = shim.agentControl;
+          if (resource.resourceId in shim.terminal) resource.terminal = shim.terminal[resource.resourceId];
+        }
+      return next;
+    };
+    type Handler = (event: Electron.IpcMainInvokeEvent, request?: { type?: string }) => Promise<unknown>;
+    const handlers = (ipcMain as unknown as { _invokeHandlers: Map<string, Handler> })._invokeHandlers;
+    const get = handlers.get('workbench:get-snapshot')!;
+    const command = handlers.get('workbench:command')!;
+    ipcMain.removeHandler('workbench:get-snapshot');
+    ipcMain.handle('workbench:get-snapshot', async (event) => transform((await get(event)) as Snapshot));
+    ipcMain.removeHandler('workbench:command');
+    ipcMain.handle('workbench:command', async (event, request) => {
+      if (request?.type === 'browserAction') {
+        const { action, workspaceId, resourceId } = request as { action: string; workspaceId: string; resourceId: string };
+        shim.browserActions.push({ action, workspaceId, resourceId });
+      }
+      const result = (await command(event, request)) as { snapshot: Snapshot };
+      return { ...result, snapshot: transform(result.snapshot) };
+    });
+    const contents = BrowserWindow.getAllWindows()[0]!.webContents;
+    const send = contents.send.bind(contents);
+    contents.send = ((channel: string, ...args: Array<{ snapshot?: Snapshot }>) => {
+      const payload = args[0];
+      if (channel === 'workbench:event' && payload?.snapshot) return send(channel, { ...payload, snapshot: transform(payload.snapshot) });
+      return send(channel, ...args);
+    }) as typeof contents.send;
+  });
+}
+
+export const setStatusShim = (
+  app: ElectronApplication,
+  patch: {
+    agentControl?: StatusShimAgentControl | null;
+    terminal?: Record<string, Record<string, unknown> | null>;
+    resource?: Record<string, { environmentId?: 'local' | 'sandbox' | 'ssh' | null; unavailableReason?: string | null }>;
+  },
+) =>
+  app.evaluate((_electron, next) => {
+    const shim = (globalThis as unknown as { __wslStatusShim: Record<string, unknown> }).__wslStatusShim;
+    if ('agentControl' in next) shim.agentControl = next.agentControl ?? null;
+    if (next.terminal) for (const [id, value] of Object.entries(next.terminal)) (shim.terminal as Record<string, unknown>)[id] = value;
+    if (next.resource) for (const [id, value] of Object.entries(next.resource)) (shim.resource as Record<string, unknown>)[id] = value;
+  }, patch);
+
+export const statusShimBrowserActions = (app: ElectronApplication) =>
+  app.evaluate(
+    () =>
+      (globalThis as unknown as { __wslStatusShim: { browserActions: Array<{ action: string; workspaceId: string; resourceId: string }> } })
+        .__wslStatusShim.browserActions,
+  );
+
+export async function pushWorkbenchSnapshot(page: Page) {
+  const snapshot = await workspaceSnapshot(page);
+  const workspace = snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)!;
+  const result = await page.evaluate((command) => window.studio.workbench.command(command as never), {
+    commandId: crypto.randomUUID(),
+    type: 'focusPane',
+    workspaceId: workspace.workspaceId,
+    paneId: workspace.activePaneId,
+  });
+  if (!result?.ok) throw new Error(`focusPane 触发快照失败：${JSON.stringify(result)}`);
 }
 export async function browserState(page: Page) {
   const snapshot = await workspaceSnapshot(page);
@@ -288,6 +436,17 @@ export async function terminalSnapshot(page: Page) {
   if (!resource?.terminal) throw new Error('terminal snapshot unavailable');
   return resource.terminal;
 }
+/**
+ * 打开网页工具栏的弹出层：「采集到会话」（非模态 dialog，内含关联会话与三个按钮）或「更多网页操作」（menu）。
+ * 已展开时不重复点击（触发器是开关）。scope 用于多个网页窗格同时存在时限定在某个 .workspace-browser 内。
+ */
+export async function openBrowserMenu(page: Page, name: '采集到会话' | '更多网页操作', scope: Page | Locator = page) {
+  const popup = scope.getByRole(name === '采集到会话' ? 'dialog' : 'menu', { name, exact: true });
+  if (!(await popup.isVisible())) await scope.getByRole('button', { name, exact: true }).click();
+  await popup.waitFor({ state: 'visible' });
+  return popup;
+}
+
 export async function workshopNavigate(page: Page, label: string) {
   const navigation = page.getByRole('navigation', { name: 'Workshop 导航' });
   if (!(await navigation.isVisible())) await page.getByRole('button', { name: '展开 Workshop', exact: true }).click();
@@ -296,9 +455,33 @@ export async function workshopNavigate(page: Page, label: string) {
 
 export async function resourceCollection(page: Page) {
   const snapshot = await workspaceSnapshot(page);
-  const collection = snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)?.publicResources;
-  if (!collection) throw new Error('public resource collection unavailable');
-  return collection;
+  const catalog = snapshot.catalog;
+  if (!catalog) throw new Error('account catalogue unavailable');
+  const spaceId = snapshot.activeWorkspaceId;
+  const resources = await page.evaluate(
+    async ({ links, spaceId }) => {
+      const resources = [];
+      for (const link of links) {
+        const snapshot = await window.studio.workbench.resourceRevision(link.resourceId, link.referenceVersion!);
+        if (snapshot.evidence.kind === 'web')
+          resources.push({ ...snapshot.evidence.snapshot, resourceId: snapshot.resourceId, version: snapshot.version, spaceId });
+      }
+      return resources;
+    },
+    {
+      links: catalog.links
+        .filter(
+          (link) =>
+            link.workspaceId === spaceId && catalog.resources.some((item) => item.resourceId === link.resourceId && item.latestVersion),
+        )
+        .map((link) => ({
+          ...link,
+          referenceVersion: link.referenceVersion ?? catalog.resources.find((item) => item.resourceId === link.resourceId)!.latestVersion,
+        })),
+      spaceId,
+    },
+  );
+  return { spaceId, revision: catalog.revision, resources };
 }
 
 export async function setWorkspaceTheme(page: Page, theme: string) {

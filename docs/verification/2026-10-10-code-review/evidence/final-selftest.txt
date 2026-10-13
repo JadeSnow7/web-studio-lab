@@ -1,0 +1,22 @@
+(node:52150) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ synthetic: strict task and event contracts reject relaxed goals and extra pass claims (1.991ms)
+✔ synthetic: postcondition rejects initial/wrong/hidden/duplicate/mixed-run/exception observations (0.485125ms)
+✔ synthetic: mixed run/hash, sequence, lifecycle, logs and nonzero exit are rejected (0.978125ms)
+✔ synthetic: diff detects add/delete and paths/CDP URLs cannot escape boundaries (0.830083ms)
+✔ synthetic: manifest refuses content tampering, missing evidence and mixed-run events (4.447208ms)
+✔ synthetic: complete empty DOM returns immediately and B03 rejects it (14.477ms)
+✔ synthetic: navigation waits for complete state and the expected URL (204.98175ms)
+✔ synthetic: complete single-match DOM returns on the first evaluation (0.610542ms)
+✔ synthetic: B03 partial success needs its own identity, observation and raw evaluation (4.458833ms)
+✔ synthetic: B04 partial success must match independently re-evaluated postcondition (5.3905ms)
+✔ synthetic: no passed check may claim it was not performed; target_missing remains valid (5.982791ms)
+✔ synthetic: identity key order is irrelevant but changed identity fields are rejected (2.189083ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 730.218542

@@ -15,7 +15,7 @@ test('A01 / A12 空间切换器独立于侧栏，浮层使原生网页让位并�
     await page.keyboard.press('Escape');
     await expect(switcher).toBeFocused();
     await expect.poll(async () => (await previewInfo(app)).visible).toBe(true);
-    await page.getByRole('button', { name: '显示或隐藏 Workshop（⌘B）', exact: true }).click();
+    await page.getByRole('button', { name: '收起 Workshop', exact: true }).click();
     await expect(page.getByRole('navigation', { name: '空间标签' })).toHaveCount(0);
     await switcher.click();
     await expect(page.getByRole('dialog', { name: '切换空间' })).toBeVisible();

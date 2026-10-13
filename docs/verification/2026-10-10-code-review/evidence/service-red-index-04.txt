@@ -1,0 +1,34 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/index.test.ts (3 tests | 1 failed) 2556ms
+   ❯ service request cancellation admission (3)
+     × revokes chat admission as soon as shutdown arrives while app cleanup is held 2129ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/index.test.ts > service request cancellation admission > revokes chat admission as soon as shutdown arrives while app cleanup is held
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ apps/service/src/index.test.ts:92:128
+     90|     } finally {
+     91|       releaseApps();
+     92|       await vi.waitFor(() => expect(test.messages.some((message) => me…
+       |                                                                                                                                ^
+     93|     }
+     94|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  21:04:07
+   Duration  2.65s (tests 99%, transform 1%)
+

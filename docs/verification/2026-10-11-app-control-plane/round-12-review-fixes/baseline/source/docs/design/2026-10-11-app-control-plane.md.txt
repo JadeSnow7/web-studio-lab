@@ -1,0 +1,169 @@
+# 受管 App 的 Agent 控制面设计（App Control Plane）
+
+让工作台接入的 guest Codex 通过结构化、自描述、可回放的命令面理解并操控 standard-app 生成的受管 App，用于开发、调试与自验。思路参考 CLI-Anything：不靠像素坐标或猜 DOM 驱动 GUI，而是给软件一套 JSON-first 命令面和供 Agent 阅读的说明。差异是我们的 App 由自己的模板生成，控制面**在模板中内建**，描述由构建自动导出，不手工维护，也不逆向第三方源码。
+
+状态：设计 v1，2026-10-11（Asia/Shanghai）。本轮实施阶段 A（standard-app Web）；阶段 B（Expo Web）与阶段 C（Android 原生）只预留接口。工作包、验收矩阵和证据位置见[实施计划](../plans/2026-10-11-app-control-plane.md)，工具命名空间与 dispatcher 落点的取舍见 [ADR-0002](../architecture/adr/0002-app-control-plane.md)。
+
+## 1. 读取基线与现有能力
+
+读取基线：`JadeSnow7/web-studio-lab`，HEAD `ea3bad9e6602ccec3484cc55b247bae5815975b4`，工作分支 `codex/app-control-plane`；开始时仅有 `apps/*/out`、`apps/desktop/release*`、`packaging/*` 未跟踪构建产物，读取期间 `.gitignore` 出现非本任务的未提交修改，保持原样。以下为静态接线事实。
+
+| 现有工具 / 能力                                 | 实际落点                                                                            | 身份绑定                                                                                                                                             | 调用路径                                                                                                                                                     |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `workspace.list_sources`                        | Main `WorkbenchApplication.observe`                                                 | 运行启动时冻结的 `ObservationTurnScope.sources`                                                                                                      | guest MCP（`resource_mcp.py`）→ 每轮临时 Unix socket（`guest-helper.py`）→ service `CodexChat` 帧 `observation-call` → Main `ChatService` → `observeForTurn` |
+| `browser.snapshot/query/screenshot/read_events` | Main `preview/observation.ts` `BrowserObservation`，CDP 只读                        | 资源实例 `instanceId/instanceGeneration`；引用含 `webContentsId:frameId:epoch:snapshotId:nodeId`，导航/frame 导航/CDP detach 使 epoch 递增并清空引用 | 同上，Main `WorkbenchHost.observe` 直接调 CDP                                                                                                                |
+| `files.list/search/read`、`terminal.read_*`     | service `EnvironmentResources` / `observation-files.ts` / `observation-terminal.ts` | 授权根、内容散列、PTY 序号；Main 冻结实例                                                                                                            | 同上，Main 再以 `observation.read` 回调 service                                                                                                              |
+| 受管 App create/start/stop/export               | Main `executeAppCommand` → host → service `AppService` → `app-helper.py`            | `workspaceId + projectId`；每次启动新 `appInstanceId`；健康检查核对四字段身份；Main `appLeases` 仅给当前运行实例的精确回环 origin                    | renderer workbench 命令 → Main → service（`app.*` 请求）                                                                                                     |
+| 页面现场                                        | `PreviewController` 同一 `webContents` 的 CDP                                       | `PageIdentity.documentGeneration`（主框架导航/同文档导航 +1）                                                                                        | renderer `browserAction`                                                                                                                                     |
+
+约束事实：
+
+1. 观察只在 TaskRun 内可用：`startRun` 冻结 `ObservationTurnScope`，guest 仅在带 scope 的轮次创建 socket；`observeForTurn` 校验 run 仍为 `starting/running` 且非 `cancelling`。单轮最多 64 次调用、4 个在途，guest 侧每次请求 20 秒截止。
+2. 受管 App 运行的是 `npm run build` 后的 `npm start`（Hono 同端口服务 `dist/client`），不是 Vite dev server；`WSL_DEV_SESSIONS=1` 恒开启。
+3. PGlite 不能被两个进程同时打开：应用运行时，迁移/seed CLI 不能直接打开数据目录。
+4. round-09/10 已实测 Codex `workspace-write` 命令沙箱拒绝 Unix socket `connect`，而 MCP 服务进程不在命令沙箱内。CLI 改用每轮临时目录内的有界文件通道；网络和文件权限配置不变，见[修复验证](../verification/2026-10-11-app-control-plane/round-10-cli/README.md)。
+5. 人工打开 DevTools 等导致 CDP detach 时，现有合同要求暂停自动操作并显示原因；重新附着后重新采集。
+
+## 2. 四层控制面
+
+```mermaid
+flowchart TB
+  subgraph Guest[sbx guest]
+    C[Codex] -->|MCP app_*| M[resource_mcp.py]
+    C -->|shell wsl-app| K[wsl-app CLI]
+    M --> S((每轮 Unix socket))
+    K --> F[每轮四槽文件通道]
+    F --> G
+    S --> G[guest-helper.py]
+    A[受管 App 进程<br/>Hono + PGlite + dist/client]
+    X[server/agent-cli.ts]
+  end
+  G -->|帧 observation-call tool=app.*| SV[service CodexChat → index.ts app-call]
+  SV -->|app-call| MA[Main AppControl dispatcher<br/>授权 · 审计 · 场景]
+  MA -->|L1 / L2 前端：CDP| B[Browser WebContentsView<br/>window.__WSL_AGENT__]
+  MA -->|L0 / L2 后端：app.agent 请求| SV2[service AppService]
+  SV2 -->|运行中：回环 HTTP + 实例令牌| A
+  SV2 -->|已停止：sbx exec agent-cli| X
+```
+
+| 层            | 内容                                                                                                                                                                      | 落点                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| L0 运行层     | `app.status`、`app.logs`、`app.restart`；包装现有 Main/AppService 生命周期与日志，不重写                                                                                  | Main 快照 + service `AppService`                 |
+| L1 通用 UI 层 | `app.ui.snapshot`、`app.ui.act`；App 无需配合，基于同一 Browser `webContents` 的 CDP                                                                                      | Main `preview/app-ui.ts`                         |
+| L2 App 语义层 | 前端 `src/agent/registry.ts`：`defineCommand`、`exposeState`；agent 构建才挂载 `window.__WSL_AGENT__`。后端 `server/agent-cli.ts` 与仅受管开发实例开启的 `/api/__agent/*` | 模板 + Main（CDP 固定入口）+ service（HTTP/CLI） |
+| L3 自描述层   | `agent/app.manifest.json` 与 `agent/AGENTS.md` 由构建导出；`manifest --check` 门禁；源码修订散列判定 stale                                                                | 模板 `server/agent/manifest.ts`                  |
+
+### 2.1 L1：UI 快照与动作
+
+`app.ui.snapshot` 对 Browser 中受管 App 的根文档读取可访问性树和 DOM 属性，返回最多 200 个元素：短引用 `e1…eN`、role、name、`data-testid`、文本（仅带 testid 的元素）、值（密码字段脱敏）、可见、禁用、聚焦、选中。引用绑定 `appInstanceId + documentGeneration + snapshotId`；`did-start-navigation`、主框架/同文档导航、frame 导航、CDP detach 和实例更换都清空引用表，旧引用返回 `stale_ref`。
+
+`app.ui.act` 只接受结构化动作：`click`、`type`、`press`、`select`、`scroll`、`navigate`、`waitFor`。目标为 `{ref}` 或 `{testid}`（testid 必须唯一匹配），不接受坐标、选择器字符串或脚本。点击坐标由 Main 从盒模型计算并做命中检测，被遮挡返回 `element_obscured`；输入使用 `DOM.focus` + `Input.insertText`；`navigate` 只接受以 `/` 开头的同源路径，仍经现有导航策略；`waitFor` 最长 10 秒。所有页面内读取都使用 Main 源码中固定的 `Runtime.callFunctionOn` 函数，Agent 输入只作为 JSON 参数值传入。
+
+截图、console 和网络错误继续使用 `browser.screenshot` / `browser.read_events`；场景运行器在 Main 内直接复用同一 `BrowserObservation`，不新增第二套采集。
+
+### 2.2 L2：App 语义命令与状态
+
+前端注册表：
+
+- `src/agent/commands.ts` 是命令目录，每项含 `description` 与 zod `input`；构建时转换为 JSON Schema。
+- `defineCommand(name, { input, run })` 在 agent 构建中把运行实现绑定到目录项（`input` 必须是目录中的同一 schema 对象，防止分叉），返回解除函数；`exposeState(name, getter)` 暴露可 JSON 序列化的只读状态。React 组件使用 `useAgentCommand` / `useAgentState`，卸载时解除。
+- `src/agent/bridge.ts` 只在 `vite build --mode agent`（`__WSL_AGENT_BUILD__ === true`）时被动态导入，用不可配置属性挂载 `window.__WSL_AGENT__ = { version: 1, call(json) }`。`call` 只支持 `describe`、`state`、`invoke`；`invoke` 先用 zod 校验输入，错误返回可读 issues。
+- Host 调用路径固定：`Runtime.evaluate('globalThis')` 取对象，再 `Runtime.callFunctionOn` 执行 Main 源码中的固定函数，请求 JSON 作为参数值；结果按协议 schema 和 64 KiB 上限校验。页面可篡改这些返回值，因此结果只是数据，不授予权限。Host 先用 manifest 拒绝未登记命令名，再进页面。
+
+后端：`server/db-cli.ts` 扩展并改名为 `server/agent-cli.ts`，`npm run db:migrate` / `db:seed` 继续可用。全部子命令 `--json` 单行输出 `{ok:true,data}` 或 `{ok:false,error:{code,message}}`，退出码 0 成功、1 操作被拒绝或失败、2 用法/输入无效、3 不可用（如应用正在运行而未提供实例地址）。
+
+| 子命令                                                | 行为                                                                                                                           |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `describe`                                            | 读取 manifest，计算当前源码修订，返回 stale 判定                                                                               |
+| `manifest [--check] [--write]`                        | 导出或检查 manifest 与 `agent/AGENTS.md`；`--check` 发现缺 testid 的可交互元素、命令缺 schema、注册名重复、manifest 过期即失败 |
+| `db migrate` / `db seed`                              | 原 db-cli 行为                                                                                                                 |
+| `db query <SQL>`                                      | 只读：单语句、以 `SELECT/WITH/VALUES/EXPLAIN` 开头，并在 `READ ONLY` 事务内执行后回滚，5 秒语句超时，最多 200 行               |
+| `db reset`                                            | 截断本实例 PGlite 中 public 模式全部表后重新 seed；不触及迁移表、其他目录或其他实例                                            |
+| `db snapshot`                                         | 各表行数、内容散列和有界样本，供状态 diff                                                                                      |
+| `api call <METHOD> <route> [--body JSON] [--as A\|B]` | 仅 `/api/` 且非 `/api/__agent`；停止时进程内 `app.request`，运行时经实例地址                                                   |
+
+应用运行时不能直接打开 PGlite，所以 server 在 `WSL_AGENT_TOKEN` 存在时（仅 AppService 为受管开发实例生成，每次启动随机，不落盘、不进日志）挂载 `/api/__agent/{describe,db/query,db/seed,db/reset,db/snapshot}`，要求同值 `x-wsl-agent-token`，与 agent-cli 共享实现模块。agent-cli 直连模式先检查 `.data/agent-runtime.json` 中的存活 pid，发现应用正在运行就拒绝打开 PGlite（`app_running`）。
+
+service 执行规则：应用运行时，service 用已知回环地址和令牌直接请求这些端点；应用停止时，service 经 `app-helper.py` 的 `agent` 操作在 guest cwd 内执行 `node --import tsx server/agent-cli.ts …`，25 秒超时、输出 1 MiB 上限，与 start/stop/export 互斥。旧项目缺少这些文件时返回 `unsupported`，不强制升级。
+
+### 2.3 L3：自描述与 stale
+
+构建导出 `agent/app.manifest.json`（schema 版本 1）：
+
+- `sourceRevision`：对项目输入文件（除 `node_modules`、`dist`、`.data`、`.test-data`、`agent/`、`template-manifest.json`、`*.log`、`.wsl-*` 外的普通文件）按相对路径排序后的 `sha256(JSON[path, sha256])`；
+- `pages`（单页 `/` 及其 testid）、`routes`（由 `createApp(...).routes` 读取 Hono 路由，排除通配中间件与 `/api/__agent`）、`dataModel`（Drizzle `getTableConfig` 的表、列、类型、主键/非空）、`commands`（名称、说明、JSON Schema）、`states`、`testids`、`checks`（缺 testid 等违规清单）；
+- `agent/AGENTS.md` 由同一数据生成：可用工具、页面/命令/状态清单及下文分工规则。项目根 `AGENTS.md` 为模板静态文件，说明控制面规则并指向生成片段。
+
+修订关系：`manifestRevision`（manifest 记录的 sourceRevision）、`buildRevision`（`build:agent` 在构建前写入 `dist/agent-build.json`）、`currentRevision`（每次查询重算）。`manifestRevision ≠ currentRevision` 为 `manifest_stale`，`buildRevision ≠ currentRevision` 为 `build_stale`。`app.describe` 如实返回两项；依赖 manifest 的写操作（`command.invoke`、`ui.act`、`data.seed/reset`、`scenario.run`）遇任一项拒绝。恢复方式：`npm run agent:manifest` 重建 manifest，`app.restart` 用当前源码重建并启动实例（启动时同样重建 manifest）。`checks` 违规只报告，不阻止启动；`manifest --check` 是显式门禁。
+
+## 3. 入口、dispatcher 与通道
+
+依据 [ADR-0002](../architecture/adr/0002-app-control-plane.md)：新增独立 `app.*` 命名空间；唯一 dispatcher 是 Main `workbench/app-control.ts`（不导入 Electron，由 `WorkbenchApplication` 持有并提供授权事实），执行器经 `WorkbenchRuntime` 端口注入（host 的 CDP 驱动、ChatService 转发的 service AppService 调用）。
+
+两个前端共享 schema、调用预算、Main 授权与审计，传输按执行环境区分：
+
+1. guest MCP 新增 13 个工具（MCP 名称把 `.` 换成 `_`）：`app.describe`、`app.status`、`app.logs`、`app.restart`、`app.state.read`、`app.command.list`、`app.command.invoke`、`app.ui.snapshot`、`app.ui.act`、`app.data.query`、`app.data.seed`、`app.data.reset`、`app.scenario.run`。
+2. guest CLI `wsl-app <tool> [JSON参数]`、`wsl-app help`、`wsl-app describe`：guest-helper 只在带观察能力的轮次安装 CLI，注入 `WSL_APP_CHANNEL` 并前置 PATH。CLI 显式使用该轮私有临时目录的四槽文件通道，文件锁表示调用存活，UUID 绑定请求与响应；不连接 socket、不在失败后重试或回退。请求限定既有 `app.*`、16 KiB，响应最多 1 MiB，60 秒截止；进程死亡或超时传播取消，迟到响应不能串到另一调用。所有目录及文件以 dirfd、`O_NOFOLLOW`、类型/所有者/模式核对，普通文件拒绝多硬链接。输出单行 JSON，退出码仍为 0/1/2/3；缺少通道、预算耗尽或传输故障返回 `transport_unavailable`。
+
+通道复用：MCP 的 Unix socket 与 guest→service 帧保持不变；CLI 四槽和 socket 合计最多 4 个在途、每轮 64 次调用。service 对 `app.` 开头的工具改发 `app-call` 帧，Main 回 `app.reply`；Main 调 service 用 `app.agent`、`app.logs` 请求与 `app.agent.cancel`。轮次结束取消在途调用、释放通道并清理临时目录后才确认清理成功。不新增网络监听、工作台 HTTP、可写根或第二套编排。
+
+时限：Codex MCP 工具默认 60 秒，guest 对 `app.*` 请求的截止由 20 秒放宽到 60 秒，Main 单次调用上限 55 秒；`scenario.run` 总预算 50 秒、最多 50 步；`app.restart` 只返回“已受理”，完成情况经 `app.status` 查询。
+
+## 4. 身份绑定、门控与风险分级
+
+每次调用的 `workspaceId/sessionId/runId` 来自 Main 冻结的轮次 scope，模型提供的同名字段被忽略或拒绝。Main 在元数据队列中计算授权上下文，再在队列外执行 I/O，完成后重新核对实例身份。
+
+| 级别        | 工具                                                                                    | 条件                                                                                                                                                                                                                     |
+| ----------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 读          | `describe`、`status`、`logs`、`state.read`、`command.list`、`ui.snapshot`、`data.query` | 存在活动 TaskRun（`starting/running`，非 `cancelling`）；空间有受管 App；UI/状态类还需 App 运行且 Browser 实例存在                                                                                                       |
+| UI / 命令写 | `ui.act`、`command.invoke`、`data.seed`、`scenario.run`、`restart`                      | 读条件 + 请求携带的 `appInstanceId` 等于当前运行实例 + host 租约有效 + manifest/build 均不 stale；UI 写和 `command.invoke` 还要求 `documentGeneration` 等于当前文档代次；页面 CDP 处于 attached；未处于 `paused_by_user` |
+| 数据重置    | `data.reset`                                                                            | 写条件 + 参数 `confirm: "reset-instance-data"` + 该 TaskRun 的任务版本 `allowedScopes` 含 `app.data.reset`（用户确认任务时填写的授权标记）；只作用于本实例数据目录                                                       |
+| 永不可写    | 公开文档、demo 协议页、工作台 renderer、他空间资源                                      | 控制面只解析当前空间 `appProjectId` 对应的 Browser 资源                                                                                                                                                                  |
+
+旧现场（引用/代次）、旧租约（实例已换）、已停止实例、无活动 TaskRun 均在副作用前拒绝并返回可辨别错误码。错误码全集在 `packages/protocol/src/app-control.ts`。
+
+控制面保证的是“经审计、经授权的路径”，不是针对 guest Agent 自身 shell 的 OS 隔离：同 UID 的 Codex 仍可直接编辑项目文件或数据目录，这一既有边界不变。
+
+## 5. 用户接管、取消与审计
+
+用户接管：`PreviewController` 监听 `input-event`。当某个 run 在该资源上执行过 UI 写动作后，Browser 区进入“AI 正在操控此页面”，状态进入 `PreviewState.agentControl`。用户的鼠标按下、键盘、字符、触摸或点按（不含滚轮和移动）若发生在 Main 自己的 CDP 派发窗口之外，即锁存 `paused_by_user`：进行中的动作在下一个 CDP 指令前停止，此后该 run 的写动作直接返回 `paused_by_user`，直到用户点“允许 AI 继续”（`browserAction: resumeAgent`）或该 run 结束。AI 动作不调用 `webContents.focus()`，使用 `Emulation.setFocusEmulationEnabled` 避免抢占系统焦点。派发窗口内的人为输入可能被误归为 AI，属已知限制。
+
+取消：run 取消/结束时 Main 中止该 run 的全部控制面调用；运行器在步骤间与 CDP 指令间检查信号，等待在途 CDP 指令返回；在途 agent-cli guest 进程由 service 关闭并以清理回执确认。已产生的页面和数据修改保留，结果如实报告完成步数、在途动作与清理状态。
+
+审计：每次控制面调用（读写都记）在 Main 用户数据目录 `app-control/<runId>/audit.jsonl` 追加一条：时间、runId、工具、级别、参数摘要（键名、长度、SHA-256；`type` 文本与 SQL 只记长度和散列）、结果码、调用前后文档代次、`appInstanceId`、耗时。不写令牌、cookie 或页面正文。场景证据写在同目录 `scenarios/<scenarioRunId>/`（`trace.json` + 截图），排他创建、不覆写。
+
+## 6. 场景运行器
+
+`app.scenario.run` 接受 JSON 场景：步骤为 `act`（同 `ui.act` 动作，目标只能是 testid，以便回放）、`command`、`assert`（`state`、`text`、`testid`、`console-no-error`）、`screenshot`。Main 依次确定性执行，首个失败即停止。产物：轨迹 JSON（场景散列、runId、appInstanceId、sourceRevision、每步输入摘要、结果、耗时、文档代次、截图散列）、截图 PNG、状态 diff（执行前后 `exposeState` 全集与 `db snapshot` 的键路径差异）。轨迹中除时间与耗时外的字段对同一输入可比较，用于回放一致性检查。
+
+分工规则（写入 `agent/AGENTS.md`、工具说明与本设计）：
+
+- 语义命令（L2）只用于准备数据和观察状态：seed、读 state、读日志、读库。
+- 判定“用户能完成某操作”必须经 L1 UI 动作，再用 L2 状态断言佐证；禁止用 L2 命令直接制造被验收的行为结果。
+- 固定验收基准放在 Agent 写入范围外（本仓库 `tests/app-control/fixed-task/`）；Agent 自写场景只是开发辅助，不算验收通过。
+
+## 7. 生产排除与模板版本
+
+- `npm run build` 使用默认模式，`__WSL_AGENT_BUILD__` 为 `false`，桥接模块不被打包；检查脚本 `scripts/agent-exclusion-check.mjs` 断言 `dist/client` 不含 `__WSL_AGENT__` 与桥接标记，模板测试同时构建两种模式验证正反例。
+- 受管实例由 `app-helper.py` 在项目存在 `build:agent` 脚本时改用 `npm run build:agent`；旧项目照旧使用 `build`，不被强制升级。`/api/__agent` 仅在 `WSL_AGENT_TOKEN` 存在时挂载。
+- 模板改动后执行 `npm run template:hash` 重新生成 `template-manifest.json`；模板版本升至 1.1.0，健康检查同时接受 1.0.0 与 1.1.0，以便已有项目按原身份恢复。
+- Expo 预留同一约束：桥接只在 `__DEV__` 下挂载，release APK 产物检查不得包含 `__WSL_AGENT__`。
+
+## 8. 与 VS001、独立检查器和 Expo 计划的关系
+
+VS001 固定基线、fixture 与执行器不修改；控制面不进入 VS001 adapter。独立检查器仍未实现：本轮控制面的场景结果只记为 Agent 开发辅助或 Host 运行证据，不写入 TaskRun 的 validation 状态，也不能替代“验证通过”或“用户接受”。未来检查器可复用 Main 场景运行器，但入口、基准版本与授权须单独设计。
+
+阶段 B（Expo Web）：同一 bridge 协议与 registry API 放入 Expo 模板，Expo Web 预览仍是同一 Browser `webContents`，L1/L2 直接复用；testID 在 RN Web 输出为 `data-testid`。依赖 Expo 计划 P2 的网关与租约。
+
+阶段 C（Android 原生）：接在 Expo 计划 P3 之后。L1 用 `uiautomator dump` 读层级、以 `testID → resource-id` 定位，动作通过固定 `adb shell input` 参数；L2 用仅 `__DEV__` 的 WebSocket 客户端经现有 adb reverse/网关连 Host，消息格式复用 bridge 的 `describe/state/invoke`。协议中预留 `surface: 'web' | 'android'` 字段，阶段 A 只接受 `web`。
+
+## 9. 设计自审（D1–D3 完成后）
+
+| 检查项     | 结论                                                                                                                                                                                                                 |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 状态所有者 | 授权事实（run、App、资源、任务版本）仍由 `WorkbenchApplication` 单点持有；`AppControl` 只读取冻结上下文并持有在途调用表与审计；`agentControl` 展示态由 `PreviewController` 持有并经快照投影；service 不持有 run 状态 |
+| 身份绑定   | scope 不信任模型；写入绑定 appInstanceId、租约、文档代次与源码修订；完成后复核实例未更换                                                                                                                             |
+| 取消/恢复  | run 结束释放控制面 scope 并中止在途调用；重启不恢复在途控制、不重放场景；审计与轨迹为追加证据                                                                                                                        |
+| 生产排除   | 构建期常量消除 + 构建产物扫描 + 两模式模板测试；服务端点由运行时令牌门控                                                                                                                                             |
+| Expo 接口  | bridge 协议、registry API、`surface` 字段与 `__DEV__` 约束可直接复用，不依赖 Hono/PGlite                                                                                                                             |
+| 阻断问题   | 原 CLI socket 路径已实测被命令沙箱拒绝，现改为每轮文件通道，最终验收见 round-10；`input-event` 已有模拟输入与 CDP 派发验证，真人输入仍未测                                                                           |

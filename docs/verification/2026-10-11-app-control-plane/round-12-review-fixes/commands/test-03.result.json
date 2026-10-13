@@ -1,0 +1,8 @@
+{
+  "command": [
+    "pnpm",
+    "test"
+  ],
+  "exitCode": 0,
+  "seconds": 15.608065128326416
+}

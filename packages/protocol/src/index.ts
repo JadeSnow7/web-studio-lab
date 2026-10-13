@@ -1,4 +1,5 @@
 export * from './app';
+export * from './managed-app';
 export * from './chat';
 export * from './execution';
 export * from './ipc';
@@ -20,3 +21,9 @@ export * from './observation';
 export * from './environments';
 
 export * from './setup';
+
+export * from './resource-catalog';
+
+export * from './app-control';
+
+export * from './status';

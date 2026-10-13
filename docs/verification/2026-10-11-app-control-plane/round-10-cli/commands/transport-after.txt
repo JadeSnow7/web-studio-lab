@@ -1,0 +1,105 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/observation-socket.test.ts (1 test | 1 failed) 258ms
+   × uses a real Unix socket for bounded observation calls and releases its own client/server paths 257ms
+ ❯ apps/service/src/app-control-mcp.test.ts (2 tests | 1 failed) 1542ms
+   × guest MCP socket 与命令 CLI 文件通道转发同一 app.* 帧，退出码可辨别 1539ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/app-control-mcp.test.ts > guest MCP socket 与命令 CLI 文件通道转发同一 app.* 帧，退出码可辨别
+AssertionError: ..........E/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/tempfile.py:961: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/var/folders/87/gyhx13hs45351j7vwkdrr4sr0000gn/T/wsl-app-socket-e01rvqqx'>
+  _warnings.warn(warn_message, ResourceWarning)
+/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/case.py:668: ResourceWarning: unclosed <socket.socket fd=3, family=1, type=1, proto=0>
+  with outcome.testPartExecutor(self):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+
+======================================================================
+ERROR: test_mcp_call_forwards_app_frame_and_marks_failures (__main__.AppControlMcpTests.test_mcp_call_forwards_app_frame_and_marks_failures)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<string>", line 90, in test_mcp_call_forwards_app_frame_and_marks_failures
+    main = FakeMain([
+        {'ok': True, 'tool': 'app.ui.snapshot', 'data': {'documentGeneration': 2, 'elements': []}},
+        {'ok': False, 'tool': 'app.ui.act', 'error': {'code': 'stale_ref', 'message': 'expired'}},
+    ])
+  File "<string>", line 25, in __init__
+    self.server.bind(self.path)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^
+PermissionError: [Errno 1] Operation not permitted
+
+----------------------------------------------------------------------
+Ran 11 tests in 1.330s
+
+FAILED (errors=1)
+: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ apps/service/src/app-control-mcp.test.ts:11:40
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/service/src/observation-socket.test.ts > uses a real Unix socket for bounded observation calls and releases its own client/server paths
+AssertionError: test_actual_unix_socket_bounded_read_and_scoped_source_list (__main__.ObservationSocketTests.test_actual_unix_socket_bounded_read_and_scoped_source_list) ... ERROR
+test_disconnected_guest_client_emits_cancel_and_leaves_other_client_usable (__main__.ObservationSocketTests.test_disconnected_guest_client_emits_cancel_and_leaves_other_client_usable) ... ERROR
+test_full_request_frame_budget_is_rejected_before_connecting (__main__.ObservationSocketTests.test_full_request_frame_budget_is_rejected_before_connecting) ... ERROR
+test_oversized_complete_frame_and_unfinished_tail_are_rejected (__main__.ControlFrameParserTests.test_oversized_complete_frame_and_unfinished_tail_are_rejected) ... ok
+test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget (__main__.ControlFrameParserTests.test_two_legal_frames_across_chunk_boundary_do_not_share_a_budget) ... ok
+
+======================================================================
+ERROR: test_actual_unix_socket_bounded_read_and_scoped_source_list (__main__.ObservationSocketTests.test_actual_unix_socket_bounded_read_and_scoped_source_list)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<string>", line 22, in test_actual_unix_socket_bounded_read_and_scoped_source_list
+    server.bind(path)
+    ~~~~~~~~~~~^^^^^^
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_disconnected_guest_client_emits_cancel_and_leaves_other_client_usable (__main__.ObservationSocketTests.test_disconnected_guest_client_emits_cancel_and_leaves_other_client_usable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<string>", line 62, in test_disconnected_guest_client_emits_cancel_and_leaves_other_client_usable
+    delivery = compile(ast.fix_missing_locations(ast.Module(body=[copy.deepcopy(branch)], type_ignores=[])), '<guest-delivery>', 'exec')
+  File "<guest-delivery>", line 400
+SyntaxError: 'continue' not properly in loop
+
+======================================================================
+ERROR: test_full_request_frame_budget_is_rejected_before_connecting (__main__.ObservationSocketTests.test_full_request_frame_budget_is_rejected_before_connecting)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<string>", line 93, in test_full_request_frame_budget_is_rejected_before_connecting
+    server.bind(path)
+    ~~~~~~~~~~~^^^^^^
+PermissionError: [Errno 1] Operation not permitted
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.061s
+
+FAILED (errors=3)
+: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ apps/service/src/observation-socket.test.ts:10:40
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 1 passed (3)
+   Start at  12:31:49
+   Duration  1.73s (tests 95%, transform 4%, import 1%)
+

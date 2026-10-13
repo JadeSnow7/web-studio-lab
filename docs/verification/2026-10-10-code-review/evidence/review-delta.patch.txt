@@ -1,0 +1,2203 @@
+--- a/apps/desktop/src/main/preview/public-protocol.test.ts
++++ b/apps/desktop/src/main/preview/public-protocol.test.ts
+@@ -138,6 +138,20 @@
+ });
+ 
+ describe('managed app write capability', () => {
++  it('preserves read-only GET for a fixed trusted origin without a revocable lease provider', () => {
++    const { session, protocol, options } = setup();
++    options.allowedOrigins.push('http://127.0.0.1:49152');
++    const before = session.webRequest.onBeforeRequest.mock.calls[0]![0] as (
++      details: Record<string, unknown>,
++      callback: (result: { cancel: boolean }) => void,
++    ) => void;
++    for (const method of ['GET', 'POST']) {
++      const callback = vi.fn();
++      before({ url: 'http://127.0.0.1:49152/api', method, resourceType: 'xhr', webContentsId: 7 }, callback);
++      expect(callback).toHaveBeenCalledWith({ cancel: method !== 'GET' });
++    }
++    protocol.dispose();
++  });
+   it('requires an active exact-origin lease and owning webContents; public and demo POST remain denied', () => {
+     const session = {
+       webRequest: { onBeforeRequest: vi.fn() },
+@@ -173,8 +187,12 @@
+       { method: 'CONNECT' },
+     ])
+       check(changed, true);
+-    lease = null;
+-    check({}, true);
++    for (const replacement of [null, 'http://127.0.0.1:49153']) {
++      lease = replacement;
++      for (const method of ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
++        for (const resourceType of ['mainFrame', 'subFrame', 'xhr', 'image', 'script']) check({ method, resourceType }, true);
++      check({ url: 'wsl-demo://taskflow/index.html', method: 'GET', resourceType: 'mainFrame' }, false);
++    }
+     protocol.dispose();
+     check({ method: 'GET' }, true);
+   });
+--- a/apps/desktop/src/main/preview/public-protocol.ts
++++ b/apps/desktop/src/main/preview/public-protocol.ts
+@@ -55,7 +55,10 @@
+         const managedOrigin = options.managedAppOrigin?.();
+         if (managedOrigin && isAllowedPreviewUrl(details.url, [managedOrigin]) && isAllowedPreviewUrl(details.url, options.allowedOrigins))
+           return callback({ cancel: !['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].includes(details.method) });
+-        if (isAllowedPreviewUrl(details.url, options.allowedOrigins)) return callback({ cancel: details.method !== 'GET' });
++        if (isAllowedPreviewUrl(details.url, options.allowedOrigins)) {
++          // Bundled demo and fixed trusted reads are permanent; managed application access requires its current lease.
++          return callback({ cancel: (!!options.managedAppOrigin && !details.url.startsWith('wsl-demo:')) || details.method !== 'GET' });
++        }
+         let allowed = details.resourceType === 'mainFrame' && details.method === 'GET';
+         try {
+           parsePublicUrl(details.url);
+--- a/apps/desktop/src/main/setup.test.ts
++++ b/apps/desktop/src/main/setup.test.ts
+@@ -155,6 +155,57 @@
+     expect(restored.pendingLogin).toBeNull();
+     expect(implementation.login).toHaveBeenCalledWith(expect.any(String), 'docker', expect.any(AbortSignal), expect.any(String), true);
+   });
++  it('rejects new setup actions after shutdown without invoking adapters or changing persisted settings', async () => {
++    const { manager, file, implementation } = await open();
++    await manager.prepare();
++    await manager.shutdown();
++    const bytes = await readFile(file, 'utf8');
++    vi.mocked(implementation.check).mockClear();
++    for (const action of [
++      () => manager.check(),
++      () => manager.prepare(),
++      () => manager.retry(),
++      () => manager.login('docker', false),
++      () => manager.login('openai', true),
++      () => manager.save({ localRoot: null, ssh: null }),
++      () => manager.authorizeLocalRoot('/new-root'),
++    ])
++      await expect(Promise.resolve().then(action)).rejects.toMatchObject({ code: 'closing' });
++    expect(implementation.check).not.toHaveBeenCalled();
++    expect(implementation.login).not.toHaveBeenCalled();
++    expect(await readFile(file, 'utf8')).toBe(bytes);
++  });
++  it('keeps admission closed while cleanup is pending and permits repeated shutdown cleanup recovery', async () => {
++    const { manager, implementation } = await open();
++    await manager.prepare();
++    let release!: () => void;
++    const cleanup = new Promise<void>((resolve) => {
++      release = resolve;
++    });
++    implementation.login = vi.fn(async (_binary, _provider, signal) => {
++      await new Promise<void>((resolve) => {
++        signal.addEventListener('abort', () => resolve());
++      });
++      await cleanup;
++      throw new SetupError('cleanup-unconfirmed', '退出未确认');
++    });
++    const loggingIn = manager.login('docker', false);
++    await vi.waitFor(() => expect(implementation.login).toHaveBeenCalledOnce());
++    const shuttingDown = manager.shutdown().then(
++      () => null,
++      (error: unknown) => error,
++    );
++    const admission = manager.check();
++    release();
++    await expect(admission).rejects.toMatchObject({ code: 'closing' });
++    expect(await shuttingDown).toMatchObject({ message: '退出未确认' });
++    await loggingIn;
++    implementation.login = vi.fn(async () => undefined);
++    await manager.shutdown();
++    expect(manager.status().pendingLogin).toBeNull();
++    expect(implementation.login).toHaveBeenCalledWith(expect.any(String), 'docker', expect.any(AbortSignal), expect.any(String), true);
++    await expect(manager.prepare()).rejects.toMatchObject({ code: 'closing' });
++  });
+   it('preserves interrupted state without replaying installation', async () => {
+     const { manager, file, implementation } = await open();
+     await writeFile(file, JSON.stringify({ ...manager.status(), busy: true, stage: 'tools' }));
+--- a/apps/desktop/src/main/setup.ts
++++ b/apps/desktop/src/main/setup.ts
+@@ -32,6 +32,7 @@
+ /** Main is the only writer. Configuration changes are staged for the next app launch. */
+ export class SetupManager {
+   private snapshot: SetupSnapshot;
++  private closing = false;
+   private operation: AbortController | null = null;
+   private idle: Promise<void> = Promise.resolve();
+   private readonly listeners = new Set<(snapshot: SetupSnapshot) => void>();
+@@ -86,7 +87,8 @@
+     };
+   }
+   async shutdown() {
+-    if (!this.operation && this.snapshot.pendingLogin) await this.resumeLogin(true);
++    this.closing = true;
++    if (!this.operation && this.snapshot.pendingLogin) await this.resumeLogin(true, true);
+     this.operation?.abort();
+     await this.idle;
+     if (this.snapshot.error?.code === 'cleanup-unconfirmed') throw new Error(this.snapshot.error.message);
+@@ -109,7 +111,11 @@
+     await rename(temporary, this.file);
+     for (const listener of this.listeners) listener(this.status());
+   }
+-  private async run(action: (signal: AbortSignal) => Promise<void>, recoveringLogin = false) {
++  private requireOpen() {
++    if (this.closing) throw new SetupError('closing', '应用正在关闭，不能开始新的安装操作');
++  }
++  private async run(action: (signal: AbortSignal) => Promise<void>, recoveringLogin = false, shutdownCleanup = false) {
++    if (!shutdownCleanup) this.requireOpen();
+     if (this.snapshot.error?.code === 'configuration-invalid') throw new SetupError('configuration-invalid', this.snapshot.error.message);
+     if (this.snapshot.pendingLogin && !recoveringLogin) throw new SetupError('login-pending', '上次登录进程尚待确认，请重试或取消登录');
+     if (this.operation) throw new SetupError('busy', '安装操作正在进行');
+@@ -185,6 +191,7 @@
+     });
+   }
+   retry() {
++    this.requireOpen();
+     return this.snapshot.pendingLogin ? this.resumeLogin(false) : this.prepare();
+   }
+   cancel() {
+@@ -192,15 +199,19 @@
+     this.operation?.abort();
+     return Promise.resolve(this.status());
+   }
+-  private resumeLogin(cancel: boolean) {
++  private resumeLogin(cancel: boolean, shutdownCleanup = false) {
+     const pending = this.snapshot.pendingLogin;
+     const binary = this.snapshot.config.sbxBinary;
+     if (!pending || !binary) throw new SetupError('login-pending', '登录记录不完整，请保留记录并检查');
+-    return this.run(async (signal) => {
+-      const controller = new AbortController();
+-      if (cancel) controller.abort();
+-      await this.completeLogin(binary, pending.provider, AbortSignal.any([signal, controller.signal]), pending.id, true);
+-    }, true);
++    return this.run(
++      async (signal) => {
++        const controller = new AbortController();
++        if (cancel) controller.abort();
++        await this.completeLogin(binary, pending.provider, AbortSignal.any([signal, controller.signal]), pending.id, true);
++      },
++      true,
++      shutdownCleanup,
++    );
+   }
+   private async completeLogin(binary: string, provider: 'docker' | 'openai', signal: AbortSignal, id: string, resume = false) {
+     try {
+@@ -212,6 +223,7 @@
+     }
+   }
+   login(provider: 'docker' | 'openai', acknowledgeGlobalCredentials: boolean) {
++    this.requireOpen();
+     const binary = this.snapshot.config.sbxBinary;
+     if (!binary) throw new SetupError('sbx-missing', '请先准备 sbx');
+     if (provider === 'openai' && !acknowledgeGlobalCredentials)
+@@ -227,9 +239,11 @@
+     });
+   }
+   authorizeLocalRoot(root: string) {
++    this.requireOpen();
+     this.selectedLocalRoot = root;
+   }
+   async save(raw: unknown) {
++    this.requireOpen();
+     if (this.snapshot.error?.code === 'configuration-invalid') throw new SetupError('configuration-invalid', this.snapshot.error.message);
+     if (this.operation) throw new SetupError('busy', '安装操作正在进行');
+     const settings = SetupSettingsSchema.parse(raw);
+--- a/apps/desktop/src/main/workbench/application.ts
++++ b/apps/desktop/src/main/workbench/application.ts
+@@ -156,6 +156,8 @@
+   private readonly observations = new Map<string, AbortController>();
+   private readonly observationCounts = new Map<string, number>();
+   private readonly observationScopes = new Map<string, ObservationTurnScope>();
++  private readonly runLaunches = new Map<string, () => Promise<void>>();
++  private readonly runLaunchPhases = new Map<string, 'registering' | 'sending'>();
+   private readonly terminalLaunches = new Map<string, Promise<TerminalSnapshot>>();
+   private readonly commands = new Map<
+     string,
+@@ -516,7 +518,13 @@
+       () => undefined,
+       () => undefined,
+     );
+-    return next;
++    return next.then(async (result) => {
++      const launch = this.runLaunches.get(command.commandId);
++      if (!launch) return result;
++      this.runLaunches.delete(command.commandId);
++      await launch();
++      return { ...result, snapshot: this.publicSnapshot() };
++    });
+   }
+   private serialize<T>(work: () => T | Promise<T>): Promise<T> {
+     const next = this.queue.then(async () => {
+@@ -1281,9 +1289,11 @@
+             });
+             break;
+           }
+-          case 'startRun':
+-            await this.startRun(w, c.sessionId, c.taskVersionId);
+-            break;
++          case 'startRun': {
++            const launch = await this.startRun(w, c.sessionId, c.taskVersionId);
++            this.runLaunches.set(c.commandId, launch);
++            return rememberResult();
++          }
+           case 'cancelObservation': {
+             const record = this.observationRecords(w, c.sessionId).find((r) => r.request.requestId === c.requestId);
+             if (!record) throw new Error('not_found: 观察请求不存在');
+@@ -1298,6 +1308,21 @@
+           case 'cancelRun': {
+             const run = this.run(w, c.runId);
+             if (!activeStates.includes(run.state)) break;
++            if (this.runLaunchPhases.get(run.runId) === 'registering') {
++              // No executor was dispatched, so cancellation is already a confirmed fact.
++              // Keep that fact in memory even if disk fails; a late registration must never launch it.
++              run.state = 'cancelled';
++              run.endedAt = new Date().toISOString();
++              this.runLogBaselines.delete(run.runId);
++              this.releaseObservationScope(w, run.runId);
++              try {
++                await this.persist(w, c.commandId);
++              } catch (error) {
++                this.snapshot.storageError = '工作现场保存失败：' + (error as Error).message;
++                throw error;
++              }
++              return rememberResult();
++            }
+             const previousState = run.state;
+             run.state = 'cancelling';
+             for (const record of this.session(w, run.sessionId).observations)
+@@ -1536,7 +1561,7 @@
+     });
+     // Freeze and persist ownership before invoking the existing runner.
+     try {
+-      await this.repository.save(this.snapshot);
++      await this.persist(w, run.runId);
+     } catch (error) {
+       w.runs = previousRuns;
+       this.runLogBaselines.delete(run.runId);
+@@ -1544,21 +1569,44 @@
+       this.observationCounts.delete(run.runId);
+       throw error;
+     }
+-    try {
+-      await this.runtime.registerSession(sessionId, w.workspaceId);
+-      const conversation = await this.runtime.send(
+-        sessionId,
+-        `任务版本 ${v.taskVersionId}\n空间 ${w.workspaceId}\n目标 ${JSON.stringify(v.targetRef)}\n上下文 ${v.capture?.element.text ?? '未附加'}\n允许范围 ${v.allowedScopes.join(', ')}\n验收条件 ${v.acceptance.join('; ')}\n\n${v.goal}`,
+-        structuredClone(scope),
+-      );
+-      this.applyConversation(w, conversation);
+-    } catch (error) {
+-      run.state = 'failed';
+-      run.error = (error as Error).message;
+-      run.endedAt = new Date().toISOString();
+-      this.runLogBaselines.delete(run.runId);
+-      this.releaseObservationScope(w, run.runId);
+-    }
++    this.runLaunchPhases.set(run.runId, 'registering');
++    const workspaceId = w.workspaceId;
++    const text = `任务版本 ${v.taskVersionId}\n空间 ${workspaceId}\n目标 ${JSON.stringify(v.targetRef)}\n上下文 ${v.capture?.element.text ?? '未附加'}\n允许范围 ${v.allowedScopes.join(', ')}\n验收条件 ${v.acceptance.join('; ')}\n\n${v.goal}`;
++    return async () => {
++      try {
++        await this.runtime.registerSession(sessionId, workspaceId);
++        const launch = await this.serialize(() => {
++          const current = this.run(this.requireWorkspace(workspaceId), run.runId);
++          if (current.state !== 'starting') return false;
++          this.runLaunchPhases.set(run.runId, 'sending');
++          // Dispatch under the ownership check, but never await external I/O on the metadata queue.
++          return { receipt: this.runtime.send(sessionId, text, structuredClone(scope)) };
++        });
++        if (!launch) return;
++        const conversation = await launch.receipt;
++        await this.updateRuntime(() => {
++          const workspace = this.requireWorkspace(workspaceId);
++          const current = this.run(workspace, run.runId);
++          if (!activeStates.includes(current.state) || current.state === 'cancelling') return null;
++          this.applyConversation(workspace, conversation);
++          return workspace;
++        });
++      } catch (error) {
++        await this.updateRuntime(() => {
++          const workspace = this.requireWorkspace(workspaceId);
++          const current = this.run(workspace, run.runId);
++          if (!activeStates.includes(current.state) || current.state === 'cancelling') return null;
++          current.state = 'failed';
++          current.error = (error as Error).message;
++          current.endedAt = new Date().toISOString();
++          this.runLogBaselines.delete(run.runId);
++          this.releaseObservationScope(workspace, run.runId);
++          return workspace;
++        });
++      } finally {
++        this.runLaunchPhases.delete(run.runId);
++      }
++    };
+   }
+   private terminalResource(workspace: WorkspaceSnapshot, resourceId: string) {
+     const resource = this.resource(workspace, resourceId);
+@@ -1583,7 +1631,7 @@
+               resource.terminal = { ...terminal, state: 'closing', cleanupPending: true };
+             } else if ((resource.terminal?.seq ?? -1) <= terminal.seq) resource.terminal = terminal;
+             return workspace;
+-          }, true),
++          }),
+         (error) =>
+           this.updateRuntime(() => {
+             const workspace = this.requireWorkspace(binding.workspaceId);
+@@ -1596,7 +1644,7 @@
+               error: (error as Error).message,
+             };
+             return workspace;
+-          }, true),
++          }),
+       )
+       .finally(() => {
+         if (this.terminalLaunches.get(binding.instanceId) === launch) this.terminalLaunches.delete(binding.instanceId);
+@@ -1623,7 +1671,7 @@
+                 ? { ...terminal, state: 'failed', cleanupPending: true, error: terminal.error ?? '停止返回但清理未确认' }
+                 : terminal;
+             return workspace;
+-          }, true),
++          }),
+         (error) =>
+           this.updateRuntime(() => {
+             const workspace = this.requireWorkspace(workspaceId);
+@@ -1638,7 +1686,7 @@
+               error: '终端停止失败；清理未确认：' + (error as Error).message,
+             };
+             return workspace;
+-          }, true),
++          }),
+       );
+   }
+   private requestCancellation(workspaceId: string, runId: string, binding: { generation: string; turnId: string | null } | undefined) {
+@@ -1672,6 +1720,17 @@
+     const s = w.sessions.find((s) => s.sessionId === conversation.conversationId);
+     if (!s) return;
+     const executing = w.runs.findLast((r) => r.sessionId === s.sessionId && activeStates.includes(r.state));
++    if (executing?.state === 'cancelling' && ['starting', 'running'].includes(conversation.state)) return;
++    if (
++      w.runs.some(
++        (run) =>
++          run.sessionId === s.sessionId &&
++          run.state === 'cancelled' &&
++          run.executionBinding?.generation === conversation.generation &&
++          run.executionBinding.turnId === conversation.turnId,
++      )
++    )
++      return;
+     const bound = executing ? this.runTurns.get(executing.runId) : null;
+     if (bound && (bound.generation !== conversation.generation || bound.turnId !== conversation.turnId)) return;
+     if (!executing && s.conversation && s.conversation.generation !== conversation.generation) return;
+@@ -1722,22 +1781,31 @@
+     });
+   }
+   onTerminal(resourceId: string, snapshot: TerminalSnapshot, binding: ResourceInstanceIdentity) {
+-    void this.updateRuntime(() => {
+-      const w = this.snapshot.workspaces.find((w) => w.workspaceId === binding.workspaceId);
+-      const r = w?.resources.find((r) => r.resourceId === resourceId);
+-      if (
+-        !w ||
+-        !r ||
+-        r.environmentId !== binding.environmentId ||
+-        r.instanceId !== binding.instanceId ||
+-        r.generation !== binding.instanceGeneration
+-      )
+-        return null;
+-      if (r.terminal?.sessionId && snapshot.sessionId !== r.terminal.sessionId) return null;
+-      if (r.terminal?.sessionId === snapshot.sessionId && r.terminal.seq >= snapshot.seq) return null;
+-      r.terminal = r.terminal?.state === 'closing' && snapshot.cleanupPending ? { ...snapshot, state: 'closing' } : snapshot;
+-      return w;
+-    }, true);
++    let batch = false;
++    void this.updateRuntime(
++      () => {
++        const w = this.snapshot.workspaces.find((w) => w.workspaceId === binding.workspaceId);
++        const r = w?.resources.find((r) => r.resourceId === resourceId);
++        if (
++          !w ||
++          !r ||
++          r.environmentId !== binding.environmentId ||
++          r.instanceId !== binding.instanceId ||
++          r.generation !== binding.instanceGeneration
++        )
++          return null;
++        if (r.terminal?.sessionId && snapshot.sessionId !== r.terminal.sessionId) return null;
++        if (r.terminal?.sessionId === snapshot.sessionId && r.terminal.seq >= snapshot.seq) return null;
++        batch =
++          r.terminal?.sessionId === snapshot.sessionId &&
++          r.terminal.state === snapshot.state &&
++          r.terminal.cleanupPending === snapshot.cleanupPending &&
++          r.terminal.error === snapshot.error;
++        r.terminal = r.terminal?.state === 'closing' && snapshot.cleanupPending ? { ...snapshot, state: 'closing' } : snapshot;
++        return w;
++      },
++      () => batch,
++    );
+   }
+   onPreview(resourceId: string, state: PreviewState, instanceId: string | null, generation: number) {
+     void this.updateRuntime(() => {
+@@ -1813,13 +1881,13 @@
+       return w;
+     });
+   }
+-  private updateRuntime(update: () => WorkspaceSnapshot | null, batch = false) {
++  private updateRuntime(update: () => WorkspaceSnapshot | null, batch: boolean | (() => boolean) = false) {
+     const next = this.queue.then(async () => {
+       await this.ready;
+       const w = update();
+       if (!w) return;
+       this.snapshot.seq++;
+-      if (batch) {
++      if (typeof batch === 'function' ? batch() : batch) {
+         if (this.emissionTimer === null)
+           this.emissionTimer = setTimeout(() => {
+             this.emissionTimer = null;
+--- a/apps/desktop/src/renderer/src/state/capture.test.ts
++++ b/apps/desktop/src/renderer/src/state/capture.test.ts
+@@ -221,3 +221,25 @@
+     spy.mockRestore();
+   }
+ });
++
++it.each(['space', 'route', 'tab'])('retains late capture evidence without navigating after user changes %s', async (navigation) => {
++  await captureContext('space', 'owner', 'web');
++  if (navigation === 'space') {
++    const { switchWorkspace } = await import('./workspace');
++    await switchWorkspace('other');
++  } else if (navigation === 'route') {
++    const { shellActions } = await import('./shell');
++    shellActions.navigate('tasks');
++  } else {
++    const { workspaceCommand } = await import('./workspace');
++    await workspaceCommand('space', { type: 'activateTab', tabId: 'other' });
++  }
++  const completed = structuredClone(workspaceStore.get().snapshot!);
++  completed.seq++;
++  completed.workspaces[0]!.sessions[0]!.captureRequest!.state = 'completed';
++  completed.workspaces[0]!.sessions[0]!.context = capture;
++  projectSnapshot(completed);
++  await Promise.resolve();
++  expect(calls.map((c) => c.type)).not.toContain('locateSession');
++  expect(workspaceStore.get().snapshot!.workspaces[0]!.sessions[0]!.context).toEqual(capture);
++});
+--- a/apps/desktop/src/renderer/src/state/capture.ts
++++ b/apps/desktop/src/renderer/src/state/capture.ts
+@@ -1,4 +1,4 @@
+-import { workspaceCommand, workspaceStore } from './workspace';
++import { workspaceCommand, workspaceStore, beginNavigation, isCurrentNavigation } from './workspace';
+ import { locateSession } from './location';
+ // Request identity and navigation are presentation state. Main owns results.
+ const requests = new Map<string, { workspaceId: string; sessionId: string; requestId: string; unsubscribe: () => void }>();
+@@ -18,7 +18,10 @@
+     pending.unsubscribe();
+     if (requests.get(identity) === pending) requests.delete(identity);
+   };
+-  const opened = await workspaceCommand(workspaceId, { type: 'openTab', resourceId });
++  const opening = workspaceCommand(workspaceId, { type: 'openTab', resourceId });
++  // Opening the capture target is our own navigation; later user navigation revokes only auto-location.
++  const navigation = beginNavigation();
++  const opened = await opening;
+   if (!opened?.ok || requests.get(identity) !== pending) {
+     release();
+     return opened;
+@@ -36,7 +39,7 @@
+     if (receipt?.requestId !== requestId || receipt.resourceId !== resourceId) return;
+     if (receipt.state === 'completed') {
+       release();
+-      void locateSession({ workspaceId, sessionId, view: 'context' });
++      if (isCurrentNavigation(navigation)) void locateSession({ workspaceId, sessionId, view: 'context' });
+     } else if (receipt.state === 'failed' || receipt.state === 'cancelled') release();
+   });
+   const result = await workspaceCommand(workspaceId, { type: 'captureContext', sessionId, resourceId, requestId });
+--- a/apps/desktop/src/renderer/src/state/shell.ts
++++ b/apps/desktop/src/renderer/src/state/shell.ts
+@@ -2,6 +2,7 @@
+ import { closePanel, panelMode, pinPanel, restorePanels, togglePanel, persistPanels, type PanelState } from './panels';
+ import { occlusion } from './occlusion';
+ import { reportError } from './errors';
++import { beginNavigation } from './workspace';
+ export type Route = 'home' | 'space' | 'resources' | 'conversations' | 'tasks' | 'settings';
+ export interface ShellState {
+   route: Route;
+@@ -61,6 +62,7 @@
+ }
+ export const shellActions = {
+   navigate: (route: Route) => {
++    beginNavigation();
+     const peeking = shellStore.get().workshop.peek || !!occlusion.store.get()['left'];
+     shellStore.set((s) => navigate(s, route));
+     if (peeking) shellActions.closePanel('left');
+--- a/apps/desktop/src/renderer/src/state/workspace.test.ts
++++ b/apps/desktop/src/renderer/src/state/workspace.test.ts
+@@ -156,3 +156,23 @@
+     expect(workspaceStore.get().snapshot?.activeWorkspaceId).toBe('C');
+   });
+ });
++
++it('dispatches cancellation while startRun is pending without waiting on the renderer metadata queue', async () => {
++  projectSnapshot(snapshot(1));
++  const launch = deferred<WorkbenchResult>();
++  const invoke = vi.fn((command: WorkbenchCommand) =>
++    command.type === 'startRun' ? launch.promise : Promise.resolve({ ok: true as const, snapshot: snapshot(2) }),
++  );
++  vi.stubGlobal('window', { studio: { workbench: { command: invoke } } });
++  const starting = workspaceCommand('A', { type: 'startRun', sessionId: 'session', taskVersionId: 'version' });
++  await vi.waitFor(() => expect(invoke).toHaveBeenCalledOnce());
++  const cancelling = workspaceCommand('A', { type: 'cancelRun', runId: 'run' });
++  try {
++    await vi.waitFor(() => expect(invoke.mock.calls.map(([command]) => command.type)).toEqual(['startRun', 'cancelRun']), { timeout: 250 });
++  } finally {
++    launch.resolve({ ok: true, snapshot: snapshot(1) });
++    await Promise.all([starting, cancelling]);
++  }
++  expect(invoke.mock.calls[0]![0].expectedRevision).toBeUndefined();
++  expect(invoke.mock.calls[1]![0].expectedRevision).toBeUndefined();
++});
+--- a/apps/desktop/src/renderer/src/state/workspace.ts
++++ b/apps/desktop/src/renderer/src/state/workspace.ts
+@@ -37,6 +37,8 @@
+ }
+ const metadataQueues = new Map<string, Promise<unknown>>();
+ const runtimeCommands = new Set([
++  'startRun',
++  'cancelRun',
+   'createApp',
+   'startApp',
+   'stopApp',
+@@ -75,6 +77,7 @@
+   }
+ }
+ export function workspaceCommand(workspaceId: string, payload: Payload, revision?: number) {
++  if (['activateTab', 'openTab', 'createTab', 'closeTab', 'focusPane', 'splitPane', 'closePane'].includes(payload.type)) beginNavigation();
+   if (runtimeCommands.has(payload.type)) return executeCommand(workspaceId, payload);
+   const previous = metadataQueues.get(workspaceId) ?? Promise.resolve();
+   const next = previous.then(() => {
+--- a/apps/desktop/src/renderer/src/workspace/Browser.tsx
++++ b/apps/desktop/src/renderer/src/workspace/Browser.tsx
+@@ -22,6 +22,9 @@
+   const address = useRef<HTMLInputElement>(null);
+   const [draft, setDraft] = useState<string | null>(null);
+   const composing = useRef(false);
++  const draftVersion = useRef(0);
++  const navigationRequest = useRef(0);
++  const pendingNavigation = useRef<{ version: number; url: string } | null>(null);
+   const p = resource.preview;
+   const workspace = useStore(workspaceStore, (s) => s.snapshot?.workspaces.find((w) => w.workspaceId === workspaceId));
+   const managedAppInstanceId = resource.appProjectId ? workspace?.managedApp?.appInstanceId : null;
+@@ -119,9 +122,18 @@
+           onSubmit={(e) => {
+             e.preventDefault();
+             if (composing.current) return;
+-            void action('navigate', draft ?? p?.page.url ?? '');
+-            setDraft(null);
+-            address.current?.blur();
++            const url = draft ?? p?.page.url ?? '';
++            const version = draftVersion.current;
++            if (pendingNavigation.current?.version === version && pendingNavigation.current.url === url) return;
++            const request = ++navigationRequest.current;
++            const pending = { version, url };
++            pendingNavigation.current = pending;
++            void action('navigate', url).then((result) => {
++              if (pendingNavigation.current === pending) pendingNavigation.current = null;
++              if (!result?.ok || navigationRequest.current !== request || draftVersion.current !== version) return;
++              setDraft(null);
++              address.current?.blur();
++            });
+           }}
+         >
+           <label className="sr-only" htmlFor={`address-${resource.resourceId}`}>
+@@ -131,7 +143,10 @@
+             ref={address}
+             id={`address-${resource.resourceId}`}
+             value={draft ?? p?.page.url ?? resource.url ?? ''}
+-            onChange={(e) => setDraft(e.target.value)}
++            onChange={(e) => {
++              draftVersion.current++;
++              setDraft(e.target.value);
++            }}
+             onCompositionStart={() => {
+               composing.current = true;
+             }}
+@@ -139,7 +154,10 @@
+               composing.current = false;
+             }}
+             onKeyDown={(e) => {
+-              if (e.key === 'Escape' && !e.nativeEvent.isComposing) setDraft(null);
++              if (e.key === 'Escape' && !e.nativeEvent.isComposing) {
++                draftVersion.current++;
++                setDraft(null);
++              }
+             }}
+           />
+         </form>
+--- a/apps/desktop/src/renderer/src/workspace/Session.tsx
++++ b/apps/desktop/src/renderer/src/workspace/Session.tsx
+@@ -5,7 +5,7 @@
+ import { SessionObservation } from './Observation';
+ import { sessionSelection } from './presentation';
+ import { RunDetails } from './RunDetails';
+-import { workspaceCommand } from '../state/workspace';
++import { workspaceCommand, workspaceStore, beginNavigation } from '../state/workspace';
+ 
+ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; session: WorkbenchSession }) {
+   const initialLocation = locationStore.get().location;
+@@ -100,13 +100,15 @@
+       await saveTail.current;
+       const resource = workspace.resources.find((r) => r.resourceId === target);
+       const targetRef: TargetRef | null = resource ? { kind: resource.kind, resourceId: resource.resourceId } : null;
+-      await workspaceCommand(workspace.workspaceId, {
++      const result = await workspaceCommand(workspace.workspaceId, {
+         type: 'confirmTask',
+         sessionId: session.sessionId,
+         goal: draftValue.current,
+         targetRef,
++        acceptance: criteriaRef.current.acceptance.split('\n').filter((x) => x.trim()),
++        allowedScopes: criteriaRef.current.scopes.split('\n').filter((x) => x.trim()),
+       });
+-      setView('task');
++      if (result?.ok) setView('task');
+     });
+   const send = () =>
+     perform(async () => {
+@@ -119,6 +121,8 @@
+         sessionId: session.sessionId,
+         goal: text,
+         targetRef: resource ? { kind: resource.kind, resourceId: resource.resourceId } : null,
++        acceptance: criteriaRef.current.acceptance.split('\n').filter((x) => x.trim()),
++        allowedScopes: criteriaRef.current.scopes.split('\n').filter((x) => x.trim()),
+       });
+       if (!result?.ok) return;
+       const next = result.snapshot.workspaces
+@@ -132,8 +136,10 @@
+         taskVersionId: next.taskVersionId,
+       });
+       if (!started?.ok) return;
+-      const acceptedRun = started.snapshot.workspaces
+-        .find((w) => w.workspaceId === workspace.workspaceId)
++      // A delayed start receipt may predate cancellation; only the current Main projection can acknowledge input.
++      const acceptedRun = workspaceStore
++        .get()
++        .snapshot?.workspaces.find((w) => w.workspaceId === workspace.workspaceId)
+         ?.runs.find((r) => r.taskVersionId === next.taskVersionId);
+       if (acceptedRun && ['starting', 'running', 'completed'].includes(acceptedRun.state) && draftValue.current === text) save('');
+     });
+@@ -149,7 +155,10 @@
+             key={v}
+             className={`btn ${view === v ? 'btn-active' : ''}`}
+             aria-pressed={view === v}
+-            onClick={() => setView(v)}
++            onClick={() => {
++              beginNavigation();
++              setView(v);
++            }}
+           >
+             {['对话', '任务', '上下文', '检查', '日志', 'diff', '报告'][i]}
+           </button>
+--- a/apps/service/src/app-helper.py
++++ b/apps/service/src/app-helper.py
+@@ -67,17 +67,19 @@
+         archive = root / '.wsl-deps.tar.gz'
+         digest = hashlib.sha256()
+         total = 0
+-        with archive.open('xb') as target:
+-            while True:
+-                chunk = sys.stdin.buffer.read(1024 * 1024)
+-                if not chunk:
+-                    break
+-                total += len(chunk)
+-                if total > 256 * 1024 * 1024:
+-                    raise ValueError('dependency archive exceeds budget')
+-                digest.update(chunk)
+-                target.write(chunk)
++        created_archive = False
+         try:
++            with archive.open('xb') as target:
++                created_archive = True
++                while True:
++                    chunk = sys.stdin.buffer.read(1024 * 1024)
++                    if not chunk:
++                        break
++                    total += len(chunk)
++                    if total > 256 * 1024 * 1024:
++                        raise ValueError('dependency archive exceeds budget')
++                    digest.update(chunk)
++                    target.write(chunk)
+             if digest.hexdigest() != request['sha256']:
+                 raise ValueError('dependency archive hash mismatch')
+             with tarfile.open(archive, 'r:gz') as source:
+@@ -94,7 +96,8 @@
+             (root / '.wsl-dependency-lock').write_text(hashlib.sha256((root / 'package-lock.json').read_bytes()).hexdigest())
+             output({'dependenciesImported': True, 'sha256': digest.hexdigest()})
+         finally:
+-            archive.unlink()
++            if created_archive:
++                archive.unlink()
+         return
+     if request['operation'] == 'export':
+         files = []
+--- a/apps/service/src/app-service.test.ts
++++ b/apps/service/src/app-service.test.ts
+@@ -1,3 +1,4 @@
++import * as fs from 'node:fs/promises';
+ import { execFileSync } from 'node:child_process';
+ import { randomUUID } from 'node:crypto';
+ import { mkdtemp, readFile, rm, mkdir, writeFile, symlink } from 'node:fs/promises';
+@@ -8,10 +9,14 @@
+ import appHelper from './app-helper.py?raw';
+ import type { GuestFrame, GuestOutcome, GuestStart } from './sbx';
+ 
++vi.mock('node:fs/promises', async (original) => ({ ...(await original<typeof fs>()) }));
++
+ const key: AppKey = { workspaceId: 'space-test', projectId: 'project-test' };
+ const files = [{ path: 'package.json', base64: Buffer.from('{}').toString('base64') }];
+ function fixture(
+   settings: {
++    closeGate?: Promise<void>;
++    exportGate?: Promise<void>;
+     wrongIdentity?: boolean;
+     wrongReadyIdentity?: boolean;
+     guestPort?: number;
+@@ -60,7 +65,8 @@
+           }),
+         );
+       if (input.operation !== 'start')
+-        queueMicrotask(() => {
++        queueMicrotask(async () => {
++          if (input.operation === 'export' && settings.exportGate) await settings.exportGate;
+           onFrame({
+             type: 'output',
+             stream: 'stdout',
+@@ -70,8 +76,9 @@
+         });
+       return {
+         done,
+-        close: () => {
++        close: async () => {
+           closes++;
++          if (settings.closeGate) await settings.closeGate;
+           commands.push(['child-close']);
+           finish?.({
+             confirmed: settings.cleanup !== false,
+@@ -141,6 +148,94 @@
+ }
+ 
+ describe('managed app ownership', () => {
++  it('rejects export after shutdown and closes admission before loading settles', async () => {
++    const test = fixture();
++    await test.service.create({ ...key, files });
++    await test.service.shutdown();
++    await expect(test.service.export(key)).rejects.toThrow('关闭');
++    const other = fixture();
++    const creation = other.service.create({ ...key, files });
++    const closing = other.service.shutdown();
++    await expect(creation).rejects.toThrow('关闭');
++    await closing;
++    expect(other.starts()).toBe(0);
++  });
++  it('shares stop cleanup and rejects new operations until its receipt settles', async () => {
++    let release!: () => void;
++    const gate = new Promise<void>((resolve) => {
++      release = resolve;
++    });
++    const test = fixture({ closeGate: gate });
++    await test.service.create({ ...key, files });
++    await test.service.start(key);
++    const first = test.service.stop(key);
++    const second = test.service.stop(key);
++    try {
++      await vi.waitFor(() => expect(test.closes()).toBeGreaterThan(0));
++      await expect(test.service.start(key)).rejects.toThrow(/进行中|清理/);
++      await expect(test.service.export(key)).rejects.toThrow(/停止|进行中/);
++      expect(test.closes()).toBe(1);
++    } finally {
++      release();
++      await Promise.all([first, second]);
++    }
++    expect(test.closes()).toBe(1);
++  });
++  it('stop cancels a held export process and still publishes its cleanup receipt', async () => {
++    let release!: () => void;
++    const gate = new Promise<void>((resolve) => {
++      release = resolve;
++    });
++    const test = fixture({ exportGate: gate });
++    await test.service.create({ ...key, files });
++    const exporting = test.service.export(key);
++    const rejected = expect(exporting).rejects.toThrow('取消');
++    await vi.waitFor(() => expect(test.starts()).toBe(2));
++    const stopping = test.service.stop(key);
++    try {
++      await vi.waitFor(() => expect(test.closes()).toBe(1), { timeout: 200 });
++      const stopped = await stopping;
++      expect(stopped).toMatchObject({ state: 'stopped', cleanupConfirmed: true });
++      await rejected;
++    } finally {
++      release();
++      await Promise.allSettled([exporting, stopping, rejected]);
++    }
++  });
++  it('serializes registry publication across projects so an older write cannot win', async () => {
++    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-registry-order-'));
++    const target = path.join(root, 'registry.json');
++    const originalWrite = fs.writeFile;
++    let release!: () => void;
++    const gate = new Promise<void>((resolve) => {
++      release = resolve;
++    });
++    let writes = 0;
++    const writing = vi.spyOn(fs, 'writeFile').mockImplementation(async (...args) => {
++      writes++;
++      if (writes === 1) await gate;
++      return originalWrite(...args);
++    });
++    const test = fixture();
++    const service = new AppService(test.connection, { ...test.options, registryPath: target });
++    try {
++      const first = service.create({ ...key, files });
++      await vi.waitFor(() => expect(writes).toBe(1));
++      const second = service.create({ ...key, projectId: 'project-second', files });
++      // Both guest commands complete while the first registry publication is held.
++      await vi.waitFor(() => expect(test.starts()).toBe(2));
++      await new Promise<void>((resolve) => setImmediate(resolve));
++      expect(writes).toBe(1);
++      release();
++      await Promise.all([first, second]);
++      const registry = JSON.parse(await readFile(target, 'utf8'));
++      expect(registry.apps).toHaveLength(2);
++    } finally {
++      release();
++      writing.mockRestore();
++      await rm(root, { recursive: true, force: true });
++    }
++  });
+   it.each([
+     '{broken',
+     JSON.stringify({ version: 1, sandbox: null, apps: [] }),
+@@ -445,6 +540,71 @@
+       await rm(test.root, { recursive: true, force: true });
+     }
+   });
++  it.each(['read', 'write', 'existing'])(
++    'dependency import %s failure removes only its own temporary archive and permits retry',
++    async (failure) => {
++      const test = await setup();
++      try {
++        const result = execFileSync(
++          'python3',
++          [
++            '-c',
++            `import sys,json,io,hashlib,types
++from pathlib import Path
++scope={'__name__':'wsl_test'}
++exec(sys.argv[3],scope)
++scope['ROOT']=Path(sys.argv[1])
++scope['sys']=types.SimpleNamespace(platform='linux',stdin=types.SimpleNamespace(buffer=io.BytesIO(b'partial')))
++scope['os']=types.SimpleNamespace(uname=lambda:types.SimpleNamespace(machine='aarch64'))
++root=Path(sys.argv[1])/json.loads(sys.argv[2])['projectId']
++(root/'package-lock.json').write_bytes(b'lock')
++archive=root/'.wsl-deps.tar.gz'
++request=dict(json.loads(sys.argv[2]),operation='dependencies',platform='linux',arch='arm64',lockSha256=hashlib.sha256(b'lock').hexdigest(),sha256='0'*64)
++mode=sys.argv[4]
++original=Path.open
++class Writer:
++    def __init__(self,handle): self.handle=handle
++    def __enter__(self): self.handle.__enter__(); return self
++    def __exit__(self,*args): return self.handle.__exit__(*args)
++    def write(self,data): self.handle.write(data); raise OSError('injected write failure')
++class Reader:
++    def read(self,size): raise OSError('injected read failure')
++if mode=='existing': archive.write_bytes(b'foreign')
++if mode=='read': scope['sys'].stdin.buffer=Reader()
++if mode=='write': Path.open=lambda self,*args,**kwargs: Writer(original(self,*args,**kwargs)) if self==archive else original(self,*args,**kwargs)
++error=None
++try: scope['run'](request)
++except Exception as failure: error=str(failure)
++finally: Path.open=original
++exists=archive.exists()
++foreign=archive.read_bytes().decode() if mode=='existing' and exists else None
++if mode!='existing':
++    scope['sys'].stdin.buffer=io.BytesIO(b'retry')
++    try: scope['run'](request)
++    except Exception as retry: retry_error=str(retry)
++else: retry_error=None
++print(json.dumps(dict(error=error,exists=exists,foreign=foreign,retry_error=retry_error)))`,
++            test.root,
++            JSON.stringify(key),
++            appHelper,
++            failure,
++          ],
++          { encoding: 'utf8', timeout: 2000 },
++        );
++        const receipt = JSON.parse(result.trim().split('\n').at(-1) ?? '');
++        expect(receipt.error).toBeTruthy();
++        if (failure === 'existing') {
++          expect(receipt.exists).toBe(true);
++          expect(receipt.foreign).toBe('foreign');
++        } else {
++          expect(receipt.exists).toBe(false);
++          expect(receipt.retry_error).toBe('dependency archive hash mismatch');
++        }
++      } finally {
++        await rm(test.root, { recursive: true, force: true });
++      }
++    },
++  );
+   it('exports source bytes while excluding persistent data, dependencies and build output', async () => {
+     const test = await setup();
+     try {
+--- a/apps/service/src/app-service.ts
++++ b/apps/service/src/app-service.ts
+@@ -37,6 +37,8 @@
+   snapshot: AppSnapshot;
+   process: Pick<GuestProcess, 'done' | 'close'> | null;
+   operation: Promise<AppSnapshot> | null;
++  commandProcess: Pick<GuestProcess, 'done' | 'close'> | null;
++  stopping: Promise<AppSnapshot> | null;
+   cancelled: boolean;
+   port: Port | null;
+   portPending: boolean;
+@@ -82,6 +84,7 @@
+ export class AppService {
+   private entries = new Map<string, Entry>();
+   private closing = false;
++  private persistence: Promise<void> = Promise.resolve();
+   private options: AppServiceOptions;
+   private loaded: Promise<void> | null = null;
+   private registrySandbox: string | null = null;
+@@ -143,6 +146,8 @@
+         },
+         process: null,
+         operation: null,
++        commandProcess: null,
++        stopping: null,
+         cancelled: false,
+         port: null,
+         portPending: false,
+@@ -153,28 +158,32 @@
+       });
+     }
+   }
+-  private async persist(): Promise<void> {
+-    if (!this.options.registryPath) return;
++  private persist(): Promise<void> {
++    if (!this.options.registryPath) return Promise.resolve();
+     const target = this.options.registryPath;
+-    // Persist the validated owner identity, even after runtime shutdown clears status.
+-    const sandbox = z.string().min(1).parse(this.registrySandbox);
+-    await mkdir(path.dirname(target), { recursive: true });
+-    const temporary = `${target}.${randomUUID()}.tmp`;
+-    await writeFile(
+-      temporary,
+-      JSON.stringify({
+-        version: 1,
+-        sandbox,
+-        apps: [...this.entries.values()].map(({ snapshot }) => ({
+-          workspaceId: snapshot.workspaceId,
+-          projectId: snapshot.projectId,
+-          state: snapshot.state,
+-          cleanupConfirmed: snapshot.cleanupConfirmed,
+-        })),
+-      }),
+-      { mode: 0o600 },
++    // Capture in invocation order, then publish in that order across all projects.
++    const contents = JSON.stringify({
++      version: 1,
++      sandbox: z.string().min(1).parse(this.registrySandbox),
++      apps: [...this.entries.values()].map(({ snapshot }) => ({
++        workspaceId: snapshot.workspaceId,
++        projectId: snapshot.projectId,
++        state: snapshot.state,
++        cleanupConfirmed: snapshot.cleanupConfirmed,
++      })),
++    });
++    const saving = this.persistence.then(async () => {
++      await mkdir(path.dirname(target), { recursive: true });
++      const temporary = `${target}.${randomUUID()}.tmp`;
++      await writeFile(temporary, contents, { mode: 0o600 });
++      await rename(temporary, target);
++    });
++    // A failed publication rejects its owner without poisoning later cleanup writes.
++    this.persistence = saving.then(
++      () => undefined,
++      () => undefined,
+     );
+-    await rename(temporary, target);
++    return saving;
+   }
+   private id(key: AppKey) {
+     return `${key.workspaceId}\0${key.projectId}`;
+@@ -289,6 +298,7 @@
+   }
+   private async command(entry: Entry, operation: 'create' | 'export', files?: AppSourceFile[]) {
+     const child = this.launch(entry, operation, files);
++    entry.commandProcess = child;
+     const timeout = setTimeout(() => {
+       entry.cancelled = true;
+       void child.close();
+@@ -304,6 +314,7 @@
+       return JSON.parse(line.slice('WSL_APP_RESULT:'.length)) as unknown;
+     } finally {
+       clearTimeout(timeout);
++      entry.commandProcess = null;
+     }
+   }
+   async create(input: AppKey & { files: AppSourceFile[] }): Promise<AppSnapshot> {
+@@ -332,6 +343,8 @@
+       },
+       process: null,
+       operation: null,
++      commandProcess: null,
++      stopping: null,
+       cancelled: false,
+       port: null,
+       portPending: false,
+@@ -348,32 +361,38 @@
+         entry.snapshot.state = 'failed';
+         entry.snapshot.error = String(error);
+       }
++      await this.persist();
+       return { ...entry.snapshot };
+     })();
+     try {
+       return await entry.operation;
+     } finally {
+       entry.operation = null;
+-      await this.persist();
+     }
+   }
+   async start(key: AppKey): Promise<AppSnapshot> {
+     await this.ensureLoaded();
+     if (this.closing) throw new Error('应用服务正在关闭');
+     const entry = this.entry(key);
+-    if (entry.operation) throw new Error('应用操作进行中');
++    if (entry.operation || entry.stopping) throw new Error('应用操作进行中');
+     if (entry.snapshot.state === 'running') return this.get(key);
+     if (!entry.snapshot.cleanupConfirmed || entry.portPending || entry.process) throw new Error('上次应用清理尚未确认');
+     if ([...this.entries.values()].some((other) => other !== entry && ['starting', 'running', 'stopping'].includes(other.snapshot.state)))
+       throw new Error('首版仅允许一个应用服务运行');
+     entry.cancelled = false;
+     entry.snapshot = { ...entry.snapshot, appInstanceId: randomUUID(), state: 'starting', error: null, url: null, guestPort: null };
+-    entry.operation = this.persist().then(() => this.startEntry(entry));
++    entry.operation = (async () => {
++      try {
++        await this.persist();
++        return await this.startEntry(entry);
++      } finally {
++        await this.persist();
++      }
++    })();
+     try {
+       return await entry.operation;
+     } finally {
+       entry.operation = null;
+-      await this.persist();
+     }
+   }
+   private async importDependencies(entry: Entry, archivePath: string): Promise<void> {
+@@ -595,25 +614,44 @@
+   async stop(key: AppKey): Promise<AppSnapshot> {
+     await this.ensureLoaded();
+     const entry = this.entry(key);
++    if (entry.stopping) return entry.stopping;
+     entry.cancelled = true;
+     entry.snapshot.state = 'stopping';
+-    if (entry.operation) await entry.operation;
+-    await this.cleanup(entry);
+-    entry.snapshot.state = entry.snapshot.cleanupConfirmed ? 'stopped' : 'failed';
+-    await this.persist();
+-    this.options.onSnapshot?.({ ...entry.snapshot });
+-    return { ...entry.snapshot };
++    const operation = entry.operation;
++    entry.stopping = (async () => {
++      // Finite create/export helpers own no published mapping. Cancel them now;
++      // a running app must retain its process until cleanup removes that mapping.
++      if (entry.commandProcess) await entry.commandProcess.close();
++      // The operation reports its own failure; stop separately confirms cleanup.
++      if (operation) await Promise.allSettled([operation]);
++      await this.cleanup(entry);
++      entry.snapshot.state = entry.snapshot.cleanupConfirmed ? 'stopped' : 'failed';
++      await this.persist();
++      this.options.onSnapshot?.({ ...entry.snapshot });
++      return { ...entry.snapshot };
++    })();
++    try {
++      return await entry.stopping;
++    } finally {
++      entry.stopping = null;
++    }
+   }
+   async export(key: AppKey): Promise<{ files: AppSourceFile[]; sha256: string }> {
+     await this.ensureLoaded();
++    if (this.closing) throw new Error('应用服务正在关闭');
+     const entry = this.entry(key);
+-    if (entry.operation || entry.process || !entry.snapshot.cleanupConfirmed) throw new Error('请先停止应用并确认清理，再导出源码');
++    if (entry.operation || entry.stopping || entry.process || !entry.snapshot.cleanupConfirmed)
++      throw new Error('请先停止应用并确认清理，再导出源码');
+     entry.cancelled = false;
+     let result: { files: AppSourceFile[] } | undefined;
+     entry.operation = (async () => {
+-      result = z.object({ files: z.array(fileSchema) }).parse(await this.command(entry, 'export'));
+-      validateAppSources(result.files);
+-      return { ...entry.snapshot };
++      try {
++        result = z.object({ files: z.array(fileSchema) }).parse(await this.command(entry, 'export'));
++        validateAppSources(result.files);
++        return { ...entry.snapshot };
++      } finally {
++        await this.persist();
++      }
+     })();
+     try {
+       await entry.operation;
+@@ -621,12 +659,11 @@
+       return { files: result.files, sha256: createHash('sha256').update(JSON.stringify(result.files)).digest('hex') };
+     } finally {
+       entry.operation = null;
+-      await this.persist();
+     }
+   }
+   async shutdown(): Promise<void> {
++    this.closing = true;
+     await this.ensureLoaded();
+-    this.closing = true;
+     const errors: unknown[] = [];
+     // Each stop persists the shared registry; settle sequentially to avoid stale writes.
+     for (const entry of this.entries.values()) {
+--- a/apps/service/src/codex-chat.ts
++++ b/apps/service/src/codex-chat.ts
+@@ -169,7 +169,7 @@
+ interface Slot {
+   conversation: ChatConversation;
+   active: Turn | null;
+-  preparing: { done: Promise<void>; finish(): void; cancelled: boolean } | null;
++  preparing: { done: Promise<void>; finish(): void; cancelled: boolean; turnId: string } | null;
+ }
+ export class CodexChat {
+   private observationReader:
+@@ -247,6 +247,7 @@
+     }
+   }
+   assertResourceMutationAllowed(spaceId: string): void {
++    if (this.closing) throw new Error('对话服务正在关闭');
+     this.assertCleanupKnown();
+     if (spaceId !== 'taskflow-demo') throw new Error('未知资源空间');
+     for (const [id, slot] of this.slots)
+@@ -279,6 +280,7 @@
+     if (slot.active || slot.preparing) throw new Error(slot.active?.cleanupError ?? '当前会话正在等待回复');
+     const spaceId = id === 'conv-space-taskflow-demo-impl' || this.workspaceBySession.get(id) === 'taskflow-demo' ? 'taskflow-demo' : null;
+     if (spaceId) this.assertCleanupKnown();
++    const turnId = randomUUID();
+     let collection: ResourceCollection = { spaceId: 'taskflow-demo', revision: 0, resources: [] };
+     if (spaceId && this.resources) {
+       let finish!: () => void;
+@@ -288,6 +290,7 @@
+         }),
+         finish: () => finish(),
+         cancelled: false,
++        turnId,
+       };
+       slot.preparing = preparing;
+       try {
+@@ -299,7 +302,6 @@
+         preparing.finish();
+       }
+     }
+-    const turnId = randomUUID();
+     const resourceBundle = ResourceBundleSchema.parse({
+       conversationId: id,
+       generation: slot.conversation.generation,
+@@ -522,14 +524,21 @@
+     });
+     return this.get(id);
+   }
+-  async cancel(id: ChatSlot): Promise<ChatConversation> {
++  private cancelUnstarted(slot: Slot, turnId: string): ChatConversation {
++    if (slot.conversation.turnId === turnId && slot.conversation.state === 'cancelled') return structuredClone(slot.conversation);
++    Object.assign(slot.conversation, { turnId, state: 'cancelled', error: null, cleanupPending: false });
++    return this.publish(slot);
++  }
++  async cancel(id: ChatSlot, queuedSend = false): Promise<ChatConversation> {
+     const slot = this.slot(id);
+     if (slot.preparing) {
++      // Resource capture is read-only. Revoke admission immediately; the pending
++      // read retains the freeze until its cancelled continuation settles.
+       slot.preparing.cancelled = true;
+-      await slot.preparing.done;
++      return this.cancelUnstarted(slot, slot.preparing.turnId);
+     }
+     const turn = slot.active;
+-    if (!turn) return this.get(id);
++    if (!turn) return queuedSend ? this.cancelUnstarted(slot, randomUUID()) : this.get(id);
+     if (turn.cleanupError) throw new Error(turn.cleanupError);
+     turn.cancel = true;
+     turn.observation.abort();
+@@ -541,12 +550,24 @@
+   }
+   async reset(id: ChatSlot): Promise<ChatConversation> {
+     if (this.closing) throw new Error('对话服务正在关闭');
++    const preparing = this.slot(id).preparing;
+     await this.cancel(id);
++    if (preparing) await preparing.done;
+     this.slots.delete(id);
+     return this.publish(this.slot(id));
+   }
++  beginShutdown(): void {
++    // Apps still need the shared connection while their mappings are removed.
++    // Admission can close independently of that connection's cleanup.
++    this.closing = true;
++    for (const slot of this.slots.values()) {
++      if (!slot.preparing) continue;
++      slot.preparing.cancelled = true;
++      this.cancelUnstarted(slot, slot.preparing.turnId);
++    }
++  }
+   async shutdown(): Promise<void> {
+-    this.closing = true;
++    this.beginShutdown();
+     const outcomes = await Promise.allSettled([this.connection.shutdown(), ...[...this.slots.keys()].map((id) => this.cancel(id))]);
+     const failure = outcomes.find((outcome) => outcome.status === 'rejected');
+     if (failure?.status === 'rejected') throw failure.reason;
+--- a/apps/service/src/index.ts
++++ b/apps/service/src/index.ts
+@@ -71,10 +71,22 @@
+   send({ type: 'initialized', status, cleanupPending: chat.connection.getCleanupPending() });
+   return status;
+ });
+-// 对话入口与资源提交共享顺序，防止持久化中插入旧快照轮次；send 不等待模型完成。
++// Capture and resource writes share ordering. Cancellation must bypass a held
++// capture so it can revoke CodexChat.preparing before any guest is launched.
+ let resourceOperations: Promise<unknown> = Promise.resolve();
++const pendingSends = new Map<string, Set<{ cancelled: boolean }>>();
+ parent.on('message', ({ data }) => {
+   const request = ChatServiceRequestSchema.parse(data);
++  if (request.method === 'shutdown') chat.beginShutdown();
++  if (request.method === 'cancel' || request.method === 'reset') {
++    for (const pending of pendingSends.get(request.payload.conversationId) ?? []) pending.cancelled = true;
++  }
++  const admission = request.method === 'send' ? { cancelled: false } : null;
++  if (request.method === 'send' && admission) {
++    const pending = pendingSends.get(request.payload.conversationId) ?? new Set();
++    pending.add(admission);
++    pendingSends.set(request.payload.conversationId, pending);
++  }
+   const execute = async () => {
+     try {
+       if (['send', 'resources.save', 'resources.remove'].includes(request.method)) await ready;
+@@ -157,10 +169,12 @@
+           result = chat.get(request.payload.conversationId);
+           break;
+         case 'send':
+-          result = await chat.send(request.payload.conversationId, request.payload.text, request.payload.observationScope);
++          result = admission?.cancelled
++            ? chat.get(request.payload.conversationId)
++            : await chat.send(request.payload.conversationId, request.payload.text, request.payload.observationScope);
+           break;
+         case 'cancel':
+-          result = await chat.cancel(request.payload.conversationId);
++          result = await chat.cancel(request.payload.conversationId, pendingSends.has(request.payload.conversationId));
+           break;
+         case 'reset':
+           result = await chat.reset(request.payload.conversationId);
+@@ -201,14 +215,21 @@
+       // ACK须由宿主收到后再结束utility，立即exit会丢失仍在传输的消息。
+     } catch (error) {
+       send({ type: 'error', id: request.id, error: (error as Error).message });
++    } finally {
++      if (request.method === 'send' && admission) {
++        const pending = pendingSends.get(request.payload.conversationId);
++        pending?.delete(admission);
++        if (!pending?.size) pendingSends.delete(request.payload.conversationId);
++      }
+     }
+   };
+-  if (['send', 'cancel', 'reset', 'shutdown', 'resources.save', 'resources.remove'].includes(request.method)) {
++  if (['send', 'resources.save', 'resources.remove'].includes(request.method)) {
+     resourceOperations = resourceOperations.then(execute);
+   } else void execute();
+ });
+ 
+ process.on('SIGTERM', () => {
++  chat.beginShutdown();
+   for (const controller of observations.values()) controller.abort();
+   void shutdownServiceOwners(
+     () => apps.shutdown(),
+--- a/apps/service/src/resource-chat.test.ts
++++ b/apps/service/src/resource-chat.test.ts
+@@ -154,6 +154,34 @@
+     await stopping;
+     expect(f.start).not.toHaveBeenCalled();
+   });
++  it.each(['cancel', 'shutdown'] as const)(
++    '%s returns while read-only preflight is held and prevents late execution',
++    async (operation) => {
++      const f = fixture();
++      let release!: (value: { spaceId: string; revision: number; resources: [] }) => void;
++      f.resources.list.mockImplementation(
++        () =>
++          new Promise((resolve) => {
++            release = resolve;
++          }),
++      );
++      const sending = f.chat.send(space, 'pending');
++      let stopped = false;
++      const stopping = (operation === 'cancel' ? f.chat.cancel(space) : f.chat.shutdown()).then(() => {
++        stopped = true;
++      });
++      try {
++        await new Promise<void>((resolve) => setImmediate(resolve));
++        expect(stopped).toBe(true);
++        expect(() => f.chat.assertResourceMutationAllowed('taskflow-demo')).toThrow();
++      } finally {
++        release({ spaceId: 'taskflow-demo', revision: 1, resources: [] });
++        await Promise.all([sending, stopping]);
++        await f.chat.shutdown();
++      }
++      expect(f.start).not.toHaveBeenCalled();
++    },
++  );
+   it('keeps a readable identity receipt for large real MCP results', async () => {
+     const f = fixture();
+     await f.chat.send(space, 'read');
+--- a/apps/service/src/resource-dispatch.test.ts
++++ b/apps/service/src/resource-dispatch.test.ts
+@@ -12,6 +12,7 @@
+   invalidate: vi.fn(),
+   send: vi.fn(),
+   cancel: vi.fn(),
++  get: vi.fn(),
+ }));
+ vi.mock('./resource-store', () => ({
+   ResourceStore: class {
+@@ -29,6 +30,8 @@
+     invalidateResources = mocks.invalidate;
+     send = mocks.send;
+     cancel = mocks.cancel;
++    get = mocks.get;
++    beginShutdown = vi.fn();
+   },
+ }));
+ vi.mock('./terminal', () => ({ Terminal: class {} }));
+@@ -68,6 +71,7 @@
+   mocks.save.mockResolvedValue({ ...empty, revision: 1 });
+   mocks.send.mockResolvedValue(conversation);
+   mocks.cancel.mockResolvedValue({ ...conversation, state: 'cancelled' });
++  mocks.get.mockReturnValue({ ...conversation, state: 'idle' });
+   mocks.assertMutation.mockReset();
+   process.argv[2] = '/tmp/wsl-resource-dispatch-fixture';
+   previousListeners = process.listeners('SIGTERM');
+@@ -94,7 +98,7 @@
+ const start = () => dispatch({ id: 'start', method: 'send', payload: { conversationId: 'conv-space-taskflow-demo-impl', text: 'read' } });
+ 
+ describe('资源提交与聊天入口的顺序', () => {
+-  it('持久化完成及失效旧上下文后才允许启动下一轮，随后 cancel 仍按请求顺序到达', async () => {
++  it('持久化完成及失效旧上下文后才允许启动下一轮', async () => {
+     let commit: (value: ResourceCollection) => void = () => {
+       throw new Error('save not started');
+     };
+@@ -107,14 +111,36 @@
+     capture('save');
+     await vi.waitFor(() => expect(mocks.save).toHaveBeenCalledOnce());
+     start();
+-    dispatch({ id: 'cancel', method: 'cancel', payload: { conversationId: 'conv-space-taskflow-demo-impl' } });
+     await Promise.resolve();
+     expect(mocks.send).not.toHaveBeenCalled();
+-    expect(mocks.cancel).not.toHaveBeenCalled();
+     commit({ ...empty, revision: 1 });
++    await vi.waitFor(() => expect(mocks.send).toHaveBeenCalledOnce());
++    expect(mocks.invalidate.mock.invocationCallOrder[0]).toBeLessThan(mocks.send.mock.invocationCallOrder[0]!);
++    dispatch({ id: 'cancel', method: 'cancel', payload: { conversationId: 'conv-space-taskflow-demo-impl' } });
+     await vi.waitFor(() => expect(mocks.cancel).toHaveBeenCalledOnce());
+-    expect(mocks.invalidate.mock.invocationCallOrder[0]).toBeLessThan(mocks.send.mock.invocationCallOrder[0]!);
+-    expect(mocks.send.mock.invocationCallOrder[0]).toBeLessThan(mocks.cancel.mock.invocationCallOrder[0]!);
++  });
++  it('保存等待期间 cancel 立即到达，并撤销已排队但尚未开始的发送', async () => {
++    let commit!: (value: ResourceCollection) => void;
++    mocks.save.mockImplementationOnce(
++      () =>
++        new Promise<ResourceCollection>((resolve) => {
++          commit = resolve;
++        }),
++    );
++    capture('save');
++    await vi.waitFor(() => expect(mocks.save).toHaveBeenCalledOnce());
++    start();
++    dispatch({ id: 'cancel', method: 'cancel', payload: { conversationId: 'conv-space-taskflow-demo-impl' } });
++    await vi.waitFor(() => expect(mocks.cancel).toHaveBeenCalledOnce());
++    expect(mocks.send).not.toHaveBeenCalled();
++    commit({ ...empty, revision: 1 });
++    await vi.waitFor(() =>
++      expect(mocks.postMessage).toHaveBeenCalledWith({ type: 'response', id: 'start', result: { ...conversation, state: 'idle' } }),
++    );
++    expect(mocks.invalidate).toHaveBeenCalledOnce();
++    expect(mocks.send).not.toHaveBeenCalled();
++    start();
++    await vi.waitFor(() => expect(mocks.send).toHaveBeenCalledOnce());
+   });
+   it('保存失败回传错误，不失效旧上下文，后续合法请求仍能执行', async () => {
+     mocks.save.mockRejectedValueOnce(new Error('fixture atomic write failed'));
+--- /dev/null
++++ b/apps/desktop/src/main/workbench/review-lifecycle.test.ts
+@@ -0,0 +1,290 @@
++import '../../../../service/src/raw.d.ts';
++import { mkdtemp } from 'node:fs/promises';
++import os from 'node:os';
++import path from 'node:path';
++import { describe, expect, it, vi } from 'vitest';
++import type { ChatConversation, TerminalSnapshot, WorkbenchCommand } from '@wsl/protocol';
++import { CodexChat } from '../../../../service/src/codex-chat';
++import { SbxConnection } from '../../../../service/src/sbx';
++import { WorkbenchApplication } from './application';
++import { FileWorkbenchRepository } from './repository';
++import type { WorkbenchRuntime } from './ports';
++
++function gate<T>() {
++  let resolve!: (value: T) => void;
++  const promise = new Promise<T>((done) => {
++    resolve = done;
++  });
++  return { promise, resolve };
++}
++async function setup() {
++  const repository = new FileWorkbenchRepository(path.join(await mkdtemp(path.join(os.tmpdir(), 'wsl-review-lifecycle-')), 'state.json'));
++  const runtime = {
++    validateBrowserUrl: vi.fn(),
++    environmentsList: vi.fn().mockResolvedValue([
++      {
++        environmentId: 'local',
++        kind: 'local',
++        state: 'configured',
++        label: 'local',
++        capabilities: { browser: true, files: true, terminal: true },
++        reason: null,
++      },
++      {
++        environmentId: 'sandbox',
++        kind: 'sandbox',
++        state: 'configured',
++        label: 'sandbox',
++        capabilities: { browser: false, files: true, terminal: true },
++        reason: null,
++      },
++    ]),
++    publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
++    registerResource: vi.fn(),
++    registerSession: vi.fn(),
++    terminalOpen: vi.fn(),
++    terminalStop: vi.fn(),
++    send: vi.fn(),
++    cancel: vi.fn(),
++  } as unknown as WorkbenchRuntime;
++  const app = new WorkbenchApplication(repository, runtime, vi.fn());
++  const workspace = (await app.getSnapshot()).workspaces[0]!;
++  const command = (payload: Record<string, unknown>) =>
++    app.command({ commandId: crypto.randomUUID(), workspaceId: workspace.workspaceId, ...payload } as WorkbenchCommand);
++  return { repository, runtime, app, workspace, command };
++}
++const terminal: TerminalSnapshot = {
++  sessionId: 'pty',
++  seq: 1,
++  state: 'running',
++  output: '',
++  cleanupPending: true,
++  error: null,
++  sandbox: 'review',
++  cwd: '/workspace',
++};
++function conversation(sessionId: string, state: ChatConversation['state'], seq = 1): ChatConversation {
++  return {
++    conversationId: sessionId,
++    generation: 'review',
++    seq,
++    state,
++    turnId: 'review-turn',
++    threadId: null,
++    messages: [],
++    toolExecutions: [],
++    warnings: [],
++    cleanupPending: state === 'running',
++    error: null,
++  };
++}
++
++describe('review: durable terminal cleanup', () => {
++  it.each(['stop', 'natural exit', 'no-process launch failure'])('persists %s before an immediate repository restart', async (scenario) => {
++    const { repository, runtime, app, workspace, command } = await setup();
++    const resource = workspace.resources.find((r) => r.kind === 'terminal')!;
++    const ended: TerminalSnapshot = {
++      ...terminal,
++      seq: 2,
++      state: scenario === 'no-process launch failure' ? 'failed' : 'closed',
++      cleanupPending: false,
++      error: scenario === 'no-process launch failure' ? 'spawn failed' : null,
++    };
++    if (scenario === 'no-process launch failure') {
++      vi.mocked(runtime.terminalOpen).mockImplementation(async () => {
++        app.onTerminal(resource.resourceId, ended, vi.mocked(runtime.registerResource).mock.calls[0]![0]);
++        throw new Error('spawn failed');
++      });
++    } else vi.mocked(runtime.terminalOpen).mockResolvedValue(terminal);
++    await command({ type: 'terminalOpen', resourceId: resource.resourceId, cols: 80, rows: 24 });
++    if (scenario !== 'no-process launch failure') {
++      await vi.waitFor(async () =>
++        expect((await app.getSnapshot()).workspaces[0]!.resources.find((r) => r.resourceId === resource.resourceId)!.terminal?.state).toBe(
++          'running',
++        ),
++      );
++      const binding = vi.mocked(runtime.registerResource).mock.calls[0]![0];
++      if (scenario === 'stop') {
++        vi.mocked(runtime.terminalStop).mockResolvedValue(ended);
++        await command({ type: 'stopInstance', resourceId: resource.resourceId, instanceId: binding.instanceId });
++      } else app.onTerminal(resource.resourceId, ended, binding);
++    }
++    await vi.waitFor(async () =>
++      expect(
++        (await app.getSnapshot()).workspaces[0]!.resources.find((r) => r.resourceId === resource.resourceId)!.terminal?.cleanupPending,
++      ).toBe(false),
++    );
++    const restarted = new WorkbenchApplication(repository, runtime, vi.fn());
++    expect(
++      (await restarted.getSnapshot()).workspaces[0]!.resources.find((r) => r.resourceId === resource.resourceId)!.terminal,
++    ).toMatchObject({ state: 'closed', cleanupPending: false });
++  });
++  it('reports lifecycle save failures instead of silently acknowledging durable cleanup', async () => {
++    const { repository, runtime, app, workspace, command } = await setup();
++    const resource = workspace.resources.find((r) => r.kind === 'terminal')!;
++    vi.mocked(runtime.terminalOpen).mockResolvedValue(terminal);
++    await command({ type: 'terminalOpen', resourceId: resource.resourceId, cols: 80, rows: 24 });
++    await vi.waitFor(async () =>
++      expect((await app.getSnapshot()).workspaces[0]!.resources.find((r) => r.resourceId === resource.resourceId)!.terminal?.state).toBe(
++        'running',
++      ),
++    );
++    vi.spyOn(repository, 'save').mockRejectedValue(new Error('lifecycle disk full'));
++    app.onTerminal(
++      resource.resourceId,
++      { ...terminal, seq: 2, state: 'closed', cleanupPending: false },
++      vi.mocked(runtime.registerResource).mock.calls[0]![0],
++    );
++    expect((await app.getSnapshot()).storageError).toContain('lifecycle disk full');
++  });
++});
++
++describe('review: cancellable Main launch I/O', () => {
++  it('keeps registration cancelled in memory when cancellation persistence fails, without dispatching send', async () => {
++    const { repository, runtime, app, workspace, command } = await setup();
++    const sessionId = workspace.sessions[0]!.sessionId;
++    await command({ type: 'confirmTask', sessionId, goal: 'review', targetRef: null });
++    const taskVersionId = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!.taskVersionId;
++    const entered = gate<void>();
++    const release = gate<void>();
++    vi.mocked(runtime.registerSession).mockImplementation(async () => {
++      entered.resolve();
++      await release.promise;
++    });
++    const starting = command({ type: 'startRun', sessionId, taskVersionId });
++    await entered.promise;
++    const runId = (await repository.load())!.workspaces[0]!.runs[0]!.runId;
++    vi.spyOn(repository, 'save').mockRejectedValue(new Error('cancel disk full'));
++    const cancelled = await command({ type: 'cancelRun', runId });
++    expect(cancelled.ok).toBe(false);
++    expect(cancelled.snapshot.storageError).toContain('cancel disk full');
++    release.resolve();
++    await starting;
++    expect(runtime.send).not.toHaveBeenCalled();
++    expect((await app.getSnapshot()).workspaces[0]!.runs[0]!.state).toBe('cancelled');
++  });
++  it('does not dispatch send after a cancellation racing with registration completion', async () => {
++    const { repository, runtime, app, workspace, command } = await setup();
++    const sessionId = workspace.sessions[0]!.sessionId;
++    await command({ type: 'confirmTask', sessionId, goal: 'review', targetRef: null });
++    const taskVersionId = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!.taskVersionId;
++    const entered = gate<void>();
++    const release = gate<void>();
++    const actions: string[] = [];
++    vi.mocked(runtime.registerSession).mockImplementation(async () => {
++      entered.resolve();
++      await release.promise;
++    });
++    vi.mocked(runtime.send).mockImplementation(async () => {
++      actions.push('send');
++      return conversation(sessionId, 'running');
++    });
++    vi.mocked(runtime.cancel).mockImplementation(async () => {
++      actions.push('cancel');
++      return conversation(sessionId, 'cancelled', 2);
++    });
++    const starting = command({ type: 'startRun', sessionId, taskVersionId });
++    await entered.promise;
++    const runId = (await repository.load())!.workspaces[0]!.runs[0]!.runId;
++    release.resolve();
++    const cancelling = command({ type: 'cancelRun', runId });
++    await Promise.all([starting, cancelling]);
++    await app.getSnapshot();
++    expect(actions).not.toEqual(['cancel', 'send']);
++    expect((await app.getSnapshot()).workspaces[0]!.runs[0]!.state).toBe('cancelled');
++  });
++  it.each(['registration', 'send preflight'])('cancels while %s is suspended and ignores its late receipt', async (phase) => {
++    const { repository, runtime, app, workspace, command } = await setup();
++    const sessionId = workspace.sessions[0]!.sessionId;
++    await command({ type: 'confirmTask', sessionId, goal: 'review', targetRef: null });
++    const taskVersionId = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!.taskVersionId;
++    const entered = gate<void>();
++    const release = gate<void>();
++    if (phase === 'registration')
++      vi.mocked(runtime.registerSession).mockImplementation(async () => {
++        entered.resolve();
++        await release.promise;
++      });
++    vi.mocked(runtime.send).mockImplementation(async () => {
++      if (phase === 'send preflight') {
++        entered.resolve();
++        await release.promise;
++      }
++      return conversation(sessionId, 'running');
++    });
++    vi.mocked(runtime.cancel).mockResolvedValue(conversation(sessionId, 'cancelled', 2));
++    const starting = command({ type: 'startRun', sessionId, taskVersionId });
++    await entered.promise;
++    // Read the durable reservation directly: getSnapshot intentionally waits for the metadata queue.
++    const runId = (await repository.load())!.workspaces[0]!.runs[0]!.runId;
++    let cancelled = false;
++    const cancelling = command({ type: 'cancelRun', runId }).then((result) => {
++      expect(result.ok).toBe(true);
++      cancelled = true;
++    });
++    try {
++      await vi.waitFor(() => expect(cancelled).toBe(true), { timeout: 250 });
++    } finally {
++      release.resolve();
++      await starting;
++      await cancelling;
++    }
++    await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]!.runs[0]!.state).toBe('cancelled'));
++    if (phase === 'registration') expect(runtime.send).not.toHaveBeenCalled();
++    if (phase === 'send preflight') app.onConversation(conversation(sessionId, 'running', 3));
++    expect((await app.getSnapshot()).workspaces[0]!.runs[0]!.conversation?.state).not.toBe('running');
++    expect((await app.getSnapshot()).workspaces[0]!.sessions[0]!.conversation?.state).not.toBe('running');
++  });
++});
++
++describe('review: real service preparation cancellation receipt', () => {
++  it.each([false, true])('settles Main cancellation with prior history=%s before resource capture completes', async (history) => {
++    const { runtime, app, workspace, command } = await setup();
++    const sessionId = workspace.sessions[0]!.sessionId;
++    const connection = new SbxConnection({ sbxBinary: path.resolve('e2e/fixtures/sbx.mjs'), sandbox: 'review-receipt-fixture' });
++    const resources = { list: vi.fn(async (spaceId: string) => ({ spaceId, revision: 0, resources: [] })) };
++    const chat = new CodexChat('', (snapshot) => app.onConversation(snapshot), connection, resources);
++    await chat.initialize();
++    vi.mocked(runtime.registerSession).mockImplementation(async (id, workspaceId) => {
++      chat.register(id, workspaceId);
++    });
++    vi.mocked(runtime.send).mockImplementation((id, text, scope) => chat.send(id, text, scope));
++    vi.mocked(runtime.cancel).mockImplementation((id) => chat.cancel(id));
++    chat.register(sessionId, workspace.workspaceId);
++    if (history) {
++      await chat.send(sessionId, 'history');
++      await vi.waitFor(() => expect(chat.get(sessionId).state).toBe('idle'));
++      await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]!.sessions[0]!.conversation?.state).toBe('idle'));
++    }
++    const before = chat.get(sessionId);
++    const starts = vi.spyOn(connection, 'start');
++    const entered = gate<void>();
++    const release = gate<void>();
++    resources.list.mockImplementation(async (spaceId) => {
++      entered.resolve();
++      await release.promise;
++      return { spaceId, revision: 0, resources: [] };
++    });
++    await command({ type: 'confirmTask', sessionId, goal: 'real preflight cancellation', targetRef: null });
++    const taskVersionId = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!.taskVersionId;
++    const starting = command({ type: 'startRun', sessionId, taskVersionId });
++    await entered.promise;
++    const runId = (await app.getSnapshot()).workspaces[0]!.runs[0]!.runId;
++    try {
++      expect((await command({ type: 'cancelRun', runId })).ok).toBe(true);
++      await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]!.runs[0]!.state).toBe('cancelled'), { timeout: 300 });
++      const run = (await app.getSnapshot()).workspaces[0]!.runs[0]!;
++      expect(run.conversation).toMatchObject({ state: 'cancelled', cleanupPending: false });
++      expect(run.conversation!.seq).toBeGreaterThan(before.seq);
++      expect(run.executionBinding?.turnId).not.toBe(before.turnId);
++      expect(() => chat.assertResourceMutationAllowed('taskflow-demo')).toThrow();
++    } finally {
++      release.resolve();
++      await starting;
++      await chat.shutdown();
++    }
++    expect(starts).not.toHaveBeenCalled();
++    expect((await app.getSnapshot()).workspaces[0]!.runs[0]!.state).toBe('cancelled');
++    starts.mockRestore();
++  });
++});
+--- /dev/null
++++ b/apps/service/src/index.test.ts
+@@ -0,0 +1,220 @@
++import { afterEach, describe, expect, it, vi } from 'vitest';
++import type { GuestFrame, GuestStart } from './sbx';
++import { ChatConversationSchema, type ChatServiceMessage, type ChatServiceRequest, type ResourceCollection } from '@wsl/protocol';
++
++const fixture = vi.hoisted(() => ({
++  list: vi.fn<(spaceId: string) => Promise<ResourceCollection>>(),
++  remove: vi.fn(async () => ({ spaceId: 'taskflow-demo', revision: 2, resources: [] })),
++  start: vi.fn(),
++  appShutdown: vi.fn<() => Promise<void>>(async () => undefined),
++}));
++vi.mock('./sbx', () => ({
++  SbxConnection: class {
++    initialize = async () => this.getStatus();
++    getStatus = () => ({ available: true, reason: null, sandbox: 'fixture', version: 'fixture', cwd: '/home/agent/workspace' });
++    getCleanupPending = () => false;
++    start = fixture.start;
++    shutdown = async () => undefined;
++  },
++}));
++vi.mock('./resource-store', () => ({
++  ResourceStore: class {
++    list = fixture.list;
++    remove = fixture.remove;
++  },
++}));
++vi.mock('./app-service', () => ({
++  AppService: class {
++    shutdown = fixture.appShutdown;
++  },
++}));
++vi.mock('./environment-resources', () => ({
++  EnvironmentResources: class {
++    shutdown = async () => undefined;
++  },
++}));
++
++const initialArgv = process.argv;
++const initialPort = Object.getOwnPropertyDescriptor(process, 'parentPort');
++let signalListeners: NodeJS.SignalsListener[] = [];
++afterEach(() => {
++  process.argv = initialArgv;
++  for (const listener of process.listeners('SIGTERM')) if (!signalListeners.includes(listener)) process.removeListener('SIGTERM', listener);
++  if (initialPort) Object.defineProperty(process, 'parentPort', initialPort);
++  else Reflect.deleteProperty(process, 'parentPort');
++  vi.clearAllMocks();
++});
++async function host() {
++  vi.resetModules();
++  signalListeners = process.listeners('SIGTERM');
++  fixture.start.mockImplementation((_request: GuestStart, emit: (frame: GuestFrame) => void) => {
++    queueMicrotask(() =>
++      emit({
++        type: 'output',
++        stream: 'stdout',
++        data:
++          [
++            { type: 'thread.started', thread_id: 'history-thread' },
++            { type: 'item.completed', item: { id: 'reply', type: 'agent_message', text: 'history' } },
++            { type: 'turn.completed' },
++          ]
++            .map((event) => JSON.stringify(event))
++            .join('\n') + '\n',
++      }),
++    );
++    return {
++      done: Promise.resolve({ confirmed: true, error: null, exitCode: 0 }),
++      close: async () => ({ confirmed: true, error: null, exitCode: 0 }),
++    };
++  });
++  const messages: ChatServiceMessage[] = [];
++  let receive!: (event: { data: unknown }) => void;
++  Object.defineProperty(process, 'parentPort', {
++    configurable: true,
++    value: {
++      on: (_: string, listener: typeof receive) => {
++        receive = listener;
++      },
++      postMessage: (message: ChatServiceMessage) => {
++        messages.push(message);
++      },
++    },
++  });
++  process.argv = [initialArgv[0] ?? 'node', 'service', '/private/tmp/wsl-service-test'];
++  await import('./index');
++  await vi.waitFor(() => expect(messages.some((message) => message.type === 'initialized')).toBe(true));
++  return { messages, request: (data: ChatServiceRequest) => receive({ data }) };
++}
++const conversationId = 'conv-space-taskflow-demo-impl';
++describe('service request cancellation admission', () => {
++  it.each(['cancel', 'shutdown'] as const)(
++    '%s bypasses pending send preflight without allowing resource mutation to race capture',
++    async (method) => {
++      let release!: () => void;
++      fixture.list.mockImplementation(
++        () =>
++          new Promise((resolve) => {
++            release = () => resolve({ spaceId: 'taskflow-demo', revision: 1, resources: [] });
++          }),
++      );
++      const test = await host();
++      const response = (id: string) =>
++        test.messages.find((message) => (message.type === 'response' || message.type === 'error') && message.id === id);
++      test.request({ id: 'send', method: 'send', payload: { conversationId, text: 'pending' } });
++      await vi.waitFor(() => expect(fixture.list).toHaveBeenCalledOnce());
++      test.request(method === 'cancel' ? { id: 'stop', method, payload: { conversationId } } : { id: 'stop', method });
++      test.request({
++        id: 'remove',
++        method: 'resources.remove',
++        payload: { spaceId: 'taskflow-demo', resourceId: '00000000-0000-4000-8000-000000000001' },
++      });
++      try {
++        await vi.waitFor(() => expect(response('stop')?.type).toBe('response'), { timeout: 200 });
++        expect(fixture.remove).not.toHaveBeenCalled();
++        expect(fixture.start).not.toHaveBeenCalled();
++      } finally {
++        release();
++        await vi.waitFor(() => expect(response('send')).toBeDefined());
++        await vi.waitFor(() => expect(response('remove')).toBeDefined());
++      }
++      expect(fixture.start).not.toHaveBeenCalled();
++    },
++  );
++  it('revokes chat admission as soon as shutdown arrives while app cleanup is held', async () => {
++    let releaseRead!: () => void;
++    let releaseApps!: () => void;
++    fixture.list.mockImplementation(
++      () =>
++        new Promise((resolve) => {
++          releaseRead = () => resolve({ spaceId: 'taskflow-demo', revision: 1, resources: [] });
++        }),
++    );
++    fixture.appShutdown.mockImplementationOnce(
++      () =>
++        new Promise<void>((resolve) => {
++          releaseApps = resolve;
++        }),
++    );
++    const test = await host();
++    test.request({ id: 'send', method: 'send', payload: { conversationId, text: 'pending' } });
++    await vi.waitFor(() => expect(fixture.list).toHaveBeenCalledOnce());
++    test.request({ id: 'shutdown', method: 'shutdown' });
++    await vi.waitFor(() => expect(fixture.appShutdown).toHaveBeenCalledOnce());
++    releaseRead();
++    try {
++      await vi.waitFor(() => expect(test.messages.some((message) => message.type === 'response' && message.id === 'send')).toBe(true));
++      expect(fixture.start).not.toHaveBeenCalled();
++    } finally {
++      releaseApps();
++      await vi.waitFor(() => expect(test.messages.some((message) => message.type === 'response' && message.id === 'shutdown')).toBe(true));
++    }
++  });
++
++  it('cancel also revokes an earlier send still queued behind resource capture', async () => {
++    let release!: () => void;
++    fixture.list.mockResolvedValue({ spaceId: 'taskflow-demo', revision: 1, resources: [] });
++    fixture.list.mockImplementationOnce(
++      () =>
++        new Promise((resolve) => {
++          release = () => resolve({ spaceId: 'taskflow-demo', revision: 1, resources: [] });
++        }),
++    );
++    const test = await host();
++    test.request({ id: 'first', method: 'send', payload: { conversationId, text: 'first' } });
++    await vi.waitFor(() => expect(fixture.list).toHaveBeenCalledOnce());
++    test.request({ id: 'queued', method: 'send', payload: { conversationId, text: 'queued' } });
++    test.request({ id: 'cancel', method: 'cancel', payload: { conversationId } });
++    await vi.waitFor(() => expect(test.messages.some((message) => message.type === 'response' && message.id === 'cancel')).toBe(true));
++    release();
++    await vi.waitFor(() => expect(test.messages.some((message) => message.type === 'response' && message.id === 'queued')).toBe(true));
++    expect(fixture.list).toHaveBeenCalledOnce();
++    expect(fixture.start).not.toHaveBeenCalled();
++  });
++  it.each([false, true])('publishes a new cancelled receipt for a queued send with prior history=%s', async (history) => {
++    fixture.list.mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] });
++    const test = await host();
++    const response = (id: string) => test.messages.find((message) => message.type === 'response' && message.id === id);
++    if (history) {
++      test.request({ id: 'history', method: 'send', payload: { conversationId, text: 'history' } });
++      await vi.waitFor(() =>
++        expect(test.messages.some((message) => message.type === 'event' && message.conversation.state === 'idle')).toBe(true),
++      );
++    }
++    test.request({ id: 'before', method: 'get', payload: { conversationId } });
++    await vi.waitFor(() => expect(response('before')).toBeDefined());
++    const beforeResponse = response('before');
++    if (beforeResponse?.type !== 'response') throw new Error('missing before receipt');
++    const before = ChatConversationSchema.parse(beforeResponse.result);
++    let release!: () => void;
++    fixture.remove.mockImplementationOnce(
++      () =>
++        new Promise((resolve) => {
++          release = () => resolve({ spaceId: 'taskflow-demo', revision: 1, resources: [] });
++        }),
++    );
++    test.request({
++      id: 'remove',
++      method: 'resources.remove',
++      payload: { spaceId: 'taskflow-demo', resourceId: '00000000-0000-4000-8000-000000000001' },
++    });
++    await vi.waitFor(() => expect(fixture.remove).toHaveBeenCalledOnce());
++    test.request({ id: 'queued', method: 'send', payload: { conversationId, text: 'must not start' } });
++    test.request({ id: 'cancel', method: 'cancel', payload: { conversationId } });
++    try {
++      await vi.waitFor(() => expect(response('cancel')).toBeDefined());
++      const cancellationResponse = response('cancel');
++      if (cancellationResponse?.type !== 'response') throw new Error('missing cancellation receipt');
++      const cancellation = ChatConversationSchema.parse(cancellationResponse.result);
++      expect(cancellation).toMatchObject({ state: 'cancelled', cleanupPending: false });
++      expect(cancellation.seq).toBeGreaterThan(before.seq);
++      expect(cancellation.turnId).not.toBe(before.turnId);
++    } finally {
++      release();
++      await vi.waitFor(() => expect(response('queued')).toBeDefined());
++    }
++    const queuedResponse = response('queued');
++    if (queuedResponse?.type !== 'response') throw new Error('missing queued receipt');
++    expect(ChatConversationSchema.parse(queuedResponse.result)).toMatchObject({ state: 'cancelled', cleanupPending: false });
++    expect(fixture.start).toHaveBeenCalledTimes(history ? 1 : 0);
++  });
++});
+--- /dev/null
++++ b/e2e/review-regressions.spec.ts
+@@ -0,0 +1,252 @@
++import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
++import type { WorkbenchCommand, WorkbenchResult, WorkbenchSnapshot } from '../packages/protocol/src';
++import { launchApp, setWindowSize, workspaceSnapshot, previewClick, previewElementCenter, workshopNavigate } from './helpers';
++
++type ReviewGate = {
++  commands: WorkbenchCommand[];
++  failCriteria: boolean;
++  failStart: boolean;
++  holdConfirm: boolean;
++  holdNavigate: boolean;
++  holdStart: boolean;
++  releases: Array<() => void>;
++};
++type ReviewGlobal = typeof globalThis & {
++  reviewGate: ReviewGate;
++  screenshotGate: { armed: boolean; entered: number; release: (() => void) | null };
++};
++let app: ElectronApplication, page: Page;
++test.beforeEach(async () => {
++  ({ app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx.mjs', import.meta.url).pathname }));
++  await setWindowSize(app, 1440, 900);
++  await app.evaluate(({ ipcMain }) => {
++    const host = globalThis as ReviewGlobal;
++    host.reviewGate = {
++      commands: [],
++      failCriteria: false,
++      failStart: false,
++      holdConfirm: false,
++      holdNavigate: false,
++      holdStart: false,
++      releases: [],
++    };
++    type Handler = (event: Electron.IpcMainInvokeEvent, command?: WorkbenchCommand) => Promise<unknown>;
++    const handlers = (ipcMain as unknown as { _invokeHandlers: Map<string, Handler> })._invokeHandlers;
++    const command = handlers.get('workbench:command')!;
++    const get = handlers.get('workbench:get-snapshot')!;
++    ipcMain.removeHandler('workbench:command');
++    ipcMain.handle('workbench:command', async (event, request: WorkbenchCommand): Promise<WorkbenchResult> => {
++      const gate = host.reviewGate;
++      gate.commands.push(request);
++      if (
++        (gate.holdNavigate && request.type === 'browserAction' && request.action === 'navigate') ||
++        (gate.holdConfirm && request.type === 'confirmTask')
++      )
++        await new Promise<void>((resolve) => {
++          gate.releases.push(resolve);
++        });
++      if (
++        (gate.failCriteria && request.type === 'saveTaskCriteria') ||
++        (gate.failStart && request.type === 'startRun') ||
++        (gate.holdConfirm && request.type === 'confirmTask')
++      )
++        return {
++          ok: false,
++          error: { code: 'execution_failed', message: 'review: injected persistence/executor failure' },
++          snapshot: (await get(event)) as WorkbenchSnapshot,
++        };
++      const result = (await command(event, request)) as WorkbenchResult;
++      if (gate.holdStart && request.type === 'startRun')
++        await new Promise<void>((resolve) => {
++          gate.releases.push(resolve);
++        });
++      return result;
++    });
++  });
++});
++test.afterEach(async () => {
++  await app?.close();
++});
++const session = () => page.getByRole('region', { name: 'Agent 会话内容' });
++async function openSession() {
++  await page.getByRole('button', { name: 'Agent 会话', exact: true }).click();
++  await session().getByRole('button', { name: '任务', exact: true }).click();
++}
++async function release() {
++  await app.evaluate(() => {
++    const gate = (globalThis as ReviewGlobal).reviewGate;
++    for (const resolve of gate.releases.splice(0)) resolve();
++  });
++}
++
++test('rejected address navigation preserves the typed URL and focus', async () => {
++  const address = page.getByLabel('页面地址');
++  await address.fill('file:///review-forbidden');
++  await address.press('Enter');
++  await expect(
++    page
++      .getByRole('alert')
++      .filter({ hasText: /denied|允许|拒绝|导航|不支持/ })
++      .first(),
++  ).toBeVisible();
++  await expect(address).toHaveValue('file:///review-forbidden');
++  await expect(address).toBeFocused();
++});
++
++test('navigation deduplicates pending submits, honors IME, and retains newer edits after success', async () => {
++  await app.evaluate(() => {
++    (globalThis as ReviewGlobal).reviewGate.holdNavigate = true;
++  });
++  const address = page.getByLabel('页面地址');
++  await address.fill('wsl-demo://taskflow/members.html');
++  await address.dispatchEvent('compositionstart');
++  await address.press('Enter');
++  expect(
++    await app.evaluate(
++      () => (globalThis as ReviewGlobal).reviewGate.commands.filter((c) => c.type === 'browserAction' && c.action === 'navigate').length,
++    ),
++  ).toBe(0);
++  await address.dispatchEvent('compositionend');
++  await address.press('Enter');
++  await expect.poll(() => app.evaluate(() => (globalThis as ReviewGlobal).reviewGate.releases.length)).toBe(1);
++  await address.press('Enter');
++  await address.fill('wsl-demo://taskflow/task.html?id=1');
++  try {
++    expect(
++      await app.evaluate(
++        () => (globalThis as ReviewGlobal).reviewGate.commands.filter((c) => c.type === 'browserAction' && c.action === 'navigate').length,
++      ),
++    ).toBe(1);
++  } finally {
++    await release();
++  }
++  await expect
++    .poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.resources.find((r) => r.kind === 'web')!.preview!.page.url)
++    .toContain('members.html');
++  await expect(address).toHaveValue('wsl-demo://taskflow/task.html?id=1');
++});
++
++for (const action of ['confirm', 'send'] as const)
++  test(`${action} freezes visible criteria despite autosave failure and keeps failed input`, async () => {
++    await openSession();
++    await app.evaluate(() => {
++      const gate = (globalThis as ReviewGlobal).reviewGate;
++      gate.failCriteria = true;
++      gate.failStart = true;
++    });
++    await session().getByLabel('修改目标').fill('保留当前目标');
++    await session().getByLabel('允许修改范围（每行一条）').fill('src/current.ts');
++    await session().getByLabel('验收条件（每行一条）').fill('当前验收一\n当前验收二');
++    if (action === 'confirm') await session().getByRole('button', { name: '确认任务（生成新版本）' }).click();
++    else await session().getByRole('button', { name: '发送', exact: true }).click();
++    await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions.length).toBe(1);
++    const version = (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions[0]!;
++    expect(version.acceptance).toEqual(['当前验收一', '当前验收二']);
++    expect(version.allowedScopes).toEqual(['src/current.ts']);
++    await expect(session().getByLabel('会话消息')).toHaveValue('保留当前目标');
++    await expect(session().getByLabel('验收条件（每行一条）')).toHaveValue('当前验收一\n当前验收二');
++  });
++
++test('failed confirmation does not navigate away from the view chosen during the pending request', async () => {
++  await openSession();
++  await session().getByLabel('修改目标').fill('确认失败后保留');
++  await app.evaluate(() => {
++    (globalThis as ReviewGlobal).reviewGate.holdConfirm = true;
++  });
++  await session().getByRole('button', { name: '确认任务（生成新版本）' }).click();
++  await expect.poll(() => app.evaluate(() => (globalThis as ReviewGlobal).reviewGate.releases.length)).toBe(1);
++  await session().getByRole('button', { name: '对话', exact: true }).click();
++  await release();
++  await expect(session().getByRole('button', { name: '对话', exact: true })).toHaveAttribute('aria-pressed', 'true');
++  await expect(session().getByLabel('会话消息')).toHaveValue('确认失败后保留');
++  expect((await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions).toHaveLength(0);
++});
++
++for (const destination of ['tab', 'route', 'space', 'session-view-keyboard'] as const)
++  test(`late screenshot preserves its owner without returning from ${destination}`, async () => {
++    if (destination === 'session-view-keyboard') {
++      await page.getByRole('button', { name: '左右分屏', exact: true }).click();
++      await page.getByRole('button', { name: 'Agent 会话', exact: true }).click();
++    }
++    const initial = (await workspaceSnapshot(page)).workspaces[0]!;
++    await page.getByLabel('关联会话').selectOption(initial.sessions[0]!.sessionId);
++    await app.evaluate(({ BrowserWindow }) => {
++      const host = globalThis as ReviewGlobal;
++      host.screenshotGate = { armed: true, entered: 0, release: null };
++      const view = BrowserWindow.getAllWindows()[0]!.contentView.children[0] as Electron.WebContentsView;
++      const capture = view.webContents.capturePage.bind(view.webContents);
++      view.webContents.capturePage = async (...args) => {
++        const image = await capture(...args);
++        const gate = host.screenshotGate;
++        if (gate.armed) {
++          gate.armed = false;
++          gate.entered++;
++          await new Promise<void>((resolve) => {
++            gate.release = resolve;
++          });
++        }
++        return image;
++      };
++    });
++    await page.getByRole('button', { name: '采集到关联会话' }).click();
++    await expect(page.getByRole('button', { name: '选择中 · Esc 取消' })).toBeVisible();
++    await previewClick(app, await previewElementCenter(app, '[data-testid="due-1"]'));
++    await expect.poll(() => app.evaluate(() => (globalThis as ReviewGlobal).screenshotGate.entered)).toBe(1);
++    if (destination === 'tab') await page.getByRole('button', { name: 'Agent 会话', exact: true }).click();
++    else if (destination === 'route') await workshopNavigate(page, '任务');
++    else if (destination === 'session-view-keyboard') {
++      const paneFocusCount = await app.evaluate(
++        () => (globalThis as ReviewGlobal).reviewGate.commands.filter((c) => c.type === 'focusPane').length,
++      );
++      // Keyboard tabbing reaches the visible sibling pane without firing its pointer-down focus handler.
++      await session().getByRole('button', { name: '对话', exact: true }).focus();
++      await session().getByRole('button', { name: '对话', exact: true }).press('Tab');
++      await expect(session().getByRole('button', { name: '任务', exact: true })).toBeFocused();
++      await session().getByRole('button', { name: '任务', exact: true }).press('Enter');
++      expect(await app.evaluate(() => (globalThis as ReviewGlobal).reviewGate.commands.filter((c) => c.type === 'focusPane').length)).toBe(
++        paneFocusCount,
++      );
++      await expect(session().getByRole('button', { name: '任务', exact: true })).toHaveAttribute('aria-pressed', 'true');
++    } else {
++      await page.getByRole('button', { name: '切换空间', exact: true }).click();
++      await page.getByRole('dialog', { name: '切换空间' }).getByRole('button', { name: '新建空间', exact: true }).click();
++      const create = page.getByRole('dialog', { name: '新建空间', exact: true });
++      await create.getByLabel('名称').fill('Review 其它空间');
++      await create.getByRole('button', { name: '保存', exact: true }).click();
++    }
++    await app.evaluate(() => (globalThis as ReviewGlobal).screenshotGate.release!());
++    await expect
++      .poll(
++        async () =>
++          (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === initial.workspaceId)!.sessions[0]!.captureRequest?.state,
++      )
++      .toBe('completed');
++    expect(
++      await app.evaluate(() => (globalThis as ReviewGlobal).reviewGate.commands.filter((c) => c.type === 'locateSession').length),
++    ).toBe(0);
++    if (destination === 'route') await expect(page.getByRole('heading', { name: '任务历史' })).toBeVisible();
++    else if (destination === 'space')
++      await expect(page.getByRole('button', { name: '切换空间', exact: true })).toContainText('Review 其它空间');
++    else
++      await expect(
++        session().getByRole('button', { name: destination === 'session-view-keyboard' ? '任务' : '对话', exact: true }),
++      ).toHaveAttribute('aria-pressed', 'true');
++  });
++
++test('cancel reaches Main and stops the owned run while the startRun response is pending', async () => {
++  await openSession();
++  await app.evaluate(() => {
++    (globalThis as ReviewGlobal).reviewGate.holdStart = true;
++  });
++  await session().getByLabel('会话消息').fill('[slow]');
++  await session().getByRole('button', { name: '发送', exact: true }).click();
++  await expect.poll(() => app.evaluate(() => (globalThis as ReviewGlobal).reviewGate.releases.length)).toBe(1);
++  try {
++    await session().getByRole('button', { name: '取消回复' }).click();
++    await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs[0]!.state).toBe('cancelled');
++    expect(await app.evaluate(() => (globalThis as ReviewGlobal).reviewGate.commands.some((c) => c.type === 'cancelRun'))).toBe(true);
++  } finally {
++    await release();
++  }
++  await expect(session().getByLabel('会话消息')).toHaveValue('[slow]');
++});

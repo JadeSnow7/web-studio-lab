@@ -1,4 +1,5 @@
 import { ChatSlotSchema, type ChatConversation, type ChatStatus } from '@wsl/protocol';
+import { personalReferencesStore } from './references';
 import { createStore } from '../lib/store';
 import { draftActions, draftsStore, CONVERSATIONS } from './drafts';
 
@@ -41,7 +42,9 @@ async function act(id: string, action: () => Promise<ChatConversation>): Promise
 export const chatActions = {
   async send(id: string, text: string) {
     if (chatBlockedReason(id)) return false;
-    const accepted = await act(id, () => window.studio.chat.send(ChatSlotSchema.parse(id), text));
+    const accepted = await act(id, () =>
+      window.studio.chat.send(ChatSlotSchema.parse(id), text, structuredClone(personalReferencesStore.get())),
+    );
     if (accepted && draftsStore.get()[id] === text) draftActions.set(id, '');
     return accepted;
   },

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 审核用静态设计稿（修订 2），来源：状态降噪画布；示例内容为占位数据 -->
+<title>现状空间页噪音标注</title>
+</head>
+<body>
+<style>
+body{margin:0}
+a{color:#0a67d1}a:hover{color:#084f9f}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.btn{font:inherit;font-size:13px;color:#1d1d1f;background:#fff;border:1px solid #d9dce3;border-radius:8px;padding:0 10px;height:30px;display:inline-flex;align-items:center;gap:6px}
+.ibtn{font:inherit;color:#4a4d55;background:transparent;border:0;border-radius:6px;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center}
+.mk{position:absolute;width:22px;height:22px;border-radius:11px;background:#b8470a;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 0 0 2px #fff}
+.nz{outline:2px dashed #e07a3a;outline-offset:1px;border-radius:4px}
+</style>
+<div style="width: 100%; box-sizing: border-box; padding: 40px; background: #f6f7f9; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 28px">
+  <div style="display: flex; flex-direction: column; gap: 8px; max-width: 900px">
+    <p style="margin: 0; font-size: 13px; font-weight: 600; color: #b8470a">现状 · 基线 codex/consolidate-review-20261011 @ 917f375</p>
+    <h1 style="margin: 0; font-size: 30px; line-height: 38px; font-weight: 650">一屏里有 12 处常驻状态或规则说明</h1>
+    <p style="margin: 0; font-size: 15px; line-height: 24px; color: #4a4d55">共性：健康状态与异常状态用同样的字号和位置显示；不变量说明（「隐藏继续运行」「分别保存」）被当作状态常驻；原始 ID 和英文枚举直接拼进文案。虚线框为噪音区域，编号对应下方清单和右侧改造。</p>
+  </div>
+
+  <div style="position: relative; border: 1px solid #d9dce3; border-radius: 12px; overflow: hidden; background: #eef0f4">
+    <div style="position: relative; height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid #e1e4ea">
+      <span style="display: flex; gap: 8px" aria-hidden="true"><span style="width: 12px; height: 12px; border-radius: 6px; background: #ff5f57"></span><span style="width: 12px; height: 12px; border-radius: 6px; background: #febc2e"></span><span style="width: 12px; height: 12px; border-radius: 6px; background: #28c840"></span></span>
+      <span style="margin-left: 12px; width: 32px; height: 32px; border-radius: 8px; background: #e3e8f2" aria-hidden="true"></span>
+      <span class="btn" style="height: 36px; font-weight: 600"><span style="width: 22px; height: 22px; border-radius: 6px; background: #2f5fd0" aria-hidden="true"></span>TaskFlow ⌄</span>
+      <span style="flex: 1"></span>
+      <span class="nz" style="font-size: 13px; color: #4a4d55; padding: 2px 4px">◌ Codex CLI · 对话已连接</span>
+      <span class="ibtn" aria-hidden="true"><svg class="i" viewBox="0 0 16 16"><path d="M4 11V7a4 4 0 018 0v4l1 1.5H3z"></path><path d="M6.5 14h3"></path></svg></span>
+      <span class="mk" style="right: 218px; top: 15px">1</span>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; min-height: 720px">
+      <div style="width: 56px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 16px 0; font-size: 11px; color: #4a4d55"><span>首页</span><span style="color: #0a67d1">空间</span><span>资源</span><span>会话</span><span>任务</span><span style="flex: 1"></span><span>设置</span></div>
+      <div style="position: relative; width: 252px; flex: none; box-sizing: border-box; padding: 14px 12px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid #e1e4ea; font-size: 14px">
+        <div style="display: flex; justify-content: space-between; padding: 0 4px 8px"><strong style="font-size: 15px">TaskFlow</strong><span style="font-size: 13px; color: #6a6d75">空间标签</span></div>
+        <div style="height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 10px"><span style="flex: 1">TaskFlow 预览</span><span class="nz" style="font-size: 11px; color: #6a6d75">已显示</span><span style="color: #6a6d75">⋯</span></div>
+        <div style="height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: #dfe6f3; border-radius: 8px; color: #0a67d1"><span style="flex: 1">开发终端</span><span class="nz" style="font-size: 11px; color: #6a6d75">已连接</span><span style="color: #6a6d75">⋯</span></div>
+        <div style="height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 10px"><span style="flex: 1">Agent 会话</span><span class="nz" style="font-size: 11px; color: #6a6d75">已显示</span><span style="color: #6a6d75">⋯</span></div>
+        <span class="mk" style="left: 184px; top: 52px">2</span>
+        <p style="margin: 4px 0 0; padding: 0 4px">▸ 后台资源 / 已关闭标签</p>
+        <span style="flex: 1"></span>
+        <div style="border-top: 1px solid #e1e4ea; padding: 12px 8px; display: flex; flex-direction: column; gap: 6px"><strong style="font-size: 14px">标准应用</strong><span style="font-size: 13px; color: #4a4d55">在沙箱创建 React 全栈工程。</span><span class="btn" style="justify-content: center">创建标准应用</span></div>
+        <span class="btn" style="justify-content: center; height: 36px">＋ 新建标签</span>
+        <span style="font-size: 13px; color: #0a67d1; text-align: center; padding: 8px 0">搜索空间或标签</span>
+        <span class="nz" style="font-size: 12px; color: #6a6d75; padding: 2px 4px">关闭窗格保留标签 · 隐藏继续运行</span>
+        <span class="mk" style="right: 6px; bottom: 4px">3</span>
+      </div>
+      <div style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 8px; display: flex; flex-wrap: wrap; gap: 8px">
+        <div style="flex: 3 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+          <div style="position: relative; flex: 1; min-height: 420px; display: flex; flex-direction: column; background: #fff; border: 1px solid #e1e4ea; border-radius: 10px; overflow: hidden">
+            <div style="height: 42px; display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid #eceef2; font-size: 14px">TaskFlow 预览</div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 8px 10px"><span style="color: #b4b7be">‹ ›</span><span style="flex: 1; height: 30px; border: 1px solid #d9dce3; border-radius: 8px; display: flex; align-items: center; padding: 0 10px; font-family: 'SF Mono', Menlo, monospace; font-size: 12px">wsl-demo://taskflow/index.html</span><span class="btn">选择元素</span></div>
+            <div class="nz" style="position: relative; margin: 0 8px; display: flex; flex-direction: column; gap: 6px; padding: 4px">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px">关联会话 <span class="btn">明确选择会话 ⌄</span><span class="btn">新建关联会话</span><span>采集到关联会话</span><span>打开关联会话</span></div>
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px"><span style="color: #6a6d75">收藏地址与正文快照分别保存</span><span class="btn">收藏到资源</span><span class="btn">保存正文快照</span><span style="color: #0a67d1">查看空间资源</span></div>
+              <span class="mk" style="right: -4px; top: -12px">4</span>
+            </div>
+            <div class="nz" style="position: relative; margin: 6px 8px 0; padding: 4px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #4a4d55">
+              <span>沙箱应用 · 服务运行中</span>
+              <span style="color: #b42318">页面加载失败：…</span>
+              <span>已拦截导航：…</span>
+              <span>页面控制已断开 [重新附着]</span>
+              <span class="mk" style="right: -4px; top: -12px">5</span>
+            </div>
+            <div style="flex: 1; margin: 8px; background: #f4f5f7; border-radius: 8px"></div>
+          </div>
+          <div style="position: relative; height: 250px; display: flex; flex-direction: column; background: #fff; border: 1px solid #c9d8ee; border-radius: 10px; overflow: hidden">
+            <div style="height: 42px; display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid #eceef2; font-size: 14px">开发终端</div>
+            <div class="nz" style="margin: 8px 10px 0; padding: 2px 4px; font-size: 13px">sandbox / wsl-competition-00000000-0000-4000-8000-000000000001 · /home/agent/workspace · 已连接</div>
+            <div style="display: flex; gap: 8px; padding: 8px 14px"><span class="btn">中断（Ctrl-C）</span><span class="btn">关闭终端</span></div>
+            <pre style="margin: 0; flex: 1; padding: 0 16px; font-family: 'SF Mono', Menlo, monospace; font-size: 13px">fixture shell
+$</pre>
+            <div class="nz" style="margin: 0 10px 8px; padding: 2px 4px; font-size: 12px; color: #6a6d75">输出最多保留 256 Ki 字符 · 隐藏窗格继续运行</div>
+            <span class="mk" style="left: 14px; top: 40px">6</span>
+            <span class="mk" style="right: 14px; bottom: 6px">7</span>
+          </div>
+        </div>
+        <div style="position: relative; flex: 2 1 360px; min-width: 0; min-height: 680px; display: flex; flex-direction: column; background: #fff; border: 1px solid #e1e4ea; border-radius: 10px; overflow: hidden">
+          <div style="height: 42px; display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid #eceef2; font-size: 14px">Agent 会话</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px"><span class="btn" style="color: #0a67d1; border-color: #0a67d1">对话</span><span class="btn">任务</span><span class="btn">上下文</span><span class="btn">检查</span><span class="btn">日志</span><span class="btn">diff</span><span class="btn">报告</span></div>
+          <div class="nz" style="position: relative; margin: 4px 12px; padding: 2px 4px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #6a6d75"><span>运行 run_7f3c…e21</span><span>Codex CLI · running · 沙箱由服务决定</span><span class="mk" style="right: -6px; top: -12px">8</span></div>
+          <div class="nz" style="position: relative; margin: 8px 12px; padding: 4px; display: flex; flex-direction: column; gap: 2px; font-size: 13px"><span>执行：running · 原空间归属保持不变</span><span>检查：not_run · 适用性：unknown</span><span>审阅：尚未审阅</span><span class="mk" style="right: -6px; top: -12px">9</span></div>
+          <div class="nz" style="position: relative; margin: 4px 12px; padding: 4px; font-size: 13px">▸ 诊断详情（PageCapture JSON）<span class="mk" style="right: -6px; top: -12px">10</span></div>
+          <span style="flex: 1"></span>
+          <div style="margin: 0 12px; padding: 8px 10px; border-radius: 8px; background: #f3f4f7; font-size: 13px; display: flex; justify-content: space-between; align-items: center">正在执行…<span class="btn">取消回复</span></div>
+          <div class="nz" style="position: relative; margin: 10px 12px 4px; padding: 2px 4px; font-size: 12px; color: #6a6d75">发送到 · TaskFlow / Agent 会话 / Codex CLI</div>
+          <div style="margin: 0 12px; height: 70px; border: 1px solid #d9dce3; border-radius: 10px"></div>
+          <div style="position: relative; margin: 8px 12px 12px; display: flex; justify-content: space-between; align-items: center"><span class="nz" style="font-size: 12px; color: #6a6d75; padding: 2px 4px">Enter 发送 · Shift+Enter 换行 · 草稿按会话保存</span><span class="btn" style="background: #0a67d1; color: #fff; border-color: #0a67d1">发送</span><span class="mk" style="left: -8px; top: -14px">11</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="position: relative; border-top: 1px solid #e1e4ea; background: #fff; display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; font-size: 12px">
+      <span class="nz" style="padding: 2px 6px; color: #b42318">workspace.error 横幅</span>
+      <span class="nz" style="padding: 2px 6px; color: #b42318">storageError 横幅</span>
+      <span class="nz" style="padding: 2px 6px; color: #b42318">ErrorToasts（errorStore）</span>
+      <span class="nz" style="padding: 2px 6px; color: #b42318">各组件行内 role=alert</span>
+      <span class="mk" style="right: 14px; top: 9px">12</span>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); gap: 12px 28px; font-size: 14px; line-height: 22px">
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">1</b><span>健康态常驻文字。<code style="font-size: 12px; color: #6a6d75">shell/TitleBar.tsx:58</code></span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">2</b><span>「已显示」与选中高亮重复；「已连接/执行中」用同样灰字。<code style="font-size: 12px; color: #6a6d75">workspace/Sidebar.tsx:144-145</code></span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">3</b><span>不变量说明常驻页脚。<code style="font-size: 12px; color: #6a6d75">workspace/Sidebar.tsx:333</code></span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">4</b><span>低频操作占两整行，并夹带规则说明。<code style="font-size: 12px; color: #6a6d75">workspace/Browser.tsx:176-263</code></span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">5</b><span>最多 8 个独立状态段落各自插入，网页区域高度随之跳动。<code style="font-size: 12px; color: #6a6d75">Browser.tsx:212-292</code></span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">6</b><span>终端身份整串外露，未知状态直接输出英文枚举。<code style="font-size: 12px; color: #6a6d75">workspace/Terminal.tsx:124-133</code></span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">7</b><span>保留窗口说明常驻。<code style="font-size: 12px; color: #6a6d75">Terminal.tsx:190</code></span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">8</b><span>runId 与 conversation.state 原值进入文案。<code style="font-size: 12px; color: #6a6d75">Session.tsx:171, 180</code></span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">9</b><span>执行、检查、适用性均为英文枚举；同一事实在 Session 与 RunDetails 各拼一次。<code style="font-size: 12px; color: #6a6d75">Session.tsx:332, 412 · RunDetails.tsx:7, 48</code></span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">10</b><span>调试 JSON 出现在产品界面。<code style="font-size: 12px; color: #6a6d75">Session.tsx:366</code></span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">11</b><span>目标路径与快捷键说明常驻输入区上下；个人对话 Composer 同样如此。<code style="font-size: 12px; color: #6a6d75">Session.tsx:502, 526 · shell/Composer.tsx:61, 78</code></span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">12</b><span>四个错误出口互不知道彼此。<code style="font-size: 12px; color: #6a6d75">App.tsx:138-157 · state/errors.ts · shell/Overlays.tsx:85</code></span></p>
+    <p style="margin: 0; display: flex; gap: 10px"><b style="flex: none; width: 22px; height: 22px; border-radius: 11px; background: #b8470a; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center">13</b><span>不在本屏：观察结果逐行列出来源、覆盖、范围 JSON、散列。<code style="font-size: 12px; color: #6a6d75">Observation.tsx:103-112 · Files.tsx:31, 85</code></span></p>
+  </div>
+</div>
+</body>
+</html>

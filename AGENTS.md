@@ -2,6 +2,16 @@
 
 本仓库走 Electron + TypeScript 路线：Browser 展示网页、文件、终端等资源，Workshop 承载会话、任务进展、修改和审阅。首版只打通固定 TypeScript 全栈模板、单项目、单 Agent 串行闭环。本树已整合 Electron 产品、sbx 对话/终端/资源切片与 VS001 固定基线；完整比赛任务闭环仍未实现。具体落点和缺口见 [当前运行时](docs/architecture/current-runtime.md)，不要把设计样机或历史验证扩大成本次实现。
 
+## Harness 兼容与规则入口
+
+本文件是开发本仓库的统一 Agent 规则入口，适用于 Codex CLI、Claude Code、Devin、Cursor、Windsurf 等 CLI/IDE Harness；不要求使用特定模型、客户端、工具 API 或子代理名称。
+
+- 自动发现 `AGENTS.md` 的 Harness 直接读取本文件；以 `CLAUDE.md` 为入口的 Harness 通过 [CLAUDE.md](CLAUDE.md) 引用本文件。不自动加载这些入口的 Harness，需在会话开始时显式要求读取根目录 `AGENTS.md`。工具专用入口只引用共享规则，不复制第二份规范。
+- 文件读取、检索、编辑、命令执行和计划跟踪使用当前 Harness 实际提供的工具；没有专用工具时，在授权范围内使用等效能力。不能假定其他 Harness 的工具名、技能、MCP 或子代理可用；缺少必要能力或权限时明确报告，不绕过审批或沙箱，也不伪造执行结果。
+- [CONTRIBUTING.md](CONTRIBUTING.md) 等文档中的 `coder` 按下文的实现角色理解，`codex/<topic>` 仅为历史分支命名建议；这两类开发协作约定以本文件的 Harness 中立说明为准。架构、权限、验证和用户授权要求保持不变。
+
+这里的兼容性指使用不同 Harness 开发本仓库，不代表产品内已接入其他 Harness。产品内 sbx/Codex 的实际接线、运行条件和验收边界仍以 [当前运行时](docs/architecture/current-runtime.md) 为准；开发时的子代理协作也不改变首版单 Agent 串行执行的产品范围。
+
 ## 开始工作
 
 1. 核对 `pwd`、`git remote -v`、`git rev-parse HEAD`、`git status --short`。目标是 `JadeSnow7/web-studio-lab`；保留已有未提交和未跟踪内容。
@@ -20,9 +30,19 @@
 ## 工作与交付
 
 - 流程：理解需求与现状 → 明确验收 → 最小实现 → 针对性验证 → 审阅交付。强度与完成标准见 [CONTRIBUTING](CONTRIBUTING.md)。
-- 源码和检查脚本的修改委派给 `coder`；主线程负责设计、审查、验收与用户沟通。每个文件同时只有一个写入者；委派不可用时注明后自行完成。
+- 源码和检查脚本的修改优先委派给当前 Harness 可用的实现子代理或等效执行角色（`coder` 是角色称呼，不是必需工具名）；主 Agent 负责设计、审查、验收与用户沟通。每个文件同时只有一个写入者；没有委派能力时注明限制，由当前 Agent 按相同流程串行完成，不要求为此安装或切换到 Codex。
 - 当前可用：`node scripts/check-docs.mjs`、`pnpm check`、`pnpm build`、`pnpm baseline:selftest` 及 diff 检查。文档检查只验证入口、链接和空白；离线基线自检不是产品验收。真实模型、sandbox live 与发布需相应授权。
-- 不 reset、自动 stash、覆盖无关文件或改写历史；不默认提交、推送、发布、部署。新增分支默认 `codex/<topic>`，已有分支无需改名。
+- 不 reset、自动 stash、覆盖无关文件或改写历史；不默认提交、推送、发布、部署。新建分支先遵循用户或当前 Harness 的明确命名要求；没有约定时使用 `agent/<topic>`，已有分支无需改名。
 - 交付必须说明改动路径、行为/约定变化、实际命令及结果、未运行原因、未实现项。区分静态检查、实际运行与用户接受；不通过删断言或改固定验收制造通过。
 
 - 比赛范围、排期和固定用例以 [任务计划](docs/plans/2026-10-os2026-task-plan.md) 为准。公开资源和 guest 浏览器另遵守各自合同；本次整合不新增能力。
+
+## Electron 宿主中的窗口测试
+
+macOS 上的 Electron IDE/Harness 可能向终端继承 `ELECTRON_RUN_AS_NODE=1`，使 Playwright 启动 Electron 时因 `bad option: --remote-debugging-port=0` 失败。先 `pnpm build`，再仅对子进程清除此变量：
+
+```sh
+env -u ELECTRON_RUN_AS_NODE pnpm exec playwright test
+```
+
+这不修改项目或系统配置，不关闭 Electron sandbox，也不启用真实模型或 sandbox live。失败记录与清理环境后的独立复跑应分别保留。

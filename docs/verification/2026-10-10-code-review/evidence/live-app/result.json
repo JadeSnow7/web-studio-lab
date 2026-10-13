@@ -1,0 +1,89 @@
+{
+  "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+  "templateSourceHash": "855c4a482622833c46b254f43b3fcf801f2ed2af7c49e647d167788dc7cb4c1d",
+  "startedAt": "2026-10-10T13:10:13.590Z",
+  "connection": {
+    "available": true,
+    "reason": null,
+    "version": "codex-cli 0.160.0",
+    "sandbox": "wsl-review-20261010-5e83a9",
+    "cwd": "/home/agent/workspace"
+  },
+  "created": {
+    "workspaceId": "minimal-loop-live",
+    "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+    "environmentId": "sandbox",
+    "appInstanceId": null,
+    "state": "created",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+    "guestPort": null,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "firstStart": {
+    "workspaceId": "minimal-loop-live",
+    "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+    "environmentId": "sandbox",
+    "appInstanceId": "889e637a-6585-4d87-93ee-d068a80bd89e",
+    "state": "running",
+    "url": "http://127.0.0.1:49160",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+    "guestPort": 41683,
+    "error": null,
+    "cleanupConfirmed": false
+  },
+  "health": {
+    "ok": true,
+    "templateId": "wsl-standard-app",
+    "templateVersion": "1.0.0",
+    "identity": {
+      "workspaceId": "minimal-loop-live",
+      "environmentId": "sandbox",
+      "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+      "appInstanceId": "889e637a-6585-4d87-93ee-d068a80bd89e"
+    }
+  },
+  "stored": {
+    "userId": "A",
+    "key": "live-proof",
+    "value": "persistent-d841e9a7-e493-4625-8e28-b4ae61f5c0da"
+  },
+  "otherUserStatus": 404,
+  "stopped": {
+    "workspaceId": "minimal-loop-live",
+    "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+    "environmentId": "sandbox",
+    "appInstanceId": "889e637a-6585-4d87-93ee-d068a80bd89e",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+    "guestPort": 41683,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "restarted": {
+    "workspaceId": "minimal-loop-live",
+    "projectId": "app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+    "environmentId": "sandbox",
+    "appInstanceId": "bcbe346e-754a-41f4-8a3f-7ab4e7c65072",
+    "state": "running",
+    "url": "http://127.0.0.1:49161",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/app-42a7ac13-ca74-42df-a19b-cdb20c5580dc",
+    "guestPort": 39797,
+    "error": null,
+    "cleanupConfirmed": false
+  },
+  "persisted": {
+    "userId": "A",
+    "key": "live-proof",
+    "value": "persistent-d841e9a7-e493-4625-8e28-b4ae61f5c0da"
+  },
+  "export": {
+    "fileCount": 26,
+    "sha256": "0e202ad48842669c5b721295ec4a42328425adabfcc48f92ccb8d9f36245e5cc"
+  },
+  "result": "passed",
+  "shutdown": "confirmed",
+  "endedAt": "2026-10-10T13:12:17.999Z"
+}

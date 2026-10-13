@@ -1,5 +1,6 @@
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import {
+  clickAppMenu,
   launchApp,
   previewClick,
   previewElementCenter,
@@ -12,7 +13,8 @@ import {
 let app: ElectronApplication, page: Page;
 test.describe.configure({ mode: 'serial' });
 test.beforeAll(async () => {
-  ({ app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx.mjs', import.meta.url).pathname }));
+  // 启用诊断通道：会话现场的诊断详情已移到诊断面板（plan §4）。
+  ({ app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx.mjs', import.meta.url).pathname, debugStatus: true }));
   await setWindowSize(app, 1440, 900);
 });
 test.afterAll(async () => {
@@ -26,12 +28,13 @@ test('启动：窗口、安全边界与 Browser 区真实加载', async () => {
     await page.evaluate(() => ({
       require: typeof (window as Window & { require?: unknown }).require,
       process: typeof (window as Window & { process?: unknown }).process,
+      // 诊断通道在本文件中启用：恰为原来的六个键加 `debug`（未启用时的六键断言见 workspace-debug.spec.ts）。
       studio: Object.keys(window.studio),
     })),
   ).toEqual({
     require: 'undefined',
     process: 'undefined',
-    studio: ['setup', 'workbench', 'chat', 'app', 'execution', 'shell'],
+    studio: ['setup', 'workbench', 'chat', 'app', 'execution', 'shell', 'debug'],
   });
   await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
   const info = await previewInfo(app);
@@ -65,9 +68,19 @@ test('点选：明确目标后采集摘要、截图与页面身份，先采集�
   await previewClick(app, await previewElementCenter(app, '[data-testid="due-1"]'));
   await expect(session()).toContainText('现场适用性：有效');
   await expect(session().locator('img.context-image')).toHaveCount(2);
-  await session().getByText('诊断详情').click();
-  await expect(session().locator('pre')).toContainText('webContentsId');
-  await expect(session().locator('pre')).toContainText('未设置');
+  // 产品界面不再外露「诊断详情」；采集条目移到诊断面板，面板内可查看并标注不可导出。
+  await expect(session().getByText('诊断详情')).toHaveCount(0);
+  expect(await clickAppMenu(app, '诊断')).toBe('CmdOrCtrl+Alt+Shift+D');
+  const debugPanel = page.getByRole('dialog', { name: '诊断', exact: true });
+  await expect(debugPanel).toBeVisible();
+  const liveSession = debugPanel.getByRole('region', { name: '当前会话现场（不可导出）' });
+  await expect(liveSession).toContainText('不可导出');
+  await liveSession.getByRole('button', { name: '查看', exact: true }).click();
+  const captureJson = liveSession.getByLabel('会话现场 JSON（不可导出）');
+  await expect(captureJson).toContainText('webContentsId');
+  await expect(captureJson).toContainText('未设置');
+  await page.keyboard.press('Escape');
+  await expect(debugPanel).toHaveCount(0);
   const s = await workspaceSnapshot(page);
   expect(s.workspaces[0]?.sessions[0]?.taskVersions).toHaveLength(0);
   await windowShots(app, page, 'workbench-context-before-confirm');
@@ -129,12 +142,17 @@ test('运行、检查、审阅分别记录；没有独立检查器不会显示�
   await session().getByRole('button', { name: '确认任务（生成新版本）' }).click();
   await expect(session()).toContainText('任务 v2');
   await session().getByRole('button', { name: '开始运行' }).click();
-  await expect(session()).toContainText('执行：completed');
+  const runState = session().locator('[data-status-key$=":state"][data-status="run:ok"]');
+  await expect(runState).toBeVisible();
+  await expect(runState).toContainText('执行完成');
   await session().getByRole('button', { name: '检查', exact: true }).click();
-  await expect(session()).toContainText('检查：not_run');
+  const notChecked = session().locator('[data-status="validation:idle"]');
+  await expect(notChecked).toBeVisible();
+  await expect(notChecked).toContainText('尚未检查');
   await session().getByRole('button', { name: '运行检查' }).click();
-  await expect(session()).toContainText('检查：blocked');
-  await expect(session()).not.toContainText('检查：passed');
+  // 检查无法执行是问题：在会话状态槽的问题通道里可见，从不显示为通过。
+  await expect(session().locator('.status-slot [data-status-channel="problem"]').filter({ hasText: '检查无法执行' })).toBeVisible();
+  await expect(session().locator('[data-status="validation:ok"]')).toHaveCount(0);
   await expect(session()).toContainText('审阅：尚未审阅');
   await expect(session().getByRole('button', { name: '接受结果' })).toBeDisabled();
   await expect(session()).toContainText('审阅：尚未审阅');
@@ -157,16 +175,18 @@ test('导航与草稿：个人作用域不沿用空间输入，回空间恢复�
 });
 
 test('侧栏：隐藏和临时展开使网页让位，按钮路径可固定恢复', async () => {
-  await page.getByRole('button', { name: '显示或隐藏 Workshop（⌘B）', exact: true }).click();
+  await page.getByRole('button', { name: '收起 Workshop', exact: true }).click();
   await expect(page.getByRole('navigation', { name: '空间标签' })).toHaveCount(0);
   const edge = page.getByRole('button', { name: '展开 Workshop', exact: true });
   await edge.click();
   await expect(page.getByRole('navigation', { name: '空间标签' })).toBeVisible();
-  await expect.poll(async () => (await previewInfo(app)).visible).toBe(false);
+  await expect.poll(async () => (await previewInfo(app)).visible).toBe(true);
   await expect(page.getByRole('button', { name: '取消固定 Workshop', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: '取消固定 Workshop', exact: true }).click();
   await expect(page.getByRole('navigation', { name: '空间标签' })).toHaveCount(0);
   await edge.click();
+  await expect.poll(async () => (await previewInfo(app)).visible).toBe(false);
+  await expect(page.getByRole('complementary', { name: 'Workshop（临时展开）' })).toBeVisible();
   await page.getByRole('button', { name: '固定 Workshop', exact: true }).click();
   await expect(page.getByRole('button', { name: '取消固定 Workshop', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(async () => (await previewInfo(app)).visible).toBe(true);

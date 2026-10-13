@@ -1,0 +1,73 @@
+{
+  "head": "ea3bad9e6602ccec3484cc55b247bae5815975b4",
+  "branch": "codex/app-control-plane",
+  "remote": "https://github.com/JadeSnow7/web-studio-lab.git",
+  "sourceInputs": 356,
+  "sourceDrift": [],
+  "runtimeInputs": 6,
+  "runtimeDrift": [],
+  "sourceDelta": [
+    "apps/desktop/src/main/workbench/app-control-application.test.ts",
+    "apps/desktop/src/main/workbench/application.ts",
+    "e2e/app-control-cancel-live.spec.ts",
+    "e2e/fixtures/app-control-cancel-gate.ts",
+    "e2e/helpers.ts"
+  ],
+  "stagedPaths": "",
+  "commands": {
+    "build": {
+      "exit": 0,
+      "log": "commands/build-authorized.txt"
+    },
+    "typecheck": {
+      "exit": 0,
+      "log": "commands/typecheck.txt"
+    },
+    "test": {
+      "exit": 0,
+      "vitest": {
+        "passed": 666,
+        "skipped": 15
+      },
+      "packagingPassed": 27,
+      "externalBuildsPassed": 6,
+      "log": "commands/test.txt"
+    },
+    "cliCancelLive": {
+      "exit": 0,
+      "passed": 1,
+      "log": "commands/live-04.txt"
+    },
+    "nonLiveE2e": {
+      "exit": 0,
+      "passed": 84,
+      "skipped": 10,
+      "log": "commands/e2e-final.txt"
+    },
+    "visibleAppLive": {
+      "exit": 0,
+      "passed": 1,
+      "log": "commands/visible-app-live.txt"
+    },
+    "docs": {
+      "exit": 0,
+      "normativeFiles": 19,
+      "log": "commands/check-docs-final.txt"
+    },
+    "targetedFormat": {
+      "exit": 0,
+      "explicitIgnorePath": "/dev/null",
+      "paths": 11,
+      "log": "commands/format-check-explicit-final.txt"
+    },
+    "diffCheck": {
+      "exit": 0,
+      "log": "commands/diff-check-final.txt"
+    }
+  },
+  "postSuitePortMappings": [],
+  "currentDocumentLinks": {
+    "checked": 144,
+    "missing": []
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "scope": "all staged PR paths compared with origin/main, including 14 explicitly imported ignored logs; four pattern families only",
+  "files": 1718,
+  "bytes": 51846867,
+  "over_50_mib": [],
+  "credential_pattern_findings": []
+}

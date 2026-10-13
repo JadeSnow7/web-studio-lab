@@ -1,0 +1,18 @@
+{
+  "measurement": "round-09 retained product workbench tool results; successful latest response per tool, MCP envelope removed",
+  "actualResultChars": {
+    "app.describe": 3268,
+    "app.status": 544,
+    "app.ui.snapshot": 1666,
+    "app.state.read": 154,
+    "app.data.query": 265,
+    "app.ui.act": 144
+  },
+  "reconstructedReceiptChars": 10507,
+  "reconstruction": "11 entries with real result payloads, Main rejection messages, each argv JSON deliberately overestimated as 240 chars",
+  "shellOutputBudgetChars": 16000,
+  "embeddedScriptChars": 1529,
+  "shellCommandEstimateChars": 1649,
+  "shellCommandBudgetChars": 4000,
+  "realModelRunPerformed": false
+}

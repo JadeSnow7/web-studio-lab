@@ -1,0 +1,153 @@
+{
+  "startedAt": "2026-10-10T13:30:24.458Z",
+  "profile": "/private/tmp/wsl-review-packaged-app-20261010-1f4709e3/profile",
+  "sandbox": "wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1",
+  "launchEnvironment": {
+    "path": "/usr/bin:/bin:/usr/sbin:/sbin",
+    "injected": []
+  },
+  "runtimeConfig": {
+    "schemaVersion": 1,
+    "sbxBinary": "/Users/huaodong/Applications/Sbx.app/Contents/MacOS/sbx",
+    "sandbox": "wsl-competition-1f4709e3-2a61-4c96-b4de-3b98ef7c30a1",
+    "pythonBinary": "/bundled/runtime/python/bin/python3",
+    "localRoot": null,
+    "ssh": null
+  },
+  "created": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "475195f2-7635-4fe5-b2e5-3193dae2d0c6",
+    "environmentId": "sandbox",
+    "appInstanceId": null,
+    "state": "created",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/475195f2-7635-4fe5-b2e5-3193dae2d0c6",
+    "guestPort": null,
+    "error": null,
+    "cleanupConfirmed": true
+  },
+  "first": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "475195f2-7635-4fe5-b2e5-3193dae2d0c6",
+    "environmentId": "sandbox",
+    "appInstanceId": "55086c81-6f50-404f-9230-ae2127a0e7e4",
+    "state": "running",
+    "url": "http://127.0.0.1:49163",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/475195f2-7635-4fe5-b2e5-3193dae2d0c6",
+    "guestPort": 37229,
+    "error": null,
+    "cleanupConfirmed": false
+  },
+  "nativeBrowser": {
+    "resource": {
+      "resourceId": "179f8420-2071-4107-a7e7-b21df34be27a",
+      "environmentId": "sandbox",
+      "appProjectId": "475195f2-7635-4fe5-b2e5-3193dae2d0c6",
+      "kind": "web",
+      "title": "标准应用",
+      "url": "http://127.0.0.1:49163/",
+      "instanceId": "e21f1789-6f99-432f-94aa-7d35948ba4e8",
+      "generation": 1,
+      "preview": {
+        "page": {
+          "webContentsId": 3,
+          "documentGeneration": 1,
+          "url": "http://127.0.0.1:49163/",
+          "title": "标准应用 · Web Studio Lab",
+          "partition": "preview-taskflow-demo-e21f1789-6f99-432f-94aa-7d35948ba4e8"
+        },
+        "loading": false,
+        "canGoBack": false,
+        "canGoForward": false,
+        "picking": false,
+        "cdp": {
+          "state": "idle"
+        },
+        "consoleIssueCount": 0,
+        "loadError": null,
+        "blockedNavigation": null,
+        "pickError": null
+      },
+      "terminal": null,
+      "unavailableReason": null
+    },
+    "health": {
+      "ok": true,
+      "templateId": "wsl-standard-app",
+      "templateVersion": "1.0.0",
+      "identity": {
+        "workspaceId": "taskflow-demo",
+        "environmentId": "sandbox",
+        "projectId": "475195f2-7635-4fe5-b2e5-3193dae2d0c6",
+        "appInstanceId": "55086c81-6f50-404f-9230-ae2127a0e7e4"
+      }
+    },
+    "geometry": {
+      "visible": true,
+      "bounds": {
+        "x": 310,
+        "y": 199,
+        "width": 1129,
+        "height": 657
+      },
+      "webContentsId": 3,
+      "url": "http://127.0.0.1:49163/"
+    },
+    "activePane": {
+      "kind": "pane",
+      "paneId": "cc5f9b00-3fe6-425a-a6e7-005e4b19ae6b",
+      "tabId": "6fd48881-fa89-427c-953b-07cbac7e72b7"
+    }
+  },
+  "storageBefore": {
+    "a": {
+      "status": 200,
+      "body": {
+        "userId": "A"
+      }
+    },
+    "writeA": {
+      "status": 200,
+      "body": {
+        "userId": "A",
+        "key": "welcome",
+        "value": "d304d3c1-87f1-47ae-b853-1a41cd40d398"
+      }
+    },
+    "b": {
+      "status": 200,
+      "body": {
+        "userId": "B"
+      }
+    },
+    "readB": {
+      "status": 200,
+      "body": {
+        "userId": "B",
+        "key": "welcome",
+        "value": "Ready"
+      }
+    },
+    "writeB": {
+      "status": 200,
+      "body": {
+        "userId": "B",
+        "key": "welcome",
+        "value": "B-d304d3c1-87f1-47ae-b853-1a41cd40d398"
+      }
+    }
+  },
+  "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '停止应用', exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <button class=\"btn\" type=\"button\">停止应用</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <dialog open=\"\" aria-label=\"切换空间\" class=\"space-switcher\">…</dialog> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <dialog open=\"\" aria-label=\"切换空间\" class=\"space-switcher\">…</dialog> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    58 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <dialog open=\"\" aria-label=\"切换空间\" class=\"space-switcher\">…</dialog> intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n",
+  "final": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "475195f2-7635-4fe5-b2e5-3193dae2d0c6",
+    "environmentId": "sandbox",
+    "appInstanceId": "55086c81-6f50-404f-9230-ae2127a0e7e4",
+    "state": "running",
+    "url": "http://127.0.0.1:49163",
+    "guestCwd": "/home/agent/workspace/.wsl-apps/475195f2-7635-4fe5-b2e5-3193dae2d0c6",
+    "guestPort": 37229,
+    "error": null,
+    "cleanupConfirmed": false
+  }
+}

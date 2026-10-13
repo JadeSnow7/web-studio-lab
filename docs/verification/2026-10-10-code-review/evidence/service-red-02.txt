@@ -1,0 +1,126 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/resource-chat.test.ts (22 tests | 2 failed) 186ms
+   ❯ space resources per-turn capability (22)
+     × cancel returns while read-only preflight is held and prevents late execution 4ms
+     × shutdown returns while read-only preflight is held and prevents late execution 0ms
+ ❯ apps/service/src/app-service.test.ts (31 tests | 5 failed) 1568ms
+   ❯ managed app ownership (25)
+     × rejects export after shutdown and closes admission before loading settles 7ms
+     × shares stop cleanup and rejects new operations until its receipt settles 114ms
+     × serializes registry publication across projects so an older write cannot win 1ms
+   ❯ app helper filesystem boundaries (6)
+     × dependency import read failure removes only its own temporary archive and permits retry 66ms
+     × dependency import write failure removes only its own temporary archive and permits retry 66ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app ownership > rejects export after shutdown and closes admission before loading settles
+AssertionError: promise resolved "{ files: [ { …(2) } ], …(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "files": [
++     {
++       "base64": "e30=",
++       "path": "package.json",
++     },
++   ],
++   "sha256": "bc749ea62790ebf59c4635242e1e31f16340181417a2f3e8f6b2e34c8c4fd0b4",
+  }
+
+ ❯ apps/service/src/app-service.test.ts:151:42
+    149|     await test.service.create({ ...key, files });
+    150|     await test.service.shutdown();
+    151|     await expect(test.service.export(key)).rejects.toThrow('关闭');
+       |                                          ^
+    152|     const other = fixture();
+    153|     const creation = other.service.create({ ...key, files });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app ownership > shares stop cleanup and rejects new operations until its receipt settles
+AssertionError: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ apps/service/src/app-service.test.ts:171:29
+    169|       await expect(test.service.start(key)).rejects.toThrow(/进行中|清理/);
+    170|       await expect(test.service.export(key)).rejects.toThrow(/停止|进行中/);
+    171|       expect(test.closes()).toBe(1);
+       |                             ^
+    172|     } finally {
+    173|       release();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  apps/service/src/app-service.test.ts > managed app ownership > serializes registry publication across projects so an older write cannot win
+TypeError: Cannot spy on export "writeFile". Module namespace is not configurable in ESM. See: https://vitest.dev/guide/mocking/modules#mocking-a-module
+ ❯ apps/service/src/app-service.test.ts:185:24
+    183|     const gate = new Promise<void>((resolve) => { release = resolve; }…
+    184|     let writes = 0;
+    185|     const writing = vi.spyOn(fs, 'writeFile').mockImplementation(async…
+       |                        ^
+    186|       writes++;
+    187|       if (writes === 1) await gate;
+
+Caused by: TypeError: Cannot redefine property: writeFile
+ ❯ apps/service/src/app-service.test.ts:185:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  apps/service/src/app-service.test.ts > app helper filesystem boundaries > dependency import read failure removes only its own temporary archive and permits retry
+ FAIL  apps/service/src/app-service.test.ts > app helper filesystem boundaries > dependency import write failure removes only its own temporary archive and permits retry
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ apps/service/src/app-service.test.ts:558:32
+    556|         expect(receipt.foreign).toBe('foreign');
+    557|       } else {
+    558|         expect(receipt.exists).toBe(false);
+       |                                ^
+    559|         expect(receipt.retry_error).toBe('dependency archive hash mism…
+    560|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  apps/service/src/resource-chat.test.ts > space resources per-turn capability > cancel returns while read-only preflight is held and prevents late execution
+ FAIL  apps/service/src/resource-chat.test.ts > space resources per-turn capability > shutdown returns while read-only preflight is held and prevents late execution
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ apps/service/src/resource-chat.test.ts:166:23
+    164|     try {
+    165|       await new Promise<void>((resolve) => setImmediate(resolve));
+    166|       expect(stopped).toBe(true);
+       |                       ^
+    167|       expect(() => f.chat.assertResourceMutationAllowed('taskflow-demo…
+    168|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  7 failed | 46 passed (53)
+   Start at  21:01:31
+   Duration  1.84s (tests 83%, transform 11%, import 6%)
+

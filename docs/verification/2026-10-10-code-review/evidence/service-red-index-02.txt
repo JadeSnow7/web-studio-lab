@@ -1,0 +1,43 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+ ❯ apps/service/src/index.test.ts (2 tests | 2 failed) 218ms
+   ❯ service request cancellation admission (2)
+     × cancel bypasses pending send preflight without allowing resource mutation to race capture 158ms
+     × shutdown bypasses pending send preflight without allowing resource mutation to race capture 60ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/service/src/index.test.ts > service request cancellation admission > cancel bypasses pending send preflight without allowing resource mutation to race capture
+ FAIL  apps/service/src/index.test.ts > service request cancellation admission > shutdown bypasses pending send preflight without allowing resource mutation to race capture
+ZodError: [
+  {
+    "origin": "string",
+    "code": "invalid_format",
+    "format": "uuid",
+    "pattern": "/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/",
+    "path": [
+      "payload",
+      "resourceId"
+    ],
+    "message": "Invalid UUID"
+  }
+]
+ ❯ apps/service/src/index.ts:77:44
+     75| let resourceOperations: Promise<unknown> = Promise.resolve();
+     76| parent.on('message', ({ data }) => {
+     77|   const request = ChatServiceRequestSchema.parse(data);
+       |                                            ^
+     78|   const execute = async () => {
+     79|     try {
+ ❯ Object.request apps/service/src/index.test.ts:48:61
+ ❯ apps/service/src/index.test.ts:62:10
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  21:03:43
+   Duration  305ms (tests 90%, transform 7%, import 2%, worker 1%)
+

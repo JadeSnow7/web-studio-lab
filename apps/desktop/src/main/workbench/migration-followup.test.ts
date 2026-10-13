@@ -1,3 +1,4 @@
+import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { describe, expect, it, vi } from 'vitest';
 import type { PreviewState, WorkbenchCommand, WorkbenchSnapshot } from '@wsl/protocol';
 import { WorkbenchApplication } from './application';
@@ -68,8 +69,9 @@ async function setup() {
       },
     ]),
     registerResource: vi.fn(),
+    releaseResource: vi.fn(),
     observe: vi.fn(),
-    publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
+    captureResource: vi.fn(),
     ensureBrowser: vi.fn(),
     browserState: () => state,
     browserLayout: vi.fn(),
@@ -80,6 +82,8 @@ async function setup() {
   const app = new WorkbenchApplication(
     {
       appendObservation: vi.fn(async () => crypto.randomUUID()),
+      migrationPending: false,
+      loadCatalog: catalogForTestSnapshot,
       load: async () => saved,
       save: async (snapshot) => {
         saved = structuredClone(snapshot);
@@ -94,10 +98,10 @@ async function setup() {
   return { app, runtime, command };
 }
 describe('migration review followup baseline', () => {
-  it('R6 reload returns local snapshot while public resource refresh stays pending', async () => {
+  it('R6 reload returns local snapshot without a service-owned resource query', async () => {
     const { app, runtime } = await setup();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    vi.mocked(runtime.publicResourcesList).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(runtime.captureResource).mockImplementation(() => new Promise(() => {}));
     const result = await Promise.race([app.retryInitialization(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 50))]);
     expect(result?.activeWorkspaceId).toBe('taskflow-demo');
   });
@@ -105,11 +109,20 @@ describe('migration review followup baseline', () => {
     browsers.reloads.length = 0;
     const host = new WorkbenchHost(
       {} as BrowserWindow,
-      { resourcesList: async () => ({ spaceId: 'taskflow-demo', revision: 0, resources: [] }) } as unknown as ChatService,
+      {
+        setAppListener: vi.fn(),
+        resourcesList: async () => ({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
+      } as unknown as ChatService,
       '/fixture',
     );
     const app = new WorkbenchApplication(
-      { appendObservation: vi.fn(async () => crypto.randomUUID()), load: async () => null, save: async () => {} },
+      {
+        appendObservation: vi.fn(async () => crypto.randomUUID()),
+        migrationPending: false,
+        loadCatalog: catalogForTestSnapshot,
+        load: async () => null,
+        save: async () => {},
+      },
       host,
       vi.fn(),
     );

@@ -1,0 +1,530 @@
+[
+  {
+    "sample": "0",
+    "activePane": "a343f020-bd77-4a84-b71a-7fa7666e0a65",
+    "resources": [
+      {
+        "title": "TaskFlow 预览",
+        "url": "wsl-demo://taskflow/index.html",
+        "page": {
+          "webContentsId": 2,
+          "documentGeneration": 1,
+          "url": "wsl-demo://taskflow/index.html",
+          "title": "任务 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-f4b94b48-007f-454b-9008-a40275562d42"
+        }
+      },
+      {
+        "title": "第二网页742",
+        "url": "wsl-demo://taskflow/members.html",
+        "page": {
+          "webContentsId": 3,
+          "documentGeneration": 2,
+          "url": "wsl-demo://taskflow/members.html",
+          "title": "成员 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-55204d6a-02c7-4c3c-be6d-ad4831c71f4d"
+        }
+      }
+    ],
+    "native": {
+      "window": false,
+      "contents": [
+        {
+          "id": 3,
+          "url": "wsl-demo://taskflow/members.html",
+          "focused": false
+        },
+        {
+          "id": 2,
+          "url": "wsl-demo://taskflow/index.html",
+          "focused": false
+        },
+        {
+          "id": 1,
+          "url": "file:///Users/huaodong/workspace/web-studio-lab/apps/desktop/out/renderer/index.html",
+          "focused": false
+        }
+      ],
+      "bounds": [
+        {
+          "x": 310,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        },
+        {
+          "x": 876,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        }
+      ]
+    },
+    "dom": {
+      "tag": "BODY",
+      "focusEvents": []
+    }
+  },
+  {
+    "sample": "1",
+    "activePane": "a343f020-bd77-4a84-b71a-7fa7666e0a65",
+    "resources": [
+      {
+        "title": "TaskFlow 预览",
+        "url": "wsl-demo://taskflow/index.html",
+        "page": {
+          "webContentsId": 2,
+          "documentGeneration": 1,
+          "url": "wsl-demo://taskflow/index.html",
+          "title": "任务 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-f4b94b48-007f-454b-9008-a40275562d42"
+        }
+      },
+      {
+        "title": "第二网页742",
+        "url": "wsl-demo://taskflow/members.html",
+        "page": {
+          "webContentsId": 3,
+          "documentGeneration": 2,
+          "url": "wsl-demo://taskflow/members.html",
+          "title": "成员 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-55204d6a-02c7-4c3c-be6d-ad4831c71f4d"
+        }
+      }
+    ],
+    "native": {
+      "window": false,
+      "contents": [
+        {
+          "id": 3,
+          "url": "wsl-demo://taskflow/members.html",
+          "focused": false
+        },
+        {
+          "id": 2,
+          "url": "wsl-demo://taskflow/index.html",
+          "focused": false
+        },
+        {
+          "id": 1,
+          "url": "file:///Users/huaodong/workspace/web-studio-lab/apps/desktop/out/renderer/index.html",
+          "focused": false
+        }
+      ],
+      "bounds": [
+        {
+          "x": 310,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        },
+        {
+          "x": 876,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        }
+      ]
+    },
+    "dom": {
+      "tag": "BODY",
+      "focusEvents": []
+    }
+  },
+  {
+    "sample": "2",
+    "activePane": "a343f020-bd77-4a84-b71a-7fa7666e0a65",
+    "resources": [
+      {
+        "title": "TaskFlow 预览",
+        "url": "wsl-demo://taskflow/index.html",
+        "page": {
+          "webContentsId": 2,
+          "documentGeneration": 1,
+          "url": "wsl-demo://taskflow/index.html",
+          "title": "任务 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-f4b94b48-007f-454b-9008-a40275562d42"
+        }
+      },
+      {
+        "title": "第二网页742",
+        "url": "wsl-demo://taskflow/members.html",
+        "page": {
+          "webContentsId": 3,
+          "documentGeneration": 2,
+          "url": "wsl-demo://taskflow/members.html",
+          "title": "成员 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-55204d6a-02c7-4c3c-be6d-ad4831c71f4d"
+        }
+      }
+    ],
+    "native": {
+      "window": false,
+      "contents": [
+        {
+          "id": 3,
+          "url": "wsl-demo://taskflow/members.html",
+          "focused": false
+        },
+        {
+          "id": 2,
+          "url": "wsl-demo://taskflow/index.html",
+          "focused": false
+        },
+        {
+          "id": 1,
+          "url": "file:///Users/huaodong/workspace/web-studio-lab/apps/desktop/out/renderer/index.html",
+          "focused": false
+        }
+      ],
+      "bounds": [
+        {
+          "x": 310,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        },
+        {
+          "x": 876,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        }
+      ]
+    },
+    "dom": {
+      "tag": "BODY",
+      "focusEvents": []
+    }
+  },
+  {
+    "sample": "3",
+    "activePane": "a343f020-bd77-4a84-b71a-7fa7666e0a65",
+    "resources": [
+      {
+        "title": "TaskFlow 预览",
+        "url": "wsl-demo://taskflow/index.html",
+        "page": {
+          "webContentsId": 2,
+          "documentGeneration": 1,
+          "url": "wsl-demo://taskflow/index.html",
+          "title": "任务 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-f4b94b48-007f-454b-9008-a40275562d42"
+        }
+      },
+      {
+        "title": "第二网页742",
+        "url": "wsl-demo://taskflow/members.html",
+        "page": {
+          "webContentsId": 3,
+          "documentGeneration": 2,
+          "url": "wsl-demo://taskflow/members.html",
+          "title": "成员 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-55204d6a-02c7-4c3c-be6d-ad4831c71f4d"
+        }
+      }
+    ],
+    "native": {
+      "window": false,
+      "contents": [
+        {
+          "id": 3,
+          "url": "wsl-demo://taskflow/members.html",
+          "focused": false
+        },
+        {
+          "id": 2,
+          "url": "wsl-demo://taskflow/index.html",
+          "focused": false
+        },
+        {
+          "id": 1,
+          "url": "file:///Users/huaodong/workspace/web-studio-lab/apps/desktop/out/renderer/index.html",
+          "focused": false
+        }
+      ],
+      "bounds": [
+        {
+          "x": 310,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        },
+        {
+          "x": 876,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        }
+      ]
+    },
+    "dom": {
+      "tag": "BODY",
+      "focusEvents": []
+    }
+  },
+  {
+    "sample": "4",
+    "activePane": "a343f020-bd77-4a84-b71a-7fa7666e0a65",
+    "resources": [
+      {
+        "title": "TaskFlow 预览",
+        "url": "wsl-demo://taskflow/index.html",
+        "page": {
+          "webContentsId": 2,
+          "documentGeneration": 1,
+          "url": "wsl-demo://taskflow/index.html",
+          "title": "任务 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-f4b94b48-007f-454b-9008-a40275562d42"
+        }
+      },
+      {
+        "title": "第二网页742",
+        "url": "wsl-demo://taskflow/members.html",
+        "page": {
+          "webContentsId": 3,
+          "documentGeneration": 2,
+          "url": "wsl-demo://taskflow/members.html",
+          "title": "成员 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-55204d6a-02c7-4c3c-be6d-ad4831c71f4d"
+        }
+      }
+    ],
+    "native": {
+      "window": false,
+      "contents": [
+        {
+          "id": 3,
+          "url": "wsl-demo://taskflow/members.html",
+          "focused": false
+        },
+        {
+          "id": 2,
+          "url": "wsl-demo://taskflow/index.html",
+          "focused": false
+        },
+        {
+          "id": 1,
+          "url": "file:///Users/huaodong/workspace/web-studio-lab/apps/desktop/out/renderer/index.html",
+          "focused": false
+        }
+      ],
+      "bounds": [
+        {
+          "x": 310,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        },
+        {
+          "x": 876,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        }
+      ]
+    },
+    "dom": {
+      "tag": "BODY",
+      "focusEvents": []
+    }
+  },
+  {
+    "sample": "5",
+    "activePane": "a343f020-bd77-4a84-b71a-7fa7666e0a65",
+    "resources": [
+      {
+        "title": "TaskFlow 预览",
+        "url": "wsl-demo://taskflow/index.html",
+        "page": {
+          "webContentsId": 2,
+          "documentGeneration": 1,
+          "url": "wsl-demo://taskflow/index.html",
+          "title": "任务 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-f4b94b48-007f-454b-9008-a40275562d42"
+        }
+      },
+      {
+        "title": "第二网页742",
+        "url": "wsl-demo://taskflow/members.html",
+        "page": {
+          "webContentsId": 3,
+          "documentGeneration": 2,
+          "url": "wsl-demo://taskflow/members.html",
+          "title": "成员 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-55204d6a-02c7-4c3c-be6d-ad4831c71f4d"
+        }
+      }
+    ],
+    "native": {
+      "window": false,
+      "contents": [
+        {
+          "id": 3,
+          "url": "wsl-demo://taskflow/members.html",
+          "focused": false
+        },
+        {
+          "id": 2,
+          "url": "wsl-demo://taskflow/index.html",
+          "focused": false
+        },
+        {
+          "id": 1,
+          "url": "file:///Users/huaodong/workspace/web-studio-lab/apps/desktop/out/renderer/index.html",
+          "focused": false
+        }
+      ],
+      "bounds": [
+        {
+          "x": 310,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        },
+        {
+          "x": 876,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        }
+      ]
+    },
+    "dom": {
+      "tag": "BODY",
+      "focusEvents": []
+    }
+  },
+  {
+    "sample": "6",
+    "activePane": "a343f020-bd77-4a84-b71a-7fa7666e0a65",
+    "resources": [
+      {
+        "title": "TaskFlow 预览",
+        "url": "wsl-demo://taskflow/index.html",
+        "page": {
+          "webContentsId": 2,
+          "documentGeneration": 1,
+          "url": "wsl-demo://taskflow/index.html",
+          "title": "任务 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-f4b94b48-007f-454b-9008-a40275562d42"
+        }
+      },
+      {
+        "title": "第二网页742",
+        "url": "wsl-demo://taskflow/members.html",
+        "page": {
+          "webContentsId": 3,
+          "documentGeneration": 2,
+          "url": "wsl-demo://taskflow/members.html",
+          "title": "成员 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-55204d6a-02c7-4c3c-be6d-ad4831c71f4d"
+        }
+      }
+    ],
+    "native": {
+      "window": false,
+      "contents": [
+        {
+          "id": 3,
+          "url": "wsl-demo://taskflow/members.html",
+          "focused": false
+        },
+        {
+          "id": 2,
+          "url": "wsl-demo://taskflow/index.html",
+          "focused": false
+        },
+        {
+          "id": 1,
+          "url": "file:///Users/huaodong/workspace/web-studio-lab/apps/desktop/out/renderer/index.html",
+          "focused": false
+        }
+      ],
+      "bounds": [
+        {
+          "x": 310,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        },
+        {
+          "x": 876,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        }
+      ]
+    },
+    "dom": {
+      "tag": "BODY",
+      "focusEvents": []
+    }
+  },
+  {
+    "sample": "7",
+    "activePane": "a343f020-bd77-4a84-b71a-7fa7666e0a65",
+    "resources": [
+      {
+        "title": "TaskFlow 预览",
+        "url": "wsl-demo://taskflow/index.html",
+        "page": {
+          "webContentsId": 2,
+          "documentGeneration": 1,
+          "url": "wsl-demo://taskflow/index.html",
+          "title": "任务 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-f4b94b48-007f-454b-9008-a40275562d42"
+        }
+      },
+      {
+        "title": "第二网页742",
+        "url": "wsl-demo://taskflow/members.html",
+        "page": {
+          "webContentsId": 3,
+          "documentGeneration": 2,
+          "url": "wsl-demo://taskflow/members.html",
+          "title": "成员 · TaskFlow 演示",
+          "partition": "preview-taskflow-demo-55204d6a-02c7-4c3c-be6d-ad4831c71f4d"
+        }
+      }
+    ],
+    "native": {
+      "window": false,
+      "contents": [
+        {
+          "id": 3,
+          "url": "wsl-demo://taskflow/members.html",
+          "focused": false
+        },
+        {
+          "id": 2,
+          "url": "wsl-demo://taskflow/index.html",
+          "focused": false
+        },
+        {
+          "id": 1,
+          "url": "file:///Users/huaodong/workspace/web-studio-lab/apps/desktop/out/renderer/index.html",
+          "focused": false
+        }
+      ],
+      "bounds": [
+        {
+          "x": 310,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        },
+        {
+          "x": 876,
+          "y": 199,
+          "width": 564,
+          "height": 659
+        }
+      ]
+    },
+    "dom": {
+      "tag": "BODY",
+      "focusEvents": []
+    }
+  }
+]

@@ -1,0 +1,197 @@
+{
+  "traceVersion": 1,
+  "scenarioRunId": "68196fb8-6815-4097-979b-b2e78ad3941d",
+  "scenarioName": "fixed-welcome-v1",
+  "scenarioSha256": "5ce797d0d169998901a6bcd9b5c3428b7bd4ac42c221c54cf8ef64d609913a48",
+  "runId": "90cc1fbc-355a-4726-940e-455497247693",
+  "workspaceId": "taskflow-demo",
+  "appInstanceId": "60c8da76-314d-4d51-9be3-5ef4c2770382",
+  "sourceRevision": "c7e18e31ecd91837749d4a6343ad0b6de308d54e9de6e8528e6752a575db95e5",
+  "startedAt": "2026-10-11T07:44:27.987Z",
+  "endedAt": "2026-10-11T07:44:28.811Z",
+  "outcome": "passed",
+  "steps": [
+    {
+      "index": 0,
+      "type": "act",
+      "summary": "act navigate /",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 126,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 1,
+      "type": "act",
+      "summary": "act waitFor testid=welcome-value visible",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 2,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 2,
+      "type": "assert",
+      "summary": "assert text testid=welcome-value equals",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 1,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 3,
+      "type": "act",
+      "summary": "act type testid=welcome-input len=3",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 124,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 4,
+      "type": "act",
+      "summary": "act click testid=welcome-save",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 125,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 5,
+      "type": "assert",
+      "summary": "assert text testid=welcome-error equals",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 2,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 6,
+      "type": "assert",
+      "summary": "assert state welcome/value",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 7,
+      "type": "act",
+      "summary": "act type testid=welcome-input len=9",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 125,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 8,
+      "type": "act",
+      "summary": "act click testid=welcome-save",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 124,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 9,
+      "type": "assert",
+      "summary": "assert text testid=welcome-value equals",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 1,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 10,
+      "type": "assert",
+      "summary": "assert testid=welcome-error detached",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 1,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 11,
+      "type": "assert",
+      "summary": "assert state welcome/value",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 1,
+      "documentGeneration": 4,
+      "screenshot": null
+    },
+    {
+      "index": 12,
+      "type": "act",
+      "summary": "act navigate /",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 125,
+      "documentGeneration": 5,
+      "screenshot": null
+    },
+    {
+      "index": 13,
+      "type": "assert",
+      "summary": "assert text testid=welcome-value equals",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 2,
+      "documentGeneration": 5,
+      "screenshot": null
+    },
+    {
+      "index": 14,
+      "type": "assert",
+      "summary": "assert console-no-error",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 0,
+      "documentGeneration": 5,
+      "screenshot": null
+    },
+    {
+      "index": 15,
+      "type": "screenshot",
+      "summary": "screenshot fixed-welcome-saved",
+      "outcome": "passed",
+      "error": null,
+      "durationMs": 38,
+      "documentGeneration": 5,
+      "screenshot": {
+        "file": "15-fixed-welcome-saved.png",
+        "sha256": "b3525885085bbb7bd8f15c159e43e0fd706a6ac63f928c584362f3e6715f66d2"
+      }
+    }
+  ],
+  "stateDiff": [
+    {
+      "path": "/db/records/sha256",
+      "before": "1470948736a4929db8cdfe3d2a06f3db04dc67e5be62e218604d424f489f9ac7",
+      "after": "a4cd642df566b871df485fe0330cffadf9987cbbbaf7d3ad29aedbee47ddff37"
+    },
+    {
+      "path": "/db/sessions/rowCount",
+      "before": 0,
+      "after": 2
+    },
+    {
+      "path": "/db/sessions/sha256",
+      "before": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "after": "995fd669d800eab1b374fe737a66bfe77b86d876949c0bb60fec0e38c77c8356"
+    }
+  ],
+  "inFlight": null,
+  "cleanupConfirmed": true
+}

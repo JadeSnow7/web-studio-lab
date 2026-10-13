@@ -1,0 +1,172 @@
+{
+  "toolchain": "cached pnpm 10.34.6 via PATH=/Users/huaodong/.npm/_npx/168ca33e231eaaf0/node_modules/.bin:$PATH",
+  "focused": {
+    "command": "pnpm exec vitest run packages/protocol/src/app-control.test.ts apps/service/src/app-service.test.ts apps/desktop/src/main/workbench/app-control.test.ts apps/desktop/src/main/workbench/app-control-application.test.ts apps/desktop/src/main/chat-service.test.ts",
+    "exitCode": 0,
+    "passed": 120,
+    "files": 5,
+    "log": "p1-tests.txt"
+  },
+  "existingRegressions": {
+    "command": "pnpm exec vitest run apps/desktop/src/main/workbench/application.test.ts apps/desktop/src/main/workbench/recovery-facts.test.ts apps/desktop/src/main/workbench/observation-application.test.ts",
+    "exitCode": 0,
+    "passed": 53,
+    "files": 3,
+    "log": "p1-existing-regressions.txt"
+  },
+  "baselineRed": {
+    "exitCode": 1,
+    "failed": 10,
+    "note": "Current regression tests executed against immutable archived baseline source in /private/tmp/wsl-p1-red-round12; differential baseline verification was reconstructed after implementation, not claimed chronological test-first evidence.",
+    "log": "p1-baseline-red.txt"
+  },
+  "typechecks": [
+    {
+      "project": "apps/service/tsconfig.json",
+      "exitCode": 0
+    },
+    {
+      "project": "apps/desktop/tsconfig.node.json",
+      "exitCode": 0
+    },
+    {
+      "project": "apps/desktop/tsconfig.web.json",
+      "exitCode": 0
+    }
+  ],
+  "lintExitCode": 0,
+  "formatCheckExitCode": 0,
+  "diffCheckExitCode": 0,
+  "sourceFingerprints": [
+    {
+      "path": "packages/protocol/src/app-control.ts",
+      "sha256": "c6addd4c24d8d6d3f7ff05251cc39909e4529d6f9ea53553735dce4196999312"
+    },
+    {
+      "path": "packages/protocol/src/app-control.test.ts",
+      "sha256": "3fcdd8d7ed2bc9b5d2cb5891ce924da60c1c7a1b703263bff5d9d7f71f7a81af"
+    },
+    {
+      "path": "packages/protocol/src/workspace.ts",
+      "sha256": "4d94d8e87f557123d06d793d92395ed37571f573a0f5859b3b5b13f0082cfcd0"
+    },
+    {
+      "path": "apps/service/src/app-service.ts",
+      "sha256": "172f2ce30ea34afc31df8f7fe6580abddd34ace97cba54c7dd48007351d88b9d"
+    },
+    {
+      "path": "apps/service/src/app-service.test.ts",
+      "sha256": "9cffe5ec8bbaa729901ebb12a0f50672e99f616df741b8b4c6e00ffed832123c"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/app-control.ts",
+      "sha256": "3e8da03566f50e547f4065f492a2015e5e99f99f17e6434e979cca302baf7b0d"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/app-control.test.ts",
+      "sha256": "17e7bc80329b4888007449fd683856478d4a1bc49c8bea23aa939518a533cab3"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/app-control-application.test.ts",
+      "sha256": "f8b6cf749c43d4bf2337a741db2d3a4b506f3971dcd30592b5476186b964af4a"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/application.ts",
+      "sha256": "600a76900135df522967e0c8ffaa889c2a0727f2c062eff66eaf83befd70278f"
+    },
+    {
+      "path": "apps/desktop/src/main/index.ts",
+      "sha256": "4aa1a95046bc0f7b43091129092f6b10e21bd394c35c7f3ef9248e167bf044fe"
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.ts",
+      "sha256": "3ba427098e005cd85ece69ccfc16c3e065b08f88a3e78d931e5bd18210dbb457"
+    },
+    {
+      "path": "apps/desktop/src/renderer/src/workspace/Session.tsx",
+      "sha256": "1daf11bfb691bc01dc57ff2a08da7d94ad661270c5dfa8e83313009c2d036fd0"
+    },
+    {
+      "path": "apps/desktop/src/main/chat-service.test.ts",
+      "sha256": "d3fb093d1a1ce55930a460949e529c13f578b7d242e827ed51c17683a76695af"
+    }
+  ],
+  "unverified": [
+    "Live sandbox",
+    "Real Electron window",
+    "Real model",
+    "User acceptance"
+  ],
+  "delivery": "Local uncommitted changes; no push or publish",
+  "preDispatchCliFollowup": {
+    "red": {
+      "log": "p1-pre-dispatch-cli-red.txt",
+      "exitCode": 1,
+      "failed": 4
+    },
+    "green": {
+      "log": "p1-pre-dispatch-cli-green.txt",
+      "exitCode": 0,
+      "files": 3,
+      "passed": 100
+    },
+    "typecheckServiceExitCode": 0,
+    "typecheckDesktopExitCode": 0,
+    "lintExitCode": 0,
+    "formatCheckExitCode": 0,
+    "diffCheckExitCode": 0,
+    "note": "New stopped CLI reads cancelled between Main pending persistence and adapter dispatch clear only their unstarted reservation. Reconciliation cancellation never claims the original operation was unstarted. Existing unconfirmed CLI handles remain retained."
+  },
+  "recoveredModelFollowup": {
+    "red": {
+      "log": "p1-recovered-model-red.txt",
+      "exitCode": 1,
+      "failed": 2
+    },
+    "green": {
+      "log": "p1-recovered-model-green.txt",
+      "exitCode": 0,
+      "files": 4,
+      "passed": 67
+    },
+    "typecheckDesktopExitCode": 0,
+    "lintExitCode": 0,
+    "formatCheckExitCode": 0,
+    "diffCheckExitCode": 0,
+    "note": "A terminal App receipt does not prove the old model exited. Running executor facts or missing legacy executorState retain cancelling/cleanupPending and null endedAt, and explicitly report old model cleanup unknown. No model recovery mechanism was added."
+  },
+  "lifecycleReadFollowup": {
+    "red": {
+      "log": "p1-lifecycle-read-red.txt",
+      "exitCode": 1,
+      "failed": 2
+    },
+    "green": {
+      "log": "p1-lifecycle-read-green.txt",
+      "exitCode": 0,
+      "files": 2,
+      "passed": 81
+    },
+    "note": "Lifecycle-busy rejects new reads before CLI dispatch; operationDispatched:false clears only the new Main reservation. Existing CLI unconfirmed handles remain blocked."
+  },
+  "readTransportFollowup": {
+    "red": {
+      "log": "p1-read-transport-red.txt",
+      "exitCode": 1,
+      "failed": 2,
+      "passed": 1
+    },
+    "green": {
+      "log": "p1-read-transport-green.txt",
+      "exitCode": 0,
+      "files": 2,
+      "passed": 84
+    },
+    "typecheckServiceExitCode": 0,
+    "typecheckDesktopExitCode": 0,
+    "lintExitCode": 0,
+    "formatCheckExitCode": 0,
+    "diffCheckExitCode": 0,
+    "note": "Only a new read reservation may complete via confirmed HTTP when Service has become running. Cleanup reconciliation cannot use an HTTP cancellation result to infer original CLI exit, and data writes still require matching terminal receipts."
+  }
+}

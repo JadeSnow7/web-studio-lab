@@ -1,0 +1,9 @@
+
+> @wsl/service@0.1.0 typecheck /Users/huaodong/workspace/web-studio-lab/apps/service
+> tsc -p tsconfig.json
+
+src/index.test.ts(117,9): error TS2322: Type 'Promise<void>' is not assignable to type 'Promise<undefined>'.
+  Type 'void' is not assignable to type 'undefined'.
+/Users/huaodong/workspace/web-studio-lab/apps/service:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @wsl/service@0.1.0 typecheck: `tsc -p tsconfig.json`
+Exit status 2

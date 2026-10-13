@@ -1,0 +1,8 @@
+{
+  "profile": "product-admin",
+  "locale": "zh-CN",
+  "sourceRoots": ["index.html", "app.js", "styles.css"],
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": ["Scrollbar"],
+  "requiredCommands": []
+}

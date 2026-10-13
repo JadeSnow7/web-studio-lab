@@ -5,6 +5,7 @@ import type { ChatConversation, ChatSlot, ChatStatus } from './chat';
 import type { AppInfo, ShellCommand } from './app';
 import type { ExecutionStatus } from './execution';
 
+import type { CatalogAction, ResourceRevision, CatalogReferenceSnapshot } from './resource-catalog';
 export type Unsubscribe = () => void;
 
 /**
@@ -28,13 +29,16 @@ export interface StudioApi {
     reload(): Promise<WorkbenchSnapshot>;
     environments(): Promise<EnvironmentDescription[]>;
     observe(input: WorkbenchObservationInput): Promise<WorkspaceObservationResult>;
+    catalogCommand(command: CatalogAction): Promise<WorkbenchResult>;
+    resourceRevision(resourceId: string, version: number): Promise<ResourceRevision>;
+    runReferences(workspaceId: string, runId: string): Promise<CatalogReferenceSnapshot | null>;
     command(command: WorkbenchCommand): Promise<WorkbenchResult>;
     onEvent(listener: (event: WorkbenchEvent) => void): Unsubscribe;
   };
   chat: {
     getStatus(): Promise<ChatStatus>;
     get(conversationId: ChatSlot): Promise<ChatConversation>;
-    send(conversationId: ChatSlot, text: string): Promise<ChatConversation>;
+    send(conversationId: ChatSlot, text: string, references?: { resourceId: string; version: number }[]): Promise<ChatConversation>;
     cancel(conversationId: ChatSlot): Promise<ChatConversation>;
     reset(conversationId: ChatSlot): Promise<ChatConversation>;
     onStatus(listener: (status: ChatStatus) => void): Unsubscribe;

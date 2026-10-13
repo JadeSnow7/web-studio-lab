@@ -1,0 +1,24 @@
+{
+  "command": [
+    "pnpm",
+    "exec",
+    "playwright",
+    "test",
+    "e2e/app-control-live.spec.ts",
+    "e2e/app-control-model-live.spec.ts",
+    "e2e/app-control-cancel-live.spec.ts",
+    "--output",
+    "test-results/round-12-existing-live"
+  ],
+  "flags": {
+    "WSL_APP_CONTROL_LIVE": "1",
+    "WSL_APP_CONTROL_MODEL_LIVE": "1",
+    "WSL_APP_CONTROL_CANCEL_LIVE": "1",
+    "WSL_APP_CONTROL_EVIDENCE": "/Users/huaodong/workspace/web-studio-lab/docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/sandbox-live",
+    "WSL_APP_CONTROL_MODEL_EVIDENCE": "/Users/huaodong/workspace/web-studio-lab/docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/model-live",
+    "WSL_APP_CONTROL_CANCEL_EVIDENCE": "/Users/huaodong/workspace/web-studio-lab/docs/verification/2026-10-11-app-control-plane/round-12-review-fixes/cli-cancel-live"
+  },
+  "exitCode": 0,
+  "seconds": 724.9945819377899,
+  "build": "build-04"
+}

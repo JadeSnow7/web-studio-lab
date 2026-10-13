@@ -1,0 +1,26 @@
+{
+  "managedApp": {
+    "workspaceId": "taskflow-demo",
+    "projectId": "b2faec03-8527-44d3-a209-ebe89095dc78",
+    "environmentId": "sandbox",
+    "appInstanceId": "b05f9b67-880a-4bcc-bb8b-0110ed32f796",
+    "state": "stopped",
+    "url": null,
+    "guestCwd": "/home/agent/workspace/.wsl-apps/b2faec03-8527-44d3-a209-ebe89095dc78",
+    "guestPort": null,
+    "error": "Error: \u5e94\u7528\u542f\u52a8\u5df2\u53d6\u6d88",
+    "cleanupConfirmed": true
+  },
+  "ownedLocalProcesses": {
+    "28351": {
+      "running": false,
+      "process": ""
+    },
+    "28349": {
+      "running": false,
+      "process": ""
+    }
+  },
+  "portsExitCode": 0,
+  "ports": []
+}

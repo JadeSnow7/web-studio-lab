@@ -1,0 +1,12 @@
+
+ RUN  v5.0.3 /Users/huaodong/workspace/web-studio-lab
+
+
+ Test Files  73 passed | 6 skipped (79)
+      Tests  560 passed | 15 skipped (575)
+   Start at  21:10:38
+   Duration  19.75s (tests 90%, import 8%, transform 2%)
+
+    Isolate  79 workers spawned · ~59ms startup each (spawn + environment, per file)
+             at least ~2.25s faster with isolate: false — reuses workers across files instead of one per file
+

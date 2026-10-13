@@ -9,6 +9,7 @@ import { sendToRenderer } from './ipc';
 export function installAppMenu(
   window: BrowserWindow,
   preview: { reload(): void | Promise<void>; openDevTools(): void | Promise<void> },
+  options: { debugStatus?: boolean } = {},
 ): void {
   const command = (name: ShellCommand) => () => {
     if (window.isDestroyed()) return;
@@ -55,6 +56,21 @@ export function installAppMenu(
           },
         },
         { label: '打开工作台 DevTools', click: () => window.webContents.openDevTools({ mode: 'detach' }) },
+        // 诊断入口只在诊断通道启用时出现（status-interface.md §8.1）；点击经 debug:panel 事件通知 renderer 切换面板。
+        ...(options.debugStatus
+          ? ([
+              {
+                label: '诊断',
+                // 不用 ⌥⌘D：它在 macOS 是系统级「显示 / 隐藏 Dock」，会被系统吃掉。
+                accelerator: 'CmdOrCtrl+Alt+Shift+D',
+                click: () => {
+                  if (window.isDestroyed()) return;
+                  window.webContents.focus();
+                  sendToRenderer(window, 'debug:panel', 'toggle');
+                },
+              },
+            ] satisfies MenuItemConstructorOptions[])
+          : []),
         { type: 'separator' },
         { role: 'togglefullscreen', label: '进入全屏幕' },
       ],

@@ -1,0 +1,58 @@
+import { timingSafeEqual } from 'node:crypto';
+import type { Context, Env, Hono } from 'hono';
+import { z } from 'zod';
+import type { Database } from '../db.js';
+import { AgentDataError, readOnlyQuery, resetDatabase, seed, snapshotDatabase } from './data.js';
+import { describeRevision, readBuildRevision } from './describe.js';
+
+/**
+ * 仅受管开发实例挂载的控制面端点：AppService 每次启动生成随机令牌，经环境变量传入，
+ * 不落盘、不写日志。请求须带同值 x-wsl-agent-token；生产与本地默认启动不挂载。
+ */
+export interface AgentRouteOptions {
+  token: string;
+  root: string;
+  appInstanceId: string;
+}
+
+function failure(c: Context, status: 400 | 403 | 409 | 500, code: string, message: string) {
+  return c.json({ ok: false, error: { code, message } }, status);
+}
+
+export function mountAgentRoutes<E extends Env>(app: Hono<E>, database: Database, options: AgentRouteOptions) {
+  if (options.token.length < 32) throw new Error('Agent token too short');
+  const expected = Buffer.from(options.token);
+  // 构建修订在挂载（服务启动）时固定，代表本进程实际运行的构建。
+  const buildRevision = readBuildRevision(options.root).catch(() => null);
+  app.use('/api/__agent/*', async (c, next) => {
+    const presented = Buffer.from(c.req.header('x-wsl-agent-token') ?? '');
+    if (presented.length !== expected.length || !timingSafeEqual(presented, expected))
+      return failure(c, 403, 'unauthorized', 'Agent token required');
+    await next();
+  });
+  const run = async (c: Context, work: () => Promise<Record<string, unknown>>) => {
+    try {
+      return c.json({ ok: true, data: await work() });
+    } catch (error) {
+      if (error instanceof AgentDataError) return failure(c, error.code === 'unavailable' ? 500 : 400, error.code, error.message);
+      return failure(c, 500, 'unavailable', error instanceof Error ? error.message : String(error));
+    }
+  };
+  app.get('/api/__agent/describe', (c) =>
+    run(c, async () => ({
+      ...(await describeRevision(options.root, { buildRevision: await buildRevision })),
+      appInstanceId: options.appInstanceId,
+    })),
+  );
+  app.post('/api/__agent/db/query', async (c) => {
+    const input = z
+      .object({ sql: z.string().min(1).max(4000), limit: z.number().int().min(1).max(200).default(50) })
+      .strict()
+      .safeParse(await c.req.json().catch(() => null));
+    if (!input.success) return failure(c, 400, 'invalid_request', 'Expected {sql, limit}');
+    return run(c, () => readOnlyQuery(database, input.data.sql, input.data.limit));
+  });
+  app.post('/api/__agent/db/seed', (c) => run(c, () => seed(database)));
+  app.post('/api/__agent/db/reset', (c) => run(c, () => resetDatabase(database)));
+  app.get('/api/__agent/db/snapshot', (c) => run(c, () => snapshotDatabase(database)));
+}

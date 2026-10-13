@@ -1,0 +1,33 @@
+{
+  "build04Evidence": [
+    "http-live-03",
+    "http-live-04",
+    "cli-cancel-live",
+    "sandbox-live",
+    "model-live"
+  ],
+  "laterSourceChanges": [
+    {
+      "path": "apps/desktop/src/main/workbench/app-control.test.ts",
+      "build04Input": "459d88685f6f7928a85fb97f86d6df82e7e82a83832ab93dd85510b46c00fcb1",
+      "finalInput": "17e7bc80329b4888007449fd683856478d4a1bc49c8bea23aa939518a533cab3"
+    },
+    {
+      "path": "apps/desktop/src/main/workbench/app-control.ts",
+      "build04Input": "cdf194dbbe621584af039b572576bd4a4a7a6d11d0053b5d779e68e029e829b8",
+      "finalInput": "3e8da03566f50e547f4065f492a2015e5e99f99f17e6434e979cca302baf7b0d"
+    },
+    {
+      "path": "apps/service/src/app-service.test.ts",
+      "build04Input": "66383ca22b4c181253e2e8644f6971579fff7391ab0f4b135374f31f2e2bf474",
+      "finalInput": "9cffe5ec8bbaa729901ebb12a0f50672e99f616df741b8b4c6e00ffed832123c"
+    },
+    {
+      "path": "apps/service/src/app-service.ts",
+      "build04Input": "45c0f157fdc83d1a37829079057d139e7bb5459374b5ddc77fc5a545c71d3e3f",
+      "finalInput": "172f2ce30ea34afc31df8f7fe6580abddd34ace97cba54c7dd48007351d88b9d"
+    }
+  ],
+  "reason": "Only new readonly CLI reservation and lifecycle-busy predispatch handling changed; existing data terminal-receipt requirements and template/ref protocols unchanged. Final build replays full Electron suite and all three real HTTP cancellation cases.",
+  "finalRuntimeInput": "final-runtime-input-sha256.json"
+}

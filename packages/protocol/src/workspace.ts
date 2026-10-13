@@ -1,7 +1,8 @@
 import { ObservationRecordSchema, FileInvalidationHintSchema } from './observation';
 import { EnvironmentListSchema } from './environments';
-import { ResourceCollectionSchema } from './resources';
 import { z } from 'zod';
+import { CatalogSummarySchema, CatalogReferenceSnapshotSchema } from './resource-catalog';
+import { ManagedAppSchema, SpaceAppSchema } from './managed-app';
 import { ChatConversationSchema } from './chat';
 import { PageCaptureSchema, PreviewLayoutSchema, PreviewStateSchema } from './preview';
 import { TerminalWriteSchema, TerminalSnapshotSchema } from './terminal';
@@ -44,6 +45,9 @@ export const WorkbenchTaskVersionSchema = z.object({
   goal: z.string().min(1).max(32000),
   targetRef: TargetRefSchema.nullable(),
   capture: PageCaptureSchema.nullable(),
+  appTarget: SpaceAppSchema.extend({ guestCwd: z.string().min(1) })
+    .nullable()
+    .default(null),
   captureBinding: z
     .object({ appInstanceId: Id, instanceId: Id, generation: z.number().int().nonnegative() })
     .strict()
@@ -54,6 +58,8 @@ export const WorkbenchTaskVersionSchema = z.object({
   allowedScopes: z.array(z.string()).default([]),
 });
 export const WorkbenchRunSchema = z.object({
+  referenceSnapshot: CatalogReferenceSnapshotSchema.optional(),
+  referenceSummary: z.array(z.object({ resourceId: Id, version: z.number().int().positive(), contentSha256: z.string() })).optional(),
   runId: Id,
   workspaceId: Id,
   sessionId: Id,
@@ -70,6 +76,11 @@ export const WorkbenchRunSchema = z.object({
     reason: z.string().nullable(),
   }),
   conversation: ChatConversationSchema.nullable().default(null),
+  cleanupPending: z.boolean().optional(),
+  appCleanupPending: z.boolean().optional(),
+  executorState: z.object({ state: ChatConversationSchema.shape.state, cleanupPending: z.boolean() }).optional(),
+  cleanupReconciling: z.boolean().optional(),
+  cleanupRetryAvailable: z.boolean().optional(),
   executionBinding: z.object({ generation: z.string(), turnId: z.string().nullable() }).nullable().default(null),
   review: z.object({ decision: z.enum(['accepted', 'changes_requested']), reviewedAt: z.string(), candidateId: Id }).nullable(),
 });
@@ -102,7 +113,9 @@ export const WorkbenchSessionSchema = z.object({
 export type WorkbenchSession = z.infer<typeof WorkbenchSessionSchema>;
 export const WorkbenchResourceSchema = z.object({
   resourceId: Id,
+  catalogResourceId: Id.optional(),
   environmentId: z.enum(['local', 'sandbox', 'ssh']).nullable(),
+  appProjectId: z.uuid().optional(),
   kind: TargetRefSchema.shape.kind,
   title: z.string(),
   url: z.string().nullable(),
@@ -114,6 +127,9 @@ export const WorkbenchResourceSchema = z.object({
 });
 export type WorkbenchResource = z.infer<typeof WorkbenchResourceSchema>;
 export const WorkspaceSnapshotSchema = z.object({
+  app: SpaceAppSchema.nullable().optional(),
+  managedApp: ManagedAppSchema.nullable().optional(),
+  appExport: z.object({ path: z.string(), manifestPath: z.string().optional(), sha256: z.string() }).nullable().optional(),
   workspaceId: Id,
   name: z.string().min(1).max(200),
   revision: z.number().int().nonnegative(),
@@ -123,8 +139,6 @@ export const WorkspaceSnapshotSchema = z.object({
   activePaneId: Id,
   sessions: z.array(WorkbenchSessionSchema),
   runs: z.array(WorkbenchRunSchema),
-  publicResources: ResourceCollectionSchema.nullable(),
-  publicResourcesError: z.string().nullable().default(null),
   fileHints: z.array(FileInvalidationHintSchema).max(100).default([]),
   observations: z.array(ObservationRecordSchema).max(200).default([]),
   theme: z.enum(['light', 'dark', 'warm', 'system']),
@@ -142,6 +156,7 @@ export const WorkbenchNotificationSchema = z.object({
 });
 export type WorkbenchNotification = z.infer<typeof WorkbenchNotificationSchema>;
 export const WorkbenchSnapshotSchema = z.object({
+  catalog: CatalogSummarySchema.optional(),
   appInstanceId: Id,
   storageError: z.string().nullable(),
   activeWorkspaceId: Id,
@@ -156,6 +171,16 @@ const Base = { commandId: Id, workspaceId: Id, expectedRevision: z.number().int(
 const command = <T extends string, S extends z.ZodRawShape>(type: T, shape: S) =>
   z.object({ ...Base, type: z.literal(type), ...shape }).strict();
 export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
+  command('createApp', { name: SpaceAppSchema.shape.name.optional(), description: SpaceAppSchema.shape.description.optional() }),
+  command('updateApp', {
+    appId: z.uuid(),
+    expectedAppRevision: z.number().int().nonnegative(),
+    name: SpaceAppSchema.shape.name,
+    description: SpaceAppSchema.shape.description,
+  }),
+  command('startApp', {}),
+  command('stopApp', {}),
+  command('exportApp', {}),
   command('createWorkspace', { name: z.string().trim().min(1).max(200) }),
   command('renameWorkspace', { name: z.string().trim().min(1).max(200) }),
   command('switchWorkspace', {}),
@@ -191,8 +216,6 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
     allowedScopes: WorkbenchSessionSchema.shape.taskAllowedScopes.removeDefault(),
   }),
   command('saveTaskTarget', { sessionId: Id, targetRef: TargetRefSchema.nullable() }),
-  command('capturePublicResource', { resourceId: Id, savedResourceId: Id.optional() }),
-  command('removePublicResource', { savedResourceId: Id }),
   command('captureContext', { sessionId: Id, resourceId: Id, requestId: Id }),
   command('cancelCapture', { resourceId: Id, requestId: Id }),
   command('hideBrowsers', {}),
@@ -205,13 +228,14 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
   }),
   command('startRun', { sessionId: Id, taskVersionId: Id }),
   command('cancelRun', { runId: Id }),
+  command('reconcileRunCleanup', { runId: Id }),
   command('cancelObservation', { sessionId: Id.nullable(), requestId: Id }),
   command('runValidation', { runId: Id }),
   command('recordReview', { runId: Id, candidateId: Id, decision: z.enum(['accepted', 'changes_requested']) }),
   command('browserLayout', { resourceId: Id, layout: PreviewLayoutSchema }),
   command('browserAction', {
     resourceId: Id,
-    action: z.enum(['navigate', 'reload', 'back', 'forward', 'focus', 'pick', 'cancelPick', 'reattach']),
+    action: z.enum(['navigate', 'reload', 'back', 'forward', 'focus', 'pick', 'cancelPick', 'reattach', 'resumeAgent']),
     url: z.string().max(2048).optional(),
   }),
   command('terminalOpen', { resourceId: Id, cols: z.number().int().min(2).max(500), rows: z.number().int().min(1).max(200) }),
