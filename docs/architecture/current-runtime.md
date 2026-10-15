@@ -1,6 +1,6 @@
 # 当前运行时与目标架构的边界
 
-本记录描述2026-10-13候选树的实际接线；本轮范围、审查修复、验证与未运行项见[当前 PR 说明](../acceptance/consolidation-20261011/PR.md)。[2026-10-11 整合记录](../acceptance/consolidation-20261011/README.md)保留当时的来源去向与验证边界。2026-10-08[INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)和[SR-1](../acceptance/space-remake/SPEC.md)保留各自源码基线与历史窗口证据，历史通过不能替代当前版本复验。
+本记录描述当前候选树的实际接线，外部 edu-web 小节已同步至本次适配；本轮范围、审查修复、验证与未运行项见[当前 PR 说明](../acceptance/consolidation-20261011/PR.md)。[2026-10-11 整合记录](../acceptance/consolidation-20261011/README.md)保留当时的来源去向与验证边界。2026-10-08[INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)和[SR-1](../acceptance/space-remake/SPEC.md)保留各自源码基线与历史窗口证据，历史通过不能替代当前版本复验。
 
 ## 已有能力和缺口
 
@@ -132,6 +132,20 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 
 工具链、模板服务、产品窗口与唯一模型调用的证据分别见[本轮记录](../acceptance/integrated-app-installer-public-20261009/README.md)。本包未实现比赛业务验收、正式签名公证发布、全套任务源码写入流程或统一观察中该 sandbox Browser 的额外授权；不能把母模板健康检查视为 AI 生成完整业务。
 
+### 外部 edu-web 源码 profile
+
+这是额外授权的外部源码适配，不复制私仓业务代码，也不增加内置模板。`importEduApp` 是无宿主路径参数的具名命令；Main 原生选择目录、获取 Git commit/dirty，双次核验白名单与内容稳定性，service 再核对基线。固定 `/usr/bin/git`、隔离配置及属性、拒绝外部过滤器/partial clone/submodule，避免目录选择触发宿主 Git 执行助手。源码上限仍为 256 文件 / 524288 字节，拒绝链接、危险路径、缺少必需文件及变化中的来源。
+
+`edu-web` profile v1 保存不可变导入基线，App 快照另存当前已确认的源码散列；service 注册表 v3 保存 profile 和受管恢复状态；旧 v1/v2 格式按既有迁移规则读取，v1 原文另存只读备份。Main 的工作台持久格式为 schema 4。启动/导出只接受 `admin/src/` 内变化；后端、锁或构建配置变化须在新空间显式重新导入。该校验不是 guest 内同 UID 程序的 OS 写入隔离。页面任务使用下述冻结候选与宿主写回校验；上游同步走显式 CLI/Git 三方流程，产品不提供就地 Git 同步。
+
+guest 需预先准备 Python 3.12（实测 3.12.3；安装器尚不负责此工具链），每个项目用指向 guest 固定解释器的独立 venv，按哈希锁安装，执行 pip check、后端 pytest、前端 typecheck/build，复核构建前后的源码，再运行 `server.wsl_runtime`。数据库固定于项目 `.data/edu.db`；日常开发模式强制关闭 AI，只有显式短时验证会话启用受限 provider 桥接。不复制宿主 venv、账号或生产数据；标准 Hono/PGlite 命令不用于此 profile。依赖准备失败、保护文件变化、错误来源/就绪/健康回执必须失败，不回退到标准模板。
+
+Main 用实际启动操作和实例身份管理原生浏览器租约。旧实例、不同空间/profile 的事件不能替代当前停止事实；终态不能被迟到的活动事件恢复。已停止 App 的被动布局不重新申请浏览器，显式导航仍被拒绝。管理员 `/` 与学生 `/student` 使用受管 origin，每个网页实例使用独立 session partition。request/check 共用音频判定：仅当前可见、运行中的学生主 frame、精确 origin 和有效页面/资源/应用代次可请求音频；视频、屏幕、子 frame、后台和旧实例均拒绝。导入不会自动授予系统麦克风权限。document-start 监视器跟踪原生音轨、克隆与在途请求；离页、隐藏、切空间、停止、退出先使旧代次失效，再确认音轨全部 ended 且 pending 为零。无法确认则销毁预览并报告失败，不能以销毁冒充实际音轨确认。macOS 包声明麦克风用途及音频输入 entitlement，系统授权与实体音轨仍需实测。
+
+正常停止并确认清理后，Main 在用户数据目录中新建 `exports/<project>-<exportId>/source` 和 `manifest.json`，包含 `sourceKind: workbench-export`、profile、workspace/project/environment、导入基线和逐文件散列；不输出 venv、数据库、依赖、构建缓存、环境文件或链接。窗口正常退出先清理再保存，重开只恢复描述，不自动启动。异常强退后的恢复、残留映射、全套业务、权限/实体音轨、当前签名包、两轮维护及最终导出部署，按各自实际源码和制品散列单独验收；历史通过不自动继承到新版本。
+
+`e2e/edu-app-live.spec.ts` 用独占 guest 和私有 Electron profile 验证真实 Main/service/sbx/Browser；仅原生目录选择响应由测试提供。它记录导出清单、重启后的数据库摘要、端口和进程审计，并明确列出未覆盖范围。opt-in 参数和定向回归命令见根 [AGENTS](../../AGENTS.md)。源码/UI 的存在、首次通过和无模型测试都不是完整维护闭环或用户接受；本任务私仓保留逐轮结果与失败，公仓不携带私仓业务源码或服务器材料。
+
 ### 安装包中的标准应用
 
 安装器配置与应用服务共用一个 `SbxConnection`；`runtimeTarget()` 只返回已初始化的 binary/sandbox，App 导入和端口操作不另行搜索 PATH。显式空配置保持不可用，不回退环境变量。Main 从包内 `runtime/dependencies.json` 派生只读模板依赖配置，校验模板源码、独立锁与归档后传给执行服务。损坏载荷在原设置页显示错误并禁止 sandbox 连接。模板存于包内 `templates/standard-app`，Linux ARM64/glibc 依赖包存于 runtime；归档准备审计实际 ELF、外来平台、必需 native 模块和执行位，并收集依赖许可。
@@ -154,3 +168,17 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 - 模板：standard-app 1.1.0 内建 registry/bridge、agent-cli、`/api/__agent` 与 manifest；受管启动对含 `build:agent` 的项目改用 agent 构建，旧 1.0.0 项目照旧生产构建并返回 `unsupported`。健康检查接受 1.0.0 与 1.1.0。
 - 验证：修复后的 A03/A07 无模型 live 通过；[A11 真实模型与 Host 固定复验](../verification/2026-10-11-app-control-plane/round-09-model-live/README.md) 通过，真实 MCP describe、UI、state、query 链路已运行。[round-10](../verification/2026-10-11-app-control-plane/round-10-cli/README.md) 在保持 `workspace-write` 与 Main 权限不变的前提下改用 CLI 文件通道，真实命令沙箱 11 项检查（含两项 Main 拒绝）、MCP 及 Host 固定 16 步通过；所属进程、映射和通道清理确认。[round-11](../verification/2026-10-11-app-control-plane/round-11-cli-cancel/README.md) 通过实际产品按钮取消真实在途 CLI，核对 11 个所属进程退出、通道删除、45 个源码文件保留及下一轮真实 CLI 的迟到响应隔离；按钮为 Playwright 自动点击，返回帧延迟由测试启动层控制。
 - 缺口：独立产品检查器仍未接入，测试内 Host 复验不写入 TaskRun 的 validation，也不构成用户接受；真人输入、安装包复验未在本轮执行；Expo（阶段 B）与 Android（阶段 C）未实现。
+
+### edu 短时发音验证
+
+显式验证会话冻结源码摘要与实例，期限 300 秒，最多两次 provider 调用。进入前排空维护操作并停止旧实例；验证期间禁止编码、终端写入和重建。guest 经专用 stdin/stdout 提交有限结构请求，宿主通过固定 SSH 程序调用远端 provider，凭据留在远端；不新增公网 API。provider 结果须与 session、request、实例及音频摘要严格关联，资格与幂等事务仍由外部业务后端负责。
+
+超时、断桥、到期、预算耗尽或迟到结果均不得放行。退出先撤销通道并等待在途子进程实际关闭，确认旧 owner 与旧 URL 清理、固定来源的新默认 AI 关闭实例恢复及日志持久化，再释放维护锁。恢复未知保持锁定；重启读取恢复日志，不重放旧请求。短时验证的实现和离线回归不代表真实远端评分或最终业务验收。
+
+### edu 页面任务的候选写回
+
+确认 edu 网页任务时，Main 将项目、运行实例、网页实例与文档代次、当前源码摘要及非 `admin/src/` 文件清单冻结到任务版本。执行沿用 CodexChat 和 GuestWorkspace：服务复查实例及源码后，将源码复制到独占候选目录，模型的 workspace-write 范围为该候选。完成回执之前先把完整候选保存到服务私有目录 `edu-task-candidates/<runId>.json`；取消及拒绝也保留，不纳入公共仓库证据。
+
+Main 仅对同一执行、仍有效的网页与运行实例准备写回。准备阶段只读取源码、校验并暂存候选，且不占住 Main 元数据队列；取消、停止和导航仍可被处理。准备回执后 Main 重新读取实时网页和实例状态，并在没有 await 的同一同步片段中派发 commit，作为明确授权切点；切点之前失效不会写入。服务与 guest helper 在 commit 阶段再次核对源码摘要和保护清单，只替换 `admin/src/` 内容；源码竞争、保护文件变化及链接拒绝写回。无法导出安全清单的候选保留 guest 目录并返回诊断。写回完成不代表构建、验收或用户接受；需独立停止/重建和复验。实际 sandbox 对活动工程不可写仍需对应 live 负例验证。
+
+`node scripts/edu-source.mjs verify --bundle <bundle>` 和 `merge` 接受产品的 `workbench-export`，严格校验 workbench 身份、导入基线及受保护文件。冲突由显式 Git/CLI 流程保留共同基线与双方内容，`resolve` 再核对解决后的完整快照。三方合并及解决输出均为 `manual-merge-candidate`，须重新导入并由产品导出后才能作为最终工作台制品。离线工具测试纳入 `pnpm test`。

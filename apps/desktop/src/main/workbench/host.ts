@@ -1,10 +1,23 @@
-import { isAllowedPreviewUrl } from '../preview/navigation-policy';
+import { isAllowedManagedAppUrl, isAllowedPreviewUrl } from '../preview/navigation-policy';
 import { parsePublicUrl } from '../preview/public-document';
-import { app, session, type BrowserWindow } from 'electron';
-import { readFile, readdir, lstat, mkdir, writeFile } from 'node:fs/promises';
+import { app, dialog, session, type BrowserWindow } from 'electron';
+import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
-import { randomUUID, createHash } from 'node:crypto';
-import type { AppTarget, ManagedApp, AppSource, CatalogReferenceSnapshot, AppAgentOperation } from '@wsl/protocol';
+import type {
+  AppTarget,
+  ManagedApp,
+  AppSource,
+  CatalogReferenceSnapshot,
+  AppAgentOperation,
+  EduTaskBinding,
+  EduVerificationStatus,
+  EduVerificationBegin,
+  EduVerificationTarget,
+  EduAdmissionRecoveryStatus,
+  EduImport,
+} from '@wsl/protocol';
+import { exportAppSource } from './source-export';
+import { collectEduSource } from './edu-source';
 import type { ObservationRequest, ObservationTurnScope, ResourceInstanceIdentity, WorkbenchResource } from '@wsl/protocol';
 import type { ChatService } from '../chat-service';
 import { BrowserObservation } from '../preview/observation';
@@ -23,10 +36,15 @@ export class WorkbenchHost implements WorkbenchRuntime {
     await this.application?.performActiveBrowserAction('openDevTools');
   }
   private readonly appLeases = new Map<string, ManagedApp>();
-  private readonly appEvents = new Map<string, ManagedApp>();
+  private readonly appStarts = new Map<string, { workspaceId: string; terminal: Map<string, ManagedApp> }>();
+  private appIdentity(snapshot: ManagedApp) {
+    return JSON.stringify([snapshot.appInstanceId, snapshot.profile ?? { projectKind: 'standard-app', profileVersion: 1 }]);
+  }
   private readonly appBrowserProjects = new Map<string, string>();
   async appGet(target: AppTarget) {
-    return this.chat.appGet(target);
+    const current = await this.chat.appGet(target);
+    if (this.currentAdmission?.phase === 'ended' && this.admissionHandover(current)) this.appLeases.set(current.projectId, current);
+    return current;
   }
   async appCreate(target: AppTarget) {
     const root = app.isPackaged
@@ -47,45 +65,70 @@ export class WorkbenchHost implements WorkbenchRuntime {
     await walk(root);
     return this.chat.appCreate(target, files);
   }
+  async appSelectEduSource(signal: AbortSignal) {
+    signal.throwIfAborted();
+    const selected = await dialog.showOpenDialog(this.window, {
+      properties: ['openDirectory'],
+      title: '导入 edu-web 工程',
+      buttonLabel: '校验并导入',
+      message: '选择本机 edu Git 根目录。只复制固定白名单源码，不复制环境文件、账号、数据库或依赖目录。',
+    });
+    signal.throwIfAborted();
+    if (selected.canceled || !selected.filePaths[0] || this.window.isDestroyed()) return null;
+    return collectEduSource(selected.filePaths[0], signal);
+  }
+  async appImportEdu(target: AppTarget, source: Pick<EduImport, 'source' | 'files'>) {
+    return this.chat.appImportEdu({ ...target, ...source });
+  }
   async appStart(target: AppTarget) {
-    const returned = await this.chat.appStart(target);
-    const last = this.appEvents.get(target.projectId);
-    const result = last?.appInstanceId === returned.appInstanceId && last.state === 'failed' ? last : returned;
-    if (result.state === 'running') {
-      const url = new URL(result.url!);
-      if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || !url.port || url.username || url.password)
-        throw new Error('invalid_input: 应用服务未返回受控回环地址');
-      this.appLeases.set(target.projectId, result);
+    const request = { workspaceId: target.workspaceId, terminal: new Map<string, ManagedApp>() };
+    this.appStarts.set(target.projectId, request);
+    try {
+      const returned = await this.chat.appStart(target);
+      if (returned.workspaceId !== target.workspaceId || returned.projectId !== target.projectId)
+        throw new Error('invalid_input: 应用服务返回的项目身份不匹配');
+      const result = request.terminal.get(this.appIdentity(returned)) ?? returned;
+      if (result.state === 'running' && this.appStarts.get(target.projectId) === request) {
+        if (!result.appInstanceId || !isAllowedManagedAppUrl(result.url ?? '', result.url ?? ''))
+          throw new Error('invalid_input: 应用服务未返回受控实例地址');
+        this.appLeases.set(target.projectId, result);
+      }
+      return result;
+    } finally {
+      if (this.appStarts.get(target.projectId) === request) this.appStarts.delete(target.projectId);
     }
-    return result;
+  }
+  private readonly audioReleases = new Map<string, Promise<Error | null>[]>();
+  private async confirmAudioReleases(projectId: string): Promise<void> {
+    const pending = this.audioReleases.get(projectId) ?? [];
+    this.audioReleases.delete(projectId);
+    const results = await Promise.all(pending);
+    const failure = results.find((result) => result !== null);
+    if (failure) throw failure;
   }
   async appStop(target: AppTarget) {
+    this.appStarts.delete(target.projectId);
     this.appLeases.delete(target.projectId);
-    return this.chat.appStop(target);
+    const results = await Promise.allSettled([this.confirmAudioReleases(target.projectId), this.chat.appStop(target)]);
+    const errors = results.filter((result) => result.status === 'rejected').map((result) => result.reason as unknown);
+    if (errors.length)
+      throw new AggregateError(errors, errors.map((error) => (error instanceof Error ? error.message : String(error))).join('；'));
+    const stopped = results[1];
+    if (stopped.status !== 'fulfilled') throw new Error('应用停止结果缺失');
+    return stopped.value;
+  }
+  eduTaskSource(target: AppTarget) {
+    return this.chat.appEduTaskSource(target);
+  }
+  eduTaskPrepare(binding: EduTaskBinding) {
+    return this.chat.appPrepareEduTask(binding);
+  }
+  eduTaskApply(binding: EduTaskBinding) {
+    return this.chat.appApplyEduTask(binding);
   }
   async appExport(target: AppTarget) {
     const source = await this.chat.appExport(target);
-    if (createHash('sha256').update(JSON.stringify(source.files)).digest('hex') !== source.sha256) throw new Error('源码导出散列不匹配');
-    const directory = path.join(app.getPath('userData'), 'exports');
-    await mkdir(directory, { recursive: true, mode: 0o700 });
-    const exported = path.join(directory, target.projectId + '-' + randomUUID());
-    await mkdir(exported, { mode: 0o700 });
-    for (const sourceFile of source.files) {
-      if (
-        sourceFile.path.includes('\\') ||
-        sourceFile.path.includes('\0') ||
-        sourceFile.path.split('/').some((part) => !part || part === '.' || part === '..')
-      )
-        throw new Error('源码导出路径无效');
-      const file = path.join(exported, sourceFile.path);
-      await mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
-      await writeFile(file, Buffer.from(sourceFile.base64, 'base64'), { flag: 'wx', mode: 0o600 });
-    }
-    await writeFile(`${exported}.manifest.json`, JSON.stringify({ ...target, ...source }, null, 2), {
-      flag: 'wx',
-      mode: 0o600,
-    });
-    return { path: exported, manifestPath: `${exported}.manifest.json`, sha256: source.sha256 };
+    return exportAppSource(path.join(app.getPath('userData'), 'exports'), target, source);
   }
   private readonly appUis = new Map<string, AppUiDriver>();
   /** 只为受管 App 的 Browser 资源提供控制面端口；演示页与公开只读文档永远不可写。 */
@@ -94,6 +137,7 @@ export class WorkbenchHost implements WorkbenchRuntime {
     const lease = projectId ? this.appLeases.get(projectId) : undefined;
     if (!projectId || !lease || lease.state !== 'running')
       throw new AppControlFailure('browser_unavailable', '不是当前运行的受管 App 网页');
+    if (lease.profile?.projectKind === 'edu-web') throw new AppControlFailure('unsupported', 'edu profile 不授予标准应用控制面端口');
     const preview = this.browser(resourceId);
     let driver = this.appUis.get(resourceId);
     if (!driver) {
@@ -138,21 +182,112 @@ export class WorkbenchHost implements WorkbenchRuntime {
     this.appUis.delete(resourceId);
     this.observers.get(resourceId)?.dispose();
     this.observers.delete(resourceId);
-    this.browsers.get(resourceId)?.dispose();
+    const preview = this.browsers.get(resourceId);
+    const projectId = this.appBrowserProjects.get(resourceId);
+    let cleanup: Promise<void> | undefined;
+    if (preview?.hasEduAudio()) {
+      cleanup = preview.closeWithAudioCleanup();
+      const result = cleanup.then(
+        () => null,
+        (error: unknown) => (error instanceof Error ? error : new Error(String(error))),
+      );
+      if (projectId) this.audioReleases.set(projectId, [...(this.audioReleases.get(projectId) ?? []), result]);
+    } else preview?.dispose();
     this.browsers.delete(resourceId);
     this.browserBindings.delete(resourceId);
     this.appBrowserProjects.delete(resourceId);
+    return cleanup;
   }
   private readonly browsers = new Map<string, PreviewController>();
   private readonly observers = new Map<string, BrowserObservation>();
   private readonly browserBindings = new Map<string, ResourceInstanceIdentity>();
-  application: WorkbenchApplication | null = null;
+  private currentVerification: EduVerificationStatus | null = null;
+  private currentAdmission: EduAdmissionRecoveryStatus | null = null;
+  private restoredVerificationInstance: string | null = null;
+  private workbench: WorkbenchApplication | null = null;
+  get application(): WorkbenchApplication | null {
+    return this.workbench;
+  }
+  set application(value: WorkbenchApplication | null) {
+    this.workbench = value;
+    if (value && this.currentVerification) this.publishVerification(this.currentVerification);
+    if (value && this.currentAdmission) this.publishAdmission(this.currentAdmission);
+  }
+  private publishVerification(status: EduVerificationStatus): void {
+    if (status.phase !== 'active') void this.deactivateAudio().catch((error: unknown) => console.error('撤销发音验证音频资格失败', error));
+    void this.application
+      ?.onVerification(status)
+      .then(() => this.resumeAudio())
+      .catch((error: unknown) => console.error('发音验证状态保存失败', error));
+  }
+  private publishAdmission(status: EduAdmissionRecoveryStatus): void {
+    void this.deactivateAudio().catch((error: unknown) => console.error('默认维护恢复音轨核验失败', error));
+    void this.application
+      ?.onAdmissionRecovery(status)
+      .then(() => this.resumeAudio())
+      .catch((error: unknown) => console.error('默认维护恢复状态未确认', error));
+  }
+  async verificationRecoverAdmission(original: EduVerificationBegin) {
+    const result = await this.chat.verificationRecoverAdmission(original);
+    this.currentAdmission = result;
+    this.publishAdmission(result);
+    return result;
+  }
+  private admissionHandover(snapshot: ManagedApp): boolean {
+    const status = this.currentAdmission;
+    const restored = status?.restoredIdentity;
+    return (
+      !!status &&
+      ['restoring', 'ended'].includes(status.phase) &&
+      !!restored &&
+      snapshot.workspaceId === restored.workspaceId &&
+      snapshot.projectId === restored.projectId &&
+      snapshot.appInstanceId === restored.appInstanceId &&
+      snapshot.appInstanceId !== status.originalIdentity.appInstanceId &&
+      snapshot.profile?.projectKind === 'edu-web' &&
+      snapshot.sourceSha256 === status.sourceSha256
+    );
+  }
+  verificationBegin(input: EduVerificationBegin) {
+    return this.chat.verificationBegin(input);
+  }
+  verificationEnd(target: EduVerificationTarget) {
+    return this.chat.verificationEnd(target);
+  }
+  verificationStatus(target: EduVerificationTarget) {
+    return this.chat.verificationStatus(target);
+  }
+  verificationReconcile(target: EduVerificationTarget) {
+    return this.chat.verificationReconcile(target);
+  }
+  private verificationHandover(snapshot: ManagedApp): boolean {
+    if (this.admissionHandover(snapshot)) return true;
+    const state = this.currentVerification;
+    if (
+      !state ||
+      snapshot.workspaceId !== state.lease.identity.workspaceId ||
+      snapshot.projectId !== state.lease.identity.projectId ||
+      snapshot.profile?.projectKind !== 'edu-web' ||
+      snapshot.sourceSha256 !== state.lease.sourceSha256 ||
+      !snapshot.appInstanceId
+    )
+      return false;
+    if (state.phase === 'restoring') {
+      if (snapshot.appInstanceId === state.lease.identity.appInstanceId) return false;
+      if (!this.restoredVerificationInstance && snapshot.state === 'starting') this.restoredVerificationInstance = snapshot.appInstanceId;
+      return this.restoredVerificationInstance === snapshot.appInstanceId;
+    }
+    return (
+      ['preparing', 'active', 'revoking', 'revoked', 'failed'].includes(state.phase) &&
+      snapshot.appInstanceId === state.lease.identity.appInstanceId
+    );
+  }
   environmentsList() {
     return this.chat.environmentsList();
   }
   async releaseResource(identity: ResourceInstanceIdentity) {
     if (identity.kind === 'browser') {
-      this.releaseAppBrowser(identity.resourceId);
+      await this.releaseAppBrowser(identity.resourceId);
       return;
     }
     await this.chat.releaseResource(identity);
@@ -193,14 +328,51 @@ export class WorkbenchHost implements WorkbenchRuntime {
     private readonly chat: ChatService,
     private readonly demoRoot: string,
   ) {
+    chat.setVerificationGuard(() => this.application?.maintenanceLocked() ?? false);
+    chat.setAdmissionRecoveryListener((status) => {
+      const previous = this.currentAdmission;
+      if (
+        previous &&
+        ((previous.recoveryId !== status.recoveryId && previous.maintenanceLocked) ||
+          (previous.recoveryId === status.recoveryId && previous.phase === 'ended'))
+      )
+        return;
+      this.currentAdmission = status;
+      this.publishAdmission(status);
+    });
+    chat.setVerificationListener((status) => {
+      if (
+        this.currentVerification &&
+        this.currentVerification.lease.sessionId !== status.lease.sessionId &&
+        this.currentVerification.maintenanceLocked
+      )
+        return;
+      if (this.currentVerification?.lease.sessionId !== status.lease.sessionId) this.restoredVerificationInstance = null;
+      this.currentVerification = status;
+      this.publishVerification(status);
+    });
     chat.setAppListener((snapshot) => {
-      this.appEvents.set(snapshot.projectId, snapshot);
-      if (snapshot.state !== 'running' && this.appLeases.get(snapshot.projectId)?.appInstanceId === snapshot.appInstanceId) {
+      const key = this.appIdentity(snapshot);
+      const lease = this.appLeases.get(snapshot.projectId);
+      const handover = this.verificationHandover(snapshot);
+      if (lease && !handover && (lease.workspaceId !== snapshot.workspaceId || this.appIdentity(lease) !== key)) return;
+      const pending = this.appStarts.get(snapshot.projectId);
+      const previous = pending?.workspaceId === snapshot.workspaceId ? pending.terminal.get(key) : undefined;
+      if (
+        previous &&
+        ['failed', 'stopped'].includes(previous.state) &&
+        (!['failed', 'stopped'].includes(snapshot.state) || (previous.cleanupConfirmed && !snapshot.cleanupConfirmed))
+      )
+        return;
+      if (pending?.workspaceId === snapshot.workspaceId && ['failed', 'stopped', 'stopping'].includes(snapshot.state))
+        pending.terminal.set(key, snapshot);
+      if (lease && snapshot.state !== 'running') {
         this.appLeases.delete(snapshot.projectId);
         for (const [resourceId, binding] of this.browserBindings)
           if (binding.workspaceId === snapshot.workspaceId && this.appBrowserProjects.get(resourceId) === snapshot.projectId)
             this.releaseAppBrowser(resourceId);
       }
+      if (handover && snapshot.state === 'running') this.appLeases.set(snapshot.projectId, snapshot);
       void this.application?.onApp(snapshot);
     });
   }
@@ -215,7 +387,12 @@ export class WorkbenchHost implements WorkbenchRuntime {
   ensureBrowser(workspaceId: string, resource: WorkbenchResource): void {
     const lease = resource.appProjectId ? this.appLeases.get(resource.appProjectId) : undefined;
     if (resource.appProjectId) {
-      if (!lease || lease.workspaceId !== workspaceId || lease.state !== 'running' || resource.url !== lease.url)
+      if (
+        !lease ||
+        lease.workspaceId !== workspaceId ||
+        lease.state !== 'running' ||
+        !isAllowedManagedAppUrl(resource.url ?? '', lease.url ?? '')
+      )
         throw new Error('unavailable: 应用实例已停止或需要重新启动');
     } else this.validateBrowserUrl(resource.url ?? 'wsl-demo://taskflow/index.html');
     if (this.browsers.has(resource.resourceId)) return;
@@ -227,6 +404,34 @@ export class WorkbenchHost implements WorkbenchRuntime {
     const { resourceId, instanceId, generation } = resource;
     const preview = new PreviewController(this.window, {
       partition,
+      eduAudio:
+        lease?.profile?.projectKind === 'edu-web'
+          ? () => {
+              const current = this.appLeases.get(lease.projectId);
+              const binding = this.browserBindings.get(resourceId);
+              if (
+                !binding ||
+                binding.instanceId !== instanceId ||
+                binding.instanceGeneration !== generation ||
+                current?.appInstanceId !== lease.appInstanceId ||
+                current.state !== 'running' ||
+                !this.application?.verificationAllowsAudio(current.projectId, current.appInstanceId ?? '') ||
+                !current.url ||
+                !current.appInstanceId
+              )
+                return null;
+              return {
+                workspaceId,
+                resourceId,
+                instanceId: binding.instanceId,
+                instanceGeneration: generation,
+                appInstanceId: current.appInstanceId,
+                origin: new URL(current.url).origin,
+                activeWorkspace: this.application?.isActiveWorkspace(workspaceId) ?? false,
+                running: true,
+              };
+            }
+          : undefined,
       homeUrl: resource.url ?? 'wsl-demo://taskflow/index.html',
       allowedOrigins: lease?.url ? [new URL(lease.url).origin] : [DEMO_ORIGIN],
       managedAppOrigin: lease
@@ -324,18 +529,38 @@ export class WorkbenchHost implements WorkbenchRuntime {
     const preview = this.browser(resourceId);
     return preview.captureResource(preview.getState().page);
   }
-  send(sessionId: string, text: string, scope: ObservationTurnScope | undefined, references: CatalogReferenceSnapshot) {
-    return this.chat.send(sessionId, text, scope, references);
+  send(
+    sessionId: string,
+    text: string,
+    scope: ObservationTurnScope | undefined,
+    references: CatalogReferenceSnapshot,
+    eduTask?: EduTaskBinding,
+  ) {
+    return this.chat.send(sessionId, text, scope, references, eduTask);
   }
   cancel(sessionId: string) {
     return this.chat.cancel(sessionId);
   }
+  resumeAudio(): Promise<void> {
+    return Promise.all(
+      [...this.browsers.values()].filter((preview) => preview.hasEduAudio()).map((preview) => preview.resumeEduAudio()),
+    ).then(() => undefined);
+  }
+  deactivateAudio(): Promise<void> {
+    // Revoke all qualification synchronously before waiting for any OS grant.
+    return Promise.all(
+      [...this.browsers.values()].filter((preview) => preview.hasEduAudio()).map((preview) => preview.stopEduAudio()),
+    ).then(() => undefined);
+  }
   dispose() {
     for (const driver of this.appUis.values()) driver.dispose();
     this.appUis.clear();
+    this.appStarts.clear();
+    this.appLeases.clear();
     for (const observer of this.observers.values()) observer.dispose();
     this.observers.clear();
     this.browserBindings.clear();
+    this.appBrowserProjects.clear();
     for (const p of this.browsers.values()) p.dispose();
     this.browsers.clear();
   }

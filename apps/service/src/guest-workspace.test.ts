@@ -1,4 +1,4 @@
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
@@ -109,14 +109,15 @@ describe.skipIf(process.platform !== 'linux')('actual guest run-copy and cleanup
     }
   });
 
-  it('rejects symlinks without transferring their targets and still confirms directory cleanup', async () => {
+  it('rejects symlinks without transferring their targets and retains candidate after process cleanup', async () => {
     const probe = await startProbe("import os\nos.symlink('/etc/passwd','src/App-link.tsx')");
     try {
       expect(await probe.done, probe.stderr()).toBe(0);
       expect(probe.frames.some((frame) => frame.type === 'error' && frame.error.includes('symlink'))).toBe(true);
       expect(probe.frames.some((frame) => frame.type === 'workspace')).toBe(false);
       expect(probe.frames.at(-1)).toEqual({ type: 'cleanup', ok: true });
-      expect(await readdir(probe.root)).toEqual([]);
+      expect((await readdir(probe.root)).length).toBe(1);
+      expect(probe.frames.some((frame) => frame.type === 'error' && frame.error.includes('candidate retained'))).toBe(true);
     } finally {
       probe.child.stdin.end();
       if (probe.child.exitCode === null) probe.child.kill('SIGKILL');
@@ -199,4 +200,159 @@ describe.skipIf(process.platform !== 'linux')('actual guest run-copy and cleanup
     },
     10000,
   );
+});
+
+describe('guest candidate snapshot link rejection (portable Python boundary)', () => {
+  it.each(['symlink', 'hardlink'])('refuses %s without reading its target', async (kind) => {
+    const root = await mkdtemp(path.join(tmpdir(), 'wsl-snapshot-link-'));
+    roots.push(root);
+    const marker = '\ntry:\n    start = read_start()';
+    const prefix = helper.slice(0, helper.lastIndexOf(marker));
+    const script = `${prefix}\nroot=sys.argv[1]\nwith open(root+'/source.ts','w') as f: f.write('keep')\nos.${kind === 'symlink' ? 'symlink' : 'link'}(root+'/source.ts',root+'/linked.ts')\nsnapshot_workspace(root,sys.argv[2])\n`;
+    expect(() =>
+      execFileSync('python3', ['-c', script, root, randomUUID()], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }),
+    ).toThrow(kind);
+    expect(await readFile(path.join(root, 'source.ts'), 'utf8')).toBe('keep');
+  });
+});
+
+describe('edu strict candidate snapshots (portable Python boundary)', () => {
+  it.each(
+    ['node_modules', 'dist', '.vite'].flatMap((directory) =>
+      ['empty', 'file', 'symlink', 'hardlink'].map((kind) => ({
+        directory,
+        kind,
+      })),
+    ),
+  )('rejects and retains $directory/$kind after child exit', async ({ directory, kind }) => {
+    const root = await mkdtemp(path.join(tmpdir(), 'wsl-edu-strict-'));
+    roots.push(root);
+    const prefix = helper.slice(0, helper.lastIndexOf('\ntry:\n    start = read_start()'));
+    const stimulus =
+      `from pathlib import Path\nimport os\nPath('admin/src/App.tsx').write_text('changed')\nPath('${directory}').mkdir()\n` +
+      (kind === 'empty'
+        ? ''
+        : kind === 'file'
+          ? `Path('${directory}/outside.txt').write_text('outside')`
+          : `Path('${directory}/outside.txt').write_text('outside')\nos.${kind === 'symlink' ? 'symlink' : 'link'}('${directory}/outside.txt','${directory}/linked.ts')`);
+    const runId = randomUUID();
+    // Only process-table cleanup is substituted: the actual helper owns the cwd,
+    // launches a descendant-free local child and executes both snapshot paths.
+    const script = `${prefix}\nCWD=sys.argv[1]\ndef cleanup(sid, child, leader_identity=None):\n    child.wait()\nmain(json.loads(sys.argv[2]))\n`;
+    const frames = execFileSync(
+      'python3',
+      [
+        '-c',
+        script,
+        root,
+        JSON.stringify({
+          mode: 'codex',
+          argv: ['python3', '-c', stimulus],
+          strictWorkspace: true,
+          workspace: {
+            runId,
+            files: [{ path: 'admin/src/App.tsx', base64: 'YmVmb3Jl' }],
+          },
+        }),
+      ],
+      { encoding: 'utf8', input: '' },
+    )
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line.slice('WSL_GUEST_FRAME:'.length)));
+    expect(frames.filter((frame) => frame.type === 'workspace')).toEqual([]);
+    const retained = frames.find((frame) => frame.type === 'error' && frame.error.includes('candidate retained'));
+    expect(retained).toMatchObject({ runId });
+    expect(retained.error).toContain(`guest edu workspace forbidden directory: ${directory}`);
+    expect(path.dirname(retained.workspaceDir)).toBe(root);
+    expect(await readFile(path.join(retained.workspaceDir, 'admin/src/App.tsx'), 'utf8')).toBe('changed');
+    expect(await readdir(root)).toEqual([path.basename(retained.workspaceDir)]);
+    expect(frames.at(-1)).toEqual({ type: 'cleanup', ok: true });
+  });
+
+  it.each(['foo', 'server/new-empty', '.git', '.data'])('rejects and retains new empty directory %s', async (directory) => {
+    const root = await mkdtemp(path.join(tmpdir(), 'wsl-edu-empty-'));
+    roots.push(root);
+    const prefix = helper.slice(0, helper.lastIndexOf('\ntry:\n    start = read_start()'));
+    const script = `${prefix}\nCWD=sys.argv[1]\ndef cleanup(sid,child,leader_identity=None):\n    child.wait()\nmain(json.loads(sys.argv[2]))\n`;
+    const runId = randomUUID();
+    const frames = execFileSync(
+      'python3',
+      [
+        '-c',
+        script,
+        root,
+        JSON.stringify({
+          mode: 'codex',
+          strictWorkspace: true,
+          argv: [
+            'python3',
+            '-c',
+            `from pathlib import Path\nPath('${directory}').mkdir(parents=True)\nPath('admin/src/App.tsx').write_text('changed')`,
+          ],
+          workspace: {
+            runId,
+            files: [
+              { path: 'admin/src/App.tsx', base64: 'YmVmb3Jl' },
+              { path: 'server/app.py', base64: 'YmFzZQ==' },
+            ],
+          },
+        }),
+      ],
+      { encoding: 'utf8', input: '' },
+    )
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line.slice('WSL_GUEST_FRAME:'.length)));
+    expect(frames.filter((frame) => frame.type === 'workspace')).toEqual([]);
+    const retained = frames.find((frame) => frame.type === 'error' && frame.error.includes('candidate retained'));
+    expect(retained.error).toContain(`guest edu workspace forbidden directory: ${directory}`);
+    expect(await readdir(path.join(retained.workspaceDir, directory))).toEqual([]);
+    expect(await readFile(path.join(retained.workspaceDir, 'admin/src/App.tsx'), 'utf8')).toBe('changed');
+    expect(frames.at(-1)).toEqual({ type: 'cleanup', ok: true });
+  });
+
+  it.each([false, true])('accepts legal candidate with strict=%s', async (strict) => {
+    const root = await mkdtemp(path.join(tmpdir(), 'wsl-legal-snapshot-'));
+    roots.push(root);
+    const prefix = helper.slice(0, helper.lastIndexOf('\ntry:\n    start = read_start()'));
+    const script = `${prefix}\nos.makedirs(sys.argv[1]+'/admin/src/new-empty')\nPath(sys.argv[1]+'/admin/src/App.tsx').write_text('legal')\nsnapshot_workspace(sys.argv[1],sys.argv[2],strict=${strict ? 'True' : 'False'},original_files=[{"path":"admin/src/App.tsx"}])\n`;
+    const frames = execFileSync('python3', ['-c', script, root, randomUUID()], { encoding: 'utf8' });
+    expect(JSON.parse(frames.slice('WSL_GUEST_FRAME:'.length))).toMatchObject({
+      type: 'workspace',
+      files: [{ path: 'admin/src/App.tsx', base64: 'bGVnYWw=' }],
+    });
+  });
+
+  it('standard snapshots preserve their existing build-directory filtering', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'wsl-standard-snapshot-'));
+    roots.push(root);
+    const prefix = helper.slice(0, helper.lastIndexOf('\ntry:\n    start = read_start()'));
+    const script = `${prefix}\nfor directory in ('node_modules','dist','.vite'):\n    os.mkdir(sys.argv[1]+'/'+directory)\n    os.symlink('/not-readable',sys.argv[1]+'/'+directory+'/link')\nsnapshot_workspace(sys.argv[1],sys.argv[2])\n`;
+    const frames = execFileSync('python3', ['-c', script, root, randomUUID()], {
+      encoding: 'utf8',
+    });
+    expect(JSON.parse(frames.slice('WSL_GUEST_FRAME:'.length))).toMatchObject({
+      type: 'workspace',
+      files: [],
+    });
+  });
+
+  it.each(['false', '0', 'null', '{}'])('rejects nonboolean strictWorkspace %s at the start boundary', (value) => {
+    const prefix = helper.slice(0, helper.lastIndexOf('\ntry:\n    start = read_start()'));
+    const script = `${prefix}\nfrom types import SimpleNamespace\nsys.platform='linux'\nctypes.CDLL=lambda *args,**kwargs:SimpleNamespace(prctl=lambda *args:0)\nread_start()\n`;
+    const result = spawnSync('python3', ['-c', script], {
+      encoding: 'utf8',
+      input:
+        JSON.stringify({
+          type: 'start',
+          mode: 'codex',
+          argv: ['codex'],
+          strictWorkspace: JSON.parse(value === 'false' ? '"false"' : value),
+        }) + '\n',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('ValueError: invalid observation capability');
+  });
 });

@@ -856,5 +856,16 @@ export function projectFacts(input: FactInput): StatusFact[] {
     facts.push(...storageFacts(input.snapshot));
     for (const workspace of input.snapshot.workspaces) facts.push(...workspaceFacts(workspace, input.snapshot.environments ?? []));
   }
+  const verification = input.snapshot?.eduVerification;
+  if (
+    verification &&
+    (verification.recoveryRequired ||
+      (verification.admissionRecovery
+        ? verification.admissionRecovery.maintenanceLocked
+        : !verification.status || verification.status.maintenanceLocked))
+  )
+    for (const fact of facts)
+      if (fact.action && ['app.start', 'app.create', 'terminal.connect'].includes(fact.action.id))
+        fact.action = { ...fact.action, disabled: true };
   return facts;
 }

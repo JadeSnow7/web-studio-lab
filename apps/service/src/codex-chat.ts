@@ -11,13 +11,14 @@ import {
   type AppControlResult,
   ResourceBundleSchema,
   type ObservationTurnScope,
+  type EduTaskBinding,
   type WorkspaceObservationResult,
   type ChatConversation,
   type ChatSlot,
   type ChatStatus,
   type CatalogReferenceSnapshot,
 } from '@wsl/protocol';
-import { SbxConnection, type GuestProcess } from './sbx';
+import { SbxConnection, type GuestProcess, type GuestWorkspace } from './sbx';
 
 const EventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('thread.started'), thread_id: z.string().min(1) }),
@@ -259,6 +260,7 @@ export class CodexChat {
     text: string,
     observationScope: ObservationTurnScope | undefined,
     references: CatalogReferenceSnapshot,
+    eduTask?: { binding: EduTaskBinding; workspace: GuestWorkspace; retain: (candidate: GuestWorkspace) => Promise<void> },
   ): Promise<ChatConversation> {
     if (this.closing) throw new Error('对话服务正在关闭');
     if (id !== 'conv-personal-default' && !this.workspaceBySession.has(id)) throw new Error('会话尚未由宿主注册');
@@ -267,6 +269,14 @@ export class CodexChat {
       if (observationScope.sessionId !== id || this.workspaceBySession.get(id) !== observationScope.workspaceId)
         throw new Error('观察会话不属于已注册空间');
     }
+    if (
+      eduTask &&
+      (!observationScope ||
+        observationScope.runId !== eduTask.binding.runId ||
+        observationScope.workspaceId !== eduTask.binding.workspaceId ||
+        eduTask.workspace.runId !== eduTask.binding.runId)
+    )
+      throw new Error('edu task does not belong to this run');
     const status = this.getStatus();
     if (!status.available) throw new Error(status.reason ?? 'sbx 不可用');
     const slot = this.slot(id);
@@ -287,7 +297,13 @@ export class CodexChat {
     Object.assign(slot.conversation, { turnId, state: 'running', error: null, cleanupPending: true });
     slot.conversation.messages.push({ id: turnId, role: 'user', text });
     this.publish(slot);
-    const common = ['codex', 'exec', '--sandbox', 'workspace-write'];
+    const common = [
+      'codex',
+      'exec',
+      '--sandbox',
+      'workspace-write',
+      ...(eduTask ? ['-c', 'sandbox_workspace_write.writable_roots=[]'] : []),
+    ];
     const argv = slot.conversation.threadId
       ? [...common, 'resume', '--json', '--skip-git-repo-check', slot.conversation.threadId, '-']
       : [...common, '--json', '--skip-git-repo-check', '-'];
@@ -381,6 +397,8 @@ export class CodexChat {
         fail(`Codex 协议错误：${(error as Error).message}`);
       }
     };
+    let candidate: GuestWorkspace | undefined;
+    const candidateDiagnostics: string[] = [];
     let callCount = 0;
     const process = this.connection.start(
       {
@@ -391,8 +409,18 @@ export class CodexChat {
         resourceBundle,
         observation: Boolean(observationScope && this.observationReader),
         observationImages: false,
+        ...(eduTask ? { workspace: eduTask.workspace, strictWorkspace: true } : {}),
       },
       (frame) => {
+        if (eduTask && frame.type === 'error') candidateDiagnostics.push(frame.error.slice(0, 4000));
+        if (frame.type === 'workspace') {
+          if (!eduTask || candidate) {
+            fail('Unexpected or duplicate task candidate');
+            return;
+          }
+          candidate = { runId: frame.runId, files: frame.files };
+          return;
+        }
         if (frame.type === 'observation-cancel') {
           turn.calls.get(frame.id)?.abort();
           return;
@@ -485,13 +513,13 @@ export class CodexChat {
       calls: new Map(),
     };
     slot.active = turn;
-    void process.done.then((outcome) => {
+    void process.done.then(async (outcome) => {
       turn.observation.abort();
       if (buffer.trim()) consume(buffer);
       if (slot.active !== turn) return;
       turn.cleanupError = !outcome.confirmed ? (outcome.error ?? 'guest 清理未确认') : null;
       slot.conversation.cleanupPending = !outcome.confirmed;
-      if (!turn.cleanupError) slot.active = null;
+
       const failure =
         turn.cleanupError ??
         outcome.error ??
@@ -507,8 +535,19 @@ export class CodexChat {
                   ? 'Codex 未返回助手回复'
                   : null
           : null);
-      slot.conversation.state = failure ? 'failed' : turn.cancel ? 'cancelled' : 'idle';
-      slot.conversation.error = failure;
+      let candidateFailure: string | null = null;
+      if (eduTask) {
+        try {
+          if (!candidate) throw new Error(['edu task returned no candidate', ...candidateDiagnostics].join('; '));
+          await eduTask.retain(candidate);
+          slot.conversation.eduCandidateRunId = eduTask.binding.runId;
+        } catch (error) {
+          candidateFailure = (error as Error).message;
+        }
+      }
+      if (!turn.cleanupError) slot.active = null;
+      slot.conversation.state = candidateFailure || failure ? 'failed' : turn.cancel ? 'cancelled' : 'idle';
+      slot.conversation.error = candidateFailure ? [failure, candidateFailure].filter(Boolean).join('; ') : failure;
       this.publish(slot);
     });
     return this.get(id);
@@ -536,6 +575,10 @@ export class CodexChat {
     await this.cancel(id);
     this.slots.delete(id);
     return this.publish(this.slot(id));
+  }
+  async drainForVerification(): Promise<void> {
+    await Promise.all([...this.slots.keys()].map((id) => this.cancel(id)));
+    if (this.connection.getCleanupPending()) throw new Error('verification_coding_cleanup_unconfirmed');
   }
   beginShutdown(): void {
     // Apps still need the shared connection while their mappings are removed.

@@ -1,3 +1,5 @@
+import type { EduVerificationLease } from '@wsl/protocol';
+import { ASSESSMENT_PREFIX, MAX_ASSESSMENT_FRAME } from './edu-assessment';
 import { execFile, spawn } from 'node:child_process';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { promisify } from 'node:util';
@@ -13,9 +15,21 @@ import {
   type AppAgentOperation,
   type AppAgentResult,
   type AppLogs,
+  AppProfileSchema,
+  EduSourceSchema,
+  EDU_REQUIRED_FILES,
+  isEduSourcePath,
+  type AppProfile,
+  type AppSource,
+  type EduSource,
+  type EduTaskBinding,
 } from '@wsl/protocol';
 import { type GuestProcess, type SbxConnection } from './sbx';
-import helper from './app-helper.py?raw';
+import rawHelper from './app-helper.py?raw';
+import ownedProcess from './edu-owned-process.py?raw';
+const helper = rawHelper.replace('OWNED_PROCESS_BASE64 = ""', `OWNED_PROCESS_BASE64 = "${Buffer.from(ownedProcess).toString('base64')}"`);
+import { assertEduTaskSource, assertEduTaskCandidate, eduTaskMetadata } from './edu-task';
+import type { GuestWorkspace } from './sbx';
 
 const exec = promisify(execFile);
 const keySchema = z
@@ -25,6 +39,8 @@ const fileSchema = z.object({ path: z.string().min(1).max(512), base64: z.string
 export type AppKey = z.infer<typeof keySchema>;
 export type AppSourceFile = z.infer<typeof fileSchema>;
 export interface AppSnapshot extends AppKey {
+  profile: AppProfile;
+  sourceSha256?: string;
   environmentId: 'sandbox';
   appInstanceId: string | null;
   state: 'created' | 'starting' | 'running' | 'stopping' | 'stopped' | 'failed';
@@ -43,7 +59,7 @@ const portSchema = z.object({
 type Port = z.infer<typeof portSchema>;
 interface Entry {
   snapshot: AppSnapshot;
-  process: Pick<GuestProcess, 'done' | 'close'> | null;
+  process: (Pick<GuestProcess, 'done' | 'close'> & Partial<Pick<GuestProcess, 'write' | 'closeInput'>>) | null;
   operation: Promise<AppSnapshot> | null;
   commandProcess: Pick<GuestProcess, 'done' | 'close'> | null;
   stopping: Promise<AppSnapshot> | null;
@@ -57,6 +73,10 @@ interface Entry {
   /** 每次启动随机生成，仅经 guest 进程环境传给受管开发实例的 /api/__agent；停止即作废。 */
   agentToken: string | null;
   agentProcess: Pick<GuestProcess, 'done' | 'close'> | null;
+  recoveryInstanceId?: string | null;
+  recoveryUrl?: string | null;
+  processExpected?: boolean;
+  portRemovalPending?: boolean;
   agentAdmission?: Promise<void>;
   httpOperation: { operationId: string; operation: 'seed' | 'reset'; appInstanceId: string } | null;
 }
@@ -94,14 +114,81 @@ export function validateAppSources(files: AppSourceFile[]): void {
   if (total > 524288) throw new Error('应用源码超出传输预算');
 }
 
+function validateEduSources(files: AppSourceFile[], baseline: EduSource, importing: boolean): string {
+  validateAppSources(files);
+  const current = [...files]
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+    .map((file) => {
+      if (!isEduSourcePath(file.path)) throw new Error('不支持的 edu 源码路径');
+      const bytes = Buffer.from(file.base64, 'base64');
+      return { path: file.path, sha256: createHash('sha256').update(bytes).digest('hex'), bytes: bytes.length };
+    });
+  for (const name of EDU_REQUIRED_FILES) if (!current.some((file) => file.path === name)) throw new Error('edu 工程缺少必需源码：' + name);
+  const digest = createHash('sha256').update(JSON.stringify(current)).digest('hex');
+  if (importing && (digest !== baseline.sourceSha256 || JSON.stringify(current) !== JSON.stringify(baseline.files)))
+    throw new Error('edu 源码与来源散列不匹配');
+  const protectedFiles = (metadata: EduSource['files']) => metadata.filter((file) => !file.path.startsWith('admin/src/'));
+  if (!importing && JSON.stringify(protectedFiles(current)) !== JSON.stringify(protectedFiles(baseline.files)))
+    throw new Error('edu 后端或锁文件变化，需要显式重新导入来源');
+  return digest;
+}
+
+const standardProfile: AppProfile = { projectKind: 'standard-app', profileVersion: 1 };
+const registryApp = keySchema.extend({
+  cleanupConfirmed: z.boolean(),
+  state: z.enum(['created', 'starting', 'running', 'stopping', 'stopped', 'failed']),
+});
+const registrySchema = z.discriminatedUnion('version', [
+  z
+    .object({
+      version: z.literal(3),
+      sandbox: z.string().min(1),
+      apps: z.array(
+        registryApp.extend({
+          profile: AppProfileSchema,
+          sourceSha256: z
+            .string()
+            .regex(/^[a-f0-9]{64}$/)
+            .optional(),
+          appInstanceId: z.string().uuid().nullable(),
+          url: z.string().nullable(),
+          guestPort: z.number().int().min(1).max(65535).nullable(),
+          portPending: z.boolean(),
+          portRemovalPending: z.boolean(),
+          port: portSchema.nullable(),
+          processExpected: z.boolean(),
+        }),
+      ),
+    })
+    .strict(),
+  z.object({ version: z.literal(1), sandbox: z.string().min(1), apps: z.array(registryApp) }).strict(),
+  z
+    .object({
+      version: z.literal(2),
+      sandbox: z.string().min(1),
+      apps: z.array(
+        registryApp.extend({
+          profile: AppProfileSchema,
+          sourceSha256: z
+            .string()
+            .regex(/^[a-f0-9]{64}$/)
+            .optional(),
+        }),
+      ),
+    })
+    .strict(),
+]);
+
 /** One project service owner, independent of Codex task completion. */
 export class AppService {
   private entries = new Map<string, Entry>();
   private closing = false;
+  private verification = new Map<string, { lease: EduVerificationLease; request: (line: string) => void; fail: () => void }>();
   private persistence: Promise<void> = Promise.resolve();
   private options: AppServiceOptions;
   private loaded: Promise<void> | null = null;
   private registrySandbox: string | null = null;
+  private legacyRegistry: string | null = null;
   constructor(
     private connection: Pick<SbxConnection, 'getStatus' | 'runtimeTarget'> & {
       start: (...args: Parameters<SbxConnection['start']>) => Pick<GuestProcess, 'done' | 'close'>;
@@ -120,28 +207,18 @@ export class AppService {
   }
   private async load(): Promise<void> {
     if (!this.options.registryPath) return;
-    let data: unknown;
+    let contents: string;
     try {
-      data = JSON.parse(await readFile(this.options.registryPath, 'utf8'));
+      contents = await readFile(this.options.registryPath, 'utf8');
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
       throw error;
     }
-    const registry = z
-      .object({
-        version: z.literal(1),
-        sandbox: z.string().min(1),
-        apps: z.array(
-          keySchema.extend({
-            cleanupConfirmed: z.boolean(),
-            state: z.enum(['created', 'starting', 'running', 'stopping', 'stopped', 'failed']),
-          }),
-        ),
-      })
-      .strict()
-      .parse(data);
+    const registry = registrySchema.parse(JSON.parse(contents));
     if (registry.sandbox !== this.connection.getStatus().sandbox) throw new Error('应用注册表沙箱身份不匹配');
+    if (new Set(registry.apps.map((item) => item.projectId)).size !== registry.apps.length) throw new Error('应用注册表包含重复项目身份');
     this.registrySandbox = registry.sandbox;
+    this.legacyRegistry = registry.version === 1 ? contents : null;
     // Registry restores source ownership only. No process or port is replayed.
     for (const saved of registry.apps) {
       const key = { workspaceId: saved.workspaceId, projectId: saved.projectId };
@@ -149,22 +226,28 @@ export class AppService {
       this.entries.set(this.id(key), {
         snapshot: {
           ...key,
+          profile: 'profile' in saved ? saved.profile : { ...standardProfile },
+          ...('sourceSha256' in saved ? { sourceSha256: saved.sourceSha256 } : {}),
           environmentId: 'sandbox',
           appInstanceId: null,
           state: confirmed ? 'stopped' : 'failed',
           url: null,
           guestCwd: `/home/agent/workspace/.wsl-apps/${key.projectId}`,
-          guestPort: null,
+          guestPort: 'guestPort' in saved && !confirmed ? saved.guestPort : null,
           error: confirmed ? null : '上次运行中断，需核对沙箱进程与端口',
           cleanupConfirmed: confirmed,
         },
+        recoveryInstanceId: 'appInstanceId' in saved ? saved.appInstanceId : null,
+        recoveryUrl: 'url' in saved ? saved.url : null,
+        processExpected: 'processExpected' in saved ? saved.processExpected : false,
+        portRemovalPending: 'portRemovalPending' in saved ? saved.portRemovalPending : false,
         process: null,
         operation: null,
         commandProcess: null,
         stopping: null,
         cancelled: false,
-        port: null,
-        portPending: false,
+        port: 'port' in saved ? saved.port : null,
+        portPending: 'portPending' in saved ? saved.portPending : false,
         log: '',
         readyPort: null,
         readyError: null,
@@ -180,20 +263,41 @@ export class AppService {
     const target = this.options.registryPath;
     // Capture in invocation order, then publish in that order across all projects.
     const contents = JSON.stringify({
-      version: 1,
+      version: 3,
       sandbox: z.string().min(1).parse(this.registrySandbox),
-      apps: [...this.entries.values()].map(({ snapshot }) => ({
-        workspaceId: snapshot.workspaceId,
-        projectId: snapshot.projectId,
-        state: snapshot.state,
-        cleanupConfirmed: snapshot.cleanupConfirmed,
-      })),
+      apps: [...this.entries.values()].map(
+        ({ snapshot, recoveryInstanceId, recoveryUrl, port, portPending, processExpected, portRemovalPending }) => ({
+          workspaceId: snapshot.workspaceId,
+          projectId: snapshot.projectId,
+          state: snapshot.state,
+          cleanupConfirmed: snapshot.cleanupConfirmed,
+          profile: snapshot.profile,
+          sourceSha256: snapshot.sourceSha256,
+          appInstanceId: snapshot.appInstanceId ?? recoveryInstanceId ?? null,
+          url: snapshot.url ?? recoveryUrl ?? null,
+          guestPort: snapshot.guestPort,
+          port,
+          portPending,
+          portRemovalPending: portRemovalPending ?? false,
+          processExpected: processExpected ?? false,
+        }),
+      ),
     });
+    const legacy = this.legacyRegistry;
     const saving = this.persistence.then(async () => {
       await mkdir(path.dirname(target), { recursive: true });
+      if (legacy !== null) {
+        const backup = target + '.schema-v1.json';
+        try {
+          await writeFile(backup, legacy, { flag: 'wx', mode: 0o400 });
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'EEXIST' || (await readFile(backup, 'utf8')) !== legacy) throw error;
+        }
+      }
       const temporary = `${target}.${randomUUID()}.tmp`;
       await writeFile(temporary, contents, { mode: 0o600 });
       await rename(temporary, target);
+      this.legacyRegistry = null;
     });
     // A failed publication rejects its owner without poisoning later cleanup writes.
     this.persistence = saving.then(
@@ -216,7 +320,7 @@ export class AppService {
     return this.get(key);
   }
   get(key: AppKey): AppSnapshot {
-    return { ...this.entry(key).snapshot };
+    return structuredClone(this.entry(key).snapshot);
   }
   private async ports(args: string[]): Promise<string> {
     if (this.options.ports) return this.options.ports(args);
@@ -246,38 +350,85 @@ export class AppService {
       first.protocol === second.protocol
     );
   }
-  private launch(entry: Entry, operation: 'create' | 'start' | 'export', files?: AppSourceFile[]) {
+  private launch(entry: Entry, operation: 'create' | 'start' | 'export' | 'apply-task', files?: AppSourceFile[], task?: EduTaskBinding) {
     const { workspaceId, projectId, appInstanceId } = entry.snapshot;
     entry.log = '';
     entry.readyPort = null;
     entry.readyError = null;
     let stdout = '';
+    let sourceSeen = false;
+    const verification = operation === 'start' ? this.verification.get(this.id(entry.snapshot)) : undefined;
     const child = this.connection.start(
       {
+        ...(operation === 'start' && entry.snapshot.profile.projectKind === 'edu-web'
+          ? {
+              eduOwner: {
+                identity: { workspaceId, projectId, environmentId: 'sandbox' as const, appInstanceId: appInstanceId! },
+                sourceSha256: entry.snapshot.sourceSha256 ?? entry.snapshot.profile.source.sourceSha256,
+              },
+            }
+          : {}),
         type: 'start',
         mode: 'codex',
         argv: ['python3', '-u', '-c', helper],
-        prompt: JSON.stringify({
-          operation,
-          workspaceId,
-          projectId,
-          appInstanceId,
-          ...(files ? { files } : {}),
-          ...(operation === 'start' && entry.agentToken ? { agentToken: entry.agentToken } : {}),
-        }),
+        ...(verification ? { duplex: true } : {}),
+        prompt:
+          JSON.stringify({
+            operation,
+            ...(verification ? { verification: verification.lease } : {}),
+            workspaceId,
+            projectId,
+            appInstanceId,
+            profile: entry.snapshot.profile,
+            ...(files ? { files } : {}),
+            ...(task ? { task } : {}),
+            ...(operation === 'start' && entry.agentToken ? { agentToken: entry.agentToken } : {}),
+          }) + (verification ? '\n' : ''),
       },
       (frame) => {
         if (frame.type === 'output') {
-          entry.log = (entry.log + frame.data).slice(-12 * 1024 * 1024);
+          if (!verification) entry.log = (entry.log + frame.data).slice(-12 * 1024 * 1024);
           if (operation === 'start' && frame.stream === 'stdout') {
             stdout += frame.data;
             const lines = stdout.split('\n');
             stdout = lines.pop() ?? '';
-            if (stdout.length > 65536) {
+            const frameBudget =
+              verification && (stdout.startsWith(ASSESSMENT_PREFIX) || ASSESSMENT_PREFIX.startsWith(stdout)) ? MAX_ASSESSMENT_FRAME : 65536;
+            if (Buffer.byteLength(stdout) > frameBudget) {
+              verification?.fail();
               entry.readyError = '应用就绪回执超过预算';
               stdout = '';
             }
             for (const line of lines) {
+              if (!line.startsWith(ASSESSMENT_PREFIX) && Buffer.byteLength(line) > 65536) {
+                entry.readyError = '应用就绪回执超过预算';
+                verification?.fail();
+                continue;
+              }
+              if (verification && line.startsWith(ASSESSMENT_PREFIX)) {
+                if (entry.readyPort === null || Buffer.byteLength(line + '\n') > MAX_ASSESSMENT_FRAME) verification.fail();
+                else verification.request(line + '\n');
+                continue;
+              }
+              if (verification && (line.startsWith('WSL_EDU') || entry.readyPort !== null)) {
+                verification.fail();
+                continue;
+              }
+              if (line.startsWith('WSL_APP_SOURCE:')) {
+                const digest = line.slice('WSL_APP_SOURCE:'.length);
+                if (entry.snapshot.profile.projectKind !== 'edu-web' || sourceSeen || !/^[a-f0-9]{64}$/.test(digest))
+                  entry.readyError = '应用源码回执无效';
+                else {
+                  if (verification && digest !== verification.lease.sourceSha256) {
+                    verification.fail();
+                    entry.readyError = 'verification_source_mismatch';
+                    continue;
+                  }
+                  entry.snapshot.sourceSha256 = digest;
+                  sourceSeen = true;
+                }
+                continue;
+              }
               if (!line.startsWith('{')) continue;
               let message: unknown;
               try {
@@ -301,7 +452,8 @@ export class AppService {
                 })
                 .strict()
                 .safeParse(message);
-              if (!parsed.success || entry.readyPort !== null) entry.readyError = '应用就绪端口或身份回执不匹配';
+              if (!parsed.success || entry.readyPort !== null || (entry.snapshot.profile.projectKind === 'edu-web' && !sourceSeen))
+                entry.readyError = '应用就绪端口、身份或源码回执不匹配';
               else {
                 entry.readyPort = parsed.data.port;
                 entry.snapshot.guestPort = parsed.data.port;
@@ -311,17 +463,26 @@ export class AppService {
         }
       },
     );
-    entry.process = child;
-    entry.processExited = false;
-    void child.done.then(() => {
-      if (entry.process === child) entry.processExited = true;
-    });
-    entry.snapshot.cleanupConfirmed = false;
-    this.options.onSnapshot?.({ ...entry.snapshot });
+    if (!entry.process) {
+      entry.process = child;
+      entry.processExited = false;
+      void child.done.then(() => {
+        if (entry.process === child) {
+          entry.processExited = true;
+          verification?.fail();
+        }
+      });
+      entry.snapshot.cleanupConfirmed = false;
+    }
+    // Applying source does not change the running app's ownership/state. Publishing
+    // its old source here would queue a rollback behind the committed RPC receipt.
+    if (operation !== 'apply-task') this.options.onSnapshot?.(structuredClone(entry.snapshot));
     return child;
   }
-  private async command(entry: Entry, operation: 'create' | 'export', files?: AppSourceFile[]) {
-    const child = this.launch(entry, operation, files);
+  private async command(entry: Entry, operation: 'create' | 'export' | 'apply-task', files?: AppSourceFile[], task?: EduTaskBinding) {
+    const activeProcess = entry.process;
+    const cleanupConfirmed = entry.snapshot.cleanupConfirmed;
+    const child = this.launch(entry, operation, files, task);
     entry.commandProcess = child;
     const timeout = setTimeout(() => {
       entry.cancelled = true;
@@ -329,8 +490,8 @@ export class AppService {
     }, 30000);
     try {
       const result = await child.done;
-      entry.snapshot.cleanupConfirmed = result.confirmed;
-      if (result.confirmed) entry.process = null;
+      if (!activeProcess) entry.snapshot.cleanupConfirmed = result.confirmed;
+      if (result.confirmed && entry.process === child) entry.process = null;
       if (entry.cancelled || result.error || !result.confirmed || result.exitCode !== 0)
         throw new Error(entry.cancelled ? '应用操作已取消或超时' : (result.error ?? entry.log.slice(-4000)));
       const line = entry.log.split('\n').find((line) => line.startsWith('WSL_APP_RESULT:'));
@@ -339,9 +500,21 @@ export class AppService {
     } finally {
       clearTimeout(timeout);
       entry.commandProcess = null;
+      if (activeProcess) {
+        entry.snapshot.cleanupConfirmed = cleanupConfirmed;
+      }
     }
   }
   async create(input: AppKey & { files: AppSourceFile[] }): Promise<AppSnapshot> {
+    return this.createProject(input, { ...standardProfile });
+  }
+  async importEdu(input: AppKey & { files: AppSourceFile[]; source: EduSource }): Promise<AppSnapshot> {
+    const { source: supplied, ...project } = input;
+    const source = EduSourceSchema.parse(supplied);
+    validateEduSources(project.files, source, true);
+    return this.createProject(project, { projectKind: 'edu-web', profileVersion: 1, source });
+  }
+  private async createProject(input: AppKey & { files: AppSourceFile[] }, profile: AppProfile): Promise<AppSnapshot> {
     await this.ensureLoaded();
     if (this.closing) throw new Error('应用服务正在关闭');
     const sandbox = this.connection.getStatus().sandbox;
@@ -356,6 +529,8 @@ export class AppService {
     const entry: Entry = {
       snapshot: {
         ...key,
+        profile: structuredClone(profile),
+        ...(profile.projectKind === 'edu-web' ? { sourceSha256: profile.source.sourceSha256 } : {}),
         environmentId: 'sandbox',
         appInstanceId: null,
         state: 'created',
@@ -389,7 +564,7 @@ export class AppService {
         entry.snapshot.error = String(error);
       }
       await this.persist();
-      return { ...entry.snapshot };
+      return structuredClone(entry.snapshot);
     })();
     try {
       return await entry.operation;
@@ -397,7 +572,11 @@ export class AppService {
       entry.operation = null;
     }
   }
-  async start(key: AppKey): Promise<AppSnapshot> {
+  async start(
+    key: AppKey,
+    verification?: { lease: EduVerificationLease; request: (line: string) => void; fail: () => void },
+    reservedInstanceId?: string,
+  ): Promise<AppSnapshot> {
     await this.ensureLoaded();
     if (this.closing) throw new Error('应用服务正在关闭');
     const entry = this.entry(key);
@@ -408,8 +587,21 @@ export class AppService {
     if ([...this.entries.values()].some((other) => other !== entry && ['starting', 'running', 'stopping'].includes(other.snapshot.state)))
       throw new Error('首版仅允许一个应用服务运行');
     entry.cancelled = false;
-    entry.agentToken = randomBytes(32).toString('hex');
-    entry.snapshot = { ...entry.snapshot, appInstanceId: randomUUID(), state: 'starting', error: null, url: null, guestPort: null };
+    entry.agentToken = entry.snapshot.profile.projectKind === 'edu-web' ? null : randomBytes(32).toString('hex');
+    entry.snapshot = {
+      ...entry.snapshot,
+      appInstanceId:
+        verification?.lease.identity.appInstanceId ?? (reservedInstanceId ? z.string().uuid().parse(reservedInstanceId) : randomUUID()),
+      state: 'starting',
+      error: null,
+      url: null,
+      guestPort: null,
+    };
+    entry.recoveryInstanceId = entry.snapshot.appInstanceId;
+    entry.recoveryUrl = null;
+    entry.processExpected = true;
+    if (verification) this.verification.set(this.id(key), verification);
+    else this.verification.delete(this.id(key));
     entry.operation = (async () => {
       try {
         await this.persist();
@@ -418,11 +610,21 @@ export class AppService {
         await this.persist();
       }
     })();
+    let result: AppSnapshot;
     try {
-      return await entry.operation;
+      result = await entry.operation;
     } finally {
       entry.operation = null;
     }
+    // The operation's final persist must succeed before publishing completion.
+    // A concurrent stop/exit may supersede the captured startup result meanwhile.
+    if (
+      entry.snapshot.appInstanceId === result.appInstanceId &&
+      entry.snapshot.state === result.state &&
+      ['running', 'failed'].includes(result.state)
+    )
+      this.options.onSnapshot?.(structuredClone(entry.snapshot));
+    return result;
   }
   private async importDependencies(entry: Entry, archivePath: string): Promise<void> {
     const { binary, sandbox } = this.connection.runtimeTarget();
@@ -496,7 +698,7 @@ export class AppService {
         child.once('error', reject);
       });
       stream.pipe(child.stdin);
-      this.options.onSnapshot?.({ ...entry.snapshot });
+      this.options.onSnapshot?.(structuredClone(entry.snapshot));
       const code = await done;
       entry.snapshot.cleanupConfirmed = output.split('\n').includes('WSL_APP_RESULT:{"dependenciesCleanup":true}');
       if (code !== 0 || !output.includes('"dependenciesImported":true') || !entry.snapshot.cleanupConfirmed)
@@ -524,7 +726,8 @@ export class AppService {
     try {
       check();
       if (this.options.dependencyArchivePath && !entry.snapshot.appInstanceId) throw new Error('缺少应用实例身份');
-      if (this.options.dependencyArchivePath) await this.importDependencies(entry, this.options.dependencyArchivePath);
+      if (this.options.dependencyArchivePath && entry.snapshot.profile.projectKind === 'standard-app')
+        await this.importDependencies(entry, this.options.dependencyArchivePath);
       check();
       const child = this.launch(entry, 'start');
       let exited = false;
@@ -544,10 +747,13 @@ export class AppService {
       check();
       // Register uncertain publication before asking sandboxd to mutate bindings.
       entry.portPending = true;
+      await this.persist();
       const receipt = await this.ports(['--publish', `${guestPort}/tcp4`]);
       const published = /^Published 127\.0\.0\.1:(\d+) -> (\d+)\/tcp4\s*$/m.exec(receipt);
       if (!published || Number(published[2]) !== guestPort) throw new Error('端口发布回执未知，不能推断映射所有权');
       entry.port = portSchema.parse({ host_ip: '127.0.0.1', host_port: Number(published[1]), sandbox_port: guestPort, protocol: 'tcp4' });
+      entry.recoveryUrl = `http://127.0.0.1:${entry.port.host_port}`;
+      await this.persist();
       check();
       const ports = await this.listPorts();
       const ownedPort = entry.port;
@@ -565,9 +771,8 @@ export class AppService {
             const health = z
               .object({
                 ok: z.literal(true),
-                templateId: z.literal('wsl-standard-app'),
-                // 1.1.0 增加 Agent 控制面；既有 1.0.0 项目按原身份恢复，不强制升级。
-                templateVersion: z.enum(['1.0.0', '1.1.0']),
+                templateId: z.literal(entry.snapshot.profile.projectKind === 'edu-web' ? 'edu-web' : 'wsl-standard-app'),
+                templateVersion: entry.snapshot.profile.projectKind === 'edu-web' ? z.literal('1.0.0') : z.enum(['1.0.0', '1.1.0']),
                 identity: z
                   .object({
                     workspaceId: z.literal(entry.snapshot.workspaceId),
@@ -595,7 +800,7 @@ export class AppService {
         entry.snapshot.error = outcome.error ?? `应用进程意外退出（${outcome.exitCode}）`;
         await this.cleanup(entry);
         await this.persist();
-        this.options.onSnapshot?.({ ...entry.snapshot });
+        this.options.onSnapshot?.(structuredClone(entry.snapshot));
       });
     } catch (error) {
       entry.snapshot.error = String(error);
@@ -604,7 +809,7 @@ export class AppService {
     } finally {
       clearTimeout(timer);
     }
-    return { ...entry.snapshot };
+    return structuredClone(entry.snapshot);
   }
   private async cleanup(entry: Entry): Promise<void> {
     entry.snapshot.url = null;
@@ -634,11 +839,14 @@ export class AppService {
         if (matches.length !== 1 || !this.samePort(matches[0]!, ownedPort)) throw new Error('所属端口映射已变化或丢失，清理状态未知');
         // Remove the original persistent request, not only its current ephemeral host binding.
         // sbx's resolved host:guest form leaves the request alive across an idle VM restart.
+        entry.portRemovalPending = true;
+        await this.persist();
         await this.ports(['--unpublish', `${ownedPort.sandbox_port}/${ownedPort.protocol}`]);
         if ((await this.listPorts()).some((port) => port.sandbox_port === ownedPort.sandbox_port))
           throw new Error('应用端口仍有映射，清理未确认');
         entry.port = null;
         entry.portPending = false;
+        entry.portRemovalPending = false;
       } catch (error) {
         confirmed = false;
         entry.snapshot.error = [entry.snapshot.error, String(error)].filter(Boolean).join('; ');
@@ -657,7 +865,200 @@ export class AppService {
       }
     }
     entry.snapshot.cleanupConfirmed = confirmed && agentConfirmed;
+    if (entry.snapshot.cleanupConfirmed) {
+      entry.processExpected = false;
+      entry.recoveryUrl = null;
+    }
     if (entry.snapshot.cleanupConfirmed) entry.httpOperation = null;
+  }
+  async inspectRecovery(key: AppKey): Promise<{
+    appInstanceId: string | null;
+    sourceSha256: string | undefined;
+    url: string | null;
+    processExpected: boolean;
+    cleanupConfirmed: boolean;
+    portPending: boolean;
+    port: Port | null;
+  }> {
+    await this.ensureLoaded();
+    const entry = this.entry(key);
+    return {
+      appInstanceId: entry.snapshot.appInstanceId ?? entry.recoveryInstanceId ?? null,
+      sourceSha256: entry.snapshot.sourceSha256,
+      url: entry.snapshot.url ?? entry.recoveryUrl ?? null,
+      processExpected: entry.processExpected ?? false,
+      cleanupConfirmed: entry.snapshot.cleanupConfirmed,
+      portPending: entry.portPending,
+      port: entry.port ? structuredClone(entry.port) : null,
+    };
+  }
+  async captureRecoverySource(key: AppKey, fromStop = false): Promise<string> {
+    await this.ensureLoaded();
+    const entry = this.entry(key);
+    if (entry.snapshot.profile.projectKind !== 'edu-web' || entry.operation || (entry.stopping && !fromStop))
+      throw new Error('verification_recovery_app_busy');
+    const confirmed = entry.snapshot.cleanupConfirmed;
+    const cancelled = entry.cancelled;
+    entry.cancelled = false;
+    try {
+      const result = z
+        .object({ files: z.array(fileSchema) })
+        .strict()
+        .parse(await this.command(entry, 'export'));
+      return validateEduSources(result.files, entry.snapshot.profile.source, false);
+    } finally {
+      entry.snapshot.cleanupConfirmed = confirmed;
+      entry.cancelled = cancelled;
+    }
+  }
+  async recoverOwned(key: AppKey, appInstanceId: string, sourceSha256: string, fromStop = false): Promise<AppSnapshot> {
+    await this.ensureLoaded();
+    const entry = this.entry(key);
+    const before = await this.inspectRecovery(key);
+    if (
+      before.appInstanceId !== appInstanceId ||
+      before.sourceSha256 !== sourceSha256 ||
+      entry.snapshot.profile.projectKind !== 'edu-web' ||
+      entry.process ||
+      entry.operation ||
+      (entry.stopping && !fromStop)
+    )
+      throw new Error('verification_recovery_identity_mismatch');
+    if (entry.portPending && !entry.port) throw new Error('verification_recovery_publish_unknown');
+    if (!entry.processExpected) {
+      if (!entry.snapshot.cleanupConfirmed || entry.portPending) throw new Error('verification_recovery_cleanup_unknown');
+      return structuredClone(entry.snapshot);
+    }
+    let output = '',
+      failure = false;
+    const child = this.connection.start(
+      {
+        type: 'start',
+        mode: 'codex',
+        duplex: true,
+        argv: ['python3', '-u', '-c', helper],
+        prompt:
+          JSON.stringify({
+            operation: 'recover-owned',
+            ...key,
+            appInstanceId,
+            profile: entry.snapshot.profile,
+            owner: { identity: { ...key, environmentId: 'sandbox', appInstanceId }, sourceSha256 },
+          }) + '\n',
+      },
+      (frame) => {
+        if (frame.type === 'output' && frame.stream === 'stdout') {
+          output += frame.data;
+          if (Buffer.byteLength(output) > 1048576) failure = true;
+        }
+        if (frame.type === 'error') failure = true;
+      },
+    );
+    let exited = false;
+    void child.done.then(() => {
+      exited = true;
+    });
+    try {
+      const deadline = Date.now() + 12000;
+      let line: string | undefined;
+      while (!(line = output.split('\n').find((line) => line.startsWith('WSL_APP_RESULT:')))) {
+        if (failure || exited || Date.now() > deadline) throw new Error('verification_recovery_guest_unconfirmed');
+        await delay(25);
+      }
+      const checkKeeper = () => {
+        if (exited || failure) throw new Error('verification_recovery_keeper_lost');
+      };
+      checkKeeper();
+      const identity = z.object({ ...keySchema.shape, environmentId: z.literal('sandbox'), appInstanceId: z.string().uuid() }).strict();
+      const pid = z.object({ pid: z.number().int().positive(), startTicks: z.string().regex(/^\d+$/) }).strict();
+      const raw: unknown = JSON.parse(line.slice('WSL_APP_RESULT:'.length));
+      if (raw && typeof raw === 'object' && 'recoveryError' in raw) {
+        const code = z
+          .object({
+            recoveryError: z.enum([
+              'verification_recovery_receipt_missing',
+              'verification_recovery_receipt_invalid',
+              'verification_recovery_receipt_mismatch',
+              'verification_recovery_receipt_unconfirmed',
+              'verification_recovery_boot_changed',
+              'verification_recovery_helper_lost',
+              'verification_recovery_processes_remain',
+            ]),
+          })
+          .strict()
+          .parse(raw);
+        throw new Error(code.recoveryError);
+      }
+      const receipt = z
+        .object({
+          cleanupConfirmed: z.literal(true),
+          identity,
+          sourceSha256: z.literal(sourceSha256),
+          bootId: z.string().uuid(),
+          bootReplacement: z.object({ previousBootId: z.string().uuid(), currentBootId: z.string().uuid() }).strict().optional(),
+          leader: pid,
+          members: z.array(pid).max(4096),
+        })
+        .strict()
+        .refine(
+          (value) =>
+            !value.bootReplacement ||
+            (value.bootReplacement.previousBootId === value.bootId && value.bootReplacement.currentBootId !== value.bootId),
+        )
+        .parse(raw);
+      if (
+        receipt.identity.workspaceId !== key.workspaceId ||
+        receipt.identity.projectId !== key.projectId ||
+        receipt.identity.appInstanceId !== appInstanceId
+      )
+        throw new Error('verification_recovery_receipt_mismatch');
+      if (entry.portPending) {
+        const port = entry.port!;
+        const matches = (await this.listPorts()).filter((p) => p.sandbox_port === port.sandbox_port);
+        if (
+          (matches.length === 0 && !entry.portRemovalPending) ||
+          matches.length > 1 ||
+          (matches.length === 1 && !this.samePort(matches[0]!, port))
+        )
+          throw new Error('verification_recovery_mapping_changed');
+        checkKeeper();
+        entry.portRemovalPending = true;
+        await this.persist();
+        checkKeeper();
+        if (matches.length === 1) await this.ports(['--unpublish', `${port.sandbox_port}/${port.protocol}`]);
+        checkKeeper();
+        if ((await this.listPorts()).some((p) => p.sandbox_port === port.sandbox_port))
+          throw new Error('verification_recovery_mapping_remains');
+        checkKeeper();
+        entry.port = null;
+        entry.portPending = false;
+        entry.portRemovalPending = false;
+        await this.persist();
+      }
+      const outcome = await child.close();
+      if (!outcome.confirmed || outcome.error) throw new Error('verification_recovery_keeper_unconfirmed');
+      entry.snapshot = { ...entry.snapshot, state: 'stopped', cleanupConfirmed: true, url: null, error: null };
+      entry.processExpected = false;
+      entry.recoveryUrl = null;
+      await this.persist();
+      return structuredClone(entry.snapshot);
+    } catch (error) {
+      const outcome = await child.close();
+      entry.snapshot.cleanupConfirmed = false;
+      if (!outcome.confirmed) throw new Error('verification_recovery_keeper_unconfirmed', { cause: error });
+      throw error;
+    }
+  }
+  writeVerification(key: AppKey, sessionId: string, data: string): void {
+    if (this.verification.get(this.id(key))?.lease.sessionId !== sessionId) throw new Error('verification_session_mismatch');
+    const process = this.entry(key).process;
+    if (!process?.write) throw new Error('verification_channel_closed');
+    process.write({ type: 'input', data });
+  }
+  closeVerificationInput(key: AppKey, sessionId: string): void {
+    if (this.verification.get(this.id(key))?.lease.sessionId !== sessionId) return;
+    const entry = this.entry(key);
+    if (!entry.processExited) entry.process?.closeInput?.();
   }
   async stop(key: AppKey): Promise<AppSnapshot> {
     await this.ensureLoaded();
@@ -667,6 +1068,44 @@ export class AppService {
     entry.snapshot.state = 'stopping';
     const operation = entry.operation;
     entry.stopping = (async () => {
+      // An ended transport's failed done promise cannot perform another cleanup.
+      // Release only that edu handle; ownership/source/mapping facts stay intact
+      // and the durable recovery helper must establish an independent proof.
+      if (
+        entry.snapshot.profile.projectKind === 'edu-web' &&
+        entry.processExited &&
+        !entry.snapshot.cleanupConfirmed &&
+        !operation &&
+        !entry.commandProcess
+      )
+        entry.process = null;
+      // A v3 receipt can recover only this lost edu owner, never a process inferred from cwd.
+      const recoverInterrupted = async () => {
+        try {
+          const facts = await this.inspectRecovery(key);
+          if (!facts.appInstanceId || !facts.sourceSha256) throw new Error('verification_recovery_identity_missing');
+          if ((await this.captureRecoverySource(key, true)) !== facts.sourceSha256) throw new Error('verification_recovery_source_changed');
+          const recovered = await this.recoverOwned(key, facts.appInstanceId, facts.sourceSha256, true);
+          this.options.onSnapshot?.(structuredClone(recovered));
+          return recovered;
+        } catch (error) {
+          entry.snapshot.state = 'failed';
+          entry.snapshot.cleanupConfirmed = false;
+          entry.snapshot.error =
+            error instanceof Error && /^verification_[a-z0-9_]+$/.test(error.message) ? error.message : 'verification_recovery_unconfirmed';
+          await this.persist();
+          this.options.onSnapshot?.(structuredClone(entry.snapshot));
+          return structuredClone(entry.snapshot);
+        }
+      };
+      if (
+        entry.snapshot.profile.projectKind === 'edu-web' &&
+        !entry.process &&
+        !entry.snapshot.cleanupConfirmed &&
+        !entry.commandProcess &&
+        !operation
+      )
+        return recoverInterrupted();
       // Finite create/export helpers own no published mapping. Cancel them now;
       // a running app must retain its process until cleanup removes that mapping.
       if (entry.commandProcess) await entry.commandProcess.close();
@@ -674,10 +1113,22 @@ export class AppService {
       if (operation) await Promise.allSettled([operation]);
       if (entry.agentAdmission) await Promise.allSettled([entry.agentAdmission]);
       await this.cleanup(entry);
+      // Shutdown closes the shared sbx connection after this stop settles. A
+      // failed close that has now ended must recover here, not on a later RPC.
+      if (
+        entry.snapshot.profile.projectKind === 'edu-web' &&
+        entry.processExited &&
+        !entry.snapshot.cleanupConfirmed &&
+        !entry.commandProcess &&
+        !entry.operation
+      ) {
+        entry.process = null;
+        return recoverInterrupted();
+      }
       entry.snapshot.state = entry.snapshot.cleanupConfirmed ? 'stopped' : 'failed';
       await this.persist();
-      this.options.onSnapshot?.({ ...entry.snapshot });
-      return { ...entry.snapshot };
+      this.options.onSnapshot?.(structuredClone(entry.snapshot));
+      return structuredClone(entry.snapshot);
     })();
     try {
       return await entry.stopping;
@@ -708,6 +1159,8 @@ export class AppService {
       cleanupConfirmed: true,
       envelope: { ok: false, error: { code, message } },
     });
+    if (entry.snapshot.profile.projectKind === 'edu-web')
+      return { ...fail('unsupported', 'edu profile 不支持标准应用 Hono/PGlite 控制面'), operationDispatched: false };
     if (signal.aborted)
       return {
         ...fail('cancelled', '控制面请求已取消'),
@@ -934,11 +1387,18 @@ export class AppService {
     return unknown();
   }
 
-  async export(key: AppKey): Promise<{ files: AppSourceFile[]; sha256: string }> {
+  async export(key: AppKey, taskSnapshot = false): Promise<AppSource> {
     await this.ensureLoaded();
     if (this.closing) throw new Error('应用服务正在关闭');
     const entry = this.entry(key);
-    if (entry.operation || entry.stopping || entry.process || entry.agentProcess || entry.httpOperation || !entry.snapshot.cleanupConfirmed)
+    if (
+      entry.operation ||
+      entry.stopping ||
+      entry.agentProcess ||
+      entry.httpOperation ||
+      ((!taskSnapshot || entry.snapshot.profile.projectKind !== 'edu-web' || entry.snapshot.state !== 'running') &&
+        (entry.process || !entry.snapshot.cleanupConfirmed))
+    )
       throw new Error('请先停止应用并确认清理，再导出源码');
     entry.cancelled = false;
     let result: { files: AppSourceFile[] } | undefined;
@@ -946,7 +1406,9 @@ export class AppService {
       try {
         result = z.object({ files: z.array(fileSchema) }).parse(await this.command(entry, 'export'));
         validateAppSources(result.files);
-        return { ...entry.snapshot };
+        if (entry.snapshot.profile.projectKind === 'edu-web')
+          entry.snapshot.sourceSha256 = validateEduSources(result.files, entry.snapshot.profile.source, false);
+        return structuredClone(entry.snapshot);
       } finally {
         await this.persist();
       }
@@ -954,9 +1416,71 @@ export class AppService {
     try {
       await entry.operation;
       if (!result) throw new Error('缺少源码导出回执');
-      return { files: result.files, sha256: createHash('sha256').update(JSON.stringify(result.files)).digest('hex') };
+      return {
+        files: result.files,
+        sha256: createHash('sha256').update(JSON.stringify(result.files)).digest('hex'),
+        profile: structuredClone(entry.snapshot.profile),
+      };
     } finally {
       entry.operation = null;
+    }
+  }
+  async assertTaskAdmission(workspaceId: string | null, binding?: EduTaskBinding): Promise<void> {
+    await this.ensureLoaded();
+    const edu = [...this.entries.values()].find(
+      (entry) => entry.snapshot.workspaceId === workspaceId && entry.snapshot.profile.projectKind === 'edu-web',
+    );
+    if (edu && (!binding || binding.workspaceId !== workspaceId || binding.projectId !== edu.snapshot.projectId))
+      throw new Error('denied: edu tasks require a frozen candidate workspace');
+  }
+  async taskSource(binding: EduTaskBinding): Promise<GuestWorkspace> {
+    await this.ensureLoaded();
+    const entry = this.entry({ workspaceId: binding.workspaceId, projectId: binding.projectId });
+    if (
+      entry.snapshot.profile.projectKind !== 'edu-web' ||
+      entry.snapshot.state !== 'running' ||
+      entry.snapshot.appInstanceId !== binding.appInstanceId
+    )
+      throw new Error('conflict: edu task application instance changed');
+    const source = await this.export({ workspaceId: binding.workspaceId, projectId: binding.projectId }, true);
+    if (entry.snapshot.state !== 'running' || entry.snapshot.appInstanceId !== binding.appInstanceId)
+      throw new Error('conflict: edu task application stopped during snapshot');
+    assertEduTaskSource(binding, source.files);
+    return { runId: binding.runId, files: source.files };
+  }
+  private readonly preparedTasks = new Map<string, string>();
+  async prepareTask(binding: EduTaskBinding, candidate: GuestWorkspace): Promise<void> {
+    await this.taskSource(binding);
+    assertEduTaskCandidate(binding, candidate);
+    this.preparedTasks.set(binding.runId, JSON.stringify({ binding, candidate }));
+  }
+  async applyTask(binding: EduTaskBinding, candidate: GuestWorkspace): Promise<AppSnapshot> {
+    if (this.preparedTasks.get(binding.runId) !== JSON.stringify({ binding, candidate }))
+      throw new Error('conflict: edu task candidate was not prepared');
+    this.preparedTasks.delete(binding.runId);
+    const entry = this.entry({ workspaceId: binding.workspaceId, projectId: binding.projectId });
+    if (entry.operation || entry.stopping || entry.snapshot.state !== 'running' || entry.snapshot.appInstanceId !== binding.appInstanceId)
+      throw new Error('conflict: edu application is busy or instance changed');
+    entry.cancelled = false;
+    entry.operation = (async () => {
+      z.object({ applied: z.literal(true) })
+        .strict()
+        .parse(await this.command(entry, 'apply-task', candidate.files, binding));
+      entry.snapshot.sourceSha256 = createHash('sha256')
+        .update(JSON.stringify(eduTaskMetadata(candidate.files)))
+        .digest('hex');
+      return structuredClone(entry.snapshot);
+    })();
+    let applied = false;
+    try {
+      const result = await entry.operation;
+      applied = true;
+      return result;
+    } finally {
+      entry.operation = null;
+      await this.persist();
+      // Source facts become observable only after the committed registry is durable.
+      if (applied) this.options.onSnapshot?.(structuredClone(entry.snapshot));
     }
   }
   async shutdown(): Promise<void> {

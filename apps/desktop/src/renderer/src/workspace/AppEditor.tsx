@@ -4,7 +4,8 @@ import type { WorkspaceSnapshot } from '@wsl/protocol';
 import { useImeForm } from '../lib/ime';
 import { occlusion } from '../state/occlusion';
 import { spaceActions } from '../state/space-ui';
-import { workspaceCommand } from '../state/workspace';
+import { workspaceCommand, workspaceStore, verificationLocked } from '../state/workspace';
+import { useStore } from '../lib/store';
 
 /** Both forms freeze their recipient when opened; switching spaces cannot redirect a save. */
 export function AppEditor({ workspace, overlayId }: { workspace: WorkspaceSnapshot; overlayId: string }) {
@@ -23,6 +24,7 @@ export function AppEditor({ workspace, overlayId }: { workspace: WorkspaceSnapsh
     name: workspace.app?.name ?? '',
     description: workspace.app?.description ?? '',
   }));
+  const maintenanceLocked = useStore(workspaceStore, (s) => verificationLocked(s.snapshot));
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mounted = useRef(true);
@@ -41,7 +43,7 @@ export function AppEditor({ workspace, overlayId }: { workspace: WorkspaceSnapsh
     };
   }, [overlayId]);
   const save = async () => {
-    if (submitting.current || ime.composing.current) return;
+    if (submitting.current || ime.composing.current || (!draft.appId && verificationLocked(workspaceStore.get().snapshot))) return;
     if (!draft.name.trim()) {
       setError('请输入 App 名称');
       nameInput.current?.focus();
@@ -124,7 +126,7 @@ export function AppEditor({ workspace, overlayId }: { workspace: WorkspaceSnapsh
             <button type="button" className="btn" disabled={pending} onClick={close}>
               取消
             </button>
-            <button type="submit" className="btn btn-primary" disabled={pending} aria-busy={pending}>
+            <button type="submit" className="btn btn-primary" disabled={pending || (!draft.appId && maintenanceLocked)} aria-busy={pending}>
               保存 App
             </button>
           </div>

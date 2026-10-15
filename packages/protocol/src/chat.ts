@@ -1,3 +1,10 @@
+import {
+  EduAdmissionRecoveryStatusSchema,
+  EduVerificationBeginSchema,
+  EduVerificationTargetSchema,
+  EduVerificationStatusSchema,
+} from './edu-verification';
+import { EduTaskBindingSchema } from './edu-task';
 import { WorkspaceObservationResultSchema, ObservationRequestSchema as RequestSchema, ObservationTurnScopeSchema } from './observation';
 import { EnvironmentListSchema, RuntimeResourceIdentitySchema } from './environments';
 import {
@@ -7,7 +14,7 @@ import {
   FileInvalidationHintSchema,
 } from './observation';
 import { z } from 'zod';
-import { AppTargetSchema, AppSourceFileSchema, ManagedAppSchema, AppSourceSchema } from './managed-app';
+import { AppTargetSchema, AppSourceFileSchema, ManagedAppSchema, AppSourceSchema, EduImportSchema } from './managed-app';
 import { AppAgentOperationSchema, AppAgentResultSchema, AppControlResultSchema, AppLogsSchema, AppToolNameSchema } from './app-control';
 const BufferlessBytes = (value: string) => {
   let bytes = 0;
@@ -54,6 +61,7 @@ export const ChatConversationSchema = z.object({
   warnings: z.array(z.string().max(2000)).max(20),
   cleanupPending: z.boolean(),
   error: z.string().nullable(),
+  eduCandidateRunId: z.uuid().optional(),
 });
 export const ChatSendSchema = z
   .object({
@@ -61,10 +69,18 @@ export const ChatSendSchema = z
     text: z.string().trim().min(1).max(32000),
     observationScope: ObservationTurnScopeSchema.optional(),
     references: CatalogReferenceSnapshotSchema,
+    eduTask: EduTaskBindingSchema.optional(),
   })
   .strict();
 export const ChatTargetSchema = z.object({ conversationId: ChatSlotSchema });
 export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
+  z.object({ id: z.string(), method: z.literal('app.verification.begin'), payload: EduVerificationBeginSchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('app.verification.recoverAdmission'), payload: EduVerificationBeginSchema }).strict(),
+  ...(['app.verification.end', 'app.verification.status', 'app.verification.reconcile'] as const).map((method) =>
+    z.object({ id: z.string(), method: z.literal(method), payload: EduVerificationTargetSchema }).strict(),
+  ),
+  z.object({ id: z.string(), method: z.enum(['app.prepareEduTask', 'app.applyEduTask']), payload: EduTaskBindingSchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('app.importEdu'), payload: EduImportSchema }).strict(),
   z
     .object({
       id: z.string(),
@@ -72,7 +88,7 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
       payload: AppTargetSchema.extend({ files: z.array(AppSourceFileSchema).min(1).max(256) }),
     })
     .strict(),
-  ...(['app.get', 'app.start', 'app.stop', 'app.export'] as const).map((method) =>
+  ...(['app.get', 'app.start', 'app.stop', 'app.export', 'app.taskSource'] as const).map((method) =>
     z.object({ id: z.string(), method: z.literal(method), payload: AppTargetSchema }).strict(),
   ),
   z
@@ -142,6 +158,8 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
   z.object({ id: z.string(), method: z.literal('shutdown') }),
 ]);
 export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('edu-verification-event'), status: EduVerificationStatusSchema }).strict(),
+  z.object({ type: z.literal('edu-admission-recovery-event'), status: EduAdmissionRecoveryStatusSchema }).strict(),
   z.object({ type: z.literal('initialized'), status: ChatStatusSchema, cleanupPending: z.boolean() }),
   z.object({ type: z.literal('app-event'), snapshot: ManagedAppSchema }).strict(),
   z.object({ type: z.literal('event'), conversation: ChatConversationSchema }),
@@ -176,6 +194,8 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
     type: z.literal('response'),
     id: z.string(),
     result: z.union([
+      EduVerificationStatusSchema,
+      EduAdmissionRecoveryStatusSchema,
       AppAgentResultSchema,
       AppLogsSchema,
       ManagedAppSchema,

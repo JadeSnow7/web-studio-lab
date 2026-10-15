@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run && node --test scripts/packaging/*.test.mjs && pnpm test:external-builds",
+    "test": "vitest run && node --test scripts/packaging/*.test.mjs scripts/edu-source.test.mjs && pnpm test:external-builds",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
     "test:e2e": "pnpm build && playwright test",
     "package": "node scripts/external-builds.mjs verify && node scripts/packaging/package-release.mjs",

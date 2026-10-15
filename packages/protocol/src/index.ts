@@ -27,3 +27,6 @@ export * from './resource-catalog';
 export * from './app-control';
 
 export * from './status';
+export * from './edu-task';
+
+export * from './edu-verification';

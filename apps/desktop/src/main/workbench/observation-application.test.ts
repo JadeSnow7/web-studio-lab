@@ -822,3 +822,99 @@ it('does not replace a browser created by another command while observation pref
     (await app.getSnapshot()).workspaces[0]?.resources.find((resource) => resource.resourceId === browser.resourceId)?.instanceId,
   ).toBe(created?.instanceId);
 });
+
+describe('environment refresh publication invariants', () => {
+  it('queries and validates every identical refresh without changing seq or publishing snapshots', async () => {
+    const { app, runtime, emit } = await setup();
+    const before = await app.getSnapshot();
+    emit.mockClear();
+    vi.mocked(runtime.environmentsList).mockClear();
+    for (let i = 0; i < 3; i++) expect(await app.environments()).toEqual(before.environments);
+    expect(runtime.environmentsList).toHaveBeenCalledTimes(3);
+    expect(emit).not.toHaveBeenCalled();
+    expect((await app.getSnapshot()).seq).toBe(before.seq);
+  });
+  it('publishes changed capabilities and prevents subsequent file observations', async () => {
+    const { app, runtime, emit, file } = await setup();
+    const resource = await file();
+    const before = await app.getSnapshot();
+    const unavailable = before.environments.map((e) =>
+      e.environmentId === 'local'
+        ? {
+            ...e,
+            state: 'unavailable' as const,
+            reason: 'permission revoked',
+            capabilities: { ...e.capabilities, files: false, terminal: false },
+          }
+        : e,
+    );
+    vi.mocked(runtime.environmentsList).mockResolvedValue(unavailable);
+    emit.mockClear();
+    await app.environments();
+    expect(emit).toHaveBeenCalledOnce();
+    expect((await app.getSnapshot()).seq).toBe(before.seq + 1);
+    expect(await app.observe(input(resource.resourceId))).toHaveProperty('error');
+    expect(runtime.observe).not.toHaveBeenCalled();
+  });
+  it('an unchanged newer success still invalidates an older changed response', async () => {
+    const { app, runtime, emit } = await setup();
+    const before = await app.getSnapshot();
+    let finish!: (value: typeof before.environments) => void;
+    vi.mocked(runtime.environmentsList).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    emit.mockClear();
+    const pending = app.environments();
+    await app.environments();
+    finish(
+      before.environments.map((e) => ({
+        ...e,
+        state: 'unavailable',
+        reason: 'old reply',
+        capabilities: { browser: false, files: false, terminal: false },
+      })),
+    );
+    await pending;
+    expect(emit).not.toHaveBeenCalled();
+    expect((await app.getSnapshot()).environments).toEqual(before.environments);
+    expect((await app.getSnapshot()).seq).toBe(before.seq);
+  });
+  it('an unchanged newer success prevents an older query failure from revoking capabilities', async () => {
+    const { app, runtime, emit } = await setup();
+    const before = await app.getSnapshot();
+    let reject!: (error: Error) => void;
+    vi.mocked(runtime.environmentsList).mockImplementationOnce(
+      () =>
+        new Promise((_resolve, fail) => {
+          reject = fail;
+        }),
+    );
+    emit.mockClear();
+    const pending = app.onChatStatus();
+    await app.onChatStatus();
+    reject(new Error('old failed query'));
+    await pending;
+    expect(emit).not.toHaveBeenCalled();
+    expect((await app.getSnapshot()).seq).toBe(before.seq);
+    expect((await app.getSnapshot()).environments).toEqual(before.environments);
+  });
+  it('a current failed query still publishes revocation even after a no-op refresh', async () => {
+    const { app, runtime, emit, file } = await setup();
+    const resource = await file();
+    await app.environments();
+    const before = await app.getSnapshot();
+    vi.mocked(runtime.environmentsList).mockRejectedValue(new Error('connection lost'));
+    emit.mockClear();
+    await app.onChatStatus();
+    expect(emit).toHaveBeenCalledOnce();
+    expect((await app.getSnapshot()).seq).toBe(before.seq + 1);
+    expect(
+      (await app.getSnapshot()).environments.every((e) => e.state === 'unavailable' && !e.capabilities.files && !e.capabilities.terminal),
+    ).toBe(true);
+    expect(await app.observe(input(resource.resourceId))).toHaveProperty('error');
+    expect(runtime.observe).not.toHaveBeenCalled();
+  });
+});

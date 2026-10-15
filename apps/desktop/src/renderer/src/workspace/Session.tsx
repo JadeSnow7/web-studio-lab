@@ -20,7 +20,7 @@ import {
 import { SessionObservation, cancelObservationRequest } from './Observation';
 import { sessionSelection } from './presentation';
 import { RunDetails, RunStatusFields, type RunView } from './RunDetails';
-import { workspaceCommand, workspaceStore, beginNavigation } from '../state/workspace';
+import { workspaceCommand, workspaceStore, verificationLocked, beginNavigation } from '../state/workspace';
 
 type SessionView = 'conversation' | 'task' | 'context' | 'checks' | RunView;
 
@@ -171,6 +171,7 @@ function RunRecordMenu({ sessionId, view, onSelect }: { sessionId: string; view:
 }
 
 export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; session: WorkbenchSession }) {
+  const maintenanceLocked = useStore(workspaceStore, (s) => verificationLocked(s.snapshot));
   const { sessionId } = session;
   const scope = useMemo<StatusScope>(
     () => ({ kind: 'session', workspaceId: workspace.workspaceId, sessionId }),
@@ -297,7 +298,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
   const send = () =>
     perform(async () => {
       const text = draftValue.current;
-      if (!text.trim() || busy) return;
+      if (!text.trim() || busy || maintenanceLocked) return;
       await saveTail.current;
       const resource = workspace.resources.find((r) => r.resourceId === target);
       const result = await workspaceCommand(workspace.workspaceId, {
@@ -536,7 +537,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
                 <button
                   type="button"
                   className="btn btn-primary"
-                  disabled={busy || submitting}
+                  disabled={busy || submitting || maintenanceLocked}
                   onClick={() =>
                     void perform(async () => {
                       await workspaceCommand(workspace.workspaceId, {
@@ -718,7 +719,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
             type="button"
             className="btn btn-primary"
             title="Enter 发送 · Shift+Enter 换行 · 草稿按会话保存"
-            disabled={!draft.trim() || busy || submitting}
+            disabled={!draft.trim() || busy || submitting || maintenanceLocked}
             onClick={() => void send()}
           >
             发送

@@ -1,7 +1,11 @@
+import { RecoveryJournal } from './edu-recovery-journal';
+import { MaintenanceGate } from './maintenance-gate';
+import { EduVerificationService } from './edu-verification';
 import { shutdownServiceOwners } from './shutdown';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { AppService } from './app-service';
+import { EduTaskCandidates } from './edu-task';
 import {
   ObservationRequestSchema,
   ServiceRuntimeConfigSchema,
@@ -27,6 +31,7 @@ const root = process.argv[2];
 if (!root) throw new Error('缺少对话运行目录');
 const send = (message: ChatServiceMessage) => parent.postMessage(ChatServiceMessageSchema.parse(message));
 const runtime = process.argv[3] ? ServiceRuntimeConfigSchema.parse(JSON.parse(process.argv[3])) : undefined;
+const eduCandidates = new EduTaskCandidates(root);
 const chat = new CodexChat(root, (conversation) => send({ type: 'event', conversation }), new SbxConnection(runtime));
 const apps = new AppService(chat.connection, {
   registryPath: path.join(root, 'app-registry.json'),
@@ -90,14 +95,46 @@ chat.setAppControlReader(
 const agentCalls = new Map<string, AbortController>();
 const observations = new Map<string, AbortController>();
 const terminalFor = (resourceId: string) => environments.terminal(environments.identity(resourceId));
-const ready = chat.initialize().then((status) => {
-  send({ type: 'initialized', status, cleanupPending: chat.connection.getCleanupPending() });
-  return status;
-});
+const connectionReady = chat.initialize();
 // Capture and resource writes share ordering. Cancellation must bypass a held
 // capture so it can revoke CodexChat.preparing before any guest is launched.
 let sendOperations: Promise<unknown> = Promise.resolve();
 const pendingSends = new Map<string, Set<{ cancelled: boolean }>>();
+const maintenance = new MaintenanceGate();
+const recoveryJournal = new RecoveryJournal(path.join(root, 'edu-verification-recovery.json'), maintenance);
+let initializationError: Error | null = null;
+const verification = new EduVerificationService(
+  apps,
+  maintenance,
+  async () => {
+    for (const pending of pendingSends.values()) for (const admission of pending) admission.cancelled = true;
+    for (const controller of agentCalls.values()) controller.abort();
+    await chat.drainForVerification();
+    await maintenance.drain();
+    await chat.drainForVerification();
+    await environments.drainTerminals();
+  },
+  {
+    ensureReady: requireReady,
+    journal: recoveryJournal,
+    onStatus: (status) => send({ type: 'edu-verification-event', status }),
+    onAdmissionStatus: (status) => send({ type: 'edu-admission-recovery-event', status }),
+  },
+);
+const ready = connectionReady.then(async (status) => {
+  try {
+    await verification.initialize();
+  } catch (error) {
+    initializationError = new Error('verification_journal_invalid', { cause: error });
+  }
+  const effective = initializationError ? { ...status, available: false, reason: initializationError.message } : status;
+  send({ type: 'initialized', status: effective, cleanupPending: maintenance.isLocked() || chat.connection.getCleanupPending() });
+  return effective;
+});
+async function requireReady(): Promise<void> {
+  await ready;
+  if (initializationError) throw initializationError;
+}
 parent.on('message', ({ data }) => {
   const request = ChatServiceRequestSchema.parse(data);
   if (request.method === 'shutdown') chat.beginShutdown();
@@ -110,28 +147,110 @@ parent.on('message', ({ data }) => {
     pending.add(admission);
     pendingSends.set(request.payload.conversationId, pending);
   }
+  const mutating =
+    [
+      'send',
+      'terminal.open',
+      'terminal.write',
+      'app.create',
+      'app.importEdu',
+      'app.start',
+      'app.prepareEduTask',
+      'app.applyEduTask',
+    ].includes(request.method) ||
+    (request.method === 'app.agent' && ['seed', 'reset'].includes(request.payload.operation.op));
+  let checkAdmission: () => void = () => undefined;
+  let admissionError: unknown;
+  if (mutating) {
+    try {
+      checkAdmission = maintenance.admission();
+    } catch (error) {
+      admissionError = error;
+    }
+  }
   const execute = async () => {
     try {
-      if (request.method === 'send') await ready;
+      if (
+        initializationError &&
+        ![
+          'status',
+          'get',
+          'register',
+          'resource.register',
+          'terminal.get',
+          'environments.list',
+          'shutdown',
+          'cancel',
+          'reset',
+          'app.agent.cancel',
+          'observation.cancel',
+          'terminal.close',
+        ].includes(request.method)
+      )
+        throw initializationError;
+      if (admissionError) throw admissionError;
+      checkAdmission();
+      if (request.method === 'send') await requireReady();
+      checkAdmission();
       let result;
       switch (request.method) {
+        case 'app.verification.recoverAdmission':
+          result = await verification.recoverAdmission(request.payload);
+          break;
+        case 'app.verification.begin':
+          result = await verification.begin(request.payload);
+          break;
+        case 'app.verification.reconcile':
+          await requireReady();
+          result = await verification.reconcile(request.payload);
+          break;
+        case 'app.verification.end':
+          result = await verification.end(request.payload);
+          break;
+        case 'app.verification.status':
+          result = verification.status(request.payload);
+          break;
+        case 'app.taskSource':
+          await requireReady();
+          result = await apps.export(request.payload, true);
+          break;
+        case 'app.prepareEduTask':
+          await requireReady();
+          checkAdmission();
+          await apps.prepareTask(request.payload, eduCandidates.get(request.payload));
+          result = null;
+          break;
+        case 'app.applyEduTask':
+          await requireReady();
+          checkAdmission();
+          result = await apps.applyTask(request.payload, eduCandidates.get(request.payload));
+          break;
         case 'app.get':
-          await ready;
+          await requireReady();
           result = await apps.restore(request.payload);
           break;
         case 'app.create':
-          await ready;
+          await requireReady();
+          checkAdmission();
           result = await apps.create(request.payload);
           break;
+        case 'app.importEdu':
+          await requireReady();
+          checkAdmission();
+          result = await apps.importEdu(request.payload);
+          break;
         case 'app.start':
-          await ready;
+          await requireReady();
+          checkAdmission();
           result = await apps.start(request.payload);
           break;
         case 'app.stop':
-          result = await apps.stop(request.payload);
+          await requireReady();
+          if (await verification.stopCurrent(request.payload)) result = await apps.restore(request.payload);
+          else result = await apps.stop(request.payload);
           break;
         case 'app.export':
-          await ready;
+          await requireReady();
           result = await apps.export(request.payload);
           break;
         case 'app.reply': {
@@ -145,11 +264,12 @@ parent.on('message', ({ data }) => {
           break;
         }
         case 'app.agent': {
-          await ready;
+          await requireReady();
           if (agentCalls.has(request.payload.callId)) throw new Error('Duplicate app agent call');
           const controller = new AbortController();
           agentCalls.set(request.payload.callId, controller);
           try {
+            checkAdmission();
             result = await apps.agent(request.payload.target, request.payload.appInstanceId, request.payload.operation, controller.signal);
           } finally {
             agentCalls.delete(request.payload.callId);
@@ -161,7 +281,7 @@ parent.on('message', ({ data }) => {
           result = null;
           break;
         case 'app.logs':
-          await ready;
+          await requireReady();
           result = await apps.logs(request.payload.target, request.payload.maxBytes);
           break;
         case 'observation.reply': {
@@ -205,12 +325,16 @@ parent.on('message', ({ data }) => {
           result = null;
           break;
         case 'status':
-          result = chat.getStatus();
+          result = initializationError ? { ...chat.getStatus(), available: false, reason: initializationError.message } : chat.getStatus();
           break;
         case 'get':
           result = chat.get(request.payload.conversationId);
           break;
-        case 'send':
+        case 'send': {
+          const binding = request.payload.eduTask;
+          await apps.assertTaskAdmission(request.payload.references.workspaceId, binding);
+          const workspace = binding && !admission?.cancelled ? await apps.taskSource(binding) : undefined;
+          checkAdmission();
           result = admission?.cancelled
             ? chat.get(request.payload.conversationId)
             : await chat.send(
@@ -218,8 +342,10 @@ parent.on('message', ({ data }) => {
                 request.payload.text,
                 request.payload.observationScope,
                 request.payload.references,
+                binding && workspace ? { binding, workspace, retain: (candidate) => eduCandidates.retain(binding, candidate) } : undefined,
               );
           break;
+        }
         case 'cancel':
           result = await chat.cancel(request.payload.conversationId, pendingSends.has(request.payload.conversationId));
           break;
@@ -231,7 +357,8 @@ parent.on('message', ({ data }) => {
           break;
         case 'terminal.open': {
           const identity = environments.identity(request.payload.resourceId);
-          if (identity.environmentId === 'sandbox') await ready;
+          if (identity.environmentId === 'sandbox') await requireReady();
+          checkAdmission();
           result = await environments.openTerminal(identity, request.payload.cols, request.payload.rows);
           break;
         }
@@ -249,6 +376,7 @@ parent.on('message', ({ data }) => {
         case 'shutdown': {
           for (const controller of observations.values()) controller.abort();
           for (const controller of agentCalls.values()) controller.abort();
+          await verification.shutdown();
           await shutdownServiceOwners(
             () => apps.shutdown(),
             () => chat.shutdown(),
@@ -272,18 +400,23 @@ parent.on('message', ({ data }) => {
     }
   };
   if (request.method === 'send') {
-    sendOperations = sendOperations.then(execute);
-  } else void execute();
+    sendOperations = sendOperations.then(() => maintenance.track(execute()));
+  } else if (mutating) void maintenance.track(execute());
+  else void execute();
 });
 
 process.on('SIGTERM', () => {
   chat.beginShutdown();
   for (const controller of observations.values()) controller.abort();
-  void shutdownServiceOwners(
-    () => apps.shutdown(),
-    () => chat.shutdown(),
-    () => environments.shutdown(),
-  )
+  void verification
+    .shutdown()
+    .then(() =>
+      shutdownServiceOwners(
+        () => apps.shutdown(),
+        () => chat.shutdown(),
+        () => environments.shutdown(),
+      ),
+    )
     .then(() => process.exit(0))
     .catch((error: unknown) => {
       console.error('guest 清理失败', error);

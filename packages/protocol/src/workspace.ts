@@ -1,3 +1,10 @@
+import {
+  EduAdmissionRecoveryStatusSchema,
+  EduVerificationStatusSchema,
+  EduVerificationBeginSchema,
+  EduVerificationTargetSchema,
+} from './edu-verification';
+import { EduTaskBindingSchema } from './edu-task';
 import { ObservationRecordSchema, FileInvalidationHintSchema } from './observation';
 import { EnvironmentListSchema } from './environments';
 import { z } from 'zod';
@@ -38,6 +45,7 @@ export const PaneLayoutSchema: z.ZodType<PaneLayout> = z.lazy(() =>
   ]),
 );
 export const WorkbenchTaskVersionSchema = z.object({
+  eduTask: EduTaskBindingSchema.optional(),
   taskVersionId: Id,
   version: z.number().int().positive(),
   workspaceId: Id,
@@ -58,6 +66,7 @@ export const WorkbenchTaskVersionSchema = z.object({
   allowedScopes: z.array(z.string()).default([]),
 });
 export const WorkbenchRunSchema = z.object({
+  eduTask: EduTaskBindingSchema.optional(),
   referenceSnapshot: CatalogReferenceSnapshotSchema.optional(),
   referenceSummary: z.array(z.object({ resourceId: Id, version: z.number().int().positive(), contentSha256: z.string() })).optional(),
   runId: Id,
@@ -155,7 +164,20 @@ export const WorkbenchNotificationSchema = z.object({
   readAt: z.string().nullable(),
 });
 export type WorkbenchNotification = z.infer<typeof WorkbenchNotificationSchema>;
+export const EduVerificationViewSchema = z
+  .object({
+    status: EduVerificationStatusSchema.nullable(),
+    admissionRecovery: EduAdmissionRecoveryStatusSchema.nullable().optional(),
+    original: EduVerificationBeginSchema.nullable(),
+    target: EduVerificationTargetSchema.nullable(),
+    urls: z.array(z.string().max(2048)),
+    recoveryRequired: z.boolean(),
+    error: z.string().nullable(),
+  })
+  .strict();
+export type EduVerificationView = z.infer<typeof EduVerificationViewSchema>;
 export const WorkbenchSnapshotSchema = z.object({
+  eduVerification: EduVerificationViewSchema.nullable().optional(),
   catalog: CatalogSummarySchema.optional(),
   appInstanceId: Id,
   storageError: z.string().nullable(),
@@ -178,6 +200,11 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
     name: SpaceAppSchema.shape.name,
     description: SpaceAppSchema.shape.description,
   }),
+  command('importEduApp', {}),
+  command('beginEduVerification', {}),
+  command('endEduVerification', {}),
+  command('reconcileEduVerification', {}),
+  command('openAppPage', { page: z.enum(['admin', 'student']) }),
   command('startApp', {}),
   command('stopApp', {}),
   command('exportApp', {}),

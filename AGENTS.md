@@ -46,3 +46,18 @@ env -u ELECTRON_RUN_AS_NODE pnpm exec playwright test
 ```
 
 这不修改项目或系统配置，不关闭 Electron sandbox，也不启用真实模型或 sandbox live。失败记录与清理环境后的独立复跑应分别保留。
+
+## 外部 edu-web 接入与定向复验
+
+本任务新增的是用户选择源码的 `edu-web` profile v1，不是第二个内置模板。入口及限制见 [当前运行时](docs/architecture/current-runtime.md)。Main 原生选择 Git 根目录；renderer 不传宿主路径。导入上限仍为 256 文件、524288 字节；后端、依赖锁及构建配置固定于导入基线，启动/导出只接受 `admin/src/` 内的变化。
+
+```sh
+pnpm exec vitest run packages/protocol/src/edu-app.test.ts apps/service/src/edu-helper.test.ts apps/service/src/app-service.test.ts apps/desktop/src/main/workbench/edu-source.test.ts apps/desktop/src/main/workbench/edu-source-git.test.ts apps/desktop/src/main/workbench/source-export.test.ts apps/desktop/src/main/workbench/managed-app.test.ts apps/desktop/src/main/workbench/managed-app-host.test.ts
+pnpm build
+```
+
+真实 guest/Electron 复验需另获授权：准备任务独占、无宿主挂载的 `wsl-edu-...` sandbox，已安装 guest Python 3.12（本任务实测 3.12.3）和锁依赖所需网络。`e2e/edu-app-live.spec.ts` 仅在 `WSL_EDU_LIVE=1` 时执行，还需 `WSL_SBX_NAME`、`WSL_EDU_SOURCE_ROOT`、`WSL_EDU_EXPECTED_SHA256` 和全新的绝对路径 `WSL_EDU_EVIDENCE`；可用 `WSL_EDU_PROFILE` 将全新私有用户数据目录留在证据目录之外。目录选择响应由测试自动提供；Main、service、guest 和原生 Browser 不 mock。测试不调用模型/Azure，不证明实际麦克风或签名包验收；跳过不能计作通过。
+
+不要将 profile、Cookies、guest 数据库或临时凭据加入证据提交。`pnpm check` 在旧 VS001/来源档案的 lint 错误处停止时，应保留原字节，分别执行类型、当前变更 lint/格式、`pnpm test`、构建和 `pnpm baseline:selftest`，不要降低检查规则。
+
+本机曾在 `pnpm test` 与类型检查/Electron 并行时触发 observation-application 的 64-request budget 用例 5000ms 超时；无并行重跑原命令通过，但根因未确认。后续全量测试先单独运行并保留失败，不提高超时或减少预算断言以制造通过。

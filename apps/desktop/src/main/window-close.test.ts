@@ -3,6 +3,8 @@ const fixture = vi.hoisted(() => ({
   listeners: new Map<string, (event: { preventDefault(): void }) => void>(),
   close: vi.fn(),
   shutdown: vi.fn(),
+  deactivateAudio: vi.fn<() => Promise<void>>(),
+  resumeAudio: vi.fn<() => Promise<void>>(),
   getSnapshot: vi.fn(),
   dispose: vi.fn(),
   dialog: vi.fn(),
@@ -29,6 +31,8 @@ vi.mock('./workbench/repository', () => ({ FileWorkbenchRepository: class {} }))
 vi.mock('./workbench/host', () => ({
   WorkbenchHost: class {
     dispose = fixture.dispose;
+    deactivateAudio = fixture.deactivateAudio;
+    resumeAudio = fixture.resumeAudio;
   },
 }));
 vi.mock('./window', () => ({
@@ -47,6 +51,8 @@ beforeEach(() => {
   fixture.listeners.clear();
   vi.clearAllMocks();
   fixture.shutdown.mockResolvedValue(undefined);
+  fixture.deactivateAudio.mockResolvedValue(undefined);
+  fixture.resumeAudio.mockResolvedValue(undefined);
   fixture.dialog.mockResolvedValue({ response: 1 });
   fixture.getSnapshot.mockRejectedValue(new Error('corrupt workspace file'));
 });
@@ -128,5 +134,36 @@ describe('window shutdown', () => {
     reject(new Error('cleanup unknown'));
     await vi.waitFor(() => expect(fixture.dialog).toHaveBeenCalledOnce());
     expect(fixture.close).not.toHaveBeenCalled();
+  });
+  it('waits for verified audio release before starting guest shutdown', async () => {
+    let ended!: () => void;
+    fixture.deactivateAudio.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          ended = resolve;
+        }),
+    );
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await open();
+    close();
+    await vi.waitFor(() => expect(fixture.deactivateAudio).toHaveBeenCalledOnce());
+    expect(fixture.shutdown).not.toHaveBeenCalled();
+    expect(fixture.close).not.toHaveBeenCalled();
+    ended();
+    await vi.waitFor(() => expect(fixture.close).toHaveBeenCalledOnce());
+    expect(fixture.shutdown).toHaveBeenCalledOnce();
+    error.mockRestore();
+  });
+  it('reports unconfirmed audio release while still reclaiming the guest and closing after confirmation', async () => {
+    const failure = new Error('audio tracks unconfirmed; preview destroyed');
+    fixture.deactivateAudio.mockRejectedValue(failure);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await open();
+    close();
+    await vi.waitFor(() => expect(fixture.close).toHaveBeenCalledOnce());
+    expect(fixture.shutdown).toHaveBeenCalledOnce();
+    expect(fixture.dispose).toHaveBeenCalledOnce();
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('退出前音轨核验失败'), failure);
+    error.mockRestore();
   });
 });
