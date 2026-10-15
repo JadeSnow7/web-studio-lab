@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { WebContentsView, BrowserWindow } from 'electron';
+import { WebContentsView, BrowserWindow, type WebContents } from 'electron';
 import type {
   CdpState,
   PageCapture,
@@ -11,6 +11,8 @@ import type {
   PreviewState,
 } from '@wsl/protocol';
 import { AgentControlLatch } from './app-ui';
+import { EduAudioMonitor } from './edu-audio-monitor';
+import { allowsEduAudio, type EduAudioBinding, type EduAudioRequest } from './edu-audio-policy';
 import { readElementSummary } from './element-summary';
 import { clampToViewport } from './geometry';
 import { isAllowedPreviewUrl } from './navigation-policy';
@@ -33,6 +35,7 @@ export interface PreviewControllerOptions {
   homeUrl: string;
   allowedOrigins: readonly string[];
   managedAppOrigin?(): string | null;
+  eduAudio?(): Omit<EduAudioBinding, 'webContentsId' | 'documentGeneration' | 'url' | 'visible' | 'monitorReady'> | null;
   onState(state: PreviewState): void;
   onCaptured(capture: PageCapture, requestId: string): void;
   onCaptureError?(error: Error, requestId: string, kind: 'failed' | 'cancelled'): void;
@@ -45,7 +48,14 @@ export interface PreviewControllerOptions {
  */
 export class PreviewController {
   private readonly view: WebContentsView;
+  private readonly contents: WebContents;
+  private lastEmittedState: PreviewState | null = null;
   private documentGeneration = 0;
+  private audioReadyGeneration = -1;
+  private audioInstalled = false;
+  private audioEpoch = 0;
+  private audioCleanup: Promise<unknown> = Promise.resolve();
+  private readonly audioMonitor: EduAudioMonitor | null;
   private consoleIssues: PageConsoleEntry[] = [];
   private picking = false;
   private pickEpoch = 0;
@@ -80,6 +90,9 @@ export class PreviewController {
         spellcheck: false,
       },
     });
+    this.contents = this.view.webContents;
+    this.audioMonitor = options.eduAudio ? new EduAudioMonitor((method, params) => this.send(method, params)) : null;
+    if (this.audioMonitor) this.installAudioPermissions();
     let protocol: PublicDocumentProtocol | null = null;
     try {
       this.view.setVisible(false);
@@ -117,7 +130,7 @@ export class PreviewController {
   }
 
   private get webContents() {
-    return this.view.webContents;
+    return this.contents;
   }
 
   private attachListeners(): void {
@@ -132,14 +145,33 @@ export class PreviewController {
     wc.on('did-start-navigation', (event) => {
       if (event.isMainFrame && !event.isSameDocument) this.beginNavigation();
     });
-    wc.on('will-navigate', (event) => this.guardNavigation(event.url, () => event.preventDefault()));
+    wc.on('will-navigate', (event) => {
+      this.guardNavigation(event.url, () => event.preventDefault());
+      if (this.audioMonitor && this.isAllowedNavigation(event.url)) {
+        // loadURL does not emit will-navigate: resume once through the guarded path.
+        event.preventDefault();
+        void this.navigate(event.url).catch((error: unknown) => this.reportAudioFailure(error));
+      }
+    });
+    wc.on('dom-ready', () => {
+      if (this.audioMonitor && this.visible) void this.activateEduAudio().catch((error: unknown) => this.reportAudioFailure(error));
+    });
     wc.on('will-redirect', (event) => this.guardNavigation(event.url, () => event.preventDefault()));
     wc.on('did-start-loading', () => this.emitState());
-    wc.on('did-stop-loading', () => this.emitState());
+    wc.on('did-stop-loading', () => {
+      this.emitState();
+      if (this.audioMonitor && this.visible) void this.activateEduAudio().catch((error: unknown) => this.reportAudioFailure(error));
+    });
     wc.on('page-title-updated', () => this.emitState());
     wc.on('did-navigate', () => this.onDocumentChanged());
     wc.on('did-navigate-in-page', (_event, _url, isMainFrame) => {
-      if (isMainFrame) this.onDocumentChanged();
+      if (isMainFrame) {
+        if (this.audioMonitor)
+          void this.stopEduAudio()
+            .then(() => this.activateEduAudio())
+            .catch((error: unknown) => this.reportAudioFailure(error));
+        this.onDocumentChanged();
+      }
     });
     wc.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
       // -3（ERR_ABORTED）是被拦截或被新导航取代，单独由 blockedNavigation 说明。
@@ -152,6 +184,10 @@ export class PreviewController {
       this.emitState();
     });
     wc.on('render-process-gone', (_event, details) => {
+      if (this.audioMonitor) {
+        this.reportAudioFailure(new Error('录音文档进程已退出，无法核验音轨'));
+        return;
+      }
       this.loadError = { code: details.exitCode, description: `页面进程退出：${details.reason}`, url: wc.getURL() };
       this.invalidatePick('页面进程已退出');
       this.emitState();
@@ -170,6 +206,10 @@ export class PreviewController {
       }
     });
     wc.debugger.on('detach', (_event, reason) => {
+      if (this.audioMonitor && !this.disposed) {
+        this.reportAudioFailure(new Error('音轨监视连接已断开'));
+        return;
+      }
       this.cdp = { state: 'detached', reason };
       this.invalidatePick('页面调试连接已断开');
       this.emitState();
@@ -200,6 +240,7 @@ export class PreviewController {
   }
 
   private beginNavigation(): void {
+    this.audioReadyGeneration = -1;
     this.invalidatePick('页面已导航，点选已取消，请重新开始选择');
     this.navigationEpoch += 1;
     this.brokerFailureEpoch = null;
@@ -252,7 +293,7 @@ export class PreviewController {
   }
 
   get observationTarget() {
-    return this.view.webContents;
+    return this.contents;
   }
   getState(): PreviewState {
     const history = this.webContents.navigationHistory;
@@ -273,20 +314,28 @@ export class PreviewController {
 
   private emitState(): void {
     if (this.disposed) return;
-    this.options.onState(this.getState());
+    this.lastEmittedState = this.getState();
+    this.options.onState(this.lastEmittedState);
   }
 
   setLayout(layout: PreviewLayout): void {
     this.view.setBounds(layout.bounds);
     const visible = layout.visible && layout.bounds.width > 0 && layout.bounds.height > 0;
     if (!visible && this.picking) void this.cancelPick();
+    const changed = this.visible !== visible;
     this.visible = visible;
     this.view.setVisible(visible);
+    if (this.audioMonitor && changed) {
+      const action = visible ? this.activateEduAudio() : this.stopEduAudio();
+      void action.catch((error: unknown) => this.reportAudioFailure(error));
+    }
   }
 
   async freeze(): Promise<PreviewFreezeResult> {
-    const image = await this.webContents.capturePage();
+    const cleanup = this.stopEduAudio();
     this.visible = false;
+    await cleanup;
+    const image = await this.webContents.capturePage();
     this.view.setVisible(false);
     return { dataUrl: image.isEmpty() ? '' : image.toDataURL() };
   }
@@ -302,6 +351,16 @@ export class PreviewController {
   private async coordinateNavigation(start: () => Promise<void> | void): Promise<void> {
     if (this.disposed) throw new Error('网页实例已销毁');
     const id = ++this.loadRequestId;
+    if (this.audioMonitor) {
+      await this.stopEduAudio();
+      // A new WebContentsView has no renderer to answer CDP commands yet. Bootstrap
+      // only an empty document; install the guard before any imported site loads.
+      if (!this.webContents.getURL()) await this.webContents.loadURL('about:blank');
+      await this.ensureCdp();
+      await this.audioMonitor.install();
+      this.audioInstalled = true;
+      this.audioMonitor.releaseDocument();
+    }
     const previous = this.nativeNavigation;
     if (previous) {
       previous.superseded = true;
@@ -542,16 +601,135 @@ export class PreviewController {
     this.devToolsWindow.focus();
   }
 
+  resumeEduAudio(): Promise<void> {
+    return this.activateEduAudio();
+  }
+
+  hasEduAudio(): boolean {
+    return this.audioMonitor !== null;
+  }
+
+  private audioBinding(): EduAudioBinding | null {
+    const context = this.options.eduAudio?.();
+    if (!context || this.disposed) return null;
+    return {
+      ...context,
+      webContentsId: this.webContents.id,
+      documentGeneration: this.documentGeneration,
+      url: this.webContents.getURL(),
+      visible: this.visible && this.window.isVisible() && !this.window.isMinimized(),
+      monitorReady: this.audioReadyGeneration === this.documentGeneration,
+    };
+  }
+
+  private installAudioPermissions(): void {
+    const allowed = (request: EduAudioRequest) => allowsEduAudio(this.audioBinding(), request);
+    this.webContents.session.setPermissionCheckHandler((wc, permission, requestingOrigin, details) =>
+      allowed({
+        webContentsId: wc?.id ?? null,
+        permission,
+        requestingOrigin,
+        requestingUrl: details.requestingUrl,
+        isMainFrame: details.isMainFrame,
+        mediaTypes: details.mediaType ? [details.mediaType] : [],
+      }),
+    );
+    this.webContents.session.setPermissionRequestHandler((wc, permission, callback, details) => {
+      // The OS prompt belongs to native getUserMedia. Its late result is checked by
+      // the document-start closure against the revoked epoch before exposing tracks.
+      callback(
+        allowed({
+          webContentsId: wc.id,
+          permission,
+          requestingOrigin: undefined,
+          requestingUrl: details.requestingUrl,
+          isMainFrame: details.isMainFrame,
+          mediaTypes: 'mediaTypes' in details ? (details.mediaTypes ?? []) : [],
+        }),
+      );
+    });
+  }
+
+  private async activateEduAudio(): Promise<void> {
+    if (!this.audioMonitor || !this.audioInstalled || this.disposed || this.webContents.isLoading()) return;
+    const binding = this.audioBinding();
+    if (
+      !binding ||
+      !allowsEduAudio(
+        { ...binding, monitorReady: true },
+        {
+          webContentsId: binding.webContentsId,
+          permission: 'media',
+          isMainFrame: true,
+          requestingUrl: binding.url,
+          requestingOrigin: binding.origin,
+          mediaTypes: ['audio'],
+        },
+      )
+    )
+      return;
+    const epoch = this.audioEpoch;
+    const generation = this.documentGeneration;
+    await this.audioCleanup;
+    if (epoch !== this.audioEpoch || this.disposed || !this.visible) return;
+    await this.audioMonitor.activate();
+    if (epoch === this.audioEpoch && generation === this.documentGeneration && this.visible && !this.disposed)
+      this.audioReadyGeneration = generation;
+  }
+
+  stopEduAudio(): Promise<void> {
+    // This is the permission linearization point; no asynchronous work precedes it.
+    this.audioReadyGeneration = -1;
+    this.audioEpoch++;
+    if (!this.audioMonitor || this.disposed) return Promise.resolve();
+    const cleanup = this.audioCleanup.then(() => this.audioMonitor!.stop()).then(() => undefined);
+    this.audioCleanup = cleanup;
+    return cleanup.catch((error: unknown) => {
+      this.reportAudioFailure(error);
+      throw error;
+    });
+  }
+
+  private reportAudioFailure(error: unknown): void {
+    if (this.disposed) return;
+    this.audioReadyGeneration = -1;
+    this.loadError = {
+      code: -1,
+      description: '录音清理未确认，预览已销毁：' + (error instanceof Error ? error.message : String(error)),
+      url: this.lastEmittedState?.page.url ?? this.options.homeUrl,
+    };
+    if (this.webContents.isDestroyed()) {
+      if (this.lastEmittedState) this.options.onState({ ...this.lastEmittedState, loadError: this.loadError });
+    } else this.emitState();
+    this.disposeNow();
+  }
+
+  async closeWithAudioCleanup(): Promise<void> {
+    try {
+      await this.stopEduAudio();
+    } finally {
+      this.disposeNow();
+    }
+  }
+
   /** 窗口关闭时显式释放页面：断开 CDP，关闭 webContents。 */
   dispose(): void {
+    if (this.audioMonitor && !this.disposed) {
+      void this.closeWithAudioCleanup().catch((error: unknown) => console.error('edu 录音清理失败', error));
+      return;
+    }
+    this.disposeNow();
+  }
+  private disposeNow(): void {
     if (this.disposed) return;
     this.invalidatePick('网页实例已销毁');
     this.disposed = true;
     this.nativeNavigation?.release();
     this.devToolsWindow?.destroy();
     this.publicProtocol.dispose();
-    if (this.webContents.debugger.isAttached()) this.webContents.debugger.detach();
-    this.window.contentView.removeChildView(this.view);
-    this.webContents.close();
+    const destroyed = this.audioMonitor ? this.webContents.isDestroyed() : false;
+    if (!destroyed && this.webContents.debugger.isAttached()) this.webContents.debugger.detach();
+    if (!this.audioMonitor || !this.window.isDestroyed()) this.window.contentView.removeChildView(this.view);
+    if (!destroyed) this.webContents.close();
   }
 }

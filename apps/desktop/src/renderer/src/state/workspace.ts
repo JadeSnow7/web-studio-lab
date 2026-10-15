@@ -28,6 +28,14 @@ export function projectSnapshot(snapshot: WorkbenchSnapshot, authoritativeEpoch 
         },
   );
 }
+export function verificationLocked(snapshot: WorkbenchSnapshot | null): boolean {
+  const view = snapshot?.eduVerification;
+  return (
+    !!view &&
+    (view.recoveryRequired ||
+      (view.admissionRecovery ? view.admissionRecovery.maintenanceLocked : !view.status || view.status.maintenanceLocked))
+  );
+}
 export function selectedWorkspace(): WorkspaceSnapshot | undefined {
   const s = workspaceStore.get();
   return s.snapshot?.workspaces.find((w) => w.workspaceId === s.selectedId);
@@ -37,9 +45,14 @@ export function panes(layout: PaneLayout): Array<Extract<PaneLayout, { kind: 'pa
 }
 const metadataQueues = new Map<string, Promise<unknown>>();
 const runtimeCommands = new Set([
+  'beginEduVerification',
+  'endEduVerification',
+  'reconcileEduVerification',
   'startRun',
   'cancelRun',
   'createApp',
+  'importEduApp',
+  'openAppPage',
   'startApp',
   'stopApp',
   'exportApp',

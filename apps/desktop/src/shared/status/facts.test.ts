@@ -1291,3 +1291,13 @@ describe('projectFacts: 键、raw 白名单、限制与纯度', () => {
     expect(projectFacts(input()).map((fact) => fact.key)).toEqual(['chat:global:state']);
   });
 });
+
+it('disables maintenance status actions across workspaces while verification recovery is unconfirmed', () => {
+  const facts = factsOf(
+    {},
+    { eduVerification: { status: null, original: null, target: null, urls: [], recoveryRequired: true, error: null } },
+  );
+  const create = facts.find((fact) => fact.action?.id === 'app.create');
+  expect(create?.action?.disabled).toBe(true);
+  expect(factsOf().find((fact) => fact.action?.id === 'app.create')?.action?.disabled).not.toBe(true);
+});

@@ -2,6 +2,7 @@ import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import { useStore } from '../lib/store';
 import { draftActions, draftsStore, type ComposerTarget } from '../state/drafts';
 import { chatActions, chatBlockedReason, chatStore } from '../state/chat';
+import { verificationLocked, workspaceStore } from '../state/workspace';
 import { PersonalReferences } from './PersonalReferences';
 import { Icon } from '../components/Icon';
 
@@ -29,7 +30,11 @@ export function Composer({ target, sendBlockedReason, placeholder, harnessLabel,
   const conversationId = target.kind === 'conversation' ? target.conversation.id : null;
   const draft = useStore(draftsStore, (d) => (conversationId ? (d[conversationId] ?? '') : ''));
   useStore(chatStore, (state) => state);
-  const blocked = sendBlockedReason ?? (conversationId ? chatBlockedReason(conversationId) : null);
+  const maintenanceLocked = useStore(workspaceStore, (s) => verificationLocked(s.snapshot));
+  const blocked =
+    (maintenanceLocked ? '发音验证期间维护已暂停，请先退出验证并确认恢复' : null) ??
+    sendBlockedReason ??
+    (conversationId ? chatBlockedReason(conversationId) : null);
   const [notice, setNotice] = useState<string | null>(null);
 
   if (target.kind === 'none') {

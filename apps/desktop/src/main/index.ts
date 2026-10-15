@@ -123,6 +123,18 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
     },
     async (options) => (await dialog.showMessageBox(window, options)).response,
   );
+  window.on('show', () => {
+    void host.resumeAudio().catch((error: unknown) => console.error('恢复录音监视失败', error));
+  });
+  window.on('restore', () => {
+    void host.resumeAudio().catch((error: unknown) => console.error('恢复录音监视失败', error));
+  });
+  window.on('hide', () => {
+    void host.deactivateAudio().catch((error: unknown) => console.error('隐藏窗口时录音清理失败', error));
+  });
+  window.on('minimize', () => {
+    void host.deactivateAudio().catch((error: unknown) => console.error('最小化时录音清理失败', error));
+  });
   let closing = false;
   let allowed = false;
   window.on('close', (event) => {
@@ -130,10 +142,15 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
     event.preventDefault();
     if (closing) return;
     closing = true;
-    void exit
-      .request()
-      .then((shouldClose) => {
-        if (!shouldClose) return;
+    void host
+      .deactivateAudio()
+      .catch((error: unknown) => console.error('退出前音轨核验失败；预览已销毁，继续回收 guest', error))
+      .then(() => exit.request())
+      .then(async (shouldClose) => {
+        if (!shouldClose) {
+          await host.resumeAudio();
+          return;
+        }
         host.dispose();
         unregisterIpc();
         unsubscribeSetup();

@@ -1,11 +1,19 @@
+import type { EduTaskBinding } from '@wsl/protocol';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { app, utilityProcess, type UtilityProcess } from 'electron';
 import {
+  EduVerificationStatusSchema,
+  EduAdmissionRecoveryStatusSchema,
+  type EduAdmissionRecoveryStatus,
+  type EduVerificationBegin,
+  type EduVerificationTarget,
+  type EduVerificationStatus,
   ManagedAppSchema,
   AppSourceSchema,
   type AppTarget,
   type AppSource,
+  type EduImport,
   type ManagedApp,
   EnvironmentListSchema,
   ServiceRuntimeConfigSchema,
@@ -36,6 +44,27 @@ import {
 export class ChatService {
   private child: UtilityProcess;
   private readonly managedApps = new Map<string, ManagedApp>();
+  private verificationListener: ((status: EduVerificationStatus) => void) | null = null;
+  private verification: EduVerificationStatus | null = null;
+  private admissionRecovery: EduAdmissionRecoveryStatus | null = null;
+  private admissionListener: ((status: EduAdmissionRecoveryStatus) => void) | null = null;
+  setAdmissionRecoveryListener(listener: (status: EduAdmissionRecoveryStatus) => void) {
+    this.admissionListener = listener;
+    if (this.admissionRecovery) listener(this.admissionRecovery);
+  }
+  private readonly completedVerificationSessions = new Set<string>();
+  private verificationGuard: (() => boolean) | null = null;
+  setVerificationGuard(guard: () => boolean) {
+    this.verificationGuard = guard;
+  }
+  private assertMaintenance(): void {
+    if (this.verificationGuard?.() || this.verification?.maintenanceLocked || this.admissionRecovery?.maintenanceLocked)
+      throw new Error('发音验证期间维护已暂停；请先退出验证并确认恢复');
+  }
+  setVerificationListener(listener: (status: EduVerificationStatus) => void) {
+    this.verificationListener = listener;
+    if (this.verification) listener(this.verification);
+  }
   private appListener: ((snapshot: ManagedApp) => void) | null = null;
   setAppListener(listener: (snapshot: ManagedApp) => void) {
     this.appListener = listener;
@@ -103,6 +132,43 @@ export class ChatService {
     this.child.on('message', (raw: unknown) => {
       try {
         const message = ChatServiceMessageSchema.parse(raw);
+        if (message.type === 'edu-admission-recovery-event') {
+          const next = message.status;
+          const previous = this.admissionRecovery;
+          if (
+            previous?.recoveryId === next.recoveryId &&
+            (previous.phase === 'ended' ||
+              previous.sourceSha256 !== next.sourceSha256 ||
+              JSON.stringify(previous.originalIdentity) !== JSON.stringify(next.originalIdentity) ||
+              (previous.phase === 'restoring' && next.phase === 'revoking'))
+          )
+            return;
+          if (previous && previous.recoveryId !== next.recoveryId && previous.maintenanceLocked) return;
+          this.admissionRecovery = next;
+          this.admissionListener?.(next);
+          return;
+        }
+        if (message.type === 'edu-verification-event') {
+          const next = message.status;
+          const previous = this.verification;
+          if (this.completedVerificationSessions.has(next.lease.sessionId)) return;
+          if (previous && previous.lease.sessionId !== next.lease.sessionId && previous.maintenanceLocked) return;
+          if (
+            previous?.lease.sessionId === next.lease.sessionId &&
+            (previous.lease.identity.workspaceId !== next.lease.identity.workspaceId ||
+              previous.lease.identity.projectId !== next.lease.identity.projectId ||
+              previous.lease.identity.appInstanceId !== next.lease.identity.appInstanceId ||
+              previous.lease.sourceSha256 !== next.lease.sourceSha256 ||
+              previous.callsUsed > next.callsUsed ||
+              (next.phase === 'active' && !['preparing', 'active'].includes(previous.phase)) ||
+              (next.phase === 'preparing' && previous.phase !== 'preparing'))
+          )
+            return;
+          this.verification = next;
+          if (next.phase === 'ended') this.completedVerificationSessions.add(next.lease.sessionId);
+          this.verificationListener?.(next);
+          return;
+        }
         if (message.type === 'app-event') {
           this.managedApps.set(message.snapshot.projectId, message.snapshot);
           this.appListener?.(message.snapshot);
@@ -222,6 +288,19 @@ export class ChatService {
       this.conversations.set(conversation.conversationId, conversation);
   }
   private fail(reason: string) {
+    if (this.admissionRecovery?.maintenanceLocked) {
+      this.admissionRecovery = {
+        ...this.admissionRecovery,
+        phase: 'failed',
+        maintenanceLocked: true,
+        error: 'verification_service_disconnected',
+      };
+      this.admissionListener?.(this.admissionRecovery);
+    }
+    if (this.verification?.maintenanceLocked) {
+      this.verification = { ...this.verification, phase: 'failed', maintenanceLocked: true, error: 'verification_service_disconnected' };
+      this.verificationListener?.(this.verification);
+    }
     for (const controller of this.observationCalls.values()) controller.abort();
     for (const controller of this.appCalls.values()) controller.abort();
     this.failure ??= reason;
@@ -322,6 +401,54 @@ export class ChatService {
     await this.request({ method: 'resource.release', payload: binding });
     this.resourceBindings.delete(binding.resourceId);
   }
+  async verificationBegin(input: EduVerificationBegin): Promise<EduVerificationStatus> {
+    const result = EduVerificationStatusSchema.parse(await this.request({ method: 'app.verification.begin', payload: input }));
+    if (
+      result.lease.identity.workspaceId !== input.workspaceId ||
+      result.lease.identity.projectId !== input.projectId ||
+      result.lease.sourceSha256 !== input.sourceSha256 ||
+      result.lease.identity.appInstanceId === input.appInstanceId
+    )
+      throw new Error('发音验证返回身份或源码不匹配');
+    return result;
+  }
+  private verificationResult(raw: unknown, target: EduVerificationTarget): EduVerificationStatus {
+    const result = EduVerificationStatusSchema.parse(raw);
+    const lease = result.lease;
+    if (
+      lease.sessionId !== target.sessionId ||
+      lease.identity.workspaceId !== target.workspaceId ||
+      lease.identity.projectId !== target.projectId ||
+      lease.identity.appInstanceId !== target.appInstanceId
+    )
+      throw new Error('发音验证返回会话或实例不匹配');
+    return result;
+  }
+  async verificationEnd(target: EduVerificationTarget): Promise<EduVerificationStatus> {
+    return this.verificationResult(await this.request({ method: 'app.verification.end', payload: target }), target);
+  }
+  async verificationRecoverAdmission(original: EduVerificationBegin): Promise<EduAdmissionRecoveryStatus> {
+    const result = EduAdmissionRecoveryStatusSchema.parse(
+      await this.request({ method: 'app.verification.recoverAdmission', payload: original }),
+    );
+    if (
+      result.originalIdentity.workspaceId !== original.workspaceId ||
+      result.originalIdentity.projectId !== original.projectId ||
+      result.originalIdentity.appInstanceId !== original.appInstanceId ||
+      result.sourceSha256 !== original.sourceSha256
+    )
+      throw new Error('未接管验证恢复返回的原始身份或源码不匹配');
+    return result;
+  }
+  async verificationReconcile(target: EduVerificationTarget): Promise<EduVerificationStatus> {
+    // An explicit recovery may emit a new restoring sequence for an already
+    // ended journal; ordinary late active receipts remain rejected.
+    this.completedVerificationSessions.delete(target.sessionId);
+    return this.verificationResult(await this.request({ method: 'app.verification.reconcile', payload: target }), target);
+  }
+  async verificationStatus(target: EduVerificationTarget): Promise<EduVerificationStatus> {
+    return this.verificationResult(await this.request({ method: 'app.verification.status', payload: target }), target);
+  }
   async appGet(target: AppTarget) {
     const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.get', payload: target }));
     this.managedApps.set(target.projectId, snapshot);
@@ -330,6 +457,11 @@ export class ChatService {
   async appCreate(target: AppTarget, files: AppSource['files']) {
     const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.create', payload: { ...target, files } }));
     this.managedApps.set(target.projectId, snapshot);
+    return snapshot;
+  }
+  async appImportEdu(payload: EduImport) {
+    const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.importEdu', payload }));
+    this.managedApps.set(payload.projectId, snapshot);
     return snapshot;
   }
   async appStart(target: AppTarget) {
@@ -343,6 +475,15 @@ export class ChatService {
     const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.stop', payload: target }));
     this.managedApps.set(target.projectId, snapshot);
     return snapshot;
+  }
+  async appEduTaskSource(target: AppTarget) {
+    return AppSourceSchema.parse(await this.request({ method: 'app.taskSource', payload: target }));
+  }
+  async appPrepareEduTask(binding: EduTaskBinding) {
+    await this.request({ method: 'app.prepareEduTask', payload: binding });
+  }
+  async appApplyEduTask(binding: EduTaskBinding) {
+    return ManagedAppSchema.parse(await this.request({ method: 'app.applyEduTask', payload: binding }));
   }
   async appExport(target: AppTarget) {
     return AppSourceSchema.parse(await this.request({ method: 'app.export', payload: target }));
@@ -392,9 +533,16 @@ export class ChatService {
   async get(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'get', payload: { conversationId: id } }));
   }
-  async send(id: ChatSlot, text: string, observationScope: ObservationTurnScope | undefined, references: CatalogReferenceSnapshot) {
+  async send(
+    id: ChatSlot,
+    text: string,
+    observationScope: ObservationTurnScope | undefined,
+    references: CatalogReferenceSnapshot,
+    eduTask?: EduTaskBinding,
+  ) {
+    this.assertMaintenance();
     return ChatConversationSchema.parse(
-      await this.request({ method: 'send', payload: { conversationId: id, text, observationScope, references } }),
+      await this.request({ method: 'send', payload: { conversationId: id, text, observationScope, references, eduTask } }),
     );
   }
   async cancel(id: ChatSlot) {
@@ -407,9 +555,11 @@ export class ChatService {
     return TerminalSnapshotSchema.parse(await this.request({ method: 'terminal.get', resourceId }));
   }
   async terminalOpen(cols: number, rows: number, resourceId: string) {
+    this.assertMaintenance();
     return TerminalSnapshotSchema.parse(await this.request({ method: 'terminal.open', payload: { cols, rows, resourceId } }));
   }
   async terminalWrite(sessionId: string, data: string, resourceId: string) {
+    this.assertMaintenance();
     await this.request({ method: 'terminal.write', payload: { sessionId, data, resourceId } });
   }
   async terminalResize(sessionId: string, cols: number, rows: number, resourceId: string) {

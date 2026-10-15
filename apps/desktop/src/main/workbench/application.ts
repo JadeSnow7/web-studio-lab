@@ -1,8 +1,15 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import {
   CatalogActionSchema,
   PageResourceSnapshotSchema,
   ResourceBundleSchema,
+  type EduTaskBinding,
+  type EduVerificationStatus,
+  type EduVerificationBegin,
+  type EduVerificationTarget,
+  type EduVerificationView,
+  type EduAdmissionRecoveryStatus,
   type CatalogAction,
   type CatalogReferenceSnapshot,
   type ResourceCatalogState,
@@ -37,6 +44,7 @@ import {
   type WorkspaceSnapshot,
   APP_DATA_RESET_SCOPE,
   type AppControlResult,
+  type ManagedApp,
 } from '@wsl/protocol';
 import {
   applyCatalogCommand,
@@ -53,6 +61,9 @@ import type { AppControl, AppControlContext } from './app-control';
 import { AppControlFailure } from './app-control-failure';
 
 const activeStates = ['starting', 'running', 'cancelling'];
+const standardAppProfile = { projectKind: 'standard-app', profileVersion: 1 };
+const sameAppProfile = (left: ManagedApp, right: ManagedApp) =>
+  isDeepStrictEqual(left.profile ?? standardAppProfile, right.profile ?? standardAppProfile);
 function workspace(workspaceId: string, name: string): WorkspaceSnapshot {
   const paneId = randomUUID();
   return {
@@ -250,6 +261,15 @@ export class WorkbenchApplication {
       for (const w of saved.workspaces)
         for (const r of w.resources) if (r.kind === 'web' && r.url && !r.appProjectId) this.runtime.validateBrowserUrl(r.url);
       this.snapshot = { ...saved, appInstanceId: this.snapshot.appInstanceId, seq: 0 };
+      if (this.snapshot.eduVerification) {
+        this.snapshot.eduVerification = {
+          ...this.snapshot.eduVerification,
+          status: null,
+          admissionRecovery: null,
+          recoveryRequired: true,
+          error: '应用重启；发音验证回收未确认，请核对并恢复维护',
+        };
+      }
       for (const w of this.snapshot.workspaces) {
         if (w.managedApp) {
           const previous = w.managedApp;
@@ -260,6 +280,7 @@ export class WorkbenchApplication {
               restored.workspaceId !== w.workspaceId ||
               restored.projectId !== previous.projectId ||
               restored.environmentId !== previous.environmentId ||
+              !sameAppProfile(restored, previous) ||
               restored.url ||
               ['running', 'starting', 'stopping'].includes(restored.state)
             )
@@ -423,8 +444,27 @@ export class WorkbenchApplication {
     return snapshot;
   }
   command(command: WorkbenchCommand): Promise<WorkbenchResult> {
+    if (['beginEduVerification', 'endEduVerification', 'reconcileEduVerification'].includes(command.type))
+      return this.verificationCommand(
+        command as Extract<WorkbenchCommand, { type: 'beginEduVerification' | 'endEduVerification' | 'reconcileEduVerification' }>,
+      );
+    if (
+      this.maintenanceLocked() &&
+      ['createApp', 'importEduApp', 'startApp', 'startRun', 'terminalOpen', 'terminalWrite'].includes(command.type)
+    )
+      return Promise.resolve({
+        ok: false,
+        error: { code: 'denied', message: '发音验证期间维护已暂停；请先退出验证并确认恢复' },
+        snapshot: this.publicSnapshot(),
+      });
     if (command.type === 'reconcileRunCleanup') return this.reconcileRunCleanup(command.workspaceId, command.runId);
-    if (command.type === 'createApp' || command.type === 'startApp' || command.type === 'stopApp' || command.type === 'exportApp')
+    if (
+      command.type === 'createApp' ||
+      command.type === 'importEduApp' ||
+      command.type === 'startApp' ||
+      command.type === 'stopApp' ||
+      command.type === 'exportApp'
+    )
       return this.appCommand(command);
     if (
       command.type === 'startRun' ||
@@ -436,13 +476,22 @@ export class WorkbenchApplication {
   }
   async onApp(app: NonNullable<WorkspaceSnapshot['managedApp']>) {
     await this.serialize(async () => {
+      const w = this.snapshot.workspaces.find((w) => w.workspaceId === app.workspaceId);
+      if (!w?.managedApp || w.managedApp.projectId !== app.projectId || !sameAppProfile(w.managedApp, app)) return;
       if (this.appOperations.has(app.workspaceId)) {
         if (app.state === 'failed') this.pendingAppFailures.set(app.workspaceId, app);
         return;
       }
-      const w = this.snapshot.workspaces.find((w) => w.workspaceId === app.workspaceId);
-      if (!w?.managedApp || w.managedApp.projectId !== app.projectId || w.managedApp.appInstanceId !== app.appInstanceId) return;
-      w.managedApp = app;
+      const handover = this.verificationAppExpected(app);
+      if (w.managedApp.appInstanceId !== app.appInstanceId && !handover) return;
+      if (
+        !handover &&
+        ['failed', 'stopped'].includes(w.managedApp.state) &&
+        (!['failed', 'stopped'].includes(app.state) || (w.managedApp.cleanupConfirmed && !app.cleanupConfirmed))
+      )
+        return;
+      if (handover) await this.bindVerificationApp(w, app);
+      else w.managedApp = app;
       if (app.cleanupConfirmed && app.state === 'stopped')
         await this.appControl?.confirmStopped(w.workspaceId, app.projectId, app.appInstanceId);
       if (app.state !== 'running')
@@ -455,11 +504,421 @@ export class WorkbenchApplication {
       await this.persist(w, app.projectId);
     });
   }
+  private verificationRestoredInstance: string | null = null;
+  private readonly verificationCommands = new Map<string, { fingerprint: string; promise: Promise<WorkbenchResult> }>();
+  private verificationLocked(view: EduVerificationView | null | undefined): boolean {
+    return (
+      !!view &&
+      (view.recoveryRequired ||
+        (view.admissionRecovery ? view.admissionRecovery.maintenanceLocked : view.status === null || view.status.maintenanceLocked))
+    );
+  }
+  maintenanceLocked(): boolean {
+    return this.verificationLocked(this.snapshot.eduVerification);
+  }
+  verificationAllowsAudio(projectId: string, appInstanceId: string): boolean {
+    if (!this.maintenanceLocked()) return true;
+    const view = this.snapshot.eduVerification;
+    return (
+      !view?.recoveryRequired &&
+      view?.status?.phase === 'active' &&
+      view.target?.projectId === projectId &&
+      view.target.appInstanceId === appInstanceId
+    );
+  }
+  private verificationAppExpected(app: ManagedApp): boolean {
+    const view = this.snapshot.eduVerification;
+    const admission = view?.admissionRecovery;
+    if (
+      admission?.phase === 'restoring' &&
+      admission.restoredIdentity &&
+      app.workspaceId === admission.restoredIdentity.workspaceId &&
+      app.projectId === admission.restoredIdentity.projectId &&
+      app.appInstanceId === admission.restoredIdentity.appInstanceId &&
+      app.profile?.projectKind === 'edu-web' &&
+      app.sourceSha256 === admission.sourceSha256
+    )
+      return true;
+    const status = view?.status;
+    if (
+      !view ||
+      !status ||
+      app.workspaceId !== status.lease.identity.workspaceId ||
+      app.projectId !== status.lease.identity.projectId ||
+      app.profile?.projectKind !== 'edu-web' ||
+      app.sourceSha256 !== status.lease.sourceSha256 ||
+      !app.appInstanceId
+    )
+      return false;
+    if (status.phase === 'restoring') {
+      if (app.appInstanceId === status.lease.identity.appInstanceId || app.appInstanceId === view.original?.appInstanceId) return false;
+      if (!this.verificationRestoredInstance && app.state === 'starting') this.verificationRestoredInstance = app.appInstanceId;
+      return app.appInstanceId === this.verificationRestoredInstance;
+    }
+    return (
+      ['preparing', 'active', 'revoking', 'revoked', 'failed'].includes(status.phase) &&
+      app.appInstanceId === status.lease.identity.appInstanceId
+    );
+  }
+  async onVerification(status: EduVerificationStatus): Promise<void> {
+    await this.ready;
+    await this.serialize(async () => {
+      try {
+        await this.applyVerificationStatus(status);
+      } catch (error) {
+        const view = this.snapshot.eduVerification;
+        if (view) {
+          view.recoveryRequired = true;
+          view.error = '发音验证恢复或状态保存未确认：' + (error as Error).message;
+        }
+        this.snapshot.storageError = (error as Error).message;
+        this.snapshot.seq++;
+        this.emitSnapshot(this.snapshot.activeWorkspaceId, status.lease.sessionId);
+        await this.runtime.deactivateAudio?.();
+        throw error;
+      }
+    });
+  }
+  async onAdmissionRecovery(status: EduAdmissionRecoveryStatus): Promise<void> {
+    await this.ready;
+    await this.serialize(async () => {
+      try {
+        await this.applyAdmissionRecovery(status);
+      } catch (error) {
+        const view = this.snapshot.eduVerification;
+        if (view) {
+          view.recoveryRequired = true;
+          view.error = '默认维护恢复未确认：' + (error as Error).message;
+        }
+        this.snapshot.seq++;
+        this.emitSnapshot(this.snapshot.activeWorkspaceId, status.recoveryId);
+        await this.runtime.deactivateAudio?.();
+        throw error;
+      }
+    });
+  }
+  private async applyAdmissionRecovery(status: EduAdmissionRecoveryStatus): Promise<void> {
+    const original = {
+      workspaceId: status.originalIdentity.workspaceId,
+      projectId: status.originalIdentity.projectId,
+      appInstanceId: status.originalIdentity.appInstanceId,
+      sourceSha256: status.sourceSha256,
+    };
+    let view = this.snapshot.eduVerification;
+    if (!view && status.phase === 'ended') return;
+    if (!view)
+      view = this.snapshot.eduVerification = { status: null, original, target: null, urls: [], recoveryRequired: true, error: null };
+    if (
+      view.target ||
+      (view.original &&
+        (view.original.workspaceId !== original.workspaceId ||
+          view.original.projectId !== original.projectId ||
+          view.original.appInstanceId !== original.appInstanceId ||
+          view.original.sourceSha256 !== original.sourceSha256))
+    )
+      return;
+    const previous = view.admissionRecovery;
+    if (
+      previous &&
+      ((previous.recoveryId !== status.recoveryId && this.verificationLocked(view)) ||
+        (previous.recoveryId === status.recoveryId &&
+          ((previous.phase === 'ended' && !view.recoveryRequired) || (previous.phase === 'restoring' && status.phase === 'revoking'))))
+    )
+      return;
+    view.original = original;
+    view.admissionRecovery = status;
+    view.recoveryRequired = true;
+    view.error = status.error;
+    const w = this.snapshot.workspaces.find((item) => item.workspaceId === original.workspaceId);
+    if (status.phase === 'ended') {
+      const restored = status.restoredIdentity;
+      if (
+        status.maintenanceLocked ||
+        !restored ||
+        restored.workspaceId !== original.workspaceId ||
+        restored.projectId !== original.projectId ||
+        restored.appInstanceId === original.appInstanceId ||
+        !this.runtime.appGet
+      )
+        throw new Error('默认维护恢复身份未确认');
+      const app = await this.runtime.appGet({ workspaceId: original.workspaceId, projectId: original.projectId });
+      if (
+        app.workspaceId !== restored.workspaceId ||
+        app.projectId !== restored.projectId ||
+        app.appInstanceId !== restored.appInstanceId ||
+        app.profile?.projectKind !== 'edu-web' ||
+        app.sourceSha256 !== original.sourceSha256 ||
+        app.state !== 'running' ||
+        !app.url
+      )
+        throw new Error('默认维护恢复实例健康未确认');
+      if (w?.managedApp) {
+        if (!sameAppProfile(w.managedApp, app)) throw new Error('默认维护恢复来源不匹配');
+        await this.bindVerificationApp(w, app);
+      }
+      view.recoveryRequired = false;
+    }
+    if (w) await this.persist(w, status.recoveryId);
+    else {
+      await this.saveState(this.snapshot);
+      this.snapshot.seq++;
+      this.emitSnapshot(this.snapshot.activeWorkspaceId, status.recoveryId);
+    }
+  }
+  private async applyVerificationStatus(status: EduVerificationStatus): Promise<void> {
+    let view = this.snapshot.eduVerification;
+    const lease = status.lease;
+    if (!view && status.phase === 'ended') return;
+    if (!view) {
+      // A startup journal can precede listener registration or a renderer connection.
+      // It grants recovery only; it never resumes an orphan scoring capability.
+      view = this.snapshot.eduVerification = { status: null, original: null, target: null, urls: [], recoveryRequired: true, error: null };
+    }
+    if (
+      view.original &&
+      (view.original.workspaceId !== lease.identity.workspaceId ||
+        view.original.projectId !== lease.identity.projectId ||
+        view.original.sourceSha256 !== lease.sourceSha256)
+    )
+      return;
+    if (
+      view.target &&
+      (view.target.sessionId !== lease.sessionId ||
+        view.target.appInstanceId !== lease.identity.appInstanceId ||
+        view.target.workspaceId !== lease.identity.workspaceId ||
+        view.target.projectId !== lease.identity.projectId)
+    )
+      return;
+    const previous = view.status;
+    if (
+      previous &&
+      (previous.callsUsed > status.callsUsed ||
+        (previous.phase === 'ended' && !view.recoveryRequired) ||
+        (status.phase === 'active' && !['preparing', 'active'].includes(previous.phase)) ||
+        (status.phase === 'preparing' && previous.phase !== 'preparing'))
+    )
+      return;
+    view.target = {
+      workspaceId: lease.identity.workspaceId,
+      projectId: lease.identity.projectId,
+      appInstanceId: lease.identity.appInstanceId,
+      sessionId: lease.sessionId,
+    };
+    view.status = status;
+    view.error = status.error;
+    if (status.error === 'verification_recovery_required' || status.error === 'verification_service_disconnected')
+      view.recoveryRequired = true;
+    if (!status.maintenanceLocked) view.recoveryRequired = status.phase === 'ended';
+    const w = this.snapshot.workspaces.find((item) => item.workspaceId === lease.identity.workspaceId);
+    if (status.phase === 'ended') {
+      if (!this.runtime.appGet) throw new Error('恢复应用事实查询不可用');
+      const app = await this.runtime.appGet({ workspaceId: view.target.workspaceId, projectId: view.target.projectId });
+      if (
+        app.workspaceId !== lease.identity.workspaceId ||
+        app.projectId !== lease.identity.projectId ||
+        app.profile?.projectKind !== 'edu-web' ||
+        app.state !== 'running' ||
+        !app.url ||
+        !app.appInstanceId ||
+        app.appInstanceId === lease.identity.appInstanceId ||
+        app.appInstanceId === view.original?.appInstanceId ||
+        app.sourceSha256 !== lease.sourceSha256
+      ) {
+        throw new Error('默认维护实例健康未确认');
+      } else {
+        if (w?.managedApp) {
+          if (!sameAppProfile(w.managedApp, app)) throw new Error('默认维护实例来源不匹配');
+          await this.bindVerificationApp(w, app);
+        }
+        view.recoveryRequired = false;
+      }
+    }
+    if (w) await this.persist(w, lease.sessionId);
+    else {
+      await this.saveState(this.snapshot);
+      this.snapshot.seq++;
+      this.emitSnapshot(this.snapshot.activeWorkspaceId, lease.sessionId);
+    }
+  }
+  private async bindVerificationApp(w: WorkspaceSnapshot, app: ManagedApp): Promise<void> {
+    if (w.managedApp?.appInstanceId !== app.appInstanceId)
+      for (const r of w.resources.filter((r) => r.appProjectId === app.projectId)) {
+        await this.runtime.releaseAppBrowser?.(r.resourceId);
+        r.instanceId = null;
+        r.preview = null;
+        r.generation++;
+      }
+    w.managedApp = app;
+    if (app.url && app.state === 'running')
+      for (const r of w.resources.filter((r) => r.appProjectId === app.projectId)) {
+        const previousPath = r.url ? new URL(r.url).pathname : '';
+        r.url = ['/student', '/admin'].includes(previousPath) ? new URL(previousPath, app.url).href : app.url;
+        r.unavailableReason = null;
+        this.ensureBrowser(w, r);
+      }
+    const view = this.snapshot.eduVerification;
+    if (view && app.url && !view.urls.includes(app.url)) view.urls.push(app.url);
+  }
+  private verificationCommand(
+    c: Extract<WorkbenchCommand, { type: 'beginEduVerification' | 'endEduVerification' | 'reconcileEduVerification' }>,
+  ): Promise<WorkbenchResult> {
+    const fingerprint = JSON.stringify(c);
+    const before = this.verificationCommands.get(c.commandId);
+    if (before)
+      return before.fingerprint === fingerprint
+        ? before.promise.then((result) => ({ ...result, snapshot: this.publicSnapshot() }))
+        : Promise.resolve({ ok: false, error: { code: 'conflict', message: '命令身份已使用' }, snapshot: this.publicSnapshot() });
+    if (this.commands.has(c.commandId) || this.appCommands.has(c.commandId))
+      return Promise.resolve({ ok: false, error: { code: 'conflict', message: '命令身份已使用' }, snapshot: this.publicSnapshot() });
+    const promise = this.executeVerificationCommand(c);
+    this.verificationCommands.set(c.commandId, { fingerprint, promise });
+    return promise;
+  }
+  private async executeVerificationCommand(
+    c: Extract<WorkbenchCommand, { type: 'beginEduVerification' | 'endEduVerification' | 'reconcileEduVerification' }>,
+  ): Promise<WorkbenchResult> {
+    await this.ready;
+    let input: EduVerificationBegin | null = null;
+    let target: EduVerificationTarget | null = null;
+    let admissionOriginal: EduVerificationBegin | null = null;
+    let dispatched = false;
+    let revalidatePage: (() => void) | null = null;
+    try {
+      await this.serialize(async () => {
+        const w = this.requireWorkspace(c.workspaceId);
+        if (c.expectedRevision !== undefined && c.expectedRevision !== w.revision) throw new Error('conflict: 空间已有较新修改');
+        if (c.type === 'beginEduVerification') {
+          if (this.maintenanceLocked() || this.appOperations.size > 0) throw new Error('conflict: 应用或发音验证正在操作');
+          const app = w.managedApp;
+          const id = this.activeBrowserResourceId();
+          const r = w.resources.find((r) => r.resourceId === id);
+          if (
+            this.snapshot.activeWorkspaceId !== w.workspaceId ||
+            !app ||
+            app.profile?.projectKind !== 'edu-web' ||
+            app.state !== 'running' ||
+            !app.appInstanceId ||
+            !app.url ||
+            !app.sourceSha256 ||
+            !r?.instanceId ||
+            r.appProjectId !== app.projectId
+          )
+            throw new Error('denied: 请先打开当前运行中 edu 应用的学生页');
+          const page = this.runtime.browserState(r.resourceId).page;
+          const url = new URL(page.url);
+          if (
+            url.origin !== new URL(app.url).origin ||
+            url.pathname !== '/student' ||
+            !this.runtime.appLeaseValid?.(app.projectId, app.appInstanceId)
+          )
+            throw new Error('denied: 学生页面或应用实例已变化');
+          input = {
+            workspaceId: w.workspaceId,
+            projectId: app.projectId,
+            appInstanceId: app.appInstanceId,
+            sourceSha256: app.sourceSha256,
+          };
+          const frozen = {
+            resourceId: r.resourceId,
+            instanceId: r.instanceId,
+            generation: r.generation,
+            webContentsId: page.webContentsId,
+            documentGeneration: page.documentGeneration,
+          };
+          revalidatePage = () => {
+            const current = this.requireWorkspace(c.workspaceId);
+            const resource = current.resources.find((item) => item.resourceId === frozen.resourceId);
+            const currentApp = current.managedApp;
+            if (
+              this.snapshot.activeWorkspaceId !== current.workspaceId ||
+              this.activeBrowserResourceId() !== frozen.resourceId ||
+              resource?.instanceId !== frozen.instanceId ||
+              resource.generation !== frozen.generation ||
+              currentApp?.state !== 'running' ||
+              currentApp.appInstanceId !== app.appInstanceId ||
+              currentApp.sourceSha256 !== app.sourceSha256
+            )
+              throw new Error('denied: 准备期间学生页面或应用实例已变化');
+            const currentPage = this.runtime.browserState(frozen.resourceId).page;
+            if (
+              currentPage.webContentsId !== frozen.webContentsId ||
+              currentPage.documentGeneration !== frozen.documentGeneration ||
+              new URL(currentPage.url).origin !== url.origin ||
+              new URL(currentPage.url).pathname !== '/student'
+            )
+              throw new Error('denied: 准备期间学生页面已导航');
+          };
+          this.verificationRestoredInstance = null;
+          this.snapshot.eduVerification = {
+            status: null,
+            original: input,
+            target: null,
+            urls: [app.url],
+            recoveryRequired: false,
+            error: null,
+          };
+          await this.persist(w, c.commandId);
+        } else {
+          target = this.snapshot.eduVerification?.target ?? null;
+          if (!target) {
+            const view = this.snapshot.eduVerification;
+            if (c.type !== 'reconcileEduVerification' || !view?.recoveryRequired || !view.original)
+              throw new Error('conflict: 验证身份未确认，暂不能恢复');
+            admissionOriginal = { ...view.original };
+          }
+          if (c.type === 'endEduVerification' && (target!.workspaceId !== w.workspaceId || this.snapshot.eduVerification?.recoveryRequired))
+            throw new Error('denied: 请使用核对并恢复维护');
+        }
+      });
+      let result: EduVerificationStatus;
+      if (input) {
+        if (!this.runtime.verificationBegin) throw new Error('发音验证通道未接入');
+        await this.runtime.deactivateAudio?.();
+        const started = await this.serialize(() => {
+          revalidatePage!();
+          // Check and RPC dispatch share one synchronous authorization cut; the
+          // service independently rechecks the frozen instance and source.
+          dispatched = true;
+          return { pending: this.runtime.verificationBegin!(input!) };
+        });
+        result = await started.pending;
+      } else if (admissionOriginal) {
+        if (!this.runtime.verificationRecoverAdmission) throw new Error('未接管验证恢复通道未接入');
+        await this.runtime.deactivateAudio?.();
+        dispatched = true;
+        const admission = await this.runtime.verificationRecoverAdmission(admissionOriginal);
+        await this.onAdmissionRecovery(admission);
+        return this.result();
+      } else {
+        const action = c.type === 'reconcileEduVerification' ? this.runtime.verificationReconcile : this.runtime.verificationEnd;
+        if (!action || !target) throw new Error('发音验证恢复通道未接入');
+        await this.runtime.deactivateAudio?.();
+        dispatched = true;
+        result = await action.call(this.runtime, target);
+      }
+      await this.onVerification(result);
+      return this.result();
+    } catch (error) {
+      await this.serialize(async () => {
+        const view = this.snapshot.eduVerification;
+        if (view && (c.type !== 'beginEduVerification' || (input && view.original === input))) {
+          if (input && !dispatched) this.snapshot.eduVerification = null;
+          else if (this.verificationLocked(view)) {
+            view.recoveryRequired = true;
+            view.error = (error as Error).message;
+          }
+          await this.persist(this.requireWorkspace(c.workspaceId), c.commandId);
+        }
+      });
+      return { ok: false, error: { code: 'execution_failed', message: (error as Error).message }, snapshot: this.publicSnapshot() };
+    }
+  }
   private readonly pendingAppFailures = new Map<string, NonNullable<WorkspaceSnapshot['managedApp']>>();
   private readonly appOperations = new Map<string, string>();
+  private readonly appImports = new Map<string, AbortController>();
   private readonly appCommands = new Map<string, { fingerprint: string; promise: Promise<WorkbenchResult> }>();
   private appCommand(
-    c: Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>,
+    c: Extract<WorkbenchCommand, { type: 'createApp' | 'importEduApp' | 'startApp' | 'stopApp' | 'exportApp' }>,
     activateApp = true,
   ): Promise<WorkbenchResult> {
     const fingerprint = createHash('sha256').update(JSON.stringify(c)).digest('hex');
@@ -472,11 +931,92 @@ export class WorkbenchApplication {
             error: { code: 'conflict', message: '同一命令身份不能用于不同内容' },
             snapshot: this.publicSnapshot(),
           });
-    if (this.commands.has(c.commandId))
+    if (this.commands.has(c.commandId) || this.verificationCommands.has(c.commandId))
       return Promise.resolve({ ok: false, error: { code: 'conflict', message: '命令身份已使用' }, snapshot: this.publicSnapshot() });
-    const promise = this.executeAppCommand(c, activateApp);
+    const promise = c.type === 'importEduApp' ? this.executeEduImport(c) : this.executeAppCommand(c, activateApp);
     this.appCommands.set(c.commandId, { fingerprint, promise });
     return promise;
+  }
+  private async executeEduImport(c: Extract<WorkbenchCommand, { type: 'importEduApp' }>): Promise<WorkbenchResult> {
+    const controller = new AbortController();
+    let projectId: string | undefined;
+    try {
+      await this.serialize(() => {
+        const w = this.requireWorkspace(c.workspaceId);
+        if (c.expectedRevision !== undefined && c.expectedRevision !== w.revision) throw new Error('conflict: 空间已有较新修改');
+        if (w.managedApp || this.appOperations.has(w.workspaceId)) throw new Error('conflict: 空间已有 App 或正在操作');
+        if (!this.runtime.appSelectEduSource || !this.runtime.appImportEdu) throw new Error('unsupported: edu 导入服务未配置');
+        this.appOperations.set(w.workspaceId, c.commandId);
+        this.appImports.set(w.workspaceId, controller);
+      });
+      const selected = await this.runtime.appSelectEduSource!(controller.signal);
+      controller.signal.throwIfAborted();
+      if (!selected) return this.result();
+      await this.serialize(async () => {
+        controller.signal.throwIfAborted();
+        if (this.appOperations.get(c.workspaceId) !== c.commandId) throw new Error('conflict: 导入已失效');
+        const w = this.requireWorkspace(c.workspaceId);
+        projectId = randomUUID();
+        w.app = {
+          appId: randomUUID(),
+          workspaceId: w.workspaceId,
+          projectId,
+          name: 'edu-web',
+          description: '导入的 edu 工程',
+          revision: 0,
+        };
+        w.managedApp = {
+          workspaceId: w.workspaceId,
+          projectId,
+          profile: { projectKind: 'edu-web', profileVersion: 1, source: structuredClone(selected.source) },
+          sourceSha256: selected.source.sourceSha256,
+          environmentId: 'sandbox',
+          appInstanceId: null,
+          state: 'starting',
+          url: null,
+          guestCwd: '',
+          error: null,
+          cleanupConfirmed: false,
+        };
+        this.appImports.delete(c.workspaceId);
+        await this.persist(w, projectId);
+      });
+      const returned = await this.runtime.appImportEdu!({ workspaceId: c.workspaceId, projectId: projectId! }, selected);
+      await this.serialize(async () => {
+        if (this.appOperations.get(c.workspaceId) !== c.commandId) return;
+        const w = this.requireWorkspace(c.workspaceId);
+        if (
+          returned.workspaceId !== w.workspaceId ||
+          returned.projectId !== projectId ||
+          !w.managedApp ||
+          !sameAppProfile(returned, w.managedApp)
+        )
+          throw new Error('denied: 导入返回身份或来源不一致');
+        w.managedApp = returned;
+        await this.persist(w, returned.projectId);
+      });
+      return this.result();
+    } catch (error) {
+      await this.serialize(async () => {
+        if (this.appOperations.get(c.workspaceId) !== c.commandId) return;
+        const w = this.requireWorkspace(c.workspaceId);
+        if (projectId && w.managedApp?.projectId === projectId) {
+          w.managedApp.state = 'failed';
+          w.managedApp.error = String(error);
+          await this.persist(w, projectId);
+        }
+      });
+      return {
+        ok: false,
+        error: { code: 'execution_failed', message: controller.signal.aborted ? 'edu 导入已取消' : String(error) },
+        snapshot: this.publicSnapshot(),
+      };
+    } finally {
+      await this.serialize(() => {
+        if (this.appImports.get(c.workspaceId) === controller) this.appImports.delete(c.workspaceId);
+        if (this.appOperations.get(c.workspaceId) === c.commandId) this.appOperations.delete(c.workspaceId);
+      });
+    }
   }
   private async executeAppCommand(
     c: Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>,
@@ -486,6 +1026,19 @@ export class WorkbenchApplication {
     let invoked = false;
     let target: { workspaceId: string; projectId: string } | undefined;
     try {
+      if (c.type === 'stopApp') {
+        const cancelled = await this.serialize(() => {
+          this.requireWorkspace(c.workspaceId);
+          const controller = this.appImports.get(c.workspaceId);
+          if (!controller) return null;
+          controller.abort();
+          return { pending: this.appCommands.get(this.appOperations.get(c.workspaceId) ?? '')?.promise };
+        });
+        if (cancelled) {
+          await cancelled.pending;
+          return this.result();
+        }
+      }
       await this.serialize(async () => {
         const w = this.requireWorkspace(c.workspaceId);
         if (c.expectedRevision !== undefined && c.expectedRevision !== w.revision) throw new Error('conflict: 空间已有较新修改');
@@ -519,6 +1072,7 @@ export class WorkbenchApplication {
         }
         if (!w.managedApp) throw new Error('not_found: 请先创建标准应用');
         target = { workspaceId: w.workspaceId, projectId: w.managedApp.projectId };
+        if (this.maintenanceLocked() && c.type !== 'stopApp' && c.type !== 'exportApp') throw new Error('denied: 发音验证期间维护已暂停');
         if (c.type === 'startApp' && ['starting', 'running', 'stopping'].includes(w.managedApp.state))
           throw new Error('conflict: 应用已启动或正在操作');
         if (c.type !== 'exportApp') {
@@ -562,14 +1116,26 @@ export class WorkbenchApplication {
           this.pendingAppFailures.delete(c.workspaceId);
           if (app.state === 'running' && interrupted?.appInstanceId === app.appInstanceId && interrupted.projectId === app.projectId)
             app = interrupted;
-          if (app.workspaceId !== w.workspaceId || app.projectId !== target!.projectId) throw new Error('denied: 应用返回身份不一致');
+          if (
+            app.workspaceId !== w.workspaceId ||
+            app.projectId !== target!.projectId ||
+            !w.managedApp ||
+            !sameAppProfile(app, w.managedApp)
+          )
+            throw new Error('denied: 应用返回身份或来源不一致');
           w.managedApp = app;
           if (app.cleanupConfirmed && app.state === 'stopped')
             await this.appControl?.confirmStopped(w.workspaceId, app.projectId, app.appInstanceId);
           if (app.state === 'running' && app.url) {
             let resource = w.resources.find((r) => r.appProjectId === app.projectId);
             if (!resource) {
-              const tab = this.createResource(w, 'web', w.app?.name ?? '标准应用', app.url, 'sandbox');
+              const tab = this.createResource(
+                w,
+                'web',
+                w.app?.name ?? (app.profile?.projectKind === 'edu-web' ? 'edu-web' : '标准应用'),
+                app.url,
+                'sandbox',
+              );
               resource = this.resource(w, tab.targetRef.resourceId);
               resource.appProjectId = app.projectId;
             }
@@ -641,7 +1207,7 @@ export class WorkbenchApplication {
     const request = ++this.environmentRequest;
     const environments = EnvironmentListSchema.parse(await this.runtime.environmentsList());
     await this.serialize(() => {
-      if (request !== this.environmentRequest) return;
+      if (request !== this.environmentRequest || isDeepStrictEqual(this.snapshot.environments, environments)) return;
       this.snapshot.environments = environments;
       this.snapshot.seq++;
       this.emitSnapshot(this.snapshot.activeWorkspaceId, this.snapshot.activeWorkspaceId);
@@ -741,9 +1307,29 @@ export class WorkbenchApplication {
     let browser: WorkbenchResource | null = null;
     try {
       await this.serialize(async () => {
-        const before = structuredClone(this.snapshot);
         const workspace = this.requireWorkspace(input.workspaceId);
         const records = this.observationRecords(workspace, input.sessionId);
+        // Admission only changes array membership, one file identity, and catalog
+        // bindings created by saveState. The shared queue excludes interleaving
+        // writers while persistence is awaited; historical record bodies stay untouched.
+        const previousRecords = records.slice();
+        const unbound = this.snapshot.workspaces.flatMap((workspace) =>
+          workspace.resources
+            .filter((resource) => resource.kind !== 'session' && !resource.catalogResourceId)
+            .map((resource) => ({
+              resource,
+              value: resource.catalogResourceId,
+              present: Object.hasOwn(resource, 'catalogResourceId'),
+            })),
+        );
+        const catalogResources = this.catalog.resources.length;
+        const catalogLinks = this.catalog.links.length;
+        const catalogRevision = this.catalog.revision;
+        let fileIdentity: {
+          resource: WorkbenchResource;
+          instanceId: string | null;
+          generation: number;
+        } | null = null;
         if (input.sessionId === null && (input.runId !== null || !input.tool.startsWith('files.')))
           throw new Error('unauthorized: 无会话请求仅允许文件标签只读浏览');
         if (this.observations.size >= 4 || (input.runId && (this.observationCounts.get(input.runId) ?? 0) >= 64))
@@ -788,7 +1374,15 @@ export class WorkbenchApplication {
               throw new Error('unavailable: 执行冻结的资源实例已失效');
           } else if (resource.kind === 'web' && !resource.instanceId) {
             browser = { ...structuredClone(resource), instanceId: randomUUID(), generation: resource.generation + 1 };
-          } else this.fileInstance(resource);
+          } else {
+            if (resource.kind === 'file' && resource.environmentId && !resource.instanceId)
+              fileIdentity = {
+                resource,
+                instanceId: resource.instanceId,
+                generation: resource.generation,
+              };
+            this.fileInstance(resource);
+          }
           target = this.instance(workspace, browser ?? resource);
           if (environmentId !== undefined && environmentId !== target.environmentId) throw new Error('unauthorized: 环境不属于资源');
           if (!input.tool.startsWith(target.kind === 'browser' ? 'browser.' : target.kind === 'file' ? 'files.' : 'terminal.'))
@@ -821,7 +1415,18 @@ export class WorkbenchApplication {
         try {
           await this.saveState(this.snapshot);
         } catch (error) {
-          this.snapshot = before;
+          records.splice(0, records.length, ...previousRecords);
+          if (fileIdentity) {
+            fileIdentity.resource.instanceId = fileIdentity.instanceId;
+            fileIdentity.resource.generation = fileIdentity.generation;
+          }
+          for (const binding of unbound) {
+            if (binding.present) binding.resource.catalogResourceId = binding.value;
+            else delete binding.resource.catalogResourceId;
+          }
+          this.catalog.resources.length = catalogResources;
+          this.catalog.links.length = catalogLinks;
+          this.catalog.revision = catalogRevision;
           this.snapshot.storageError = '观察请求保存失败：' + (error as Error).message;
           throw error;
         }
@@ -1002,6 +1607,8 @@ export class WorkbenchApplication {
         .find((session) => session.sessionId === run.sessionId)
         ?.taskVersions.find((candidate) => candidate.taskVersionId === run.taskVersionId);
       const app = workspace.managedApp ?? null;
+      if (app?.profile?.projectKind === 'edu-web')
+        throw new AppControlFailure('unsupported', 'edu 页面任务仅支持冻结源码候选；标准应用控制面不可用');
       const browser = app
         ? workspace.resources.find((resource) => resource.kind === 'web' && resource.appProjectId === app.projectId)
         : undefined;
@@ -1201,7 +1808,17 @@ export class WorkbenchApplication {
   }
   private async saveState(snapshot: WorkbenchSnapshot): Promise<void> {
     this.syncCatalogBindings(snapshot);
-    await this.repository.save(snapshot, this.catalog);
+    const view = snapshot.eduVerification;
+    // Only a recovery marker crosses a desktop restart, never an active scoring lease.
+    const durable = view
+      ? {
+          ...snapshot,
+          eduVerification: this.verificationLocked(view)
+            ? { ...view, status: null, admissionRecovery: null, recoveryRequired: true }
+            : null,
+        }
+      : snapshot;
+    await this.repository.save(durable, this.catalog);
   }
   private catalogContext() {
     return {
@@ -1495,7 +2112,7 @@ export class WorkbenchApplication {
   }
   private async execute(c: WorkbenchCommand): Promise<WorkbenchResult> {
     const fingerprint = createHash('sha256').update(JSON.stringify(c)).digest('hex');
-    if (this.appCommands.has(c.commandId))
+    if (this.appCommands.has(c.commandId) || this.verificationCommands.has(c.commandId))
       return { ok: false, error: { code: 'conflict', message: '命令身份已使用' }, snapshot: this.publicSnapshot() };
     const old = this.commands.get(c.commandId);
     if (old)
@@ -1503,6 +2120,7 @@ export class WorkbenchApplication {
         ? { ...structuredClone(old.outcome), snapshot: this.publicSnapshot() }
         : { ok: false, error: { code: 'conflict', message: '同一命令身份不能用于不同内容' }, snapshot: this.publicSnapshot() };
     const before = structuredClone(this.snapshot);
+    const previousBrowser = this.activeBrowserResourceId();
     const catalogBefore = structuredClone(this.catalog);
     const runtimeCommand = [
       'startRun',
@@ -1510,6 +2128,7 @@ export class WorkbenchApplication {
       'terminalOpen',
       'stopInstance',
       'browserAction',
+      'openAppPage',
       'browserLayout',
       'terminalWrite',
       'terminalResize',
@@ -1524,6 +2143,8 @@ export class WorkbenchApplication {
     };
     let w: WorkspaceSnapshot | undefined;
     try {
+      if (this.maintenanceLocked() && ['startRun', 'terminalOpen', 'terminalWrite'].includes(c.type))
+        throw new Error('denied: 发音验证期间维护已暂停；请先退出验证并确认恢复');
       if (c.type === 'createWorkspace') {
         if (this.snapshot.workspaces.some((w) => w.workspaceId === c.workspaceId)) throw new Error('conflict: 空间身份已存在');
         w = workspace(c.workspaceId, c.name);
@@ -1736,7 +2357,9 @@ export class WorkbenchApplication {
                   throw new Error('conflict: 页面现场已失效，请重新选择元素');
               }
             }
+            const eduTask = await this.freezeEduTask(w, c.targetRef, s.context, randomUUID());
             s.taskVersions.push({
+              ...(eduTask ? { eduTask } : {}),
               taskVersionId: randomUUID(),
               version: s.taskVersions.length + 1,
               workspaceId: w.workspaceId,
@@ -1832,9 +2455,26 @@ export class WorkbenchApplication {
             return rememberResult();
           case 'browserLayout': {
             const r = this.resource(w, c.resourceId, 'web');
-            this.ensureBrowser(w, r);
             if (c.layout.visible && this.snapshot.activeWorkspaceId !== w.workspaceId) throw new Error('denied: 不能显示后台空间网页');
+            if (r.appProjectId && w.managedApp?.projectId === r.appProjectId && w.managedApp.state !== 'running') return rememberResult();
+            this.ensureBrowser(w, r);
             this.runtime.browserLayout(r.resourceId, c.layout);
+            return rememberResult();
+          }
+          case 'openAppPage': {
+            const app = w.managedApp;
+            if (app?.profile?.projectKind !== 'edu-web' || app.state !== 'running' || !app.url)
+              throw new Error('unavailable: edu 应用未运行');
+            const resource = w.resources.find((item) => item.kind === 'web' && item.appProjectId === app.projectId);
+            if (!resource) throw new Error('not_found: edu 网页资源不存在');
+            this.ensureBrowser(w, resource);
+            await this.runtime.browserAction(
+              resource.resourceId,
+              'navigate',
+              new URL(c.page === 'student' ? '/student' : '/', app.url).href,
+            );
+            this.openResource(w, resource.resourceId);
+            await this.persist(w, resource.resourceId);
             return rememberResult();
           }
           case 'browserAction': {
@@ -1938,6 +2578,9 @@ export class WorkbenchApplication {
         }
       }
       validateSnapshot(this.snapshot);
+      if (previousBrowser && previousBrowser !== this.activeBrowserResourceId()) this.leaveVerificationPage();
+      if (before.activeWorkspaceId !== this.snapshot.activeWorkspaceId)
+        void this.runtime.deactivateAudio?.().catch((error: unknown) => console.error('切换空间时音轨核验失败', error));
       await this.persist(w, c.commandId);
       if (
         c.type === 'switchWorkspace' ||
@@ -1998,6 +2641,9 @@ export class WorkbenchApplication {
     );
     return next;
   }
+  isActiveWorkspace(workspaceId: string): boolean {
+    return this.snapshot.activeWorkspaceId === workspaceId;
+  }
   activeBrowserResourceId(): string | null {
     const w = this.snapshot.workspaces.find((w) => w.workspaceId === this.snapshot.activeWorkspaceId);
     const pane = w && panes(w.layout).find((p) => p.paneId === w.activePaneId);
@@ -2012,9 +2658,58 @@ export class WorkbenchApplication {
       if (r.instanceId !== instanceId || r.generation !== generation) return null;
       const pane = panes(w.layout).find((p) => w.tabs.some((t) => t.tabId === p.tabId && t.targetRef.resourceId === resourceId));
       if (!pane || w.activePaneId === pane.paneId) return null;
+      const previousBrowser = this.activeBrowserResourceId();
       w.activePaneId = pane.paneId;
+      if (previousBrowser !== this.activeBrowserResourceId()) this.leaveVerificationPage();
       return w;
     });
+  }
+  private async freezeEduTask(
+    w: WorkspaceSnapshot,
+    target: WorkbenchRun['targetRef'],
+    capture: PageCapture | null,
+    runId: string,
+  ): Promise<EduTaskBinding | undefined> {
+    let eduTask: EduTaskBinding | undefined;
+    if (target?.kind === 'web') {
+      const resource = this.resource(w, target.resourceId, 'web');
+      const app = w.managedApp;
+      if (resource.appProjectId && app?.profile?.projectKind === 'edu-web') {
+        if (
+          app.projectId !== resource.appProjectId ||
+          app.state !== 'running' ||
+          !app.appInstanceId ||
+          !capture ||
+          !resource.instanceId ||
+          !this.runtime.eduTaskSource ||
+          !this.runtime.eduTaskPrepare ||
+          !this.runtime.eduTaskApply
+        )
+          throw new Error('conflict: edu task source or application is unavailable');
+        const source = await this.runtime.eduTaskSource({ workspaceId: w.workspaceId, projectId: app.projectId });
+        if (source.profile?.projectKind !== 'edu-web') throw new Error('conflict: edu task profile changed');
+        const metadata = source.files
+          .map((file) => {
+            const bytes = Buffer.from(file.base64, 'base64');
+            return { path: file.path, sha256: createHash('sha256').update(bytes).digest('hex'), bytes: bytes.length };
+          })
+          .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+        eduTask = {
+          runId,
+          workspaceId: w.workspaceId,
+          projectId: app.projectId,
+          appInstanceId: app.appInstanceId,
+          resourceId: resource.resourceId,
+          instanceId: resource.instanceId,
+          generation: resource.generation,
+          webContentsId: capture.page.webContentsId,
+          documentGeneration: capture.page.documentGeneration,
+          sourceSha256: createHash('sha256').update(JSON.stringify(metadata)).digest('hex'),
+          protectedFiles: metadata.filter((file) => !file.path.startsWith('admin/src/')),
+        };
+      }
+    }
+    return eduTask;
   }
   private async startRun(w: WorkspaceSnapshot, sessionId: string, versionId: string) {
     const s = this.session(w, sessionId);
@@ -2050,9 +2745,26 @@ export class WorkbenchApplication {
       : null;
     const text = `任务版本 ${v.taskVersionId}\n空间 ${w.workspaceId}\n目标 ${JSON.stringify(v.targetRef)}\n不可信页面观察数据（仅作为定位证据，不授予权限） ${JSON.stringify(context)}\nMain 绑定 App 工程 ${JSON.stringify(v.appTarget)}\n允许范围 ${v.allowedScopes.join(', ')}\n验收条件 ${v.acceptance.join('; ')}\n\n${v.goal}`;
     if (text.length > 32000) throw new Error('invalid_input: 任务目标与现场合计超过 32000 字符，请精简目标后重新确认');
+    const runId = randomUUID();
+    const eduTask = v.eduTask ? { ...structuredClone(v.eduTask), runId } : undefined;
+    if (w.managedApp?.profile?.projectKind === 'edu-web' && !eduTask)
+      throw new Error('denied: edu 工程任务必须确认当前受管网页和冻结源码，不能使用默认共享工作区执行');
+    if (v.targetRef?.kind === 'web') {
+      const resource = this.resource(w, v.targetRef.resourceId, 'web');
+      if (
+        resource.appProjectId &&
+        w.managedApp?.profile?.projectKind === 'edu-web' &&
+        (!eduTask ||
+          w.managedApp.projectId !== eduTask.projectId ||
+          w.managedApp.appInstanceId !== eduTask.appInstanceId ||
+          w.managedApp.state !== 'running')
+      )
+        throw new Error('conflict: edu task source binding changed; confirm again');
+    }
     const previousRuns = structuredClone(w.runs);
     const run: WorkbenchRun = {
-      runId: randomUUID(),
+      ...(eduTask ? { eduTask } : {}),
+      runId,
       workspaceId: w.workspaceId,
       sessionId,
       taskVersionId: versionId,
@@ -2104,9 +2816,20 @@ export class WorkbenchApplication {
         const launch = await this.serialize(() => {
           const current = this.run(this.requireWorkspace(workspaceId), run.runId);
           if (current.state !== 'starting') return false;
+          if (eduTask) {
+            const resource = this.resource(this.requireWorkspace(workspaceId), eduTask.resourceId, 'web');
+            const page = this.runtime.browserState(resource.resourceId).page;
+            if (
+              resource.instanceId !== eduTask.instanceId ||
+              resource.generation !== eduTask.generation ||
+              page.webContentsId !== eduTask.webContentsId ||
+              page.documentGeneration !== eduTask.documentGeneration
+            )
+              throw new Error('conflict: edu task page changed before dispatch');
+          }
           this.runLaunchPhases.set(run.runId, 'sending');
           // Dispatch under the ownership check, but never await external I/O on the metadata queue.
-          return { receipt: this.runtime.send(sessionId, text, structuredClone(scope), structuredClone(referenceSnapshot)) };
+          return { receipt: this.runtime.send(sessionId, text, structuredClone(scope), structuredClone(referenceSnapshot), eduTask) };
         });
         if (!launch) return;
         const conversation = await launch.receipt;
@@ -2114,6 +2837,10 @@ export class WorkbenchApplication {
           const workspace = this.requireWorkspace(workspaceId);
           const current = this.run(workspace, run.runId);
           if (!activeStates.includes(current.state) || current.state === 'cancelling') return null;
+          if (current.eduTask && conversation.state === 'idle') {
+            this.onConversation(conversation);
+            return null;
+          }
           this.applyConversation(workspace, conversation);
           return workspace;
         });
@@ -2230,7 +2957,12 @@ export class WorkbenchApplication {
             const current = this.run(w, runId);
             if (!activeStates.includes(current.state)) return null;
             if (binding && (conversation.generation !== binding.generation || conversation.turnId !== binding.turnId)) return null;
+            const cancelledCandidate =
+              current.eduTask && current.state === 'cancelling' && conversation.state === 'idle' && !conversation.cleanupPending;
             this.applyConversation(w, conversation);
+            // The executor may already be idle while candidate preparation is
+            // pending. Cancelling discards writeback, preserving the idle executor fact.
+            if (cancelledCandidate && current.state === 'completed') current.state = 'cancelled';
             return w;
           }),
         (error) =>
@@ -2372,10 +3104,87 @@ export class WorkbenchApplication {
       for (const record of session.observations)
         if (record.request.runId === runId && record.state === 'pending') this.observations.get(record.request.requestId)?.abort();
   }
+  private readonly eduPreparations = new Set<string>();
+  private assertEduTaskPage(w: WorkspaceSnapshot, run: WorkbenchRun, conversation: ChatConversation): EduTaskBinding {
+    const b = run.eduTask;
+    if (!b) throw new Error('edu task has no source binding');
+    const resource = this.resource(w, b.resourceId, 'web');
+    const page = this.runtime.browserState(resource.resourceId).page;
+    const execution = this.runTurns.get(run.runId);
+    if (
+      !execution ||
+      execution.generation !== conversation.generation ||
+      execution.turnId !== conversation.turnId ||
+      run.state === 'cancelling' ||
+      conversation.eduCandidateRunId !== run.runId ||
+      w.managedApp?.state !== 'running' ||
+      w.managedApp.projectId !== b.projectId ||
+      w.managedApp.appInstanceId !== b.appInstanceId ||
+      resource.instanceId !== b.instanceId ||
+      resource.generation !== b.generation ||
+      page.webContentsId !== b.webContentsId ||
+      page.documentGeneration !== b.documentGeneration
+    )
+      throw new Error('conflict: edu task page or application instance changed; candidate retained');
+    return b;
+  }
+  private finishEduTask(workspaceId: string, runId: string, conversation: ChatConversation, prepareError?: unknown) {
+    return this.updateRuntime(async () => {
+      const w = this.requireWorkspace(workspaceId);
+      const run = this.run(w, runId);
+      if (!activeStates.includes(run.state)) return null;
+      try {
+        if (prepareError) throw prepareError;
+        const binding = this.assertEduTaskPage(w, run, conversation);
+        // Authorization linearizes here: no await between the final live identity
+        // check and commit dispatch. Native navigation during prepare cannot write.
+        const commit = this.runtime.eduTaskApply!(binding);
+        const applied = await commit;
+        if (
+          applied.workspaceId !== w.workspaceId ||
+          applied.projectId !== binding.projectId ||
+          applied.appInstanceId !== binding.appInstanceId ||
+          applied.state !== 'running' ||
+          !applied.sourceSha256 ||
+          !w.managedApp ||
+          !sameAppProfile(w.managedApp, applied)
+        )
+          throw new Error('conflict: edu apply receipt changed application binding');
+        // The run's completed snapshot must carry the same authoritative source receipt.
+        w.managedApp = applied;
+      } catch (error) {
+        conversation = { ...conversation, state: run.state === 'cancelling' ? 'cancelled' : 'failed', error: (error as Error).message };
+      }
+      this.applyConversation(w, conversation);
+      return w;
+    });
+  }
   onConversation(conversation: ChatConversation) {
     void this.updateRuntime(() => {
       const w = this.snapshot.workspaces.find((w) => w.sessions.some((s) => s.sessionId === conversation.conversationId));
       if (!w) return null;
+      const run = w.runs.findLast((run) => run.sessionId === conversation.conversationId && activeStates.includes(run.state));
+      const latest = w.sessions.find((session) => session.sessionId === conversation.conversationId)?.conversation;
+      if (latest?.generation === conversation.generation && latest.seq >= conversation.seq) return null;
+      if (run?.eduTask && conversation.state === 'idle') {
+        if (this.eduPreparations.has(run.runId)) return null;
+        try {
+          const binding = this.assertEduTaskPage(w, run, conversation);
+          this.eduPreparations.add(run.runId);
+          // Preparation must not hold the metadata queue: cancel/stop and native
+          // state callbacks remain admissible before the final commit authorization.
+          void Promise.resolve()
+            .then(() => this.runtime.eduTaskPrepare!(binding))
+            .then(
+              () => this.finishEduTask(w.workspaceId, run.runId, conversation),
+              (error) => this.finishEduTask(w.workspaceId, run.runId, conversation, error),
+            )
+            .finally(() => this.eduPreparations.delete(run.runId));
+          return null;
+        } catch (error) {
+          conversation = { ...conversation, state: run.state === 'cancelling' ? 'cancelled' : 'failed', error: (error as Error).message };
+        }
+      }
       this.applyConversation(w, conversation);
       return w;
     });
@@ -2407,6 +3216,18 @@ export class WorkbenchApplication {
       () => batch,
     );
   }
+  private leaveVerificationPage(): void {
+    const view = this.snapshot.eduVerification;
+    if (view?.status?.phase !== 'active' || view.recoveryRequired || !view.target) return;
+    view.status = { ...view.status, phase: 'revoking' };
+    void this.runtime.deactivateAudio?.().catch((error: unknown) => console.error('离开验证页音轨回收失败', error));
+    void this.command({ type: 'endEduVerification', workspaceId: view.target.workspaceId, commandId: randomUUID() }).then(
+      (result) => {
+        if (!result.ok) console.error('离开发音验证页后恢复未确认', result.error.message);
+      },
+      (error) => console.error('离开发音验证页恢复失败', error),
+    );
+  }
   onPreview(resourceId: string, state: PreviewState, instanceId: string | null, generation: number) {
     void this.updateRuntime(() => {
       const w = this.snapshot.workspaces.find((w) => w.resources.some((r) => r.resourceId === resourceId));
@@ -2425,7 +3246,22 @@ export class WorkbenchApplication {
         if (receiver.captureRequest?.requestId === pending.requestId)
           receiver.captureRequest = { ...receiver.captureRequest, state: 'cancelled', error: '页面已经变化，本次采集已取消' };
       }
+      const previousPreview = r.preview;
       r.preview = state;
+      const view = this.snapshot.eduVerification;
+      if (
+        view?.status?.phase === 'active' &&
+        !view.recoveryRequired &&
+        view.target?.projectId === r.appProjectId &&
+        view.target?.appInstanceId === w.managedApp?.appInstanceId &&
+        previousPreview?.page.webContentsId === state.page.webContentsId &&
+        previousPreview.page.url &&
+        new URL(previousPreview.page.url).pathname === '/student' &&
+        state.page.url &&
+        new URL(state.page.url).pathname !== '/student'
+      ) {
+        this.leaveVerificationPage();
+      }
       if (!state.loading && !state.loadError && state.page.url) r.url = state.page.url;
       for (const s of w.sessions)
         if (s.contextTarget?.resourceId === resourceId && s.context && s.context.page.documentGeneration !== state.page.documentGeneration)
@@ -2481,10 +3317,13 @@ export class WorkbenchApplication {
       return w;
     });
   }
-  private updateRuntime(update: () => WorkspaceSnapshot | null, batch: boolean | (() => boolean) = false) {
+  private updateRuntime(
+    update: () => WorkspaceSnapshot | null | Promise<WorkspaceSnapshot | null>,
+    batch: boolean | (() => boolean) = false,
+  ) {
     const next = this.queue.then(async () => {
       await this.ready;
-      const w = update();
+      const w = await update();
       if (!w) return;
       this.snapshot.seq++;
       if (typeof batch === 'function' ? batch() : batch) {

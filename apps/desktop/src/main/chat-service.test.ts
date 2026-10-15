@@ -459,3 +459,151 @@ it('pre-cancelled cleanup reconciliation cannot claim the original operation was
   expect(result.operationDispatched).toBeUndefined();
   expect(mock.postMessage.mock.calls.filter(([request]) => request.method.startsWith('app.agent'))).toEqual([]);
 });
+
+describe('发音验证服务边界', () => {
+  const status = () => ({
+    lease: {
+      schemaVersion: 1 as const,
+      sessionId: '00000000-0000-4000-8000-000000000001',
+      identity: {
+        workspaceId: 'edu',
+        projectId: '00000000-0000-4000-8000-000000000002',
+        environmentId: 'sandbox' as const,
+        appInstanceId: '00000000-0000-4000-8000-000000000003',
+      },
+      sourceSha256: 'a'.repeat(64),
+      expiresAtMs: Date.now() + 300000,
+    },
+    phase: 'active' as const,
+    callsUsed: 0,
+    maintenanceLocked: true,
+    error: null,
+  });
+  const target = () => {
+    const { workspaceId, projectId, appInstanceId } = status().lease.identity;
+    return { workspaceId, projectId, appInstanceId, sessionId: status().lease.sessionId };
+  };
+  it('replays startup journal state to late listeners and fails closed on service exit', async () => {
+    const service = new ChatService(
+      () => undefined,
+      () => undefined,
+    );
+    const value = status();
+    mock.callbacks.get('message')?.({ type: 'edu-verification-event', status: value });
+    const listener = vi.fn();
+    service.setVerificationListener(listener);
+    expect(listener).toHaveBeenLastCalledWith(value);
+    await expect(service.send('conv-personal-default', 'blocked', undefined, emptyReferences('conv-personal-default'))).rejects.toThrow();
+    await expect(service.terminalOpen(80, 24, terminalBinding.resourceId)).rejects.toThrow();
+    mock.callbacks.get('exit')?.(1);
+    expect(listener).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phase: 'failed', maintenanceLocked: true, error: 'verification_service_disconnected' }),
+    );
+  });
+  it('ended receipts retire the session so late active events cannot pause a healthy default instance', async () => {
+    const service = new ChatService(
+      () => undefined,
+      () => undefined,
+    );
+    const listener = vi.fn();
+    service.setVerificationListener(listener);
+    mock.callbacks.get('message')?.({ type: 'edu-verification-event', status: status() });
+    mock.callbacks.get('message')?.({
+      type: 'edu-verification-event',
+      status: {
+        ...status(),
+        lease: { ...status().lease, identity: { ...status().lease.identity, projectId: '00000000-0000-4000-8000-000000000009' } },
+      },
+    });
+    mock.callbacks.get('message')?.({ type: 'edu-verification-event', status: { ...status(), phase: 'ended', maintenanceLocked: false } });
+    mock.callbacks.get('message')?.({ type: 'edu-verification-event', status: status() });
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener).toHaveBeenLastCalledWith(expect.objectContaining({ phase: 'ended', maintenanceLocked: false }));
+  });
+  it('Main recovery guard blocks legacy sends even before journal events arrive', async () => {
+    const service = new ChatService(
+      () => undefined,
+      () => undefined,
+    );
+    service.setVerificationGuard(() => true);
+    await expect(service.send('conv-personal-default', 'blocked', undefined, emptyReferences('conv-personal-default'))).rejects.toThrow();
+    expect(mock.postMessage).not.toHaveBeenCalled();
+  });
+  it('uses typed reconcile RPC and rejects mismatched session responses', async () => {
+    const service = new ChatService(
+      () => undefined,
+      () => undefined,
+    );
+    const pending = service.verificationReconcile(target());
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    expect(request).toMatchObject({ method: 'app.verification.reconcile', payload: target() });
+    mock.callbacks.get('message')?.({ type: 'response', id: request.id, result: status() });
+    await expect(pending).resolves.toMatchObject({ phase: 'active' });
+    const mismatch = service.verificationStatus(target());
+    const query = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: query.id,
+      result: { ...status(), lease: { ...status().lease, sessionId: '00000000-0000-4000-8000-000000000004' } },
+    });
+    await expect(mismatch).rejects.toThrow('会话或实例不匹配');
+  });
+});
+
+describe('未接管验证恢复服务边界', () => {
+  const original = {
+    workspaceId: 'w',
+    projectId: '00000000-0000-4000-8000-000000000011',
+    appInstanceId: '00000000-0000-4000-8000-000000000012',
+    sourceSha256: 'c'.repeat(64),
+  };
+  const recovery = {
+    schemaVersion: 1 as const,
+    kind: 'admission-recovery' as const,
+    recoveryId: '00000000-0000-4000-8000-000000000013',
+    originalIdentity: {
+      workspaceId: original.workspaceId,
+      projectId: original.projectId,
+      environmentId: 'sandbox' as const,
+      appInstanceId: original.appInstanceId,
+    },
+    sourceSha256: original.sourceSha256,
+    phase: 'restoring' as const,
+    restoredIdentity: {
+      workspaceId: original.workspaceId,
+      projectId: original.projectId,
+      environmentId: 'sandbox' as const,
+      appInstanceId: '00000000-0000-4000-8000-000000000014',
+    },
+    maintenanceLocked: true,
+    error: null,
+  };
+  it('retains startup recovery for late listeners and fails closed after service exit', async () => {
+    const service = new ChatService(
+      () => undefined,
+      () => undefined,
+    );
+    mock.callbacks.get('message')?.({ type: 'edu-admission-recovery-event', status: recovery });
+    const listener = vi.fn();
+    service.setAdmissionRecoveryListener(listener);
+    expect(listener).toHaveBeenLastCalledWith(recovery);
+    await expect(service.send('conv-personal-default', 'blocked', undefined, emptyReferences('conv-personal-default'))).rejects.toThrow();
+    mock.callbacks.get('exit')?.(1);
+    expect(listener).toHaveBeenLastCalledWith(expect.objectContaining({ phase: 'failed', maintenanceLocked: true }));
+  });
+  it('sends only frozen begin fields and rejects mismatched original response identities', async () => {
+    const service = new ChatService(
+      () => undefined,
+      () => undefined,
+    );
+    const pending = service.verificationRecoverAdmission(original);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    expect(request).toMatchObject({ method: 'app.verification.recoverAdmission', payload: original });
+    mock.callbacks.get('message')?.({ type: 'response', id: request.id, result: recovery });
+    await expect(pending).resolves.toEqual(recovery);
+    const mismatch = service.verificationRecoverAdmission(original);
+    const next = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({ type: 'response', id: next.id, result: { ...recovery, sourceSha256: 'd'.repeat(64) } });
+    await expect(mismatch).rejects.toThrow('原始身份或源码不匹配');
+  });
+});

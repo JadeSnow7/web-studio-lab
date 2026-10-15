@@ -8,7 +8,7 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 
 ## 当前状态
 
-当前候选树整合 Electron 工作台、统一观察、受管标准 App、账户资源目录、App 控制面、App 名称/说明和任务目标绑定，以及统一状态呈现与诊断。六板块布局继续遵循[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)。2026-10-13 的 PR 范围、审查修复、实际验证与未运行项见[当前 PR 说明](docs/acceptance/consolidation-20261011/PR.md)；[2026-10-11 整合记录](docs/acceptance/consolidation-20261011/README.md)、[状态界面实施与修复记录](docs/acceptance/status-surface-20261011/README.md)及更早记录保留为历史，不能替代当前版本复验。edu 导入/运行与独立源码工具保留在各自分支，不纳入本候选。
+当前候选树整合 Electron 工作台、统一观察、受管标准 App、账户资源目录、App 控制面、App 名称/说明和任务目标绑定，以及统一状态呈现与诊断。六板块布局继续遵循[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)。2026-10-13 的 PR 范围、审查修复、实际验证与未运行项见[当前 PR 说明](docs/acceptance/consolidation-20261011/PR.md)；[2026-10-11 整合记录](docs/acceptance/consolidation-20261011/README.md)、[状态界面实施与修复记录](docs/acceptance/status-surface-20261011/README.md)及更早记录保留为历史，不能替代当前版本复验。当前候选还包含下述外部 edu-web 源码适配、受限页面任务、录音权限、短时发音验证与独立源码工具；2026-10-13 的整合记录只描述其当时范围。
 
 | 能力         | 实现与验证边界                                                                                                                                                          |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -176,6 +176,14 @@ main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical
 ## 许可证
 
 本项目采用 [Apache License 2.0](LICENSE)。原项目在上述固定基线下也提供 [Apache-2.0 许可证](https://github.com/JadeSnow7/Web-Studio/blob/f377db874f0ecba3390804146776b5e5786d2f86/LICENSE)。本仓库引入的 npm 依赖适用各自许可证，依赖许可清单在冻结前统一生成（T12）；打包产物中的 Chromium 与 Electron 许可随包附带。
+
+## 外部 edu-web 工程（任务适配）
+
+空间 App 对话框新增“导入 edu 工程”：Main 用原生目录选择器收集本机 Git 源码白名单，在既有无宿主挂载 sandbox 中建立独立项目。它是用户源码的 Python 3.12 + React profile，不是第二个内置模板；需事先准备 guest Python 和受限包源网络。来源 commit/dirty、逐文件与整体散列随项目保存，启动、管理员/学生页导航、停止和源码导出走实际 AppService 与原生 Browser。
+
+页面任务绑定确认时的源码、保护文件、项目与实例，在独立候选目录执行；宿主复核后只应用 `admin/src/` 差异。只有当前可见且运行中的学生主 frame 可以请求音频，离页、隐藏、切空间、停止和退出均须清理音轨；清理无法确认时销毁预览并报告失败。默认 AI 关闭，显式开启的发音验证会话绑定源码与实例，限 300 秒和两次 provider 调用，并锁定维护操作。固定后端、依赖锁或构建配置变化须重新导入。上游同步使用独立三方 CLI/Git 流程，人工合并候选须重新导入并由产品导出。
+
+离线测试、实际 Electron/签名包运行、实体麦克风、真实 provider 和用户体验分别验收；导入、构建或模型任务完成不能代替迁移闭环。通用机制及验证边界见 [当前运行时](docs/architecture/current-runtime.md)，定向复验入口见 [AGENTS](AGENTS.md)。业务源码、实际服务器配置和私有验收证据保留在业务仓库。
 
 ## 沙箱标准应用（第一工作包）
 
