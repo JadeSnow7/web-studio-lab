@@ -1,6 +1,18 @@
 # Web Studio Lab
 
-Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) 既有设计与工程经验构建的 Electron 桌面工作台，参加 [OSCHINA 开源大赛 2026](https://www.oschina.net/os2026/)。目标闭环：在运行页面上点选元素、确认任务，由 Codex CLI 修改代码，工作台启动 App 并执行固定验收，给出可复验的证据，最后由开发者决定是否接受结果。
+Web Studio Lab 是一个将浏览器、终端、项目与 AI 会话组织在同一空间中的 Electron 桌面工作台。开发者可以从实际页面出发，生成应用、操作页面、修改项目，再用回执和数据核对结果。项目沿用 [Web Studio](https://github.com/JadeSnow7/Web-Studio) 的设计与工程经验，参加 OSCHINA 开源大赛 2026。
+
+## 本轮场景与材料（2026-10-16）
+
+- **已有魔塔工程**：真实本地目录接入，游戏与编辑器受管运行；AI 按用户指定路线完成普通/幸运金币两局，终点均为 MT4 `(11,10)`、HP926，金币为 7/14。84 秒成片已完成，build04 录像回执为 58/61 次调用，各 12 个有序检查点。它与 build03 的 model03（59/61 次）是不同运行。
+- **从模板生成手帐**：真实 AI 生成，PGlite 本地保存。v5 完整彩排通过新搜索、3 个正文来源读取、AI UI 保存及刷新，含取消与重试；准备至退出共 41分8.045秒，含人工操作、锁屏和收尾。正式手帐两段成片已完成，共 130 秒；18 日补录完成重新读取已知来源、AI UI 保存、AI 自身刷新及人工独立刷新核对，17 日记录保持不变。17 日业务通过但录像中止，成片第二段使用 18 日新运行；人工采集、补录、分段间隔及加速均有说明。
+- **版本边界**：录像历史基线为 `b5531e1` 加当时未提交的源码与构建清单；当前 PR 候选分支为 `agent/submission-20261016`，实现 commit 为 `120d34777db305b99e9501951363fe64e049a69f`。候选状态与本轮回归见[PR 整合记录](docs/acceptance/submission-20261016/README.md)，不将新候选的检查追溯为录像版本的结果。SSH、多会话等按下方源码能力与历史记录理解，本轮演示未逐项复验。
+
+最终回执记录手帐成片完整解码及 32 张样帧检查通过。旧手帐四日记录、339 个源码文件和 8 个构建文件核对一致；但原 keeper 退出方式未知、sandbox 已停止且端口偏离原基线，旧魔塔成片为云端占位，本轮未重算哈希，整体保全仍为 `undetermined`，不称所有清理条件无异常。
+
+[作品介绍](docs/submission/oschina-2026.md) · [演示与复现](docs/submission/demo-guide.md) · [证据索引](docs/submission/oschina-2026-evidence.md) · [材料状态](docs/submission/README.md)。用户已报名，最终提交状态未知。
+
+演示不证明通用项目导入、AI 自主路线规划、强 OS 沙箱隔离或跨平台导出。搜索日志缺候选 URL 列表，不能证明正文 URL 来自哪次搜索；Wikivoyage 回执缺陷和“比赛环境未就绪”提示仍保留。原魔塔资产许可未核清，不打包公开。成片中的倍速、剪辑、人工确认/采集/切页和未录到的动作均须明确说明。
 
 范围、排期与验收以[任务计划](docs/plans/2026-10-os2026-task-plan.md)为准，实现约束见[架构文档](docs/ARCHITECTURE.md)。
 
@@ -8,31 +20,34 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 
 ## 当前状态
 
-当前候选树整合 Electron 工作台、统一观察、受管标准 App、账户资源目录、App 控制面、App 名称/说明和任务目标绑定，以及统一状态呈现与诊断。六板块布局继续遵循[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)。2026-10-13 的 PR 范围、审查修复、实际验证与未运行项见[当前 PR 说明](docs/acceptance/consolidation-20261011/PR.md)；[2026-10-11 整合记录](docs/acceptance/consolidation-20261011/README.md)、[状态界面实施与修复记录](docs/acceptance/status-surface-20261011/README.md)及更早记录保留为历史，不能替代当前版本复验。edu 导入/运行与独立源码工具保留在各自分支，不纳入本候选。
+主线已通过 [PR #6](https://github.com/JadeSnow7/web-studio-lab/pull/6) 合并 Electron 工作台、统一观察、受管标准 App、账户资源目录、App 控制面、App 名称/说明和任务目标绑定，以及统一状态呈现与诊断；合并提交为 `b5531e1`。六板块布局继续遵循[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)。合并、Node 24 CI、本地保全迁移和主工作树同步结果见[2026-10-14 收尾记录](docs/acceptance/consolidation-20261011/closeout-20261014.md)。
 
-| 能力         | 实现与验证边界                                                                                                                                                          |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 全局导航     | 首页、空间、资源、会话、任务和底部设置保持独立入口；空间工作台只装配到空间页                                                                                            |
-| 空间工作台   | 空间切换、垂直标签、最多四窗格、后台资源重开；关闭标签不停止实例                                                                                                        |
-| 左右侧栏     | 全局按钮和空间标签整组浮动/固定；右侧仅通知；左右固定偏好分别保存到本设备                                                                                               |
-| 主题         | 设置页编辑当前空间的白/暗/暖/系统主题，终端同步共享颜色                                                                                                                 |
-| 网页与现场   | 原生WebContentsView、地址与导航、同一页面CDP采集；请求固定接收会话与文档身份                                                                                            |
-| 对话与终端   | sbx内Codex和Linux PTY；个人会话独立，空间会话由Main工作台管理                                                                                                           |
-| 任务与通知   | 持久任务版本、运行历史、日志、终态通知与阅读回执；执行、检查和人工接受分别记录                                                                                          |
-| 恢复         | 恢复元数据、草稿、布局和历史，不自动重放执行或重新连接PTY                                                                                                               |
-| 标准应用     | 独立版本化 React/TS/Vite + Hono + Drizzle/PGlite + Zod 模板；空间内创建、受管启动、Browser接入、停止与源码导出                                                          |
-| 完整业务闭环 | priority业务API、独立检查器及任务页真实diff/报告仍未实现；VS001与标准应用的本轮结果见[最小闭环记录](docs/acceptance/integrated-app-installer-public-20261009/README.md) |
-| 统一观察     | Browser、文件、终端与 SSH 已接 Main、MCP 和空间界面；完整验证进行中                                                                                                     |
-| App 控制面   | 阶段 A 已接线；下文保留历史真实模型与 Host 复验证据，本次 PR 不重新调用模型或 sandbox live；产品检查器尚未接入                                                          |
-| 状态与诊断   | Main 只读事实投影与 Renderer 状态槽；取消、接管和清理未确认持续可见，诊断默认关闭，日志有界且检查文件归属                                                               |
-| Code Wiki    | [独立交互原型](docs/design/2026-10-12-code-wiki/README.md)：模块、通信、源码依赖及流程地图；源码摘录固定于 2026-10-12，不是当前 PR 的自动扫描结果                       |
+当前 PR 候选在该基线上整合 P0 D 源码证据、最新 edu-web、静态导入入口、保存异常修复、受限魔塔接入及研究搜索与保存修复。上一阶段的手动编辑与窗口结果见[2026-10-15 整合记录](docs/acceptance/mota-integration-20261015/README.md)；魔塔 tools03 无模型工具验收和 build03 上的 model03 真实模型验收均已通过普通/金币两次新局的 MT4 路线与 money 7/14 对照，所属资源清理确认。真实模型经原生 MCP 执行，两组各 12 个有序检查点通过。默认 Electron E2E 首轮为 162 通过、22 跳过、6 失败；退出/启动诊断及测试修正后，build04 默认全套 E2E02 为 168 通过、22 跳过、0 失败。失败链、R3 首次失败原因未定及构建边界见[AI 阶段验收](docs/acceptance/mota-ai-20261015/README.md)，build04 不自动继承 build03 的模型实测结论。这些新增能力不属于已合并的 PR #6；[PR 合并前说明](docs/acceptance/consolidation-20261011/PR.md)及[导入入口验收记录](docs/acceptance/import-entry-20261014/README.md)保留各自范围和失败，不能替代本树复验。本轮未签名、公证或发布。
+
+| 能力         | 实现与验证边界                                                                                                                                                                            |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 全局导航     | 首页、空间、资源、会话、任务和底部设置保持独立入口；空间工作台只装配到空间页                                                                                                              |
+| 空间工作台   | 空间切换、垂直标签、最多四窗格、后台资源重开；关闭标签不停止实例                                                                                                                          |
+| 左右侧栏     | 全局按钮和空间标签整组浮动/固定；右侧仅通知；左右固定偏好分别保存到本设备                                                                                                                 |
+| 主题         | 设置页编辑当前空间的白/暗/暖/系统主题，终端同步共享颜色                                                                                                                                   |
+| 网页与现场   | 原生WebContentsView、地址与导航、同一页面CDP采集；请求固定接收会话与文档身份                                                                                                              |
+| 对话与终端   | sbx内Codex和Linux PTY；个人会话独立，空间会话由Main工作台管理                                                                                                                             |
+| 任务与通知   | 持久任务版本、运行历史、日志、终态通知与阅读回执；执行、检查和人工接受分别记录                                                                                                            |
+| 恢复         | 恢复元数据、草稿、布局和历史，不自动重放执行或重新连接PTY                                                                                                                                 |
+| 外部工程导入 | edu-web / mota-web profile v1：原生选择、静态预览、确认后复制到隔离 guest；edu 使用 Git 来源，魔塔提供游戏与编辑器；不支持任意项目或自动启用 AI/录音                                      |
+| 标准应用     | 独立版本化 React/TS/Vite + Hono + Drizzle/PGlite + Zod 模板；空间内创建、受管启动、Browser接入、停止与源码导出                                                                            |
+| 完整业务闭环 | 本地整合已接任务页真实 diff；priority业务API、独立检查器与独立报告仍有缺口；VS001与标准应用的历史结果见[最小闭环记录](docs/acceptance/integrated-app-installer-public-20261009/README.md) |
+| 统一观察     | Browser、文件、终端与 SSH 已接 Main、MCP 和空间界面；完整验证进行中                                                                                                                       |
+| App 控制面   | 阶段 A 已接线；下文保留历史真实模型与 Host 复验证据，本次 PR 不重新调用模型或 sandbox live；产品检查器尚未接入                                                                            |
+| 状态与诊断   | Main 只读事实投影与 Renderer 状态槽；取消、接管和清理未确认持续可见，诊断默认关闭，日志有界且检查文件归属                                                                                 |
+| Code Wiki    | [独立交互原型](docs/design/2026-10-12-code-wiki/README.md)：模块、通信、源码依赖及流程地图；源码摘录固定于 2026-10-12，不是当前 PR 的自动扫描结果                                         |
 
 ## 环境
 
 详细安装与独立 sbx 沙箱测试前置条件见[开发依赖与安装](docs/development/dependencies.md)。2026-10-06 的本机历史记录包含 sbx v0.47.0、Docker/OpenAI OAuth 准备与真实 smoke，见[沙箱验证记录](docs/verification/2026-10-06-sbx/README.md)和[应用接入验证](docs/verification/2026-10-06-sbx-app/README.md)。新机器须重新准备，本轮认证和 live 是否可用以当前验收记录为准。未配置 sbx 不妨碍启动桌面；sandbox 对话/终端会明确不可用。
 
 - macOS Apple Silicon。其他平台没有验证。
-- Node：与 Electron 44.5.1 内置的 Node 24 对齐，`.nvmrc` 为 24。2026-10-06 的本地验证实际运行在 Node 26.5.0 上，Node 24 尚未单独验证。
+- Node：与 Electron 44.5.1 内置的 Node 24 对齐，`.nvmrc` 为 24。2026-10-13 的 [validate_only CI](https://github.com/JadeSnow7/web-studio-lab/actions/runs/38400211740) 已在 macOS arm64 / Node 24.21 验证 PR 最终提交；签名、公证、安装包和发布步骤均跳过。2026-10-06 的 Node 26.5.0 结果仅作历史。
 - pnpm 10.34.6（见根 `package.json` 的 `packageManager`）。若本机尚未安装，可以 `npm install -g pnpm@10.34.6`，或者在下面的命令前加 `npx pnpm@10.34.6` 代替 `pnpm`。
 - 首次运行 Electron 时会下载 Electron 二进制（约 100 MB）；首次打包时 electron-builder 还会下载自己的 Electron 包与 dmg 工具。需要网络。
 
@@ -54,13 +69,27 @@ WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm dev
 pnpm check
 ```
 
-`pnpm check` 依次运行类型检查（含 e2e 与配置文件）、ESLint、Prettier 格式检查和 Vitest 单元测试，并在首个失败时停止。本整合树保留 VS001 与来源档案的原始格式；全树 lint/格式的已知失败和本候选实际结果在[当前 PR 说明](docs/acceptance/consolidation-20261011/PR.md)分列。需要全部结果时分别运行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm test`，不要自动格式化封存证据。
+`pnpm check` 依次运行类型检查（含 e2e 与配置文件）、ESLint、Prettier 格式检查和 Vitest 单元测试，并在首个失败时停止。本整合树保留 VS001 与来源档案的原始格式；旧轮次的 lint 217 个错误、format 801 个文件问题保留在[PR 合并前说明](docs/acceptance/consolidation-20261011/PR.md)，不能直接当作当前结果。上一整合阶段的全量 lint 通过、格式遗留项与失败见[整合记录](docs/acceptance/mota-integration-20261015/README.md)，新增 AI 代码的检查在[本阶段记录](docs/acceptance/mota-ai-20261015/README.md)另列，不据单项通过声称整个 `pnpm check` 通过。需要全部结果时分别运行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm test`，不要自动格式化封存证据。当前 PR 候选的实际命令、结果与未决项统一见[2026-10-16 候选回归](docs/acceptance/submission-20261016/README.md)。
 
 ```bash
 pnpm test:e2e
 ```
 
 `pnpm test:e2e` 先 `pnpm build`，再用 Playwright 驱动真实的 Electron 窗口，检查启动与安全边界、页面现场、任务与运行归属、空间和标签切换、草稿、左右气泡、快捷键、主题及窄窗恢复。截图写到 `test-results/screens/`。
+
+默认套件中的 `app-control-harness` 会在宿主启动独立标准模板。首次运行前，还需执行 `npm --prefix templates/standard-app ci --ignore-scripts`；根目录的 pnpm workspace 安装不包含该模板的独立依赖。缺少模板 `tsx` 的首次失败和补装后的定向复跑分别记录于[候选回归](docs/acceptance/submission-20261016/README.md)。
+
+## 外部魔塔工程（mota-web v1）
+
+在空间 App 对话框选择“导入已有工程”，由原生目录选择器选择兼容魔塔工程。预览只静态读取文件；确认后将冻结的内容复制到隔离 guest，再用工作台内置的受限服务启动。宿主原件不被编辑，不运行工程自带的 Node/Python 服务、安装命令或发布脚本。当前仅支持已识别的魔塔文件结构，最多 512 文件、64 MiB，总体积与 edu 的限制分别计算。
+
+游戏 `/index.html` 和编辑器 `/editor.html` 是同一 App 的两个稳定资源，重复打开复用资源。编辑器仅允许保存副本内的 `project/floors/MT1.js` 和 `_server/config.json`；保存后需刷新或重新开始游戏来核对变化。关闭页面只关闭视图；停止 App 才清理所属服务与端口，重启保留两页的资源身份与各自地址。
+
+在会话“任务”中明确选择当前运行的游戏页，并勾选“允许 AI 操作游戏（含重新开始）”，才可确认并启动受限 AI 任务；额外勾选“允许 AI 在一楼空格放置幸运金币”才授权该地图操作，两项默认关闭。仅提供游戏状态、真实游戏输入、MT1 地图读取和空格放置金币四个专用工具。模型每轮使用新的只读临时工作区与原生 MCP，不恢复旧的可写模型线程，也不回退到 CLI 通道。
+
+AI 地图操作只允许副本 MT1 的空格 `0` 改为幸运金币 `53`，校验预期文件散列并返回独立操作回执；编辑器保存与 AI 写入互斥，遇版本冲突需重新加载。任意代码修改、标准 App 控制工具和源码导出仍不支持；手动保存及受限地图操作均不产生标准 P0 D 的 Agent-run diff。
+
+手动接入验收入口为 `e2e/mota-app-live.spec.ts`；AI 阶段的 `e2e/mota-agent-live.spec.ts` 分别运行无模型工具驱动和真实模型，两者不能互相替代。使用临时源码副本、全新私有 profile 和独立证据目录，原生目录选择响应由测试自动提供。tools03 替代 Codex 进程验证工具通路；独立的 model03 未替代模型进程，经原生 MCP 分别调用 59/61 次工具，普通/金币两局均到 MT4、HP926、money7/14、coin0/1，全部检查点与清理通过。逐条采集回执完整，后续 UI 聚合历史仍触发大小上限；这不保证永久完整历史。OS 探针在进入命令沙箱前因参数缺失退出，尚无 OS 写入/网络阻断的实测结论。环境变量与命令见 [AGENTS](AGENTS.md)，失败链及未覆盖项目见[AI 阶段验收](docs/acceptance/mota-ai-20261015/README.md)。
 
 ## 沙箱对话与终端
 
@@ -176,6 +205,16 @@ main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical
 ## 许可证
 
 本项目采用 [Apache License 2.0](LICENSE)。原项目在上述固定基线下也提供 [Apache-2.0 许可证](https://github.com/JadeSnow7/Web-Studio/blob/f377db874f0ecba3390804146776b5e5786d2f86/LICENSE)。本仓库引入的 npm 依赖适用各自许可证，依赖许可清单在冻结前统一生成（T12）；打包产物中的 Chromium 与 Electron 许可随包附带。
+
+## 外部 edu-web 工程（任务适配）
+
+从空间侧栏“新建 App”进入“导入已有工程”，在系统目录选择器中选择本地 edu Git 根目录。工作台先静态检查并展示文件数、大小、Python 3.12 + React 运行方案和限制；“来源详情”显示 Git 提交、未提交修改状态及源码摘要。此时不创建 App、不连接 guest、不安装依赖或执行所选工程脚本。本段描述 edu-web profile v1；同一入口还支持上文的 mota-web profile，不支持的工程会说明原因，不会尝试猜测启动命令。
+
+点击“确认导入并启动”后再次核对所选来源，再复制白名单源码到既有无宿主挂载 sandbox 的独立项目，准备锁定依赖并启动。运行环境需预先准备 guest Python 3.12 和包源网络；当前入口不替代比赛环境安装。原目录保持不变，不复制 `.env`、账号、数据库、依赖或缓存。成功后，只有用户仍停留在本次导入界面和原空间时才自动打开学生页；否则保留运行结果，由用户在“管理 App”打开。
+
+关闭或 Escape 只收起界面，不声称操作已取消。显式“取消导入”或“取消启动”等待所属操作核对清理；已经完成发布的项目副本保留。失败显示原因及可用恢复动作；未保留项目身份时可重新选择工程；已有待确认项目时先重试或“核对并取消”。允许重试时继续同一操作，发布后的启动失败只重试启动，不复制第二份项目。后端、锁文件或构建配置变化须在新空间重新导入，当前没有就地 Git 同步。
+
+定向测试与本轮实际结果见[导入入口验收记录](docs/acceptance/import-entry-20261014/README.md)。历史学生页 AI0 签名包测试仅证明当时冻结输入，不覆盖新入口代码。当前入口不调用模型、Azure、评分或麦克风；完整业务回归、Agent 维护、录音评分、导出部署及新签名发布各自验收。详细实现边界见[当前运行时](docs/architecture/current-runtime.md)，独占 guest 的 opt-in 参数见 [AGENTS](AGENTS.md)。私仓业务源码、profile、账户、数据库和原始运行截图不复制到本仓库。
 
 ## 沙箱标准应用（第一工作包）
 

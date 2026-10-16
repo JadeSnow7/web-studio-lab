@@ -3,6 +3,7 @@ import { EnvironmentListSchema } from './environments';
 import { WorkbenchObservationInputSchema, WorkspaceObservationResultSchema } from './observation';
 import { WorkbenchCommandSchema, WorkbenchEventSchema, WorkbenchResultSchema, WorkbenchSnapshotSchema } from './workspace';
 import { z } from 'zod';
+import { RunPatchQuerySchema, RunPatchResultSchema } from './source-change';
 import { AppInfoSchema, ShellCommandSchema } from './app';
 import { ChatConversationSchema, ChatStatusSchema, ChatTargetSchema } from './chat';
 import { ExecutionStatusSchema } from './execution';
@@ -38,6 +39,7 @@ export const invokeChannels = {
   'workbench:catalog-command': { request: CatalogActionSchema, response: WorkbenchResultSchema },
   'workbench:resource-revision': { request: CatalogQuerySchema, response: ResourceRevisionSchema },
   'workbench:run-references': { request: RunReferenceQuerySchema, response: CatalogReferenceSnapshotSchema.nullable() },
+  'workbench:run-patch': { request: RunPatchQuerySchema, response: RunPatchResultSchema },
   'workbench:command': { request: WorkbenchCommandSchema, response: WorkbenchResultSchema },
   'app:get-info': { request: NoArgs, response: AppInfoSchema },
   'chat:get-status': { request: NoArgs, response: ChatStatusSchema },

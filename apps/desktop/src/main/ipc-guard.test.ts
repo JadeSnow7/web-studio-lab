@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { invokeChannels } from '@wsl/protocol';
 import { activeInvokeChannels, assertChannelEnabled, assertTrustedSender, isTrustedRendererUrl, type TrustedRenderer } from './ipc-guard';
 
 const dev: TrustedRenderer = { kind: 'dev-server', origin: 'http://localhost:5173' };
@@ -29,6 +30,18 @@ describe('IPC 发送者校验', () => {
     expect(() => assertTrustedSender({ ...ok, isTopFrame: false }, dev)).toThrow();
     expect(() => assertTrustedSender({ ...ok, frameUrl: null }, dev)).toThrow();
     expect(() => assertTrustedSender({ ...ok, frameUrl: 'wsl-demo://taskflow/index.html' }, dev)).toThrow();
+  });
+});
+
+describe('源码 diff 窄查询', () => {
+  it('常规注册、严格拒绝路径参数，并校验返回值预算', () => {
+    const channel = invokeChannels['workbench:run-patch'];
+    const query = { workspaceId: 'space', runId: 'ebf1097a-38be-4250-820f-214c0cd6d1e0' };
+    expect(activeInvokeChannels(false)).toContain('workbench:run-patch');
+    expect(channel.request.safeParse(query).success).toBe(true);
+    expect(channel.request.safeParse({ ...query, path: '/host/source.patch' }).success).toBe(false);
+    expect(channel.response.safeParse({ ...query, patchSha256: 'a'.repeat(64), patch: '中'.repeat(90000) }).success).toBe(false);
+    expect(() => assertTrustedSender({ isMainWindow: false, isTopFrame: true, frameUrl: 'http://localhost:5173/' }, dev)).toThrow();
   });
 });
 

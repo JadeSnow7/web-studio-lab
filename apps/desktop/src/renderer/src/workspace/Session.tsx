@@ -19,8 +19,11 @@ import {
 } from '../state/status-view';
 import { SessionObservation, cancelObservationRequest } from './Observation';
 import { sessionSelection } from './presentation';
+import { changeMotaTaskScope, MOTA_MAP_SCOPE, MOTA_PLAY_SCOPE, motaTaskPresentation, motaTaskScopes } from './mota-task-presentation';
+import { ResearchSources } from './ResearchSources';
+import { researchDraftEligible, researchSubmissionEnabled, researchVersionEligible } from './research-presentation';
 import { RunDetails, RunStatusFields, type RunView } from './RunDetails';
-import { workspaceCommand, workspaceStore, beginNavigation } from '../state/workspace';
+import { workspaceCommand, workspaceStore, verificationLocked, beginNavigation, isCurrentNavigation } from '../state/workspace';
 
 type SessionView = 'conversation' | 'task' | 'context' | 'checks' | RunView;
 
@@ -171,7 +174,16 @@ function RunRecordMenu({ sessionId, view, onSelect }: { sessionId: string; view:
 }
 
 export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; session: WorkbenchSession }) {
+  const maintenanceLocked = useStore(workspaceStore, (s) => verificationLocked(s.snapshot));
+  const isMota = workspace.managedApp?.profile?.projectKind === 'mota-web';
   const { sessionId } = session;
+  const [researchChoice, setResearchChoice] = useState({ key: '', enabled: false });
+  const sessionElement = useRef<HTMLElement>(null);
+  const researchConsent = useRef({ context: '', revision: 0 });
+  const resetResearchConsent = () => {
+    researchConsent.current.revision++;
+    setResearchChoice((choice) => ({ ...choice, enabled: false }));
+  };
   const scope = useMemo<StatusScope>(
     () => ({ kind: 'session', workspaceId: workspace.workspaceId, sessionId }),
     [workspace.workspaceId, sessionId],
@@ -187,6 +199,13 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
   const [criteriaDraft, setCriteriaDraft] = useState({ acceptance: savedAcceptance, scopes: savedScopes });
   const criteriaRef = useRef(criteriaDraft),
     criteriaDirty = useRef(false);
+  const taskScopes = (scopes: string) => {
+    const lines = scopes.split('\n').filter((line) => line.trim());
+    return isMota ? motaTaskScopes(lines) : lines;
+  };
+  const motaTask = motaTaskPresentation(workspace, session.taskTargetRef, taskScopes(criteriaDraft.scopes));
+  const targetOptions = motaTask?.targets ?? workspace.resources.filter((resource) => resource.kind !== 'session');
+  const selectedTarget = targetOptions.find((resource) => resource.resourceId === target);
   useEffect(() => {
     if (!criteriaDirty.current) {
       const draft = { acceptance: savedAcceptance, scopes: savedScopes };
@@ -203,7 +222,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
       type: 'saveTaskCriteria',
       sessionId: session.sessionId,
       acceptance: next.acceptance.split('\n').filter((x) => x.trim()),
-      allowedScopes: next.scopes.split('\n').filter((x) => x.trim()),
+      allowedScopes: taskScopes(next.scopes),
     }).then((result) => {
       if (result?.ok && criteriaRef.current === next) criteriaDirty.current = false;
     });
@@ -217,7 +236,10 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
   const selection = useStore(statusPresentationStore, (state) => state.selections[sessionId]);
   const selectedVersionId = selection?.taskVersionId ?? '';
   const selectedRunId = selection?.runId ?? '';
-  const select = (next: { taskVersionId?: string; runId?: string }) => statusPresentationActions.selectHistory(sessionId, next);
+  const select = (next: { taskVersionId?: string; runId?: string }) => {
+    resetResearchConsent();
+    statusPresentationActions.selectHistory(sessionId, next);
+  };
   const initialSelection = useRef(initial ? { taskVersionId: initial.taskVersionId, runId: initial.runId } : null);
   // 挂载时按定位（locateSession）带来的初始选择写入；没有定位时清除上一次遗留的选择（与原局部 state 的初始值一致）。
   useLayoutEffect(() => {
@@ -238,6 +260,51 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
   const sessionRuns = workspace.runs.filter((r) => r.sessionId === session.sessionId);
   const currentRun = sessionRuns.at(-1);
   const { version, run, conversation } = sessionSelection(session, workspace.runs, selectedVersionId, selectedRunId);
+  const motaVersion = version ? motaTaskPresentation(workspace, version.targetRef, version.allowedScopes) : null;
+  const draftResearchEligible = researchDraftEligible(workspace, session.taskTargetRef);
+  const versionResearchEligible = researchVersionEligible(workspace, version);
+  const researchContext = JSON.stringify([
+    workspace.workspaceId,
+    sessionId,
+    selectedVersionId,
+    selectedRunId,
+    target,
+    workspace.managedApp?.projectId,
+    workspace.managedApp?.appInstanceId,
+    workspace.managedApp?.profile?.projectKind,
+  ]);
+  useLayoutEffect(() => {
+    researchConsent.current = { context: researchContext, revision: researchConsent.current.revision + 1 };
+  }, [researchContext]);
+  // A new confirmed version clears the visible choice, including when "latest" stays selected.
+  // A send already in progress carries its own consumed intent through its confirmTask receipt.
+  const researchChoiceKey = JSON.stringify([researchContext, version?.taskVersionId, currentRun?.runId]);
+  if (researchChoice.key !== researchChoiceKey) setResearchChoice({ key: researchChoiceKey, enabled: false });
+  const webResearch = researchChoice.key === researchChoiceKey && researchChoice.enabled;
+  useEffect(
+    () => () => {
+      researchConsent.current.revision++;
+    },
+    [],
+  );
+  useEffect(() => {
+    const element = sessionElement.current;
+    if (!element) return;
+    // Panes keep hidden sessions mounted. Returning to one must not revive its old opt-in.
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry && entry.contentRect.width === 0 && entry.contentRect.height === 0) {
+        researchConsent.current.revision++;
+        setResearchChoice((choice) => ({ ...choice, enabled: false }));
+      }
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const consumeResearchConsent = (eligible: boolean) => {
+    const submission = { ...researchConsent.current, enabled: webResearch && eligible };
+    setResearchChoice((choice) => ({ ...choice, enabled: false }));
+    return submission;
+  };
   const context = selectedVersionId ? version?.capture : session.context;
   // 状态文案与形状都来自展示层（run / validation / review / context 视图），本组件不再自行拼接。
   const scopeViews = useScopeViews(scope);
@@ -281,6 +348,8 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
   };
   const confirm = () =>
     perform(async () => {
+      if (motaTask?.reason) return;
+      resetResearchConsent();
       await saveTail.current;
       const resource = workspace.resources.find((r) => r.resourceId === target);
       const targetRef: TargetRef | null = resource ? { kind: resource.kind, resourceId: resource.resourceId } : null;
@@ -290,14 +359,16 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
         goal: draftValue.current,
         targetRef,
         acceptance: criteriaRef.current.acceptance.split('\n').filter((x) => x.trim()),
-        allowedScopes: criteriaRef.current.scopes.split('\n').filter((x) => x.trim()),
+        allowedScopes: taskScopes(criteriaRef.current.scopes),
       });
       if (result?.ok) setView('task');
     });
   const send = () =>
     perform(async () => {
       const text = draftValue.current;
-      if (!text.trim() || busy) return;
+      if (!text.trim() || busy || maintenanceLocked || motaTask?.reason || (webResearch && !draftResearchEligible)) return;
+      const navigation = beginNavigation();
+      const research = consumeResearchConsent(draftResearchEligible);
       await saveTail.current;
       const resource = workspace.resources.find((r) => r.resourceId === target);
       const result = await workspaceCommand(workspace.workspaceId, {
@@ -306,7 +377,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
         goal: text,
         targetRef: resource ? { kind: resource.kind, resourceId: resource.resourceId } : null,
         acceptance: criteriaRef.current.acceptance.split('\n').filter((x) => x.trim()),
-        allowedScopes: criteriaRef.current.scopes.split('\n').filter((x) => x.trim()),
+        allowedScopes: taskScopes(criteriaRef.current.scopes),
       });
       if (!result?.ok) return;
       const next = result.snapshot.workspaces
@@ -314,10 +385,20 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
         ?.sessions.find((s) => s.sessionId === session.sessionId)
         ?.taskVersions.at(-1);
       if (!next) throw new Error('任务确认成功但未返回版本');
+      const currentWorkspace = workspaceStore.get().snapshot?.workspaces.find((w) => w.workspaceId === workspace.workspaceId);
+      const allowResearch = researchSubmissionEnabled(
+        research,
+        researchConsent.current,
+        !!currentWorkspace && researchVersionEligible(currentWorkspace, next) && !!sessionElement.current?.getClientRects().length,
+        isCurrentNavigation(navigation),
+      );
+      // A navigation/cancelled opt-in must not silently become a different research run.
+      if (research.enabled && !allowResearch) return;
       const started = await workspaceCommand(workspace.workspaceId, {
         type: 'startRun',
         sessionId: session.sessionId,
         taskVersionId: next.taskVersionId,
+        webResearch: allowResearch,
       });
       if (!started?.ok) return;
       // A delayed start receipt may predate cancellation; only the current Main projection can acknowledge input.
@@ -333,6 +414,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
     const id = item.action?.id;
     if (!id || item.action?.disabled) return;
     if (id === 'run.cancel') {
+      resetResearchConsent();
       void workspaceCommand(workspace.workspaceId, { type: 'cancelRun', runId: entityOf(item) });
       // 取消后「取消回复」按钮随状态卸载：先把焦点交给输入框，避免落到 body。
       composerInput.current?.focus();
@@ -355,7 +437,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
       void captureContext(workspace.workspaceId, sessionId, session.taskTargetRef.resourceId);
   };
   // 「重新选择元素」：上下文页自带同名按钮，槽里不再重复；没有网页目标时无处可选，也不提供。
-  const omitActions = view === 'context' || session.taskTargetRef?.kind !== 'web' ? ['context.recapture'] : undefined;
+  const omitActions = view === 'context' || isMota || session.taskTargetRef?.kind !== 'web' ? ['context.recapture'] : undefined;
   // 与会话交互（点击、按键）后确认其中的 confirmation（如「历史已恢复」）；control / unresolved / progress 不受影响。
   // 用 click 而不是 pointerdown：确认会让提示消失、槽高度变化，pointerdown 时位移会让同一次点击落空。
   // 不监听焦点：通知栏打开会话时会程序性聚焦标题，那不是用户与会话的交互。
@@ -365,7 +447,13 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
     if (!(event.target as HTMLElement).closest('.status-slot')) acknowledge();
   };
   return (
-    <section className="session-workspace" aria-label="Agent 会话内容" onClickCapture={acknowledge} onKeyDownCapture={acknowledgeKey}>
+    <section
+      ref={sessionElement}
+      className="session-workspace"
+      aria-label="Agent 会话内容"
+      onClickCapture={acknowledge}
+      onKeyDownCapture={acknowledgeKey}
+    >
       <h2 className="sr-only" tabIndex={-1} id={`session-heading-${session.sessionId}`}>
         {session.title}
       </h2>
@@ -437,6 +525,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
                 ))}
               </details>
             ) : null}
+            {run ? <ResearchSources run={run} /> : null}
             {conversation?.warnings.map((w) => (
               <p key={w} role="status">
                 {w}
@@ -464,15 +553,54 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
               <span>修改目标</span>
               <textarea className="resize-none" rows={3} value={draft} onChange={(e) => save(e.target.value)} />
             </label>
-            <label className="field">
-              <span>允许修改范围（每行一条）</span>
-              <textarea
-                className="resize-none"
-                rows={2}
-                value={criteriaDraft.scopes}
-                onChange={(e) => saveCriteria('scopes', e.target.value)}
-              />
-            </label>
+            {motaTask ? (
+              <fieldset className="field" disabled={submitting} aria-describedby={`mota-scopes-hint-${sessionId}`}>
+                <legend>允许 AI 操作范围</legend>
+                <div className="checks">
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      checked={motaTask.allowedScopes.includes(MOTA_PLAY_SCOPE)}
+                      onChange={(event) =>
+                        saveCriteria(
+                          'scopes',
+                          changeMotaTaskScope(taskScopes(criteriaRef.current.scopes), MOTA_PLAY_SCOPE, event.target.checked).join('\n'),
+                        )
+                      }
+                    />
+                    允许 AI 操作游戏（含重新开始）
+                  </label>
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      disabled={!motaTask.allowedScopes.includes(MOTA_PLAY_SCOPE)}
+                      checked={motaTask.allowedScopes.includes(MOTA_MAP_SCOPE)}
+                      onChange={(event) =>
+                        saveCriteria(
+                          'scopes',
+                          changeMotaTaskScope(taskScopes(criteriaRef.current.scopes), MOTA_MAP_SCOPE, event.target.checked).join('\n'),
+                        )
+                      }
+                    />
+                    允许 AI 在一楼空格放置幸运金币
+                  </label>
+                </div>
+                <p className="muted small" id={`mota-scopes-hint-${sessionId}`}>
+                  放置金币须先允许操作游戏；仅修改导入副本的一楼空地，不允许任意代码写入。AI
+                  地图写入期间编辑器保存会被锁定；如遇版本冲突，先重新加载编辑器。
+                </p>
+              </fieldset>
+            ) : (
+              <label className="field">
+                <span>允许修改范围（每行一条）</span>
+                <textarea
+                  className="resize-none"
+                  rows={2}
+                  value={criteriaDraft.scopes}
+                  onChange={(e) => saveCriteria('scopes', e.target.value)}
+                />
+              </label>
+            )}
             <label className="field">
               <span>验收条件（每行一条）</span>
               <textarea
@@ -485,9 +613,11 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
             <label className="field">
               <span>附加目标（明确选择）</span>
               <select
-                value={target}
+                value={isMota ? (selectedTarget?.resourceId ?? '') : target}
+                disabled={submitting}
+                aria-describedby={isMota ? `mota-target-hint-${sessionId}` : undefined}
                 onChange={(e) => {
-                  const resource = workspace.resources.find((r) => r.resourceId === e.target.value);
+                  const resource = targetOptions.find((r) => r.resourceId === e.target.value);
                   void workspaceCommand(workspace.workspaceId, {
                     type: 'saveTaskTarget',
                     sessionId: session.sessionId,
@@ -495,20 +625,24 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
                   });
                 }}
               >
-                <option value="">无页面目标</option>
-                {workspace.resources
-                  .filter((r) => r.kind !== 'session')
-                  .map((r) => (
-                    <option key={r.resourceId} value={r.resourceId}>
-                      {r.title}
-                    </option>
-                  ))}
+                <option value="">{isMota ? '请选择当前运行的游戏页' : '无页面目标'}</option>
+                {targetOptions.map((r) => (
+                  <option key={r.resourceId} value={r.resourceId}>
+                    {r.title}
+                  </option>
+                ))}
               </select>
             </label>
+            {isMota ? (
+              <p className="muted small" id={`mota-target-hint-${sessionId}`}>
+                {motaTask?.reason ?? '任务仅绑定当前运行的游戏页；编辑器和其他 App 页面不能作为目标。'}
+              </p>
+            ) : null}
             <button
               type="button"
               className="btn"
-              disabled={session.taskTargetRef?.kind !== 'web'}
+              disabled={isMota || session.taskTargetRef?.kind !== 'web'}
+              title={isMota ? '魔塔任务直接绑定游戏页，无需采集 DOM 元素。' : undefined}
               onClick={() => {
                 if (session.taskTargetRef) void captureContext(workspace.workspaceId, session.sessionId, session.taskTargetRef.resourceId);
                 setView('context');
@@ -516,14 +650,27 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
             >
               采集目标元素
             </button>
-            <button type="button" className="btn" disabled={!draft.trim() || submitting} onClick={() => void confirm()}>
+            <button
+              type="button"
+              className="btn"
+              disabled={!draft.trim() || submitting || !!motaTask?.reason}
+              title={motaTask?.reason ?? undefined}
+              onClick={() => void confirm()}
+            >
               确认任务（生成新版本）
             </button>
             {version ? (
               <div className="version-card">
                 <strong>任务 v{version.version}</strong>
                 <p>{version.goal}</p>
-                <p>修改范围：{version.allowedScopes.join('、') || '未指定（不增加写入权限）'}</p>
+                <p>
+                  修改范围：
+                  {isMota
+                    ? motaTaskScopes(version.allowedScopes)
+                        .map((scope) => (scope === MOTA_PLAY_SCOPE ? '操作游戏（含重新开始）' : '在一楼空格放置幸运金币'))
+                        .join('、') || '未授权'
+                    : version.allowedScopes.join('、') || '未指定（不增加写入权限）'}
+                </p>
                 <ul>
                   {version.acceptance.map((line) => (
                     <li key={line}>{line}</li>
@@ -536,19 +683,32 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
                 <button
                   type="button"
                   className="btn btn-primary"
-                  disabled={busy || submitting}
+                  disabled={busy || submitting || maintenanceLocked || !!motaVersion?.reason || (webResearch && !versionResearchEligible)}
+                  title={motaVersion?.reason ?? undefined}
                   onClick={() =>
                     void perform(async () => {
+                      if (busy || maintenanceLocked || motaVersion?.reason || (webResearch && !versionResearchEligible)) return;
+                      const navigation = beginNavigation();
+                      const research = consumeResearchConsent(versionResearchEligible);
                       await workspaceCommand(workspace.workspaceId, {
                         type: 'startRun',
                         sessionId: session.sessionId,
                         taskVersionId: version.taskVersionId,
+                        webResearch: researchSubmissionEnabled(
+                          research,
+                          researchConsent.current,
+                          versionResearchEligible,
+                          isCurrentNavigation(navigation),
+                        ),
                       });
                     })
                   }
                 >
                   开始运行
                 </button>
+                {motaVersion?.reason ? (
+                  <p className="muted small">{motaVersion.reason} 修改任务目标或授权后，需重新确认任务生成新版本。</p>
+                ) : null}
               </div>
             ) : (
               <p className="muted">还没有确认的任务版本。</p>
@@ -589,12 +749,15 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
                 ))}
               </>
             ) : (
-              <p className="workspace-empty">尚未附加页面现场。先在网页选择元素，再确认相关任务。</p>
+              <p className="workspace-empty">
+                {isMota ? '魔塔任务直接绑定运行中的游戏页，无需采集 DOM 元素。' : '尚未附加页面现场。先在网页选择元素，再确认相关任务。'}
+              </p>
             )}
             <button
               type="button"
               className="btn"
-              disabled={!session.taskTargetRef || session.taskTargetRef.kind !== 'web'}
+              disabled={isMota || !session.taskTargetRef || session.taskTargetRef.kind !== 'web'}
+              title={isMota ? '魔塔任务直接绑定游戏页，无需采集 DOM 元素。' : undefined}
               onClick={() => {
                 if (session.taskTargetRef) void captureContext(workspace.workspaceId, session.sessionId, session.taskTargetRef.resourceId);
               }}
@@ -690,11 +853,35 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
         <span className="sr-only" id={`draft-hint-${sessionId}`}>
           发送到 · {workspace.name} / {session.title} / Codex CLI
         </span>
+        {draftResearchEligible || versionResearchEligible ? (
+          <div className="checks">
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={webResearch}
+                disabled={busy || submitting || maintenanceLocked}
+                aria-describedby={`research-hint-${sessionId}`}
+                onChange={(event) => setResearchChoice({ key: researchChoiceKey, enabled: event.target.checked })}
+              />
+              本次运行允许搜索公开网页并引用来源
+            </label>
+            <p className="muted small" id={`research-hint-${sessionId}`}>
+              仅当前一次运行有效；发送、切换任务或取消后需重新勾选。
+              {webResearch && !draftResearchEligible ? ' 当前草稿未绑定此 App；可运行上方已确认的任务版本。' : ''}
+              {webResearch && version && !versionResearchEligible ? ' 上方任务版本未绑定此 App；此授权仅用于发送新任务。' : ''}
+            </p>
+          </div>
+        ) : null}
+        {isMota ? (
+          <p className="muted small" id={`mota-hint-${sessionId}`}>
+            {motaTask?.reason ?? '仅执行已勾选的游戏操作；地图修改只限副本一楼空地。草稿按会话保存。'}
+          </p>
+        ) : null}
         <textarea
           ref={composerInput}
           id={`draft-${sessionId}`}
           aria-label="会话消息"
-          aria-describedby={`draft-hint-${sessionId}`}
+          aria-describedby={isMota ? `draft-hint-${sessionId} mota-hint-${sessionId}` : `draft-hint-${sessionId}`}
           className="resize-none"
           rows={3}
           value={draft}
@@ -717,8 +904,10 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
           <button
             type="button"
             className="btn btn-primary"
-            title="Enter 发送 · Shift+Enter 换行 · 草稿按会话保存"
-            disabled={!draft.trim() || busy || submitting}
+            title={motaTask?.reason ?? 'Enter 发送 · Shift+Enter 换行 · 草稿按会话保存'}
+            disabled={
+              !draft.trim() || busy || submitting || maintenanceLocked || !!motaTask?.reason || (webResearch && !draftResearchEligible)
+            }
             onClick={() => void send()}
           >
             发送

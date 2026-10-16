@@ -1,6 +1,6 @@
 import { emptyReferences } from './reference-test-fixture';
 import { describe, expect, it, vi } from 'vitest';
-import { ObservationSourcesSchema } from '@wsl/protocol';
+import { MotaStateSchema, ObservationSourcesSchema, type MotaState } from '@wsl/protocol';
 import { CodexChat, parseCodexLine } from './codex-chat';
 import type { GuestFrame, GuestStart, SbxConnection } from './sbx';
 
@@ -49,6 +49,210 @@ function fixture() {
     },
   };
 }
+
+function motaState(blockCount = 144): MotaState {
+  return MotaStateSchema.parse({
+    appInstanceId: '88f5f2b5-c4ed-4829-bf87-f3386d1cc3d0',
+    documentGeneration: 2,
+    played: true,
+    floorId: 'MT1',
+    hero: { x: 6, y: 11, hp: 1000, atk: 10, def: 10, money: 0, coin: 0, keys: { yellow: 0, blue: 0, red: 0 } },
+    moving: false,
+    locked: false,
+    event: { id: null, type: null },
+    dialogue: null,
+    map: {
+      width: 64,
+      height: 64,
+      blocks: Array.from({ length: blockCount }, (_, index) => ({
+        x: index % 64,
+        y: Math.floor(index / 64),
+        id: 1,
+        eventId: 'yellowWall',
+        disabled: false,
+      })),
+      truncated: false,
+    },
+    canvas: {
+      rect: { x: 252.5, y: 47.5, width: 624, height: 624 },
+      viewport: { width: 1129, height: 719 },
+      logicalWidth: 416,
+      logicalHeight: 416,
+      offsetX: 0,
+      offsetY: 0,
+      scale: 1.5,
+    },
+  });
+}
+function motaMcp(result: unknown, overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'mota-native',
+    type: 'mcp_tool_call',
+    server: 'wsl_space',
+    tool: 'app_mota_act',
+    arguments: { appInstanceId: '88f5f2b5-c4ed-4829-bf87-f3386d1cc3d0', documentGeneration: 1, action: { type: 'newGame' } },
+    status: 'completed',
+    error: null,
+    result,
+    ...overrides,
+  };
+}
+async function recordMcp(item: ReturnType<typeof motaMcp>) {
+  const f = fixture();
+  await f.chat.send(space, 'read', undefined, emptyReferences(space));
+  f.emit({ type: 'item.completed', item });
+  const record = f.chat.get(space).toolExecutions[0]!;
+  f.finish();
+  await f.chat.shutdown();
+  return record;
+}
+describe('native Mota MCP duplicate evidence', () => {
+  it.each(['structured_content', 'structuredContent', 'both'] as const)(
+    'keeps a complete real-shaped newGame receipt with %s',
+    async (alias) => {
+      const envelope = { untrusted: true, data: { ok: true, tool: 'app.mota.act', data: motaState() } };
+      const content = [
+        { type: 'text', text: JSON.stringify(envelope), annotations: { audience: ['user'] }, _meta: { trace: 'text-meta' } },
+      ];
+      const metadata = { isError: false, _meta: { trace: 'preserved' } };
+      const result = {
+        ...metadata,
+        content,
+        ...(alias !== 'structuredContent' ? { structured_content: envelope } : {}),
+        ...(alias !== 'structured_content' ? { structuredContent: { data: envelope.data, untrusted: true } } : {}),
+      };
+      const before = structuredClone(result);
+      expect(JSON.stringify({ status: 'completed', result, error: null }).length).toBeGreaterThan(16000);
+      const record = await recordMcp(motaMcp(result));
+      expect(record).toMatchObject({ exitCode: 0, truncated: false });
+      expect(record.output.length).toBeLessThanOrEqual(16000);
+      expect(JSON.parse(record.output)).toEqual({ status: 'completed', result: { ...metadata, content }, error: null });
+      expect(JSON.parse(JSON.parse(record.output).result.content[0].text)).toEqual(envelope);
+      expect(result).toEqual(before);
+    },
+  );
+  it.each(['state', 'map_read', 'map_set'] as const)('supports the other typed Mota receipt: %s', async (kind) => {
+    const data =
+      kind === 'state'
+        ? motaState()
+        : kind === 'map_read'
+          ? {
+              floorId: 'MT1',
+              sha256: 'a'.repeat(64),
+              width: 64,
+              height: 64,
+              map: Array.from({ length: 64 }, () => Array<number>(64).fill(0)),
+            }
+          : {
+              operationId: '00000000-0000-4000-8000-000000000001',
+              floorId: 'MT1',
+              beforeSha256: 'a'.repeat(64),
+              afterSha256: 'b'.repeat(64),
+              change: { x: 6, y: 10, before: 0, after: 53 },
+            };
+    const tool = kind === 'state' ? 'app.mota.state' : `app.mota.${kind.replace('_', '.')}`;
+    const envelope = { untrusted: true, data: { ok: true, tool, data } };
+    const result = {
+      content: [{ type: 'text', text: JSON.stringify(envelope) }],
+      structured_content: envelope,
+      ...(kind === 'map_set' ? { _meta: { padding: 'm'.repeat(15200) } } : {}),
+    };
+    expect(JSON.stringify({ status: 'completed', result, error: null }).length).toBeGreaterThan(16000);
+    const record = await recordMcp(motaMcp(result, { tool: `app_mota_${kind}` }));
+    expect(record.truncated).toBe(false);
+    const saved = JSON.parse(record.output);
+    expect(saved.result._meta).toEqual(result._meta);
+    expect(JSON.parse(saved.result.content[0].text)).toEqual(envelope);
+  });
+  it('retains business error, native error status, isError and transport error without upgrading the result', async () => {
+    const envelope = {
+      untrusted: true,
+      data: {
+        ok: false,
+        tool: 'app.mota.act',
+        error: { code: 'write_rejected', message: '保存被拒绝', details: { reason: 'x'.repeat(9000) } },
+      },
+    };
+    const result = { content: [{ type: 'text', text: JSON.stringify(envelope) }], structured_content: envelope, isError: true };
+    const record = await recordMcp(motaMcp(result, { status: 'failed', error: { message: 'native error' } }));
+    expect(record).toMatchObject({ exitCode: 1, truncated: false });
+    expect(JSON.parse(record.output)).toEqual({
+      status: 'failed',
+      error: { message: 'native error' },
+      result: { content: result.content, isError: true },
+    });
+  });
+  it.each([16000, 16001])('preserves the exact single-copy limit at %s characters', async (length) => {
+    const envelope = { untrusted: true, data: { ok: true, tool: 'app.mota.act', data: motaState() } };
+    const compactResult = { content: [{ type: 'text', text: JSON.stringify(envelope) }], _meta: { padding: '' } };
+    const base = JSON.stringify({ status: 'completed', result: compactResult, error: null }).length;
+    compactResult._meta.padding = 'm'.repeat(length - base);
+    const record = await recordMcp(motaMcp({ ...compactResult, structured_content: envelope }));
+    expect(record.truncated).toBe(length > 16000);
+    if (length === 16000) {
+      expect(record.output).toHaveLength(16000);
+      expect(JSON.parse(record.output).result).toEqual(compactResult);
+    } else expect(JSON.parse(record.output).truncated).toBe(true);
+  });
+  it.each([
+    'conflict',
+    'alias-conflict',
+    'extra-text',
+    'malformed',
+    'invalid-state',
+    'invalid-error',
+    'wrong-tool',
+    'wrong-server',
+    'untrusted',
+    'single-overflow',
+    'metadata-overflow',
+    'no-duplicate',
+  ] as const)('does not label non-equivalent or incomplete evidence as complete: %s', async (kind) => {
+    const envelope: Record<string, unknown> = {
+      untrusted: true,
+      data: { ok: true, tool: 'app.mota.act', data: motaState(kind === 'single-overflow' ? 300 : 144) },
+    };
+    if (kind === 'invalid-state') (envelope.data as Record<string, unknown>).data = { ...motaState(), documentGeneration: -1 };
+    if (kind === 'invalid-error')
+      envelope.data = { ok: false, tool: 'app.mota.act', error: { code: 'invented', message: 'x'.repeat(9000) } };
+    if (kind === 'untrusted') envelope.untrusted = false;
+    const content = [{ type: 'text', text: kind === 'malformed' ? '{broken' : JSON.stringify(envelope) }];
+    const result: Record<string, unknown> = { content, structured_content: envelope };
+    if (kind === 'conflict') result.structured_content = { ...envelope, untrusted: false };
+    if (kind === 'alias-conflict') result.structuredContent = { ...envelope, untrusted: false };
+    if (kind === 'extra-text') content.push({ type: 'text', text: 'additional evidence' });
+    if (kind === 'metadata-overflow') result._meta = { audit: 'm'.repeat(17000) };
+    if (kind === 'no-duplicate') {
+      delete result.structured_content;
+      content[0]!.text = JSON.stringify({ ...envelope, data: { ok: true, tool: 'app.mota.act', data: motaState(300) } });
+    }
+    if (kind === 'malformed') result._meta = { padding: 'm'.repeat(17000) };
+    const record = await recordMcp(
+      motaMcp(result, {
+        ...(kind === 'wrong-tool' ? { tool: 'app_mota_state' } : {}),
+        ...(kind === 'wrong-server' ? { server: 'other' } : {}),
+      }),
+    );
+    expect(record.truncated).toBe(true);
+    expect(record.output.length).toBeLessThanOrEqual(16000);
+    expect(JSON.parse(record.output).truncated).toBe(true);
+  });
+  it('keeps the aggregate evidence budget and explicitly omits older complete receipts', async () => {
+    const f = fixture();
+    await f.chat.send(space, 'read', undefined, emptyReferences(space));
+    const envelope = { untrusted: true, data: { ok: true, tool: 'app.mota.act', data: motaState() } };
+    const result = { content: [{ type: 'text', text: JSON.stringify(envelope) }], structured_content: envelope };
+    for (let index = 0; index < 20; index++) f.emit({ type: 'item.completed', item: motaMcp(result, { id: `mota-${index}` }) });
+    const records = f.chat.get(space).toolExecutions;
+    expect(records.reduce((sum, record) => sum + record.output.length, 0)).toBeLessThanOrEqual(131072);
+    expect(records.some((record) => record.truncated && JSON.parse(record.output).receiptOmitted)).toBe(true);
+    expect(records.at(-1)?.truncated).toBe(false);
+    for (const record of records.filter((record) => !record.truncated))
+      expect(JSON.parse(JSON.parse(record.output).result.content[0].text)).toEqual(envelope);
+    f.finish();
+    await f.chat.shutdown();
+  });
+});
 describe('space resources per-turn capability', () => {
   it('binds host registered dynamic spaces and explicit personal references without service storage', async () => {
     const f = fixture();

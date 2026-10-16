@@ -2427,6 +2427,52 @@ textarea.resize-none {
 .managed-app-content .row {
   flex-wrap: wrap;
 }
+.app-import-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: var(--content);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.app-import-panel h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.app-import-stage {
+  min-height: 1.55em;
+}
+.app-import-summary {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.app-import-summary > div {
+  display: grid;
+  grid-template-columns: 5em minmax(0, 1fr);
+  gap: 12px;
+}
+.app-import-summary dt {
+  color: var(--text-2);
+}
+.app-import-summary dd {
+  margin: 0;
+}
+.app-import-source summary {
+  cursor: pointer;
+}
+.app-import-source p,
+.app-import-boundary p + p {
+  margin-top: 8px;
+}
+.app-import-warnings {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-2);
+}
+.app-import-actions {
+  min-height: 30px;
+}
 
 .resource-bookmark-form {
   display: flex;

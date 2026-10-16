@@ -5,7 +5,8 @@ import type { StatusScope, WorkbenchResource } from '@wsl/protocol';
 import { Icon } from '../components/Icon';
 import { StatusDot, StatusSlot } from '../components/Status';
 import { ackScope, statusPresentationActions, useStatusViewByKey, type StatusView } from '../state/status-view';
-import { workspaceCommand } from '../state/workspace';
+import { workspaceCommand, workspaceStore, verificationLocked } from '../state/workspace';
+import { useStore } from '../lib/store';
 import { terminalDelta, type RenderedTerminal } from './presentation';
 import '@xterm/xterm/css/xterm.css';
 
@@ -24,6 +25,7 @@ export function Terminal({
   occluded: boolean;
   theme: string;
 }) {
+  const maintenanceLocked = useStore(workspaceStore, (s) => verificationLocked(s.snapshot));
   const { resourceId } = resource;
   const scope = useMemo<StatusScope>(() => ({ kind: 'resource', workspaceId, resourceId }), [workspaceId, resourceId]);
   // 状态文案与「不可用」判断都来自事实层（terminal:<id>:state / :unavailable）；组件不再自行推导。
@@ -51,6 +53,7 @@ export function Terminal({
     term.current = t;
     fit.current = f;
     const input = t.onData((data) => {
+      if (verificationLocked(workspaceStore.get().snapshot)) return;
       const r = latest.current;
       if (r.instanceId && r.terminal?.state === 'running')
         void workspaceCommand(workspaceId, { type: 'terminalWrite', resourceId: r.resourceId, instanceId: r.instanceId, data });
@@ -181,6 +184,7 @@ export function Terminal({
             <button
               type="button"
               className="icon-btn"
+              disabled={maintenanceLocked}
               aria-label="中断（Ctrl-C）"
               title="中断（Ctrl-C）"
               onClick={() =>
@@ -215,7 +219,7 @@ export function Terminal({
           <button
             type="button"
             className="btn"
-            disabled={busy || !resource.environmentId || !!unavailable || connectRefused}
+            disabled={maintenanceLocked || busy || !resource.environmentId || !!unavailable || connectRefused}
             onClick={connect}
           >
             连接终端

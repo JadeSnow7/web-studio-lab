@@ -1,4 +1,5 @@
 import { randomUUID, createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
 import {
   ObservationTurnScopeSchema,
@@ -8,16 +9,32 @@ import {
   WorkspaceObservationResultSchema,
   AppControlResultSchema,
   AppToolNameSchema,
+  MotaStateSchema,
+  MotaMapReadSchema,
+  MotaMapSetReceiptSchema,
   type AppControlResult,
   ResourceBundleSchema,
   type ObservationTurnScope,
+  type EduTaskBinding,
+  MotaTaskBindingSchema,
+  type MotaTaskBinding,
   type WorkspaceObservationResult,
   type ChatConversation,
   type ChatSlot,
   type ChatStatus,
   type CatalogReferenceSnapshot,
+  ResearchGrantSchema,
+  ResearchCallSchema,
+  ResearchToolNameSchema,
+  ResearchToolResultSchema,
+  type ResearchGrant,
+  type ResearchCall,
+  type ResearchReply,
+  type ResearchToolResult,
+  type ResearchTurnContext,
 } from '@wsl/protocol';
-import { SbxConnection, type GuestProcess } from './sbx';
+import { SbxConnection, type GuestProcess, type GuestWorkspace } from './sbx';
+import { recordNativeSearch, validateResearchReply } from './research-runtime';
 
 const EventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('thread.started'), thread_id: z.string().min(1) }),
@@ -26,7 +43,7 @@ const EventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('turn.failed'), error: z.object({ message: z.string() }) }),
   z.object({ type: z.literal('error'), message: z.string() }),
   z.object({
-    type: z.literal('item.completed'),
+    type: z.enum(['item.started', 'item.updated', 'item.completed']),
     item: z.object({
       id: z.string(),
       type: z.string(),
@@ -41,23 +58,107 @@ const EventSchema = z.discriminatedUnion('type', [
       result: z.unknown().optional(),
       error: z.unknown().optional(),
       status: z.string().optional(),
+      query: z.unknown().optional(),
     }),
   }),
 ]);
 export function parseCodexLine(line: string) {
   const raw: unknown = JSON.parse(line);
   const envelope = z.object({ type: z.string() }).parse(raw);
-  if (!EventSchema.options.some((schema) => schema.shape.type.value === envelope.type)) return null;
+  if (!EventSchema.options.some((schema) => schema.shape.type.safeParse(envelope.type).success)) return null;
   return EventSchema.parse(raw);
 }
-function boundedMcpOutput(item: { status?: string; result?: unknown; error?: unknown }): { output: string; truncated: boolean } {
+function boundedMcpOutput(item: { server?: string; tool?: string; status?: string; result?: unknown; error?: unknown }): {
+  output: string;
+  truncated: boolean;
+} {
   const raw = JSON.stringify({ status: item.status, result: item.result ?? null, error: item.error ?? null });
-  if (raw.length <= 16000) return { output: raw, truncated: false };
   const boundedSummary = (output: string) =>
     output.length <= 16000 ? output : JSON.stringify({ truncated: true, receiptUnavailable: 'MCP metadata exceeded the record limit' });
   const object = (value: unknown): Record<string, unknown> | null =>
     value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
   const result = object(item.result);
+  if (item.server === 'wsl_space' && ['research_open', 'research_include'].includes(item.tool ?? '')) {
+    const content = result && Array.isArray(result['content']) && result['content'].length === 1 ? object(result['content'][0]) : null;
+    if (result && content?.['type'] === 'text' && typeof content['text'] === 'string') {
+      try {
+        const value: unknown = JSON.parse(content['text']);
+        const parsed = z
+          .object({ untrusted: z.literal(true), data: ResearchToolResultSchema })
+          .strict()
+          .safeParse(value);
+        const duplicateKeys = ['structuredContent', 'structured_content'].filter((key) => Object.hasOwn(result, key));
+        if (
+          parsed.success &&
+          parsed.data.data.tool.replace('.', '_') === item.tool &&
+          duplicateKeys.every((key) => isDeepStrictEqual(value, result[key]))
+        ) {
+          const receipt = parsed.data.data;
+          if (receipt.ok && receipt.tool === 'research.include') {
+            const { text: _text, ...source } = receipt.source;
+            return {
+              output: boundedSummary(
+                JSON.stringify({ status: item.status, untrusted: true, receipt: { ...receipt, source }, textOmitted: true }),
+              ),
+              truncated: true,
+            };
+          }
+          const output = JSON.stringify({ status: item.status, untrusted: true, receipt });
+          return { output: boundedSummary(output), truncated: output.length > 16000 };
+        }
+      } catch {
+        /* Invalid copies retain the explicit bounded record path. */
+      }
+    }
+    return {
+      output: JSON.stringify({
+        status: item.status,
+        truncated: true,
+        receiptUnavailable: 'Invalid or conflicting research receipt; source text omitted',
+      }),
+      truncated: true,
+    };
+  }
+  if (raw.length <= 16000) return { output: raw, truncated: false };
+  // Native MCP repeats the same JSON in text and structured content. Keep one
+  // complete, typed Mota receipt before applying the unchanged evidence limit.
+  // Conflicting copies, unrelated tools and oversized single copies keep the
+  // existing explicit truncation path; never choose one side of a disagreement.
+  const motaTools = {
+    app_mota_state: { tool: 'app.mota.state', schema: MotaStateSchema },
+    app_mota_act: { tool: 'app.mota.act', schema: MotaStateSchema },
+    app_mota_map_read: { tool: 'app.mota.map.read', schema: MotaMapReadSchema },
+    app_mota_map_set: { tool: 'app.mota.map.set', schema: MotaMapSetReceiptSchema },
+  };
+  const mota =
+    item.server === 'wsl_space' && item.tool && Object.hasOwn(motaTools, item.tool) ? motaTools[item.tool as keyof typeof motaTools] : null;
+  if (mota && result && Array.isArray(result['content']) && result['content'].length === 1) {
+    const content = object(result['content'][0]);
+    const duplicateKeys = ['structuredContent', 'structured_content'].filter((key) => Object.hasOwn(result, key));
+    if (content?.['type'] === 'text' && typeof content['text'] === 'string' && duplicateKeys.length) {
+      try {
+        const value: unknown = JSON.parse(content['text']);
+        const parsed = z
+          .object({ untrusted: z.literal(true), data: AppControlResultSchema })
+          .strict()
+          .safeParse(value);
+        if (
+          parsed.success &&
+          (parsed.data.data.ok
+            ? parsed.data.data.tool === mota.tool && mota.schema.safeParse(parsed.data.data.data).success
+            : parsed.data.data.tool === mota.tool || parsed.data.data.tool === null) &&
+          duplicateKeys.every((key) => isDeepStrictEqual(value, result[key]))
+        ) {
+          const compactResult = { ...result };
+          for (const key of duplicateKeys) delete compactResult[key];
+          const compact = JSON.stringify({ status: item.status, result: compactResult, error: item.error ?? null });
+          if (compact.length <= 16000) return { output: compact, truncated: false };
+        }
+      } catch {
+        /* Invalid text retains the existing bounded summary behavior. */
+      }
+    }
+  }
   let structured = object(result?.['structuredContent'] ?? result?.['structured_content']);
   if (!structured && Array.isArray(result?.['content'])) {
     const text = result['content'].find((entry: unknown) => object(entry)?.['type'] === 'text');
@@ -174,6 +275,10 @@ interface Slot {
   active: Turn | null;
 }
 export class CodexChat {
+  private researchReader: ((call: ResearchCall, signal: AbortSignal) => Promise<ResearchReply>) | null = null;
+  setResearchReader(reader: NonNullable<CodexChat['researchReader']>) {
+    this.researchReader = reader;
+  }
   private observationReader:
     | ((
         scope: ObservationTurnScope,
@@ -259,7 +364,34 @@ export class CodexChat {
     text: string,
     observationScope: ObservationTurnScope | undefined,
     references: CatalogReferenceSnapshot,
+    eduTask?: { binding: EduTaskBinding; workspace: GuestWorkspace; retain: (candidate: GuestWorkspace) => Promise<void> },
+    motaInput?: MotaTaskBinding,
+    researchInput?: ResearchGrant,
   ): Promise<ChatConversation> {
+    const motaTask = motaInput && MotaTaskBindingSchema.parse(motaInput);
+    const researchGrant = researchInput && ResearchGrantSchema.parse(researchInput);
+    if (
+      researchGrant &&
+      (eduTask ||
+        motaTask ||
+        !this.researchReader ||
+        !observationScope ||
+        researchGrant.sessionId !== id ||
+        researchGrant.accountId !== references.accountId ||
+        researchGrant.workspaceId !== references.workspaceId ||
+        researchGrant.workspaceId !== observationScope.workspaceId ||
+        researchGrant.runId !== observationScope.runId)
+    )
+      throw new Error('Research grant does not belong to this standard App run');
+    if (
+      motaTask &&
+      (eduTask ||
+        motaTask.sessionId !== id ||
+        !observationScope ||
+        observationScope.runId !== motaTask.runId ||
+        observationScope.workspaceId !== motaTask.workspaceId)
+    )
+      throw new Error('Mota task does not belong to this read-only run');
     if (this.closing) throw new Error('对话服务正在关闭');
     if (id !== 'conv-personal-default' && !this.workspaceBySession.has(id)) throw new Error('会话尚未由宿主注册');
     if (observationScope) {
@@ -267,10 +399,20 @@ export class CodexChat {
       if (observationScope.sessionId !== id || this.workspaceBySession.get(id) !== observationScope.workspaceId)
         throw new Error('观察会话不属于已注册空间');
     }
+    if (
+      eduTask &&
+      (!observationScope ||
+        observationScope.runId !== eduTask.binding.runId ||
+        observationScope.workspaceId !== eduTask.binding.workspaceId ||
+        eduTask.workspace.runId !== eduTask.binding.runId)
+    )
+      throw new Error('edu task does not belong to this run');
     const status = this.getStatus();
     if (!status.available) throw new Error(status.reason ?? 'sbx 不可用');
     const slot = this.slot(id);
     if (slot.active) throw new Error(slot.active?.cleanupError ?? '当前会话正在等待回复');
+    // A Mota turn must never resume a thread previously granted workspace writes.
+    if (motaTask) slot.conversation.threadId = null;
     const spaceId = this.workspaceBySession.get(id) ?? null;
     if (spaceId) this.assertCleanupKnown();
     const turnId = randomUUID();
@@ -284,10 +426,23 @@ export class CodexChat {
     for (const resource of resourceBundle.resources)
       if (createHash('sha256').update(resource.text, 'utf8').digest('hex') !== resource.contentSha256)
         throw new Error('参考资料正文摘要不匹配');
+    const researchContext: ResearchTurnContext | undefined = researchGrant
+      ? { grant: structuredClone(researchGrant), generation: slot.conversation.generation, turnId }
+      : undefined;
+    delete slot.conversation.nativeSearches;
+    delete slot.conversation.nativeSearchesTruncated;
     Object.assign(slot.conversation, { turnId, state: 'running', error: null, cleanupPending: true });
     slot.conversation.messages.push({ id: turnId, role: 'user', text });
     this.publish(slot);
-    const common = ['codex', 'exec', '--sandbox', 'workspace-write'];
+    const common = [
+      'codex',
+      'exec',
+      '--sandbox',
+      motaTask ? 'read-only' : 'workspace-write',
+      '-c',
+      researchGrant ? 'web_search="live"' : 'web_search="disabled"',
+      ...(eduTask ? ['-c', 'sandbox_workspace_write.writable_roots=[]'] : []),
+    ];
     const argv = slot.conversation.threadId
       ? [...common, 'resume', '--json', '--skip-git-repo-check', slot.conversation.threadId, '-']
       : [...common, '--json', '--skip-git-repo-check', '-'];
@@ -306,6 +461,13 @@ export class CodexChat {
         if (event.type === 'thread.started') {
           if (slot.conversation.threadId && slot.conversation.threadId !== event.thread_id) throw new Error('Codex 返回了不同的会话身份');
           slot.conversation.threadId = event.thread_id;
+        }
+        if ('item' in event && ['web_search', 'web_search_call'].includes(event.item.type)) {
+          recordNativeSearch(slot.conversation, event.type, event.item, turnId);
+          if (!researchGrant) {
+            fail('Native search was emitted without this run’s research grant');
+            return;
+          }
         }
         if (event.type === 'item.completed') {
           const item = event.item;
@@ -381,6 +543,21 @@ export class CodexChat {
         fail(`Codex 协议错误：${(error as Error).message}`);
       }
     };
+    let candidate: GuestWorkspace | undefined;
+    const motaWorkspace: GuestWorkspace | undefined = motaTask
+      ? {
+          runId: motaTask.runId,
+          files: [
+            {
+              path: 'README.md',
+              base64: Buffer.from(
+                'Mota task: read-only scratch. Use only the bound app_mota_* MCP tools. No project source is mounted here.\n',
+              ).toString('base64'),
+            },
+          ],
+        }
+      : undefined;
+    const candidateDiagnostics: string[] = [];
     let callCount = 0;
     const process = this.connection.start(
       {
@@ -389,22 +566,55 @@ export class CodexChat {
         argv,
         prompt: text,
         resourceBundle,
-        observation: Boolean(observationScope && this.observationReader),
+        observation: Boolean(observationScope && (motaTask ? this.appControlReader : this.observationReader || this.researchReader)),
         observationImages: false,
+        ...(researchGrant ? { webResearch: true } : {}),
+        ...(eduTask ? { workspace: eduTask.workspace, strictWorkspace: true } : {}),
+        ...(motaWorkspace ? { workspace: motaWorkspace, strictWorkspace: true, motaControl: true } : {}),
       },
       (frame) => {
+        if (eduTask && frame.type === 'error') candidateDiagnostics.push(frame.error.slice(0, 4000));
+        if (frame.type === 'workspace') {
+          if ((!eduTask && !motaTask) || candidate) {
+            fail('Unexpected or duplicate task candidate');
+            return;
+          }
+          candidate = { runId: frame.runId, files: frame.files };
+          return;
+        }
         if (frame.type === 'observation-cancel') {
           turn.calls.get(frame.id)?.abort();
           return;
         }
         if (frame.type === 'observation-call') {
           const appTool = frame.tool.startsWith('app.');
-          const reply = (result: WorkspaceObservationResult | AppControlResult) => {
+          const researchTool = ResearchToolNameSchema.safeParse(frame.tool);
+          const reply = (result: WorkspaceObservationResult | AppControlResult | ResearchToolResult) => {
             if (slot.active !== turn || turn.cancel || turn.observation.signal.aborted) return;
             const bounded = boundedObservationReply(frame.id, result);
             process.write(bounded);
           };
-          if (!observationScope || !(appTool ? this.appControlReader : this.observationReader) || turn.cancel) {
+          if (motaTask && !['app.mota.state', 'app.mota.act', 'app.mota.map.read', 'app.mota.map.set'].includes(frame.tool)) {
+            reply(
+              appTool
+                ? { ok: false, tool: null, error: { code: 'unsupported', message: 'Mota run permits only its four restricted tools' } }
+                : { error: 'unauthorized', message: 'Mota run has no workspace observer capability' },
+            );
+            return;
+          }
+          if (researchTool.success && (!researchContext || !this.researchReader)) {
+            reply({
+              ok: false,
+              tool: researchTool.data,
+              error: { code: 'unauthorized', message: 'This turn has no public research grant' },
+            });
+            return;
+          }
+          if (
+            !observationScope ||
+            !(researchTool.success ? this.researchReader : appTool ? this.appControlReader : this.observationReader) ||
+            turn.cancel
+          ) {
             reply(
               appTool
                 ? { ok: false, tool: null, error: { code: 'no_active_run', message: '无运行归属，控制面不可用' } }
@@ -418,9 +628,15 @@ export class CodexChat {
           }
           if (turn.calls.size >= 4 || ++callCount > 64) {
             reply(
-              appTool
-                ? { ok: false, tool: null, error: { code: 'budget_exceeded', message: '观察与控制面并发或单轮预算已用完' } }
-                : { error: 'budget_exceeded', message: '观察并发或单轮预算已用完' },
+              researchTool.success
+                ? {
+                    ok: false,
+                    tool: researchTool.data,
+                    error: { code: 'budget_exceeded', message: 'Shared observation/control/research budget exhausted' },
+                  }
+                : appTool
+                  ? { ok: false, tool: null, error: { code: 'budget_exceeded', message: '观察与控制面并发或单轮预算已用完' } }
+                  : { error: 'budget_exceeded', message: '观察并发或单轮预算已用完' },
             );
             return;
           }
@@ -428,17 +644,41 @@ export class CodexChat {
           turn.calls.set(frame.id, controller);
           const abort = () => controller.abort();
           turn.observation.signal.addEventListener('abort', abort, { once: true });
-          const call = appTool
-            ? AppToolNameSchema.safeParse(frame.tool).success
-              ? this.appControlReader!(structuredClone(observationScope), frame.tool, frame.args, controller.signal).then(
-                  (result) => reply(AppControlResultSchema.parse(result)),
-                  (error) => reply({ ok: false, tool: null, error: { code: 'unavailable', message: (error as Error).message } }),
-                )
-              : Promise.resolve(reply({ ok: false, tool: null, error: { code: 'unsupported', message: '未知控制面工具' } }))
-            : this.observationReader!(structuredClone(observationScope), frame.tool, frame.args, controller.signal).then(
-                (result) => reply(WorkspaceObservationResultSchema.parse(result)),
-                (error) => reply({ error: 'unavailable', message: (error as Error).message }),
-              );
+          const call = researchTool.success
+            ? Promise.resolve().then(async () => {
+                if (controller.signal.aborted || turn.cancel || slot.active !== turn) return;
+                const parsed = ResearchCallSchema.safeParse({
+                  callId: frame.id,
+                  context: researchContext,
+                  tool: frame.tool,
+                  args: frame.args,
+                });
+                if (!parsed.success) {
+                  reply({ ok: false, tool: researchTool.data, error: { code: 'invalid_request', message: 'Invalid research arguments' } });
+                  return;
+                }
+                try {
+                  const result = validateResearchReply(parsed.data, await this.researchReader!(parsed.data, controller.signal));
+                  reply(result.result);
+                } catch (error) {
+                  reply({
+                    ok: false,
+                    tool: researchTool.data,
+                    error: { code: 'unavailable', message: ((error as Error).message || 'Research failed').slice(0, 1000) },
+                  });
+                }
+              })
+            : appTool
+              ? AppToolNameSchema.safeParse(frame.tool).success
+                ? this.appControlReader!(structuredClone(observationScope), frame.tool, frame.args, controller.signal).then(
+                    (result) => reply(AppControlResultSchema.parse(result)),
+                    (error) => reply({ ok: false, tool: null, error: { code: 'unavailable', message: (error as Error).message } }),
+                  )
+                : Promise.resolve(reply({ ok: false, tool: null, error: { code: 'unsupported', message: '未知控制面工具' } }))
+              : this.observationReader!(structuredClone(observationScope), frame.tool, frame.args, controller.signal).then(
+                  (result) => reply(WorkspaceObservationResultSchema.parse(result)),
+                  (error) => reply({ error: 'unavailable', message: (error as Error).message }),
+                );
           void call.then(
             () => {
               turn.calls.delete(frame.id);
@@ -485,13 +725,13 @@ export class CodexChat {
       calls: new Map(),
     };
     slot.active = turn;
-    void process.done.then((outcome) => {
+    void process.done.then(async (outcome) => {
       turn.observation.abort();
       if (buffer.trim()) consume(buffer);
       if (slot.active !== turn) return;
       turn.cleanupError = !outcome.confirmed ? (outcome.error ?? 'guest 清理未确认') : null;
       slot.conversation.cleanupPending = !outcome.confirmed;
-      if (!turn.cleanupError) slot.active = null;
+
       const failure =
         turn.cleanupError ??
         outcome.error ??
@@ -507,8 +747,21 @@ export class CodexChat {
                   ? 'Codex 未返回助手回复'
                   : null
           : null);
-      slot.conversation.state = failure ? 'failed' : turn.cancel ? 'cancelled' : 'idle';
-      slot.conversation.error = failure;
+      let candidateFailure: string | null = null;
+      if (motaWorkspace && JSON.stringify(candidate) !== JSON.stringify(motaWorkspace))
+        candidateFailure = 'Mota read-only scratch changed or its cleanup snapshot was not confirmed';
+      if (eduTask) {
+        try {
+          if (!candidate) throw new Error(['edu task returned no candidate', ...candidateDiagnostics].join('; '));
+          await eduTask.retain(candidate);
+          slot.conversation.eduCandidateRunId = eduTask.binding.runId;
+        } catch (error) {
+          candidateFailure = (error as Error).message;
+        }
+      }
+      if (!turn.cleanupError) slot.active = null;
+      slot.conversation.state = candidateFailure || failure ? 'failed' : turn.cancel ? 'cancelled' : 'idle';
+      slot.conversation.error = candidateFailure ? [failure, candidateFailure].filter(Boolean).join('; ') : failure;
       this.publish(slot);
     });
     return this.get(id);
@@ -537,6 +790,10 @@ export class CodexChat {
     this.slots.delete(id);
     return this.publish(this.slot(id));
   }
+  async drainForVerification(): Promise<void> {
+    await Promise.all([...this.slots.keys()].map((id) => this.cancel(id)));
+    if (this.connection.getCleanupPending()) throw new Error('verification_coding_cleanup_unconfirmed');
+  }
   beginShutdown(): void {
     // Apps still need the shared connection while their mappings are removed.
     // Admission can close independently of that connection's cleanup.
@@ -550,7 +807,7 @@ export class CodexChat {
   }
 }
 
-export function boundedObservationReply(id: string, result: WorkspaceObservationResult | AppControlResult) {
+export function boundedObservationReply(id: string, result: WorkspaceObservationResult | AppControlResult | ResearchToolResult) {
   const frame = { type: 'observation-result' as const, id, result };
   if (Buffer.byteLength(JSON.stringify(frame) + '\n', 'utf8') > 1048576)
     return {

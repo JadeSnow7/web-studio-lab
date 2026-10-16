@@ -5,7 +5,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CodexChat, parseCodexLine } from './codex-chat';
 import { resolveSbxBinary } from './sbx';
-import type { ChatConversation, ChatSlot } from '@wsl/protocol';
+import type { EduTaskBinding, MotaTaskBinding, ChatConversation, ChatSlot } from '@wsl/protocol';
 
 const personal = 'conv-personal-default';
 const space = 'conv-space-taskflow-demo-impl';
@@ -100,6 +100,12 @@ describe('真实子进程生命周期（fixture）', () => {
     expect(chat.get(personal).state).toBe('cancelled');
     expect(chat.get(space).messages).toHaveLength(0);
   });
+  it('ordinary chat does not enable strict edu candidate snapshots', async () => {
+    const start = vi.spyOn(chat.connection, 'start');
+    await chat.send(personal, 'ordinary', undefined, emptyReferences(personal));
+    await finish();
+    expect(start.mock.calls[0]?.[0]).not.toHaveProperty('strictWorkspace');
+  });
   it('发送后立即 reset 不会启动旧轮次或污染新会话', async () => {
     const sending = chat.send(personal, '[slow]', undefined, emptyReferences(personal));
     const resetting = chat.reset(personal);
@@ -119,5 +125,89 @@ describe('真实子进程生命周期（fixture）', () => {
     await chat.reset(personal);
     await chat.send(personal, 'fresh', undefined, emptyReferences(personal));
     expect((await finish()).messages.map((message) => message.text)).toEqual(['fresh', 'fixture 回复：fresh']);
+  });
+});
+
+describe('edu candidate round trip (offline transport fixture)', () => {
+  it.each(['complete', 'cancel', 'retain-failure'])('retains candidate before terminal publication: %s', async (mode) => {
+    const binding: EduTaskBinding = {
+      runId: crypto.randomUUID(),
+      workspaceId: 'taskflow-demo',
+      projectId: crypto.randomUUID(),
+      appInstanceId: crypto.randomUUID(),
+      resourceId: 'r',
+      instanceId: 'i',
+      generation: 1,
+      webContentsId: 1,
+      documentGeneration: 1,
+      sourceSha256: 'a'.repeat(64),
+      protectedFiles: [],
+    };
+    const workspace = { runId: binding.runId, files: [{ path: 'admin/src/App.tsx', base64: 'YQ==' }] };
+    const retain = vi.fn(async () => {
+      if (mode === 'retain-failure') throw new Error('candidate disk unavailable');
+    });
+    const start = vi.spyOn(chat.connection, 'start');
+    await chat.send(
+      space,
+      mode === 'cancel' ? '[slow]' : 'candidate',
+      { workspaceId: binding.workspaceId, sessionId: space, runId: binding.runId, sources: [] },
+      emptyReferences(space),
+      { binding, workspace, retain },
+    );
+    if (mode === 'cancel') await chat.cancel(space);
+    await vi.waitFor(() => expect(retain).toHaveBeenCalledWith(workspace));
+    await vi.waitFor(() =>
+      expect(chat.get(space).state).toBe(mode === 'cancel' ? 'cancelled' : mode === 'retain-failure' ? 'failed' : 'idle'),
+    );
+    expect(start.mock.calls[0]?.[0]).toMatchObject({ workspace, strictWorkspace: true });
+    if (mode !== 'retain-failure') expect(chat.get(space).eduCandidateRunId).toBe(binding.runId);
+    else expect(chat.get(space).error).toContain('candidate disk unavailable');
+  });
+});
+
+describe('Mota read-only model admission', () => {
+  it('starts a new read-only thread with only fixed scratch and native restricted MCP', async () => {
+    await chat.send(space, 'ordinary prior thread', undefined, emptyReferences(space));
+    await finish(space);
+    const previous = chat.get(space).threadId;
+    const binding: MotaTaskBinding = {
+      workspaceId: 'taskflow-demo',
+      environmentId: 'sandbox',
+      projectId: crypto.randomUUID(),
+      appInstanceId: crypto.randomUUID(),
+      runId: crypto.randomUUID(),
+      sessionId: space,
+      resourceId: 'game',
+      browserInstanceId: 'browser',
+      browserGeneration: 0,
+      webContentsId: 1,
+      documentGeneration: 0,
+    };
+    chat.setAppControlReader(async () => ({ ok: false, tool: null, error: { code: 'unsupported', message: 'fixture' } }));
+    const start = vi.spyOn(chat.connection, 'start');
+    await chat.send(
+      space,
+      'restricted turn',
+      { workspaceId: binding.workspaceId, sessionId: space, runId: binding.runId, sources: [] },
+      emptyReferences(space),
+      undefined,
+      binding,
+    );
+    expect((await finish(space)).state).toBe('idle');
+    const input = start.mock.calls[0]![0];
+    expect(input).toMatchObject({
+      mode: 'codex',
+      motaControl: true,
+      strictWorkspace: true,
+      observation: true,
+      argv: ['codex', 'exec', '--sandbox', 'read-only', '-c', 'web_search="disabled"', '--json', '--skip-git-repo-check', '-'],
+      workspace: { runId: binding.runId },
+    });
+    if (input.mode !== 'codex') throw new Error('unexpected mode');
+    expect(input.workspace?.files.map((file) => file.path)).toEqual(['README.md']);
+    expect(input.argv).not.toContain(previous);
+    expect(input.argv).not.toContain('resume');
+    expect(chat.get(space)).not.toHaveProperty('eduCandidateRunId');
   });
 });

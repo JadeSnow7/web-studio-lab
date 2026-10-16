@@ -10,8 +10,10 @@ import {
   type AppUiSnapshot,
   type CdpState,
   type PageIdentity,
+  type MotaAction,
 } from '@wsl/protocol';
 import { AppControlFailure } from '../workbench/app-control-failure';
+import { MotaPageDriver } from './mota-page';
 
 /**
  * L1/L2 控制面的 CDP 适配器：与 BrowserObservation、页面点选使用同一 webContents 的调试会话。
@@ -196,7 +198,30 @@ const FN = {
 };
 
 export class AppUiDriver {
+  private mota() {
+    return new MotaPageDriver({
+      attach: (signal) => this.attach(signal),
+      send: (method, params) => this.send(method, params),
+      current: () => ({
+        generation: this.page.identity().documentGeneration,
+        epoch: this.epoch,
+        navigations: this.navigations,
+        detached: this.page.cdp().state === 'detached',
+        picking: this.page.picking(),
+        loading: this.wc.isLoading(),
+        url: this.wc.getURL(),
+      }),
+      gate: this.gate,
+    });
+  }
+  motaState(appInstanceId: string, signal?: AbortSignal) {
+    return this.mota().state(appInstanceId, signal);
+  }
+  motaAct(action: MotaAction, binding: { runId: string; documentGeneration: number; appInstanceId: string }, signal?: AbortSignal) {
+    return this.mota().act(action, binding, signal);
+  }
   private epoch = 0;
+  private navigations = 0;
   private currentSnapshot: { snapshotId: string; refs: Map<string, { backend: number; generation: number; epoch: number }> } | null = null;
   private consoleSequence = 0;
   private consoleErrors: { sequence: number; message: string }[] = [];
@@ -211,6 +236,10 @@ export class AppUiDriver {
       this.epoch++;
       this.currentSnapshot = null;
     };
+    const onNavigation = () => {
+      this.navigations++;
+      invalidate();
+    };
     const onConsole = (event: { level: string; message: string }) => {
       if (event.level === 'error') this.recordError(event.message);
     };
@@ -222,7 +251,7 @@ export class AppUiDriver {
       }
     };
     // 与 BrowserObservation 相同：任一导航、frame 变化、CDP 断开或销毁都使全部引用失效。
-    wc.on('did-start-navigation', invalidate);
+    wc.on('did-start-navigation', onNavigation);
     wc.on('did-navigate', invalidate);
     wc.on('did-navigate-in-page', invalidate);
     wc.on('destroyed', invalidate);
@@ -231,7 +260,7 @@ export class AppUiDriver {
     wc.debugger.on('detach', onDetach);
     wc.debugger.on('message', onMessage);
     this.release.push(
-      () => wc.removeListener('did-start-navigation', invalidate),
+      () => wc.removeListener('did-start-navigation', onNavigation),
       () => wc.removeListener('did-navigate', invalidate),
       () => wc.removeListener('did-navigate-in-page', invalidate),
       () => wc.removeListener('destroyed', invalidate),
@@ -634,25 +663,55 @@ export class AppUiDriver {
     const described = await this.enabled(backend);
     guard();
     await this.send('DOM.scrollIntoViewIfNeeded', { backendNodeId: backend });
+    guard();
     if (!described.visible) throw new AppControlFailure('element_obscured', '目标元素不可见');
+    type Layout = { pageX: number; pageY: number; clientWidth: number; clientHeight: number };
+    const { cssLayoutViewport: viewport } = await this.send<{ cssLayoutViewport: Layout }>('Page.getLayoutMetrics');
+    guard();
+    if (!viewport || ![viewport.pageX, viewport.pageY, viewport.clientWidth, viewport.clientHeight].every(Number.isFinite))
+      throw new AppControlFailure('element_obscured', '无法确认页面滚动位置');
     const { quads } = await this.send<{ quads: number[][] }>('DOM.getContentQuads', { backendNodeId: backend });
+    guard();
     const quad = quads[0];
-    if (!quad || quad.length < 8) throw new AppControlFailure('element_obscured', '目标元素没有可点击区域');
-    const x = (quad[0]! + quad[2]! + quad[4]! + quad[6]!) / 4;
-    const y = (quad[1]! + quad[3]! + quad[5]! + quad[7]!) / 4;
+    if (!quad || quad.length !== 8 || !quad.every(Number.isFinite))
+      throw new AppControlFailure('element_obscured', '目标元素没有可点击区域');
+    // Quads/Input 使用 viewport CSS 坐标；DOM.getNodeForLocation 使用 document CSS 坐标。
+    // 先取整命中点，再换回输入点，避免检查与实际点击落在不同位置。
+    const documentX = Math.round((quad[0]! + quad[2]! + quad[4]! + quad[6]!) / 4 + viewport.pageX);
+    const documentY = Math.round((quad[1]! + quad[3]! + quad[5]! + quad[7]!) / 4 + viewport.pageY);
+    const x = documentX - viewport.pageX;
+    const y = documentY - viewport.pageY;
     const hit = await this.send<{ backendNodeId: number }>('DOM.getNodeForLocation', {
-      x: Math.round(x),
-      y: Math.round(y),
+      x: documentX,
+      y: documentY,
       includeUserAgentShadowDOM: false,
     });
+    guard();
     if (hit.backendNodeId !== backend) {
       const { object } = await this.send<{ object: { objectId?: string } }>('DOM.resolveNode', {
         backendNodeId: hit.backendNodeId,
         objectGroup: OBJECT_GROUP,
       });
-      const inside = object.objectId ? await this.call<boolean>(backend, FN.contains, [{ objectId: object.objectId }]) : false;
+      guard();
+      const inside = object.objectId ? await this.call<boolean>(backend, FN.contains, [{ objectId: object.objectId }], guard) : false;
+      guard();
       if (!inside) throw new AppControlFailure('element_obscured', '目标元素被其他元素遮挡');
     }
+    // CDP 读取不是原子操作；若命中检测期间布局或滚动改变，拒绝本次输入，不自动重放。
+    const { quads: currentQuads } = await this.send<{ quads: number[][] }>('DOM.getContentQuads', { backendNodeId: backend });
+    guard();
+    const { cssLayoutViewport: current } = await this.send<{ cssLayoutViewport: Layout }>('Page.getLayoutMetrics');
+    guard();
+    if (
+      !current ||
+      current.pageX !== viewport.pageX ||
+      current.pageY !== viewport.pageY ||
+      current.clientWidth !== viewport.clientWidth ||
+      current.clientHeight !== viewport.clientHeight ||
+      currentQuads[0]?.length !== quad.length ||
+      quad.some((value, index) => currentQuads[0]?.[index] !== value)
+    )
+      throw new AppControlFailure('element_obscured', '点击前页面布局或滚动位置已变化，请重试');
     return { x, y };
   }
   private async key(definition: { key: string; code: string; keyCode: number; text?: string }) {
@@ -731,7 +790,11 @@ export class AppUiDriver {
 
   async screenshot(): Promise<Buffer> {
     const image = await this.wc.capturePage();
+    if (image.isEmpty()) throw new AppControlFailure('unavailable', '页面截图为空，无法取得有效图像');
+    const { width, height } = image.getSize();
+    if (width <= 0 || height <= 0) throw new AppControlFailure('unavailable', '页面截图尺寸无效');
     const png = image.toPNG();
+    if (png.length === 0) throw new AppControlFailure('unavailable', '页面截图未生成有效 PNG');
     if (png.length > 4_000_000) throw new AppControlFailure('budget_exceeded', '截图超过 4 MB');
     return png;
   }

@@ -5,7 +5,16 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { collectLicenses } from './collect-licenses.mjs';
 import { prunePnpmForeignTargets, auditGuestDirectory, auditGuestArchive } from './guest-platform.mjs';
-import { root, runtimeRoot, download, extractSafe, expandedBytes, deterministicArchive, fileHash } from './payload-lib.mjs';
+import {
+  root,
+  runtimeRoot,
+  download,
+  extractSafe,
+  expandedBytes,
+  deterministicArchive,
+  fileHash,
+  normalizePayloadPermissions,
+} from './payload-lib.mjs';
 
 export async function preparePayloads(cache = path.join(root, 'packaging/cache')) {
   const lock = JSON.parse(await readFile(path.join(root, 'packaging/dependencies.lock.json'), 'utf8'));
@@ -57,6 +66,7 @@ export async function preparePayloads(cache = path.join(root, 'packaging/cache')
     if (source.scope !== 'app') await cp(file, path.join(guestLicenses, source.id + '.txt'));
   }
   const removedPnpmTargets = await prunePnpmForeignTargets(path.join(globals, 'pnpm'));
+  await normalizePayloadPermissions(guest);
   const platformAudit = await auditGuestDirectory(guest);
   await deterministicArchive(guest, path.join(runtimeRoot, 'guest-tools.tar.gz'));
   auditGuestArchive(await readFile(path.join(runtimeRoot, 'guest-tools.tar.gz')));

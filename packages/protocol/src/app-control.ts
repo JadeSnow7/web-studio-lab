@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MotaActionSchema } from './mota-control';
 
 /**
  * 受管 App 控制面（ADR-0002）。工具输入在 Main dispatcher 处按本文件严格校验；
@@ -39,6 +40,10 @@ export const AppToolNameSchema = z.enum([
   'app.command.invoke',
   'app.ui.snapshot',
   'app.ui.act',
+  'app.mota.state',
+  'app.mota.act',
+  'app.mota.map.read',
+  'app.mota.map.set',
   'app.data.query',
   'app.data.seed',
   'app.data.reset',
@@ -56,6 +61,10 @@ export const APP_TOOL_LEVEL: Record<AppToolName, 'read' | 'write' | 'reset'> = {
   'app.command.invoke': 'write',
   'app.ui.snapshot': 'read',
   'app.ui.act': 'write',
+  'app.mota.state': 'read',
+  'app.mota.act': 'write',
+  'app.mota.map.read': 'read',
+  'app.mota.map.set': 'write',
   'app.data.query': 'read',
   'app.data.seed': 'write',
   'app.data.reset': 'reset',
@@ -215,6 +224,12 @@ export const AppToolInputSchemas = {
   'app.command.invoke': z.object({ ...PageBinding, name: CommandName, input: Json.default({}) }).strict(),
   'app.ui.snapshot': z.object({ limit: z.number().int().min(1).max(200).default(200), includeHidden: z.boolean().default(false) }).strict(),
   'app.ui.act': z.object({ ...PageBinding, action: AppUiActionSchema }).strict(),
+  'app.mota.state': z.object({}).strict(),
+  'app.mota.act': z.object({ ...PageBinding, action: MotaActionSchema }).strict(),
+  'app.mota.map.read': z.object(WriteBinding).strict(),
+  'app.mota.map.set': z
+    .object({ ...WriteBinding, expectedSha256: Sha256, x: z.number().int().min(0).max(63), y: z.number().int().min(0).max(63) })
+    .strict(),
   'app.data.query': z.object({ sql: z.string().min(1).max(4000), limit: z.number().int().min(1).max(200).default(50) }).strict(),
   'app.data.seed': z.object(WriteBinding).strict(),
   'app.data.reset': z.object({ ...WriteBinding, confirm: z.literal('reset-instance-data') }).strict(),

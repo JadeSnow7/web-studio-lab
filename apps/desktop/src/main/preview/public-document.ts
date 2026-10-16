@@ -173,17 +173,24 @@ export async function fetchPublicDocument(
   input: string,
   fetchDependencies: PublicFetchDependencies = dependencies,
   signal = AbortSignal.timeout(REQUEST_DEADLINE_MS),
+  onPending?: (operation: Promise<unknown>) => void,
 ): Promise<PublicDocument> {
+  // Research cancellation also drains the underlying work, not just abortable's early rejection.
+  const read = <T>(operation: Promise<T>): Promise<T> => {
+    onPending?.(operation);
+    return abortable(operation, signal);
+  };
   const requestedUrl = parsePublicUrl(input).href;
   let url = new URL(requestedUrl);
   for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects += 1) {
+    if (signal.aborted) throw new Error('公开文档加载超时或已取消');
     const hostname = url.hostname.replace(/^\[|\]$/g, '');
-    const addresses = isIP(hostname)
-      ? [{ address: hostname, family: isIP(hostname) }]
-      : await abortable(fetchDependencies.resolve(hostname), signal);
+    const addresses = isIP(hostname) ? [{ address: hostname, family: isIP(hostname) }] : await read(fetchDependencies.resolve(hostname));
+    if (signal.aborted) throw new Error('公开文档加载超时或已取消');
     if (!addresses.length || addresses.some(({ address, family }) => !isPublicAddress(address) || isIP(address) !== family))
       throw new Error('DNS 包含私网、保留或无效地址，已阻止连接');
-    const response = await abortable(fetchDependencies.request(url, addresses[0]!, signal), signal);
+    const response = await read(fetchDependencies.request(url, addresses[0]!, signal));
+    if (signal.aborted) throw new Error('公开文档加载超时或已取消');
     if (response.body.length > MAX_SOURCE_BYTES) throw new Error('公开文档响应超过 2 MiB');
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       if (redirects === MAX_REDIRECTS || !response.headers.location) throw new Error('公开文档重定向超出限制或缺少地址');

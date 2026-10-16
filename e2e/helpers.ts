@@ -12,7 +12,10 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { _electron, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import { appControlInjection } from './fixtures/app-control-injection';
+import { motaModelTurnInjection } from './fixtures/mota-model-turn-injection';
 import { appControlCancelGate } from './fixtures/app-control-cancel-gate';
+import { sourceSnapshotFixture } from './fixtures/source-snapshot-fixture';
+import { sourceDispatchAudit } from './fixtures/source-dispatch-audit';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const fixtureSandbox =
@@ -30,8 +33,12 @@ export async function launchApp(
     controlledObservation?: boolean;
     /** 测试专用：在 Main↔service 边界代替 guest Codex 轮次以驱动控制面，不调用模型。 */
     appControlInjection?: boolean;
+    /** Mota live only: retain real service send/acquire, replace only its Codex process. */
+    motaModelTurnInjection?: boolean;
     /** Test-only: observe real app calls and delay one genuine reply across cancellation. */
     appControlCancelGate?: boolean;
+    sourceSnapshotFixture?: boolean;
+    sourceDispatchAudit?: boolean;
     controlledTerminal?: boolean;
     codexBin?: string;
     sbxBin?: string;
@@ -118,7 +125,10 @@ const { app } = require('electron');
 app.setAppPath(${JSON.stringify(desktopDir)});
 globalThis.__wslRendererErrors = [];
 ${options.appControlInjection ? appControlInjection : ''}
+${options.motaModelTurnInjection ? motaModelTurnInjection : ''}
 ${options.appControlCancelGate ? appControlCancelGate : ''}
+${options.sourceSnapshotFixture ? sourceSnapshotFixture : ''}
+${options.sourceDispatchAudit ? sourceDispatchAudit : ''}
 ${
   options.controlledObservation || options.controlledTerminal
     ? `

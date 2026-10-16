@@ -16,6 +16,9 @@ export default tseslint.config(
       'test-results/**',
       'demo/**',
       'docs/design/**',
+      // 既往验收的原始探针与嵌套源码副本不是当前执行源码。
+      'docs/acceptance/integration-20261008/evidence/**',
+      'docs/acceptance/integration-20261008/sources/**',
     ],
   },
   js.configs.recommended,

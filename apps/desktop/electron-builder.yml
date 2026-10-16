@@ -8,7 +8,10 @@ directories:
 beforePack: ../../scripts/packaging/before-pack.cjs
 forceCodeSigning: true
 files:
-  - out/**
+  # The verified external output is a symlink; a FileSet expands its root explicitly.
+  - from: out
+    to: out
+    filter: ['**/*']
   - resources/branding/**
   - package.json
 extraResources:
@@ -32,6 +35,10 @@ mac:
   category: public.app-category.developer-tools
   minimumSystemVersion: '14.0'
   hardenedRuntime: true
+  entitlements: ../../packaging/app-entitlements.plist
+  entitlementsInherit: ../../packaging/app-entitlements.plist
+  extendInfo:
+    NSMicrophoneUsageDescription: '用于学生发音练习的录音、试听与评分。仅在当前学生页面请求时访问麦克风。'
   notarize: true
   # Python is signed in beforePack, before its executable hash is sealed in the manifest.
   signIgnore:

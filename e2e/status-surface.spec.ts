@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { expect, test, type ElectronApplication, type Locator, type Page } from '@playwright/test';
+import type { WorkbenchSnapshot } from '../packages/protocol/src';
 import {
   fixtureSandbox,
   installStatusShim,
@@ -1420,7 +1421,8 @@ test('会话「运行记录 ⌄」：视图收为五项，Tab 到触发器、Ent
     await page.keyboard.press('Enter');
     await expect(menu).toHaveCount(0);
     await expect(trigger).toBeFocused();
-    await expect(sessionRegion(page).getByRole('region', { name: '运行详情' })).toContainText('真实 diff 尚未记录');
+    await expect(sessionRegion(page).getByRole('region', { name: '运行详情' })).toContainText('源码差异不可用');
+    await expect(sessionRegion(page).getByRole('region', { name: '运行详情' })).toContainText('任务未绑定受管 App 工程，无法采集源码差异');
     await expectNativePage(app, page, true);
     // 再次展开时从当前项开始，并标出当前项。
     await page.keyboard.press('Enter');
@@ -2644,5 +2646,109 @@ test('App 对话框：启动中强制结束应用后重启，恢复为 failed + 
       await exited;
     }
     await rm(profile, { recursive: true, force: true });
+  }
+});
+
+// Only the presentation snapshot is substituted; this does not begin a lease.
+test('发音倒计时：长期关闭后首 tick 前刷新，关闭重开且清理计时器', async () => {
+  const { app, page } = await launchApp({ sbxBin: appSbxBin });
+  try {
+    await createManagedApp(page, '发音倒计时展示');
+    await openAppDialog(page);
+    await appDialog(page).getByRole('button', { name: '关闭', exact: true }).click();
+    const start = await page.evaluate(() => Date.now());
+    await page.clock.install({ time: new Date(start) });
+    await page.clock.pauseAt(new Date(start + 1000));
+    await page.evaluate(() => {
+      const timers: Window = window;
+      const set = timers.setInterval.bind(timers),
+        clear = timers.clearInterval.bind(timers);
+      const active = new Set<number>();
+      timers.setInterval = (...args: Parameters<typeof set>) => {
+        const id = set(...args);
+        if (args[1] === 1000) active.add(id);
+        return id;
+      };
+      timers.clearInterval = (id) => {
+        active.delete(id!);
+        clear(id);
+      };
+      (window as unknown as { countdownIntervals(): number }).countdownIntervals = () => active.size;
+    });
+    await page.clock.setSystemTime(new Date(start + 31 * 60000));
+    const expiresAtMs = await page.evaluate(() => Date.now() + 300000);
+    await app.evaluate(({ ipcMain, BrowserWindow }, expiresAtMs) => {
+      type Handler = (event: Electron.IpcMainInvokeEvent, request?: unknown) => Promise<unknown>;
+      const handlers = (ipcMain as unknown as { _invokeHandlers: Map<string, Handler> })._invokeHandlers;
+      const get = handlers.get('workbench:get-snapshot')!,
+        command = handlers.get('workbench:command')!;
+      const transform = (snapshot: WorkbenchSnapshot): WorkbenchSnapshot => {
+        const next = structuredClone(snapshot);
+        const workspaceId = 'taskflow-demo';
+        const projectId = next.workspaces.find((w) => w.workspaceId === workspaceId)!.managedApp!.projectId;
+        const appInstanceId = '11111111-1111-4111-8111-111111111111',
+          sessionId = '22222222-2222-4222-8222-222222222222';
+        next.eduVerification = {
+          original: { workspaceId, projectId, appInstanceId, sourceSha256: 'a'.repeat(64) },
+          target: { workspaceId, projectId, appInstanceId, sessionId },
+          urls: [],
+          recoveryRequired: false,
+          error: null,
+          status: {
+            phase: 'active',
+            maintenanceLocked: true,
+            callsUsed: 0,
+            error: null,
+            lease: {
+              schemaVersion: 1,
+              sessionId,
+              identity: { workspaceId, projectId, appInstanceId, environmentId: 'sandbox' },
+              sourceSha256: 'a'.repeat(64),
+              expiresAtMs,
+            },
+          },
+        };
+        return next;
+      };
+      ipcMain.removeHandler('workbench:get-snapshot');
+      ipcMain.handle('workbench:get-snapshot', async (event) => transform((await get(event)) as WorkbenchSnapshot));
+      ipcMain.removeHandler('workbench:command');
+      ipcMain.handle('workbench:command', async (event, request) => {
+        const result = (await command(event, request)) as { snapshot: WorkbenchSnapshot };
+        return { ...result, snapshot: transform(result.snapshot) };
+      });
+      const contents = BrowserWindow.getAllWindows()[0]!.webContents,
+        send = contents.send.bind(contents);
+      contents.send = ((channel: string, ...args: Array<{ snapshot?: WorkbenchSnapshot }>) => {
+        const payload = args[0];
+        return channel === 'workbench:event' && payload?.snapshot
+          ? send(channel, { ...payload, snapshot: transform(payload.snapshot) })
+          : send(channel, ...args);
+      }) as typeof contents.send;
+    }, expiresAtMs);
+    await pushWorkbenchSnapshot(page);
+    const trigger = page.getByRole('button', { name: '管理 App', exact: true });
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    const dialog = appDialog(page);
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('剩余 2 / 2 次 · 剩余 5 分 0 秒');
+    expect(await page.evaluate(() => (window as unknown as { countdownIntervals(): number }).countdownIntervals())).toBe(1);
+    await page.clock.runFor(1000);
+    await expect(dialog).toContainText('剩余 4 分 59 秒');
+    await page.keyboard.press('Escape');
+    await expect(dialog).not.toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { countdownIntervals(): number }).countdownIntervals())).toBe(0);
+    await page.clock.setSystemTime(new Date(start + 33 * 60000));
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('剩余 3 分 0 秒');
+    expect(await page.evaluate(() => (window as unknown as { countdownIntervals(): number }).countdownIntervals())).toBe(1);
+    await dialog.getByRole('button', { name: '关闭', exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { countdownIntervals(): number }).countdownIntervals())).toBe(0);
+  } finally {
+    await app.close();
   }
 });

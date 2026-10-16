@@ -459,6 +459,30 @@ describe('AppControl scenarios', () => {
     expect(traces[0]!.stateDiff.map((entry) => entry.path)).toEqual(['/db/records/sha256', '/state/welcome/value']);
     expect([...test.evidence.keys()].filter((key) => key.endsWith('trace.json'))).toHaveLength(2);
     expect([...test.evidence.keys()].filter((key) => key.endsWith('06-saved.png'))).toHaveLength(2);
+    for (const [file, png] of test.evidence) if (file.endsWith('.png')) expect(png).toEqual(Buffer.from('png-bytes'));
+  });
+  it('an empty screenshot is an evidence error, is not saved, and stops subsequent scenario steps', async () => {
+    const test = harness();
+    const screenshot = vi.spyOn(test.ports.ui('r'), 'screenshot').mockResolvedValue(Buffer.alloc(0));
+    const result = await test.call('app.scenario.run', {
+      appInstanceId: 'app-1',
+      scenario: {
+        name: 'after-style',
+        steps: [
+          { type: 'screenshot', label: 'after-style' },
+          { type: 'assert', assert: { kind: 'console-no-error' } },
+        ],
+      },
+    });
+    const trace = traceOf(result);
+    expect(trace.outcome).toBe('error');
+    expect(trace.steps[0]).toMatchObject({ outcome: 'failed', error: { code: 'unavailable' }, screenshot: null });
+    expect(trace.steps[1]).toMatchObject({ outcome: 'skipped', screenshot: null });
+    expect(screenshot).toHaveBeenCalledOnce();
+    expect([...test.evidence.keys()].some((file) => file.endsWith('.png'))).toBe(false);
+    expect(result).toMatchObject({ ok: true, data: { outcome: 'error', evidence: { screenshots: [] } } });
+    const traceFile = [...test.evidence.keys()].find((file) => file.endsWith('trace.json'))!;
+    expect(JSON.parse(String(test.evidence.get(traceFile)))).toEqual(trace);
   });
   it('source changes during a scenario cannot relabel old actions as evidence for the new revision', async () => {
     const test = harness();
@@ -684,4 +708,115 @@ it('does not treat a cancelled HTTP reconciliation request as proof that an exis
   });
   await test.control.reconcileRun('w', scope.runId);
   expect(test.control.hasPending('w')).toBe(true);
+});
+
+describe('Mota dedicated dispatcher', () => {
+  const binding = {
+    workspaceId: 'w',
+    environmentId: 'sandbox' as const,
+    projectId: 'p',
+    appInstanceId: 'app-1',
+    runId: 'run-1',
+    sessionId: 's',
+    resourceId: 'r',
+    browserInstanceId: 'i',
+    browserGeneration: 1,
+    webContentsId: 7,
+    documentGeneration: 4,
+  };
+  const state = {
+    appInstanceId: 'app-1',
+    documentGeneration: 4,
+    played: false,
+    floorId: null,
+    hero: null,
+    moving: false,
+    locked: false,
+    event: { id: null, type: null },
+    dialogue: null,
+    map: null,
+    canvas: null,
+  };
+  it('admits only dedicated Mota tools and refuses them on a standard task', async () => {
+    const h = harness({ motaTask: binding });
+    h.ports.ui('r').motaState = vi.fn(async () => state);
+    expect(await h.call('app.mota.state')).toMatchObject({ ok: true, data: state });
+    for (const tool of ['app.describe', 'app.ui.snapshot', 'app.command.list', 'app.status'])
+      expect(await h.call(tool)).toMatchObject({ ok: false, error: { code: 'unsupported' } });
+    expect(h.agent).not.toHaveBeenCalled();
+    expect(h.bridgeCalls).toEqual([]);
+    expect(await harness().call('app.mota.state')).toMatchObject({ ok: false, error: { code: 'authorization_required' } });
+  });
+  it('requires independent map permission and creates operation identity in Main', async () => {
+    const h = harness({ motaTask: binding });
+    const mapSet = { appInstanceId: 'app-1', expectedSha256: REVISION, x: 6, y: 10 };
+    h.ports.motaControl = vi.fn<NonNullable<AppControlPorts['motaControl']>>(async (request) => ({
+      type: 'mota-control-result',
+      requestId: request.requestId,
+      binding: request.binding,
+      method: 'map.set',
+      ok: true,
+      data: {
+        operationId: '00000000-0000-4000-8000-000000000001',
+        floorId: 'MT1',
+        beforeSha256: REVISION,
+        afterSha256: OTHER,
+        change: { x: 6, y: 10, before: 0, after: 53 },
+      },
+    }));
+    expect(await h.call('app.mota.map.set', mapSet)).toMatchObject({ ok: false, error: { code: 'authorization_required' } });
+    expect(h.ports.motaControl).not.toHaveBeenCalled();
+    h.setContext({ allowsMotaMapWrite: true });
+    expect(await h.call('app.mota.map.set', { ...mapSet, value: 999 })).toMatchObject({ ok: false, error: { code: 'invalid_request' } });
+    expect(await h.call('app.mota.map.set', mapSet)).toMatchObject({ ok: true });
+    expect(h.ports.motaControl).toHaveBeenCalledWith(
+      expect.objectContaining({
+        binding,
+        method: 'map.set',
+        input: { operationId: expect.any(String), expectedSha256: REVISION, x: 6, y: 10 },
+      }),
+      expect.any(AbortSignal),
+    );
+  });
+  it('only newGame can advance the authorized document, with the exact old and new generation', async () => {
+    const h = harness({ motaTask: binding });
+    h.ports.ui('r').motaAct = vi.fn(async () => ({ ...state, documentGeneration: 5 }));
+    h.ports.motaDocumentChanged = vi.fn(async () => undefined);
+    expect(await h.call('app.mota.act', { appInstanceId: 'app-1', documentGeneration: 4, action: { type: 'continue' } })).toMatchObject({
+      ok: false,
+      error: { code: 'stale_document' },
+    });
+    expect(h.ports.motaDocumentChanged).not.toHaveBeenCalled();
+    expect(await h.call('app.mota.act', { appInstanceId: 'app-1', documentGeneration: 4, action: { type: 'newGame' } })).toMatchObject({
+      ok: true,
+    });
+    expect(h.ports.motaDocumentChanged).toHaveBeenCalledWith(binding, 4, 5);
+  });
+  it('waits for an aborted native action to finish input cleanup before run settlement', async () => {
+    const h = harness({ motaTask: binding });
+    let inputReleased = false;
+    let finish!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    h.ports.ui('r').motaAct = vi.fn(async (_action, _binding, signal) => {
+      await gate;
+      inputReleased = true;
+      signal.throwIfAborted();
+      return state;
+    });
+    const call = h.call('app.mota.act', { appInstanceId: 'app-1', documentGeneration: 4, action: { type: 'key', key: 'ArrowUp' } });
+    await vi.waitFor(() => expect(h.ports.ui('r').motaAct).toHaveBeenCalledOnce());
+    let settled = false;
+    const release = h.control.settleRun(binding.runId).then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    expect(inputReleased).toBe(false);
+    finish();
+    await release;
+    expect(inputReleased).toBe(true);
+    expect(await call).toMatchObject({ ok: false, error: { code: 'cancelled' } });
+  });
 });

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CheckResult, RunRecord } from '@wsl/protocol';
 import { DemoBadge, Notice, StatusPill } from '../components/Badges';
 import { formatTime } from '../lib/time';
+import { PatchView } from '../components/PatchView';
 
 function EmptyRun() {
   return (
@@ -40,41 +41,17 @@ export function LogView({ record }: { record: RunRecord | null }) {
   );
 }
 
-function diffLineClass(line: string): string {
-  if (line.startsWith('+++') || line.startsWith('---') || line.startsWith('diff --git')) return 'diff-meta';
-  if (line.startsWith('@@')) return 'diff-hunk';
-  if (line.startsWith('+')) return 'diff-add';
-  if (line.startsWith('-')) return 'diff-del';
-  return 'diff-ctx';
-}
-
 export function DiffView({ record }: { record: RunRecord | null }) {
   if (!record) return <EmptyRun />;
   const files = record.attempts.at(-1)?.files ?? [];
   return (
     <div className="view">
       <OriginBanner record={record} />
-      <div className="diff-files">
-        {files.length === 0 ? (
-          <span className="muted">这次记录没有改动文件{record.mode === 'revalidate' ? '（无模型复验不修改代码）' : ''}。</span>
-        ) : null}
-        {files.map((f) => (
-          <span key={f.path} className="chip">
-            {f.change === 'added' ? 'A' : f.change === 'deleted' ? 'D' : 'M'} {f.path} <span className="text-ok">+{f.additions}</span>{' '}
-            <span className="text-bad">−{f.deletions}</span>
-          </span>
-        ))}
-      </div>
-      {record.diff ? (
-        <pre className="diff" aria-label="源码 diff">
-          {record.diff.split('\n').map((line, index) => (
-            <span key={index} className={diffLineClass(line)}>
-              {line || ' '}
-              {'\n'}
-            </span>
-          ))}
-        </pre>
-      ) : null}
+      <PatchView
+        files={files}
+        patch={record.diff ?? null}
+        emptyText={`这次记录没有改动文件${record.mode === 'revalidate' ? '（无模型复验不修改代码）' : ''}。`}
+      />
     </div>
   );
 }

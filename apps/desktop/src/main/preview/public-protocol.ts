@@ -9,7 +9,8 @@ interface PublicProtocolOptions {
   webContentsId: number;
   devToolsWebContentsId(): number | undefined;
   epoch(): number;
-  onDocument(document: PublicDocument, epoch: number): void;
+  request?(): AbortSignal | undefined;
+  onDocument(document: PublicDocument, epoch: number, request?: AbortSignal): void;
   onError(error: Error, url: string): void;
 }
 
@@ -34,7 +35,9 @@ function isBundledDevToolsUrl(value: string): boolean {
 export class PublicDocumentProtocol {
   private sequence = 0;
   private active: AbortController | null = null;
-  private redirected: { epoch: number; document: PublicDocument } | null = null;
+  private redirected: { epoch: number; document: PublicDocument; request?: AbortSignal } | null = null;
+  private readonly pending = new Map<AbortSignal, Set<Promise<void>>>();
+  private readonly dispatched = new WeakSet<AbortSignal>();
   private disposed = false;
   private readonly cancelDownload = (event: Electron.Event) => event.preventDefault();
 
@@ -83,34 +86,77 @@ export class PublicDocumentProtocol {
   }
 
   async handle(request: Request): Promise<Response> {
+    const owner = this.options.request?.();
+    let finish!: () => void;
+    const done = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    if (owner) {
+      const pending = this.pending.get(owner) ?? new Set<Promise<void>>();
+      pending.add(done);
+      this.pending.set(owner, pending);
+    }
     const epoch = this.options.epoch();
     const sequence = ++this.sequence;
     this.active?.abort();
     const controller = new AbortController();
     this.active = controller;
     try {
-      if (this.disposed || request.method !== 'GET') throw new Error('公开文档请求已拒绝');
+      if (this.disposed || owner?.aborted || request.method !== 'GET') throw new Error('公开文档请求已拒绝');
       const url = parsePublicUrl(request.url).href;
       const cached = this.redirected;
       this.redirected = null;
+      const redirect = cached?.epoch === epoch && cached.request === owner && cached.document.url === url ? cached.document : null;
+      if (owner && this.dispatched.has(owner) && !redirect) throw new Error('本次公开文档读取已经派发，不能重复请求');
+      if (owner) this.dispatched.add(owner);
       const document =
-        cached?.epoch === epoch && cached.document.url === url
-          ? cached.document
-          : await this.fetchDocument(url, undefined, AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]));
-      if (this.disposed || sequence !== this.sequence || epoch !== this.options.epoch()) return Response.error();
+        redirect ??
+        (await this.fetchDocument(
+          url,
+          undefined,
+          AbortSignal.any([controller.signal, AbortSignal.timeout(20000), ...(owner ? [owner] : [])]),
+          owner ? (operation) => this.track(owner, operation) : undefined,
+        ));
+      if (this.disposed || owner?.aborted || sequence !== this.sequence || epoch !== this.options.epoch()) return Response.error();
       if (document.url !== url) {
-        this.redirected = { epoch, document };
+        this.redirected = { epoch, document, request: owner };
         return new Response(null, { status: 302, headers: { Location: document.url, 'cache-control': 'no-store' } });
       }
-      this.options.onDocument(document, epoch);
+      if (owner) this.options.onDocument(document, epoch, owner);
+      else this.options.onDocument(document, epoch);
       return new Response(renderReaderDocument(document), { status: 200, headers: READER_HEADERS });
     } catch (error) {
-      if (!this.disposed && sequence === this.sequence && epoch === this.options.epoch())
+      if (!this.disposed && !owner?.aborted && sequence === this.sequence && epoch === this.options.epoch())
         this.options.onError(error instanceof Error ? error : new Error(String(error)), request.url);
       return Response.error();
     } finally {
       if (sequence === this.sequence) this.active = null;
+      finish();
+      if (owner) {
+        const pending = this.pending.get(owner);
+        pending?.delete(done);
+        if (!pending?.size) this.pending.delete(owner);
+      }
     }
+  }
+
+  /** Abort is only a request; callers drain the exact reads before releasing their owner. */
+  async settle(request: AbortSignal): Promise<void> {
+    for (let pending = this.pending.get(request); pending; pending = this.pending.get(request)) await Promise.allSettled([...pending]);
+  }
+
+  private track(owner: AbortSignal, operation: Promise<unknown>): void {
+    const settled = operation.then(
+      () => undefined,
+      () => undefined,
+    );
+    const pending = this.pending.get(owner) ?? new Set<Promise<void>>();
+    pending.add(settled);
+    this.pending.set(owner, pending);
+    void settled.then(() => {
+      pending.delete(settled);
+      if (!pending.size && this.pending.get(owner) === pending) this.pending.delete(owner);
+    });
   }
 
   dispose(): void {
