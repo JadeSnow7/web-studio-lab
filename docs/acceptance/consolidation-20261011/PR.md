@@ -1,5 +1,7 @@
 # feat: 整合受管 App、统一状态与 Code Wiki
 
+2026-10-14 状态：[PR #6](https://github.com/JadeSnow7/web-studio-lab/pull/6) 已于北京时间 2026-10-13 22:10:51 合并 main，最终 head 为 `13d3ea44d8b162efec224c6f485cac0fb41a0ffa`，merge 为 `b5531e1ac3b3da7adf000f6ba61f2c5b19a0755f`。Node 24.21 validate_only CI 已通过相应检查，签名、公证、安装包及发布均跳过；详见[收尾记录](closeout-20261014.md)。下文保留合并前文稿及当时授权范围；“未推送、未创建远端 PR、Node 24 未验、旧 PR 开放”均为历史陈述，不作为当前状态。历史全树 lint / format 与 DevTools 间歇性失败仍未解决。
+
 更新日期：2026-10-13。目标 `main` 已通过 GitHub API 核对为 `f77ff9620d3d83d78eb4f62490c684b8155e48b2`；本地候选为 `agent/pr-ready-20261013`，继承 `agent/status-surface` 的 `1bce260` 及此前整合提交。仅授权本地提交，不推送、不创建远端 PR、不发布或部署。
 
 ## Summary
