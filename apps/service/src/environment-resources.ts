@@ -344,6 +344,17 @@ export class EnvironmentResources {
       return { error: 'unavailable', message: error instanceof Error ? error.message : String(error) };
     }
   }
+  async drainTerminals(): Promise<void> {
+    await Promise.all(
+      [...this.entries.values()].map(async (entry) => {
+        if (entry.terminalOpening) throw new Error('verification_terminal_admission_pending');
+        if (entry.terminal) {
+          await entry.terminal.shutdown();
+          entry.terminal = undefined;
+        }
+      }),
+    );
+  }
   async shutdown() {
     for (const entry of this.entries.values()) entry.retired = true;
     const results = await Promise.allSettled(

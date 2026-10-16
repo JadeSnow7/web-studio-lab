@@ -1,13 +1,59 @@
 import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import type { ManagedApp, WorkbenchCommand } from '@wsl/protocol';
+import type { AppImportOutcome, AppTarget, EduImport, ManagedApp, WorkbenchCommand } from '@wsl/protocol';
 import { WorkbenchApplication, validateSnapshot } from './application';
-import type { WorkbenchRuntime } from './ports';
+import type { AppImportSelection, WorkbenchRuntime } from './ports';
 
+const eduInput: Pick<EduImport, 'source' | 'files'> = {
+  source: {
+    repository: { commit: 'a'.repeat(40), dirty: false },
+    sourceSha256: 'b'.repeat(64),
+    files: [{ path: 'server/app.py', sha256: 'c'.repeat(64), bytes: 4 }],
+  },
+  files: [{ path: 'server/app.py', base64: 'dGVzdA==' }],
+};
+function eduSelection(): AppImportSelection {
+  return {
+    ...structuredClone(eduInput),
+    preview: {
+      name: 'edu-web',
+      profile: 'edu-web',
+      profileVersion: 1,
+      repository: structuredClone(eduInput.source.repository),
+      sourceSha256: eduInput.source.sourceSha256,
+      fileCount: eduInput.files.length,
+      totalBytes: eduInput.source.files.reduce((total, file) => total + file.bytes, 0),
+      warnings: [],
+    },
+    revalidate: vi.fn(async () => structuredClone(eduInput)),
+  };
+}
 async function setup() {
   let instance: ManagedApp | null = null;
   const runtime = {
+    appSelectImportSource: vi.fn(async () => eduSelection()),
+    appImportSource: vi.fn(async (target: AppTarget, source: Pick<EduImport, 'source' | 'files'>): Promise<AppImportOutcome> => {
+      instance = {
+        ...target,
+        profile: { projectKind: 'edu-web', profileVersion: 1, source: source.source },
+        sourceSha256: source.source.sourceSha256,
+        environmentId: 'sandbox',
+        appInstanceId: null,
+        state: 'created',
+        url: null,
+        guestCwd: '/guest/edu-project',
+        error: null,
+        cleanupConfirmed: true,
+      };
+      return { app: instance, outcome: 'imported', retryable: false, errorCode: null };
+    }),
+    appCancelImport: vi.fn(async (): Promise<AppImportOutcome> => ({
+      app: null,
+      outcome: 'cancelled',
+      retryable: false,
+      errorCode: null,
+    })),
     appCreate: vi.fn(
       async (target) =>
         (instance = {
@@ -33,6 +79,10 @@ async function setup() {
     ),
     appStop: vi.fn(async () => (instance = { ...instance!, state: 'stopped', url: null, cleanupConfirmed: true })),
     appExport: vi.fn(async () => ({ path: '/exports/project', sha256: 'a'.repeat(64) })),
+    ensureBrowser: vi.fn(),
+    browserState: vi.fn(() => null),
+    browserLayout: vi.fn(),
+    browserAction: vi.fn(async () => undefined),
     releaseAppBrowser: vi.fn(),
     hideBrowsers: vi.fn(),
   } as unknown as WorkbenchRuntime;
@@ -48,11 +98,161 @@ async function setup() {
     vi.fn(),
   );
   await app.getSnapshot();
-  const send = (type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp', commandId = randomUUID()) =>
+  const send = (type: 'createApp' | 'importEduApp' | 'startApp' | 'stopApp' | 'exportApp', commandId = randomUUID()) =>
     app.command({ type, commandId, workspaceId: 'taskflow-demo' });
-  return { app, runtime, send };
+  const confirmImport = async (commandId = randomUUID()) => {
+    const view = (await app.getSnapshot()).workspaces[0]!.appImport!;
+    return app.command({
+      type: 'confirmAppImport',
+      commandId,
+      workspaceId: 'taskflow-demo',
+      previewId: view.previewId,
+      sourceSha256: view.preview!.sourceSha256,
+    });
+  };
+  return { app, runtime, send, confirmImport };
 }
+describe('Main-owned edu import', () => {
+  it('creates one real project binding from selected source instead of a stored URL or standard template', async () => {
+    const { app, runtime, send, confirmImport } = await setup();
+    const id = randomUUID();
+    const results = await Promise.all([send('importEduApp', id), send('importEduApp', id)]);
+    expect(results.every((result) => result.ok)).toBe(true);
+    expect(runtime.appSelectImportSource).toHaveBeenCalledTimes(1);
+    expect(runtime.appImportSource).not.toHaveBeenCalled();
+    expect(runtime.appStart).not.toHaveBeenCalled();
+    const confirmationId = randomUUID();
+    expect((await Promise.all([confirmImport(confirmationId), confirmImport(confirmationId)])).every((result) => result.ok)).toBe(true);
+    expect(runtime.appImportSource).toHaveBeenCalledTimes(1);
+    expect(runtime.appCreate).not.toHaveBeenCalled();
+    const imported = (await app.getSnapshot()).workspaces[0]!.managedApp!;
+    expect(imported).toMatchObject({ state: 'running', profile: { projectKind: 'edu-web', profileVersion: 1, source: eduInput.source } });
+    expect((await send('createApp')).ok).toBe(false);
+    expect(runtime.appStart).toHaveBeenCalledTimes(1);
+    const running = (await app.getSnapshot()).workspaces[0]!;
+    expect(running.resources.find((resource) => resource.appProjectId === imported.projectId)).toMatchObject({
+      kind: 'web',
+      environmentId: 'sandbox',
+      title: 'edu-web',
+    });
+  });
+  it('navigates between named edu pages through the owned browser resource and rejects a stopped app', async () => {
+    const { app, runtime, send, confirmImport } = await setup();
+    await send('importEduApp');
+    expect((await confirmImport()).ok).toBe(true);
+    const current = (await app.getSnapshot()).workspaces[0]!;
+    const resource = current.resources.find((item) => item.appProjectId === current.managedApp?.projectId)!;
+    for (const page of ['student', 'admin'] as const) {
+      const result = await app.command({ type: 'openAppPage', commandId: randomUUID(), workspaceId: current.workspaceId, page });
+      expect(result.ok).toBe(true);
+      expect(runtime.browserAction).toHaveBeenLastCalledWith(
+        resource.resourceId,
+        'navigate',
+        current.managedApp!.url + (page === 'student' ? '/student' : '/'),
+      );
+    }
+    await send('stopApp');
+    expect(
+      (await app.command({ type: 'openAppPage', commandId: randomUUID(), workspaceId: current.workspaceId, page: 'student' })).ok,
+    ).toBe(false);
+    expect(runtime.browserAction).toHaveBeenCalledTimes(2);
+  });
+  it('leaves an empty workspace unbound when the native picker is cancelled', async () => {
+    const { app, runtime, send } = await setup();
+    runtime.appSelectImportSource = vi.fn(async () => null);
+    expect((await send('importEduApp')).ok).toBe(true);
+    expect(runtime.appSelectImportSource).toHaveBeenCalledTimes(1);
+    expect((await app.getSnapshot()).workspaces[0]!.managedApp).toBeFalsy();
+    expect(runtime.appImportSource).not.toHaveBeenCalled();
+    expect((await send('createApp')).ok).toBe(true);
+  });
+  it('waits for source acquisition cancellation and never imports a late result', async () => {
+    const { app, runtime, send } = await setup();
+    let release!: (source: AppImportSelection) => void;
+    let signal!: AbortSignal;
+    runtime.appSelectImportSource = vi.fn((scope: AbortSignal) => {
+      signal = scope;
+      return new Promise<AppImportSelection>((resolve) => {
+        release = resolve;
+      });
+    });
+    const importing = send('importEduApp');
+    await vi.waitFor(() => expect(runtime.appSelectImportSource).toHaveBeenCalledTimes(1));
+    expect((await send('createApp')).ok).toBe(false);
+    let cancelled = false;
+    const previewId = (await app.getSnapshot()).workspaces[0]!.appImport!.previewId;
+    const cancelling = app
+      .command({ type: 'cancelAppImport', commandId: randomUUID(), workspaceId: 'taskflow-demo', previewId })
+      .then((result) => {
+        cancelled = true;
+        return result;
+      });
+    await vi.waitFor(() => expect(signal.aborted).toBe(true));
+    expect(cancelled).toBe(false);
+    release(eduSelection());
+    const previewResult = await importing;
+    expect(previewResult.ok).toBe(true);
+    expect((await cancelling).ok).toBe(true);
+    expect((await app.getSnapshot()).workspaces[0]!.appImport).toMatchObject({
+      phase: 'cancelled',
+      published: false,
+      canCancel: false,
+      canRetry: false,
+    });
+    expect(runtime.appImportSource).not.toHaveBeenCalled();
+    expect(runtime.appStop).not.toHaveBeenCalled();
+    expect((await app.getSnapshot()).workspaces[0]!.managedApp).toBeFalsy();
+  });
+  it('does not accept an event that replaces the imported profile for the same process identity', async () => {
+    const { app, send, confirmImport } = await setup();
+    await send('importEduApp');
+    expect((await confirmImport()).ok).toBe(true);
+    const current = (await app.getSnapshot()).workspaces[0]!.managedApp!;
+    expect(current).toMatchObject({ state: 'running', profile: { projectKind: 'edu-web' } });
+    await app.onApp({ ...current, profile: { projectKind: 'standard-app', profileVersion: 1 }, state: 'failed', url: null });
+    expect((await app.getSnapshot()).workspaces[0]!.managedApp).toEqual(current);
+  });
+});
+
 describe('managed application ownership', () => {
+  it.each(['stopped', 'failed'] as const)(
+    'treats passive layout for a %s App as a no-op, not an attempt to acquire another browser lease',
+    async (state) => {
+      const { app, runtime, send } = await setup();
+      await send('createApp');
+      await send('startApp');
+      const running = (await app.getSnapshot()).workspaces[0]!;
+      const resource = running.resources.find((item) => item.appProjectId === running.managedApp?.projectId)!;
+      if (state === 'stopped') await send('stopApp');
+      else await app.onApp({ ...running.managedApp!, state, url: null, error: 'fixture failure', cleanupConfirmed: true });
+      runtime.ensureBrowser = vi.fn(() => {
+        throw new Error('unavailable: app lease is not running');
+      });
+      for (const visible of [true, false]) {
+        const result = await app.command({
+          type: 'browserLayout',
+          workspaceId: running.workspaceId,
+          resourceId: resource.resourceId,
+          commandId: randomUUID(),
+          layout: { visible, bounds: { x: 0, y: 0, width: 100, height: 100 } },
+        });
+        expect(result.ok).toBe(true);
+      }
+      expect(runtime.ensureBrowser).not.toHaveBeenCalled();
+      expect(runtime.browserLayout).not.toHaveBeenCalled();
+      expect(
+        (
+          await app.command({
+            type: 'browserAction',
+            workspaceId: running.workspaceId,
+            resourceId: resource.resourceId,
+            commandId: randomUUID(),
+            action: 'reload',
+          })
+        ).ok,
+      ).toBe(false);
+    },
+  );
   it('binds a single project, starts a real browser resource, stops its lease and exports source', async () => {
     const { app, runtime, send } = await setup();
     expect((await send('createApp')).ok).toBe(true);
@@ -112,6 +312,16 @@ describe('managed application ownership', () => {
     const w = (await app.getSnapshot()).workspaces[0]!;
     expect(w.managedApp?.state).toBe('failed');
     expect(w.resources.find((r) => r.appProjectId)?.unavailableReason).toBe('process exited');
+  });
+  it.each(['running', 'starting', 'stopping', 'failed'] as const)('preserves a confirmed stop despite a late %s event', async (state) => {
+    const { app, send } = await setup();
+    await send('createApp');
+    await send('startApp');
+    const previous = (await app.getSnapshot()).workspaces[0]!.managedApp!;
+    await send('stopApp');
+    const stopped = (await app.getSnapshot()).workspaces[0]!.managedApp!;
+    await app.onApp({ ...previous, state });
+    expect((await app.getSnapshot()).workspaces[0]!.managedApp).toEqual(stopped);
   });
   it('rejects nonexistent workspace before creating any service', async () => {
     const { app, runtime } = await setup();
@@ -405,4 +615,42 @@ it('rejects an oversized combined task before recording a run or invoking the ru
   ).toMatchObject({ ok: false, error: { code: 'invalid_input' } });
   expect((await app.getSnapshot()).workspaces[0]!.runs).toHaveLength(0);
   expect(runtime.send).not.toHaveBeenCalled();
+});
+
+describe('edu metadata and default execution compatibility', () => {
+  it('imports a real App descriptor and refuses default shared-workspace execution', async () => {
+    const { app, runtime, send, confirmImport } = await setup();
+    runtime.environmentsList = vi.fn(async () => []);
+    runtime.send = vi.fn();
+    expect((await send('importEduApp')).ok).toBe(true);
+    expect((await confirmImport()).ok).toBe(true);
+    const workspace = (await app.getSnapshot()).workspaces[0]!;
+    expect(workspace.app).toMatchObject({
+      workspaceId: workspace.workspaceId,
+      projectId: workspace.managedApp!.projectId,
+      name: 'edu-web',
+      revision: 0,
+    });
+    validateSnapshot(await app.getSnapshot());
+    const session = workspace.sessions[0]!;
+    await app.command({
+      type: 'confirmTask',
+      commandId: randomUUID(),
+      workspaceId: workspace.workspaceId,
+      sessionId: session.sessionId,
+      goal: 'edit',
+      targetRef: null,
+    });
+    const version = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions.at(-1)!;
+    const result = await app.command({
+      type: 'startRun',
+      commandId: randomUUID(),
+      workspaceId: workspace.workspaceId,
+      sessionId: session.sessionId,
+      taskVersionId: version.taskVersionId,
+    });
+    expect(result).toMatchObject({ ok: false, error: { code: 'denied' } });
+    expect(runtime.appCreate).not.toHaveBeenCalled();
+    expect(runtime.send).not.toHaveBeenCalled();
+  });
 });

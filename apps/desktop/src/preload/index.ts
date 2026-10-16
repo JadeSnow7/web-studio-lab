@@ -38,6 +38,7 @@ const studio: StudioApi & { debug?: StudioDebugApi } = {
     catalogCommand: (command) => invoke('workbench:catalog-command', command),
     resourceRevision: (resourceId, version) => invoke('workbench:resource-revision', { resourceId, version }),
     runReferences: (workspaceId, runId) => invoke('workbench:run-references', { workspaceId, runId }),
+    runPatch: (workspaceId, runId) => invoke('workbench:run-patch', { workspaceId, runId }),
     command: (command) => invoke('workbench:command', command),
     onEvent: (listener) => subscribe('workbench:event', listener),
   },

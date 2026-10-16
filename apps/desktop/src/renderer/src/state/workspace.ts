@@ -28,6 +28,14 @@ export function projectSnapshot(snapshot: WorkbenchSnapshot, authoritativeEpoch 
         },
   );
 }
+export function verificationLocked(snapshot: WorkbenchSnapshot | null): boolean {
+  const view = snapshot?.eduVerification;
+  return (
+    !!view &&
+    (view.recoveryRequired ||
+      (view.admissionRecovery ? view.admissionRecovery.maintenanceLocked : !view.status || view.status.maintenanceLocked))
+  );
+}
 export function selectedWorkspace(): WorkspaceSnapshot | undefined {
   const s = workspaceStore.get();
   return s.snapshot?.workspaces.find((w) => w.workspaceId === s.selectedId);
@@ -37,9 +45,18 @@ export function panes(layout: PaneLayout): Array<Extract<PaneLayout, { kind: 'pa
 }
 const metadataQueues = new Map<string, Promise<unknown>>();
 const runtimeCommands = new Set([
+  'beginEduVerification',
+  'endEduVerification',
+  'reconcileEduVerification',
   'startRun',
   'cancelRun',
   'createApp',
+  'importEduApp',
+  'previewAppImport',
+  'confirmAppImport',
+  'cancelAppImport',
+  'retryAppImport',
+  'openAppPage',
   'startApp',
   'stopApp',
   'exportApp',
@@ -65,7 +82,11 @@ async function executeCommand(workspaceId: string, payload: Payload, revision?: 
     projectSnapshot(result.snapshot);
     // Resource business errors have one owner in the workspace snapshot.
     // Transport exceptions still use the global error surface below.
-    if (!result.ok)
+    const importView = result.snapshot.workspaces.find((workspace) => workspace.workspaceId === workspaceId)?.appImport;
+    const importOwnsError =
+      ['importEduApp', 'previewAppImport', 'confirmAppImport', 'cancelAppImport', 'retryAppImport'].includes(payload.type) &&
+      (importView?.error || importView?.phase === 'cancelled');
+    if (!result.ok && !importOwnsError)
       workspaceStore.set((s) => ({
         ...s,
         error: result.error.code === 'pane_limit' ? '最多四个窗格；请先关闭一个窗格。' : result.error.message,

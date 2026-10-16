@@ -92,10 +92,13 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
   });
   host.application = workbench;
   chat.setObservationReader((scope, tool, args, signal) => workbench!.observeForTurn(scope, tool, args, signal));
+  chat.setResearchReader((call, signal) => workbench!.researchForTurn(call, signal));
   const control = new AppControl({
     context: (scope) => workbench!.appControlContext(scope),
     ui: (resourceId) => host.appUi(resourceId),
     agent: (target, appInstanceId, operation, signal) => host.appAgent(target, appInstanceId, operation, signal),
+    motaControl: (request, signal) => workbench!.motaControlForRun(request, signal),
+    motaDocumentChanged: (binding, previous, next) => workbench!.motaDocumentChanged(binding, previous, next),
     logs: (target, maxBytes) => host.appLogs(target, maxBytes),
     leaseValid: (projectId, appInstanceId) => host.appLeaseValid(projectId, appInstanceId),
     restart: (workspaceId, appInstanceId) => workbench!.restartAppForControl(workspaceId, appInstanceId),
@@ -113,7 +116,20 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
 
   const exit = new ExitCoordinator(
     async () => {
-      await shutdownOwners([() => setup.shutdown(), () => chat.shutdown()]);
+      await shutdownOwners([
+        () => setup.shutdown(),
+        async () => {
+          const errors: unknown[] = [];
+          for (const cleanup of [() => workbench?.shutdown(), () => chat.shutdown()]) {
+            try {
+              await cleanup();
+            } catch (error) {
+              errors.push(error);
+            }
+          }
+          if (errors.length) throw new AggregateError(errors, '任务和源码证据清理未确认');
+        },
+      ]);
       // Flush Main's queued cleanup receipts before closing the process.
       try {
         await workbench?.getSnapshot();
@@ -123,6 +139,18 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
     },
     async (options) => (await dialog.showMessageBox(window, options)).response,
   );
+  window.on('show', () => {
+    void host.resumeAudio().catch((error: unknown) => console.error('恢复录音监视失败', error));
+  });
+  window.on('restore', () => {
+    void host.resumeAudio().catch((error: unknown) => console.error('恢复录音监视失败', error));
+  });
+  window.on('hide', () => {
+    void host.deactivateAudio().catch((error: unknown) => console.error('隐藏窗口时录音清理失败', error));
+  });
+  window.on('minimize', () => {
+    void host.deactivateAudio().catch((error: unknown) => console.error('最小化时录音清理失败', error));
+  });
   let closing = false;
   let allowed = false;
   window.on('close', (event) => {
@@ -130,10 +158,15 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
     event.preventDefault();
     if (closing) return;
     closing = true;
-    void exit
-      .request()
-      .then((shouldClose) => {
-        if (!shouldClose) return;
+    void host
+      .deactivateAudio()
+      .catch((error: unknown) => console.error('退出前音轨核验失败；预览已销毁，继续回收 guest', error))
+      .then(() => exit.request())
+      .then(async (shouldClose) => {
+        if (!shouldClose) {
+          await host.resumeAudio();
+          return;
+        }
         host.dispose();
         unregisterIpc();
         unsubscribeSetup();

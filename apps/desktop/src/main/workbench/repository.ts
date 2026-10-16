@@ -12,7 +12,10 @@ import {
   type WorkbenchSnapshot,
   ResourceCatalogStateSchema,
   type ResourceCatalogState,
+  type AppSourceSnapshot,
+  type CapturedSourceChange,
 } from '@wsl/protocol';
+import { RunSourceRepository } from './run-source-repository';
 import {
   LegacyWorkbenchSnapshotSchema,
   LegacyWorkspaceSnapshotSchema,
@@ -20,6 +23,7 @@ import {
   parseResourceCatalog,
 } from './resource-catalog-repository';
 import { assertResourceDigest, createResourceCatalog } from './resource-catalog';
+import { assertResearchHistory } from './research';
 const LegacySnapshot = WorkbenchSnapshotSchema.extend({
   workspaces: z.array(LegacyWorkspaceSnapshotSchema.extend({ resources: z.array(WorkbenchResourceSchema.omit({ environmentId: true })) })),
 });
@@ -38,6 +42,20 @@ const FileSchema = z.union([
 ]);
 /** Digests are verified where bodies enter: capture, migration and file load. Saves of Main-owned state skip rehashing. */
 export function assertCatalogBindings(snapshot: WorkbenchSnapshot, catalog: ResourceCatalogState, verifyDigests = true): void {
+  for (const workspace of snapshot.workspaces)
+    for (const run of workspace.runs)
+      if (run.research) {
+        const grant = run.research.grant;
+        if (
+          grant.accountId !== catalog.accountId ||
+          grant.workspaceId !== workspace.workspaceId ||
+          grant.sessionId !== run.sessionId ||
+          grant.taskVersionId !== run.taskVersionId ||
+          grant.runId !== run.runId
+        )
+          throw new Error('invalid_input: 历史研究授权归属不一致');
+        if (verifyDigests) assertResearchHistory(run.research, run.referenceSnapshot);
+      }
   for (const workspace of snapshot.workspaces)
     for (const run of workspace.runs)
       if (run.referenceSnapshot) {
@@ -91,10 +109,25 @@ export interface WorkbenchRepository {
   loadCatalog(snapshot: WorkbenchSnapshot | null): Promise<ResourceCatalogState>;
   save(snapshot: WorkbenchSnapshot, catalog: ResourceCatalogState): Promise<void>;
   appendObservation(record: ObservationRecord): Promise<string>;
+  createSourceBaseline?(runId: string, source: AppSourceSnapshot, signal: AbortSignal): Promise<{ baseTree: string }>;
+  captureSourceChange?(runId: string, baseTree: string, source: AppSourceSnapshot, signal: AbortSignal): Promise<CapturedSourceChange>;
+  readRunPatch?(runId: string, patchSha256: string): Promise<string>;
 }
 export class FileWorkbenchRepository implements WorkbenchRepository {
   private loadedFile: z.infer<typeof FileSchema> | null | undefined;
-  constructor(private readonly file: string) {}
+  private readonly sourceRepository: RunSourceRepository;
+  constructor(private readonly file: string) {
+    this.sourceRepository = new RunSourceRepository(path.join(path.dirname(file), 'runs'));
+  }
+  createSourceBaseline(runId: string, source: AppSourceSnapshot, signal: AbortSignal) {
+    return this.sourceRepository.createBaseline(runId, source, signal);
+  }
+  captureSourceChange(runId: string, baseTree: string, source: AppSourceSnapshot, signal: AbortSignal) {
+    return this.sourceRepository.capture(runId, baseTree, source, signal);
+  }
+  readRunPatch(runId: string, patchSha256: string) {
+    return this.sourceRepository.readPatch(runId, patchSha256);
+  }
   get migrationPending(): boolean {
     return this.loadedFile != null && this.loadedFile.schemaVersion !== 4;
   }

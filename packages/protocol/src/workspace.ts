@@ -1,11 +1,23 @@
+import {
+  EduAdmissionRecoveryStatusSchema,
+  EduVerificationStatusSchema,
+  EduVerificationBeginSchema,
+  EduVerificationTargetSchema,
+} from './edu-verification';
+import { EduTaskBindingSchema } from './edu-task';
+import { MotaTaskBindingSchema, MotaMapSetReceiptSchema } from './mota-control';
 import { ObservationRecordSchema, FileInvalidationHintSchema } from './observation';
 import { EnvironmentListSchema } from './environments';
 import { z } from 'zod';
 import { CatalogSummarySchema, CatalogReferenceSnapshotSchema } from './resource-catalog';
 import { ManagedAppSchema, SpaceAppSchema } from './managed-app';
+import { SourceChangeSchema } from './source-change';
+import { AppImportViewSchema } from './app-import';
 import { ChatConversationSchema } from './chat';
 import { PageCaptureSchema, PreviewLayoutSchema, PreviewStateSchema } from './preview';
 import { TerminalWriteSchema, TerminalSnapshotSchema } from './terminal';
+import { MAX_RESEARCH_BYTES, MAX_RESEARCH_SOURCES, ResearchRunStateSchema, ResearchRunSummarySchema } from './research';
+import { utf8ByteLength } from './resources';
 
 const Id = z.string().min(1).max(200);
 export const TargetRefSchema = z.object({ kind: z.enum(['web', 'terminal', 'session', 'ssh', 'file']), resourceId: Id }).strict();
@@ -38,6 +50,8 @@ export const PaneLayoutSchema: z.ZodType<PaneLayout> = z.lazy(() =>
   ]),
 );
 export const WorkbenchTaskVersionSchema = z.object({
+  eduTask: EduTaskBindingSchema.optional(),
+  motaTask: MotaTaskBindingSchema.omit({ runId: true }).optional(),
   taskVersionId: Id,
   version: z.number().int().positive(),
   workspaceId: Id,
@@ -57,33 +71,74 @@ export const WorkbenchTaskVersionSchema = z.object({
   acceptance: z.array(z.string()).default([]),
   allowedScopes: z.array(z.string()).default([]),
 });
-export const WorkbenchRunSchema = z.object({
-  referenceSnapshot: CatalogReferenceSnapshotSchema.optional(),
-  referenceSummary: z.array(z.object({ resourceId: Id, version: z.number().int().positive(), contentSha256: z.string() })).optional(),
-  runId: Id,
-  workspaceId: Id,
-  sessionId: Id,
-  taskVersionId: Id,
-  targetRef: TargetRefSchema.nullable(),
-  state: z.enum(['starting', 'running', 'cancelling', 'completed', 'cancelled', 'failed', 'interrupted']),
-  startedAt: z.string(),
-  endedAt: z.string().nullable(),
-  error: z.string().nullable(),
-  candidateId: Id,
-  validation: z.object({
-    state: z.enum(['not_run', 'running', 'passed', 'failed', 'blocked']),
-    applicability: z.enum(['current', 'stale', 'unknown']),
-    reason: z.string().nullable(),
-  }),
-  conversation: ChatConversationSchema.nullable().default(null),
-  cleanupPending: z.boolean().optional(),
-  appCleanupPending: z.boolean().optional(),
-  executorState: z.object({ state: ChatConversationSchema.shape.state, cleanupPending: z.boolean() }).optional(),
-  cleanupReconciling: z.boolean().optional(),
-  cleanupRetryAvailable: z.boolean().optional(),
-  executionBinding: z.object({ generation: z.string(), turnId: z.string().nullable() }).nullable().default(null),
-  review: z.object({ decision: z.enum(['accepted', 'changes_requested']), reviewedAt: z.string(), candidateId: Id }).nullable(),
-});
+export const WorkbenchRunSchema = z
+  .object({
+    research: ResearchRunStateSchema.optional(),
+    researchSummary: ResearchRunSummarySchema.optional(),
+    sourceChange: SourceChangeSchema.optional(),
+    sourceCleanupPending: z.boolean().optional(),
+    eduTask: EduTaskBindingSchema.optional(),
+    eduTaskCleanupPending: z.boolean().optional(),
+    motaTask: MotaTaskBindingSchema.optional(),
+    motaCleanupPending: z.boolean().optional(),
+    motaCancelRequested: z.boolean().optional(),
+    motaDocumentGeneration: z.number().int().nonnegative().optional(),
+    motaMapOperations: z
+      .array(
+        z.object({ operationId: z.uuid(), receipt: MotaMapSetReceiptSchema.nullable(), error: z.string().max(1000).optional() }).strict(),
+      )
+      .max(64)
+      .optional(),
+    referenceSnapshot: CatalogReferenceSnapshotSchema.optional(),
+    referenceSummary: z.array(z.object({ resourceId: Id, version: z.number().int().positive(), contentSha256: z.string() })).optional(),
+    runId: Id,
+    workspaceId: Id,
+    sessionId: Id,
+    taskVersionId: Id,
+    targetRef: TargetRefSchema.nullable(),
+    state: z.enum(['starting', 'running', 'cancelling', 'completed', 'cancelled', 'failed', 'interrupted']),
+    startedAt: z.string(),
+    endedAt: z.string().nullable(),
+    error: z.string().nullable(),
+    candidateId: Id,
+    validation: z.object({
+      state: z.enum(['not_run', 'running', 'passed', 'failed', 'blocked']),
+      applicability: z.enum(['current', 'stale', 'unknown']),
+      reason: z.string().nullable(),
+    }),
+    conversation: ChatConversationSchema.nullable().default(null),
+    cleanupPending: z.boolean().optional(),
+    appCleanupPending: z.boolean().optional(),
+    executorState: z.object({ state: ChatConversationSchema.shape.state, cleanupPending: z.boolean() }).optional(),
+    cleanupReconciling: z.boolean().optional(),
+    cleanupRetryAvailable: z.boolean().optional(),
+    executionBinding: z.object({ generation: z.string(), turnId: z.string().nullable() }).nullable().default(null),
+    review: z.object({ decision: z.enum(['accepted', 'changes_requested']), reviewedAt: z.string(), candidateId: Id }).nullable(),
+  })
+  .superRefine((run, ctx) => {
+    for (const research of [run.research, run.researchSummary]) {
+      if (!research) continue;
+      const grant = research.grant;
+      if (
+        grant.runId !== run.runId ||
+        grant.workspaceId !== run.workspaceId ||
+        grant.sessionId !== run.sessionId ||
+        grant.taskVersionId !== run.taskVersionId ||
+        (run.referenceSnapshot &&
+          (grant.accountId !== run.referenceSnapshot.accountId ||
+            grant.workspaceId !== run.referenceSnapshot.workspaceId ||
+            grant.sessionId !== run.referenceSnapshot.sessionId)) ||
+        run.eduTask ||
+        run.motaTask
+      )
+        ctx.addIssue({ code: 'custom', message: '研究记录不属于当前标准 App 运行' });
+    }
+    if (!run.research) return;
+    if ((run.referenceSnapshot?.resources.length ?? 0) + run.research.captures.length > MAX_RESEARCH_SOURCES)
+      ctx.addIssue({ code: 'custom', message: '初始参考与研究来源合计超过 16 条' });
+    if (utf8ByteLength(JSON.stringify({ references: run.referenceSnapshot ?? null, research: run.research })) > MAX_RESEARCH_BYTES)
+      ctx.addIssue({ code: 'custom', message: '初始参考与研究来源合计超过完整 JSON 字节预算' });
+  });
 export type WorkbenchRun = z.infer<typeof WorkbenchRunSchema>;
 export const WorkbenchSessionSchema = z.object({
   sessionId: Id,
@@ -116,6 +171,7 @@ export const WorkbenchResourceSchema = z.object({
   catalogResourceId: Id.optional(),
   environmentId: z.enum(['local', 'sandbox', 'ssh']).nullable(),
   appProjectId: z.uuid().optional(),
+  appPage: z.enum(['game', 'editor']).optional(),
   kind: TargetRefSchema.shape.kind,
   title: z.string(),
   url: z.string().nullable(),
@@ -129,6 +185,8 @@ export type WorkbenchResource = z.infer<typeof WorkbenchResourceSchema>;
 export const WorkspaceSnapshotSchema = z.object({
   app: SpaceAppSchema.nullable().optional(),
   managedApp: ManagedAppSchema.nullable().optional(),
+  appImport: AppImportViewSchema.nullable().optional(),
+  pendingAppImport: z.object({ previewId: z.uuid(), projectId: z.uuid() }).strict().nullable().optional(),
   appExport: z.object({ path: z.string(), manifestPath: z.string().optional(), sha256: z.string() }).nullable().optional(),
   workspaceId: Id,
   name: z.string().min(1).max(200),
@@ -155,7 +213,20 @@ export const WorkbenchNotificationSchema = z.object({
   readAt: z.string().nullable(),
 });
 export type WorkbenchNotification = z.infer<typeof WorkbenchNotificationSchema>;
+export const EduVerificationViewSchema = z
+  .object({
+    status: EduVerificationStatusSchema.nullable(),
+    admissionRecovery: EduAdmissionRecoveryStatusSchema.nullable().optional(),
+    original: EduVerificationBeginSchema.nullable(),
+    target: EduVerificationTargetSchema.nullable(),
+    urls: z.array(z.string().max(2048)),
+    recoveryRequired: z.boolean(),
+    error: z.string().nullable(),
+  })
+  .strict();
+export type EduVerificationView = z.infer<typeof EduVerificationViewSchema>;
 export const WorkbenchSnapshotSchema = z.object({
+  eduVerification: EduVerificationViewSchema.nullable().optional(),
   catalog: CatalogSummarySchema.optional(),
   appInstanceId: Id,
   storageError: z.string().nullable(),
@@ -178,6 +249,15 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
     name: SpaceAppSchema.shape.name,
     description: SpaceAppSchema.shape.description,
   }),
+  command('importEduApp', {}),
+  command('previewAppImport', {}),
+  command('confirmAppImport', { previewId: z.uuid(), sourceSha256: z.string().regex(/^[a-f0-9]{64}$/) }),
+  command('cancelAppImport', { previewId: z.uuid() }),
+  command('retryAppImport', { previewId: z.uuid() }),
+  command('beginEduVerification', {}),
+  command('endEduVerification', {}),
+  command('reconcileEduVerification', {}),
+  command('openAppPage', { page: z.enum(['admin', 'student', 'game', 'editor']) }),
   command('startApp', {}),
   command('stopApp', {}),
   command('exportApp', {}),
@@ -226,7 +306,7 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
     goal: z.string().trim().min(1).max(32000),
     targetRef: TargetRefSchema.nullable(),
   }),
-  command('startRun', { sessionId: Id, taskVersionId: Id }),
+  command('startRun', { sessionId: Id, taskVersionId: Id, webResearch: z.boolean().optional() }),
   command('cancelRun', { runId: Id }),
   command('reconcileRunCleanup', { runId: Id }),
   command('cancelObservation', { sessionId: Id.nullable(), requestId: Id }),

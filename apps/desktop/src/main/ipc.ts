@@ -94,6 +94,10 @@ export function registerIpc({ window, trusted, chat, workbench, setup, debug }: 
       if (!workbench) throw new Error('工作台服务不可用');
       return workbench.catalogRevision(resourceId, version);
     },
+    'workbench:run-patch': ({ workspaceId, runId }) => {
+      if (!workbench) throw new Error('工作台服务不可用');
+      return workbench.runPatch(workspaceId, runId);
+    },
     'workbench:run-references': ({ workspaceId, runId }) => {
       if (!workbench) throw new Error('工作台服务不可用');
       return workbench.runReferences(workspaceId, runId);

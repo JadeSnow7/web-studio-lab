@@ -32,6 +32,11 @@ import {
   type CdpState,
   type ManagedApp,
   type ObservationTurnScope,
+  type MotaTaskBinding,
+  type MotaAction,
+  type MotaState,
+  type MotaControlRequest,
+  type MotaControlResponse,
 } from '@wsl/protocol';
 import { AppControlFailure } from './app-control-failure';
 
@@ -45,11 +50,19 @@ export interface AppControlContext {
   runId: string;
   /** TaskVersion.allowedScopes 含 app.data.reset（用户确认任务时写明）。 */
   allowsReset: boolean;
+  motaTask?: MotaTaskBinding;
+  allowsMotaMapWrite?: boolean;
   executionBinding?: { generation: string; turnId: string | null };
   app: Pick<ManagedApp, 'projectId' | 'appInstanceId' | 'state' | 'url' | 'cleanupConfirmed' | 'error'> | null;
   browser: { resourceId: string; instanceId: string | null; generation: number } | null;
 }
 export interface AppUiPort {
+  motaState?(appInstanceId: string, signal: AbortSignal): Promise<MotaState>;
+  motaAct?(
+    action: MotaAction,
+    binding: { runId: string; documentGeneration: number; appInstanceId: string },
+    signal: AbortSignal,
+  ): Promise<MotaState>;
   identity(): { documentGeneration: number; url: string; cdp: CdpState; agentControl: AgentControlState };
   snapshot(appInstanceId: string, options: { limit: number; includeHidden: boolean }, signal: AbortSignal): Promise<AppUiSnapshot>;
   act(
@@ -90,6 +103,8 @@ export interface AppControlStore {
   writeEvidence(runId: string, scenarioRunId: string, name: string, data: string | Buffer): Promise<string>;
 }
 export interface AppControlPorts {
+  motaControl?(request: MotaControlRequest, signal: AbortSignal): Promise<MotaControlResponse>;
+  motaDocumentChanged?(binding: MotaTaskBinding, previous: number, next: number): Promise<void>;
   context(scope: ObservationTurnScope): Promise<AppControlContext>;
   ui(resourceId: string): AppUiPort;
   agent(target: AppTarget, appInstanceId: string | null, operation: AppAgentOperation, signal: AbortSignal): Promise<AppAgentResult>;
@@ -168,6 +183,7 @@ export function jsonDiff(
 }
 
 export class AppControl {
+  private readonly settling = new Map<string, Set<Promise<void>>>();
   private readonly inflight = new Map<string, Set<AbortController>>();
   private readonly touched = new Map<string, Set<string>>();
   private readonly writeLocks = new Map<string, Promise<unknown>>();
@@ -288,6 +304,11 @@ export class AppControl {
     }
     this.touched.delete(runId);
   }
+  /** Wait for native input cleanup before releasing the server's run lease. */
+  async settleRun(runId: string) {
+    this.releaseRun(runId);
+    await Promise.allSettled([...(this.settling.get(runId) ?? [])]);
+  }
 
   async call(
     scope: ObservationTurnScope,
@@ -309,11 +330,19 @@ export class AppControl {
     const tool: AppToolName | null = parsedTool.success ? parsedTool.data : null;
     const generations = { before: null as number | null, after: null as number | null };
     let context: AppControlContext | null = null;
+    let settled: (() => void) | undefined;
+    let completion: Promise<void> | undefined;
     let result: AppControlResult;
     try {
       // 先确认 run 归属，再校验工具与参数：被拒绝的请求也绑定 run 写入审计。
       await this.loaded;
       context = await this.ports.context(scope);
+      completion = new Promise<void>((resolve) => {
+        settled = resolve;
+      });
+      const pendingCalls = this.settling.get(context.runId) ?? new Set();
+      pendingCalls.add(completion);
+      this.settling.set(context.runId, pendingCalls);
       if (!tool) throw new AppControlFailure('unsupported', `未知控制面工具：${toolName}`);
       const parsed = AppToolInputSchemas[tool].safeParse(rawArgs);
       if (!parsed.success)
@@ -354,6 +383,12 @@ export class AppControl {
       clearTimeout(timer);
       signal?.removeEventListener('abort', abort);
       if (context) this.inflight.get(context.runId)?.delete(controller);
+      settled?.();
+      if (context && completion) {
+        const calls = this.settling.get(context.runId);
+        calls?.delete(completion);
+        if (!calls?.size) this.settling.delete(context.runId);
+      }
     }
     if (context) {
       try {
@@ -566,7 +601,60 @@ export class AppControl {
   ): Promise<Record<string, unknown>> {
     signal.throwIfAborted();
     const input = args as AppToolInput<AppToolName> & Record<string, unknown>;
+    if (context.motaTask && !tool.startsWith('app.mota.')) throw new AppControlFailure('unsupported', '魔塔任务仅允许专用游戏与地图工具');
+    if (tool.startsWith('app.mota.') && !context.motaTask)
+      throw new AppControlFailure('authorization_required', '缺少已确认的魔塔游戏任务');
     switch (tool) {
+      case 'app.mota.state': {
+        const appInstanceId = this.running(context);
+        if (!this.ports.leaseValid(context.app!.projectId, appInstanceId)) throw new AppControlFailure('stale_lease', '魔塔实例租约已失效');
+        const ui = this.ui(context);
+        if (!ui.motaState) throw new AppControlFailure('unsupported', '魔塔游戏观察尚未接入');
+        const state = await ui.motaState(appInstanceId, signal);
+        generations.before = generations.after = state.documentGeneration;
+        return { ...state };
+      }
+      case 'app.mota.act': {
+        const { appInstanceId, documentGeneration, action } = input as AppToolInput<'app.mota.act'>;
+        this.writable(context, appInstanceId, signal);
+        const ui = this.ui(context, context.runId);
+        if (!ui.motaAct) throw new AppControlFailure('unsupported', '魔塔游戏输入尚未接入');
+        generations.before = ui.identity().documentGeneration;
+        const state = await ui.motaAct(action, { runId: context.runId, appInstanceId, documentGeneration }, signal);
+        generations.after = state.documentGeneration;
+        if (state.documentGeneration !== documentGeneration) {
+          if (action.type !== 'newGame' || !this.ports.motaDocumentChanged)
+            throw new AppControlFailure('stale_document', '未经授权的游戏页面导航');
+          await this.ports.motaDocumentChanged(context.motaTask!, documentGeneration, state.documentGeneration);
+        }
+        return { ...state };
+      }
+      case 'app.mota.map.read':
+      case 'app.mota.map.set': {
+        const { appInstanceId } = input as AppToolInput<'app.mota.map.read'>;
+        this.writable(context, appInstanceId, signal);
+        if (tool === 'app.mota.map.set' && !context.allowsMotaMapWrite)
+          throw new AppControlFailure('authorization_required', '地图写入需要用户确认 app.mota.map.write');
+        if (!this.ports.motaControl) throw new AppControlFailure('unsupported', '魔塔地图服务尚未接入');
+        const request: MotaControlRequest =
+          tool === 'app.mota.map.read'
+            ? { type: 'mota-control', requestId: randomUUID(), binding: context.motaTask!, method: 'map.read', input: {} }
+            : {
+                type: 'mota-control',
+                requestId: randomUUID(),
+                binding: context.motaTask!,
+                method: 'map.set',
+                input: {
+                  operationId: randomUUID(),
+                  expectedSha256: (input as AppToolInput<'app.mota.map.set'>).expectedSha256,
+                  x: (input as AppToolInput<'app.mota.map.set'>).x,
+                  y: (input as AppToolInput<'app.mota.map.set'>).y,
+                },
+              };
+        const reply = await this.ports.motaControl(request, signal);
+        if (!reply.ok) throw new AppControlFailure('command_failed', reply.error.message);
+        return { ...reply.data };
+      }
       case 'app.describe': {
         const revision = await this.revision(context, signal);
         return { app: this.appFacts(context), browser: this.browserFacts(context), ...revision, guide: 'agent/AGENTS.md', rules: RULES };
@@ -796,6 +884,7 @@ export class AppControl {
           this.bridgeData(await ui.bridge({ op: 'invoke', name: step.name, input: step.input }, signal));
         } else if (step.type === 'screenshot') {
           const png = await ui.screenshot();
+          if (png.length === 0) throw new AppControlFailure('unavailable', '截图为空，未生成有效图像证据');
           const file = await this.ports.store.writeEvidence(
             context.runId,
             scenarioRunId,

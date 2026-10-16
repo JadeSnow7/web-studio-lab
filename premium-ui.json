@@ -4,15 +4,18 @@
   "locale": "zh-CN",
   "canonicalMap": "UX-CONTRACT.md",
   "requiredCapabilities": ["Scrollbar", "Form", "CRUD", "Toast"],
-  "ownership": { "Select/Listbox": "native" },
+  "ownership": {
+    "Select/Listbox": "native"
+  },
   "requiredCommands": ["unit", "e2e", "accessibility"],
   "commands": {
     "unit": "pnpm test",
     "e2e": "pnpm test:e2e",
-    "accessibility": "playwright test e2e/sbx.spec.ts e2e/chat.spec.ts e2e/resources.spec.ts"
+    "accessibility": "pnpm exec playwright test e2e/sbx.spec.ts e2e/chat.spec.ts e2e/resources.spec.ts e2e/edu-app-ui.spec.ts"
   },
   "evidence": {
     "failurePaths": "e2e/resources.spec.ts",
-    "crudFullFlow": "e2e/resources.spec.ts"
+    "crudFullFlow": "e2e/resources.spec.ts",
+    "importEntry": "e2e/edu-app-ui.spec.ts"
   }
 }

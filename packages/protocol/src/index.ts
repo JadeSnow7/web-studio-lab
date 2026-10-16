@@ -1,5 +1,9 @@
 export * from './app';
 export * from './managed-app';
+export * from './mota';
+export * from './mota-control';
+export * from './source-change';
+export * from './app-import';
 export * from './chat';
 export * from './execution';
 export * from './ipc';
@@ -11,6 +15,7 @@ export * from './bridge';
 export * from './terminal';
 
 export * from './resources';
+export * from './research';
 
 export * from './guest-browser';
 
@@ -27,3 +32,6 @@ export * from './resource-catalog';
 export * from './app-control';
 
 export * from './status';
+export * from './edu-task';
+
+export * from './edu-verification';

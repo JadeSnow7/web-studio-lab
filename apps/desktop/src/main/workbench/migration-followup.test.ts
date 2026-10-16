@@ -12,6 +12,7 @@ vi.mock('../preview/demo-protocol', () => ({ DEMO_ORIGIN: 'wsl-demo://taskflow',
 const browsers = vi.hoisted(() => ({ reloads: [] as Array<ReturnType<typeof vi.fn>> }));
 vi.mock('../preview/controller', () => ({
   PreviewController: class {
+    hasEduAudio = () => false;
     reload = vi.fn();
     openDevTools = vi.fn();
     setLayout = vi.fn();
@@ -110,6 +111,9 @@ describe('migration review followup baseline', () => {
     const host = new WorkbenchHost(
       {} as BrowserWindow,
       {
+        setAdmissionRecoveryListener: vi.fn(),
+        setVerificationGuard: vi.fn(),
+        setVerificationListener: vi.fn(),
         setAppListener: vi.fn(),
         resourcesList: async () => ({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
       } as unknown as ChatService,

@@ -1,4 +1,5 @@
 import { expect, test, type ElectronApplication } from '@playwright/test';
+import { writeFile } from 'node:fs/promises';
 import { launchApp, openBrowserMenu, setWindowSize, workspaceSnapshot, workshopNavigate, target } from './helpers';
 
 const fixture = new URL('./fixtures/sbx.mjs', import.meta.url).pathname;
@@ -152,6 +153,7 @@ test('R4 单窗格窄窗从网页关联会话并采集', async () => {
 
 test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点', async () => {
   const { app, page } = await launchApp();
+  let focusTarget: { webContentsId: number; workspaceId: string } | null = null;
   try {
     await page.getByRole('button', { name: '左右分屏', exact: true }).click();
     await page.getByRole('button', { name: '新建标签', exact: true }).click();
@@ -165,6 +167,7 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
     const snapshot = await workspaceSnapshot(page);
     const workspace = snapshot.workspaces[0]!;
     const web = workspace.resources.find((r) => r.title === 'TaskFlow 预览')!;
+    focusTarget = { webContentsId: web.preview!.page.webContentsId, workspaceId: workspace.workspaceId };
     await app.evaluate(({ webContents, BrowserWindow }, id) => {
       BrowserWindow.getAllWindows()[0]!.focus();
       const contents = webContents.fromId(id)!;
@@ -242,6 +245,46 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
         secondResource.preview!.page.webContentsId,
       ),
     ).toBeNull();
+  } catch (error) {
+    // Read only after failure: diagnostics must not refocus a window or hide the original assertion.
+    const [native, workspace] = await Promise.allSettled([
+      app.evaluate(({ BrowserWindow, webContents }, targetId) => {
+        const targetContents = targetId === null ? undefined : webContents.fromId(targetId);
+        const windowState = (window: Electron.BrowserWindow | null | undefined) =>
+          window && !window.isDestroyed()
+            ? { id: window.id, isFocused: window.isFocused(), isVisible: window.isVisible(), isMinimized: window.isMinimized() }
+            : null;
+        return {
+          targetWebContentsId: targetId,
+          targetDestroyed: targetContents?.isDestroyed() ?? true,
+          targetFocused: targetContents && !targetContents.isDestroyed() ? targetContents.isFocused() : null,
+          parentWindow: windowState(targetContents ? BrowserWindow.fromWebContents(targetContents) : null),
+          focusRequestedWindow: windowState(BrowserWindow.getAllWindows()[0]),
+          focusedWindowId: BrowserWindow.getFocusedWindow()?.id ?? null,
+          focusedWebContentsId: webContents.getFocusedWebContents()?.id ?? null,
+          windowIds: BrowserWindow.getAllWindows()
+            .slice(0, 8)
+            .map((window) => window.id),
+        };
+      }, focusTarget?.webContentsId ?? null),
+      workspaceSnapshot(page).then((snapshot) => ({
+        activeWorkspaceId: snapshot.activeWorkspaceId,
+        targetWorkspaceId: focusTarget?.workspaceId ?? null,
+        activePaneId: snapshot.workspaces.find((workspace) => workspace.workspaceId === focusTarget?.workspaceId)?.activePaneId ?? null,
+      })),
+    ]);
+    const diagnostic = {
+      native: native.status === 'fulfilled' ? native.value : { error: String(native.reason).slice(0, 512) },
+      workspace: workspace.status === 'fulfilled' ? workspace.value : { error: String(workspace.reason).slice(0, 512) },
+    };
+    try {
+      const path = test.info().outputPath('r3-native-focus-failure.json');
+      await writeFile(path, JSON.stringify(diagnostic, null, 2), 'utf8');
+      await test.info().attach('r3-native-focus-failure', { path, contentType: 'application/json' });
+    } catch (attachmentError) {
+      console.log('R3 native focus diagnostic', JSON.stringify(diagnostic), String(attachmentError).slice(0, 512));
+    }
+    throw error;
   } finally {
     await app.close();
   }

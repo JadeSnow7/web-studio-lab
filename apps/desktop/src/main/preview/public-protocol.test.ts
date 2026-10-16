@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Session } from 'electron';
-import { extractPublicDocument } from './public-document';
+import { extractPublicDocument, fetchPublicDocument, type PublicFetchDependencies } from './public-document';
 import { PublicDocumentProtocol } from './public-protocol';
 
 function setup(
-  fetchDocument = vi.fn(async () =>
+  fetchDocument: typeof fetchPublicDocument = vi.fn(async () =>
     extractPublicDocument(Buffer.from('<title>Public</title><body>Text</body>'), 'https://example.com/', 'https://example.com/'),
   ),
 ) {
@@ -20,6 +20,7 @@ function setup(
     webContentsId: 7,
     devToolsWebContentsId: () => 9,
     epoch: () => epoch,
+    request: (): AbortSignal | undefined => undefined,
     onDocument: vi.fn(),
     onError: vi.fn(),
   };
@@ -36,6 +37,17 @@ function setup(
 }
 
 describe('隔离公开文档协议', () => {
+  it('does not begin DNS or HTTPS work for an already cancelled read', async () => {
+    const owner = new AbortController();
+    owner.abort();
+    const dependencies: PublicFetchDependencies = {
+      resolve: vi.fn(async () => [{ address: '93.184.216.34', family: 4 }]),
+      request: vi.fn(async () => ({ status: 200, headers: { 'content-type': 'text/html' }, body: Buffer.from('<body>text</body>') })),
+    };
+    await expect(fetchPublicDocument('https://example.com/', dependencies, owner.signal)).rejects.toThrow();
+    expect(dependencies.resolve).not.toHaveBeenCalled();
+    expect(dependencies.request).not.toHaveBeenCalled();
+  });
   it('源页面和子资源不能绕过 GET 主框架 broker，另一个 webContents 也不能复用', () => {
     const { session } = setup();
     const before = session.webRequest.onBeforeRequest.mock.calls[0]![0] as (
@@ -109,7 +121,7 @@ describe('隔离公开文档协议', () => {
     const { protocol, options, nextNavigation } = setup(
       vi.fn(
         () =>
-          new Promise((done) => {
+          new Promise<ReturnType<typeof extractPublicDocument>>((done) => {
             resolve = done;
           }),
       ),
@@ -134,6 +146,118 @@ describe('隔离公开文档协议', () => {
     protocol.dispose();
     expect(session.protocol.unhandle).toHaveBeenCalledWith('https');
     expect(session.webRequest.onBeforeRequest).toHaveBeenLastCalledWith(null);
+  });
+  it('waits for an aborted owner read to settle, discards its bytes, and prevents a late dispatch with that token', async () => {
+    let resolve!: (value: ReturnType<typeof extractPublicDocument>) => void;
+    const fetchDocument = vi.fn(
+      () =>
+        new Promise<ReturnType<typeof extractPublicDocument>>((done) => {
+          resolve = done;
+        }),
+    );
+    const { protocol, options } = setup(fetchDocument);
+    const owner = new AbortController();
+    options.request = () => owner.signal;
+    const response = protocol.handle(new Request('https://example.com/'));
+    owner.abort();
+    const settled = vi.fn();
+    const draining = protocol.settle(owner.signal).then(settled);
+    await Promise.resolve();
+    expect(settled).not.toHaveBeenCalled();
+    resolve(extractPublicDocument(Buffer.from('<body>Late</body>'), 'https://example.com/', 'https://example.com/'));
+    expect((await response).type).toBe('error');
+    await draining;
+    expect(settled).toHaveBeenCalledOnce();
+    expect(options.onDocument).not.toHaveBeenCalled();
+    expect((await protocol.handle(new Request('https://example.com/'))).type).toBe('error');
+    expect(fetchDocument).toHaveBeenCalledOnce();
+  });
+  it('settles only the requested owner and does not abort or wait for a newer navigation', async () => {
+    let resolve!: (value: ReturnType<typeof extractPublicDocument>) => void;
+    const { protocol, options } = setup(
+      vi.fn(
+        () =>
+          new Promise<ReturnType<typeof extractPublicDocument>>((done) => {
+            resolve = done;
+          }),
+      ),
+    );
+    const old = new AbortController();
+    const current = new AbortController();
+    options.request = () => current.signal;
+    const response = protocol.handle(new Request('https://example.com/'));
+    old.abort();
+    await protocol.settle(old.signal);
+    expect(current.signal.aborted).toBe(false);
+    const document = extractPublicDocument(Buffer.from('<body>Current</body>'), 'https://example.com/', 'https://example.com/');
+    resolve(document);
+    expect((await response).status).toBe(200);
+    expect(options.onDocument).toHaveBeenCalledWith(document, 1, current.signal);
+  });
+  it('does not reuse a redirect response under a different request token', async () => {
+    const document = extractPublicDocument(Buffer.from('<body>Redirect</body>'), 'https://example.com/start', 'https://example.com/final');
+    const fetchDocument = vi.fn(async () => document);
+    const { protocol, options } = setup(fetchDocument);
+    const first = new AbortController();
+    options.request = () => first.signal;
+    expect((await protocol.handle(new Request(document.requestedUrl))).status).toBe(302);
+    const next = new AbortController();
+    options.request = () => next.signal;
+    await protocol.handle(new Request(document.url));
+    expect(fetchDocument).toHaveBeenCalledTimes(2);
+    expect(options.onDocument).toHaveBeenCalledWith(document, 1, next.signal);
+  });
+  it('does not issue a second network read for the same owned request', async () => {
+    const fetchDocument = vi.fn(async () =>
+      extractPublicDocument(Buffer.from('<body>Once</body>'), 'https://example.com/', 'https://example.com/'),
+    );
+    const { protocol, options } = setup(fetchDocument);
+    const owner = new AbortController();
+    options.request = () => owner.signal;
+    expect((await protocol.handle(new Request('https://example.com/'))).status).toBe(200);
+    expect((await protocol.handle(new Request('https://example.com/'))).type).toBe('error');
+    expect(fetchDocument).toHaveBeenCalledOnce();
+    expect(options.onDocument).toHaveBeenCalledOnce();
+  });
+  it.each(['DNS', 'HTTPS'] as const)('drains the actual %s promise after abortable has already rejected', async (stage) => {
+    let releaseDns!: (addresses: Awaited<ReturnType<PublicFetchDependencies['resolve']>>) => void;
+    let releaseRequest!: (response: Awaited<ReturnType<PublicFetchDependencies['request']>>) => void;
+    const addresses = [{ address: '93.184.216.34', family: 4 }];
+    const dependencies: PublicFetchDependencies = {
+      resolve: vi.fn(() =>
+        stage === 'DNS'
+          ? new Promise<Awaited<ReturnType<PublicFetchDependencies['resolve']>>>((done) => {
+              releaseDns = done;
+            })
+          : Promise.resolve(addresses),
+      ),
+      request: vi.fn(
+        () =>
+          new Promise<Awaited<ReturnType<PublicFetchDependencies['request']>>>((done) => {
+            releaseRequest = done;
+          }),
+      ),
+    };
+    const fetch = vi.fn<typeof fetchPublicDocument>((input, _dependencies, signal, onPending) =>
+      fetchPublicDocument(input, dependencies, signal, onPending),
+    );
+    const { protocol, options } = setup(fetch);
+    const owner = new AbortController();
+    options.request = () => owner.signal;
+    const response = protocol.handle(new Request('https://example.com/'));
+    await vi.waitFor(() => expect(stage === 'DNS' ? dependencies.resolve : dependencies.request).toHaveBeenCalledOnce());
+    owner.abort();
+    expect((await response).type).toBe('error');
+    const settled = vi.fn();
+    const draining = protocol.settle(owner.signal).then(settled);
+    await Promise.resolve();
+    expect(settled).not.toHaveBeenCalled();
+    if (stage === 'DNS') releaseDns(addresses);
+    else releaseRequest({ status: 200, headers: { 'content-type': 'text/html' }, body: Buffer.from('<body>Late</body>') });
+    await draining;
+    expect(settled).toHaveBeenCalledOnce();
+    expect(options.onDocument).not.toHaveBeenCalled();
+    if (stage === 'DNS') expect(dependencies.request).not.toHaveBeenCalled();
   });
 });
 

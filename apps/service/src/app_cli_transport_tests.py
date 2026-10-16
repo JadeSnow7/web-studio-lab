@@ -232,16 +232,22 @@ class AppCliTransportTests(unittest.TestCase):
                 raise OSError('injected app channel directory cleanup failure')
         owner = FailedDirectory()
         emitted = []
-        namespace = {'cli_channel': None, 'observer': None, 'observer_dir': owner, 'observer_clients': {},
+        namespace = {'cli_channel': None, 'observer': None, 'observer_dir': owner, 'observer_clients': {}, 'research_peers': {},
                      'emit': lambda kind, **fields: emitted.append({'type': kind, **fields})}
         exec(compile(ast.fix_missing_locations(ast.Module(body=[closer], type_ignores=[])), '<actual-helper-close>', 'exec'), namespace)
         with self.assertRaisesRegex(OSError, 'injected'):
             namespace['close_observers']()
         self.assertIs(namespace['observer_dir'], owner)
         outer = next(node for node in main.body if isinstance(node, ast.Try))
-        finalizer = outer.finalbody[0]
+        finalizers = [node for node in outer.finalbody if isinstance(node, ast.Try) and
+                      any(isinstance(child, ast.Call) and isinstance(child.func, ast.Name) and
+                          child.func.id == 'close_observers' for child in ast.walk(node))]
+        self.assertEqual(len(finalizers), 1)
+        finalizer = finalizers[0]
         self.assertIsInstance(finalizer, ast.Try)
         exec(compile(ast.fix_missing_locations(ast.Module(body=[finalizer], type_ignores=[])), '<actual-helper-finalizer>', 'exec'), namespace)
+        self.assertIs(namespace['observer_dir'], owner)
         self.assertEqual(emitted[-1]['type'], 'cleanup')
         self.assertFalse(emitted[-1]['ok'])
         self.assertFalse(any(item.get('ok') is True for item in emitted))
+        self.assertIn('injected', emitted[-1]['error'])
