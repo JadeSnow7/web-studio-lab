@@ -1,0 +1,62 @@
+name: macOS validation
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: macos-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  check-and-e2e:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.34.6
+          run_install: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - name: Verify source and toolchain
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test -z "$(git status --porcelain)"
+          node -e 'if(process.platform!=="darwin"||process.arch!=="arm64"||process.version!=="v24.21.0")throw Error("Expected macOS ARM64 / Node 24.21.0"); console.log(JSON.stringify({node:process.version,platform:process.platform,arch:process.arch}))'
+          test "$(pnpm --version)" = "10.34.6"
+          npm --version
+          python3 -c 'import sys; assert sys.version_info[:2] == (3, 12); print(sys.version)'
+      - name: Prepare file search tool
+        run: |
+          if ! command -v rg >/dev/null 2>&1; then
+            (cd /opt/homebrew && HOMEBREW_NO_AUTO_UPDATE=1 ./bin/brew install ripgrep)
+          fi
+          rg --version
+      - run: pnpm install --frozen-lockfile
+      - name: Full offline check chain
+        run: pnpm check
+      - run: pnpm baseline:selftest
+      - name: Explicitly prepare locked standard template dependencies
+        run: pnpm test:e2e:prepare
+      - name: Build and run the default Electron suite
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: macos-e2e-${{ runner.arch }}-${{ github.sha }}-${{ github.run_attempt }}
+          path: test-results/e2e-runs/
+          if-no-files-found: error
+          retention-days: 14

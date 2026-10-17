@@ -4411,7 +4411,7 @@ export class WorkbenchApplication {
             if (!activeStates.includes(current.state)) return null;
             const latest = this.runTurns.get(runId);
             if (binding && (latest?.generation !== binding.generation || latest.turnId !== binding.turnId)) return null;
-            current.error = '取消失败；停止尚未确认：' + (error as Error).message;
+            current.error = this.motaCleanupError(current, '取消失败；停止尚未确认：' + (error as Error).message);
             return w;
           }),
       );
@@ -4493,7 +4493,7 @@ export class WorkbenchApplication {
     run.error = conversation.error;
     if (run.motaTask && !activeStates.includes(run.executorState?.state ?? 'starting') && !run.executorState?.cleanupPending) {
       if (run.motaCleanupPending) this.requestMotaRelease(w, run);
-      else if (run.motaCancelRequested) run.state = 'cancelled';
+      else if (run.motaCancelRequested && !this.motaPolicyFailure(run)) run.state = 'cancelled';
     }
     if (!activeStates.includes(run.state)) {
       run.endedAt = new Date().toISOString();
@@ -4544,10 +4544,11 @@ export class WorkbenchApplication {
         this.releaseObservationScope(w, runId);
       }
       if (run.state === 'cancelling' && modelCleanupUnknown && !run.appCleanupPending) {
-        run.error = this.observationScopes.has(runId)
+        let error = this.observationScopes.has(runId)
           ? '模型进程清理未确认；App 数据操作已完成，停止尚未确认'
           : '旧模型进程清理未确认；App 数据操作已完成，停止尚未确认';
-        if (run.sourceCleanupPending) run.error += '；源码 helper 清理未确认，项目仍被占用';
+        if (run.sourceCleanupPending) error += '；源码 helper 清理未确认，项目仍被占用';
+        run.error = this.motaCleanupError(run, error);
         if (run.conversation) run.conversation = { ...run.conversation, state: 'cancelling', cleanupPending: true, error: run.error };
         const session = w.sessions.find((item) => item.sessionId === run.sessionId);
         const binding = run.executionBinding;
@@ -4589,6 +4590,16 @@ export class WorkbenchApplication {
     for (const session of workspace.sessions)
       for (const record of session.observations)
         if (record.request.runId === runId && record.state === 'pending') this.observations.get(record.request.requestId)?.abort();
+  }
+  private motaPolicyFailure(run: WorkbenchRun): string | null {
+    const error = run.conversation?.error;
+    return run.motaTask && run.executorState?.state === 'failed' && error?.startsWith('policy_violation:') ? error : null;
+  }
+  private motaCleanupError(run: WorkbenchRun, message: string): string {
+    const failure = this.motaPolicyFailure(run);
+    if (!failure) return message;
+    const previous = run.error?.startsWith('policy_violation:') ? run.error : failure;
+    return previous.includes(message) ? previous : `${previous}；${message}`;
   }
   private readonly motaReleases = new Map<string, Promise<void>>();
   private requestMotaRelease(w: WorkspaceSnapshot, run: WorkbenchRun) {
@@ -4645,7 +4656,7 @@ export class WorkbenchApplication {
           current.cleanupPending = true;
           current.cleanupRetryAvailable = true;
           current.state = 'cancelling';
-          current.error = '魔塔运行清理未确认：' + (error instanceof Error ? error.message : String(error));
+          current.error = this.motaCleanupError(current, '魔塔运行清理未确认：' + (error instanceof Error ? error.message : String(error)));
           return workspace;
         });
       })
@@ -4668,12 +4679,14 @@ export class WorkbenchApplication {
     );
     if (run.cleanupPending) return;
     run.cleanupRetryAvailable = false;
-    run.state = run.motaCancelRequested
-      ? 'cancelled'
-      : executor!.state === 'idle'
-        ? 'completed'
-        : (executor!.state as WorkbenchRun['state']);
-    if (run.error?.startsWith('魔塔运行清理未确认：')) run.error = run.conversation?.error ?? null;
+    const policyFailure = this.motaPolicyFailure(run);
+    run.state =
+      run.motaCancelRequested && !policyFailure
+        ? 'cancelled'
+        : executor!.state === 'idle'
+          ? 'completed'
+          : (executor!.state as WorkbenchRun['state']);
+    if (policyFailure || run.error?.startsWith('魔塔运行清理未确认：')) run.error = run.conversation?.error ?? null;
     run.endedAt = new Date().toISOString();
     this.runLogBaselines.delete(run.runId);
     this.releaseObservationScope(w, run.runId);

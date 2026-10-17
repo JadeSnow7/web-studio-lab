@@ -4,6 +4,7 @@ const include = ['packages/*/src/**/*.test.ts', 'apps/*/src/**/*.test.ts'];
 const observation = 'apps/desktop/src/main/workbench/observation-application.test.ts';
 const mcp = 'apps/service/src/app-control-mcp.test.ts';
 const localTerminal = 'apps/service/src/local-terminal.test.ts';
+const motaServer = 'apps/service/src/mota-server.test.ts';
 
 export default defineConfig({
   test: {
@@ -16,7 +17,7 @@ export default defineConfig({
         test: {
           name: 'ordinary',
           include,
-          exclude: [...configDefaults.exclude, observation, mcp, localTerminal],
+          exclude: [...configDefaults.exclude, observation, mcp, localTerminal, motaServer],
           environment: 'node',
           sequence: { groupOrder: 0 },
         },
@@ -46,6 +47,15 @@ export default defineConfig({
           include: [localTerminal],
           environment: 'node',
           sequence: { groupOrder: 3 },
+        },
+      },
+      {
+        extends: false,
+        test: {
+          name: 'mota-server',
+          include: [motaServer],
+          environment: 'node',
+          sequence: { groupOrder: 4 },
         },
       },
     ],

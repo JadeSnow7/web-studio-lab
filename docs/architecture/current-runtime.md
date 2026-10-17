@@ -138,6 +138,8 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 
 停止先在 guest child 仍存活时核验并删除自己的 loopback 映射，再关闭进程并等清理回执；VM重启导致映射变化或回执缺失时保留未知状态，禁止猜测清理其他映射。注册表绑定真实 sandbox 名称，只恢复项目描述，不自动重放服务。首次准备执行 seed，普通重启只迁移、检查和构建，磁盘 dataDir 保持。源码导出需停服确认，输出实际完整源码目录和同级 manifest，不混入运行数据或 node_modules。
 
+App 退出处理覆盖完成回调后的清理、持久化与通知失败，错误保留在所属实例的 `failed` 快照中；通知通道本身失败时仍可查询同进程快照，不递归重试通知，也不声称失败的落盘已成功。退出处理有独立在途句柄，显式停止先等它完成，再继续取消有限 helper、核对清理与必要的 edu 恢复；重启不能越过这些在途操作。`done` 拒绝只表示结果未知，不是退出回执，不能因此丢弃尚未确认关闭的句柄。清理在持久化之后、撤销端口之前再次检查进程连续性；持久化失败既不伪造清理成功，也不抹去已有清理确认。旧进程/旧实例的迟到结果不污染新实例，恢复不自动重放启动，Mota 未确认租约门禁仍保留。
+
 工具链、模板服务、产品窗口与唯一模型调用的证据分别见[本轮记录](../acceptance/integrated-app-installer-public-20261009/README.md)。本包未实现比赛业务验收、正式签名公证发布、全套任务源码写入流程或统一观察中该 sandbox Browser 的额外授权；不能把母模板健康检查视为 AI 生成完整业务。
 
 ### 任务源码基线与真实 diff（2026-10-14 实现，2026-10-15 续接）
@@ -186,7 +188,13 @@ service 使用随产品提供的 `mota-helper.py` 和 `mota-server.cjs`，在独
 
 Session 沿用确认任务与发送入口，默认不授予操作权限。`app.mota.play` 允许受限游戏状态/输入（含重新开始）；`app.mota.map.write` 额外允许固定地图改格，依赖 play。目标必须为当前 project 的运行 game 资源；Main 从实时 Browser 冻结 workspace、environment、project、AppInstance、run、session、resource、Browser instance/generation、webContents 和文档代次，不接受模型指定归属。Mota 任务不依赖 DOM 元素现场，旧版本不能借当前草稿新增权限。
 
-`CodexChat` 为每轮 Mota 任务创建独立只读 scratch，只放置受限工具说明，不复制工程源码；使用 `codex exec --sandbox read-only`，清除旧 threadId，禁止 resume 曾获写权限的线程。轮次只接原生 MCP 的四个专用工具，无 `wsl-app` CLI 回退和工作区观察能力。只读执行策略及工具白名单不改变共享 guest 同 UID 文件系统本身的隔离边界。2026-10-15 的独立 OS 探针因 CLI 缺少 `--permission-profile` 在沙箱内探针执行前退出（内层 exit 2）；canary 未变及外层 sbx exit 0 不证明写入或网络已被阻断。
+R4 修复候选的 Mota 模型入口按能力未知拒绝启动。安装合同固定 `codex-cli 0.160.0`，但当前没有核验该二进制的 `exec` 原生工具集限制的有效回执；匹配版本、`--sandbox read-only`、提示词及 MCP 工具白名单都不能替代该证明。`SbxConnection.assertMotaCapability()` 对固定版本与其他/未知版本均返回 `mota_native_tools_unverified`，没有环境变量放行或提示词回退。service 在取得租约和调用 `chat.send` 前检查门禁，返回 `executorStarted: false` 的具名拒绝；`CodexChat.send` 与底层 Mota 启动也独立检查，拒绝时保留原会话、thread 和消息。标准/edu 对话及手动游戏/编辑器入口不受此门禁影响；这不宣称编辑器授权边界已通过 R6。
+
+原有 Mota 启动路径保留独立只读 scratch、清除旧 threadId、禁止 resume、无 `wsl-app` CLI 回退等约束，但本树不会在原生限制未知时执行它。Mota MCP 现在恰好列出并接受四个专用工具，连只读 `list_resources` / `read_resource` 也拒绝；失去 socket 时不回退为资源工具。纯离线生命周期测试显式替代能力门禁，以验证事件和清理行为，不证明真实 Codex 支持该模式。恢复模型入口需要对固定二进制及实际 `exec` 参数/配置另行取得有效原生能力证据，再绑定启动配置；不能仅凭帮助文本或某个配置键未报错就宣布支持。
+
+`item.started`、`item.updated`、`item.completed` 中的 `command_execution` 统一触发 `policy_violation`，禁止的 MCP 服务/工具及原生搜索同样失败。检测同步关闭后续派发、撤销在途调用信号并启动所属进程关闭；迟到工具结果或成功事件不能覆盖失败。关闭拒绝/完成链异常保留可见错误与未确认占用，旧轮次帧不污染新轮次。Main 等待模型、原生输入和租约分别确认，即使用户在此时点击停止，违规终态仍为失败而非取消；清理错误与违规原因同时保留，已有合法地图修改及回执不回滚、不丢弃。
+
+事件检测是事后保护，不是执行前审批；只读执行策略及工具白名单不改变共享 guest 同 UID 文件系统本身的隔离边界。2026-10-15 的独立 OS 探针因 CLI 缺少 `--permission-profile` 在沙箱内探针执行前退出（内层 exit 2）；canary 未变及外层 sbx exit 0 不证明写入或网络已被阻断，也不能据此推导 `exec` 参数能力。
 
 | 原生 MCP 工具       | Main 工具名         | 能力边界                                                          |
 | ------------------- | ------------------- | ----------------------------------------------------------------- |

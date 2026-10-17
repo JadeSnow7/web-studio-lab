@@ -153,7 +153,7 @@ test('R4 单窗格窄窗从网页关联会话并采集', async () => {
 
 test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点', async () => {
   const { app, page } = await launchApp();
-  let focusTarget: { webContentsId: number; workspaceId: string } | null = null;
+  let focusTarget: { webContentsId: number; workspaceId: string; paneId?: string | null } | null = null;
   try {
     await page.getByRole('button', { name: '左右分屏', exact: true }).click();
     await page.getByRole('button', { name: '新建标签', exact: true }).click();
@@ -176,6 +176,7 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
       contents.sendInputEvent({ type: 'mouseUp', x: 80, y: 80, button: 'left', clickCount: 1 });
     }, web.preview!.page.webContentsId);
     const first = page.locator('[data-pane-id]').filter({ has: page.getByRole('button', { name: '聚焦窗格 · TaskFlow 预览' }) });
+    focusTarget.paneId = await first.getAttribute('data-pane-id');
     await expect
       .poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.activePaneId)
       .toBe(await first.getAttribute('data-pane-id'));
@@ -262,6 +263,17 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
           focusRequestedWindow: windowState(BrowserWindow.getAllWindows()[0]),
           focusedWindowId: BrowserWindow.getFocusedWindow()?.id ?? null,
           focusedWebContentsId: webContents.getFocusedWebContents()?.id ?? null,
+          contents: webContents
+            .getAllWebContents()
+            .slice(0, 12)
+            .map((contents) => ({
+              id: contents.id,
+              type: contents.getType(),
+              url: contents.getURL().split(/[?#]/, 1)[0],
+              loading: contents.isLoading(),
+              devToolsOpened: contents.isDevToolsOpened(),
+              devToolsId: contents.devToolsWebContents?.id ?? null,
+            })),
           windowIds: BrowserWindow.getAllWindows()
             .slice(0, 8)
             .map((window) => window.id),
@@ -270,6 +282,7 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
       workspaceSnapshot(page).then((snapshot) => ({
         activeWorkspaceId: snapshot.activeWorkspaceId,
         targetWorkspaceId: focusTarget?.workspaceId ?? null,
+        targetPaneId: focusTarget?.paneId ?? null,
         activePaneId: snapshot.workspaces.find((workspace) => workspace.workspaceId === focusTarget?.workspaceId)?.activePaneId ?? null,
       })),
     ]);

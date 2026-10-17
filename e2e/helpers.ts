@@ -21,7 +21,11 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const fixtureSandbox =
   process.env['WSL_E2E_TARGET'] === 'packaged' ? 'wsl-competition-00000000-0000-4000-8000-000000000001' : 'fixture-sandbox';
 const desktopDir = path.join(root, 'apps/desktop');
-export const screensDir = path.join(root, 'test-results/screens', process.env['WSL_E2E_TARGET'] === 'packaged' ? 'packaged' : 'build');
+export const screensDir = path.join(
+  process.env['WSL_E2E_EVIDENCE_DIR'] ?? path.join(root, 'test-results'),
+  'screens',
+  process.env['WSL_E2E_TARGET'] === 'packaged' ? 'packaged' : 'build',
+);
 
 /** WSL_E2E_TARGET=packaged 时启动 pnpm package 生成的 .app，否则启动 pnpm build 的产物。 */
 export const target = process.env['WSL_E2E_TARGET'] === 'packaged' ? 'packaged' : 'build';

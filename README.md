@@ -24,6 +24,8 @@ Web Studio Lab 是一个将浏览器、终端、项目与 AI 会话组织在同�
 
 当前 PR 候选在该基线上整合 P0 D 源码证据、最新 edu-web、静态导入入口、保存异常修复、受限魔塔接入及研究搜索与保存修复。上一阶段的手动编辑与窗口结果见[2026-10-15 整合记录](docs/acceptance/mota-integration-20261015/README.md)；魔塔 tools03 无模型工具验收和 build03 上的 model03 真实模型验收均已通过普通/金币两次新局的 MT4 路线与 money 7/14 对照，所属资源清理确认。真实模型经原生 MCP 执行，两组各 12 个有序检查点通过。默认 Electron E2E 首轮为 162 通过、22 跳过、6 失败；退出/启动诊断及测试修正后，build04 默认全套 E2E02 为 168 通过、22 跳过、0 失败。失败链、R3 首次失败原因未定及构建边界见[AI 阶段验收](docs/acceptance/mota-ai-20261015/README.md)，build04 不自动继承 build03 的模型实测结论。这些新增能力不属于已合并的 PR #6；[PR 合并前说明](docs/acceptance/consolidation-20261011/PR.md)及[导入入口验收记录](docs/acceptance/import-entry-20261014/README.md)保留各自范围和失败，不能替代本树复验。本轮未签名、公证或发布。
 
+评审修复候选的 **Mota 模型入口当前拒绝启动**：固定 Codex 0.160.0 的“仅四个专用工具”原生限制尚未证实，返回 `mota_native_tools_unverified`，不以只读沙箱或提示词替代。R4 增加违规事件检测、撤销与失败保留，但不宣称原生能力或 OS 隔离已验证；上述 model03 是历史构建证据，不能用于放行当前入口。标准/edu 对话及手动魔塔入口不受该能力门禁影响。详见[当前运行时](docs/architecture/current-runtime.md)。
+
 | 能力         | 实现与验证边界                                                                                                                                                                            |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 全局导航     | 首页、空间、资源、会话、任务和底部设置保持独立入口；空间工作台只装配到空间页                                                                                                              |
@@ -69,15 +71,18 @@ WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm dev
 pnpm check
 ```
 
-`pnpm check` 依次运行类型检查（含 e2e 与配置文件）、ESLint、Prettier 格式检查和 Vitest 单元测试，并在首个失败时停止。本整合树保留 VS001 与来源档案的原始格式；旧轮次的 lint 217 个错误、format 801 个文件问题保留在[PR 合并前说明](docs/acceptance/consolidation-20261011/PR.md)，不能直接当作当前结果。上一整合阶段的全量 lint 通过、格式遗留项与失败见[整合记录](docs/acceptance/mota-integration-20261015/README.md)，新增 AI 代码的检查在[本阶段记录](docs/acceptance/mota-ai-20261015/README.md)另列，不据单项通过声称整个 `pnpm check` 通过。需要全部结果时分别运行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm test`，不要自动格式化封存证据。当前 PR 候选的实际命令、结果与未决项统一见[2026-10-16 候选回归](docs/acceptance/submission-20261016/README.md)。
+`pnpm check` 依次运行冻结输入门禁、文档检查、类型检查（含 e2e 与配置文件）、ESLint、Prettier 和离线测试，在首个失败时停止。[冻结清单](scripts/frozen-inputs.json) 指定来源提交、精确路径与 SHA-256，不从工作树刷新期望值；本轮新增格式例外限于清单内文件，新增 lint 例外仅豁免冻结 CDP 文件的 `prefer-const`。独立的 `pnpm lint`、`pnpm format:check`、`pnpm format` 也先检查冻结字节。旧失败仍保留于[PR 合并前说明](docs/acceptance/consolidation-20261011/PR.md)、[整合记录](docs/acceptance/mota-integration-20261015/README.md)、[AI 阶段记录](docs/acceptance/mota-ai-20261015/README.md)与[原候选回归](docs/acceptance/submission-20261016/README.md)，不能按新门禁改写历史结论。后续范围和合并条件见[修订计划](docs/plans/2026-10-16-post-review-update-plan.md)。
 
 ```bash
+pnpm test:e2e:prepare
 pnpm test:e2e
 ```
 
-`pnpm test:e2e` 先 `pnpm build`，再用 Playwright 驱动真实的 Electron 窗口，检查启动与安全边界、页面现场、任务与运行归属、空间和标签切换、草稿、左右气泡、快捷键、主题及窄窗恢复。截图写到 `test-results/screens/`。
+`test:e2e:prepare` 显式执行标准模板的 `npm ci --ignore-scripts`；根 pnpm workspace 不包含它的独立依赖。Playwright globalSetup 只校验实际安装树、锁文件和 npm 安装回执，并探测 tsx/esbuild；缺失或版本漂移时停止并提示准备命令，不静默安装，也不因 tsx 存在就判为就绪。
 
-默认套件中的 `app-control-harness` 会在宿主启动独立标准模板。首次运行前，还需执行 `npm --prefix templates/standard-app ci --ignore-scripts`；根目录的 pnpm workspace 安装不包含该模板的独立依赖。缺少模板 `tsx` 的首次失败和补装后的定向复跑分别记录于[候选回归](docs/acceptance/submission-20261016/README.md)。
+`pnpm test:e2e` 先构建，再仅对子进程清除 `ELECTRON_RUN_AS_NODE`，驱动真实 Electron 窗口。每次运行在 `test-results/e2e-runs/run-*/` 保存独立的日志、JSON 报告、错误上下文、截图、App 控制面证据及实际跳过清单；源码/构建指纹在运行前后核对。失败不会被下一次运行覆盖，全部跳过、报告缺失或输入漂移不能显示通过；`--list` 仅记为 `not_run`。宿主标准模板 harness 不等于 sbx/model live 验收。最初缺少模板 tsx 的失败仍保留于[原候选回归](docs/acceptance/submission-20261016/README.md)。
+
+[macOS 验证 workflow](.github/workflows/validate.yml) 独立运行完整检查、基线自检、模板准备、构建和默认 E2E；[Linux workflow](.github/workflows/linux-guest.yml) 单独检查真实进程边界。配置存在不等于线上已执行；分支保护、签名、发布与用户验收不由这些步骤自动完成。
 
 ## 外部魔塔工程（mota-web v1）
 

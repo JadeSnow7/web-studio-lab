@@ -38,7 +38,7 @@ test('edu native audio permissions and actual track cleanup (explicit synthetic 
   const origin = `http://127.0.0.1:${address.port}`;
   let app: ElectronApplication | undefined;
   try {
-    const require = createRequire(path.join(process.cwd(), 'node_modules/vite/package.json'));
+    const require = createRequire(createRequire(import.meta.url).resolve('vite/package.json'));
     const { build } = require('esbuild') as { build(options: Record<string, unknown>): Promise<unknown> };
     await build({
       entryPoints: [path.resolve('apps/desktop/src/main/preview/controller.ts')],

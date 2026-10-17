@@ -465,6 +465,7 @@ parent.on('message', ({ data }) => {
           const motaTask = request.payload.motaTask;
           await apps.assertTaskAdmission(request.payload.references.workspaceId, binding, motaTask);
           if (motaTask && !admission?.cancelled) {
+            chat.assertMotaCapability();
             const acquired = await apps.motaControl({
               type: 'mota-control',
               requestId: randomUUID(),

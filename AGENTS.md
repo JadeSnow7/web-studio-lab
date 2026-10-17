@@ -110,3 +110,51 @@ env -u ELECTRON_RUN_AS_NODE -u WSL_OBSERVATION_ROOT -u WSL_SSH_HOST -u WSL_SSH_R
 不要将 profile、Cookies、guest 数据库或临时凭据加入证据提交。`pnpm check` 在旧 VS001/来源档案的 lint 错误处停止时，应保留原字节，分别执行类型、当前变更 lint/格式、`pnpm test`、构建和 `pnpm baseline:selftest`，不要降低检查规则。
 
 本机曾在 `pnpm test` 与类型检查/Electron 并行时触发 observation-application 的 64-request budget 用例 5000ms 超时；无并行重跑原命令通过，但根因未确认。后续全量测试先单独运行并保留失败，不提高超时或减少预算断言以制造通过。
+
+R2 全量回归又出现两项 Mota 进程握手轮询超时，独立 49 项通过；当时宿主负载较高，但不能据此断言已排除所有其他原因。经用户批准，`mota-server.test.ts` 与既有 observation/MCP/PTY 分组一样，在普通套件之后单独执行；原断言、1000ms 默认轮询预算、用例数和重试策略不变。调度回归验证各文件只被一个项目收集，避免移出普通组后漏跑；不把调度隔离写成 Mota 生产协议修复。
+
+## Linux guest 清理回归
+
+独立的 [Linux workflow](.github/workflows/linux-guest.yml) 配置为在 pull request、main push 和手动触发时运行，不使用签名发布流程。工具链为 Node 24.21.0、pnpm 10.34.6、Python 3.12；日志记录真实 runner 架构。Ubuntu runner 或本地 Linux 容器的结果只证明该环境内的 helper/进程回归，不代替实际 sbx guest、真实模型或产品验收。
+
+```sh
+node --test scripts/check-linux-guest.test.mjs
+pnpm test:linux
+```
+
+`test:linux` 运行整个 `guest-workspace.test.ts`，随后检查 `test-results/linux-guest.json`。必跑清单固定在 [报告门禁](scripts/check-linux-guest.mjs)：非零退出后的完整清单与目录移除、符号链接拒绝、合成清理确认失败时保留副本，以及 close/EOF 两条真实后代进程回收路径。任何测试失败、跳过、todo、`NOT_RUN`、报告缺失或必跑用例缺失都不能通过；Linux `/proc` 身份不可信时也不能放行，不默认使用 `--pid=host` 绕过。
+
+普通 macOS 单测仍保留五个 Linux 用例的跳过标记；`test:linux` 会拒绝这种报告。可移植签名/透传回归不受平台跳过影响，报告门禁的负例也纳入默认 `pnpm test`。修复前失败与修复后结果应分别保存，不覆盖历史记录。
+
+## R2 冻结输入与默认 E2E
+
+[修订计划](docs/plans/2026-10-16-post-review-update-plan.md) 明确先修复、后验收和授权合并；多 Harness、SSH 等仍为条件性后续范围。[冻结清单](scripts/frozen-inputs.json) 固定 14 个文件的路径、来源提交和 SHA-256。检查需要能读取 `b5531e1ac3b3da7adf000f6ba61f2c5b19a0755f` 与 `d91701382e5e8950d695e9ef21fa521043407660` 的 Git 对象，缺失时明确失败，不从工作树重算期望值。CI 使用完整历史；后续集成需保留固定来源的可获取性。
+
+`pnpm check` 先运行 `check:frozen` 和文档检查，再执行类型、lint、格式、离线测试。新增风格例外只针对冻结路径，其他规则不变；旧失败及其原字节继续保留。此门禁不宣称冻结整仓所有历史档案，根 `package.json` 仍是可维护命令入口；不要混用旧 VS001 整体指纹。
+
+```sh
+pnpm test:e2e:prepare
+pnpm test:e2e
+```
+
+准备步骤显式安装模板锁依赖；globalSetup 只核对实际安装树、锁文件、安装回执及 tsx/esbuild，不安装或更新。默认 E2E 启动器只对子进程清除 `ELECTRON_RUN_AS_NODE`，为每轮创建 `test-results/e2e-runs/run-*/`，保留日志、错误上下文、截图、报告及逐项跳过原因，核对运行前后的源码/构建指纹。不要在 E2E 运行时编辑或重建输入。`--list` 是 `not_run`；缺报告、全部跳过、flaky 或输入漂移不是通过。显式 live 配置不会被入口擅自改写，执行前仍须核对本轮授权，不继承旧授权来运行模型或 guest。
+
+[macOS workflow](.github/workflows/validate.yml) 将完整检查、自检、显式模板准备、构建和默认 E2E 串行执行，独立于签名发布流程；失败产物与跳过清单上传为独立 artifact。配置不等于线上执行，Node/macOS 默认套件不替代真实 sbx/model、packaged 或用户接受。
+
+pnpm 布局下，测试若复用 Vite 的 esbuild，应先解析 Vite 的实际包路径，再从该路径创建 `require`；不要拼接逻辑 `node_modules/vite/package.json` 来解析其传递依赖。原生焦点测试需要已解锁的交互桌面，锁屏时保留失败并请求用户解锁，不修改系统锁屏策略。DevTools 的窗口销毁可能早于所属页面的原生连接关闭；窗口已销毁但 `devToolsWebContents` 仍指向旧前端时，重开必须等待 `devtools-closed`，合并重复请求并在预览销毁时撤销等待。诊断应同时记录所属网页、活动窗格和原生内容状态；锁屏导致的无焦点是另一类环境阻塞，不能解释此前有聚焦窗口的空前端失败。
+
+packaged 入口除工作区构建外，还核对所选 `.app` 的路径、实际路径、文件内容摘要、权限、目录清单及内部符号链接；流式计算文件哈希，不跟随越界链接。缺失、不完整或包含越界链接的输入不能启动测试；产物漂移不能凭绿色测试报告放行。合成 bundle 回归只证明指纹门禁，不证明真实安装包、签名或公证验收。
+
+## R3 App 完成链回归
+
+`apps/service/src/app-service.ts` 单文件启用类型感知 `no-floating-promises`（`ignoreVoid: false`）与 `no-misused-promises`；另有精确语法门禁防止裸 `then(async success, onRejected)` 把成功回调的拒绝留在返回链上。`node --test scripts/check-app-promises.test.mjs` 验证正反例与作用域，不能以 `void` 代替处理拒绝；静态通过也不能证明 catch 回调绝不会抛错。
+
+App 生命周期回归位于 `app-service.test.ts` 的 `R3 App asynchronous completion failures` 分组。必须区别正常退出结果、拒绝的完成 Promise、清理确认与持久化成功。拒绝不提供退出证明；已有确认也不因磁盘失败被抹去。退出完成链与显式 stop 使用各自句柄并串行衔接，不能让共享 Promise 跳过有限 helper 取消。检查迟到实例、落盘期间失去映射连续性、清理/通知异常及显式恢复；通知失败至少保留同进程可查询错误，不据此宣称磁盘记录成功或 Mota 未确认租约已经释放。
+
+## R4 Mota 违规与能力门禁
+
+固定版本来自 `DependencyManifestSchema` 的 guest Codex 合同（0.160.0）。当前没有验证其 `exec` 原生工具限制，`SbxConnection.assertMotaCapability()` 因而对所有版本拒绝 Mota 模型启动；没有配置/环境变量绕过。service 的具名 pre-model 拒绝在租约 acquire 和 `chat.send` 之前发生，直接 chat/send 与底层启动也检查。上述 model03/live 命令是历史流程，不代表本树可以启动或自动取得新授权；启用需要独立核验固定二进制及实际原生工具集，不能根据 `sandbox` 子命令错误添加产品 `exec` 参数。
+
+定向回归入口：`pnpm exec vitest run apps/service/src/codex-mota-policy.test.ts apps/service/src/codex-chat.test.ts apps/service/src/sbx.test.ts apps/service/src/index.test.ts apps/service/src/resource-mcp.test.ts apps/desktop/src/main/workbench/mota-managed-app.test.ts`。合成事件/进程测试显式 mock 门禁，不构成真实能力证明。Mota MCP 必须只列出且只接受四个专用工具，资源读取亦不例外；其他模式继续保留资源工具。
+
+违规检测覆盖三个 item 阶段，关闭入口必须先于后续 dispatcher 调用；取消信号需要传播到在途操作。Main 在清理等待中可以显示 cancelling，但 `policy_violation` 的最终状态必须 failed，即使用户同时点击停止。未确认的模型、原生输入或租约继续占用；清理诊断不能覆盖违规原因，既有合法地图回执继续保留。事件检测不等于执行前审批，工具门禁不等于 OS 文件/网络隔离。

@@ -1,4 +1,5 @@
 import type * as AppServiceModule from './app-service';
+import type * as SbxModule from './sbx';
 import { execFileSync } from 'node:child_process';
 import ownedProcess from './edu-owned-process.py?raw';
 import appHelper from './app-helper.py?raw';
@@ -18,29 +19,33 @@ const fixture = vi.hoisted(() => ({
   availableAfterInitialization: true,
   appShutdown: vi.fn<() => Promise<void>>(async () => undefined),
 }));
-vi.mock('./sbx', () => ({
-  SbxConnection: class {
-    private ready = false;
-    initialize = async () => {
-      await fixture.initialize();
-      this.ready = true;
-      return this.getStatus();
-    };
-    getStatus = () => ({
-      available: this.ready && fixture.availableAfterInitialization,
-      reason: !this.ready ? '正在检查 sbx…' : fixture.availableAfterInitialization ? null : 'offline',
-      sandbox: 'fixture',
-      version: this.ready ? 'fixture' : null,
-      cwd: '/home/agent/workspace',
-    });
-    getCleanupPending = () => false;
-    start = (...args: Parameters<typeof fixture.start>) => {
-      if (!this.getStatus().available) throw new Error(this.getStatus().reason!);
-      return fixture.start(...args);
-    };
-    shutdown = async () => undefined;
-  },
-}));
+vi.mock('./sbx', async (original) => {
+  const { SbxConnection } = await original<typeof SbxModule>();
+  return {
+    SbxConnection: class {
+      private ready = false;
+      initialize = async () => {
+        await fixture.initialize();
+        this.ready = true;
+        return this.getStatus();
+      };
+      getStatus = () => ({
+        available: this.ready && fixture.availableAfterInitialization,
+        reason: !this.ready ? '正在检查 sbx…' : fixture.availableAfterInitialization ? null : 'offline',
+        sandbox: 'fixture',
+        version: this.ready ? 'fixture' : null,
+        cwd: '/home/agent/workspace',
+      });
+      assertMotaCapability = SbxConnection.prototype.assertMotaCapability;
+      getCleanupPending = () => false;
+      start = (...args: Parameters<typeof fixture.start>) => {
+        if (!this.getStatus().available) throw new Error(this.getStatus().reason!);
+        return fixture.start(...args);
+      };
+      shutdown = async () => undefined;
+    },
+  };
+});
 vi.mock('./app-service', async (original) => {
   const { AppService } = await original<typeof AppServiceModule>();
   return {
@@ -256,6 +261,68 @@ it('research bridge checks the complete reply context and propagates cancellatio
   await test.completion('research-stop');
   expect(test.messages).toContainEqual({ type: 'research-abort', callId: pendingId });
 });
+it('R4 rejects unverified Mota native capability before acquiring a lease or invoking chat.send', async () => {
+  const test = await host();
+  test.request({ id: 'mota-native-register', method: 'register', payload: { conversationId, workspaceId: 'taskflow-demo' } });
+  await test.completion('mota-native-register');
+  const binding = {
+    workspaceId: 'taskflow-demo',
+    environmentId: 'sandbox' as const,
+    projectId: randomUUID(),
+    appInstanceId: randomUUID(),
+    runId: randomUUID(),
+    sessionId: conversationId,
+    resourceId: 'game',
+    browserInstanceId: 'browser',
+    browserGeneration: 0,
+    webContentsId: 1,
+    documentGeneration: 0,
+  };
+  const { AppService } = await import('./app-service');
+  const { CodexChat } = await import('./codex-chat');
+  const admission = vi.spyOn(AppService.prototype, 'assertTaskAdmission').mockResolvedValue(undefined);
+  const active = vi.spyOn(AppService.prototype, 'assertMotaTaskActive').mockImplementation(() => undefined);
+  const control = vi.spyOn(AppService.prototype, 'motaControl').mockImplementation(async (request) => ({
+    type: 'mota-control-result',
+    requestId: request.requestId,
+    binding: request.binding,
+    method: 'acquire',
+    ok: true,
+    data: { settled: true },
+  }));
+  const sending = vi.spyOn(CodexChat.prototype, 'send');
+  try {
+    test.request({
+      id: 'mota-native-denied',
+      method: 'send',
+      payload: {
+        conversationId,
+        text: 'restricted game',
+        references: emptyReferences(conversationId, binding.workspaceId),
+        observationScope: { workspaceId: binding.workspaceId, sessionId: conversationId, runId: binding.runId, sources: [] },
+        motaTask: binding,
+      },
+    });
+    expect(await test.completion('mota-native-denied')).toMatchObject({
+      type: 'response',
+      result: {
+        kind: 'mota-task-dispatch-rejected',
+        executorStarted: false,
+        binding,
+        error: expect.stringContaining('mota_native_tools_unverified'),
+      },
+    });
+    expect(control).not.toHaveBeenCalled();
+    expect(sending).not.toHaveBeenCalled();
+    expect(fixture.start).not.toHaveBeenCalled();
+  } finally {
+    admission.mockRestore();
+    active.mockRestore();
+    control.mockRestore();
+    sending.mockRestore();
+  }
+});
+
 it.each([false, true])('Mota rejection proves no executor only before chat.send boundary: invoked=%s', async (invoked) => {
   const test = await host();
   const binding = {
@@ -283,6 +350,7 @@ it.each([false, true])('Mota rejection proves no executor only before chat.send 
     ok: true,
     data: { settled: true },
   }));
+  const capability = vi.spyOn(CodexChat.prototype, 'assertMotaCapability').mockImplementation(() => undefined);
   const sending = vi.spyOn(CodexChat.prototype, 'send').mockRejectedValueOnce(new Error('model dispatch unknown'));
   if (invoked) admission.mockResolvedValueOnce(undefined);
   else admission.mockRejectedValueOnce(new Error('live app required'));
@@ -316,6 +384,7 @@ it.each([false, true])('Mota rejection proves no executor only before chat.send 
     active.mockRestore();
     control.mockRestore();
     sending.mockRestore();
+    capability.mockRestore();
   }
 });
 function importRequest() {

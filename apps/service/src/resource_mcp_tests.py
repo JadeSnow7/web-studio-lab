@@ -201,26 +201,38 @@ class MotaResourceMcpTests(unittest.TestCase):
     def tearDown(self):
         mcp.OBSERVATION_SOCKET, mcp.OBSERVATION_IMAGES, mcp.MOTA_MODE = self.transport
 
-    def test_mota_lists_only_four_tools_and_immutable_resources_with_own_rules(self):
+    def test_mota_lists_exactly_four_tools_with_own_rules(self):
         tools = mcp.dispatch(fixture_bundle(), 'tools/list', {})['tools']
         self.assertEqual([tool['name'] for tool in tools], [
-            'list_resources', 'read_resource', 'app_mota_state', 'app_mota_act', 'app_mota_map_read', 'app_mota_map_set'])
-        for tool in tools[2:]:
+            'app_mota_state', 'app_mota_act', 'app_mota_map_read', 'app_mota_map_set'])
+        for tool in tools:
             self.assertFalse(tool['inputSchema']['additionalProperties'])
             self.assertIn('untrusted observations', tool['description'])
             self.assertIn('real mouse/key input', tool['description'])
             self.assertIn('empty (0) MT1 cell', tool['description'])
             self.assertNotIn('npm', tool['description'])
             self.assertNotIn('app_restart', tool['description'])
-        self.assertEqual([tool['annotations']['readOnlyHint'] for tool in tools[2:]], [True, False, True, False])
+        self.assertEqual([tool['annotations']['readOnlyHint'] for tool in tools], [True, False, True, False])
         initialized = mcp.dispatch({}, 'initialize', {})
         self.assertEqual(initialized['instructions'], mcp.MOTA_RULES)
-        listed = mcp.dispatch(fixture_bundle(), 'tools/call', {'name': 'list_resources'})['structuredContent']
-        self.assertTrue(listed['untrusted'])
-        record = listed['data']['resources'][0]
-        read = mcp.dispatch(fixture_bundle(), 'tools/call', {'name': 'read_resource', 'arguments': {
-            'resourceId': record['resourceId'], 'version': record['version']}})['structuredContent']
-        self.assertEqual(read['data']['text'], fixture_bundle()['resources'][0]['text'])
+
+    def test_mota_rejects_even_valid_immutable_resource_calls(self):
+        bundle = fixture_bundle()
+        record = bundle['resources'][0]
+        for params in [{'name': 'list_resources', 'arguments': {}},
+                       {'name': 'read_resource', 'arguments': {'resourceId': record['resourceId'], 'version': record['version']}}]:
+            with self.subTest(params=params):
+                with self.assertRaises(mcp.RpcError) as caught:
+                    mcp.dispatch(bundle, 'tools/call', params)
+                self.assertEqual(caught.exception.code, -32601)
+
+    def test_mota_without_socket_never_falls_back_to_resource_tools(self):
+        mcp.OBSERVATION_SOCKET = None
+        self.assertEqual(mcp.dispatch(fixture_bundle(), 'tools/list', {})['tools'], [])
+        for name in ('list_resources', 'read_resource', 'app_mota_state'):
+            with self.subTest(name=name), self.assertRaises(mcp.RpcError) as caught:
+                mcp.dispatch(fixture_bundle(), 'tools/call', {'name': name, 'arguments': {}})
+            self.assertEqual(caught.exception.code, -32601)
 
     def test_launch_mode_is_explicit_and_unknown_modes_do_not_fall_back(self):
         for args in [['/socket', 'Mota'], ['/socket', 'mota', 'text'], ['relative.sock', 'mota'], ['/socket', '']]:

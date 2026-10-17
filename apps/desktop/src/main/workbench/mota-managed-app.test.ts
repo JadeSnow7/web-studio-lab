@@ -561,6 +561,306 @@ describe('Mota confirmed game task ownership', () => {
     expect(f.chat.motaControl.mock.calls.map(([input]) => input.method)).toEqual(['release']);
     expect((await f.owner()).runs.at(-1)).toMatchObject({ state: 'cancelled', motaCleanupPending: false, cleanupPending: false });
   });
+  it.each([
+    { request: 'cancelRun', cleanupOrder: 'model-first' },
+    { request: 'cancelRun', cleanupOrder: 'lease-first' },
+    { request: 'stopApp', cleanupOrder: 'model-first' },
+    { request: 'stopApp', cleanupOrder: 'lease-first' },
+  ] as const)('preserves policy_violation failure after $request with $cleanupOrder cleanup', async ({ request, cleanupOrder }) => {
+    const f = await motaTaskFixture();
+    const { run } = await f.launch();
+    const policyError = 'policy_violation: Mota run emitted forbidden native tool command_execution';
+    const failed = { ...modelConversation(f.sessionId, 'failed', 3), error: policyError };
+    const native = deferred<void>();
+    const model = deferred<ChatConversation>();
+    f.control.settleRun.mockReturnValue(native.promise);
+    f.chat.cancel.mockReturnValue(model.promise);
+    f.app.onConversation({ ...failed, seq: 2, cleanupPending: true });
+    await vi.waitFor(async () =>
+      expect((await f.owner()).runs.at(-1)).toMatchObject({
+        state: 'cancelling',
+        executorState: { state: 'failed', cleanupPending: true },
+        motaCleanupPending: true,
+        cleanupPending: true,
+        error: policyError,
+        endedAt: null,
+      }),
+    );
+    expect(f.control.settleRun).not.toHaveBeenCalled();
+    const requested = f.command(request === 'cancelRun' ? { type: request, runId: run.runId } : { type: request });
+    await vi.waitFor(() => expect(f.control.settleRun).toHaveBeenCalledWith(run.runId));
+    await vi.waitFor(() => expect(f.chat.cancel).toHaveBeenCalledWith(f.sessionId));
+    expect(f.chat.motaControl).not.toHaveBeenCalled();
+    expect(f.control.releaseRun).not.toHaveBeenCalled();
+    expect(f.chat.appStop).not.toHaveBeenCalled();
+    if (cleanupOrder === 'model-first') {
+      model.resolve(failed);
+      await vi.waitFor(async () =>
+        expect((await f.owner()).runs.at(-1)).toMatchObject({
+          state: 'cancelling',
+          executorState: { state: 'failed', cleanupPending: false },
+          motaCleanupPending: true,
+          cleanupPending: true,
+          error: policyError,
+          endedAt: null,
+        }),
+      );
+      expect(f.chat.motaControl).not.toHaveBeenCalled();
+      native.resolve();
+    } else {
+      native.resolve();
+      await vi.waitFor(async () =>
+        expect((await f.owner()).runs.at(-1)).toMatchObject({
+          state: 'cancelling',
+          executorState: { state: 'failed', cleanupPending: true },
+          motaCleanupPending: false,
+          cleanupPending: true,
+          error: policyError,
+          endedAt: null,
+        }),
+      );
+      expect(f.control.releaseRun).not.toHaveBeenCalled();
+      expect(f.chat.appStop).not.toHaveBeenCalled();
+      model.resolve(failed);
+    }
+    expect((await requested).ok).toBe(true);
+    await vi.waitFor(async () => expect((await f.owner()).runs.at(-1)?.cleanupPending).toBe(false));
+    expect((await f.owner()).runs.at(-1)).toMatchObject({
+      state: 'failed',
+      executorState: { state: 'failed', cleanupPending: false },
+      motaCancelRequested: true,
+      motaCleanupPending: false,
+      cleanupPending: false,
+      error: policyError,
+      endedAt: expect.any(String),
+    });
+    expect(f.durable()?.workspaces[0]?.runs.at(-1)?.state).toBe('failed');
+    expect(f.chat.motaControl.mock.calls.map(([input]) => input.method)).toEqual(['release']);
+    expect(f.control.releaseRun).toHaveBeenCalledWith(run.runId);
+    expect(f.chat.appStop).toHaveBeenCalledTimes(request === 'stopApp' ? 1 : 0);
+  });
+  it('retains policy_violation and release failure while blocking controls, then retries without losing map receipts', async () => {
+    const f = await motaTaskFixture([MOTA_PLAY_SCOPE, MOTA_MAP_WRITE_SCOPE]);
+    const { run, scope, version } = await f.launch();
+    const release = required(f.chat.motaControl.getMockImplementation());
+    const receipt = {
+      operationId: randomUUID(),
+      floorId: 'MT1',
+      beforeSha256: 'a'.repeat(64),
+      afterSha256: 'b'.repeat(64),
+      change: { x: 6, y: 10, before: 0, after: 53 },
+    } as const;
+    const request: MotaControlRequest = {
+      type: 'mota-control',
+      requestId: randomUUID(),
+      binding: required(run.motaTask),
+      method: 'map.set',
+      input: { operationId: receipt.operationId, expectedSha256: receipt.beforeSha256, x: 6, y: 10 },
+    };
+    f.chat.motaControl.mockImplementationOnce(async (input) => ({
+      type: 'mota-control-result',
+      requestId: input.requestId,
+      binding: input.binding,
+      method: 'map.set',
+      ok: true,
+      data: receipt,
+    }));
+    expect((await f.app.motaControlForRun(request, new AbortController().signal)).ok).toBe(true);
+    const operations = [{ operationId: receipt.operationId, receipt }];
+    expect(f.durable()?.workspaces[0]?.runs.at(-1)?.motaMapOperations).toEqual(operations);
+    const policyError = 'policy_violation: Mota run emitted forbidden native tool command_execution';
+    const cleanupError = 'lost lease release acknowledgement';
+    const native = deferred<void>();
+    f.control.settleRun.mockReturnValue(native.promise);
+    f.chat.motaControl.mockRejectedValue(new Error(cleanupError));
+    f.app.onConversation({ ...modelConversation(f.sessionId, 'failed', 3), error: policyError });
+    await vi.waitFor(() => expect(f.control.settleRun).toHaveBeenCalledWith(run.runId));
+    expect(f.chat.motaControl.mock.calls.map(([input]) => input.method)).toEqual(['map.set']);
+    native.resolve();
+    await vi.waitFor(async () => expect((await f.owner()).runs.at(-1)?.cleanupRetryAvailable).toBe(true));
+    const blocked = required((await f.owner()).runs.at(-1));
+    expect(blocked).toMatchObject({
+      state: 'cancelling',
+      executorState: { state: 'failed', cleanupPending: false },
+      motaCleanupPending: true,
+      cleanupPending: true,
+      endedAt: null,
+      motaMapOperations: operations,
+    });
+    expect(blocked.error).toContain(policyError);
+    expect(blocked.error).toContain(cleanupError);
+    expect(f.durable()?.workspaces[0]?.runs.at(-1)?.error).toBe(blocked.error);
+    expect(f.control.releaseRun).not.toHaveBeenCalled();
+    await expect(f.app.appControlContext(scope)).rejects.toThrow('控制面不可用');
+    expect((await f.command({ type: 'stopApp' })).ok).toBe(false);
+    expect((await f.command({ type: 'startApp' })).ok).toBe(false);
+    expect((await f.command({ type: 'startRun', sessionId: f.sessionId, taskVersionId: version.taskVersionId })).ok).toBe(false);
+    expect(f.chat.appStop).not.toHaveBeenCalled();
+    expect(f.chat.appStart).toHaveBeenCalledOnce();
+    expect(f.chat.send).toHaveBeenCalledOnce();
+    expect(f.chat.cancel).not.toHaveBeenCalled();
+    const stillBlocked = required((await f.owner()).runs.at(-1));
+    expect(stillBlocked).toMatchObject({
+      motaCancelRequested: true,
+      motaCleanupPending: true,
+      cleanupPending: true,
+      cleanupRetryAvailable: true,
+      motaMapOperations: operations,
+    });
+    expect(stillBlocked.error).toContain(policyError);
+    expect(stillBlocked.error).toContain(cleanupError);
+    expect(f.control.releaseRun).not.toHaveBeenCalled();
+    f.chat.motaControl.mockImplementation(release);
+    expect((await f.command({ type: 'reconcileRunCleanup', runId: run.runId })).ok).toBe(true);
+    expect((await f.owner()).runs.at(-1)).toMatchObject({
+      state: 'failed',
+      executorState: { state: 'failed', cleanupPending: false },
+      motaCancelRequested: true,
+      motaCleanupPending: false,
+      cleanupPending: false,
+      cleanupRetryAvailable: false,
+      error: expect.stringContaining(policyError),
+      endedAt: expect.any(String),
+      motaMapOperations: operations,
+    });
+    expect(f.durable()?.workspaces[0]?.runs.at(-1)).toMatchObject({ state: 'failed', motaMapOperations: operations });
+    expect(f.chat.motaControl.mock.calls.map(([input]) => input.method)).toEqual(['map.set', 'release', 'release', 'release']);
+    expect(f.chat.motaControl.mock.calls.every(([input]) => input.binding.runId === run.runId)).toBe(true);
+    expect(f.control.releaseRun).toHaveBeenCalledWith(run.runId);
+    expect(f.chat.appStop).not.toHaveBeenCalled();
+  });
+  it('retains policy_violation when explicit model cancellation rejects before cleanup confirmation', async () => {
+    const f = await motaTaskFixture();
+    const { run, scope } = await f.launch();
+    const policyError = 'policy_violation: Mota run emitted forbidden native tool command_execution';
+    const cleanupError = 'model process cleanup acknowledgement lost';
+    const native = deferred<void>();
+    f.control.settleRun.mockReturnValue(native.promise);
+    f.chat.cancel.mockRejectedValue(new Error(cleanupError));
+    f.app.onConversation({ ...modelConversation(f.sessionId, 'failed', 2), error: policyError, cleanupPending: true });
+    await vi.waitFor(async () => expect((await f.owner()).runs.at(-1)?.executorState).toEqual({ state: 'failed', cleanupPending: true }));
+    expect((await f.command({ type: 'cancelRun', runId: run.runId })).ok).toBe(true);
+    await vi.waitFor(async () => expect((await f.owner()).runs.at(-1)?.error).toContain(cleanupError));
+    const pending = required((await f.owner()).runs.at(-1));
+    expect(pending).toMatchObject({
+      state: 'cancelling',
+      executorState: { state: 'failed', cleanupPending: true },
+      motaCleanupPending: true,
+      cleanupPending: true,
+      endedAt: null,
+    });
+    expect(pending.error).toContain(policyError);
+    expect(f.durable()?.workspaces[0]?.runs.at(-1)?.error).toBe(pending.error);
+    await expect(f.app.appControlContext(scope)).rejects.toThrow('控制面不可用');
+    expect(f.control.releaseRun).not.toHaveBeenCalled();
+    native.resolve();
+    await vi.waitFor(async () => expect((await f.owner()).runs.at(-1)?.motaCleanupPending).toBe(false));
+    expect((await f.owner()).runs.at(-1)).toMatchObject({
+      state: 'cancelling',
+      executorState: { state: 'failed', cleanupPending: true },
+      cleanupPending: true,
+      error: pending.error,
+      endedAt: null,
+    });
+    expect(f.control.releaseRun).not.toHaveBeenCalled();
+    f.app.onConversation({ ...modelConversation(f.sessionId, 'failed', 3), error: policyError });
+    await vi.waitFor(async () => expect((await f.owner()).runs.at(-1)?.cleanupPending).toBe(false));
+    expect((await f.owner()).runs.at(-1)).toMatchObject({
+      state: 'failed',
+      executorState: { state: 'failed', cleanupPending: false },
+      error: policyError,
+      motaCleanupPending: false,
+    });
+    expect(f.chat.motaControl.mock.calls.map(([input]) => input.method)).toEqual(['release']);
+    expect(f.control.releaseRun).toHaveBeenCalledWith(run.runId);
+  });
+  it('retains policy_violation in repeated App cleanup diagnostics until model cleanup is confirmed', async () => {
+    const f = await motaTaskFixture();
+    const { run, scope } = await f.launch();
+    const policyError = 'policy_violation: Mota run emitted forbidden native tool command_execution';
+    const native = deferred<void>();
+    f.control.settleRun.mockReturnValue(native.promise);
+    f.chat.cancel.mockResolvedValue({ ...modelConversation(f.sessionId, 'failed', 3), error: policyError });
+    f.app.onConversation({ ...modelConversation(f.sessionId, 'failed', 2), error: policyError, cleanupPending: true });
+    await vi.waitFor(async () => expect((await f.owner()).runs.at(-1)?.executorState).toEqual({ state: 'failed', cleanupPending: true }));
+    f.app.onAppCleanupChanged(scope.workspaceId, run.runId);
+    await vi.waitFor(async () => expect((await f.owner()).runs.at(-1)?.error).toContain('模型进程清理未确认'));
+    const pending = required((await f.owner()).runs.at(-1));
+    expect(pending).toMatchObject({
+      state: 'cancelling',
+      executorState: { state: 'failed', cleanupPending: true },
+      motaCleanupPending: true,
+      cleanupPending: true,
+      endedAt: null,
+      conversation: { error: pending.error },
+    });
+    expect(pending.error).toContain(policyError);
+    expect((await f.owner()).sessions.find((session) => session.sessionId === f.sessionId)?.conversation?.error).toBe(pending.error);
+    expect(f.durable()?.workspaces[0]?.runs.at(-1)?.error).toBe(pending.error);
+    f.app.onAppCleanupChanged(scope.workspaceId, run.runId);
+    expect((await f.owner()).runs.at(-1)?.error).toBe(pending.error);
+    await expect(f.app.appControlContext(scope)).rejects.toThrow('控制面不可用');
+    expect(f.control.releaseRun).not.toHaveBeenCalled();
+    expect((await f.command({ type: 'cancelRun', runId: run.runId })).ok).toBe(true);
+    await vi.waitFor(async () =>
+      expect((await f.owner()).runs.at(-1)).toMatchObject({
+        executorState: { state: 'failed', cleanupPending: false },
+        motaCleanupPending: true,
+        cleanupPending: true,
+      }),
+    );
+    native.resolve();
+    await vi.waitFor(async () => expect((await f.owner()).runs.at(-1)?.cleanupPending).toBe(false));
+    expect((await f.owner()).runs.at(-1)).toMatchObject({ state: 'failed', error: policyError, motaCleanupPending: false });
+    expect(f.chat.motaControl.mock.calls.map(([input]) => input.method)).toEqual(['release']);
+    expect(f.control.releaseRun).toHaveBeenCalledWith(run.runId);
+  });
+  it.each([
+    { state: 'cancelled', error: null },
+    { state: 'failed', error: 'model transport failed during cancellation' },
+  ] as const)('keeps intentional cancellation cancelled for a non-policy $state receipt', async ({ state, error }) => {
+    const f = await motaTaskFixture();
+    const { run } = await f.launch();
+    const native = deferred<void>();
+    f.control.settleRun.mockReturnValue(native.promise);
+    f.chat.cancel.mockResolvedValue({ ...modelConversation(f.sessionId, state, 10), error });
+    expect((await f.command({ type: 'cancelRun', runId: run.runId })).ok).toBe(true);
+    await vi.waitFor(async () =>
+      expect((await f.owner()).runs.at(-1)).toMatchObject({
+        state: 'cancelling',
+        executorState: { state, cleanupPending: false },
+        motaCleanupPending: true,
+      }),
+    );
+    native.resolve();
+    await vi.waitFor(async () => expect((await f.owner()).runs.at(-1)?.cleanupPending).toBe(false));
+    expect((await f.owner()).runs.at(-1)).toMatchObject({
+      state: 'cancelled',
+      motaCleanupPending: false,
+      cleanupPending: false,
+      error,
+    });
+  });
+  it('ignores late success for the same execution binding after a policy_violation terminal failure', async () => {
+    const f = await motaTaskFixture();
+    const { run } = await f.launch();
+    const policyError = 'policy_violation: Mota run emitted forbidden native tool command_execution';
+    f.app.onConversation({ ...modelConversation(f.sessionId, 'failed', 3), error: policyError });
+    await vi.waitFor(async () => expect((await f.owner()).runs.at(-1)?.cleanupPending).toBe(false));
+    const before = await f.owner();
+    const failed = required(before.runs.at(-1));
+    const conversation = required(before.sessions.find((session) => session.sessionId === f.sessionId)).conversation;
+    expect(failed).toMatchObject({ state: 'failed', error: policyError, motaCleanupPending: false });
+    const success = modelConversation(f.sessionId, 'idle', 100);
+    expect(failed.executionBinding).toEqual({ generation: success.generation, turnId: success.turnId });
+    f.app.onConversation(success);
+    const after = await f.owner();
+    expect(after.runs.at(-1)).toEqual(failed);
+    expect(after.sessions.find((session) => session.sessionId === f.sessionId)?.conversation).toEqual(conversation);
+    expect(f.durable()?.workspaces[0]?.runs.at(-1)?.state).toBe('failed');
+    expect(f.chat.motaControl.mock.calls.map(([input]) => input.method)).toEqual(['release']);
+    expect(f.control.releaseRun).toHaveBeenCalledWith(run.runId);
+  });
   it('allows two authorized new games, then requires a new confirmation for the next run', async () => {
     const f = await motaTaskFixture();
     const { run, scope, version } = await f.launch();

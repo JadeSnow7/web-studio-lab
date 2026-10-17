@@ -45,6 +45,18 @@ function killRecorded(item: { pid: number; birth: string }): void {
     if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
   }
 }
+const cleanupFailureStimulus = `
+confirmed_cleanup = cleanup
+def cleanup(sid, child, leader_identity=None):
+    confirmed_cleanup(sid, child, leader_identity)
+    raise RuntimeError("synthetic cleanup confirmation failure")
+`;
+const cleanupSignatureCheck = `
+import inspect
+if inspect.signature(cleanup) != inspect.signature(confirmed_cleanup):
+    raise RuntimeError("cleanup test stub signature drift")
+`;
+
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -55,9 +67,7 @@ async function startProbe(script: string, injectCleanupFailure = false) {
   const prefix = helper.slice(0, helper.lastIndexOf(marker));
   // A synthetic confirmation failure after the real, descendant-free child has
   // stopped exercises preservation; this never changes production helper code.
-  const stimulus = injectCleanupFailure
-    ? '\nconfirmed_cleanup = cleanup\ndef cleanup(sid, child):\n    confirmed_cleanup(sid, child)\n    raise RuntimeError("synthetic cleanup confirmation failure")\n'
-    : '';
+  const stimulus = injectCleanupFailure ? `${cleanupFailureStimulus}${cleanupSignatureCheck}` : '';
   const child = spawn('python3', ['-u', '-c', `${prefix}\nCWD = sys.argv[1]\n${stimulus}\nmain(read_start())\n`, root], {
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -83,6 +93,42 @@ async function startProbe(script: string, injectCleanupFailure = false) {
   );
   return { root, child, frames, done, runId, stderr: () => stderr };
 }
+
+describe('guest cleanup stimulus (portable Python boundary)', () => {
+  it.each([false, true])('matches production and forwards leader identity (explicit=%s)', (explicit) => {
+    const prefix = helper.slice(0, helper.lastIndexOf('\ntry:\n    start = read_start()'));
+    const script = `${prefix}
+${cleanupFailureStimulus}
+${cleanupSignatureCheck}
+calls = []
+child = object()
+leader_identity = ${explicit ? "{'pid': 42, 'startTicks': '123'}" : 'None'}
+confirmed_cleanup = lambda *args: calls.append(args)
+try:
+    cleanup(42, child${explicit ? ', leader_identity' : ''})
+except RuntimeError as error:
+    assert str(error) == 'synthetic cleanup confirmation failure'
+else:
+    raise AssertionError('cleanup failure was not injected')
+assert calls == [(42, child, leader_identity)], calls
+`;
+    const result = spawnSync('python3', ['-I', '-c', script], { encoding: 'utf8' });
+    expect(result.status, result.stderr).toBe(0);
+  });
+
+  it.each(['sid, child', 'sid, child, leader_identity'])('rejects signature drift before cleanup: %s', (signature) => {
+    const prefix = helper.slice(0, helper.lastIndexOf('\ntry:\n    start = read_start()'));
+    const stimulus = cleanupFailureStimulus.replace(/def cleanup\([^)]*\)/, `def cleanup(${signature})`);
+    const result = spawnSync(
+      'python3',
+      ['-I', '-c', `${prefix}\n${stimulus}\n${cleanupSignatureCheck}\nprint('CLEANUP_STARTED')\ncleanup(42, None)\n`],
+      { encoding: 'utf8' },
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('cleanup test stub signature drift');
+    expect(result.stdout).not.toContain('CLEANUP_STARTED');
+  });
+});
 
 describe('Codex exec configuration at the production launch boundary', () => {
   it.each([

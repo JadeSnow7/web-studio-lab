@@ -85,6 +85,7 @@ export class PreviewController {
   private pickError: string | null = null;
   private visible = false;
   private devToolsWindow: BrowserWindow | null = null;
+  private pendingDevToolsReopen: (() => void) | null = null;
   private disposed = false;
   private navigationEpoch = 0;
   private loadRequestId = 0;
@@ -755,6 +756,17 @@ export class PreviewController {
   }
 
   openDevTools(): void {
+    if (this.disposed) return;
+    if (!this.devToolsWindow && this.webContents.devToolsWebContents) {
+      if (!this.pendingDevToolsReopen) {
+        this.pendingDevToolsReopen = () => {
+          this.pendingDevToolsReopen = null;
+          this.openDevTools();
+        };
+        this.webContents.once('devtools-closed', this.pendingDevToolsReopen);
+      }
+      return;
+    }
     if (!this.devToolsWindow) {
       // Establish owner identity before the frontend's first request; Electron's builtin owner getter is populated after frontend load.
       const tools = new BrowserWindow({
@@ -898,6 +910,8 @@ export class PreviewController {
     this.cancelPublicRead(publicReadError('stale', '网页实例已销毁'));
     this.invalidatePick('网页实例已销毁');
     this.disposed = true;
+    if (this.pendingDevToolsReopen) this.webContents.removeListener('devtools-closed', this.pendingDevToolsReopen);
+    this.pendingDevToolsReopen = null;
     this.nativeNavigation?.release();
     this.devToolsWindow?.destroy();
     this.publicProtocol.dispose();

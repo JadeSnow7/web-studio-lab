@@ -5,7 +5,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CodexChat, parseCodexLine } from './codex-chat';
 import { resolveSbxBinary } from './sbx';
-import type { EduTaskBinding, MotaTaskBinding, ChatConversation, ChatSlot } from '@wsl/protocol';
+import { DependencyManifestSchema, type EduTaskBinding, type MotaTaskBinding, type ChatConversation, type ChatSlot } from '@wsl/protocol';
 
 const personal = 'conv-personal-default';
 const space = 'conv-space-taskflow-demo-impl';
@@ -167,7 +167,49 @@ describe('edu candidate round trip (offline transport fixture)', () => {
 });
 
 describe('Mota read-only model admission', () => {
-  it('starts a new read-only thread with only fixed scratch and native restricted MCP', async () => {
+  it.each(['codex-cli unsupported', `codex-cli ${DependencyManifestSchema.shape.guest.shape.codex.value}`])(
+    'real capability gate rejects direct Mota send without starting a process or changing prior history: %s',
+    async (version) => {
+      await chat.send(space, 'ordinary prior history', undefined, emptyReferences(space));
+      expect((await finish(space)).state).toBe('idle');
+      const before = chat.get(space);
+      expect(before.threadId).toBeTruthy();
+      expect(before.messages).toHaveLength(2);
+      const eventCount = events.length;
+      vi.spyOn(chat.connection, 'getStatus').mockReturnValue({ ...chat.connection.getStatus(), version });
+      const start = vi.spyOn(chat.connection, 'start');
+      const binding: MotaTaskBinding = {
+        workspaceId: 'taskflow-demo',
+        environmentId: 'sandbox',
+        projectId: crypto.randomUUID(),
+        appInstanceId: crypto.randomUUID(),
+        runId: crypto.randomUUID(),
+        sessionId: space,
+        resourceId: 'game',
+        browserInstanceId: 'browser',
+        browserGeneration: 0,
+        webContentsId: 1,
+        documentGeneration: 0,
+      };
+      expect(() => chat.assertMotaCapability()).toThrow('mota_native_tools_unverified');
+      await expect(
+        chat.send(
+          space,
+          'must not enter Mota execution',
+          { workspaceId: binding.workspaceId, sessionId: space, runId: binding.runId, sources: [] },
+          emptyReferences(space),
+          undefined,
+          binding,
+        ),
+      ).rejects.toThrow('mota_native_tools_unverified');
+      expect(start).not.toHaveBeenCalled();
+      expect(chat.get(space)).toEqual(before);
+      expect(events).toHaveLength(eventCount);
+    },
+  );
+
+  it('with a mocked capability gate, the offline fixture starts a fresh read-only scratch thread without proving native restriction', async () => {
+    vi.spyOn(chat.connection, 'assertMotaCapability').mockImplementation(() => undefined);
     await chat.send(space, 'ordinary prior thread', undefined, emptyReferences(space));
     await finish(space);
     const previous = chat.get(space).threadId;

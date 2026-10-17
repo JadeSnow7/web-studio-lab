@@ -54,3 +54,16 @@ docs/verification/2026-10-10-code-review/evidence/
 docs/verification/2026-10-10-titlebar-panels-evidence/
 
 /.vitest/
+
+/fixtures/vertical-slice/page/index.html
+/fixtures/vertical-slice/page/package.json
+/fixtures/vertical-slice/page/src/App.tsx
+/fixtures/vertical-slice/page/src/main.tsx
+/tests/vertical-slice/cdp.ts
+/tests/vertical-slice/contracts.ts
+/tests/vertical-slice/evidence.ts
+/tests/vertical-slice/postcondition.ts
+/tests/vertical-slice/run.ts
+/tests/vertical-slice/selftest.test.ts
+/tsconfig.json
+/docs/acceptance/consolidation-20261011/closeout-20261014.md

@@ -91,6 +91,8 @@ interface Entry {
   operation: Promise<AppSnapshot> | null;
   commandProcess: Pick<GuestProcess, 'done' | 'close'> | null;
   stopping: Promise<AppSnapshot> | null;
+  exitCompletion?: Promise<AppSnapshot>;
+  processOutcomeUnknown?: boolean;
   cancelled: boolean;
   port: Port | null;
   portPending: boolean;
@@ -569,12 +571,20 @@ export class AppService {
     if (!entry.process) {
       entry.process = child;
       entry.processExited = false;
-      void child.done.then(() => {
-        if (entry.process === child) {
-          entry.processExited = true;
-          verification?.fail();
-        }
-      });
+      entry.processOutcomeUnknown = false;
+      child.done
+        .then(() => {
+          if (entry.process === child && entry.snapshot.appInstanceId === appInstanceId) {
+            entry.processExited = true;
+            verification?.fail();
+          }
+        })
+        .catch((error: unknown) => {
+          if (entry.process !== child || entry.snapshot.appInstanceId !== appInstanceId) return;
+          entry.processOutcomeUnknown = !entry.processExited;
+          entry.readyError = `应用进程完成通知失败：${String(error).slice(0, 1000)}`;
+          this.appendFailure(entry.snapshot, entry.readyError);
+        });
       entry.snapshot.cleanupConfirmed = false;
     }
     // Applying source does not change the running app's ownership/state. Publishing
@@ -598,7 +608,9 @@ export class AppService {
       ? undefined
       : setTimeout(() => {
           entry.cancelled = true;
-          void child.close();
+          child.close().catch((error: unknown) => {
+            if (entry.commandProcess === child) this.appendFailure(entry.snapshot, error);
+          });
         }, 30000);
     let confirmed = false;
     try {
@@ -786,6 +798,7 @@ export class AppService {
       throw new Error('魔塔运行租约尚未释放，不能重启应用');
     if (this.imports.busy(key)) throw new Error('import_in_progress');
     if (
+      entry.exitCompletion ||
       entry.operation ||
       entry.stopping ||
       entry.commandProcess ||
@@ -796,7 +809,12 @@ export class AppService {
     if (entry.agentProcess || entry.httpOperation) throw new Error('应用控制面操作或结果待确认');
     if (entry.snapshot.state === 'running') return this.get(key);
     if (!entry.snapshot.cleanupConfirmed || entry.portPending || entry.process) throw new Error('上次应用清理尚未确认');
-    if ([...this.entries.values()].some((other) => other !== entry && ['starting', 'running', 'stopping'].includes(other.snapshot.state)))
+    if (
+      [...this.entries.values()].some(
+        (other) =>
+          other !== entry && (other.exitCompletion !== undefined || ['starting', 'running', 'stopping'].includes(other.snapshot.state)),
+      )
+    )
       throw new Error('首版仅允许一个应用服务运行');
     entry.cancelled = false;
     entry.agentToken = entry.snapshot.profile.projectKind === 'standard-app' ? randomBytes(32).toString('hex') : null;
@@ -959,9 +977,16 @@ export class AppService {
         await this.importDependencies(entry, this.options.dependencyArchivePath);
       check();
       const child = this.launch(entry, 'start');
-      void child.done.then((outcome) => {
-        childOutcome = outcome;
-      });
+      const snapshot = entry.snapshot;
+      const done = child.done
+        .then((outcome) => {
+          childOutcome = outcome;
+          return outcome;
+        })
+        .catch((error: unknown): GuestOutcome => {
+          childOutcome = { confirmed: false, exitCode: null, error: `应用进程结果未知：${String(error).slice(0, 1000)}` };
+          return childOutcome;
+        });
       while (entry.readyPort === null) {
         check();
         if (entry.readyError) throw new Error(entry.readyError);
@@ -1061,14 +1086,35 @@ export class AppService {
       check();
       entry.snapshot.state = 'running';
       entry.snapshot.url = url;
-      void child.done.then(async (outcome) => {
-        if (entry.process !== child || entry.snapshot.state !== 'running') return;
-        entry.snapshot.state = 'failed';
-        entry.snapshot.error = outcome.error ?? `应用进程意外退出（${outcome.exitCode}）`;
-        await this.cleanup(entry);
-        await this.persist();
-        this.options.onSnapshot?.(structuredClone(entry.snapshot));
-      });
+      done
+        .then((outcome) => {
+          if (entry.process !== child || entry.snapshot !== snapshot || snapshot.state !== 'running') return;
+          snapshot.state = 'failed';
+          this.appendFailure(snapshot, outcome.error ?? `应用进程意外退出（${outcome.exitCode}）`);
+          const completion = (async () => {
+            try {
+              await this.cleanup(entry);
+              await this.persist();
+            } catch (error) {
+              this.appendFailure(snapshot, error);
+            }
+            if (entry.snapshot === snapshot) {
+              try {
+                await this.options.onSnapshot?.(structuredClone(snapshot));
+              } catch (error) {
+                this.appendFailure(snapshot, error);
+              }
+            }
+            return structuredClone(snapshot);
+          })().finally(() => {
+            if (entry.exitCompletion === completion) entry.exitCompletion = undefined;
+          });
+          entry.exitCompletion = completion;
+          return completion;
+        })
+        .catch((error: unknown) => {
+          if (entry.snapshot === snapshot) this.appendFailure(snapshot, error);
+        });
     } catch (error) {
       const diagnostic = exitDiagnostic();
       entry.snapshot.error = String(error);
@@ -1079,6 +1125,9 @@ export class AppService {
       clearTimeout(timer);
     }
     return structuredClone(entry.snapshot);
+  }
+  private appendFailure(snapshot: AppSnapshot, error: unknown): void {
+    snapshot.error = [snapshot.error, String(error).slice(0, 1000)].filter(Boolean).join('; ');
   }
   private async cleanup(entry: Entry): Promise<void> {
     entry.snapshot.url = null;
@@ -1101,7 +1150,11 @@ export class AppService {
       try {
         const ownedPort = entry.port;
         if (!ownedPort) throw new Error('映射发布结果未知，不能清理未归属端口');
-        if (entry.processExited) throw new Error('guest进程已退出，沙箱映射连续性未知；不触碰可能重绑定的端口');
+        const checkContinuity = () => {
+          if (entry.processExited || entry.processOutcomeUnknown)
+            throw new Error('guest进程已退出或结果未知，沙箱映射连续性未知；不触碰可能重绑定的端口');
+        };
+        checkContinuity();
         const before = await this.listPorts();
         const matches = before.filter((port) => port.sandbox_port === ownedPort.sandbox_port);
         if (matches.length > 1) throw new Error('所属端口映射重复，清理状态未知');
@@ -1110,6 +1163,7 @@ export class AppService {
         // sbx's resolved host:guest form leaves the request alive across an idle VM restart.
         entry.portRemovalPending = true;
         await this.persist();
+        checkContinuity();
         await this.ports(['--unpublish', `${ownedPort.sandbox_port}/${ownedPort.protocol}`]);
         if ((await this.listPorts()).some((port) => port.sandbox_port === ownedPort.sandbox_port))
           throw new Error('应用端口仍有映射，清理未确认');
@@ -1164,7 +1218,7 @@ export class AppService {
   async captureRecoverySource(key: AppKey, fromStop = false): Promise<string> {
     await this.ensureLoaded();
     const entry = this.entry(key);
-    if (entry.snapshot.profile.projectKind !== 'edu-web' || entry.operation || (entry.stopping && !fromStop))
+    if (entry.snapshot.profile.projectKind !== 'edu-web' || entry.exitCompletion || entry.operation || (entry.stopping && !fromStop))
       throw new Error('verification_recovery_app_busy');
     const confirmed = entry.snapshot.cleanupConfirmed;
     const cancelled = entry.cancelled;
@@ -1189,6 +1243,7 @@ export class AppService {
       before.sourceSha256 !== sourceSha256 ||
       entry.snapshot.profile.projectKind !== 'edu-web' ||
       entry.process ||
+      entry.exitCompletion ||
       entry.operation ||
       (entry.stopping && !fromStop)
     )
@@ -1224,9 +1279,13 @@ export class AppService {
       },
     );
     let exited = false;
-    void child.done.then(() => {
-      exited = true;
-    });
+    child.done
+      .then(() => {
+        exited = true;
+      })
+      .catch(() => {
+        failure = true;
+      });
     try {
       const deadline = Date.now() + 12000;
       let line: string | undefined;
@@ -1342,9 +1401,11 @@ export class AppService {
     entry.cancelled = true;
     entry.snapshot.state = 'stopping';
     const operation = entry.operation;
+    const exitCompletion = entry.exitCompletion;
     entry.stopping = (async () => {
       const taskCleanup = await Promise.all(this.eduTaskOperations.bindings(key).map((binding) => this.cancelEduTask(binding)));
       const taskConfirmed = taskCleanup.every((result) => result.cleanupConfirmed);
+      if (exitCompletion) await exitCompletion;
       // An ended transport's failed done promise cannot perform another cleanup.
       // Release only that edu handle; ownership/source/mapping facts stay intact
       // and the durable recovery helper must establish an independent proof.
@@ -1420,6 +1481,10 @@ export class AppService {
     })();
     try {
       return await entry.stopping;
+    } catch (error) {
+      entry.snapshot.state = 'failed';
+      this.appendFailure(entry.snapshot, error);
+      throw error;
     } finally {
       entry.stopping = null;
     }
@@ -1461,7 +1526,7 @@ export class AppService {
         cleanupConfirmed: !entry.agentProcess && entry.snapshot.cleanupConfirmed,
       };
     if (operation.op === 'reconcile') return this.reconcileAgent(entry, appInstanceId, operation.operationId, operation.operation);
-    if (entry.operation || entry.stopping || (write && entry.httpOperation))
+    if (entry.exitCompletion || entry.operation || entry.stopping || (write && entry.httpOperation))
       return { ...fail('app_busy', '应用操作进行中'), operationDispatched: false };
     if (entry.snapshot.state === 'running') {
       if (appInstanceId !== null && appInstanceId !== entry.snapshot.appInstanceId)
@@ -1692,7 +1757,14 @@ export class AppService {
       if (profile.projectKind === 'mota-web') return unavailable('mota-web 暂不支持任务源码采集', true);
       if (this.sourceProcesses.has(id)) return unavailable('上次源码 helper 尚未确认清理', false);
       if (this.closing || signal?.aborted) return unavailable('源码采集已取消或服务正在关闭', true);
-      if (this.imports.busy(key) || entry.operation || entry.stopping || entry.commandProcess || this.eduTaskOperations.busy(key))
+      if (
+        this.imports.busy(key) ||
+        entry.exitCompletion ||
+        entry.operation ||
+        entry.stopping ||
+        entry.commandProcess ||
+        this.eduTaskOperations.busy(key)
+      )
         return unavailable('工程有限 helper 正在运行或清理未确认；未启动源码采集', true);
       if (!this.connection.getStatus().available) return unavailable('源码采集服务不可用；未启动 helper', true);
     } catch {
@@ -1721,7 +1793,10 @@ export class AppService {
             reader.accept(frame.data);
           } catch {
             failure = '源码采集回执无效或超过路径、数量、字节预算';
-            if (stop) void stop();
+            if (stop)
+              stop().catch(() => {
+                failure = '源码 helper 清理失败';
+              });
           }
         },
       );
@@ -1741,11 +1816,12 @@ export class AppService {
       if (!stopping) {
         stopping = Promise.resolve()
           .then(() => child.close())
-          .catch((): GuestOutcome => ({ confirmed: false, exitCode: null, error: '源码 helper 清理失败' }));
-        void stopping.then((outcome) => {
-          resolveStopped?.(outcome);
-          if (!outcome.confirmed) stopping = undefined;
-        });
+          .catch((): GuestOutcome => ({ confirmed: false, exitCode: null, error: '源码 helper 清理失败' }))
+          .then((outcome) => {
+            resolveStopped?.(outcome);
+            if (!outcome.confirmed) stopping = undefined;
+            return outcome;
+          });
       }
       return stopping;
     };
@@ -1753,7 +1829,9 @@ export class AppService {
     this.sourceProcesses.set(id, handle);
     const cancel = () => {
       failure ??= '源码采集已取消或超时';
-      void handle.stop();
+      handle.stop().catch(() => {
+        failure = '源码 helper 清理失败';
+      });
     };
     signal?.addEventListener('abort', cancel, { once: true });
     if (failure || signal?.aborted) cancel();
@@ -1788,6 +1866,7 @@ export class AppService {
     if (this.imports.busy(key)) throw new Error('import_in_progress');
     if (this.sourceProcesses.has(this.id(key)) || (!task && this.eduTaskOperations.busy(key))) throw new Error('source_helper_busy');
     if (
+      entry.exitCompletion ||
       entry.operation ||
       entry.commandProcess ||
       entry.stopping ||
@@ -1954,6 +2033,7 @@ export class AppService {
           this.imports.busy(key) ||
           this.sourceProcesses.has(this.id(key)) ||
           entry.commandProcess ||
+          entry.exitCompletion ||
           entry.operation ||
           entry.stopping ||
           entry.snapshot.state !== 'running' ||

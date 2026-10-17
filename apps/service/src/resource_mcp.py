@@ -756,7 +756,9 @@ def dispatch(bundle, method, params):
         # It is deliberately ignored; this finite server has no functional list/ping parameters.
         if not isinstance(params, dict) or set(params) - {"_meta"} or ("_meta" in params and not isinstance(params["_meta"], dict)):
             raise RpcError(-32602, "Only object request metadata is accepted")
-        return {"tools": TOOLS + ((MOTA_TOOLS if MOTA_MODE else OBSERVATION_TOOLS + APP_TOOLS + (RESEARCH_TOOLS if RESEARCH_MODE else [])) if OBSERVATION_SOCKET else [])} if method == "tools/list" else {}
+        if MOTA_MODE:
+            return {"tools": MOTA_TOOLS if OBSERVATION_SOCKET else []} if method == "tools/list" else {}
+        return {"tools": TOOLS + (OBSERVATION_TOOLS + APP_TOOLS + (RESEARCH_TOOLS if RESEARCH_MODE else []) if OBSERVATION_SOCKET else [])} if method == "tools/list" else {}
     if method != "tools/call":
         raise RpcError(-32601, "Read-only server: method not found")
     if not isinstance(params, dict) or set(params) - {"name", "arguments", "_meta"} or "name" not in params or ("_meta" in params and not isinstance(params["_meta"], dict)):
@@ -765,6 +767,8 @@ def dispatch(bundle, method, params):
     name = params["name"]
     if not isinstance(name, str):
         raise RpcError(-32602, "Tool name must be a string")
+    if MOTA_MODE and (not OBSERVATION_SOCKET or name not in MOTA_BY_MCP):
+        raise RpcError(-32601, "Mota permits only its four dedicated tools")
     if name in ("research_open", "research_include"):
         if not RESEARCH_MODE or MOTA_MODE or not OBSERVATION_SOCKET:
             raise RpcError(-32601, "Research is not authorized in this turn")

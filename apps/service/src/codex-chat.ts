@@ -33,7 +33,7 @@ import {
   type ResearchToolResult,
   type ResearchTurnContext,
 } from '@wsl/protocol';
-import { SbxConnection, type GuestProcess, type GuestWorkspace } from './sbx';
+import { SbxConnection, type GuestOutcome, type GuestProcess, type GuestWorkspace } from './sbx';
 import { recordNativeSearch, validateResearchReply } from './research-runtime';
 
 const EventSchema = z.discriminatedUnion('type', [
@@ -267,6 +267,10 @@ interface Turn {
   completed: boolean;
   replied: boolean;
   cleanupError: string | null;
+  cleanupConfirmed: boolean;
+  finishing: boolean;
+  closePromise: Promise<GuestOutcome | null> | null;
+  completion: Promise<void> | null;
   observation: AbortController;
   calls: Map<string, AbortController>;
 }
@@ -321,6 +325,9 @@ export class CodexChat {
   getStatus(): ChatStatus {
     return this.connection.getStatus();
   }
+  assertMotaCapability(): void {
+    this.connection.assertMotaCapability();
+  }
   private slot(id: ChatSlot): Slot {
     let slot = this.slots.get(id);
     if (!slot) {
@@ -357,7 +364,33 @@ export class CodexChat {
     if (this.connection.getCleanupPending()) throw new Error('共享 sandbox 清理状态未知');
     for (const slot of this.slots.values()) {
       if (slot.active?.cleanupError) throw new Error(slot.active.cleanupError);
+      if (slot.active?.failure && slot.conversation.cleanupPending) throw new Error('失败轮次的 guest 清理尚未确认');
     }
+  }
+  private completionFailed(slot: Slot, turn: Turn, error: unknown): void {
+    if (slot.active !== turn) return;
+    const reason = error instanceof Error ? error.message : String(error);
+    turn.failure ??= reason;
+    turn.observation.abort();
+    if (!turn.cleanupConfirmed) turn.cleanupError ??= reason;
+    slot.conversation.state = 'failed';
+    slot.conversation.cleanupPending = !turn.cleanupConfirmed;
+    slot.conversation.error = [...new Set([turn.failure, slot.conversation.error, reason].filter(Boolean))].join('; ');
+    try {
+      this.publish(slot);
+    } catch (publishError) {
+      slot.conversation.error += `; ${publishError instanceof Error ? publishError.message : String(publishError)}`;
+    }
+    if (turn.cleanupConfirmed && slot.active === turn) slot.active = null;
+  }
+  private closeTurn(slot: Slot, turn: Turn): Promise<GuestOutcome | null> {
+    turn.closePromise ??= Promise.resolve()
+      .then(() => turn.process.close())
+      .catch((error: unknown) => {
+        this.completionFailed(slot, turn, error);
+        return null;
+      });
+    return turn.closePromise;
   }
   async send(
     id: ChatSlot,
@@ -392,6 +425,7 @@ export class CodexChat {
         observationScope.workspaceId !== motaTask.workspaceId)
     )
       throw new Error('Mota task does not belong to this read-only run');
+    if (motaTask) this.assertMotaCapability();
     if (this.closing) throw new Error('对话服务正在关闭');
     if (id !== 'conv-personal-default' && !this.workspaceBySession.has(id)) throw new Error('会话尚未由宿主注册');
     if (observationScope) {
@@ -411,10 +445,10 @@ export class CodexChat {
     if (!status.available) throw new Error(status.reason ?? 'sbx 不可用');
     const slot = this.slot(id);
     if (slot.active) throw new Error(slot.active?.cleanupError ?? '当前会话正在等待回复');
+    this.assertCleanupKnown();
     // A Mota turn must never resume a thread previously granted workspace writes.
     if (motaTask) slot.conversation.threadId = null;
     const spaceId = this.workspaceBySession.get(id) ?? null;
-    if (spaceId) this.assertCleanupKnown();
     const turnId = randomUUID();
     if (references.sessionId !== id || references.workspaceId !== spaceId) throw new Error('参考资料不属于已注册会话');
     const resourceBundle = ResourceBundleSchema.parse({
@@ -449,15 +483,37 @@ export class CodexChat {
     let buffer = '';
     let stderr = '';
     const fail = (reason: string) => {
-      turn.failure ??= reason;
+      if (slot.active !== turn || turn.failure) return;
+      turn.failure = reason;
       turn.observation.abort();
-      void turn.process.close();
+      slot.conversation.state = 'failed';
+      slot.conversation.error = reason;
+      slot.conversation.cleanupPending = !turn.cleanupConfirmed;
+      void this.closeTurn(slot, turn);
+      try {
+        this.publish(slot);
+      } catch (error) {
+        this.completionFailed(slot, turn, error);
+      }
     };
     const consume = (line: string) => {
-      if (turn.cancel || turn.failure || slot.active !== turn || !line.trim()) return;
+      if (turn.failure || slot.active !== turn || (turn.cancel && !motaTask) || !line.trim()) return;
       try {
         const event = parseCodexLine(line);
         if (!event) return;
+        if (
+          motaTask &&
+          'item' in event &&
+          (event.item.type === 'command_execution' ||
+            ['web_search', 'web_search_call'].includes(event.item.type) ||
+            (event.item.type === 'mcp_tool_call' &&
+              (event.item.server !== 'wsl_space' ||
+                !['app_mota_state', 'app_mota_act', 'app_mota_map_read', 'app_mota_map_set'].includes(event.item.tool ?? ''))))
+        ) {
+          fail(`policy_violation: Mota run emitted forbidden native tool ${event.item.type}`);
+          return;
+        }
+        if (turn.cancel) return;
         if (event.type === 'thread.started') {
           if (slot.conversation.threadId && slot.conversation.threadId !== event.thread_id) throw new Error('Codex 返回了不同的会话身份');
           slot.conversation.threadId = event.thread_id;
@@ -540,7 +596,7 @@ export class CodexChat {
         if (event.type === 'error') fail(event.message);
         this.publish(slot);
       } catch (error) {
-        fail(`Codex 协议错误：${(error as Error).message}`);
+        if (!turn.cancel) fail(`Codex 协议错误：${(error as Error).message}`);
       }
     };
     let candidate: GuestWorkspace | undefined;
@@ -573,6 +629,7 @@ export class CodexChat {
         ...(motaWorkspace ? { workspace: motaWorkspace, strictWorkspace: true, motaControl: true } : {}),
       },
       (frame) => {
+        if (slot.active !== turn || turn.finishing) return;
         if (eduTask && frame.type === 'error') candidateDiagnostics.push(frame.error.slice(0, 4000));
         if (frame.type === 'workspace') {
           if ((!eduTask && !motaTask) || candidate) {
@@ -587,19 +644,16 @@ export class CodexChat {
           return;
         }
         if (frame.type === 'observation-call') {
+          if (turn.failure || turn.cancel || turn.observation.signal.aborted) return;
           const appTool = frame.tool.startsWith('app.');
           const researchTool = ResearchToolNameSchema.safeParse(frame.tool);
           const reply = (result: WorkspaceObservationResult | AppControlResult | ResearchToolResult) => {
-            if (slot.active !== turn || turn.cancel || turn.observation.signal.aborted) return;
+            if (slot.active !== turn || turn.failure || turn.cancel || turn.observation.signal.aborted) return;
             const bounded = boundedObservationReply(frame.id, result);
             process.write(bounded);
           };
           if (motaTask && !['app.mota.state', 'app.mota.act', 'app.mota.map.read', 'app.mota.map.set'].includes(frame.tool)) {
-            reply(
-              appTool
-                ? { ok: false, tool: null, error: { code: 'unsupported', message: 'Mota run permits only its four restricted tools' } }
-                : { error: 'unauthorized', message: 'Mota run has no workspace observer capability' },
-            );
+            fail(`policy_violation: Mota run requested forbidden tool ${frame.tool}`);
             return;
           }
           if (researchTool.success && (!researchContext || !this.researchReader)) {
@@ -646,7 +700,8 @@ export class CodexChat {
           turn.observation.signal.addEventListener('abort', abort, { once: true });
           const call = researchTool.success
             ? Promise.resolve().then(async () => {
-                if (controller.signal.aborted || turn.cancel || slot.active !== turn) return;
+                if (controller.signal.aborted || turn.observation.signal.aborted || turn.failure || turn.cancel || slot.active !== turn)
+                  return;
                 const parsed = ResearchCallSchema.safeParse({
                   callId: frame.id,
                   context: researchContext,
@@ -693,7 +748,7 @@ export class CodexChat {
           return;
         }
         if (frame.type === 'cleanup') {
-          slot.conversation.cleanupPending = !frame.ok;
+          if (!frame.ok) turn.cleanupError ??= frame.error ?? 'guest 清理未确认';
           this.publish(slot);
         }
         if (frame.type !== 'output') return;
@@ -721,49 +776,57 @@ export class CodexChat {
       completed: false,
       replied: false,
       cleanupError: null,
+      cleanupConfirmed: false,
+      finishing: false,
+      closePromise: null,
+      completion: null,
       observation: new AbortController(),
       calls: new Map(),
     };
     slot.active = turn;
-    void process.done.then(async (outcome) => {
-      turn.observation.abort();
-      if (buffer.trim()) consume(buffer);
-      if (slot.active !== turn) return;
-      turn.cleanupError = !outcome.confirmed ? (outcome.error ?? 'guest 清理未确认') : null;
-      slot.conversation.cleanupPending = !outcome.confirmed;
+    turn.completion = process.done
+      .then(async (outcome) => {
+        if (slot.active !== turn) return;
+        turn.finishing = true;
+        turn.observation.abort();
+        if (buffer.trim()) consume(buffer);
+        turn.cleanupConfirmed = outcome.confirmed;
+        turn.cleanupError = !outcome.confirmed ? (outcome.error ?? 'guest 清理未确认') : null;
+        slot.conversation.cleanupPending = !outcome.confirmed;
 
-      const failure =
-        turn.cleanupError ??
-        outcome.error ??
-        turn.failure ??
-        (!turn.cancel
-          ? outcome.exitCode !== 0
-            ? `Codex 退出失败（${outcome.exitCode}）${stderr ? `：${stderr}` : ''}`
-            : !turn.completed
-              ? 'Codex 未返回对话完成事件'
-              : !slot.conversation.threadId
-                ? 'Codex 未返回会话身份'
-                : !turn.replied
-                  ? 'Codex 未返回助手回复'
-                  : null
-          : null);
-      let candidateFailure: string | null = null;
-      if (motaWorkspace && JSON.stringify(candidate) !== JSON.stringify(motaWorkspace))
-        candidateFailure = 'Mota read-only scratch changed or its cleanup snapshot was not confirmed';
-      if (eduTask) {
-        try {
-          if (!candidate) throw new Error(['edu task returned no candidate', ...candidateDiagnostics].join('; '));
-          await eduTask.retain(candidate);
-          slot.conversation.eduCandidateRunId = eduTask.binding.runId;
-        } catch (error) {
-          candidateFailure = (error as Error).message;
+        const failure =
+          [...new Set([turn.failure, turn.cleanupError, outcome.error].filter(Boolean))].join('; ') ||
+          (!turn.cancel
+            ? outcome.exitCode !== 0
+              ? `Codex 退出失败（${outcome.exitCode}）${stderr ? `：${stderr}` : ''}`
+              : !turn.completed
+                ? 'Codex 未返回对话完成事件'
+                : !slot.conversation.threadId
+                  ? 'Codex 未返回会话身份'
+                  : !turn.replied
+                    ? 'Codex 未返回助手回复'
+                    : null
+            : null);
+        let candidateFailure: string | null = null;
+        if (motaWorkspace && JSON.stringify(candidate) !== JSON.stringify(motaWorkspace))
+          candidateFailure = 'Mota read-only scratch changed or its cleanup snapshot was not confirmed';
+        if (eduTask) {
+          try {
+            if (!candidate) throw new Error(['edu task returned no candidate', ...candidateDiagnostics].join('; '));
+            await eduTask.retain(candidate);
+            if (slot.active !== turn) return;
+            slot.conversation.eduCandidateRunId = eduTask.binding.runId;
+          } catch (error) {
+            candidateFailure = (error as Error).message;
+          }
         }
-      }
-      if (!turn.cleanupError) slot.active = null;
-      slot.conversation.state = candidateFailure || failure ? 'failed' : turn.cancel ? 'cancelled' : 'idle';
-      slot.conversation.error = candidateFailure ? [failure, candidateFailure].filter(Boolean).join('; ') : failure;
-      this.publish(slot);
-    });
+        if (slot.active !== turn) return;
+        slot.conversation.state = candidateFailure || failure ? 'failed' : turn.cancel ? 'cancelled' : 'idle';
+        slot.conversation.error = candidateFailure ? [failure, candidateFailure].filter(Boolean).join('; ') : failure;
+        this.publish(slot);
+        if (turn.cleanupConfirmed) slot.active = null;
+      })
+      .catch((error: unknown) => this.completionFailed(slot, turn, error));
     return this.get(id);
   }
   private cancelUnstarted(slot: Slot, turnId: string): ChatConversation {
@@ -776,17 +839,22 @@ export class CodexChat {
     const turn = slot.active;
     if (!turn) return queuedSend ? this.cancelUnstarted(slot, randomUUID()) : this.get(id);
     if (turn.cleanupError) throw new Error(turn.cleanupError);
-    turn.cancel = true;
-    turn.observation.abort();
-    slot.conversation.state = 'cancelling';
-    this.publish(slot);
-    const outcome = await turn.process.close();
-    if (!outcome.confirmed || outcome.error) throw new Error(outcome.error ?? 'guest 清理未确认');
+    if (!turn.failure) {
+      turn.cancel = true;
+      turn.observation.abort();
+      slot.conversation.state = 'cancelling';
+      this.publish(slot);
+    }
+    const outcome = await this.closeTurn(slot, turn);
+    if (!outcome || !outcome.confirmed || outcome.error) throw new Error(turn.cleanupError ?? outcome?.error ?? 'guest 清理未确认');
+    await turn.completion;
+    if (!turn.cleanupConfirmed) throw new Error(turn.cleanupError ?? 'guest 清理未确认');
     return this.get(id);
   }
   async reset(id: ChatSlot): Promise<ChatConversation> {
     if (this.closing) throw new Error('对话服务正在关闭');
     await this.cancel(id);
+    this.assertCleanupKnown();
     this.slots.delete(id);
     return this.publish(this.slot(id));
   }

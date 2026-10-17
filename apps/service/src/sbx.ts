@@ -6,6 +6,7 @@ import { createInterface } from 'node:readline';
 import { z } from 'zod';
 import {
   ResourceBundleSchema,
+  DependencyManifestSchema,
   type AppControlResult,
   type ChatStatus,
   type ResourceBundle,
@@ -266,6 +267,12 @@ export class SbxConnection {
   getStatus(): ChatStatus {
     return { ...this.status };
   }
+  assertMotaCapability(): void {
+    const expected = `codex-cli ${DependencyManifestSchema.shape.guest.shape.codex.value}`;
+    if (this.getStatus().version !== expected)
+      throw new Error(`mota_native_tools_unverified: 魔塔受限任务需要已核验的 ${expected} 原生工具限制，当前版本不匹配`);
+    throw new Error(`mota_native_tools_unverified: ${expected} 的仅四个专用工具模式尚未验证，拒绝启动；只读沙箱和提示词不是原生工具限制`);
+  }
   getCleanupPending(): boolean {
     return this.probe !== null || this.cleanupUnknown;
   }
@@ -283,6 +290,7 @@ export class SbxConnection {
   ): GuestProcess {
     if (this.closing) throw new Error('sbx 服务正在关闭');
     if (!this.status.available || !this.binary || !this.status.sandbox) throw new Error(this.status.reason ?? 'sbx 不可用');
+    if (start.mode === 'codex' && start.motaControl) this.assertMotaCapability();
     const guest = new GuestProcess(this.binary, this.status.sandbox, start, onFrame, onTransportOutput);
     void guest.done.then((outcome) => {
       if (!outcome.confirmed) this.cleanupUnknown = true;

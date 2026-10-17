@@ -43,6 +43,9 @@ function fixture(
     crashOutcome?: GuestOutcome;
     startupFailure?: { stderr: string[]; stdout?: string; outcome?: GuestOutcome };
     startCleanupFailure?: boolean;
+    startCloseError?: string;
+    commandCloseError?: string;
+    deferStartDoneOnClose?: boolean;
     recoveryBootReplacement?: 'valid' | 'invalid';
     healthTemplate?: string;
     closeGate?: Promise<void>;
@@ -70,6 +73,7 @@ function fixture(
   let closes = 0;
   let starts = 0;
   let crash: (() => void) | undefined;
+  let rejectApp: ((error: Error) => void) | undefined;
   let appOutput: ((frame: GuestFrame) => void) | undefined;
   let identity: Record<string, unknown> = {};
   const recoveryBootId = randomUUID();
@@ -100,6 +104,7 @@ function fixture(
         rejectDone = reject;
       });
       identity = { ...(settings.identityKey ?? key), environmentId: 'sandbox', appInstanceId: input.appInstanceId };
+      if (input.operation === 'start') rejectApp = rejectDone;
       if (input.operation === 'start') appOutput = onFrame;
       if (input.operation === 'start') crash = () => finish?.(settings.crashOutcome ?? { confirmed: true, exitCode: 17, error: null });
       if (input.operation === 'start')
@@ -188,7 +193,10 @@ function fixture(
         close: async () => {
           closes++;
           if (input.operation === 'agent' && settings.agentCloseError) throw new Error(settings.agentCloseError);
+          if (input.operation === 'start' && settings.startCloseError) throw new Error(settings.startCloseError);
+          if (input.operation === 'export' && settings.commandCloseError) throw new Error(settings.commandCloseError);
           if (settings.closeGate) await settings.closeGate;
+          if (input.operation === 'start' && settings.deferStartDoneOnClose) return { confirmed: true, exitCode: -15, error: null };
           commands.push(['child-close']);
           finish?.({
             confirmed: settings.cleanup !== false && !(input.operation === 'start' && settings.startCleanupFailure),
@@ -252,6 +260,10 @@ function fixture(
     closes: () => closes,
     starts: () => starts,
     crash: () => crash?.(),
+    rejectApp: () => {
+      if (!rejectApp) throw new Error('No App process');
+      return rejectApp;
+    },
     output: (data: string, stream: 'stdout' | 'stderr' = 'stdout') => appOutput?.({ type: 'output', stream, data }),
     rebind: (port: number) => {
       mappedHostPort = port;
@@ -268,6 +280,302 @@ function fixture(
     },
   };
 }
+
+describe('R3 App asynchronous completion failures', () => {
+  it('publishes persistence failure after done resolves and keeps unknown cleanup blocked', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-completion-'));
+    const registryPath = path.join(root, 'registry.json');
+    const test = fixture();
+    const onSnapshot = vi.fn();
+    const service = new AppService(test.connection, { ...test.options, registryPath, onSnapshot });
+    let writing: ReturnType<typeof vi.spyOn> | undefined;
+    try {
+      await service.create({ ...key, files });
+      const running = await service.start(key);
+      writing = vi.spyOn(fs, 'writeFile').mockRejectedValueOnce(new Error('controlled_exit_persist_failure'));
+      test.crash();
+      await expect.poll(() => service.get(key).error).toContain('controlled_exit_persist_failure');
+      expect(service.get(key)).toMatchObject({ appInstanceId: running.appInstanceId, state: 'failed', cleanupConfirmed: false, url: null });
+      expect(onSnapshot).toHaveBeenLastCalledWith(
+        expect.objectContaining({ state: 'failed', error: expect.stringContaining('controlled_exit_persist_failure') }),
+      );
+      await expect(service.start(key)).rejects.toThrow(/清理|进行中/);
+      writing.mockRestore();
+      const stopped = await service.stop(key);
+      expect(stopped.cleanupConfirmed).toBe(false);
+      expect(JSON.parse(await readFile(registryPath, 'utf8')).apps[0]).toMatchObject({ state: 'failed', cleanupConfirmed: false });
+      expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+    } finally {
+      writing?.mockRestore();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('keeps a rejected close visible and does not release the same-instance restart gate', async () => {
+    const test = fixture({ startCloseError: 'controlled_exit_close_failure' });
+    await test.service.create({ ...key, files });
+    await test.service.start(key);
+    test.crash();
+    await expect.poll(() => test.service.get(key).error).toContain('controlled_exit_close_failure');
+    expect(test.service.get(key)).toMatchObject({ state: 'failed', cleanupConfirmed: false, url: null });
+    await expect(test.service.start(key)).rejects.toThrow(/清理|进行中/);
+    expect((await test.service.stop(key)).cleanupConfirmed).toBe(false);
+  });
+  it('retains a throwing snapshot publisher error in the queryable failed snapshot', async () => {
+    const test = fixture();
+    const service = new AppService(test.connection, {
+      ...test.options,
+      onSnapshot: (snapshot) => {
+        if (snapshot.state === 'failed') throw new Error('controlled_exit_publish_failure');
+      },
+    });
+    await service.create({ ...key, files });
+    await service.start(key);
+    test.crash();
+    await expect.poll(() => service.get(key).error).toContain('controlled_exit_publish_failure');
+    expect(service.get(key)).toMatchObject({ state: 'failed', cleanupConfirmed: false, url: null });
+  });
+  it('awaits a rejected asynchronous snapshot publisher before releasing exit completion', async () => {
+    const test = fixture();
+    const service = new AppService(test.connection, {
+      ...test.options,
+      onSnapshot: async (snapshot) => {
+        if (snapshot.state === 'failed') {
+          await Promise.resolve();
+          throw new Error('controlled_async_publish_failure');
+        }
+      },
+    });
+    await service.create({ ...key, files });
+    await service.start(key);
+    test.crash();
+    await expect.poll(() => service.get(key).error).toContain('controlled_async_publish_failure');
+    expect(service.get(key)).toMatchObject({ state: 'failed', cleanupConfirmed: false, url: null });
+  });
+  it('handles a rejected running done without inventing an exit or cleanup receipt', async () => {
+    const test = fixture();
+    await test.service.create({ ...key, files });
+    const running = await test.service.start(key);
+    test.rejectApp()(new Error('controlled_running_done_rejection'));
+    await expect.poll(() => test.service.get(key).state).toBe('failed');
+    await expect.poll(() => test.service.get(key).error).toContain('controlled_running_done_rejection');
+    expect(test.service.get(key)).toMatchObject({ appInstanceId: running.appInstanceId, cleanupConfirmed: false, url: null });
+    await expect(test.service.start(key)).rejects.toThrow(/清理|进行中/);
+    expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+  });
+  it('does not discard an edu handle whose done and close both reject', async () => {
+    const test = fixture({ sourceFiles: eduFiles });
+    await test.service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+    await test.service.start(key);
+    test.rejectApp()(new Error('controlled_edu_transport_unknown'));
+    await expect.poll(() => test.service.get(key).error).toContain('controlled_edu_transport_unknown');
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    const stopped = await test.service.stop(key);
+    expect(stopped).toMatchObject({ state: 'failed', cleanupConfirmed: false });
+    expect(test.requests().some((request) => request.operation === 'recover-owned')).toBe(false);
+    expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+    await expect(test.service.start(key)).rejects.toThrow(/清理/);
+  });
+  it('handles done rejection during startup before reporting a running App', async () => {
+    const test = fixture();
+    const service = new AppService(test.connection, {
+      ...test.options,
+      fetch: async (...args) => {
+        test.rejectApp()(new Error('controlled_startup_done_rejection'));
+        return test.options.fetch(...args);
+      },
+    });
+    await service.create({ ...key, files });
+    const result = await service.start(key);
+    expect(result).toMatchObject({ state: 'failed', cleanupConfirmed: false, url: null });
+    expect(result.error).toContain('controlled_startup_done_rejection');
+  });
+  it('ignores a former process rejection after confirmed stop and a new AppInstance', async () => {
+    const test = fixture({ deferStartDoneOnClose: true });
+    await test.service.create({ ...key, files });
+    const first = await test.service.start(key);
+    const rejectOld = test.rejectApp();
+    expect((await test.service.stop(key)).cleanupConfirmed).toBe(true);
+    const second = await test.service.start(key);
+    expect(second.appInstanceId).not.toBe(first.appInstanceId);
+    rejectOld(new Error('controlled_stale_done_rejection'));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(test.service.get(key)).toEqual(second);
+    expect(test.hasMapping()).toBe(true);
+    expect((await test.service.stop(key)).cleanupConfirmed).toBe(true);
+  });
+  it('rechecks process continuity after cleanup persistence before unpublishing', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-continuity-'));
+    const test = fixture();
+    const service = new AppService(test.connection, { ...test.options, registryPath: path.join(root, 'registry.json') });
+    const originalWrite = fs.writeFile;
+    let writing: ReturnType<typeof vi.spyOn> | undefined;
+    try {
+      await service.create({ ...key, files });
+      await service.start(key);
+      writing = vi.spyOn(fs, 'writeFile').mockImplementationOnce(async (...args) => {
+        test.crash();
+        test.rebind(49999);
+        await originalWrite(...args);
+      });
+      const stopped = await service.stop(key);
+      expect(stopped).toMatchObject({ state: 'failed', cleanupConfirmed: false });
+      expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+      expect(test.hasMapping()).toBe(true);
+    } finally {
+      writing?.mockRestore();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('records finite-helper close rejection without leaving stopping stuck and permits explicit recovery', async () => {
+    let release: () => void = () => {
+      throw new Error('Uninitialised gate');
+    };
+    const settings = {
+      exportGate: new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+      commandCloseError: 'controlled_command_close_failure' as string | undefined,
+    };
+    const test = fixture(settings);
+    await test.service.create({ ...key, files });
+    const exporting = expect(test.service.export(key)).rejects.toThrow('取消');
+    try {
+      await expect.poll(test.starts).toBe(2);
+      await expect(test.service.stop(key)).rejects.toThrow('controlled_command_close_failure');
+      expect(test.service.get(key)).toMatchObject({
+        state: 'failed',
+        cleanupConfirmed: false,
+        error: expect.stringContaining('controlled_command_close_failure'),
+      });
+      await expect(test.service.start(key)).rejects.toThrow(/进行中|清理/);
+    } finally {
+      settings.commandCloseError = undefined;
+      release();
+      await exporting;
+      await test.service.stop(key);
+    }
+    expect(test.service.get(key)).toMatchObject({ state: 'stopped', cleanupConfirmed: true });
+  });
+  it('recovers an exited edu instance after a failed completion write without replaying a start', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-exit-recovery-'));
+    const test = fixture({ sourceFiles: eduFiles });
+    const service = new AppService(test.connection, { ...test.options, registryPath: path.join(root, 'registry.json') });
+    let writing: ReturnType<typeof vi.spyOn> | undefined;
+    try {
+      await service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+      const before = await service.start(key);
+      writing = vi.spyOn(fs, 'writeFile').mockRejectedValueOnce(new Error('controlled_recovery_persist_failure'));
+      test.crash();
+      await expect.poll(() => service.get(key).error).toContain('controlled_recovery_persist_failure');
+      writing.mockRestore();
+      const recovered = await service.stop(key);
+      expect(recovered).toMatchObject({ state: 'stopped', cleanupConfirmed: true, appInstanceId: before.appInstanceId });
+      expect(test.requests().filter((request) => request.operation === 'start')).toHaveLength(1);
+      expect(test.requests().filter((request) => request.operation === 'recover-owned')).toHaveLength(1);
+      const next = await service.start(key);
+      expect(next.state).toBe('running');
+      expect(next.appInstanceId).not.toBe(before.appInstanceId);
+      await service.stop(key);
+    } finally {
+      writing?.mockRestore();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('does not turn confirmed cleanup into unknown when the final stop write fails', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-confirmed-stop-'));
+    const test = fixture();
+    const service = new AppService(test.connection, { ...test.options, registryPath: path.join(root, 'registry.json') });
+    const originalWrite = fs.writeFile;
+    let writing: ReturnType<typeof vi.spyOn> | undefined;
+    try {
+      await service.create({ ...key, files });
+      await service.start(key);
+      writing = vi
+        .spyOn(fs, 'writeFile')
+        .mockImplementationOnce(originalWrite)
+        .mockRejectedValueOnce(new Error('controlled_final_stop_write'));
+      await expect(service.stop(key)).rejects.toThrow('controlled_final_stop_write');
+      expect(service.get(key)).toMatchObject({
+        state: 'failed',
+        cleanupConfirmed: true,
+        url: null,
+        error: expect.stringContaining('controlled_final_stop_write'),
+      });
+      expect(test.hasMapping()).toBe(false);
+      writing.mockRestore();
+      expect((await service.stop(key)).state).toBe('stopped');
+    } finally {
+      writing?.mockRestore();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('explicit stop still cancels a finite helper after waiting for unexpected App exit cleanup', async () => {
+    let releaseClose: () => void = () => {
+      throw new Error('Uninitialised close gate');
+    };
+    let releaseExport: () => void = () => {
+      throw new Error('Uninitialised export gate');
+    };
+    const closeGate = new Promise<void>((resolve) => {
+      releaseClose = resolve;
+    });
+    const exportGate = new Promise<void>((resolve) => {
+      releaseExport = resolve;
+    });
+    const settings = { sourceFiles: eduFiles, closeGate, exportGate: exportGate as Promise<void> | undefined };
+    const test = fixture(settings);
+    await test.service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+    await test.service.start(key);
+    const exporting = test.service.export(key, true).then(
+      () => null,
+      (error: unknown) => error,
+    );
+    let stopping: Promise<unknown> | undefined;
+    try {
+      await expect.poll(test.starts).toBe(3);
+      settings.exportGate = undefined;
+      test.crash();
+      await expect.poll(test.closes).toBe(1);
+      stopping = test.service.stop(key);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(test.closes()).toBe(1);
+      releaseClose();
+      await stopping;
+      expect(test.closes()).toBe(3);
+      expect(String(await exporting)).toContain('取消');
+      expect(test.requests().some((request) => request.operation === 'recover-owned')).toBe(true);
+      expect(test.service.get(key).cleanupConfirmed).toBe(true);
+    } finally {
+      releaseClose();
+      releaseExport();
+      await Promise.all([exporting, stopping]);
+    }
+  });
+  it('shares unexpected-exit cleanup with stop and shutdown instead of closing twice', async () => {
+    let release: () => void = () => {
+      throw new Error('Uninitialised gate');
+    };
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const test = fixture({ closeGate: gate });
+    await test.service.create({ ...key, files });
+    await test.service.start(key);
+    test.crash();
+    await expect.poll(test.closes).toBe(1);
+    const stopping = test.service.stop(key);
+    const closing = expect(test.service.shutdown()).rejects.toThrow(/清理|映射/);
+    try {
+      await expect(test.service.start(key)).rejects.toThrow(/关闭|清理|进行中/);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(test.closes()).toBe(1);
+    } finally {
+      release();
+      await Promise.all([stopping, closing]);
+    }
+    expect(test.closes()).toBe(1);
+  });
+});
 
 describe('managed edu project profile', () => {
   it('imports, runs and exports edu with its own health contract and immutable source provenance', async () => {

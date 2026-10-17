@@ -4,7 +4,7 @@ import type { PageCapture } from '@wsl/protocol';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   views: [] as unknown[],
-  tools: [] as Array<{ webContents: { id: number }; destroy: ReturnType<typeof vi.fn> }>,
+  tools: [] as Array<{ webContents: { id: number }; destroy: () => void }>,
   screenshot: vi.fn(),
 }));
 vi.mock('./element-summary', () => ({
@@ -49,6 +49,7 @@ vi.mock('electron', () => ({
       focus: vi.fn(),
       capturePage: mocks.screenshot,
       close: vi.fn(),
+      devToolsWebContents: null as { id: number } | null,
       setDevToolsWebContents: vi.fn(),
       openDevTools: vi.fn(),
     });
@@ -87,6 +88,7 @@ function setup() {
 const image = { toDataURL: () => 'data:image/png;base64,AA==', isEmpty: () => false };
 beforeEach(() => {
   mocks.views.length = 0;
+  mocks.tools.length = 0;
   mocks.screenshot.mockReset();
 });
 describe('R3/R4 controller request ownership baseline', () => {
@@ -195,5 +197,49 @@ describe('R4 deferred inspect exit ownership', () => {
     expect(contents.openDevTools).toHaveBeenCalledOnce();
     controller.dispose();
     expect(tools.destroy).toHaveBeenCalledOnce();
+  });
+  it('coalesces reopen requests until the old native DevTools connection finishes closing', () => {
+    const { controller, view } = setup();
+    const contents = view.webContents as typeof view.webContents & { devToolsWebContents: { id: number } | null };
+    controller.openDevTools();
+    const old = mocks.tools.at(-1)!;
+    contents.devToolsWebContents = old.webContents;
+    old.destroy();
+    controller.openDevTools();
+    controller.openDevTools();
+    expect(mocks.tools).toHaveLength(1);
+    expect(contents.listenerCount('devtools-closed')).toBe(1);
+    contents.devToolsWebContents = null;
+    contents.emit('devtools-closed');
+    expect(mocks.tools).toHaveLength(2);
+    expect(mocks.tools.at(-1)).not.toBe(old);
+    expect(contents.listenerCount('devtools-closed')).toBe(0);
+    controller.dispose();
+  });
+  it('revokes a queued DevTools reopen on disposal and ignores a late close callback', () => {
+    const { controller, view } = setup();
+    const contents = view.webContents as typeof view.webContents & { devToolsWebContents: { id: number } | null };
+    controller.openDevTools();
+    const old = mocks.tools.at(-1)!;
+    contents.devToolsWebContents = old.webContents;
+    old.destroy();
+    controller.openDevTools();
+    const callbacks = contents.listeners('devtools-closed');
+    controller.dispose();
+    expect(contents.listenerCount('devtools-closed')).toBe(0);
+    contents.devToolsWebContents = null;
+    for (const callback of callbacks) callback();
+    controller.openDevTools();
+    expect(mocks.tools).toHaveLength(1);
+  });
+  it('reopens immediately when native closure has already completed', () => {
+    const { controller } = setup();
+    controller.openDevTools();
+    const old = mocks.tools.at(-1)!;
+    old.destroy();
+    controller.openDevTools();
+    expect(mocks.tools).toHaveLength(2);
+    expect(mocks.tools.at(-1)).not.toBe(old);
+    controller.dispose();
   });
 });
