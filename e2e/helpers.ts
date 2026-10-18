@@ -1,3 +1,4 @@
+import { ioregScalar, parseIoregLocks } from './ioreg-state';
 import type { StudioApi, StudioDebugApi } from '../packages/protocol/src';
 declare global {
   interface Window {
@@ -6,6 +7,8 @@ declare global {
 }
 import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
@@ -507,4 +510,77 @@ export async function setWorkspaceTheme(page: Page, theme: string) {
 async function expectTheme(page: Page, theme: string) {
   const snapshot = await workspaceSnapshot(page);
   assert.equal(snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)?.theme, theme);
+}
+
+// 只读的原生焦点观测：区分"App 未拿到系统前台"与"App 内部焦点路由出错"；不改变任何被测状态。
+export interface NativeFocusSnapshot {
+  timestamp: string;
+  focusedWindowId: number | null;
+  focusedWebContentsId: number | null;
+  windows: { id: number; isFocused: boolean; isVisible: boolean; isMinimized: boolean }[];
+}
+export function nativeFocusSnapshot(app: ElectronApplication): Promise<NativeFocusSnapshot> {
+  return app
+    .evaluate(({ BrowserWindow, webContents }) => ({
+      focusedWindowId: BrowserWindow.getFocusedWindow()?.id ?? null,
+      focusedWebContentsId: webContents.getFocusedWebContents()?.id ?? null,
+      windows: BrowserWindow.getAllWindows().map((window) => ({
+        id: window.id,
+        isFocused: window.isFocused(),
+        isVisible: window.isVisible(),
+        isMinimized: window.isMinimized(),
+      })),
+    }))
+    .then((snapshot) => ({ timestamp: new Date().toISOString(), ...snapshot }));
+}
+
+// 桌面状态白名单采集：每条外部命令约 3 秒超时；任一段失败只记 'unavailable'，不影响测试。
+export interface DesktopStateSnapshot {
+  timestamp: string;
+  appPid: number | null;
+  locks:
+    | 'unavailable'
+    | {
+        IOConsoleLocked?: boolean;
+        kCGSSessionOnConsoleKey?: boolean;
+        kCGSessionLoginDoneKey?: boolean;
+        CGSSessionScreenIsLocked?: boolean;
+        CGSSessionScreenLockedTime?: string;
+      };
+  frontmostApp: 'unavailable' | { name?: string; pid?: number };
+  hidIdleTimeNs: 'unavailable' | number;
+}
+const execWhitelist = promisify(execFile);
+async function whitelistCommand(file: string, args: string[]): Promise<string | null> {
+  try {
+    const { stdout } = await execWhitelist(file, args, { timeout: 3000 });
+    return stdout;
+  } catch {
+    return null;
+  }
+}
+export async function desktopStateSnapshot(app: ElectronApplication): Promise<DesktopStateSnapshot> {
+  const [ioreg, hid] = await Promise.all([
+    whitelistCommand('ioreg', ['-n', 'Root', '-d', '1']),
+    whitelistCommand('ioreg', ['-c', 'IOHIDSystem']),
+  ]);
+  const front = await whitelistCommand('lsappinfo', ['front']);
+  const frontAsn = front?.trim();
+  const frontInfo = frontAsn ? await whitelistCommand('lsappinfo', ['info', frontAsn]) : null;
+  const hidIdle = hid ? ioregScalar(hid, 'HIDIdleTime') : undefined;
+  const nameMatch =
+    frontInfo?.match(/"LSDisplayName"\s*=\s*"([^"]*)"/) ??
+    frontInfo?.match(/bundleID\s*=\s*"([^"]*)"/) ??
+    frontInfo?.match(/bundle path\s*=\s*"([^"]*)"/);
+  const pidMatch = frontInfo?.match(/"pid"\s*=\s*(\d+)/) ?? frontInfo?.match(/\bpid\s*=\s*(\d+)/);
+  return {
+    timestamp: new Date().toISOString(),
+    appPid: app.process()?.pid ?? null,
+    locks: ioreg ? parseIoregLocks(ioreg) : 'unavailable',
+    frontmostApp:
+      frontInfo && (nameMatch || pidMatch)
+        ? { name: nameMatch?.[1]?.trim().replace(/^"|"$/g, ''), pid: pidMatch ? Number(pidMatch[1]) : undefined }
+        : 'unavailable',
+    hidIdleTimeNs: hidIdle !== undefined && /^\d+$/.test(hidIdle) ? Number(hidIdle) : 'unavailable',
+  };
 }
