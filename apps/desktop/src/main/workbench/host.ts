@@ -33,8 +33,7 @@ import type { AppUiPort } from './app-control';
 import { AppControlFailure } from './app-control-failure';
 import { PreviewController } from '../preview/controller';
 import { DEMO_ORIGIN, installDemoProtocol } from '../preview/demo-protocol';
-import type { WorkbenchRuntime } from './ports';
-import type { WorkbenchApplication } from './application';
+import type { WorkbenchRuntime, WorkbenchHostEvents } from './ports';
 export class WorkbenchHost implements WorkbenchRuntime {
   async appSelectImportSource(signal: AbortSignal, progress: (value: ImportProgress) => void): Promise<AppImportSelection | null> {
     signal.throwIfAborted();
@@ -305,11 +304,11 @@ export class WorkbenchHost implements WorkbenchRuntime {
   private currentVerification: EduVerificationStatus | null = null;
   private currentAdmission: EduAdmissionRecoveryStatus | null = null;
   private restoredVerificationInstance: string | null = null;
-  private workbench: WorkbenchApplication | null = null;
-  get application(): WorkbenchApplication | null {
+  private workbench: WorkbenchHostEvents | null = null;
+  get application(): WorkbenchHostEvents | null {
     return this.workbench;
   }
-  set application(value: WorkbenchApplication | null) {
+  set application(value: WorkbenchHostEvents | null) {
     this.workbench = value;
     if (value && this.currentVerification) this.publishVerification(this.currentVerification);
     if (value && this.currentAdmission) this.publishAdmission(this.currentAdmission);

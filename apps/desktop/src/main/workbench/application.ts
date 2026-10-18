@@ -2,8 +2,6 @@ import { createHash, randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import {
   ResearchCallSchema,
-  ResearchCaptureSchema,
-  ResearchReplySchema,
   type ResearchCall,
   type ResearchReply,
   type ResearchGrant,
@@ -80,11 +78,18 @@ import {
 import { parseResourceCatalog } from './resource-catalog-repository';
 import { activateTab, closePane, closeTab, panes, setRatio, splitPane } from './layout';
 import type { WorkbenchRepository } from './repository';
-import { RunDispatchFailure, type WorkbenchRuntime, type AppImportSelection, type AppImportSource } from './ports';
+import {
+  RunDispatchFailure,
+  type WorkbenchHostEvents,
+  type WorkbenchRuntime,
+  type AppImportSelection,
+  type AppImportSource,
+} from './ports';
 import { ImportFailure, importError } from './import-source';
 import type { AppControl, AppControlContext } from './app-control';
 import { AppControlFailure } from './app-control-failure';
-import { ResearchOwners, ResearchFailure, assertResearchBudget, assertResearchCapture, captureSummary } from './research';
+import { ResearchOwners, ResearchFailure, captureSummary } from './research';
+import { ResearchUseCase } from './research-use-case';
 
 const activeStates = ['starting', 'running', 'cancelling'];
 type SourceRun = { target: AppTarget; baseline: AbortController; ready: boolean; capturing: boolean };
@@ -246,7 +251,7 @@ export function validateSnapshot(snapshot: WorkbenchSnapshot): void {
   }
   if (!snapshot.workspaces.some((w) => w.workspaceId === snapshot.activeWorkspaceId)) throw new Error('not_found: 活动空间不存在');
 }
-export class WorkbenchApplication {
+export class WorkbenchApplication implements WorkbenchHostEvents {
   private snapshot: WorkbenchSnapshot = {
     appInstanceId: randomUUID(),
     storageError: null,
@@ -262,6 +267,7 @@ export class WorkbenchApplication {
   private readonly observationCounts = new Map<string, number>();
   private readonly observationScopes = new Map<string, ObservationTurnScope>();
   private readonly researchOwners = new ResearchOwners();
+  private readonly researchUseCase: ResearchUseCase;
   private readonly runLaunches = new Map<string, () => Promise<void>>();
   private readonly runLaunchPhases = new Map<string, 'registering' | 'baseline' | 'sending'>();
   private readonly sourceRuns = new Map<string, SourceRun>();
@@ -291,6 +297,47 @@ export class WorkbenchApplication {
     private readonly emit: (event: WorkbenchEvent) => void,
   ) {
     this.ready = this.beginInitialization();
+    const current = {
+      activeWorkspaceId: () => this.snapshot.activeWorkspaceId,
+      accountId: () => this.catalog.accountId,
+      closing: () => this.closing,
+      ready: () => this.ready,
+      openResearchDocument: () => this.runtime.openResearchDocument?.bind(this.runtime),
+    };
+    this.researchUseCase = new ResearchUseCase({
+      serialize: (work) => this.serialize(work),
+      persist: (workspace, entityId) => this.persist(workspace, entityId),
+      requireWorkspace: (workspaceId) => this.requireWorkspace(workspaceId),
+      run: (workspace, runId) => this.run(workspace, runId),
+      session: (workspace, sessionId) => this.session(workspace, sessionId),
+      resource: (workspace, resourceId, kind) => this.resource(workspace, resourceId, kind),
+      instance: (workspace, resource) => this.instance(workspace, resource),
+      get activeWorkspaceId() {
+        return current.activeWorkspaceId();
+      },
+      executionBinding: (run) => run.executionBinding ?? this.runTurns.get(run.runId),
+      get accountId() {
+        return current.accountId();
+      },
+      get closing() {
+        return current.closing();
+      },
+      get ready() {
+        return current.ready();
+      },
+      createResource: (workspace, kind, title, url, environmentId) => this.createResource(workspace, kind, title, url, environmentId),
+      openResource: (workspace, resourceId) => this.openResource(workspace, resourceId),
+      ensureBrowser: (workspace, resource, options) => this.ensureBrowser(workspace, resource, options),
+      runtime: {
+        validateBrowserUrl: (url) => this.runtime.validateBrowserUrl(url),
+        browserState: (resourceId) => this.runtime.browserState(resourceId),
+        get openResearchDocument() {
+          return current.openResearchDocument();
+        },
+      },
+      observationCounts: this.observationCounts,
+      researchOwners: this.researchOwners,
+    });
   }
   private beginInitialization(): Promise<void> {
     const attempt = this.initialize().then(() => {
@@ -1858,12 +1905,13 @@ export class WorkbenchApplication {
       owner = this.researchOwners.get(call.context);
       if (owner.pending >= 4) throw new ResearchFailure('budget_exceeded', '本轮研究并发已满');
     } catch (error) {
-      return Promise.resolve(this.researchFailure(call, error));
+      return Promise.resolve(this.researchUseCase.failure(call, error));
     }
     owner.pending++;
     const signal = AbortSignal.any([externalSignal, owner.controller.signal]);
-    const operation = this.performResearch(call, signal)
-      .catch((error: unknown) => this.researchFailure(call, error, signal))
+    const operation = this.researchUseCase
+      .perform(call, signal)
+      .catch((error: unknown) => this.researchUseCase.failure(call, error, signal))
       .finally(async () => {
         owner.pending--;
         await this.updateRuntime(() => {
@@ -1885,166 +1933,9 @@ export class WorkbenchApplication {
           return w;
         });
       })
-      .then((reply) => (signal.aborted ? this.researchFailure(call, new Error('研究已取消'), signal) : reply));
+      .then((reply) => (signal.aborted ? this.researchUseCase.failure(call, new Error('研究已取消'), signal) : reply));
     this.trackRunOperation(operation);
     return operation;
-  }
-  private researchFailure(call: ResearchCall, error: unknown, signal?: AbortSignal): ResearchReply {
-    const code = signal?.aborted ? 'cancelled' : error instanceof ResearchFailure ? error.code : 'unavailable';
-    const message = signal?.aborted ? '本轮研究操作已取消' : error instanceof Error ? error.message : '公开研究不可用';
-    return ResearchReplySchema.parse({
-      callId: call.callId,
-      context: call.context,
-      result: { ok: false, tool: call.tool, error: { code, message: message.slice(0, 1000) || '公开研究失败' } },
-    });
-  }
-  private researchContext(call: ResearchCall, signal: AbortSignal) {
-    if (this.closing || signal.aborted) throw new ResearchFailure('cancelled', '本轮研究已停止');
-    const owner = this.researchOwners.get(call.context);
-    const w = this.requireWorkspace(owner.grant.workspaceId);
-    const run = this.run(w, owner.grant.runId);
-    const version = this.session(w, run.sessionId).taskVersions.find((item) => item.taskVersionId === run.taskVersionId);
-    const binding = run.executionBinding ?? this.runTurns.get(run.runId);
-    if (
-      !run.research ||
-      !isDeepStrictEqual(run.research.grant, owner.grant) ||
-      owner.grant.accountId !== this.catalog.accountId ||
-      owner.grant.sessionId !== run.sessionId ||
-      owner.grant.taskVersionId !== run.taskVersionId ||
-      !version?.appTarget ||
-      w.managedApp?.projectId !== version.appTarget.projectId ||
-      (w.managedApp.profile?.projectKind ?? 'standard-app') !== 'standard-app' ||
-      !['starting', 'running'].includes(run.state) ||
-      !binding ||
-      binding.generation !== call.context.generation ||
-      binding.turnId !== call.context.turnId
-    )
-      throw new ResearchFailure('unauthorized', '研究调用不属于当前标准 App 执行轮次');
-    return { owner, w, run, state: run.research };
-  }
-  private async performResearch(call: ResearchCall, signal: AbortSignal): Promise<ResearchReply> {
-    await this.ready;
-    const opening = call.tool === 'research.open';
-    let reserved = false;
-    try {
-      const prepared = await this.serialize(async () => {
-        const { owner, w, run, state } = this.researchContext(call, signal);
-        const count = this.observationCounts.get(run.runId) ?? 0;
-        if (count >= 64) throw new ResearchFailure('budget_exceeded', '本轮观察与研究调用预算已用尽');
-        this.observationCounts.set(run.runId, count + 1);
-        if (call.tool === 'research.include') {
-          const capture = state.captures.find((item) => item.captureId === call.args.captureId);
-          if (!capture || capture.contentSha256 !== call.args.contentSha256)
-            throw new ResearchFailure('invalid_request', '来源不属于本轮或正文版本不匹配');
-          assertResearchCapture(capture);
-          let inclusion = state.inclusions.find((item) => item.captureId === capture.captureId);
-          if (!inclusion) {
-            inclusion = { captureId: capture.captureId, contentSha256: capture.contentSha256, includedAt: new Date().toISOString() };
-            state.inclusions.push(inclusion);
-            try {
-              assertResearchBudget(state, run.referenceSnapshot);
-              await this.persist(w, call.callId);
-            } catch (error) {
-              state.inclusions = state.inclusions.filter((item) => item !== inclusion);
-              if (error instanceof ResearchFailure) throw error;
-              throw new ResearchFailure('storage_failed', '来源纳入保存失败：' + (error as Error).message);
-            }
-          }
-          this.researchContext(call, signal);
-          return {
-            reply: ResearchReplySchema.parse({
-              callId: call.callId,
-              context: call.context,
-              result: {
-                ok: true,
-                tool: 'research.include',
-                source: { ...captureSummary(capture), includedAt: inclusion.includedAt, text: capture.text },
-              },
-            }),
-          };
-        }
-        if (!this.runtime.openResearchDocument) throw new ResearchFailure('unavailable', '公开研究 reader 尚未接入');
-        if (owner.opening) throw new ResearchFailure('unavailable', '本轮研究网页正在加载，请等待当前读取完成');
-        assertResearchBudget(state, run.referenceSnapshot, 1);
-        try {
-          this.runtime.validateBrowserUrl(call.args.url);
-        } catch (error) {
-          throw new ResearchFailure('blocked', (error as Error).message);
-        }
-        if (this.snapshot.activeWorkspaceId !== w.workspaceId) throw new ResearchFailure('stale', '请先显示本轮所属空间');
-        owner.opening = true;
-        reserved = true;
-        let resource = owner.readerResourceId ? w.resources.find((item) => item.resourceId === owner.readerResourceId) : undefined;
-        if (!resource) {
-          const tab = this.createResource(w, 'web', '公开研究', call.args.url, 'local');
-          resource = this.resource(w, tab.targetRef.resourceId, 'web');
-          owner.readerResourceId = resource.resourceId;
-        }
-        if (resource.appProjectId) throw new ResearchFailure('unauthorized', '研究 reader 不能复用 App 目标');
-        this.ensureBrowser(w, resource, { deferInitialLoad: true });
-        this.openResource(w, resource.resourceId);
-        try {
-          await this.persist(w, call.callId);
-        } catch (error) {
-          throw new ResearchFailure('storage_failed', '研究 reader 保存失败：' + (error as Error).message);
-        }
-        this.researchContext(call, signal);
-        const identity = this.instance(w, resource);
-        return { identity, capture: this.runtime.openResearchDocument(resource.resourceId, call.args.url, signal) };
-      });
-      if (prepared.reply) return prepared.reply;
-      let snapshot;
-      try {
-        snapshot = PageResourceSnapshotSchema.parse(await prepared.capture);
-      } catch (error) {
-        if (signal.aborted) throw new ResearchFailure('cancelled', '公开正文读取已取消');
-        const code = (error as { code?: unknown } | null)?.code;
-        throw new ResearchFailure(
-          code === 'timeout' || code === 'stale' || code === 'cancelled' || code === 'unavailable' ? code : 'blocked',
-          error instanceof Error ? error.message : '公开正文未能读取',
-        );
-      }
-      return await this.serialize(async () => {
-        const { w, run, state } = this.researchContext(call, signal);
-        const resource = this.resource(w, prepared.identity.resourceId, 'web');
-        if (
-          !isDeepStrictEqual(this.instance(w, resource), prepared.identity) ||
-          !isDeepStrictEqual(this.runtime.browserState(resource.resourceId).page, snapshot.page)
-        )
-          throw new ResearchFailure('stale', '研究网页实例或文档已变化');
-        const capture = ResearchCaptureSchema.parse({
-          ...snapshot,
-          captureId: randomUUID(),
-          readerResourceId: resource.resourceId,
-          textBytes: Buffer.byteLength(snapshot.text, 'utf8'),
-        });
-        assertResearchCapture(capture);
-        state.captures.push(capture);
-        try {
-          assertResearchBudget(state, run.referenceSnapshot);
-          await this.persist(w, call.callId);
-        } catch (error) {
-          state.captures = state.captures.filter((item) => item !== capture);
-          if (error instanceof ResearchFailure) throw error;
-          throw new ResearchFailure('storage_failed', '公开正文保存失败：' + (error as Error).message);
-        }
-        this.researchContext(call, signal);
-        return ResearchReplySchema.parse({
-          callId: call.callId,
-          context: call.context,
-          result: { ok: true, tool: 'research.open', capture: captureSummary(capture) },
-        });
-      });
-    } finally {
-      if (opening && reserved) {
-        // The owner can be revoked while awaiting I/O; clearing this slot never restores permission.
-        try {
-          this.researchOwners.get(call.context).opening = false;
-        } catch {
-          /* revoked owner will be discarded after drain */
-        }
-      }
-    }
   }
   private observationRecords(workspace: WorkspaceSnapshot, sessionId: string | null) {
     return sessionId === null ? workspace.observations : this.session(workspace, sessionId).observations;

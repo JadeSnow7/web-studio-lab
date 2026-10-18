@@ -4,6 +4,7 @@ import {
   WorkbenchCommandSchema,
   type ChatConversation,
   type ManagedApp,
+  type ObservationTurnScope,
   type PageResourceSnapshot,
   type PreviewState,
   type ResearchCall,
@@ -39,7 +40,8 @@ const page: PreviewState = {
   loadError: null,
   blockedNavigation: null,
 };
-async function fixture(authorized = true) {
+async function fixture(authorized = true, mixedBudget = false) {
+  let observationScope!: ObservationTurnScope;
   let saved: WorkbenchSnapshot | null = null;
   let catalog = createResourceCatalog('account');
   let managed: ManagedApp;
@@ -74,7 +76,7 @@ async function fixture(authorized = true) {
     load: async () => saved,
     loadCatalog: async () => catalog,
     save,
-    appendObservation: unused,
+    appendObservation: mixedBudget ? async () => randomUUID() : unused,
   };
   const runtime: WorkbenchRuntime = {
     appCreate: async (target) =>
@@ -91,11 +93,33 @@ async function fixture(authorized = true) {
     appStart: async () =>
       (managed = { ...managed, state: 'running', appInstanceId: randomUUID(), url: page.page.url, cleanupConfirmed: false }),
     appGet: async () => ({ ...managed, state: 'stopped', url: null, cleanupConfirmed: true }),
-    environmentsList: async () => [],
+    environmentsList: async () =>
+      mixedBudget
+        ? (['local', 'sandbox'] as const).map((environmentId) => ({
+            environmentId,
+            kind: environmentId as 'local' | 'sandbox',
+            label: environmentId,
+            state: 'configured' as const,
+            reason: null,
+            capabilities: { browser: true, files: true, terminal: true },
+          }))
+        : [],
     registerSession: async () => undefined,
     registerResource: async () => undefined,
     releaseResource: async () => undefined,
-    observe: unused,
+    observe: mixedBudget
+      ? vi.fn(async (request) => ({
+          resource: request.target!,
+          generation: 'document',
+          revision: { value: '1', strength: 'document' as const },
+          snapshotId: randomUUID(),
+          capturedAt: new Date().toISOString(),
+          source: 'accessibility',
+          representation: 'accessibility',
+          coverage: { status: 'complete' as const },
+          data: { target: { webContentsId: 42 }, documentGeneration: 1, url: page.page.url, title: 'App', elements: [] },
+        }))
+      : unused,
     captureResource: unused,
     validateBrowserUrl: () => undefined,
     ensureBrowser: (_workspace, resource) => {
@@ -111,6 +135,7 @@ async function fixture(authorized = true) {
     terminalResize: unused,
     terminalStop: unused,
     send: async (sessionId, _text, _scope, _references, _edu, _mota, researchGrant) => {
+      observationScope = _scope!;
       grant = researchGrant;
       return (turn = {
         conversationId: sessionId,
@@ -218,6 +243,11 @@ async function fixture(authorized = true) {
     run,
     call,
     invoke,
+    observe: () => {
+      const target = run().targetRef;
+      if (target?.kind !== 'web') throw new Error('mixed budget fixture requires the frozen App browser target');
+      return app.observeForTurn(observationScope, 'browser.snapshot', { resourceId: target.resourceId }, new AbortController().signal);
+    },
     document,
     states,
     events,
@@ -228,6 +258,59 @@ async function fixture(authorized = true) {
 }
 
 describe('current run public research', () => {
+  it('shares the run budget when observations precede research: 64 succeeds and 65 never opens a reader', async () => {
+    const f = await fixture(true, true);
+    for (let index = 0; index < 62; index++) expect(await f.observe()).toHaveProperty('representation', 'accessibility');
+    const opened = await f.invoke(f.call('research.open', { url: 'https://www.wikipedia.org/budget' }));
+    if (!opened.result.ok || opened.result.tool !== 'research.open') throw new Error('no capture');
+    const capture = opened.result.capture;
+    expect(
+      (await f.invoke(f.call('research.include', { captureId: capture.captureId, contentSha256: capture.contentSha256 }))).result,
+    ).toMatchObject({ ok: true, tool: 'research.include' });
+    expect((await f.invoke(f.call('research.open', { url: 'https://www.wikipedia.org/overflow' }))).result).toMatchObject({
+      ok: false,
+      error: { code: 'budget_exceeded' },
+    });
+    expect(f.open).toHaveBeenCalledTimes(1);
+    expect(f.runtime.observe).toHaveBeenCalledTimes(62);
+  });
+  it('shares the run budget when research precedes observations: 64 succeeds and 65 never collects', async () => {
+    const f = await fixture(true, true);
+    const opened = await f.invoke(f.call('research.open', { url: 'https://www.wikipedia.org/budget' }));
+    if (!opened.result.ok || opened.result.tool !== 'research.open') throw new Error('no capture');
+    const capture = opened.result.capture;
+    for (let index = 0; index < 31; index++) {
+      expect(
+        (await f.invoke(f.call('research.include', { captureId: capture.captureId, contentSha256: capture.contentSha256 }))).result,
+      ).toMatchObject({ ok: true, tool: 'research.include' });
+    }
+    for (let index = 0; index < 32; index++) expect(await f.observe()).toHaveProperty('representation', 'accessibility');
+    expect(await f.observe()).toMatchObject({ error: 'budget_exceeded' });
+    expect(f.runtime.observe).toHaveBeenCalledTimes(32);
+    expect(f.open).toHaveBeenCalledTimes(1);
+    expect(f.run().research!.captures).toHaveLength(1);
+    expect(f.run().research!.inclusions).toHaveLength(1);
+  });
+  it('charges a research include hash failure to the shared budget without refunding it', async () => {
+    const f = await fixture(true, true);
+    const opened = await f.invoke(f.call('research.open', { url: 'https://www.wikipedia.org/budget' }));
+    if (!opened.result.ok || opened.result.tool !== 'research.open') throw new Error('no capture');
+    const capture = opened.result.capture;
+    for (let index = 0; index < 61; index++) expect(await f.observe()).toHaveProperty('representation', 'accessibility');
+    expect(
+      (await f.invoke(f.call('research.include', { captureId: capture.captureId, contentSha256: 'a'.repeat(64) }))).result,
+    ).toMatchObject({ ok: false, error: { code: 'invalid_request' } });
+    expect(
+      (await f.invoke(f.call('research.include', { captureId: capture.captureId, contentSha256: capture.contentSha256 }))).result,
+    ).toMatchObject({ ok: true, tool: 'research.include' });
+    expect(await f.observe()).toMatchObject({ error: 'budget_exceeded' });
+    expect((await f.invoke(f.call('research.open', { url: 'https://www.wikipedia.org/overflow' }))).result).toMatchObject({
+      ok: false,
+      error: { code: 'budget_exceeded' },
+    });
+    expect(f.runtime.observe).toHaveBeenCalledTimes(61);
+    expect(f.open).toHaveBeenCalledTimes(1);
+  });
   it('seals actual reader bytes, persists explicit inclusion before body reply, and keeps original references and target', async () => {
     const f = await fixture();
     const references = structuredClone(f.run().referenceSnapshot);
