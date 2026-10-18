@@ -23,6 +23,7 @@ import {
 import { SbxConnection } from './sbx';
 import { CodexChat } from './codex-chat';
 import { EnvironmentResources } from './environment-resources';
+import { dispatchRoute, isRoutedRequest, type RouteContext } from './routes';
 
 // utilityProcess 的消息接口由宿主提供，核心模块不依赖 Electron。
 const parent = (
@@ -132,6 +133,16 @@ const sourceCalls = new Map<string, AbortController>();
 const agentCalls = new Map<string, AbortController>();
 const observations = new Map<string, AbortController>();
 const terminalFor = (resourceId: string) => environments.terminal(environments.identity(resourceId));
+const routeContext: RouteContext = {
+  environments,
+  terminalFor,
+  requireReady,
+  validateResearchReply,
+  observations,
+  observationCalls,
+  appCalls,
+  researchCalls,
+};
 const connectionReady = chat.initialize();
 // Capture and resource writes share ordering. Cancellation must bypass a held
 // capture so it can revoke CodexChat.preparing before any guest is launched.
@@ -283,260 +294,197 @@ parent.on('message', ({ data }) => {
       if (request.method === 'send') await requireReady();
       checkAdmission();
       let result;
-      switch (request.method) {
-        case 'app.motaControl':
-          result = await apps.motaControl(request.payload);
-          break;
-        case 'app.source.snapshot': {
-          if (sourceCalls.has(request.payload.callId)) throw new Error('Duplicate source snapshot call');
-          const controller = new AbortController();
-          sourceCalls.set(request.payload.callId, controller);
-          try {
+      if (isRoutedRequest(request)) {
+        const dispatched = dispatchRoute(request.method, request, routeContext, { checkAdmission });
+        result = dispatched instanceof Promise ? await dispatched : dispatched;
+      } else
+        switch (request.method) {
+          case 'app.motaControl':
+            result = await apps.motaControl(request.payload);
+            break;
+          case 'app.source.snapshot': {
+            if (sourceCalls.has(request.payload.callId)) throw new Error('Duplicate source snapshot call');
+            const controller = new AbortController();
+            sourceCalls.set(request.payload.callId, controller);
+            try {
+              await requireReady();
+              result = await apps.sourceSnapshot(request.payload.target, controller.signal);
+            } finally {
+              sourceCalls.delete(request.payload.callId);
+            }
+            break;
+          }
+          case 'app.source.cancel':
+            sourceCalls.get(request.payload.callId)?.abort();
+            result = null;
+            break;
+          case 'app.verification.recoverAdmission':
+            result = await verification.recoverAdmission(request.payload);
+            break;
+          case 'app.verification.begin':
+            result = await verification.begin(request.payload);
+            break;
+          case 'app.verification.reconcile':
             await requireReady();
-            result = await apps.sourceSnapshot(request.payload.target, controller.signal);
-          } finally {
-            sourceCalls.delete(request.payload.callId);
-          }
-          break;
-        }
-        case 'app.source.cancel':
-          sourceCalls.get(request.payload.callId)?.abort();
-          result = null;
-          break;
-        case 'app.verification.recoverAdmission':
-          result = await verification.recoverAdmission(request.payload);
-          break;
-        case 'app.verification.begin':
-          result = await verification.begin(request.payload);
-          break;
-        case 'app.verification.reconcile':
-          await requireReady();
-          result = await verification.reconcile(request.payload);
-          break;
-        case 'app.verification.end':
-          result = await verification.end(request.payload);
-          break;
-        case 'app.verification.status':
-          result = verification.status(request.payload);
-          break;
-        case 'app.taskSource':
-          await requireReady();
-          result = await apps.export(request.payload, true);
-          break;
-        case 'app.prepareEduTask':
-          await requireReady();
-          checkAdmission();
-          result = await apps.prepareTask(request.payload, eduCandidates.get(request.payload));
-          break;
-        case 'app.applyEduTask':
-          await requireReady();
-          checkAdmission();
-          result = await apps.applyTask(request.payload, eduCandidates.get(request.payload));
-          break;
-        case 'app.cancelEduTask':
-          result = await apps.cancelEduTask(request.payload);
-          break;
-        case 'app.get':
-          await requireReady();
-          result = await apps.restore(request.payload);
-          break;
-        case 'app.create':
-          await requireReady();
-          checkAdmission();
-          result = await apps.create(request.payload);
-          break;
-        case 'app.importEdu':
-          await requireReady();
-          checkAdmission();
-          result = await apps.importEdu(request.payload);
-          break;
-        case 'app.importSource':
-          await requireReady();
-          checkAdmission();
-          result = await apps.importSource(request.payload);
-          break;
-        case 'app.cancelImport':
-          result = await apps.cancelImport(request.payload);
-          break;
-        case 'app.start':
-          await requireReady();
-          checkAdmission();
-          result = await apps.start(request.payload);
-          break;
-        case 'app.stop':
-          await requireReady();
-          if (await verification.stopCurrent(request.payload)) result = await apps.restore(request.payload);
-          else result = await apps.stop(request.payload);
-          break;
-        case 'app.export':
-          await requireReady();
-          result = await apps.export(request.payload);
-          break;
-        case 'app.reply': {
-          const call = appCalls.get(request.payload.callId);
-          if (call) {
-            appCalls.delete(request.payload.callId);
-            call.signal.removeEventListener('abort', call.abort);
-            call.resolve(request.payload.result);
-          }
-          result = null;
-          break;
-        }
-        case 'research.reply': {
-          const pending = researchCalls.get(request.payload.callId);
-          if (pending) {
-            const reply = validateResearchReply(pending.call, request.payload);
-            researchCalls.delete(request.payload.callId);
-            pending.signal.removeEventListener('abort', pending.abort);
-            pending.resolve(reply);
-          }
-          result = null;
-          break;
-        }
-        case 'app.agent': {
-          await requireReady();
-          if (agentCalls.has(request.payload.callId)) throw new Error('Duplicate app agent call');
-          const controller = new AbortController();
-          agentCalls.set(request.payload.callId, controller);
-          try {
+            result = await verification.reconcile(request.payload);
+            break;
+          case 'app.verification.end':
+            result = await verification.end(request.payload);
+            break;
+          case 'app.verification.status':
+            result = verification.status(request.payload);
+            break;
+          case 'app.taskSource':
+            await requireReady();
+            result = await apps.export(request.payload, true);
+            break;
+          case 'app.prepareEduTask':
+            await requireReady();
             checkAdmission();
-            result = await apps.agent(request.payload.target, request.payload.appInstanceId, request.payload.operation, controller.signal);
-          } finally {
-            agentCalls.delete(request.payload.callId);
+            result = await apps.prepareTask(request.payload, eduCandidates.get(request.payload));
+            break;
+          case 'app.applyEduTask':
+            await requireReady();
+            checkAdmission();
+            result = await apps.applyTask(request.payload, eduCandidates.get(request.payload));
+            break;
+          case 'app.cancelEduTask':
+            result = await apps.cancelEduTask(request.payload);
+            break;
+          case 'app.get':
+            await requireReady();
+            result = await apps.restore(request.payload);
+            break;
+          case 'app.create':
+            await requireReady();
+            checkAdmission();
+            result = await apps.create(request.payload);
+            break;
+          case 'app.importEdu':
+            await requireReady();
+            checkAdmission();
+            result = await apps.importEdu(request.payload);
+            break;
+          case 'app.importSource':
+            await requireReady();
+            checkAdmission();
+            result = await apps.importSource(request.payload);
+            break;
+          case 'app.cancelImport':
+            result = await apps.cancelImport(request.payload);
+            break;
+          case 'app.start':
+            await requireReady();
+            checkAdmission();
+            result = await apps.start(request.payload);
+            break;
+          case 'app.stop':
+            await requireReady();
+            if (await verification.stopCurrent(request.payload)) result = await apps.restore(request.payload);
+            else result = await apps.stop(request.payload);
+            break;
+          case 'app.export':
+            await requireReady();
+            result = await apps.export(request.payload);
+            break;
+          case 'app.agent': {
+            await requireReady();
+            if (agentCalls.has(request.payload.callId)) throw new Error('Duplicate app agent call');
+            const controller = new AbortController();
+            agentCalls.set(request.payload.callId, controller);
+            try {
+              checkAdmission();
+              result = await apps.agent(
+                request.payload.target,
+                request.payload.appInstanceId,
+                request.payload.operation,
+                controller.signal,
+              );
+            } finally {
+              agentCalls.delete(request.payload.callId);
+            }
+            break;
           }
-          break;
-        }
-        case 'app.agent.cancel':
-          agentCalls.get(request.payload.callId)?.abort();
-          result = null;
-          break;
-        case 'app.logs':
-          await requireReady();
-          result = await apps.logs(request.payload.target, request.payload.maxBytes);
-          break;
-        case 'observation.reply': {
-          const call = observationCalls.get(request.payload.callId);
-          if (call) {
-            observationCalls.delete(request.payload.callId);
-            call.signal.removeEventListener('abort', call.abort);
-            call.resolve(request.payload.result);
+          case 'app.agent.cancel':
+            agentCalls.get(request.payload.callId)?.abort();
+            result = null;
+            break;
+          case 'app.logs':
+            await requireReady();
+            result = await apps.logs(request.payload.target, request.payload.maxBytes);
+            break;
+          case 'register':
+            chat.register(request.payload.conversationId, request.payload.workspaceId);
+            result = null;
+            break;
+          case 'status':
+            result = initializationError
+              ? { ...chat.getStatus(), available: false, reason: initializationError.message }
+              : chat.getStatus();
+            break;
+          case 'get':
+            result = chat.get(request.payload.conversationId);
+            break;
+          case 'send': {
+            const binding = request.payload.eduTask;
+            const motaTask = request.payload.motaTask;
+            await apps.assertTaskAdmission(request.payload.references.workspaceId, binding, motaTask);
+            if (motaTask && !admission?.cancelled) {
+              chat.assertMotaCapability();
+              const acquired = await apps.motaControl({
+                type: 'mota-control',
+                requestId: randomUUID(),
+                binding: motaTask,
+                method: 'acquire',
+                input: {},
+              });
+              if (!acquired.ok) throw new Error(acquired.error.message);
+            }
+            const workspace = binding && !admission?.cancelled ? await apps.taskSource(binding) : undefined;
+            checkAdmission();
+            if (binding && !admission?.cancelled) apps.assertEduTaskActive(binding);
+            if (motaTask && !admission?.cancelled) apps.assertMotaTaskActive(motaTask);
+            if (admission?.cancelled) result = chat.get(request.payload.conversationId);
+            else {
+              chatSendInvoked = true;
+              result = await chat.send(
+                request.payload.conversationId,
+                request.payload.text,
+                request.payload.observationScope,
+                request.payload.references,
+                binding && workspace ? { binding, workspace, retain: (candidate) => eduCandidates.retain(binding, candidate) } : undefined,
+                motaTask,
+                request.payload.researchGrant,
+              );
+            }
+            break;
           }
-          result = null;
-          break;
-        }
-        case 'environments.list':
-          result = environments.list();
-          break;
-        case 'resource.register':
-          await environments.register(request.payload);
-          result = null;
-          break;
-        case 'resource.release':
-          await environments.release(request.payload);
-          result = null;
-          break;
-        case 'observation.read': {
-          if (observations.has(request.payload.requestId)) throw new Error('Duplicate observation request');
-          const controller = new AbortController();
-          observations.set(request.payload.requestId, controller);
-          try {
-            result = await environments.observe(request.payload, controller.signal);
-          } finally {
-            observations.delete(request.payload.requestId);
-          }
-          break;
-        }
-        case 'observation.cancel':
-          observations.get(request.payload.requestId)?.abort();
-          result = null;
-          break;
-        case 'register':
-          chat.register(request.payload.conversationId, request.payload.workspaceId);
-          result = null;
-          break;
-        case 'status':
-          result = initializationError ? { ...chat.getStatus(), available: false, reason: initializationError.message } : chat.getStatus();
-          break;
-        case 'get':
-          result = chat.get(request.payload.conversationId);
-          break;
-        case 'send': {
-          const binding = request.payload.eduTask;
-          const motaTask = request.payload.motaTask;
-          await apps.assertTaskAdmission(request.payload.references.workspaceId, binding, motaTask);
-          if (motaTask && !admission?.cancelled) {
-            chat.assertMotaCapability();
-            const acquired = await apps.motaControl({
-              type: 'mota-control',
-              requestId: randomUUID(),
-              binding: motaTask,
-              method: 'acquire',
-              input: {},
-            });
-            if (!acquired.ok) throw new Error(acquired.error.message);
-          }
-          const workspace = binding && !admission?.cancelled ? await apps.taskSource(binding) : undefined;
-          checkAdmission();
-          if (binding && !admission?.cancelled) apps.assertEduTaskActive(binding);
-          if (motaTask && !admission?.cancelled) apps.assertMotaTaskActive(motaTask);
-          if (admission?.cancelled) result = chat.get(request.payload.conversationId);
-          else {
-            chatSendInvoked = true;
-            result = await chat.send(
-              request.payload.conversationId,
-              request.payload.text,
-              request.payload.observationScope,
-              request.payload.references,
-              binding && workspace ? { binding, workspace, retain: (candidate) => eduCandidates.retain(binding, candidate) } : undefined,
-              motaTask,
-              request.payload.researchGrant,
+          case 'cancel':
+            if (cancellingAdmissions.some((admission) => admission.binding)) await cancelPendingEdu(cancellingAdmissions);
+            result = await chat.cancel(request.payload.conversationId, cancellingAdmissions.length > 0);
+            break;
+          case 'reset':
+            if (cancellingAdmissions.some((admission) => admission.binding)) await cancelPendingEdu(cancellingAdmissions);
+            result = await chat.reset(request.payload.conversationId);
+            break;
+          case 'shutdown': {
+            for (const controller of observations.values()) controller.abort();
+            for (const controller of agentCalls.values()) controller.abort();
+            for (const controller of sourceCalls.values()) controller.abort();
+            await shutdownServiceOwners(
+              shutdownApps,
+              () => chat.shutdown(),
+              () => environments.shutdown(),
             );
-          }
-          break;
-        }
-        case 'cancel':
-          if (cancellingAdmissions.some((admission) => admission.binding)) await cancelPendingEdu(cancellingAdmissions);
-          result = await chat.cancel(request.payload.conversationId, cancellingAdmissions.length > 0);
-          break;
-        case 'reset':
-          if (cancellingAdmissions.some((admission) => admission.binding)) await cancelPendingEdu(cancellingAdmissions);
-          result = await chat.reset(request.payload.conversationId);
-          break;
-        case 'terminal.get':
-          result = environments.terminalSnapshot(environments.identity(request.resourceId));
-          break;
-        case 'terminal.open': {
-          const identity = environments.identity(request.payload.resourceId);
-          if (identity.environmentId === 'sandbox') await requireReady();
-          checkAdmission();
-          result = await environments.openTerminal(identity, request.payload.cols, request.payload.rows);
-          break;
-        }
-        case 'terminal.write':
-          terminalFor(request.payload.resourceId).write(request.payload.sessionId, request.payload.data);
-          result = null;
-          break;
-        case 'terminal.resize':
-          terminalFor(request.payload.resourceId).resize(request.payload.sessionId, request.payload.cols, request.payload.rows);
-          result = null;
-          break;
-        case 'terminal.close':
-          result = await terminalFor(request.payload.resourceId).close(request.payload.sessionId);
-          break;
-        case 'shutdown': {
-          for (const controller of observations.values()) controller.abort();
-          for (const controller of agentCalls.values()) controller.abort();
-          for (const controller of sourceCalls.values()) controller.abort();
-          await shutdownServiceOwners(
-            shutdownApps,
-            () => chat.shutdown(),
-            () => environments.shutdown(),
-          );
 
-          result = null;
-          break;
+            result = null;
+            break;
+          }
+          default: {
+            const unreachable: never = request;
+            throw new Error(`Unhandled service request: ${unreachable}`);
+          }
         }
-      }
       send({ type: 'response', id: request.id, result });
       // ACK须由宿主收到后再结束utility，立即exit会丢失仍在传输的消息。
     } catch (error) {

@@ -1,4 +1,8 @@
 import type * as AppServiceModule from './app-service';
+import type { EnvironmentResources } from './environment-resources';
+import type { CodexChat } from './codex-chat';
+import type { MaintenanceGate } from './maintenance-gate';
+import type { TerminalSnapshot } from '@wsl/protocol';
 import type * as SbxModule from './sbx';
 import { execFileSync } from 'node:child_process';
 import ownedProcess from './edu-owned-process.py?raw';
@@ -17,6 +21,17 @@ const fixture = vi.hoisted(() => ({
   start: vi.fn(),
   initialize: vi.fn<() => Promise<void>>(async () => undefined),
   availableAfterInitialization: true,
+  environmentList: vi.fn<EnvironmentResources['list']>(),
+  resourceRegister: vi.fn<EnvironmentResources['register']>(),
+  resourceRelease: vi.fn<EnvironmentResources['release']>(),
+  observe: vi.fn<EnvironmentResources['observe']>(),
+  identity: vi.fn<EnvironmentResources['identity']>(),
+  terminalSnapshot: vi.fn<EnvironmentResources['terminalSnapshot']>(),
+  openTerminal: vi.fn<EnvironmentResources['openTerminal']>(),
+  terminal: vi.fn<(identity: Parameters<EnvironmentResources['terminal']>[0]) => void>(),
+  terminalWrite: vi.fn<(sessionId: string, data: string) => void>(),
+  terminalResize: vi.fn<(sessionId: string, cols: number, rows: number) => void>(),
+  terminalClose: vi.fn<(sessionId: string) => Promise<TerminalSnapshot>>(),
   appShutdown: vi.fn<() => Promise<void>>(async () => undefined),
 }));
 vi.mock('./sbx', async (original) => {
@@ -56,6 +71,17 @@ vi.mock('./app-service', async (original) => {
 });
 vi.mock('./environment-resources', () => ({
   EnvironmentResources: class {
+    list = fixture.environmentList;
+    register = fixture.resourceRegister;
+    release = fixture.resourceRelease;
+    observe = fixture.observe;
+    identity = fixture.identity;
+    terminalSnapshot = fixture.terminalSnapshot;
+    openTerminal = fixture.openTerminal;
+    terminal(identity: Parameters<EnvironmentResources['terminal']>[0]) {
+      fixture.terminal(identity);
+      return { write: fixture.terminalWrite, resize: fixture.terminalResize, close: fixture.terminalClose };
+    }
     shutdown = async () => undefined;
   },
 }));
@@ -78,6 +104,7 @@ async function host(
   edu = false,
   journal?: string,
   control?: { initializationGate: Promise<void>; owner?: boolean; deferInitialized?: boolean; unavailable?: boolean },
+  beforeImport?: () => Promise<void>,
 ) {
   fixture.availableAfterInitialization = !control?.unavailable;
   fixture.initialize.mockImplementation(async () => {
@@ -178,6 +205,7 @@ async function host(
   }
   if (journal !== undefined) await writeFile(path.join(root, 'edu-verification-recovery.json'), journal, { mode: 0o600 });
   process.argv = [initialArgv[0] ?? 'node', 'service', root];
+  await beforeImport?.();
   await import('./index');
   if (!control?.deferInitialized) await vi.waitFor(() => expect(messages.some((message) => message.type === 'initialized')).toBe(true));
   return {
@@ -1047,3 +1075,357 @@ it.each([false, true])(
     }
   },
 );
+
+// These contracts exercise the process boundary while the original switch owns routing.
+describe('P3 parentPort route contracts', () => {
+  const identity = {
+    workspaceId: 'route-space',
+    environmentId: 'sandbox',
+    resourceId: 'route-terminal',
+    kind: 'terminal' as const,
+    instanceId: 'route-instance',
+    instanceGeneration: 3,
+  };
+  const snapshot = {
+    seq: 7,
+    sessionId: 'route-session',
+    sandbox: 'fixture',
+    cwd: '/workspace',
+    state: 'running' as const,
+    output: 'route-output',
+    cleanupPending: false,
+    error: null,
+  };
+  const observation = {
+    requestId: 'route-observation',
+    workspaceId: identity.workspaceId,
+    sessionId: 'route-session',
+    runId: 'route-run',
+    target: identity,
+    tool: 'terminal.read_screen' as const,
+    args: { maxLines: 17 },
+  };
+  const observed = { error: 'unavailable' as const, message: 'route capture result' };
+  async function response(test: Awaited<ReturnType<typeof host>>, request: ChatServiceRequest, result: unknown) {
+    test.request(request);
+    expect(await test.completion(request.id)).toEqual({ type: 'response', id: request.id, result });
+    expect(
+      test.messages.filter((message) => (message.type === 'response' || message.type === 'error') && message.id === request.id),
+    ).toHaveLength(1);
+  }
+  it('environments.list forwards once and correlates its result', async () => {
+    const test = await host();
+    const list = [
+      {
+        environmentId: 'sandbox' as const,
+        kind: 'sandbox' as const,
+        label: 'route sandbox',
+        state: 'configured' as const,
+        reason: null,
+        capabilities: { files: false, terminal: true, browser: false },
+      },
+    ];
+    fixture.environmentList.mockReturnValueOnce(list);
+    await response(test, { id: 'route-list', method: 'environments.list' }, list);
+    expect(fixture.environmentList).toHaveBeenCalledExactlyOnceWith();
+  });
+  it.each(['resource.register', 'resource.release'] as const)('%s forwards the complete identity once', async (method) => {
+    const test = await host();
+    const operation = method === 'resource.register' ? fixture.resourceRegister : fixture.resourceRelease;
+    operation.mockResolvedValueOnce(undefined);
+    const payload = { ...identity, kind: 'file' as const };
+    await response(test, { id: method, method, payload }, null);
+    expect(operation).toHaveBeenCalledExactlyOnceWith(payload);
+    expect(method === 'resource.register' ? fixture.resourceRelease : fixture.resourceRegister).not.toHaveBeenCalled();
+  });
+  it('terminal.get reads the top-level resourceId and returns one snapshot', async () => {
+    const test = await host();
+    fixture.identity.mockReturnValueOnce(identity);
+    fixture.terminalSnapshot.mockReturnValueOnce(snapshot);
+    await response(test, { id: 'route-get', method: 'terminal.get', resourceId: identity.resourceId }, snapshot);
+    expect(fixture.identity).toHaveBeenCalledExactlyOnceWith(identity.resourceId);
+    expect(fixture.terminalSnapshot).toHaveBeenCalledExactlyOnceWith(identity);
+    expect(fixture.terminal).not.toHaveBeenCalled();
+  });
+  it('terminal.open waits for sandbox readiness then allows admission and forwards dimensions once', async () => {
+    let releaseReady: () => void = () => {
+      throw new Error('missing ready gate');
+    };
+    const initializationGate = new Promise<void>((resolve) => {
+      releaseReady = resolve;
+    });
+    const test = await host(false, undefined, { initializationGate, deferInitialized: true });
+    fixture.identity.mockReturnValueOnce(identity);
+    fixture.openTerminal.mockResolvedValueOnce(snapshot);
+    const request: ChatServiceRequest = {
+      id: 'route-open',
+      method: 'terminal.open',
+      payload: { resourceId: identity.resourceId, cols: 93, rows: 31 },
+    };
+    test.request(request);
+    expect(fixture.openTerminal).not.toHaveBeenCalled();
+    expect(test.messages.some((message) => message.type === 'initialized')).toBe(false);
+    releaseReady();
+    expect(await test.completion(request.id)).toEqual({ type: 'response', id: request.id, result: snapshot });
+    expect(
+      test.messages.filter((message) => (message.type === 'response' || message.type === 'error') && message.id === request.id),
+    ).toHaveLength(1);
+    expect(fixture.identity).toHaveBeenCalledExactlyOnceWith(identity.resourceId);
+    expect(fixture.openTerminal).toHaveBeenCalledExactlyOnceWith(identity, 93, 31);
+  });
+  it.each(['terminal.write', 'terminal.resize', 'terminal.close'] as const)('%s forwards to the owned terminal once', async (method) => {
+    const test = await host();
+    fixture.identity.mockReturnValueOnce(identity);
+    if (method === 'terminal.close') fixture.terminalClose.mockResolvedValueOnce(snapshot);
+    const target = { resourceId: identity.resourceId, sessionId: 'owned-terminal-session' };
+    const request: ChatServiceRequest =
+      method === 'terminal.write'
+        ? { id: method, method, payload: { ...target, data: 'printf route\n' } }
+        : method === 'terminal.resize'
+          ? { id: method, method, payload: { ...target, cols: 101, rows: 37 } }
+          : { id: method, method, payload: target };
+    await response(test, request, method === 'terminal.close' ? snapshot : null);
+    expect(fixture.identity).toHaveBeenCalledExactlyOnceWith(identity.resourceId);
+    expect(fixture.terminal).toHaveBeenCalledExactlyOnceWith(identity);
+    expect(fixture.terminalWrite).toHaveBeenCalledTimes(method === 'terminal.write' ? 1 : 0);
+    expect(fixture.terminalResize).toHaveBeenCalledTimes(method === 'terminal.resize' ? 1 : 0);
+    expect(fixture.terminalClose).toHaveBeenCalledTimes(method === 'terminal.close' ? 1 : 0);
+    if (method === 'terminal.write') expect(fixture.terminalWrite).toHaveBeenCalledWith(target.sessionId, 'printf route\n');
+    if (method === 'terminal.resize') expect(fixture.terminalResize).toHaveBeenCalledWith(target.sessionId, 101, 37);
+    if (method === 'terminal.close') expect(fixture.terminalClose).toHaveBeenCalledWith(target.sessionId);
+  });
+  it('observation.read forwards payload and a live signal once', async () => {
+    const test = await host();
+    fixture.observe.mockResolvedValueOnce(observed);
+    await response(test, { id: 'route-read', method: 'observation.read', payload: observation }, observed);
+    expect(fixture.observe).toHaveBeenCalledExactlyOnceWith(observation, expect.any(AbortSignal));
+    expect(fixture.observe.mock.calls[0]?.[1]?.aborted).toBe(false);
+  });
+  it.each(['observation.cancel', 'shutdown'] as const)('%s aborts a pending read through the same owned map', async (method) => {
+    const test = await host();
+    let signal: AbortSignal | undefined;
+    const aborted = vi.fn();
+    fixture.observe.mockImplementationOnce(
+      (_payload, currentSignal) =>
+        new Promise((resolve) => {
+          if (!currentSignal) throw new Error('missing observation signal');
+          signal = currentSignal;
+          currentSignal.addEventListener(
+            'abort',
+            () => {
+              aborted();
+              resolve({ error: 'cancelled', message: 'route aborted' });
+            },
+            { once: true },
+          );
+        }),
+    );
+    test.request({ id: 'pending-read', method: 'observation.read', payload: observation });
+    expect(fixture.observe).toHaveBeenCalledExactlyOnceWith(observation, expect.any(AbortSignal));
+    expect(signal?.aborted).toBe(false);
+    await response(test, { id: 'unrelated-cancel', method: 'observation.cancel', payload: { requestId: 'foreign-observation' } }, null);
+    expect(signal?.aborted).toBe(false);
+    expect(aborted).not.toHaveBeenCalled();
+    test.request({ id: 'duplicate-read', method: 'observation.read', payload: observation });
+    expect(await test.completion('duplicate-read')).toEqual({
+      type: 'error',
+      id: 'duplicate-read',
+      error: 'Duplicate observation request',
+    });
+    expect(fixture.observe).toHaveBeenCalledTimes(1);
+    await response(
+      test,
+      method === 'shutdown' ? { id: 'abort-read', method } : { id: 'abort-read', method, payload: { requestId: observation.requestId } },
+      null,
+    );
+    expect(signal?.aborted).toBe(true);
+    expect(aborted).toHaveBeenCalledOnce();
+    expect(await test.completion('pending-read')).toEqual({
+      type: 'response',
+      id: 'pending-read',
+      result: { error: 'cancelled', message: 'route aborted' },
+    });
+    if (method === 'observation.cancel') {
+      fixture.observe.mockResolvedValueOnce(observed);
+      await response(test, { id: 'reused-read', method: 'observation.read', payload: observation }, observed);
+      expect(fixture.observe).toHaveBeenCalledTimes(2);
+      const replacement = fixture.observe.mock.calls[1]?.[1];
+      expect(replacement).toBeInstanceOf(AbortSignal);
+      expect(replacement).not.toBe(signal);
+      expect(replacement?.aborted).toBe(false);
+    }
+  });
+  it('terminal.open rechecks admission after sandbox readiness resumes', async () => {
+    let releaseReady: () => void = () => {
+      throw new Error('missing ready gate');
+    };
+    const initializationGate = new Promise<void>((resolve) => {
+      releaseReady = resolve;
+    });
+    const admissionOwners = new Set<MaintenanceGate>();
+    const test = await host(false, undefined, { initializationGate, deferInitialized: true }, async () => {
+      const { MaintenanceGate } = await import('./maintenance-gate');
+      const original = MaintenanceGate.prototype.admission;
+      vi.spyOn(MaintenanceGate.prototype, 'admission').mockImplementation(function (this: MaintenanceGate) {
+        admissionOwners.add(this);
+        return original.call(this);
+      });
+    });
+    fixture.identity.mockReturnValueOnce(identity);
+    try {
+      test.request({ id: 'revoked-open', method: 'terminal.open', payload: { resourceId: identity.resourceId, cols: 83, rows: 27 } });
+      expect(fixture.identity).toHaveBeenCalledExactlyOnceWith(identity.resourceId);
+      expect(fixture.openTerminal).not.toHaveBeenCalled();
+      const maintenance = [...admissionOwners][0];
+      if (!maintenance) throw new Error('request never acquired admission');
+      maintenance.acquire();
+      releaseReady();
+      expect(await test.completion('revoked-open')).toEqual({
+        type: 'error',
+        id: 'revoked-open',
+        error: 'verification_maintenance_locked',
+      });
+      expect(fixture.openTerminal).not.toHaveBeenCalled();
+      maintenance.release();
+    } finally {
+      releaseReady();
+      vi.restoreAllMocks();
+    }
+  });
+  it.each(['observation.reply', 'app.reply', 'research.reply'] as const)(
+    '%s resolves only its matching pending receiver once',
+    async (method) => {
+      let observationReader: Parameters<CodexChat['setObservationReader']>[0] | undefined;
+      let appReader: Parameters<CodexChat['setAppControlReader']>[0] | undefined;
+      let researchReader: Parameters<CodexChat['setResearchReader']>[0] | undefined;
+      const test = await host(false, undefined, undefined, async () => {
+        const { CodexChat } = await import('./codex-chat');
+        vi.spyOn(CodexChat.prototype, 'setObservationReader').mockImplementation((reader) => {
+          observationReader = reader;
+        });
+        vi.spyOn(CodexChat.prototype, 'setAppControlReader').mockImplementation((reader) => {
+          appReader = reader;
+        });
+        vi.spyOn(CodexChat.prototype, 'setResearchReader').mockImplementation((reader) => {
+          researchReader = reader;
+        });
+      });
+      const scope = { workspaceId: identity.workspaceId, sessionId: 'route-session', runId: 'route-run', sources: [] };
+      const signal = new AbortController();
+      const settled = [vi.fn(), vi.fn()];
+      const pending: Promise<unknown>[] = [];
+      const callIds: string[] = [];
+      const context = {
+        grant: {
+          grantId: randomUUID(),
+          accountId: 'route-account',
+          workspaceId: scope.workspaceId,
+          sessionId: scope.sessionId,
+          taskVersionId: 'route-task',
+          runId: scope.runId,
+          mode: 'live' as const,
+          purpose: 'public-web-research' as const,
+          grantedAt: '2026-10-18T00:00:00.000Z',
+        },
+        generation: 'route-generation',
+        turnId: 'route-turn',
+      };
+      try {
+        for (const receiver of settled) {
+          let waiting: Promise<unknown>;
+          if (method === 'observation.reply') {
+            if (!observationReader) throw new Error('missing observation reader');
+            waiting = observationReader(scope, 'workspace.list_sources', {}, signal.signal);
+          } else if (method === 'app.reply') {
+            if (!appReader) throw new Error('missing app reader');
+            waiting = appReader(scope, 'app.status', {}, signal.signal);
+          } else {
+            if (!researchReader) throw new Error('missing research reader');
+            waiting = researchReader(
+              { callId: randomUUID(), context, tool: 'research.open', args: { url: 'https://example.com/' } },
+              signal.signal,
+            );
+          }
+          pending.push(waiting.then(receiver));
+        }
+        for (const message of test.messages) {
+          if (method === 'observation.reply' && message.type === 'observation-call') callIds.push(message.id);
+          if (method === 'app.reply' && message.type === 'app-call') callIds.push(message.id);
+          if (method === 'research.reply' && message.type === 'research-call') callIds.push(message.callId);
+        }
+        expect(callIds).toHaveLength(2);
+        const [firstId, secondId] = callIds;
+        if (!firstId || !secondId) throw new Error('missing forwarded calls');
+        const result =
+          method === 'observation.reply'
+            ? observed
+            : {
+                ok: false as const,
+                tool: method === 'app.reply' ? ('app.status' as const) : ('research.open' as const),
+                error: { code: 'cancelled' as const, message: 'route reply' },
+              };
+        if (method === 'research.reply') {
+          test.request({
+            id: 'invalid-reply',
+            method,
+            payload: {
+              callId: firstId,
+              context: { ...context, turnId: 'foreign-turn' },
+              result: { ok: false, tool: 'research.open', error: { code: 'cancelled', message: 'route reply' } },
+            },
+          });
+          expect(await test.completion('invalid-reply')).toEqual({
+            type: 'error',
+            id: 'invalid-reply',
+            error: 'Research reply does not match its owned call',
+          });
+          expect(settled[0]).not.toHaveBeenCalled();
+          expect(settled[1]).not.toHaveBeenCalled();
+        }
+        const reply = (id: string, callId: string): ChatServiceRequest =>
+          method === 'observation.reply'
+            ? { id, method, payload: { callId, result: observed } }
+            : method === 'app.reply'
+              ? {
+                  id,
+                  method,
+                  payload: { callId, result: { ok: false, tool: 'app.status', error: { code: 'cancelled', message: 'route reply' } } },
+                }
+              : {
+                  id,
+                  method,
+                  payload: {
+                    callId,
+                    context,
+                    result: { ok: false, tool: 'research.open', error: { code: 'cancelled', message: 'route reply' } },
+                  },
+                };
+        await response(test, reply('unknown-reply', randomUUID()), null);
+        expect(settled[0]).not.toHaveBeenCalled();
+        expect(settled[1]).not.toHaveBeenCalled();
+        await response(test, reply('first-reply', firstId), null);
+        await pending[0];
+        expect(settled[0]).toHaveBeenCalledExactlyOnceWith(method === 'research.reply' ? { callId: firstId, context, result } : result);
+        expect(settled[1]).not.toHaveBeenCalled();
+        await response(test, reply('duplicate-reply', firstId), null);
+        expect(settled[0]).toHaveBeenCalledOnce();
+        expect(settled[1]).not.toHaveBeenCalled();
+        await response(test, reply('second-reply', secondId), null);
+        await pending[1];
+        expect(settled[1]).toHaveBeenCalledExactlyOnceWith(method === 'research.reply' ? { callId: secondId, context, result } : result);
+        signal.abort();
+        expect(
+          test.messages.filter(
+            (message) =>
+              ((message.type === 'observation-abort' || message.type === 'app-abort') && callIds.includes(message.id)) ||
+              (message.type === 'research-abort' && callIds.includes(message.callId)),
+          ),
+        ).toEqual([]);
+      } finally {
+        signal.abort();
+        await Promise.all(pending);
+        vi.restoreAllMocks();
+      }
+    },
+  );
+});
