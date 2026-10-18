@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, realpath, lstat } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, realpath, lstat, stat } from 'node:fs/promises';
+import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { createRequire } from 'node:module';
@@ -15,6 +16,18 @@ const { AsarPackager } = require('app-builder-lib/out/asar/asarUtil.js');
 const { checkFileInArchive } = require('app-builder-lib/out/asar/asarFileChecker.js');
 const { dynamicImport } = require('app-builder-lib/out/util/dynamicImport.js');
 const yaml = require('js-yaml');
+// Offset/size values are the ASAR header's own declaration; data starts at 8 + headerSize.
+function archiveDataEnd(header) {
+  let end = 0n;
+  const visit = (node) => {
+    if (node.files) for (const child of Object.values(node.files)) visit(child);
+    if (node.unpacked || node.offset === undefined || node.size === undefined) return;
+    const endOf = BigInt(node.offset) + BigInt(node.size);
+    if (endOf > end) end = endOf;
+  };
+  visit(header);
+  return end;
+}
 const content = {
   'out/main/index.js': 'require("electron");\n',
   'out/preload/index.js': '/* isolated preload */\n',
@@ -53,9 +66,25 @@ async function archive(t, files) {
   const packager = { info };
   const matchers = getMainFileMatchers(appDir, destination, (value) => value, {}, packager, path.join(appDir, 'release'), false);
   const fileSets = await computeFileSets(matchers, null, packager, false);
+  const asarPath = path.join(resourcePath, 'app.asar');
   await new AsarPackager(packager, { resourcePath, defaultDestination: destination, options: { smartUnpack: false } }).pack(fileSets);
+  // @electron/asar 3.4.1 streamFilesystem returns out.end() without awaiting stream close, so
+  // pack() can resolve while tail bytes are still in flight; reads then return zero-padded data.
+  // Fixed upstream in electron/asar 79686b6 (#414); wait (bounded) for the header-declared size.
+  const api = await dynamicImport('@electron/asar');
+  const { header, headerSize } = api.getRawHeader(asarPath);
+  const expectedSize = 8 + headerSize + Number(archiveDataEnd(header));
+  const deadline = Date.now() + 5000;
+  let size;
+  for (;;) {
+    size = (await stat(asarPath)).size;
+    if (size >= expectedSize) break;
+    if (Date.now() > deadline) throw new Error(`archive not flushed: size ${size} < expected ${expectedSize} after 5000 ms`);
+    await delay(10);
+  }
+  assert.equal(size, expectedSize, `archive oversized: size ${size} > expected ${expectedSize}`);
   assert.equal((await lstat(path.join(appDir, 'out'))).isSymbolicLink(), true, 'test must retain the external-output symlink');
-  return { asar: path.join(resourcePath, 'app.asar'), matchers };
+  return { asar: asarPath, matchers };
 }
 test('old out glob reproduces installed builder missing the symlinked Main entry', async (t) => {
   const { asar } = await archive(t, ['out/**', 'resources/branding/**', 'package.json']);
