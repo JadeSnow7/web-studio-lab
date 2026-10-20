@@ -55,7 +55,13 @@ export class PreviewController {
   private blockedNavigation: string | null = null;
   private pickError: string | null = null;
   private visible = false;
-  private devToolsWindow: BrowserWindow | null = null;
+  private devTools: {
+    window: BrowserWindow;
+    webContentsId: number;
+    closing: boolean;
+    closed: Promise<void>;
+    release(): void;
+  } | null = null;
   private disposed = false;
   private navigationEpoch = 0;
   private loadRequestId = 0;
@@ -89,7 +95,7 @@ export class PreviewController {
         allowedOrigins: options.allowedOrigins,
         managedAppOrigin: options.managedAppOrigin,
         webContentsId: this.webContents.id,
-        devToolsWebContentsId: () => this.devToolsWindow?.webContents.id,
+        devToolsWebContentsId: () => (this.devTools?.closing ? undefined : this.devTools?.webContentsId),
         epoch: () => this.navigationEpoch,
         onDocument: (document, epoch) => {
           this.publicDocument = { document, epoch };
@@ -522,8 +528,10 @@ export class PreviewController {
     this.emitState();
   }
 
-  openDevTools(): void {
-    if (!this.devToolsWindow) {
+  async openDevTools(): Promise<void> {
+    while (this.devTools?.closing) await this.devTools.closed;
+    if (this.disposed) return;
+    if (!this.devTools) {
       // Establish owner identity before the frontend's first request; Electron's builtin owner getter is populated after frontend load.
       const tools = new BrowserWindow({
         width: 900,
@@ -531,15 +539,57 @@ export class PreviewController {
         show: false,
         webPreferences: { partition: this.options.partition, sandbox: true, contextIsolation: true, nodeIntegration: false },
       });
-      this.devToolsWindow = tools;
-      tools.on('closed', () => {
-        this.devToolsWindow = null;
+      const frontend = tools.webContents;
+      const owner = this.webContents;
+      let windowClosed = false;
+      let ownerClosed = false;
+      let released = false;
+      let resolveClosed: () => void = () => {
+        throw new Error('DevTools close signal is not initialized');
+      };
+      // Promise's executor runs synchronously, before any close listeners are registered below.
+      const closed = new Promise<void>((resolve) => {
+        resolveClosed = resolve;
       });
-      this.webContents.setDevToolsWebContents(tools.webContents);
-      this.webContents.openDevTools({ mode: 'detach' });
+      const state = {
+        window: tools,
+        webContentsId: frontend.id,
+        closing: false,
+        closed,
+        release: () => {
+          if (released) return;
+          released = true;
+          frontend.removeListener('destroyed', onDestroyed);
+          tools.removeListener('closed', onWindowClosed);
+          owner.removeListener('devtools-closed', onOwnerClosed);
+          if (this.devTools === state) this.devTools = null;
+          resolveClosed();
+        },
+      };
+      const onDestroyed = () => {
+        state.closing = true;
+      };
+      const onWindowClosed = () => {
+        state.closing = true;
+        windowClosed = true;
+        if (ownerClosed) state.release();
+      };
+      const onOwnerClosed = () => {
+        state.closing = true;
+        ownerClosed = true;
+        if (windowClosed) state.release();
+      };
+      this.devTools = state;
+      frontend.once('destroyed', onDestroyed);
+      tools.once('closed', onWindowClosed);
+      owner.once('devtools-closed', onOwnerClosed);
+      // The window can close before Electron detaches the external frontend from its owner.
+      // Waiting for both signals prevents that late detach from discarding a replacement.
+      owner.setDevToolsWebContents(frontend);
+      owner.openDevTools({ mode: 'detach' });
     }
-    this.devToolsWindow.show();
-    this.devToolsWindow.focus();
+    this.devTools.window.show();
+    this.devTools.window.focus();
   }
 
   /** 窗口关闭时显式释放页面：断开 CDP，关闭 webContents。 */
@@ -548,7 +598,15 @@ export class PreviewController {
     this.invalidatePick('网页实例已销毁');
     this.disposed = true;
     this.nativeNavigation?.release();
-    this.devToolsWindow?.destroy();
+    const tools = this.devTools;
+    if (tools) {
+      tools.closing = true;
+      try {
+        if (!tools.window.isDestroyed()) tools.window.destroy();
+      } finally {
+        tools.release();
+      }
+    }
     this.publicProtocol.dispose();
     if (this.webContents.debugger.isAttached()) this.webContents.debugger.detach();
     this.window.contentView.removeChildView(this.view);
