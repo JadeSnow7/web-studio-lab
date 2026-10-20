@@ -1,0 +1,949 @@
+{
+  "schemaVersion": 1,
+  "recordKind": "sanitized_portable_summary",
+  "assembledAt": "2026-10-20T01:50:50.911795+00:00",
+  "repository": "JadeSnow7/web-studio-lab",
+  "baseHead": "e6bb391df4c1d6c0c6a884d6acdc4061e3027b3b",
+  "validatedInputs": "validated-inputs.json",
+  "publication": {
+    "recordPhase": "pre_commit_snapshot",
+    "status": "ready_for_commit",
+    "commitIds": [],
+    "push": "not_performed",
+    "remoteCI": "not_verified_for_this_candidate"
+  },
+  "deliveryBoundary": "Published summary and hash manifest only. Original raw logs, reports, snapshots, profiles and transcripts are retained locally and not delivered here. Digest verification is not a replay.",
+  "acceptance": {
+    "scope": "default_local_fixture_only",
+    "review": "ACCEPT DEFAULT AUTHORIZED SCOPE",
+    "actionableFindings": 0,
+    "fullR6SecurityAcceptance": "incomplete",
+    "userProductAcceptance": "not_inferred",
+    "newDocumentationIndependentReview": "passed"
+  },
+  "toolchain": {
+    "node": "24.21.0",
+    "pnpm": "10.34.6",
+    "python": "3.9.6",
+    "os": "macOS 26.6.2",
+    "arch": "arm64",
+    "electron": "44.5.1",
+    "playwright": "1.63.0",
+    "vitest": "5.0.3",
+    "binarySha256": {
+      "node": "e4b5a3af0e05c75de2eae013904145f40fe7fc2a6e6f17510128bf45cca4e79b",
+      "pnpm": "b276da51dc8ca5b0d3ee3371695b50fc8b3244b281b091c63a3f082a88dadeb9",
+      "python3": "b8763cf250e607a778bb4603cecb5b90338814d0a3dfcba0d57b1de242f610e9"
+    },
+    "modelEvidence": "R6 role wrappers record CLI --model gpt-6.1-sol; historical controller is Harness-declared. CLI selection is not backend identity attestation. No product model run is implied."
+  },
+  "packageResults": {
+    "address": {
+      "sourceId": "address-input-fix-20261019T064230147345Z/final-receipt.json",
+      "before": {
+        "passed": 2,
+        "failed": 9
+      },
+      "after": {
+        "passed": 11,
+        "failed": 0
+      },
+      "relatedPassed": 4,
+      "vitestPassed": 2075,
+      "vitestSkipped": 18,
+      "nodePassed": 174,
+      "externalPassed": 6,
+      "default": {
+        "passed": 179,
+        "skipped": 22,
+        "failed": 0,
+        "flaky": 0,
+        "collected": 201
+      }
+    },
+    "r5": {
+      "sourceId": "r5-export-contract-20261019T101517914991Z/final-receipt.json",
+      "before": {
+        "passed": 37,
+        "failed": 14
+      },
+      "after": {
+        "passed": 51,
+        "failed": 0
+      },
+      "relatedPassed": 347,
+      "vitestPassed": 2126,
+      "vitestSkipped": 18,
+      "nodePassed": 174,
+      "externalPassed": 6,
+      "selftestPassed": 12,
+      "workshopWindowPassed": 1,
+      "default": {
+        "passed": 179,
+        "skipped": 22,
+        "failed": 0,
+        "flaky": 0,
+        "collected": 201
+      }
+    },
+    "r6": {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/final-receipt.json",
+      "vitestPassed": 2248,
+      "vitestSkipped": 18,
+      "nodePassed": 177,
+      "externalPassed": 6,
+      "selftestPassed": 12,
+      "actualLocalServerPassed": 71,
+      "historicalB1InitialServerPassed": 70,
+      "targetedWindowPassed": 8,
+      "r6NewCases": 6,
+      "preservedOldWindowCases": 2,
+      "default": {
+        "runId": "run-jknbt5",
+        "passed": 185,
+        "skipped": 22,
+        "failed": 0,
+        "flaky": 0,
+        "collected": 207,
+        "retries": 0,
+        "missingOriginal201": 0,
+        "freshBuild": true,
+        "ownedNativeExitConfirmed": true
+      }
+    }
+  },
+  "testedVersions": [
+    {
+      "sourceId": "address-input-fix-20261019T064230147345Z/final-state.json",
+      "recordedAt": "2026-10-19T07:05:32.107717+00:00",
+      "sourceAggregate": "0b4273798c00011a8ac40cdfb3f0f658da6e7e70bf451effe437e6e9c6240157",
+      "buildAggregate": "2b90a9a3d8039a13861dbc1e7178f7639a7619f19d963b553ed14e65596e9399"
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T101517914991Z/final-state.json",
+      "recordedAt": "2026-10-19T10:25:46.613199+00:00",
+      "sourceAggregate": "54a8397b1d90abf12f7a564a0b97d246e00cbae5d5fdd93ffca466cc3ad94835",
+      "buildAggregate": "5728ee0b709fed981ebe9e85cc996155b9ec6b897f33e34001e80409455d3359"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/final-state.json",
+      "recordedAt": "2026-10-20T00:03:56.985000+00:00",
+      "sourceAggregate": "7976865df924e64e6cda307b9f844711a5c30a4f944d330f624a5c2e8f81dd5a",
+      "buildAggregate": "172b97ab4f634c9d52fd4001d9aa90c0ea6cac31bd39b51a4ae812770d2dd010"
+    }
+  ],
+  "commands": [
+    {
+      "sourceId": "address-input-fix-20261019T064230147345Z/commands/before-address-regression",
+      "argv": ["node", "scripts/run-e2e.mjs", "e2e/review-regressions.spec.ts", "--grep", "address race:|address lifecycle:"],
+      "startedAt": "2026-10-19T06:44:32.029023+00:00",
+      "finishedAt": "2026-10-19T06:45:46.704462+00:00",
+      "exitCode": 1,
+      "originalReceiptSha256": "70c836b94ac6b468a209f1fb52bb9a6cf6f0195c2f6c83ccbb761023d474fd3d",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "1e880ec839f5e6cbc7b990628bafa889bd0f3f68a61efc35a53345f34b4b3331",
+          "bytes": 32910,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "address-input-fix-20261019T064230147345Z/commands/after-address-regression",
+      "argv": ["node", "scripts/run-e2e.mjs", "e2e/review-regressions.spec.ts", "--grep", "address race:|address lifecycle:"],
+      "startedAt": "2026-10-19T06:47:03.222757+00:00",
+      "finishedAt": "2026-10-19T06:47:26.940492+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "1425ac3f46dead2d2afe9244cec749b3545418c3d2427e8d996d2998e4883092",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "ea4fab988cf6fb72a895d789e1e88713749d3add4141e470ffb57e4cda432245",
+          "bytes": 2421,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "address-input-fix-20261019T064230147345Z/commands/address-original-business",
+      "argv": [
+        "node",
+        "scripts/run-e2e.mjs",
+        "e2e/review-regressions.spec.ts",
+        "e2e/public-document.spec.ts",
+        "e2e/status-surface.spec.ts",
+        "--grep",
+        "rejected address navigation|navigation deduplicates|controlled-network fixture|网页：加载失败 [+] 已拦截导航"
+      ],
+      "startedAt": "2026-10-19T06:47:28.829821+00:00",
+      "finishedAt": "2026-10-19T06:47:38.665103+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "2e760392b14202ef341eed106d6cda79b4d352d53a09ec5883be40cad0881d29",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "2731f1cda2682434f73ab92308513e9e1a5035de234be58bbc15e78590784c06",
+          "bytes": 1052,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "address-input-fix-20261019T064230147345Z/commands/full-check",
+      "argv": ["pnpm", "check"],
+      "startedAt": "2026-10-19T06:47:40.173838+00:00",
+      "finishedAt": "2026-10-19T06:50:06.190639+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "7ada67c3a85d94d6ca9f5d7c05bebdc92b3cbe85b7a4c3c9bed1bd4259eb7d7e",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "5b929c9ab6002aaf111b0191ddc531dc3cca573d251bfec2ed935177d37fa87a",
+          "bytes": 76797,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "c86e922f8eb94a3bdb8b519b15aad19c106fee0e58c9b184c06a4edff1a8a54d",
+          "bytes": 2821,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "address-input-fix-20261019T064230147345Z/commands/default-e2e",
+      "argv": ["pnpm", "test:e2e"],
+      "startedAt": "2026-10-19T06:50:08.124488+00:00",
+      "finishedAt": "2026-10-19T06:59:39.392880+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "4409164c6f08ff3617de3f94b6d674fcb10d1d1f26b14819d9f73b94dbca493a",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "1b478470ecbf076a0ea09af56a4d4f6692ee2bcdc63189e1a88bcb2457132fdf",
+          "bytes": 34930,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "f6bea4c2b7b3789549219b06c2722a4dafaf52b0ad4c843a5919f651f6da5e80",
+          "bytes": 5707,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T082235828832Z/commands/before-regressions-v2",
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "packages/protocol/src/edu-app.test.ts",
+        "apps/service/src/edu-helper.test.ts",
+        "apps/service/src/app-service.test.ts",
+        "apps/desktop/src/main/workbench/source-export.test.ts",
+        "-t",
+        "R5"
+      ],
+      "startedAt": "2026-10-19T08:51:04.950387+00:00",
+      "finishedAt": "2026-10-19T08:51:20.402623+00:00",
+      "exitCode": 1,
+      "originalReceiptSha256": "86458fb15b1fca2fae8c8da3c218365efcce8d3f001ad52e42439efddb73e2dc",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "25f564a461b9e7925e94f86c55672dd1d8914fe2b39eb1cbc4c0fab5390df4c8",
+          "bytes": 40049,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "68218eb00c20d838694b32a805936d587e3f9a4b127a5de94000e654d1f267a0",
+          "bytes": 9705,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T082235828832Z/commands/final-targeted-regressions",
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "packages/protocol/src/edu-app.test.ts",
+        "apps/service/src/edu-helper.test.ts",
+        "apps/service/src/app-service.test.ts",
+        "apps/desktop/src/main/workbench/source-export.test.ts",
+        "-t",
+        "R5"
+      ],
+      "startedAt": "2026-10-19T09:19:12.042841+00:00",
+      "finishedAt": "2026-10-19T09:19:34.330165+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "890c758de2d0343dd1bbe851341293e9d6215b315296f10e03075f6c50d181d7",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "0aa9de489f76577e521a3c48f9c73bb837be0c029a2b392a2bad606a414d665b",
+          "bytes": 26784,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T082235828832Z/commands/related-regressions",
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "packages/protocol/src/edu-app.test.ts",
+        "packages/protocol/src/mota-app.test.ts",
+        "packages/protocol/src/edu-task.test.ts",
+        "apps/service/src/edu-helper.test.ts",
+        "apps/service/src/app-service.test.ts",
+        "apps/service/src/edu-task.test.ts",
+        "apps/service/src/edu-task-operations.test.ts",
+        "apps/desktop/src/main/workbench/source-export.test.ts",
+        "apps/desktop/src/main/workbench/managed-app.test.ts",
+        "apps/desktop/src/main/workbench/managed-app-host.test.ts",
+        "apps/desktop/src/main/chat-service.test.ts"
+      ],
+      "startedAt": "2026-10-19T09:03:53.887568+00:00",
+      "finishedAt": "2026-10-19T09:04:16.778294+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "51a8fe68111316fbde00e3c5f1ab455823425cbbe7cff197a674e92a3161eee4",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "9a5ffa61640109bae14dfc7ea2b3bdc7c1710ba5b9ddc7ae44a71a64aeb59f1d",
+          "bytes": 29155,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T082235828832Z/commands/full-check",
+      "argv": ["pnpm", "check"],
+      "startedAt": "2026-10-19T09:07:18.594169+00:00",
+      "finishedAt": "2026-10-19T09:08:54.522141+00:00",
+      "exitCode": 1,
+      "originalReceiptSha256": "29cc3a6985cb886b86e7548ef3b774495edb31e2600a22e309ef05af2740a101",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "19e2318fd09cc62fdeb531a618058211db9507f06aa30d0ec5eb300db8b2e44b",
+          "bytes": 2018,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "a05c59eee3710898a6b0081471bfe166b651575c2fd8bcad89fc007b5a281e18",
+          "bytes": 143,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T082235828832Z/commands/full-check-formatted",
+      "argv": ["pnpm", "check"],
+      "startedAt": "2026-10-19T09:11:50.592693+00:00",
+      "finishedAt": "2026-10-19T09:14:40.842324+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "f6e2fb041e7e41de80e3324142807d555002818aaef8f7806b5a3a53028d4a19",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "5aa5e8e5358a52935720276997c7176f68951b27057494dd7dd7dc0cccfad33c",
+          "bytes": 102183,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "c86e922f8eb94a3bdb8b519b15aad19c106fee0e58c9b184c06a4edff1a8a54d",
+          "bytes": 2821,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T082235828832Z/commands/baseline-selftest",
+      "argv": ["pnpm", "baseline:selftest"],
+      "startedAt": "2026-10-19T09:14:42.779145+00:00",
+      "finishedAt": "2026-10-19T09:14:43.944848+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "2041fb274baf7617b23745326e33e339d63ee7c85351e095751b8620819b42b8",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "2dff8ad90d471d87f85e5d5ba3f2c656037eb9d0ca6d93ad387fdaf3e3bb6e84",
+          "bytes": 1449,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T082235828832Z/commands/product-build",
+      "argv": ["pnpm", "build"],
+      "startedAt": "2026-10-19T09:14:45.141715+00:00",
+      "finishedAt": "2026-10-19T09:14:57.433150+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "495aac9f5917c0662dfee7856caa112fc755fe302337c49fda41cfe988137418",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "da97c06e78fc799ebf4009b1809629dc3d33d22d24854b5f1f43da7504f5e53a",
+          "bytes": 2032,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "6b23e0b68cb76c89ae96fa99b71555265a6d9a1dd09b15020e1957c7f10cf0b3",
+          "bytes": 4324,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T101517914991Z/commands/workshop-export-e2e",
+      "argv": ["node", "scripts/run-e2e.mjs", "e2e/workshop-actions.spec.ts", "--grep", "Workshop App dialog creates, exports"],
+      "startedAt": "2026-10-19T10:16:24.885672+00:00",
+      "finishedAt": "2026-10-19T10:16:34.464626+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "9e0bd565f2c08351e31f867b6ed72f6af6bb07d81386cf1d9685012fe7528d19",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "26deb50309532e4a75631758b2a4080d506a96085703a18d0fa45a07b2a5e76e",
+          "bytes": 558,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T101517914991Z/commands/default-e2e",
+      "argv": ["pnpm", "test:e2e"],
+      "startedAt": "2026-10-19T10:16:35.698018+00:00",
+      "finishedAt": "2026-10-19T10:24:07.380532+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "5989c3e2fa87283b2c74723a4184fab852ef667004c885237249f385aac3650b",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "ee611bb2d8e95f0a72dc85aa0d2f7c92405b8d3b9925455c8974fbcffc23b6b3",
+          "bytes": 34932,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "ecdcb497450483b86125cb003a7905d27c76c6e6d4b4707f6f3de54d50714401",
+          "bytes": 5707,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/commands/r6-six",
+      "argv": ["node", "scripts/run-e2e.mjs", "e2e/mota-editor.spec.ts"],
+      "startedAt": "2026-10-19T23:13:04.218479+00:00",
+      "finishedAt": "2026-10-19T23:13:29.906628+00:00",
+      "exitCode": 1,
+      "originalReceiptSha256": "d92acdff0373127f77a49366498b79b9c23dffe242c2dfed0c07d2700f59054b",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "18715edea8469f10ad94b6f430570bba7dcaa252397ba3db796ebe5fc3972636",
+          "bytes": 44103,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "0468044dad0712a644ae430f843ffcc5ff96343e153d2e4149944ac1a04c2311",
+          "bytes": 14178,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/commands/r6-six-csp-ordered",
+      "argv": ["node", "scripts/run-e2e.mjs", "e2e/mota-editor.spec.ts"],
+      "startedAt": "2026-10-19T23:15:41.911221+00:00",
+      "finishedAt": "2026-10-19T23:16:06.086284+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "f8478c6bbb5dc218bdd4fe24d1259915aadfab597c47e7c7af680142a04fb3a8",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "18e1c58a07bb5d3d139cac128c4dd0c45000ce0acb8b688c92d9640c8e1c8c4c",
+          "bytes": 44899,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "97d8ed0a542be144e11877a22b7b98308cc8996276fb5eccbec96dc428af5328",
+          "bytes": 14188,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/commands/full-check",
+      "argv": ["pnpm", "check"],
+      "startedAt": "2026-10-19T23:16:29.834505+00:00",
+      "finishedAt": "2026-10-19T23:19:06.741249+00:00",
+      "exitCode": 1,
+      "originalReceiptSha256": "696dd7b7b400f8e906b98f03b611b7afe54c63f1bc3dfe9aee0b0db887d636be",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "6fc0b33d8c2012b904afee7a7bda9a2555f32440f1220be27b330d46ace3b745",
+          "bytes": 90089,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "398cbe324cad5a587ca96d3c795fe7b99c408c1e32da37b670592b6e72c37df6",
+          "bytes": 4451,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/commands/default-e2e",
+      "argv": ["pnpm", "test:e2e"],
+      "startedAt": "2026-10-19T23:20:41.445298+00:00",
+      "finishedAt": "2026-10-19T23:28:51.688307+00:00",
+      "exitCode": 1,
+      "originalReceiptSha256": "95c4d57cdf5f0676b0e84cf65635999b0d1648fcac661f6b4968eb0a4bdbe837",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "7db4c2047a9a9f109a23581eff661a3cfc12c6622eb508a85dc53bd0755c0b93",
+          "bytes": 82691,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "3140c0c026af15aec3a11f30d769e8823787e7735b094c97cd22ee0230c59c0a",
+          "bytes": 19805,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/commands/admission-before",
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/desktop/src/main/workbench/mota-managed-app.test.ts",
+        "-t",
+        "R6 admission compatibility"
+      ],
+      "startedAt": "2026-10-19T23:43:59.799350+00:00",
+      "finishedAt": "2026-10-19T23:44:02.650739+00:00",
+      "exitCode": 1,
+      "originalReceiptSha256": "00cbfa6e015eff98b7f68db2dc69b9a447db34587298dc74bf576b4592173ab9",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "2a4bc6f2b1cfb671c44c965093813a25b7eed94b770e9f5de08dbbb7763e1acd",
+          "bytes": 811,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "df79bc57d2a4170c909aaba951bac3c35a82728900e05df2c73aa0d98104d965",
+          "bytes": 3667,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/commands/admission-after",
+      "argv": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/desktop/src/main/workbench/mota-managed-app.test.ts",
+        "-t",
+        "R6 admission compatibility"
+      ],
+      "startedAt": "2026-10-19T23:44:14.770240+00:00",
+      "finishedAt": "2026-10-19T23:44:17.582574+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "2b70f4d9ec17c43d6d99ce37dba4098fc2d9f2f544b2f36b4a89a959eed5c766",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "147fc359bc91bbe282eae4331d8cca5a4035f768cdc2b53313175444682c9912",
+          "bytes": 226,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/commands/compatibility-build",
+      "argv": ["pnpm", "build"],
+      "startedAt": "2026-10-19T23:48:15.846492+00:00",
+      "finishedAt": "2026-10-19T23:48:29.046442+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "99adab8d8948a9bdc22e5e728b2c1786e0b508540fe9648354f534cf7c8ef38f",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "4e056c5378e4248bfa984c588c4d2a193375e57e9075b09e12e537ee79277e52",
+          "bytes": 2846,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "1e8cf203d7791bf07443ff9f15f4fb5bebbd341927f8965fe82a57a0a9ab7276",
+          "bytes": 4324,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/commands/compatibility-window",
+      "argv": [
+        "node",
+        "scripts/run-e2e.mjs",
+        "e2e/mota-editor.spec.ts",
+        "e2e/workshop-actions.spec.ts",
+        "e2e/workspace-upgrade.spec.ts",
+        "--grep",
+        "R6 default|App operations stay|A03 / A04 / A05"
+      ],
+      "startedAt": "2026-10-19T23:48:30.795334+00:00",
+      "finishedAt": "2026-10-19T23:49:09.124855+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "04b0d0cabd7b7f010b285ed4385eb9b23f1f3157294dc24be49a2621905e90d0",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "1249f60080a056949c8a477ca5e7c2a3a82405260675aca3f1894234093d9913",
+          "bytes": 45173,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "2313a410f23dce5f5da68dd315453731318a7feab0dbc238a997802d0685d056",
+          "bytes": 14188,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/commands/compatibility-full-check",
+      "argv": ["pnpm", "check"],
+      "startedAt": "2026-10-19T23:50:48.281546+00:00",
+      "finishedAt": "2026-10-19T23:53:30.154597+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "70c427d5c6818e8d5a1866504a72add2d5549fb9c4bed5d4ea83d885404c3513",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "9fdd979edc0212cdb4249fdd56d6cf36b26e02ae01e1fa6c393270a37cbb415c",
+          "bytes": 106786,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "bde82c117573ee5f7f1d926e38193ba1882eff4d8a7d5661e399e9e750682638",
+          "bytes": 2821,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/commands/compatibility-selftest",
+      "argv": ["pnpm", "baseline:selftest"],
+      "startedAt": "2026-10-19T23:53:32.069222+00:00",
+      "finishedAt": "2026-10-19T23:53:33.841257+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "f6b24c3945d39d2be72dbeac4571a0e67e205a063278b524c2e2e98484ddbbcb",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "98322f9e9978e82c117d6b22585b37967e8bb3c369405fc298d26933cb145369",
+          "bytes": 1443,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/commands/compatibility-default-e2e",
+      "argv": ["pnpm", "test:e2e"],
+      "startedAt": "2026-10-19T23:53:35.268742+00:00",
+      "finishedAt": "2026-10-20T00:02:04.868905+00:00",
+      "exitCode": 0,
+      "originalReceiptSha256": "b4c837f7027331779968f4cee1e5ba5976927b89f197691ef94af95da89324ec",
+      "originalRawLogDigests": {
+        "stdout.txt": {
+          "sha256": "cea9b932560a96ef1ae0fd8c558caad2ab3d9aece9ea57d7515939d5bf9a7d11",
+          "bytes": 80252,
+          "verifiedAgainstOriginalReceipt": true
+        },
+        "stderr.txt": {
+          "sha256": "afc566ed6b6181b2a45aaeed3f1a2af602e02a9d5f0f721c8d48bab5628ffff1",
+          "bytes": 19895,
+          "verifiedAgainstOriginalReceipt": true
+        }
+      }
+    }
+  ],
+  "defaultSkippedCases": [
+    {
+      "file": "e2e/app-control-cancel-live.spec.ts",
+      "title": "app-control-cancel-live.spec.ts > real CLI cancellation stops owned processes and isolates a delayed reply from the next run",
+      "reasons": ["explicit real model AND sandbox authorization required"]
+    },
+    {
+      "file": "e2e/app-control-data-cancel-live.spec.ts",
+      "title": "app-control-data-cancel-live.spec.ts > real backend automatic cancellation keeps App alive until operation termination is reconciled",
+      "reasons": ["explicit real model and sandbox authorization required"]
+    },
+    {
+      "file": "e2e/app-control-data-cancel-live.spec.ts",
+      "title": "app-control-data-cancel-live.spec.ts > real backend manual cancellation keeps App alive until operation termination is reconciled",
+      "reasons": ["explicit real model and sandbox authorization required"]
+    },
+    {
+      "file": "e2e/app-control-data-cancel-live.spec.ts",
+      "title": "app-control-data-cancel-live.spec.ts > real backend failure cancellation keeps App alive until operation termination is reconciled",
+      "reasons": ["explicit real model and sandbox authorization required"]
+    },
+    {
+      "file": "e2e/app-control-live.spec.ts",
+      "title": "app-control-live.spec.ts > product window + live sandbox app: control plane A03/A07 without model",
+      "reasons": ["explicit live sandbox authorization required; no model is called"]
+    },
+    {
+      "file": "e2e/app-control-model-live.spec.ts",
+      "title": "app-control-model-live.spec.ts > A11: real guest Codex implements and self-verifies the frozen welcome task",
+      "reasons": ["explicit real model AND sandbox authorization required"]
+    },
+    {
+      "file": "e2e/chat.spec.ts",
+      "title": "chat.spec.ts > live：中文对话、上下文续聊、新会话隔离",
+      "reasons": ["真实沙箱模型须显式启用 WSL_LIVE_CODEX=1"]
+    },
+    {
+      "file": "e2e/debug-status.spec.ts",
+      "title": "debug-status.spec.ts > packaged 默认关闭：studio 恰 6 键、菜单无「诊断」、debug:status 未注册",
+      "reasons": ["仅 packaged 目标"]
+    },
+    {
+      "file": "e2e/debug-status.spec.ts",
+      "title": "debug-status.spec.ts > packaged 显式启用（WSL_DEBUG_STATUS=1）：studio.debug 存在、菜单有「诊断」、快照结构合法",
+      "reasons": ["仅 packaged 目标"]
+    },
+    {
+      "file": "e2e/edu-app-live.spec.ts",
+      "title": "edu-app-live.spec.ts > real edu import, owned native pages, metadata and data persistence, cancellation and Workbench export",
+      "reasons": ["explicit task-exclusive edu sandbox authorization required; no model or Azure call"]
+    },
+    {
+      "file": "e2e/managed-app-live.spec.ts",
+      "title": "managed-app-live.spec.ts > real sbx standard app through product Browser, persistence, export and cancellation",
+      "reasons": ["explicit live sbx authorization required; no model is called"]
+    },
+    {
+      "file": "e2e/managed-app-packaged-rejection.spec.ts",
+      "title": "managed-app-packaged-rejection.spec.ts > packaged template archive hash rejection is visible and disables all sandbox capability",
+      "reasons": ["explicit packaged-copy validation"]
+    },
+    {
+      "file": "e2e/mota-agent-live.spec.ts",
+      "title": "mota-agent-live.spec.ts > scripted no-model Mota dispatcher: fixed route then CAS coin and fresh-route comparison",
+      "reasons": ["explicit existing-guest and window authorization required"]
+    },
+    {
+      "file": "e2e/mota-agent-live.spec.ts",
+      "title": "mota-agent-live.spec.ts > real built-in Mota AI: fixed route then CAS coin and fresh-route comparison",
+      "reasons": ["explicit real model and existing-guest authorization required"]
+    },
+    {
+      "file": "e2e/mota-app-live.spec.ts",
+      "title": "mota-app-live.spec.ts > real Mota import, two native resources, editor save, fresh-game potion and owned stop/restart",
+      "reasons": ["explicit existing-guest Mota authorization required; no model or Azure calls"]
+    },
+    {
+      "file": "e2e/observation-live.spec.ts",
+      "title": "observation-live.spec.ts > live：真实Codex统一观察三来源，运行中换空间仍保持原冻结归属",
+      "reasons": ["需主线程串行授权启用 WSL_LIVE_OBSERVATION=1；默认不调用模型/sandbox"]
+    },
+    {
+      "file": "e2e/p0-run-diff-model-live.spec.ts",
+      "title": "p0-run-diff-model-live.spec.ts > live D: product model changes only the health-refresh idle label; host diff and rebuilt native App agree",
+      "reasons": ["requires separate explicit real sandbox AND model authorization"]
+    },
+    {
+      "file": "e2e/p0-run-diff-model-live.spec.ts",
+      "title": "p0-run-diff-model-live.spec.ts > live D: recover native evidence for the existing completed run without model dispatch",
+      "reasons": ["requires explicit sandbox-only evidence recovery authorization"]
+    },
+    {
+      "file": "e2e/resources-live.spec.ts",
+      "title": "resources-live.spec.ts > live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过只读 MCP 枚举和读取",
+      "reasons": ["真实网络与既有授权模型须显式启用 WSL_LIVE_RESOURCE=1"]
+    },
+    {
+      "file": "e2e/sbx.spec.ts",
+      "title": "sbx.spec.ts > live：应用终端与 Codex 共享 guest 文件并确认交互与清理",
+      "reasons": ["真实 sbx 与模型须显式启用 WSL_LIVE_SBX=1"]
+    },
+    {
+      "file": "e2e/space-app-model-live.spec.ts",
+      "title": "space-app-model-live.spec.ts > live: real App creation, native element capture and product model edit rebuild the same project",
+      "reasons": ["requires explicit real sandbox AND model authorization"]
+    },
+    {
+      "file": "e2e/workspace-runtime.spec.ts",
+      "title": "workspace-runtime.spec.ts > live：真实PTY与单Agent执行跨空间保持归属，检查和审阅独立",
+      "reasons": ["真实sbx与模型仅在本轮明确启用WSL_LIVE_WORKSPACE=1执行"]
+    }
+  ],
+  "historicalUncertainty": {
+    "fourOldUnitRoots": "undetermined",
+    "r5TimeoutRoots": "undetermined",
+    "mcpMissingStimulusRoot": "undetermined; not reproduced in final check",
+    "oldAddressAttribution": "likely; not retrospective proof",
+    "continuousHumanInteraction": "not_attested",
+    "missingCGState": "unknown"
+  },
+  "notRun": [
+    "real_guest_save",
+    "product_model_live",
+    "sandbox_live",
+    "S4_OS_isolation",
+    "packaged",
+    "physical_audio",
+    "signing",
+    "merge",
+    "release",
+    "deployment"
+  ],
+  "originalEvidenceDigests": [
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/README.md",
+      "sha256": "75be689e8aa36401dc1c406960b792e8a00caac31bd8bac0ed9e0301c5703ca2"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/REPORT.md",
+      "sha256": "d45c1b14ece93a6e4500a6bcaeb791629a9ba233a883d60d0849876aa8519736"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/final-receipt.json",
+      "sha256": "c723b2b5b3d7770217da279b620d234a270fd4e6c54069e4b07f0e045b597746"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/final-state.json",
+      "sha256": "d6ee8259f4f740b766965a35e47499b83a0e2a2d99ca33bd5afca55fa5a829c2"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/toolchain.json",
+      "sha256": "f719885f069a38f60c0b6ee392feea1ea6e25d66ef1621470493cc404531c9ee"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/commands-ledger.json",
+      "sha256": "a22b8fadc96be09d332b0362a3bfb9fe8cf5e7157da6a6a17e96e72ab5330e5e"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/e2e-ledger.json",
+      "sha256": "ebc8e3b2bcfb64a46587bb236c024dc12c953078154dd10789d0759b1d732b4a"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/models-final.json",
+      "sha256": "5bdc0a9010415fa048f8c9ec55b31375a7df25a61648de4b52f9ff9a87a99db1"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/historical-evidence-integrity.json",
+      "sha256": "de08e177d5f8e6bfd5dec441ca13c43d3085d08213afcca55a89e34e9996d2d7"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/protected-inputs.json",
+      "sha256": "bfd7d67f77cbd89f09461b13965e7b04350055a80d21f4c7537844c3ac0fad30"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/ADMISSION-COMPATIBILITY-FIX.md",
+      "sha256": "a7566df7151e5ffddb22ba7229a36365a6530f6ef56068bf6bdc1017fd442e8e"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/CSP-OBSERVATION-FIX.md",
+      "sha256": "412e90b9628016a4bab41e0f350f7f84457fd4f02a54ab9ca0126e98b2d3c93f"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/agents/independent-final-evidence-review.md",
+      "sha256": "da6f72bdef045619505eb5e1ae1b910ba332e44ab30734fa52cb82220cbb5ea4"
+    },
+    {
+      "sourceId": "r6-trusted-editor-save-20261019T231256525294Z/agents/independent-csp-admission-review.md",
+      "sha256": "b6788a7fc47d0a908e05023217c887f97587454f0ac4eb64f436f7af23cd39dd"
+    },
+    {
+      "sourceId": "address-input-fix-20261019T064230147345Z/README.md",
+      "sha256": "7f5eb6576349a1afa05dec46be8fb2f25373b51e9980ef88ee0c600da04d5a57"
+    },
+    {
+      "sourceId": "address-input-fix-20261019T064230147345Z/final-receipt.json",
+      "sha256": "ec22bd09b11d2cdd078675e3ee23a7e411bc224004ff1d4b03930cdb52a1b24c"
+    },
+    {
+      "sourceId": "address-input-fix-20261019T064230147345Z/e2e-ledger.json",
+      "sha256": "bf6521594c933e16132adce372f2b8b45b5e3fddebe0961dd0152b99dc431574"
+    },
+    {
+      "sourceId": "address-input-fix-20261019T064230147345Z/package.patch",
+      "sha256": "740e254ae04a4cf134bd294299b46ba3af4432712210e367183fba1720bb8ab4"
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T101517914991Z/README.md",
+      "sha256": "aefb7e47ccf2cfeddb63551c3c9e1ade2901fc3df71728da5328a22a6466bf99"
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T101517914991Z/final-receipt.json",
+      "sha256": "10c07c3755efd13199d6905c70bdc113ec28f95a568f9e289e0686e0b69052fb"
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T101517914991Z/package.patch",
+      "sha256": "23ad46cec6454329866155e389ddf93b9d5cf70729e360cae7f8c3e9417a8a00"
+    },
+    {
+      "sourceId": "r5-export-contract-20261019T082235828832Z/final-receipt.json",
+      "sha256": "01799f294c5cc1eddee63678a23d6a4c5d65829cf21d3ec093fec59c14f9673d"
+    }
+  ],
+  "documentationClosureChecks": {
+    "status": "passed",
+    "productTestsBuildE2ERerunByDocumentationRole": false,
+    "combinedCandidateValidation": "passed_documentation_and_identical_product_inputs",
+    "independentReview": {
+      "initial": {
+        "sourceId": "submission-readiness-20261020T014526329597Z/agents/independent-submission-review.md",
+        "sha256": "2140719c88f049b43560f7462c14d3651bbe1d2edd57e16fca4be4de2afed5f1",
+        "result": "CHANGES REQUIRED",
+        "finding": "P2: aggregate Unicode escaping was underspecified"
+      },
+      "followup": {
+        "sourceId": "submission-readiness-20261020T014526329597Z/agents/independent-encoding-followup.md",
+        "sha256": "848f1f45b8142d5843912e587a6b2f8c77bfe9e23500be5934878efa29345589",
+        "result": "P2 CLOSED — ACCEPT DOCUMENTATION/COMMIT READINESS",
+        "remainingFindings": 0
+      }
+    },
+    "scope": "Documentation/composition readiness only; exact product/test/config/build bytes retain their prior validation. Publication outcomes are recorded after this immutable pre-commit snapshot."
+  }
+}
