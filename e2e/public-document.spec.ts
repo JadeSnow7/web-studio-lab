@@ -65,6 +65,10 @@ test('controlled-network fixture：真实 Electron 协议跳转、显示、绑�
   });
 
   const address = page.getByLabel('页面地址');
+  // Business setup: both native navigation and its initial address projection must be ready before editing.
+  await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
+  await expect.poll(async () => (await browserState(page)).loading).toBe(false);
+  await expect(address).toHaveValue('wsl-demo://taskflow/index.html');
   await address.fill('https://example.com/start#section');
   await address.press('Enter');
   await expect.poll(async () => (await previewInfo(app)).url).toBe('https://docs.docker.com/guide');

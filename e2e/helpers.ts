@@ -13,6 +13,8 @@ import { fileURLToPath } from 'node:url';
 import { _electron, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import { appControlInjection } from './fixtures/app-control-injection';
 import { appControlCancelGate } from './fixtures/app-control-cancel-gate';
+import { addressInitialLoadGate } from './fixtures/address-initial-load-gate';
+import { addressNavigationObserver } from './fixtures/address-navigation-observer';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const fixtureSandbox =
@@ -32,6 +34,10 @@ export async function launchApp(
     appControlInjection?: boolean;
     /** Test-only: observe real app calls and delay one genuine reply across cancellation. */
     appControlCancelGate?: boolean;
+    /** Test-only: defer the first genuine preview load until the address has focus. */
+    addressInitialLoadGate?: boolean;
+    /** Test-only: observe settlement of original address navigation invokes in the preload. */
+    addressNavigationObserver?: boolean;
     controlledTerminal?: boolean;
     codexBin?: string;
     sbxBin?: string;
@@ -109,16 +115,26 @@ export async function launchApp(
   delete env['WSL_STATUS_LOG'];
   if (options.debugStatus) env['WSL_DEBUG_STATUS'] = '1';
   if (options.debugStatus && options.statusLog) env['WSL_STATUS_LOG'] = options.statusLog;
-  // Install the observer before the real entrypoint creates any renderer.
+  // The build bootstrap installs fixtures before the real entrypoint creates any renderer.
   const bootstrap = path.join(await mkdtemp(path.join(tmpdir(), 'wsl-e2e-bootstrap-')), 'main.cjs');
+  const addressPreload = path.join(path.dirname(bootstrap), 'address-navigation-observer.cjs');
+  if (options.addressNavigationObserver) await writeFile(addressPreload, addressNavigationObserver);
   await writeFile(
     bootstrap,
     `
 const { app } = require('electron');
 app.setAppPath(${JSON.stringify(desktopDir)});
 globalThis.__wslRendererErrors = [];
+${
+  options.addressNavigationObserver
+    ? `app.once('ready', () => {
+  require('electron').session.defaultSession.registerPreloadScript({ type: 'frame', filePath: ${JSON.stringify(addressPreload)} });
+});`
+    : ''
+}
 ${options.appControlInjection ? appControlInjection : ''}
 ${options.appControlCancelGate ? appControlCancelGate : ''}
+${options.addressInitialLoadGate ? addressInitialLoadGate : ''}
 ${
   options.controlledObservation || options.controlledTerminal
     ? `
@@ -213,6 +229,13 @@ require(${JSON.stringify(path.join(desktopDir, 'out/main/index.js'))});
     assert.deepEqual(rendererErrors, [], 'Workbench renderer exceptions/errors fail every E2E');
   };
   try {
+    if (target === 'packaged' && options.addressNavigationObserver) {
+      // Packaged launches bypass the bootstrap; reload so the same session preload precedes the real preload.
+      await app.evaluate(({ session }, filePath) => {
+        session.defaultSession.registerPreloadScript({ type: 'frame', filePath });
+      }, addressPreload);
+      await page.reload();
+    }
     await page.waitForSelector('div.app', { timeout: 10000 });
     if (!options.cleanInstall) await page.waitForSelector('[data-pane-id]', { state: 'attached', timeout: options.live ? 60000 : 10000 });
   } catch (error) {

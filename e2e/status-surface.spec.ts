@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { expect, test, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import {
   fixtureSandbox,
+  browserState,
   installStatusShim,
   launchApp,
   openBrowserMenu,
@@ -774,6 +775,10 @@ async function onPreview(app: ElectronApplication, fault: 'detach-cdp' | 'block-
 async function failPageLoad(app: ElectronApplication, page: Page) {
   await controlledResourceNetwork(app);
   const address = page.getByLabel('页面地址');
+  // Initial readiness belongs to this business setup; address races have separate controlled regressions.
+  await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
+  await expect.poll(async () => (await browserState(page)).loading).toBe(false);
+  await expect(address).toHaveValue('wsl-demo://taskflow/index.html');
   await address.fill('https://example.com/missing');
   await address.press('Enter');
   await expect(browserSlotItems(page).filter({ hasText: '页面加载失败' })).toBeVisible();

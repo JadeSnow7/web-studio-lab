@@ -188,11 +188,21 @@ export function Browser({
   const host = useRef<HTMLDivElement>(null);
   const address = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<string | null>(null);
+  // Focus alone freezes the displayed value; only edited/submitted drafts survive blur.
+  const dirtyDraft = useRef(false);
   const composing = useRef(false);
   const draftVersion = useRef(0);
   const navigationRequest = useRef(0);
   const pendingNavigation = useRef<{ version: number; url: string } | null>(null);
   const p = resource.preview;
+  const projectedUrl = p?.page.url ?? resource.url ?? '';
+  useLayoutEffect(() => {
+    if (visible) return;
+    draftVersion.current++;
+    composing.current = false;
+    if (!dirtyDraft.current) setDraft(null);
+    address.current?.blur();
+  }, [visible]);
   const workspace = useStore(workspaceStore, (s) => s.snapshot?.workspaces.find((w) => w.workspaceId === workspaceId));
   const managedAppInstanceId = resource.appProjectId ? workspace?.managedApp?.appInstanceId : null;
   const [associatedSessionId, setAssociatedSessionId] = useState('');
@@ -339,15 +349,18 @@ export function Browser({
           onSubmit={(e) => {
             e.preventDefault();
             if (composing.current) return;
-            const url = draft ?? p?.page.url ?? '';
+            const url = draft ?? projectedUrl;
             const version = draftVersion.current;
             if (pendingNavigation.current?.version === version && pendingNavigation.current.url === url) return;
+            dirtyDraft.current = true;
+            setDraft(url);
             const request = ++navigationRequest.current;
             const pending = { version, url };
             pendingNavigation.current = pending;
             void action('navigate', url).then((result) => {
               if (pendingNavigation.current === pending) pendingNavigation.current = null;
               if (!result?.ok || navigationRequest.current !== request || draftVersion.current !== version) return;
+              dirtyDraft.current = false;
               setDraft(null);
               address.current?.blur();
             });
@@ -359,21 +372,40 @@ export function Browser({
           <input
             ref={address}
             id={`address-${resource.resourceId}`}
-            value={draft ?? p?.page.url ?? resource.url ?? ''}
+            value={draft ?? projectedUrl}
+            onFocus={(e) => {
+              // A new focus owns its selection even before the first change event.
+              draftVersion.current++;
+              setDraft(e.currentTarget.value);
+            }}
+            onBlur={() => {
+              composing.current = false;
+              if (!dirtyDraft.current) setDraft(null);
+            }}
             onChange={(e) => {
               draftVersion.current++;
+              dirtyDraft.current = true;
               setDraft(e.target.value);
             }}
-            onCompositionStart={() => {
+            onCompositionStart={(e) => {
               composing.current = true;
+              draftVersion.current++;
+              dirtyDraft.current = true;
+              setDraft(e.currentTarget.value);
             }}
             onCompositionEnd={() => {
               composing.current = false;
             }}
             onKeyDown={(e) => {
-              if (e.key === 'Escape' && !e.nativeEvent.isComposing) {
+              if (composing.current || e.nativeEvent.isComposing) {
+                if (e.key === 'Enter') e.preventDefault();
+                return;
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault();
                 draftVersion.current++;
-                setDraft(null);
+                dirtyDraft.current = false;
+                setDraft(projectedUrl);
               }
             }}
           />
