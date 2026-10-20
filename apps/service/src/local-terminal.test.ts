@@ -36,11 +36,12 @@ const phaseSchema = z.enum([
 const pythonTime = z.number().finite().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const traceFrameSchema = z.union([
   z.object({ phase: z.literal('pythonEntry') }).strict(),
-  z.object({ phase: phaseSchema, pythonMs: pythonTime }).strict(),
+  z.object({ phase: phaseSchema, pythonMs: pythonTime, wallMs: pythonTime }).strict(),
   z
     .object({
       phase: z.literal('runtime'),
       pythonMs: pythonTime,
+      wallMs: pythonTime,
       version: z.tuple([z.number().int().min(0).max(999), z.number().int().min(0).max(999), z.number().int().min(0).max(999)]),
       flags: z
         .object({
@@ -54,11 +55,13 @@ const traceFrameSchema = z.union([
       siteLoaded: z.boolean(),
       siteCustomizeLoaded: z.boolean(),
       userCustomizeLoaded: z.boolean(),
+      executableMatchesRequested: z.boolean(),
+      executableIsPythonFramework: z.boolean(),
     })
     .strict(),
 ]);
 
-function instrumentFirstHelper(source: string) {
+function instrumentFirstHelper(source: string, requested: string) {
   const imports = 'import base64, codecs, ctypes, errno, fcntl, json, os, pty, select, signal, struct, sys, tempfile, termios, time, uuid';
   const mark = (phase: z.infer<typeof phaseSchema>) => `_wsl_start_probe('${phase}')`;
   const replacements: [string, string][] = [
@@ -68,17 +71,21 @@ function instrumentFirstHelper(source: string) {
       `import sys\nsys.stderr.write('${tracePrefix}{"phase":"pythonEntry"}\\n')\nsys.stderr.flush()\n${imports}
 
 def _wsl_start_probe(phase):
-    sys.stderr.write('${tracePrefix}' + json.dumps({'phase': phase, 'pythonMs': time.monotonic() * 1000}) + '\\n')
+    stamp = {'phase': phase, 'pythonMs': time.monotonic() * 1000, 'wallMs': time.time() * 1000}
+    sys.stderr.write('${tracePrefix}' + json.dumps(stamp) + '\\n')
     sys.stderr.flush()
 
 ${mark('importsDone')}
 sys.stderr.write('${tracePrefix}' + json.dumps({
-    'phase': 'runtime', 'pythonMs': time.monotonic() * 1000, 'version': list(sys.version_info[:3]),
+    'phase': 'runtime', 'pythonMs': time.monotonic() * 1000, 'wallMs': time.time() * 1000,
+    'version': list(sys.version_info[:3]),
     'flags': {'isolated': bool(sys.flags.isolated), 'noSite': bool(sys.flags.no_site),
               'noUserSite': bool(sys.flags.no_user_site), 'ignoreEnvironment': bool(sys.flags.ignore_environment),
               'dontWriteBytecode': bool(sys.flags.dont_write_bytecode)},
     'siteLoaded': 'site' in sys.modules, 'siteCustomizeLoaded': 'sitecustomize' in sys.modules,
-    'userCustomizeLoaded': 'usercustomize' in sys.modules
+    'userCustomizeLoaded': 'usercustomize' in sys.modules,
+    'executableMatchesRequested': sys.executable == ${JSON.stringify(requested)},
+    'executableIsPythonFramework': isinstance(sys.executable, str) and 'Python3.framework/' in sys.executable
 }) + '\\n')
 sys.stderr.flush()`,
     ],
@@ -102,6 +109,7 @@ function traceFirstSpawn() {
   type Event = {
     event: string;
     nodeMs: number;
+    wallMs: number;
     python?: z.infer<typeof traceFrameSchema>;
     exitCode?: number | null;
   };
@@ -111,7 +119,8 @@ function traceFirstSpawn() {
   let invalidMarkers = 0;
   const detach: (() => void)[] = [];
   const record = (event: string, detail: Pick<Event, 'python' | 'exitCode'> = {}) => {
-    const value = { event, nodeMs: Number(process.hrtime.bigint() - started) / 1e6, ...detail };
+    // Wall time estimates same-host delivery delay; monotonic deltas expose clock adjustments.
+    const value = { event, nodeMs: Number(process.hrtime.bigint() - started) / 1e6, wallMs: Date.now(), ...detail };
     const bytes = Buffer.byteLength(JSON.stringify(value)) + 1;
     // Reserve room for the fixed report envelope; never retain raw stream contents.
     if (events.length >= 64 || traceBytes + bytes > 8192 - 512) {
@@ -150,7 +159,7 @@ function traceFirstSpawn() {
       throw new Error('PTY diagnostic spawn contract changed');
     if (!Array.isArray(options.stdio) || options.stdio.length !== 3 || options.stdio.some((value) => value !== 'pipe'))
       throw new Error('PTY diagnostic requires the original piped transport');
-    const source = instrumentFirstHelper(args[4]);
+    const source = instrumentFirstHelper(args[4], command);
     spawned = true;
     record('spawnRequested');
     // The actual executable, options and transport remain unchanged. Only this call's source has markers.
