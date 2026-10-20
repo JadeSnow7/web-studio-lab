@@ -12,6 +12,9 @@ import {
   SetupSnapshotSchema,
   type PaneLayout,
   type MotaEditorBridge,
+  type MotaEditorReadInput,
+  type MotaEditorReadResult,
+  type MotaEditorSaveInput,
 } from '../packages/protocol/src';
 import { chooseImportSource } from './edu-import-fixture';
 import { launchApp, target, workspaceSnapshot, workshopNavigate } from './helpers';
@@ -448,9 +451,88 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
     expect(reopened.resource.resourceId).toBe(editor.resource.resourceId);
     expect(reopened.geometry?.webContentsId).toBe(editor.geometry?.webContentsId);
     await expect(reopened.view.getByLabel(/^文件内容/)).toHaveValue('unsaved navigation sentinel');
+    await expect
+      .poll(() =>
+        reopened.view.evaluate(async () => {
+          const bridge = (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor;
+          return (await bridge.status({ sessionIndex: null, requestId: crypto.randomUUID() })).state;
+        }),
+      )
+      .toBe('active');
+    // Read through the real narrow bridge while this document is authorized.
+    // The renderer receives an index, never the private guest session ID/nonce.
+    const oldBaseline = await reopened.view.evaluate<MotaEditorReadResult, MotaEditorReadInput['file']>(async (file) => {
+      const bridge = (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor;
+      const current = await bridge.status({ sessionIndex: null, requestId: crypto.randomUUID() });
+      if (current.state !== 'active' || current.sessionIndex === null) throw new Error('live editor admission is not active');
+      return bridge.read({ sessionIndex: current.sessionIndex, requestId: crypto.randomUUID(), file });
+    }, floorPath);
+    if (oldBaseline.content === null) throw new Error('live editor floor baseline is missing');
+    const beforeRevocation = await auditGuest(projectId, [], first.guestPort);
+    expect(beforeRevocation.processes.length).toBeGreaterThan(0);
+    registered = beforeRevocation.processes;
+    expect(oldBaseline.contentHash).toBe(beforeRevocation.sha256);
+    expect(Buffer.from(oldBaseline.content).equals(Buffer.from(beforeRevocation.base64, 'base64'))).toBe(true);
+    const deniedContent = oldBaseline.content + '\n';
+    expect(Buffer.byteLength(deniedContent)).toBeLessThanOrEqual(262144);
+    expect(sha256(deniedContent)).not.toBe(beforeRevocation.sha256);
+    expect(parseFloor(Buffer.from(deniedContent))).toEqual(parseFloor(Buffer.from(oldBaseline.content)));
     await page.getByRole('button', { name: editor.tab.title + '操作', exact: true }).click();
     await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）', exact: true }).click();
     expect((await state()).tabs.some((item) => item.tabId === editor.tab.tabId)).toBe(false);
+    expect((await state()).managedApp).toMatchObject({ state: 'running', appInstanceId: first.appInstanceId });
+    const oldWebContentsId = reopened.geometry?.webContentsId;
+    if (oldWebContentsId === undefined) throw new Error('live editor native identity is missing');
+    expect(
+      await app.evaluate(({ webContents }, id) => {
+        const contents = webContents.fromId(id);
+        return { alive: !!contents && !contents.isDestroyed(), url: contents?.getURL() ?? null };
+      }, oldWebContentsId),
+    ).toEqual({ alive: true, url: 'wsl-editor://mota/index.html' });
+    expect(await reopened.view.evaluate(() => typeof Reflect.get(window, 'motaEditor'))).toBe('object');
+    await expect
+      .poll(() =>
+        reopened.view.evaluate(async (sessionIndex) => {
+          const bridge = (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor;
+          return (await bridge.status({ sessionIndex, requestId: crypto.randomUUID() })).state;
+        }, oldBaseline.sessionIndex),
+      )
+      .toBe('revoked');
+    const deniedRequest: MotaEditorSaveInput = {
+      sessionIndex: oldBaseline.sessionIndex,
+      requestId: crypto.randomUUID(),
+      file: floorPath,
+      expectedHash: oldBaseline.contentHash,
+      content: deniedContent,
+    };
+    // Await the actual save IPC. Closed targets, absent bridges, busy/conflict
+    // errors and transport failures must not count as Main authorization denial.
+    const denial = await reopened.view.evaluate(async (input) => {
+      try {
+        await (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor.save(input);
+        return 'resolved';
+      } catch (error) {
+        const match = /^Error: (?:Error invoking remote method 'mota-editor:save': Error: )?(denied|revoked):/.exec(String(error));
+        return match?.[1] ?? 'unexpected-rejection';
+      }
+    }, deniedRequest);
+    const afterRevocation = await auditGuest(projectId, [], first.guestPort);
+    evidence['revokedEditorSave'] = {
+      trigger: 'closed editor tab through product UI',
+      liveDocumentAndBridgeConfirmed: true,
+      oldSessionState: 'revoked',
+      request: 'real motaEditor.save with a previously read session and valid changed MT1 text',
+      rejection: denial,
+      file: floorPath,
+      beforeSha256: beforeRevocation.sha256,
+      afterSha256: afterRevocation.sha256,
+      bytesUnchanged: afterRevocation.base64 === beforeRevocation.base64,
+      modeUnchanged: afterRevocation.mode === beforeRevocation.mode,
+    };
+    expect(['denied', 'revoked']).toContain(denial);
+    expect(afterRevocation.sha256).toBe(beforeRevocation.sha256);
+    expect(afterRevocation.base64 === beforeRevocation.base64).toBe(true);
+    expect(afterRevocation.mode).toBe(beforeRevocation.mode);
     expect((await state()).managedApp).toMatchObject({ state: 'running', appInstanceId: first.appInstanceId });
     const afterClose = await openEntry('editor');
     expect(afterClose.resource.resourceId).toBe(editor.resource.resourceId);
