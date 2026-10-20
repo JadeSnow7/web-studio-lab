@@ -8,7 +8,9 @@ import { AppControl, FileAppControlStore } from './workbench/app-control';
 import { WorkbenchHost } from './workbench/host';
 import os from 'node:os';
 import path from 'node:path';
-import { app, dialog, session, type BrowserWindow } from 'electron';
+import { app, dialog, session, protocol, type BrowserWindow } from 'electron';
+import { FileMotaEditorOperationStore } from './workbench/mota-editor-repository';
+import { registerMotaEditorIpc } from './mota-editor/ipc';
 import { ChatService } from './chat-service';
 import { DebugStatus, debugStatusEnabled } from './debug-status';
 import { getExecutionStatus } from './execution';
@@ -18,6 +20,7 @@ import { registerDemoScheme } from './preview/demo-protocol';
 import { createMainWindow, rendererSource } from './window';
 
 registerDemoScheme();
+protocol.registerSchemesAsPrivileged([{ scheme: 'wsl-editor', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 
 function demoRoot(): string {
   return app.isPackaged ? path.join(process.resourcesPath, 'demo', 'taskflow') : path.resolve(app.getAppPath(), '../../demo/taskflow');
@@ -86,11 +89,17 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
         },
   );
   const host = new WorkbenchHost(window, chat, demoRoot());
-  workbench = new WorkbenchApplication(new FileWorkbenchRepository(path.join(app.getPath('userData'), 'workbench.json')), host, (event) => {
-    debug?.onWorkbench(event.snapshot);
-    sendToRenderer(window, 'workbench:event', event);
-  });
+  workbench = new WorkbenchApplication(
+    new FileWorkbenchRepository(path.join(app.getPath('userData'), 'workbench.json')),
+    host,
+    (event) => {
+      debug?.onWorkbench(event.snapshot);
+      sendToRenderer(window, 'workbench:event', event);
+    },
+    { ports: host, store: new FileMotaEditorOperationStore(path.join(app.getPath('userData'), 'mota-editor-operations.json')) },
+  );
   host.application = workbench;
+  const unregisterMotaEditorIpc = registerMotaEditorIpc(workbench, () => host.motaEditors.values());
   chat.setObservationReader((scope, tool, args, signal) => workbench!.observeForTurn(scope, tool, args, signal));
   chat.setResearchReader((call, signal) => workbench!.researchForTurn(call, signal));
   const control = new AppControl({
@@ -146,9 +155,11 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
     void host.resumeAudio().catch((error: unknown) => console.error('恢复录音监视失败', error));
   });
   window.on('hide', () => {
+    host.hideMotaEditors();
     void host.deactivateAudio().catch((error: unknown) => console.error('隐藏窗口时录音清理失败', error));
   });
   window.on('minimize', () => {
+    host.hideMotaEditors();
     void host.deactivateAudio().catch((error: unknown) => console.error('最小化时录音清理失败', error));
   });
   let closing = false;
@@ -158,6 +169,7 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
     event.preventDefault();
     if (closing) return;
     closing = true;
+    host.hideMotaEditors();
     void host
       .deactivateAudio()
       .catch((error: unknown) => console.error('退出前音轨核验失败；预览已销毁，继续回收 guest', error))
@@ -168,6 +180,7 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
           return;
         }
         host.dispose();
+        unregisterMotaEditorIpc();
         unregisterIpc();
         unsubscribeSetup();
         allowed = true;

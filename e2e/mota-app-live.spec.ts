@@ -5,7 +5,14 @@ import { promisify } from 'node:util';
 import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
-import { isMotaExcludedName, isMotaSourcePath, MOTA_ROOT_DIRS, SetupSnapshotSchema, type PaneLayout } from '../packages/protocol/src';
+import {
+  isMotaExcludedName,
+  isMotaSourcePath,
+  MOTA_ROOT_DIRS,
+  SetupSnapshotSchema,
+  type PaneLayout,
+  type MotaEditorBridge,
+} from '../packages/protocol/src';
 import { chooseImportSource } from './edu-import-fixture';
 import { launchApp, target, workspaceSnapshot, workshopNavigate } from './helpers';
 
@@ -294,7 +301,7 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
     );
     expect(matches, entry + ' must have one stable resource').toHaveLength(1);
     const current = matches[0];
-    if (!current?.preview) throw new Error(entry + ' native preview unavailable');
+    if (!current || (entry === 'game' && !current.preview)) throw new Error(entry + ' native resource unavailable');
     return current;
   };
   const openEntry = async (entry: AppPage) => {
@@ -313,12 +320,12 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
       .toBe(tab.tabId);
     const view = app.windows().find((candidate) => candidate.url() === current.url);
     if (!view) throw new Error(entry + ' native page unavailable');
-    const geometry = await app.evaluate(({ BrowserWindow }, webContentsId) => {
+    const geometry = await app.evaluate(({ BrowserWindow }, url) => {
       const native = BrowserWindow.getAllWindows()[0]?.contentView.children.find(
-        (candidate) => (candidate as Electron.WebContentsView).webContents?.id === webContentsId,
+        (candidate) => (candidate as Electron.WebContentsView).webContents?.getURL() === url,
       ) as Electron.WebContentsView | undefined;
-      return native ? { visible: native.getVisible(), bounds: native.getBounds() } : null;
-    }, current.preview!.page.webContentsId);
+      return native ? { visible: native.getVisible(), bounds: native.getBounds(), webContentsId: native.webContents.id } : null;
+    }, current.url);
     expect(geometry?.visible).toBe(true);
     expect(geometry?.bounds.width).toBeGreaterThan(100);
     expect(geometry?.bounds.height).toBeGreaterThan(100);
@@ -400,38 +407,55 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
     const game = await openEntry('game');
     expect(game.view.url()).toBe(first.url + '/index.html');
     const editor = await openEntry('editor');
-    expect(editor.view.url()).toBe(first.url + '/editor.html');
+    expect(editor.view.url()).toBe('wsl-editor://mota/index.html');
     expect(editor.resource.resourceId).not.toBe(game.resource.resourceId);
-    expect(editor.resource.preview!.page.webContentsId).not.toBe(game.resource.preview!.page.webContentsId);
-    expect(editor.resource.preview!.page.partition).not.toBe(game.resource.preview!.page.partition);
+    expect(editor.geometry?.webContentsId).not.toBe(game.geometry?.webContentsId);
+    const partitions = await app.evaluate(
+      ({ webContents }, ids) => {
+        const gameSession = webContents.fromId(ids[0]!)!.session;
+        const editorSession = webContents.fromId(ids[1]!)!.session;
+        return { distinct: gameSession !== editorSession, editorStorage: editorSession.getStoragePath() };
+      },
+      [game.geometry?.webContentsId, editor.geometry?.webContentsId],
+    );
+    expect(partitions).toEqual({ distinct: true, editorStorage: null });
     expect((await state()).resources.filter((item) => item.appProjectId === projectId)).toHaveLength(2);
-    for (const entry of [game, editor])
+    for (const entry of [game])
       expect(await entry.view.evaluate(async () => (await fetch('/api/health')).json())).toEqual({
         ok: true,
         templateId: 'mota-web',
         templateVersion: '1.0.0',
         identity: { workspaceId, projectId, environmentId: 'sandbox', appInstanceId: first.appInstanceId },
       });
-    expect(await editor.view.evaluate(() => ({ node: typeof process, studio: typeof window.studio }))).toEqual({
+    expect(
+      await editor.view.evaluate(() => ({
+        node: typeof process,
+        studio: typeof window.studio,
+        editor: typeof Reflect.get(window, 'motaEditor'),
+      })),
+    ).toEqual({
       node: 'undefined',
       studio: 'undefined',
+      editor: 'object',
     });
-    await editor.view.locator('#selectFloor').selectOption('MT1');
-    await editor.view.locator('#editModeSelect').selectOption('map');
-    await editor.view.locator('#pout').fill('unsaved navigation sentinel');
+    await editor.view.getByRole('button', { name: '读取当前版本', exact: true }).click();
+    await expect(editor.view.getByRole('status')).toHaveText('已读取当前版本。');
+    await editor.view.getByLabel(/^文件内容/).click();
+    await editor.view.keyboard.press('ControlOrMeta+A');
+    await editor.view.keyboard.insertText('unsaved navigation sentinel');
     await openEntry('game');
     const reopened = await openEntry('editor');
     expect(reopened.resource.resourceId).toBe(editor.resource.resourceId);
-    expect(reopened.resource.preview!.page).toEqual(editor.resource.preview!.page);
-    await expect(reopened.view.locator('#pout')).toHaveValue('unsaved navigation sentinel');
+    expect(reopened.geometry?.webContentsId).toBe(editor.geometry?.webContentsId);
+    await expect(reopened.view.getByLabel(/^文件内容/)).toHaveValue('unsaved navigation sentinel');
     await page.getByRole('button', { name: editor.tab.title + '操作', exact: true }).click();
     await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）', exact: true }).click();
     expect((await state()).tabs.some((item) => item.tabId === editor.tab.tabId)).toBe(false);
     expect((await state()).managedApp).toMatchObject({ state: 'running', appInstanceId: first.appInstanceId });
     const afterClose = await openEntry('editor');
     expect(afterClose.resource.resourceId).toBe(editor.resource.resourceId);
-    expect(afterClose.resource.preview!.page).toEqual(editor.resource.preview!.page);
-    await expect(afterClose.view.locator('#pout')).toHaveValue('unsaved navigation sentinel');
+    expect(afterClose.geometry?.webContentsId).toBe(editor.geometry?.webContentsId);
+    await expect(afterClose.view.getByLabel(/^文件内容/)).toHaveValue('unsaved navigation sentinel');
     evidence['dualResources'] = {
       game: game.resource,
       editor: afterClose.resource,
@@ -449,22 +473,32 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
     const row = editedMap[10];
     if (!row || row.length !== 13) throw new Error('fixed acceptance map geometry changed');
     row[6] = 31;
-    await editor.view.locator('#pout').fill(JSON.stringify(editedMap));
-    await editor.view.locator('#importMap').click();
-    await expect(editor.view.locator('#tip')).toContainText('地图导入成功');
-    const saved = editor.view.waitForResponse(
-      (response) => new URL(response.url()).pathname === '/writeFile' && response.request().method() === 'POST',
-    );
-    await editor.view.locator('#saveFloor').click();
-    expect((await saved).status()).toBe(200);
-    await expect(editor.view.locator('#tip')).toContainText('保存成功');
+    await editor.view.getByRole('button', { name: '读取当前版本', exact: true }).click();
+    await expect(editor.view.getByRole('status')).toHaveText('已读取当前版本。');
+    const savedText = 'main.floors.MT1 = ' + JSON.stringify({ ...beforeFloor, map: editedMap }) + ';\n';
+    await editor.view.getByLabel(/^文件内容/).click();
+    await editor.view.keyboard.press('ControlOrMeta+A');
+    await editor.view.keyboard.insertText(savedText);
+    await editor.view.getByRole('button', { name: '保存到副本', exact: true }).click();
+    await expect(editor.view.getByRole('status')).toHaveText('已保存到副本。可刷新游戏查看。');
     const after = await auditGuest(projectId, [], first.guestPort);
     const afterBytes = Buffer.from(after.base64, 'base64');
     expect(after.sha256).not.toBe(before.sha256);
     expect(parseFloor(afterBytes)).toEqual({ ...beforeFloor, map: editedMap });
+    const editorStatus = await editor.view.evaluate(() =>
+      (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor.status({ sessionIndex: null, requestId: crypto.randomUUID() }),
+    );
+    const manualCommit = editorStatus.operations.find((entry) => entry.operation.status === 'committed');
+    expect(manualCommit?.operation.receipt).toMatchObject({
+      file: floorPath,
+      expectedHash: before.sha256,
+      afterHash: after.sha256,
+      contentHash: after.sha256,
+      contentLength: afterBytes.length,
+    });
     expect(
       Buffer.from(
-        await editor.view.evaluate(async () => await (await fetch('/project/floors/MT1.js', { cache: 'no-store' })).text()),
+        await game.view.evaluate(async () => await (await fetch('/project/floors/MT1.js', { cache: 'no-store' })).text()),
         'utf8',
       ).equals(afterBytes),
     ).toBe(true);
@@ -477,6 +511,7 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
       beforeBytes: beforeBytes.length,
       afterBytes: afterBytes.length,
       cell: { x: 6, y: 10, before: 0, after: 31 },
+      operation: manualCommit,
       diffEvidence: 'independent guest bytes and hashes; D run diff does not cover manual editor',
     };
     milestone('edited');
@@ -526,9 +561,18 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
     for (const entry of ['game', 'editor'] as const) {
       const rebound = await openEntry(entry);
       expect(rebound.resource.resourceId).toBe(entry === 'game' ? game.resource.resourceId : editor.resource.resourceId);
-      expect(await rebound.view.evaluate(async () => (await fetch('/api/health')).json())).toMatchObject({
-        identity: { projectId, appInstanceId: second?.appInstanceId },
-      });
+      if (entry === 'game')
+        expect(await rebound.view.evaluate(async () => (await fetch('/api/health')).json())).toMatchObject({
+          identity: { projectId, appInstanceId: second?.appInstanceId },
+        });
+      else {
+        expect(rebound.view.url()).toBe('wsl-editor://mota/index.html');
+        expect(rebound.geometry?.webContentsId).toBe(editor.geometry?.webContentsId);
+        await expect(rebound.view.getByLabel(/^文件内容/)).toHaveValue(savedText);
+        await expect(rebound.view.getByRole('button', { name: '保存到副本', exact: true })).toBeDisabled();
+        await rebound.view.getByRole('button', { name: '读取当前版本', exact: true }).click();
+        await expect(rebound.view.getByRole('status')).toHaveText('已读取当前版本。');
+      }
     }
     expect(second?.guestPort).toBeGreaterThan(0);
     const restarted = await auditGuest(projectId, [], second?.guestPort);

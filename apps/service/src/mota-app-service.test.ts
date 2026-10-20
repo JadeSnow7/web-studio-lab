@@ -3,7 +3,13 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MOTA_REQUIRED_FILES, motaSourceIdentityInput, type AppProfile, type MotaAppImportRequest } from '@wsl/protocol';
+import {
+  MOTA_REQUIRED_FILES,
+  MotaEditorFrameSchema,
+  motaSourceIdentityInput,
+  type AppProfile,
+  type MotaAppImportRequest,
+} from '@wsl/protocol';
 import { AppService } from './app-service';
 import type { GuestFrame, GuestOutcome, GuestStart } from './sbx';
 
@@ -48,6 +54,7 @@ async function fixture(
     holdChunk?: boolean;
     lostReceipt?: boolean;
     exitDuringPublish?: boolean;
+    wrongEditor?: boolean;
   } = {},
 ) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-mota-service-'));
@@ -97,6 +104,17 @@ async function fixture(
         method?: string;
       }) => {
         frames.push(frame);
+        if (frame.type === 'mota-editor') {
+          const { input: _input, ...envelope } = MotaEditorFrameSchema.parse(frame);
+          reply({
+            ...envelope,
+            type: 'mota-editor-result',
+            ok: true,
+            ...(options.wrongEditor ? { editorSessionId: randomUUID() } : {}),
+            data: frame.method === 'editor.revoke' ? { discarded: false, settled: true, operation: null } : { settled: true },
+          });
+          return;
+        }
         if (frame.type === 'mota-control') {
           reply({
             type: 'mota-control-result',
@@ -263,6 +281,34 @@ async function fixture(
 }
 
 describe('Mota managed service integration', () => {
+  it.each([false, true])('dispatches manual frames before startup fallback and checks the owned reply (wrong=%s)', async (wrongEditor) => {
+    const input = request();
+    const f = await fixture({ wrongEditor });
+    await f.import(input);
+    const app = await f.service.start(key(input));
+    const binding = {
+      ...key(input),
+      environmentId: 'sandbox' as const,
+      appInstanceId: app.appInstanceId!,
+      resourceId: 'editor',
+      resourceInstanceId: randomUUID(),
+      resourceGeneration: 1,
+      browserInstanceId: randomUUID(),
+      browserGeneration: 1,
+      documentGeneration: 1,
+      editorEpoch: 1,
+    };
+    const open = { binding, editorSessionId: randomUUID(), requestId: randomUUID(), method: 'editor.open' as const, input: {} };
+    expect(await f.service.motaEditor(open)).toMatchObject(wrongEditor ? { ok: false, error: { code: 'invalid_frame' } } : { ok: true });
+    expect(f.frames.filter((frame) => frame.type === 'mota-editor')).toHaveLength(1);
+    expect(() => f.service.motaEditor({ ...open, binding: { ...binding, appInstanceId: randomUUID() } })).toThrow('unavailable');
+    expect((await f.service.stop(key(input))).cleanupConfirmed).toBe(true);
+    expect(() => f.service.motaEditor(open)).toThrow('unavailable');
+    const next = await f.service.start(key(input));
+    expect(next.appInstanceId).not.toBe(app.appInstanceId);
+    expect(() => f.service.motaEditor(open)).toThrow('unavailable');
+    await f.service.stop(key(input));
+  });
   it('streams bounded chunks, journals versioned source and starts only after exact origin acknowledgement', async () => {
     const input = request();
     const f = await fixture();

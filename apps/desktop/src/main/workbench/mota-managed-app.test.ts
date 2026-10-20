@@ -1,4 +1,5 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { EventEmitter } from 'node:events';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
@@ -9,6 +10,8 @@ import {
   MOTA_PLAY_SCOPE,
   MOTA_MAP_WRITE_SCOPE,
   WorkbenchCommandSchema,
+  MotaEditorResultSchema,
+  WorkbenchRunSchema,
   type ChatConversation,
   type MotaControlRequest,
   type ManagedApp,
@@ -20,15 +23,47 @@ import { WorkbenchApplication, validateSnapshot } from './application';
 import { WorkbenchHost } from './host';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
 import type { AppControl } from './app-control';
-import { RunDispatchFailure } from './ports';
+import { RunDispatchFailure, type MotaEditorNativePort, type MotaEditorServicePort } from './ports';
+import { MotaEditorAssets } from '../mota-editor/assets';
+import { MotaEditorController } from '../mota-editor/controller';
+import { createOcclusion } from '../../renderer/src/state/occlusion';
+import { panes } from './layout';
 
 vi.mock('electron', () => ({
   app: {},
   BrowserWindow: class {
+    visible = true;
+    minimized = false;
     isDestroyed = () => false;
+    isVisible = () => this.visible;
+    isMinimized = () => this.minimized;
+    contentView = { addChildView: vi.fn(), removeChildView: vi.fn() };
+  },
+  WebContentsView: class {
+    webContents = new (class extends EventEmitter {
+      id = 43;
+      mainFrame = { url: '', processId: 3, routingId: 4, detached: false };
+      getURL = () => this.mainFrame.url;
+      isDestroyed = () => false;
+      send = vi.fn();
+      setWindowOpenHandler = vi.fn();
+      loadURL = vi.fn(async (url: string) => {
+        this.emit('did-start-navigation');
+        this.mainFrame.url = url;
+        this.emit('did-finish-load');
+      });
+    })();
+    setBounds = vi.fn();
   },
   dialog: { showOpenDialog: vi.fn() },
-  session: { fromPartition: () => ({ setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() }) },
+  session: {
+    fromPartition: () => ({
+      setPermissionRequestHandler: vi.fn(),
+      setPermissionCheckHandler: vi.fn(),
+      on: vi.fn(),
+      webRequest: { onBeforeRequest: vi.fn() },
+    }),
+  },
 }));
 vi.mock('../preview/demo-protocol', () => ({ DEMO_ORIGIN: 'wsl-demo://taskflow', installDemoProtocol: vi.fn() }));
 vi.mock('../preview/app-ui', () => ({
@@ -135,17 +170,29 @@ async function fixture() {
   chat.appStop.mockImplementation(async () => (current = { ...required(current), state: 'stopped', url: null, cleanupConfirmed: true }));
   chat.appGet.mockImplementation(async () => required(current));
   chat.appCancelImport.mockResolvedValue({ app: null, outcome: 'cancelled', retryable: false, errorCode: null });
-  const host = new WorkbenchHost(new BrowserWindow(), chat, '/unused-demo');
+  const window = new BrowserWindow();
+  const host = new WorkbenchHost(window, chat, '/unused-demo');
   const browserAction = vi.spyOn(host, 'browserAction');
   const release = vi.spyOn(host, 'releaseAppBrowser');
   let durable: WorkbenchSnapshot | null = null;
   const save = vi.fn(async (snapshot: WorkbenchSnapshot) => {
     durable = structuredClone(snapshot);
   });
+  const editorPorts = {
+    ensureMotaEditor: vi.fn<MotaEditorNativePort['ensureMotaEditor']>(),
+    motaEditorFacts: vi.fn<MotaEditorNativePort['motaEditorFacts']>(() => null),
+    motaEditorLayout: vi.fn<MotaEditorNativePort['motaEditorLayout']>(),
+    motaEditorVisibility: vi.fn<MotaEditorNativePort['motaEditorVisibility']>(),
+    releaseMotaEditor: vi.fn(),
+    motaEditorRequest: vi.fn<MotaEditorServicePort['motaEditorRequest']>(async () => {
+      throw new Error('No native editor transport in this lifecycle fixture');
+    }),
+  } satisfies MotaEditorNativePort & MotaEditorServicePort;
   const app = new WorkbenchApplication(
     { migrationPending: false, load: async () => null, loadCatalog: catalogForTestSnapshot, save, appendObservation: async () => '' },
     host,
     vi.fn(),
+    { ports: editorPorts, store: { load: async () => [], save: async () => undefined } },
   );
   host.application = app;
   await app.getSnapshot();
@@ -171,6 +218,7 @@ async function fixture() {
     root,
     chat,
     host,
+    window,
     app,
     command,
     owner,
@@ -181,12 +229,353 @@ async function fixture() {
     save,
     release,
     browserAction,
+    editorPorts,
     durable: () => durable,
     emit: (value: ManagedApp) => required(listener)(value),
   };
 }
 
+// Real Main queue and native controller; only Electron objects, assets and private service replies are synthetic.
+async function activeEditor(f: Awaited<ReturnType<typeof fixture>>) {
+  await f.imported();
+  expect((await f.command({ type: 'openAppPage', page: 'editor' })).ok).toBe(true);
+  const space = await f.owner();
+  const resource = required(space.resources.find((entry) => entry.appPage === 'editor'));
+  const files = ['LICENSES.txt', 'editor.css', 'editor.js', 'index.html'].map((name) => ({
+    path: name,
+    length: name.length,
+    sha256: createHash('sha256').update(name).digest('hex'),
+  }));
+  const assets = new MotaEditorAssets('/not-read-in-queue-unit', {
+    schemaVersion: 1,
+    version: createHash('sha256').update(JSON.stringify(files)).digest('hex'),
+    files,
+  });
+  vi.spyOn(assets, 'validate').mockResolvedValue();
+  vi.spyOn(assets, 'install').mockImplementation(() => undefined);
+  const owner = new MotaEditorController(
+    f.window,
+    space.workspaceId,
+    resource,
+    required(space.managedApp),
+    space.theme,
+    assets,
+    '/preload/mota-editor.js',
+    (facts) => f.app.onMotaEditorFacts(facts),
+  );
+  f.editorPorts.motaEditorFacts.mockImplementation(() => owner.getFacts());
+  f.editorPorts.ensureMotaEditor.mockImplementation((workspaceId, resource, app, theme) => owner.update(workspaceId, resource, app, theme));
+  f.editorPorts.motaEditorLayout.mockImplementation((_id, layout) => owner.layout(layout));
+  f.editorPorts.motaEditorVisibility.mockImplementation((_id, visible, projection) => owner.visibility(visible, projection));
+  f.editorPorts.motaEditorRequest.mockImplementation(async (request) =>
+    MotaEditorResultSchema.parse({
+      binding: request.binding,
+      editorSessionId: request.editorSessionId,
+      requestId: request.requestId,
+      method: request.method,
+      ok: true,
+      data:
+        request.method === 'editor.read'
+          ? { content: null, contentHash: null, contentLength: 0 }
+          : request.method === 'editor.revoke'
+            ? { discarded: true, settled: true, operation: null }
+            : request.method === 'editor.stage' || request.method === 'editor.commit'
+              ? {
+                  requestId: request.requestId,
+                  status: request.method === 'editor.stage' ? 'staged' : 'committed',
+                  error: null,
+                  receipt:
+                    request.method === 'editor.commit'
+                      ? {
+                          ...request.input,
+                          editorSessionId: request.editorSessionId,
+                          requestId: request.requestId,
+                          afterHash: request.input.contentHash,
+                          durabilityError: null,
+                        }
+                      : null,
+                }
+              : {},
+    }),
+  );
+  const status = () => f.app.motaEditorOperationStatus(resource.resourceId, { sessionIndex: null, requestId: randomUUID() });
+  const layout = { visible: true, bounds: { x: 0, y: 0, width: 300, height: 200 } };
+  await vi.waitFor(() => expect(owner.getFacts().trusted).toBe(true));
+  expect((await f.command({ type: 'browserLayout', resourceId: resource.resourceId, layout })).ok).toBe(true);
+  await vi.waitFor(async () => expect((await status()).state).toBe('active'));
+  const index = required((await status()).sessionIndex);
+  const read = (sessionIndex = index) =>
+    f.app.readMotaEditorFile(resource.resourceId, { sessionIndex, requestId: randomUUID(), file: '_server/config.json' });
+  const save = (sessionIndex = index) =>
+    f.app.saveMotaEditorFile(resource.resourceId, {
+      sessionIndex,
+      requestId: randomUUID(),
+      file: '_server/config.json',
+      expectedHash: null,
+      content: '{}',
+    });
+  await read();
+  return { owner, resource, layout, status, index, read, save };
+}
+
 describe('Mota native import and Main page lifecycle', () => {
+  it.each([false, true])('R6 admission compatibility preserves pane-limit errors with owned Mota editor=%s', async (owned) => {
+    const f = await fixture();
+    for (let count = 1; count < 4; count++) {
+      const space = await f.owner();
+      expect((await f.command({ type: 'splitPane', paneId: space.activePaneId, direction: 'horizontal' })).ok).toBe(true);
+    }
+    const e = owned ? await activeEditor(f) : null;
+    const before = await f.owner();
+    const calls = f.editorPorts.motaEditorRequest.mock.calls.length;
+    const result = await f.command({
+      type: 'splitPane',
+      paneId: before.activePaneId,
+      direction: 'vertical',
+      expectedRevision: before.revision,
+    });
+    expect(result).toMatchObject({ ok: false, error: { code: 'pane_limit', message: 'pane_limit: 最多显示四个窗格' } });
+    expect(panes((await f.owner()).layout)).toHaveLength(4);
+    expect((await f.owner()).revision).toBe(before.revision);
+    expect(f.editorPorts.motaEditorRequest.mock.calls).toHaveLength(calls);
+    if (e) {
+      expect((await e.status()).sessionIndex).toBe(e.index);
+      expect((await e.save()).operation.status).toBe('committed');
+    }
+  });
+  it('R6 admission compatibility allows overlay hiding for the window-selected non-Mota workspace', async () => {
+    const f = await fixture();
+    const selected = (await f.owner()).workspaceId;
+    expect((await f.command({ type: 'createWorkspace', workspaceId: 'other-app-space', name: 'Other App' })).ok).toBe(true);
+    const hide = vi.spyOn(f.host, 'hideBrowsers');
+    const barrier = createOcclusion(async () => (await f.command({ type: 'hideBrowsers', workspaceId: selected })).ok);
+    expect(await barrier.open('space-app')).toBe(true);
+    expect(barrier.visible('space-app')).toBe(true);
+    expect(hide).toHaveBeenCalledTimes(1);
+    expect((await f.app.getSnapshot()).activeWorkspaceId).toBe('other-app-space');
+    expect((await f.owner()).managedApp).toBeUndefined();
+    expect(f.editorPorts.motaEditorRequest).not.toHaveBeenCalled();
+  });
+  it('R6 admission compatibility validates background hide then revokes all affected editors before the queue', async () => {
+    const f = await fixture();
+    expect((await f.command({ type: 'createWorkspace', workspaceId: 'other-app-space', name: 'Other App' })).ok).toBe(true);
+    expect((await f.command({ type: 'switchWorkspace' })).ok).toBe(true);
+    const e = await activeEditor(f);
+    const hide = vi.spyOn(f.host, 'hideBrowsers').mockImplementation(() => e.owner.visibility(false));
+    const calls = f.editorPorts.motaEditorRequest.mock.calls.length;
+    expect(await f.command({ type: 'hideBrowsers', workspaceId: 'forged-workspace' })).toMatchObject({ ok: false });
+    const other = required((await f.app.getSnapshot()).workspaces.find((entry) => entry.workspaceId === 'other-app-space'));
+    expect(await f.command({ type: 'hideBrowsers', workspaceId: other.workspaceId, expectedRevision: other.revision + 1 })).toMatchObject({
+      ok: false,
+    });
+    expect(f.editorPorts.motaEditorRequest.mock.calls).toHaveLength(calls);
+    expect((await e.status()).state).toBe('active');
+    const held = deferred<void>();
+    const saving = deferred<void>();
+    f.save.mockImplementationOnce(async () => {
+      saving.resolve();
+      await held.promise;
+    });
+    const queued = f.command({ type: 'renameWorkspace', name: 'held hide queue' });
+    await saving.promise;
+    const layout = f.command({ type: 'browserLayout', resourceId: e.resource.resourceId, layout: e.layout });
+    const opens = f.editorPorts.motaEditorRequest.mock.calls.filter(([request]) => request.method === 'editor.open').length;
+    const hiding = f.command({ type: 'hideBrowsers', workspaceId: other.workspaceId, expectedRevision: other.revision });
+    try {
+      await expect(e.save()).rejects.toThrow('revoked');
+      expect(hide).not.toHaveBeenCalled();
+      expect(f.editorPorts.motaEditorRequest.mock.calls.some(([request]) => request.method === 'editor.stage')).toBe(false);
+    } finally {
+      held.resolve();
+      await Promise.all([queued, layout, hiding]);
+    }
+    expect((await hiding).ok).toBe(true);
+    expect((await queued).ok).toBe(true);
+    expect((await layout).ok).toBe(true);
+    expect(hide).toHaveBeenCalledTimes(1);
+    expect((await e.status()).state).toBe('revoked');
+    expect(f.editorPorts.motaEditorRequest.mock.calls.filter(([request]) => request.method === 'editor.open')).toHaveLength(opens);
+    expect((await f.app.getSnapshot()).activeWorkspaceId).toBe('taskflow-demo');
+  });
+  it.each(['hidden', 'minimized'] as const)('keeps a queued visible layout revoked while the native host is %s', async (state) => {
+    const f = await fixture();
+    const e = await activeEditor(f);
+    const held = deferred<void>();
+    const saving = deferred<void>();
+    f.save.mockImplementationOnce(async () => {
+      saving.resolve();
+      await held.promise;
+    });
+    const queued = f.command({ type: 'renameWorkspace', name: 'held native visibility queue' });
+    await saving.promise;
+    const layout = f.command({ type: 'browserLayout', resourceId: e.resource.resourceId, layout: e.layout });
+    const window = f.window as unknown as { visible: boolean; minimized: boolean };
+    if (state === 'hidden') window.visible = false;
+    else window.minimized = true;
+    e.owner.visibility(false);
+    const opens = f.editorPorts.motaEditorRequest.mock.calls.filter(([request]) => request.method === 'editor.open').length;
+    held.resolve();
+    expect((await queued).ok).toBe(true);
+    expect((await layout).ok).toBe(true);
+    await f.app.openMotaEditor(e.resource.resourceId);
+    expect(e.owner.getFacts().visible).toBe(false);
+    expect((await e.status()).state).toBe('revoked');
+    expect(f.editorPorts.motaEditorRequest.mock.calls.filter(([request]) => request.method === 'editor.open')).toHaveLength(opens);
+    await expect(e.read()).rejects.toThrow('revoked');
+    await expect(e.save()).rejects.toThrow('revoked');
+    expect(f.editorPorts.motaEditorRequest.mock.calls.some(([request]) => request.method === 'editor.stage')).toBe(false);
+    window.visible = true;
+    window.minimized = false;
+    await f.app.openMotaEditor(e.resource.resourceId);
+    expect((await e.status()).state).toBe('revoked');
+    expect((await f.command({ type: 'browserLayout', resourceId: e.resource.resourceId, layout: e.layout })).ok).toBe(true);
+    await vi.waitFor(async () => expect((await e.status()).state).toBe('active'));
+    const fresh = required((await e.status()).sessionIndex);
+    expect(fresh).not.toBe(e.index);
+    await expect(e.read()).rejects.toThrow('revoked');
+    await expect(e.save(fresh)).rejects.toThrow('source_changed');
+    await e.read(fresh);
+    expect((await e.save(fresh)).operation.status).toBe('committed');
+  });
+  it('rejects a cross-version locator before revoking another workspace editor or changing its read baseline', async () => {
+    const f = await fixture();
+    expect((await f.command({ type: 'createWorkspace', workspaceId: 'locator', name: 'Locator' })).ok).toBe(true);
+    expect((await f.command({ type: 'createTab', workspaceId: 'locator', kind: 'session', title: 'Locator session' })).ok).toBe(true);
+    const locator = required((await f.app.getSnapshot()).workspaces.find((entry) => entry.workspaceId === 'locator'));
+    const session = required(locator.sessions[0]);
+    for (const goal of ['version A', 'version B'])
+      expect(
+        (await f.command({ type: 'confirmTask', workspaceId: locator.workspaceId, sessionId: session.sessionId, goal, targetRef: null }))
+          .ok,
+      ).toBe(true);
+    // A completed historical run needs no executor/model; its relationship remains real Main state.
+    const state = (f.app as unknown as { snapshot: WorkbenchSnapshot }).snapshot;
+    const target = required(state.workspaces.find((entry) => entry.workspaceId === locator.workspaceId));
+    const versions = required(target.sessions[0]).taskVersions;
+    const versionA = required(versions[0]);
+    const versionB = required(versions[1]);
+    const run = WorkbenchRunSchema.parse({
+      runId: randomUUID(),
+      workspaceId: target.workspaceId,
+      sessionId: session.sessionId,
+      taskVersionId: versionA.taskVersionId,
+      targetRef: null,
+      state: 'completed',
+      startedAt: '2026-10-19T00:00:00Z',
+      endedAt: '2026-10-19T00:00:01Z',
+      error: null,
+      candidateId: randomUUID(),
+      validation: { state: 'not_run', applicability: 'unknown', reason: null },
+      review: null,
+    });
+    target.runs.push(run);
+    expect((await f.command({ type: 'switchWorkspace' })).ok).toBe(true);
+    const e = await activeEditor(f);
+    const before = await e.status();
+    const calls = f.editorPorts.motaEditorRequest.mock.calls.length;
+    const locate = (taskVersionId: string) =>
+      f.command({
+        type: 'locateSession',
+        workspaceId: locator.workspaceId,
+        sessionId: session.sessionId,
+        taskVersionId,
+        runId: run.runId,
+      });
+    const invalid = await locate(versionB.taskVersionId);
+    expect(invalid.ok).toBe(false);
+    expect(invalid.ok ? null : invalid.error.message).toContain('执行不属于指定会话或任务版本');
+    expect(invalid.snapshot.activeWorkspaceId).toBe('taskflow-demo');
+    expect(f.editorPorts.motaEditorRequest.mock.calls).toHaveLength(calls);
+    expect(await e.status()).toEqual(before);
+    // A save succeeds using the pre-rejection read, without a new read or grant.
+    expect((await e.save()).operation.status).toBe('committed');
+    expect(f.editorPorts.motaEditorRequest.mock.calls.filter(([request]) => request.method === 'editor.read')).toHaveLength(1);
+    expect((await locate(versionA.taskVersionId)).ok).toBe(true);
+    expect((await e.status()).state).toBe('revoked');
+    expect(f.editorPorts.motaEditorRequest.mock.calls.filter(([request]) => request.method === 'editor.revoke')).toHaveLength(1);
+    await expect(e.read()).rejects.toThrow('revoked');
+  });
+  it('validates close admission before queued work and revokes saving while the metadata queue is held', async () => {
+    const f = await fixture();
+    await f.imported();
+    await f.command({ type: 'openAppPage', page: 'editor' });
+    const space = await f.owner();
+    const resource = required(space.resources.find((entry) => entry.appPage === 'editor'));
+    const tab = required(space.tabs.find((entry) => entry.targetRef.resourceId === resource.resourceId));
+    const facts = {
+      workspaceId: space.workspaceId,
+      projectId: required(space.managedApp).projectId,
+      appInstanceId: required(required(space.managedApp).appInstanceId),
+      resourceId: resource.resourceId,
+      resourceInstanceId: required(resource.instanceId),
+      resourceGeneration: resource.generation,
+      browserInstanceId: 'native-editor',
+      browserGeneration: 1,
+      webContentsId: 42,
+      processId: 3,
+      routingId: 4,
+      documentGeneration: 1,
+      navigationEpoch: 1,
+      url: 'wsl-editor://mota/index.html',
+      assetVersion: 'a'.repeat(64),
+      manifestDigest: 'b'.repeat(64),
+      trusted: true,
+      visible: true,
+      destroyed: false,
+      theme: 'light' as const,
+    };
+    f.editorPorts.motaEditorFacts.mockReturnValue(facts);
+    f.editorPorts.motaEditorRequest.mockImplementation(async (request) =>
+      MotaEditorResultSchema.parse({
+        binding: request.binding,
+        editorSessionId: request.editorSessionId,
+        requestId: request.requestId,
+        method: request.method,
+        ok: true,
+        data:
+          request.method === 'editor.read'
+            ? { content: null, contentHash: null, contentLength: 0 }
+            : request.method === 'editor.revoke'
+              ? { discarded: true, settled: true, operation: null }
+              : {},
+      }),
+    );
+    await f.app.openMotaEditor(resource.resourceId);
+    await vi.waitFor(async () =>
+      expect((await f.app.motaEditorOperationStatus(resource.resourceId, { sessionIndex: null, requestId: randomUUID() })).state).toBe(
+        'active',
+      ),
+    );
+    const index = required(
+      (await f.app.motaEditorOperationStatus(resource.resourceId, { sessionIndex: null, requestId: randomUUID() })).sessionIndex,
+    );
+    await f.app.readMotaEditorFile(resource.resourceId, { sessionIndex: index, file: '_server/config.json', requestId: randomUUID() });
+    expect((await f.command({ type: 'closeTab', tabId: 'forged-tab' })).ok).toBe(false);
+    expect((await f.app.motaEditorOperationStatus(resource.resourceId, { sessionIndex: index, requestId: randomUUID() })).state).toBe(
+      'active',
+    );
+    const held = deferred<void>();
+    const saving = deferred<void>();
+    f.save.mockImplementationOnce(async () => {
+      saving.resolve();
+      await held.promise;
+    });
+    const queued = f.command({ type: 'renameWorkspace', name: 'held queue' });
+    await saving.promise;
+    const closing = f.command({ type: 'closeTab', tabId: tab.tabId });
+    const save = f.app.saveMotaEditorFile(resource.resourceId, {
+      sessionIndex: index,
+      file: '_server/config.json',
+      requestId: randomUUID(),
+      expectedHash: null,
+      content: '{}',
+    });
+    await expect(save).rejects.toThrow('revoked');
+    expect(f.editorPorts.motaEditorRequest.mock.calls.some(([request]) => request.method === 'editor.stage')).toBe(false);
+    held.resolve();
+    expect((await queued).ok).toBe(true);
+    expect((await closing).ok).toBe(true);
+  });
   it('previews statically, then publishes one project with two stable independent resources', async () => {
     const f = await fixture();
     expect((await f.preview()).ok).toBe(true);
@@ -204,7 +593,7 @@ describe('Mota native import and Main page lifecycle', () => {
     expect(new Set(resources.map((r) => r.resourceId)).size).toBe(2);
     expect(new Set(resources.map((r) => r.instanceId)).size).toBe(2);
     for (const resource of resources)
-      expect(resource.url).toBe(`http://127.0.0.1:49152/${resource.appPage === 'editor' ? 'editor' : 'index'}.html`);
+      expect(resource.url).toBe(resource.appPage === 'editor' ? 'wsl-editor://mota/index.html' : 'http://127.0.0.1:49152/index.html');
     expect(f.chat.appImportSource.mock.calls[0]?.[0]).toMatchObject({ profile: 'mota-web', projectId: space.managedApp?.projectId });
     expect(JSON.stringify(f.durable())).not.toMatch(/fixture source for|"base64":/);
     validateSnapshot(await f.app.getSnapshot());
@@ -248,7 +637,7 @@ describe('Mota native import and Main page lifecycle', () => {
       expect(resource.appPage).toBe(previous.appPage);
       expect(resource.instanceId).not.toBe(previous.instanceId);
       expect(resource.generation).toBeGreaterThan(previous.generation);
-      expect(resource.url).toBe(`http://127.0.0.1:49153/${resource.appPage === 'editor' ? 'editor' : 'index'}.html`);
+      expect(resource.url).toBe(resource.appPage === 'editor' ? 'wsl-editor://mota/index.html' : 'http://127.0.0.1:49153/index.html');
       expect(f.release).toHaveBeenCalledWith(resource.resourceId);
     }
     f.emit({ ...old, state: 'stopped', url: null, cleanupConfirmed: true });
@@ -292,7 +681,7 @@ describe('Mota native import and Main page lifecycle', () => {
     expect(task).toMatchObject({ ok: false, error: { code: 'denied', message: expect.stringContaining('允许 AI 操作游戏') } });
     const exported = await f.command({ type: 'exportApp' });
     expect(exported).toMatchObject({ ok: false, error: { code: 'unsupported', message: expect.stringContaining('暂不支持源码导出') } });
-    expect(() => f.host.appUi(required(space.resources.find((r) => r.appPage === 'editor')).resourceId)).toThrow('仅允许');
+    expect(() => f.host.appUi(required(space.resources.find((r) => r.appPage === 'editor')).resourceId)).toThrow('不是当前运行');
     const gameUi = f.host.appUi(required(space.resources.find((r) => r.appPage === 'game')).resourceId);
     expect(() => gameUi.bridge({ op: 'describe' }, new AbortController().signal)).toThrow('禁止通用');
     expect(f.chat.send).not.toHaveBeenCalled();
@@ -898,6 +1287,7 @@ describe('Mota confirmed game task ownership', () => {
       },
       f.host,
       vi.fn(),
+      { ports: f.editorPorts, store: { load: async () => [], save: async () => undefined } },
     );
     const snapshot = await restored.getSnapshot();
     expect(snapshot.workspaces[0]?.runs.at(-1)).toMatchObject({

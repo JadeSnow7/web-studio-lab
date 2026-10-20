@@ -234,7 +234,8 @@ parent.on('message', ({ data }) => {
       'app.applyEduTask',
     ].includes(request.method) ||
     (request.method === 'app.agent' && ['seed', 'reset'].includes(request.payload.operation.op)) ||
-    (request.method === 'app.motaControl' && ['acquire', 'map.set'].includes(request.payload.method));
+    (request.method === 'app.motaControl' && ['acquire', 'map.set'].includes(request.payload.method)) ||
+    (request.method === 'app.motaEditor' && !['editor.revoke', 'editor.status'].includes(request.payload.method));
   let checkAdmission: () => void = () => undefined;
   let admissionError: unknown;
   if (mutating) {
@@ -283,6 +284,7 @@ parent.on('message', ({ data }) => {
           'app.cancelImport',
           'app.cancelEduTask',
           'app.motaControl',
+          'app.motaEditor',
           'app.source.cancel',
           'observation.cancel',
           'terminal.close',
@@ -299,6 +301,9 @@ parent.on('message', ({ data }) => {
         result = dispatched instanceof Promise ? await dispatched : dispatched;
       } else
         switch (request.method) {
+          case 'app.motaEditor':
+            result = await apps.motaEditor(request.payload);
+            break;
           case 'app.motaControl':
             result = await apps.motaControl(request.payload);
             break;

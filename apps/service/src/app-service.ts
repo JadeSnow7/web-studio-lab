@@ -4,6 +4,9 @@ import {
   type MotaTaskBinding,
   type MotaControlRequest,
   type MotaControlResponse,
+  MotaEditorRequestSchema,
+  type MotaEditorRequest,
+  type MotaEditorResult,
   AppImportRequestSchema,
   AppImportTargetSchema,
   type AppImportRequest,
@@ -50,6 +53,7 @@ import { type GuestOutcome, type GuestProcess, type SbxConnection } from './sbx'
 import { SourceSnapshotReader } from './source-snapshot';
 import { EduTaskOperations } from './edu-task-operations';
 import { MotaControls } from './mota-control';
+import { MotaEditors } from './mota-editor';
 import rawHelper from './app-helper.py?raw';
 import ownedProcess from './edu-owned-process.py?raw';
 import motaHelper from './mota-helper.py?raw';
@@ -218,6 +222,7 @@ const registrySchema = z.discriminatedUnion('version', [
 /** One project service owner, independent of Codex task completion. */
 export class AppService {
   private readonly motaControls = new MotaControls();
+  private readonly motaEditors = new MotaEditors();
   private entries = new Map<string, Entry>();
   private readonly sourceProcesses = new Map<string, { stop: () => Promise<GuestOutcome>; settled: Promise<void> }>();
   private readonly eduTaskOperations = new EduTaskOperations();
@@ -511,6 +516,7 @@ export class AppService {
                 continue;
               }
               if (mota) {
+                if (appInstanceId !== null && this.motaEditors.receive(message, appInstanceId)) continue;
                 if (this.motaControls.receive(message)) continue;
                 const identity = z
                   .object({
@@ -578,12 +584,14 @@ export class AppService {
       child.done
         .then(() => {
           if (entry.process === child && entry.snapshot.appInstanceId === appInstanceId) {
+            if (mota && appInstanceId !== null) this.motaEditors.revokeApp(appInstanceId);
             entry.processExited = true;
             verification?.fail();
           }
         })
         .catch((error: unknown) => {
           if (entry.process !== child || entry.snapshot.appInstanceId !== appInstanceId) return;
+          if (mota && appInstanceId !== null) this.motaEditors.revokeApp(appInstanceId);
           entry.processOutcomeUnknown = !entry.processExited;
           entry.readyError = `应用进程完成通知失败：${String(error).slice(0, 1000)}`;
           this.appendFailure(entry.snapshot, entry.readyError);
@@ -812,6 +820,8 @@ export class AppService {
     if (entry.agentProcess || entry.httpOperation) throw new Error('应用控制面操作或结果待确认');
     if (entry.snapshot.state === 'running') return this.get(key);
     if (!entry.snapshot.cleanupConfirmed || entry.portPending || entry.process) throw new Error('上次应用清理尚未确认');
+    if (entry.snapshot.profile.projectKind === 'mota-web' && entry.snapshot.appInstanceId)
+      this.motaEditors.retireApp(entry.snapshot.appInstanceId);
     if (
       [...this.entries.values()].some(
         (other) =>
@@ -1392,6 +1402,9 @@ export class AppService {
     if (!entry.processExited) entry.process?.closeInput?.();
   }
   async stop(key: AppKey): Promise<AppSnapshot> {
+    const current = this.entries.get(this.id(key));
+    if (current?.snapshot.profile.projectKind === 'mota-web' && current.snapshot.appInstanceId)
+      this.motaEditors.revokeApp(current.snapshot.appInstanceId);
     await this.ensureLoaded();
     const entry = this.entry(key);
     if (
@@ -1911,6 +1924,29 @@ export class AppService {
     if (this.closing) throw new Error('mota_service_closing');
     this.motaControls.register(binding);
   }
+  motaEditor(input: MotaEditorRequest): Promise<MotaEditorResult> {
+    const request = MotaEditorRequestSchema.parse(input);
+    const entry = this.entry({ workspaceId: request.binding.workspaceId, projectId: request.binding.projectId });
+    const assertOwned = () => {
+      if (
+        this.closing ||
+        entry.snapshot.profile.projectKind !== 'mota-web' ||
+        entry.snapshot.state !== 'running' ||
+        entry.snapshot.appInstanceId !== request.binding.appInstanceId ||
+        entry.processExited ||
+        !entry.process?.write ||
+        !entry.motaBinding?.confirmed
+      )
+        throw new Error('unavailable');
+    };
+    assertOwned();
+    return this.motaEditors.call(request, (frame) => {
+      assertOwned();
+      // assertOwned checks this same handle again at every asynchronous boundary.
+      if (!entry.process?.write) throw new Error('unavailable');
+      entry.process.write({ type: 'input', data: JSON.stringify(frame) + '\n' });
+    });
+  }
   assertMotaTaskActive(binding: MotaTaskBinding): void {
     this.motaControls.assertActive(binding);
   }
@@ -2095,6 +2131,9 @@ export class AppService {
   }
   async shutdown(): Promise<void> {
     this.closing = true;
+    for (const entry of this.entries.values())
+      if (entry.snapshot.profile.projectKind === 'mota-web' && entry.snapshot.appInstanceId)
+        this.motaEditors.revokeApp(entry.snapshot.appInstanceId);
     await this.ensureLoaded();
     const errors: unknown[] = [];
     for (const [id, handle] of this.sourceProcesses) {

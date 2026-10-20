@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ResearchCall, ResearchReply } from '@wsl/protocol';
+import type { registerMotaEditorIpc } from './mota-editor/ipc';
 const fixture = vi.hoisted(() => ({
   listeners: new Map<string, (event: { preventDefault(): void }) => void>(),
   close: vi.fn(),
@@ -10,6 +11,11 @@ const fixture = vi.hoisted(() => ({
   resumeAudio: vi.fn<() => Promise<void>>(),
   getSnapshot: vi.fn(),
   dispose: vi.fn(),
+  registerSchemesAsPrivileged: vi.fn(),
+  registerMotaEditorIpc: vi.fn<typeof registerMotaEditorIpc>(),
+  unregisterMotaEditorIpc: vi.fn(),
+  motaEditors: new Map<string, never>(),
+  hideMotaEditors: vi.fn(),
   dialog: vi.fn(),
   setResearchReader: vi.fn<(reader: (call: ResearchCall, signal: AbortSignal) => Promise<ResearchReply>) => void>(),
   researchForTurn: vi.fn<(call: ResearchCall, signal: AbortSignal) => Promise<ResearchReply>>(),
@@ -17,6 +23,7 @@ const fixture = vi.hoisted(() => ({
 vi.mock('electron', () => ({
   app: { whenReady: () => Promise.resolve(), on: vi.fn(), getPath: () => '/tmp', getAppPath: () => '/desktop' },
   dialog: { showMessageBox: fixture.dialog },
+  protocol: { registerSchemesAsPrivileged: fixture.registerSchemesAsPrivileged },
   session: { defaultSession: { setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
 }));
 vi.mock('./setup', () => ({
@@ -53,8 +60,13 @@ vi.mock('./workbench/application', () => ({
   },
 }));
 vi.mock('./workbench/repository', () => ({ FileWorkbenchRepository: class {} }));
+// These composition doubles must not register native IPC or touch the operation journal.
+vi.mock('./workbench/mota-editor-repository', () => ({ FileMotaEditorOperationStore: class {} }));
+vi.mock('./mota-editor/ipc', () => ({ registerMotaEditorIpc: fixture.registerMotaEditorIpc }));
 vi.mock('./workbench/host', () => ({
   WorkbenchHost: class {
+    motaEditors = fixture.motaEditors;
+    hideMotaEditors = fixture.hideMotaEditors;
     dispose = fixture.dispose;
     deactivateAudio = fixture.deactivateAudio;
     resumeAudio = fixture.resumeAudio;
@@ -75,6 +87,7 @@ beforeEach(() => {
   vi.resetModules();
   fixture.listeners.clear();
   vi.clearAllMocks();
+  fixture.registerMotaEditorIpc.mockReturnValue(fixture.unregisterMotaEditorIpc);
   fixture.shutdown.mockResolvedValue(undefined);
   fixture.setupShutdown.mockReset().mockResolvedValue(undefined);
   fixture.workbenchShutdown.mockReset().mockResolvedValue(undefined);
@@ -133,9 +146,22 @@ describe('window shutdown', () => {
   it('closes after confirmed guest cleanup even when the workbench is unreadable', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await open();
+    expect(fixture.registerSchemesAsPrivileged).toHaveBeenCalledExactlyOnceWith([
+      { scheme: 'wsl-editor', privileges: { standard: true, secure: true, supportFetchAPI: true } },
+    ]);
+    expect(fixture.registerMotaEditorIpc).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ shutdown: fixture.workbenchShutdown }),
+      expect.any(Function),
+    );
+    expect([...fixture.registerMotaEditorIpc.mock.calls[0]![1]()]).toEqual([]);
     close();
     await vi.waitFor(() => expect(fixture.close).toHaveBeenCalledOnce());
     expect(fixture.dispose).toHaveBeenCalledOnce();
+    expect(fixture.hideMotaEditors).toHaveBeenCalledOnce();
+    expect(fixture.hideMotaEditors.mock.invocationCallOrder[0]).toBeLessThan(fixture.deactivateAudio.mock.invocationCallOrder[0]!);
+    expect(fixture.unregisterMotaEditorIpc).toHaveBeenCalledOnce();
+    expect(fixture.dispose.mock.invocationCallOrder[0]).toBeLessThan(fixture.unregisterMotaEditorIpc.mock.invocationCallOrder[0]!);
+    expect(fixture.unregisterMotaEditorIpc.mock.invocationCallOrder[0]).toBeLessThan(fixture.close.mock.invocationCallOrder[0]!);
     expect(fixture.getSnapshot).toHaveBeenCalledOnce();
     expect(error).toHaveBeenCalledWith(expect.stringContaining('继续关闭窗口'), expect.any(Error));
     expect(fixture.dialog).not.toHaveBeenCalled();
@@ -206,6 +232,7 @@ describe('window shutdown', () => {
     expect(fixture.close).not.toHaveBeenCalled();
     expect(fixture.dispose).not.toHaveBeenCalled();
     expect(fixture.getSnapshot).not.toHaveBeenCalled();
+    expect(fixture.unregisterMotaEditorIpc).not.toHaveBeenCalled();
   });
   it('retries cleanup from the dialog and closes after confirmation', async () => {
     fixture.shutdown.mockRejectedValueOnce(new Error('registry broken')).mockResolvedValueOnce(undefined);

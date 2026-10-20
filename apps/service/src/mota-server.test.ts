@@ -1,13 +1,12 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { chmod, link, mkdir, mkdtemp, readFile, realpath, rm, symlink, unlink, writeFile } from 'node:fs/promises';
+import { chmod, cp, link, mkdir, mkdtemp, readFile, realpath, rm, symlink, unlink, writeFile } from 'node:fs/promises';
 import { request, type IncomingHttpHeaders } from 'node:http';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
-import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   isMotaSourcePath,
@@ -17,7 +16,11 @@ import {
   MotaControlRequestSchema,
   MotaControlResponseSchema,
   type MotaTaskBinding,
+  MotaEditorRequestSchema,
+  MotaEditorFrameResultSchema,
+  type MotaEditorFrame,
 } from '@wsl/protocol';
+import { MotaEditors } from './mota-editor';
 
 const serverFile = fileURLToPath(new URL('./mota-server.cjs', import.meta.url));
 const floorName = 'project/floors/MT1.js';
@@ -115,14 +118,68 @@ async function bound(root: string, preload?: string) {
   const origin = `http://127.0.0.1:${port === 51379 ? 51380 : 51379}`;
   bind(child, origin);
   expect(await waitFrame(child, 'mota-origin-bound')).toEqual({ event: 'mota-origin-bound', requestId: 'bind-1', origin, identity });
-  return { child, port, origin, editorHeaders: await editorHeaders(port, origin) };
+  return { child, port, origin, editor: await privateEditor(child) };
 }
-async function editorHeaders(port: number, origin: string, name = '/editor.html') {
-  const response = await http(port, origin, name);
-  expect(response.status).toBe(200);
-  const match = /data-wsl-editor-session="([a-f0-9]{48})"/.exec(response.body);
-  if (!match?.[1]) throw new Error('missing editor bootstrap nonce');
-  return { 'X-WSL-Editor-Session': match[1] };
+// Pipe units exercise the real guest/fs/queue without claiming HTTP coverage.
+// Real HTTP regressions above/below continue to use bound() and a real listener.
+async function pipeBound(root: string, extraPreload = '') {
+  const preload = path.join(path.dirname(root), 'pipe-listener-fixture.cjs');
+  await writeFile(
+    preload,
+    `const http=require('node:http');const {EventEmitter}=require('node:events');
+http.createServer=()=>Object.assign(new EventEmitter(),{listen(_port,_host,ready){ready();},address(){return {port:43187};},close(){},closeAllConnections(){}});
+${extraPreload}`,
+  );
+  return bound(root, preload);
+}
+const editorOwners = new WeakMap<OwnedChild, { service: MotaEditors; epoch: number }>();
+async function privateEditor(child: OwnedChild, advanceEpoch = 1) {
+  let context = editorOwners.get(child);
+  if (!context) {
+    const service = new MotaEditors();
+    context = { service, epoch: 0 };
+    editorOwners.set(child, context);
+    let seen = child.frames.length;
+    child.process.stdout.on('data', () => {
+      for (const frame of child.frames.slice(seen)) service.receive(frame, identity.appInstanceId);
+      seen = child.frames.length;
+    });
+  }
+  context.epoch += advanceEpoch;
+  const binding = {
+    ...identity,
+    environmentId: 'sandbox',
+    resourceId: 'editor',
+    resourceInstanceId: randomUUID(),
+    resourceGeneration: 1,
+    browserInstanceId: randomUUID(),
+    browserGeneration: 1,
+    documentGeneration: 1,
+    editorEpoch: context.epoch,
+  };
+  const editorSessionId = randomUUID();
+  const service = context.service;
+  const write = (frame: MotaEditorFrame) => child.process.stdin.write(JSON.stringify(frame) + '\n');
+  const call = (method: string, input = {}, requestId = randomUUID()) =>
+    service.call(MotaEditorRequestSchema.parse({ binding, editorSessionId, requestId, method, input }), write);
+  expect(await call('editor.open')).toMatchObject({ ok: true });
+  const baseline = new Map<string, string | null>();
+  const read = async (file: string) => {
+    const result = await call('editor.read', { file });
+    if (result.ok && result.data && 'contentHash' in result.data) baseline.set(file, result.data.contentHash);
+    return result;
+  };
+  await read(floorName);
+  await read('_server/config.json');
+  const save = async (file: string, content: string, requestId = randomUUID(), expectedHash = baseline.get(file) ?? null) => {
+    const input = { file, expectedHash, contentLength: Buffer.byteLength(content), contentHash: hash(content) };
+    const staged = await call('editor.stage', { ...input, content }, requestId);
+    if (!staged.ok || (staged.data && 'status' in staged.data && staged.data.status !== 'staged')) return staged;
+    const result = await call('editor.commit', input, requestId);
+    if (result.ok && result.data && 'receipt' in result.data && result.data.receipt) baseline.set(file, result.data.receipt.afterHash);
+    return result;
+  };
+  return { call, read, save, binding, editorSessionId, write };
 }
 function http(
   port: number,
@@ -178,6 +235,28 @@ function sendControl(child: OwnedChild, binding: MotaTaskBinding, method: string
   child.process.stdin.write(JSON.stringify(command) + '\n');
   return command.requestId;
 }
+function editorWire(child: OwnedChild, command: Record<string, unknown>) {
+  const from = child.frames.length;
+  return new Promise<ReturnType<typeof MotaEditorFrameResultSchema.parse>>((resolve, reject) => {
+    const receive = () => {
+      const result = child.frames.slice(from).find((frame) => frame.type === 'mota-editor-result' && frame.requestId === command.requestId);
+      if (!result) return;
+      clearTimeout(timer);
+      child.process.stdout.off('data', receive);
+      try {
+        resolve(MotaEditorFrameResultSchema.parse(result));
+      } catch (error) {
+        reject(error);
+      }
+    };
+    const timer = setTimeout(() => {
+      child.process.stdout.off('data', receive);
+      reject(new Error('private editor frame response timeout'));
+    }, 5000);
+    child.process.stdout.on('data', receive);
+    child.process.stdin.write(JSON.stringify(command) + '\n');
+  });
+}
 async function controlResult(child: OwnedChild, requestId: string) {
   await expect.poll(() => child.frames.find((frame) => frame.requestId === requestId)).toBeDefined();
   return MotaControlResponseSchema.parse(child.frames.find((frame) => frame.requestId === requestId));
@@ -218,6 +297,92 @@ afterEach(async () => {
 });
 
 describe('managed Mota server local HTTP boundary', () => {
+  it.each([
+    { name: floorName, value: editedFloor },
+    { name: '_server/config.json', value: '{"lastFloorId":"MT1","extension":{"label":"保留数据"}}\n' },
+  ])('R6 denies legacy HTTP writes to $name after same-origin editor/nonce disclosure', async ({ name, value }) => {
+    const f = await fixture();
+    const prior = path.join(path.dirname(f.root), 'prior');
+    await cp(f.root, prior, { recursive: true });
+    async function bytes(file: string): Promise<Buffer | null> {
+      try {
+        return await readFile(file);
+      } catch (error) {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') return null;
+        throw error;
+      }
+    }
+    const files = [
+      { label: 'copy/MT1', file: path.join(f.root, floorName) },
+      { label: 'copy/config', file: path.join(f.root, '_server/config.json') },
+      { label: 'copy/MT2', file: path.join(f.root, 'project/floors/MT2.js') },
+      { label: 'prior/MT1', file: path.join(prior, floorName) },
+      { label: 'prior/config', file: path.join(prior, '_server/config.json') },
+      { label: 'prior/MT2', file: path.join(prior, 'project/floors/MT2.js') },
+      { label: 'outside', file: f.outside },
+    ];
+    const before = await Promise.all(files.map(({ file }) => bytes(file)));
+    expect(before[0]?.equals(Buffer.from(originalFloor))).toBe(true);
+    expect(before[1]).toBeNull();
+    const expectedHash = name === floorName ? hash(originalFloor) : null;
+    const child = launch(f.root, ['--bind-address', '127.0.0.1']);
+    const port = await listening(child);
+    const origin = `http://127.0.0.1:${port}`;
+    bind(child, origin);
+    await waitFrame(child, 'mota-origin-bound');
+    const game = await http(port, origin, '/index.html');
+    expect(game.status).toBe(200);
+    const editor = await http(port, origin, '/editor.html', { headers: { Referer: `${origin}/index.html` } });
+    expect(editor.status).toBe(200);
+    const nonce = /data-wsl-editor-session="([a-f0-9]{48})"/.exec(editor.body)?.[1];
+    // Still send the attack after cutover: removal of bootstrap must not skip POST.
+    const token = nonce ?? '0'.repeat(48);
+    const body = writeBody(name, value, 'base64');
+    const response = await http(port, origin, '/writeFile', {
+      method: 'POST',
+      body,
+      headers: {
+        Referer: `${origin}/index.html`,
+        'Sec-Fetch-Site': 'same-origin',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-WSL-Editor-Session': token,
+      },
+    });
+    const after = await Promise.all(files.map(({ file }) => bytes(file)));
+    const digest = (data: Buffer | null | undefined) => (data == null ? null : { bytes: data.length, sha256: hash(data) });
+    const target = after[name === floorName ? 0 : 1];
+    console.info(
+      JSON.stringify({
+        event: 'R6-http-authorization-counterexample',
+        target: name,
+        requests: [
+          { method: 'GET', path: '/index.html', status: game.status, responseBytes: Buffer.byteLength(game.body) },
+          { method: 'GET', path: '/editor.html', status: editor.status, responseBytes: Buffer.byteLength(editor.body) },
+          {
+            method: 'POST',
+            path: '/writeFile',
+            status: response.status,
+            requestBytes: Buffer.byteLength(body),
+            responseBytes: Buffer.byteLength(response.body),
+          },
+        ],
+        noncePresent: nonce !== undefined,
+        tokenSource: nonce === undefined ? 'forged-old-looking-token' : 'disclosed-editor-html',
+        expectedHash,
+        candidate: digest(Buffer.from(value)),
+        successfulUnauthorizedWrite: response.status === 200 && target?.equals(Buffer.from(value)) === true,
+        trustedMainSaveInvocations: 0,
+        files: files.map(({ label }, index) => ({ label, before: digest(before[index]), after: digest(after[index]) })),
+      }),
+    );
+    expect.soft(response.status).toBe(403);
+    for (const [index, { label }] of files.entries()) {
+      const original = before[index];
+      const actual = after[index];
+      expect.soft(original == null ? actual === null : actual?.equals(original) === true, `${label}: exact bytes preserved`).toBe(true);
+    }
+  });
+
   it('keeps the standalone guest source path policy equal to the shared import policy', () => {
     const names = [
       ...MOTA_ROOT_FILES,
@@ -381,11 +546,7 @@ describe('managed Mota server local HTTP boundary', () => {
     expect(await http(s.port, s.origin, '/readFile', { method: 'POST', body: `type=utf8&name=${floorName}` })).toMatchObject({
       status: 403,
     });
-    expect(
-      await http(s.port, s.origin, '/writeFile', { method: 'POST', headers: s.editorHeaders, body: writeBody(floorName, editedFloor) }),
-    ).toMatchObject({
-      status: 403,
-    });
+    expect(await s.editor.save(floorName, editedFloor)).toMatchObject({ ok: false, error: { code: 'invalid_content' } });
     expect(await readFile(f.outside, 'utf8')).toBe('outside source stays unchanged');
   });
 
@@ -409,41 +570,23 @@ describe('managed Mota server local HTTP boundary', () => {
       status: 200,
       body: originalFloor,
     });
-    expect(
-      await http(s.port, s.origin, '/writeFile', {
-        method: 'POST',
-        headers: s.editorHeaders,
-        body: writeBody(floorName, editedFloor, 'base64'),
-      }),
-    ).toMatchObject({ status: 200, body: '' });
+    expect(await s.editor.save(floorName, editedFloor)).toMatchObject({
+      ok: true,
+      data: { status: 'committed', receipt: { expectedHash: hash(originalFloor), afterHash: hash(editedFloor) } },
+    });
     expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(editedFloor);
     expect(await http(s.port, s.origin, `/${floorName}`)).toMatchObject({ status: 200, body: editedFloor });
-    expect(
-      await http(s.port, s.origin, '/writeFile', {
-        method: 'POST',
-        headers: s.editorHeaders,
-        body: writeBody('_server/config.json', '{"lastFloorId":"MT1"}'),
-      }),
-    ).toMatchObject({ status: 200 });
-    expect(JSON.parse(await readFile(path.join(f.root, '_server/config.json'), 'utf8'))).toEqual({ lastFloorId: 'MT1' });
-    expect(
-      await http(s.port, s.origin, '/writeFile', { method: 'POST', headers: s.editorHeaders, body: writeBody(floorName, originalFloor) }),
-    ).toMatchObject({
-      status: 200,
+    expect(await s.editor.save('_server/config.json', '{"lastFloorId":"MT1"}')).toMatchObject({
+      ok: true,
+      data: { status: 'committed', receipt: { expectedHash: null } },
     });
+    expect(JSON.parse(await readFile(path.join(f.root, '_server/config.json'), 'utf8'))).toEqual({ lastFloorId: 'MT1' });
+    expect(await s.editor.save(floorName, originalFloor)).toMatchObject({ ok: true, data: { status: 'committed' } });
     for (const name of ['project/floors/MT2.js', 'project/enemys.js', 'index.html']) {
-      expect(
-        await http(s.port, s.origin, '/writeFile', { method: 'POST', headers: s.editorHeaders, body: writeBody(name, editedFloor) }),
-      ).toMatchObject({
-        status: 403,
-      });
+      await expect(s.editor.save(name, editedFloor)).rejects.toThrow();
     }
     for (const invalid of ['main.floors.MT2 = {};', 'main.floors.MT1 = (() => { throw 1; })();', 'main.floors.MT1 = {"floorId":"MT1"};']) {
-      expect(
-        await http(s.port, s.origin, '/writeFile', { method: 'POST', headers: s.editorHeaders, body: writeBody(floorName, invalid) }),
-      ).toMatchObject({
-        status: 400,
-      });
+      expect(await s.editor.save(floorName, invalid)).toMatchObject({ ok: false, error: { code: 'invalid_content' } });
     }
     expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(originalFloor);
   });
@@ -453,18 +596,264 @@ describe('managed Mota server local HTTP boundary', () => {
     const s = await bound(f.root);
     const external = name === floorName ? originalFloor.replace('[0,1]', '[7,1]') : '{"external":true}';
     await writeFile(path.join(f.root, name), external);
-    expect(
-      await http(s.port, s.origin, '/writeFile', {
-        method: 'POST',
-        headers: s.editorHeaders,
-        body: writeBody(name, name === floorName ? editedFloor : '{}'),
-      }),
-    ).toMatchObject({ status: 409, body: expect.stringContaining('刷新编辑器') });
+    expect(await s.editor.save(name, name === floorName ? editedFloor : '{}')).toMatchObject({
+      ok: false,
+      error: { code: 'source_changed' },
+    });
+    expect(await s.editor.read(name)).toMatchObject({ ok: false, error: { code: 'source_changed' } });
+    expect((await http(s.port, s.origin, '/readFile', { method: 'POST', body: `type=utf8&name=${name}` })).body).toBe(external);
+    expect(await s.editor.read(name)).toMatchObject({ ok: false, error: { code: 'source_changed' } });
     expect(await readFile(path.join(f.root, name), 'utf8')).toBe(external);
   });
 });
 
 describe('Mota task controls and editor snapshot saves', () => {
+  it('preserves existing non-UUID AppInstance identity in the private editor pipe', async () => {
+    const f = await fixture();
+    const preload = path.join(path.dirname(f.root), 'existing-identity-listener-fixture.cjs');
+    const existing = { ...identity, appInstanceId: 'existing-app-instance' };
+    await writeFile(
+      preload,
+      `const http=require('node:http');const {EventEmitter}=require('node:events');
+http.createServer=()=>Object.assign(new EventEmitter(),{listen(_port,_host,ready){ready();},address(){return {port:43187};},close(){},closeAllConnections(){}});
+const index=process.argv.indexOf('--identity');process.argv[index+1]=JSON.stringify(${JSON.stringify(existing)});`,
+    );
+    const child = launch(f.root, [], preload);
+    expect((await waitFrame(child, 'mota-listening')).identity).toEqual(existing);
+    bind(child, 'http://127.0.0.1:51379', { identity: existing });
+    expect((await waitFrame(child, 'mota-origin-bound')).identity).toEqual(existing);
+    const response = await editorWire(child, {
+      type: 'mota-editor',
+      editorSessionId: randomUUID(),
+      requestId: randomUUID(),
+      sessionIndex: 1,
+      editorEpoch: 1,
+      frameSeq: 0,
+      method: 'editor.open',
+      phase: 'single',
+      input: {
+        ...existing,
+        resourceId: 'editor',
+        resourceInstanceId: 'resource',
+        resourceGeneration: 1,
+        browserInstanceId: 'browser',
+        browserGeneration: 1,
+        documentGeneration: 1,
+        editorEpoch: 1,
+      },
+    });
+    expect(response).toMatchObject({ ok: true, method: 'editor.open' });
+    expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(originalFloor);
+  });
+  it('orders private saves with AI ownership and makes both old baselines stale after the other writer commits', async () => {
+    const f = await fixture();
+    const s = await pipeBound(f.root);
+    const binding = taskBinding();
+    await control(s.child, binding, 'acquire');
+    expect(await s.editor.save(floorName, editedFloor)).toMatchObject({ ok: false, error: { code: 'busy' } });
+    expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(originalFloor);
+    expect(await control(s.child, binding, 'map.set', changeInput())).toMatchObject({ ok: true });
+    await control(s.child, binding, 'release');
+    expect(await s.editor.save(floorName, editedFloor)).toMatchObject({ ok: false, error: { code: 'revoked' } });
+    await s.editor.call('editor.revoke');
+    const fresh = await privateEditor(s.child);
+    expect(await fresh.save(floorName, editedFloor)).toMatchObject({ ok: true, data: { status: 'committed' } });
+    const next = taskBinding();
+    await control(s.child, next, 'acquire');
+    expect(await control(s.child, next, 'map.set', changeInput())).toMatchObject({ ok: false, error: { code: 'stale_source' } });
+    await control(s.child, next, 'release');
+    expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(editedFloor);
+  });
+
+  it.each(['commit-first', 'revoke-first'])('reports actual %s queue order without claiming preemption', async (order) => {
+    const f = await fixture();
+    const s = await pipeBound(f.root);
+    const input = {
+      file: floorName,
+      expectedHash: hash(originalFloor),
+      contentHash: hash(editedFloor),
+      contentLength: Buffer.byteLength(editedFloor),
+    };
+    const requestId = randomUUID();
+    expect(await s.editor.call('editor.stage', { ...input, content: editedFloor }, requestId)).toMatchObject({ ok: true });
+    const open = s.child.frames.find((frame) => frame.type === 'mota-editor-result' && frame.method === 'editor.open');
+    if (!open) throw new Error('missing open');
+    const base = {
+      type: 'mota-editor',
+      editorSessionId: s.editor.editorSessionId,
+      sessionIndex: open.sessionIndex,
+      editorEpoch: 1,
+      phase: 'single',
+      frameSeq: 0,
+    };
+    const commit = { ...base, requestId, method: 'editor.commit', input };
+    const revoke = { ...base, requestId: randomUUID(), method: 'editor.revoke', input: {} };
+    // Promise construction writes frames synchronously in the selected order.
+    const first = editorWire(s.child, order === 'commit-first' ? commit : revoke);
+    const second = editorWire(s.child, order === 'commit-first' ? revoke : commit);
+    const results = [await first, await second];
+    expect(results[0]).toMatchObject({ ok: true });
+    expect(results[1]).toMatchObject(order === 'commit-first' ? { ok: true } : { ok: false, error: { code: 'revoked' } });
+    const status = await s.editor.call('editor.status', { operationRequestId: requestId });
+    expect(status).toMatchObject({ ok: true, data: { status: order === 'commit-first' ? 'committed' : 'failed' } });
+    expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(order === 'commit-first' ? editedFloor : originalFloor);
+  });
+  it('reads and saves the full 256 KiB with split Chinese/emoji and bounded stop-and-wait envelopes', async () => {
+    const f = await fixture();
+    const prefix = 'main.floors.MT1 = {"floorId":"MT1","map":[[0,1],[2,3]],"extension":"';
+    const suffix = '"};\n';
+    const characters = '中😀'.repeat(Math.floor((262144 - Buffer.byteLength(prefix + suffix)) / 7));
+    const source = prefix + characters + ' '.repeat(262144 - Buffer.byteLength(prefix + characters + suffix)) + suffix;
+    expect(Buffer.byteLength(source)).toBe(262144);
+    await writeFile(path.join(f.root, floorName), source);
+    const s = await pipeBound(f.root);
+    const read = await s.editor.read(floorName);
+    expect(read).toMatchObject({ ok: true, data: { content: source, contentLength: 262144, contentHash: hash(source) } });
+    const updated = source.replace('[0,1]', '[9,1]');
+    const result = await s.editor.save(floorName, updated);
+    expect(result).toMatchObject({
+      ok: true,
+      data: { status: 'committed', receipt: { expectedHash: hash(source), afterHash: hash(updated), contentLength: 262144 } },
+    });
+    expect((await readFile(path.join(f.root, floorName))).equals(Buffer.from(updated))).toBe(true);
+    const frames = s.child.frames.filter((frame) => frame.type === 'mota-editor-result');
+    expect(frames.every((frame) => Buffer.byteLength(JSON.stringify(frame) + '\n') <= 4096)).toBe(true);
+    const readFrames = frames.filter((frame) => frame.requestId === read.requestId);
+    expect(readFrames).toHaveLength(258);
+    expect(readFrames.filter((frame) => frame.phase === 'chunk')).toHaveLength(256);
+    expect(frames.filter((frame) => frame.requestId === result.requestId)).toHaveLength(259);
+  });
+
+  it('retains manual committed receipts across duplicate input, revoke, status and post-rename sync failure', async () => {
+    const f = await fixture();
+    const s = await pipeBound(
+      f.root,
+      `const fs=require('node:fs/promises');const open=fs.open;fs.open=async function(name,...args){const h=await open.call(this,name,...args);if(String(name).endsWith('/project/floors'))h.sync=async()=>{throw Error('sync fault')};return h;};`,
+    );
+    const requestId = randomUUID();
+    const result = await s.editor.save(floorName, editedFloor, requestId);
+    expect(result).toMatchObject({
+      ok: true,
+      data: { status: 'committed', receipt: { durabilityError: 'post_rename_io_failed', afterHash: hash(editedFloor) } },
+    });
+    const content = {
+      file: floorName,
+      expectedHash: hash(originalFloor),
+      contentLength: Buffer.byteLength(editedFloor),
+      contentHash: hash(editedFloor),
+    };
+    const original = s.child.frames.find((frame) => frame.type === 'mota-editor-result' && frame.requestId === requestId);
+    if (!original) throw new Error('missing stage envelope');
+    const envelope = {
+      type: 'mota-editor',
+      editorSessionId: s.editor.editorSessionId,
+      requestId,
+      editorEpoch: 1,
+      sessionIndex: original.sessionIndex,
+      frameSeq: 0,
+      method: 'editor.commit',
+      phase: 'single',
+      input: content,
+    };
+    expect(await editorWire(s.child, envelope)).toMatchObject({ ok: true, data: result.data });
+    expect(await editorWire(s.child, { ...envelope, input: { ...content, expectedHash: hash(editedFloor) } })).toMatchObject({
+      ok: false,
+      error: { code: 'operation_conflict' },
+    });
+    expect(await s.editor.call('editor.revoke')).toMatchObject({ ok: true, data: { settled: true, operation: result.data } });
+    expect(await s.editor.call('editor.status', { operationRequestId: requestId })).toMatchObject({ ok: true, data: result.data });
+    expect(await s.editor.call('editor.commit', content, requestId)).toMatchObject({ ok: true, data: result.data });
+    expect(await editorWire(s.child, envelope)).toMatchObject({ ok: true, data: result.data });
+    expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(editedFloor);
+  });
+
+  it.each(['repeat', 'missing', 'request', 'session', 'index', 'epoch', 'hash', 'length', 'utf8', 'json', 'extra'])(
+    'rejects a %s upload without changing its target',
+    async (fault) => {
+      const f = await fixture();
+      const s = await pipeBound(f.root);
+      const open = s.child.frames.find((frame) => frame.type === 'mota-editor-result' && frame.method === 'editor.open');
+      if (!open) throw new Error('missing open envelope');
+      const requestId = randomUUID();
+      const bytes = fault === 'utf8' ? Buffer.from([0xff]) : Buffer.from(fault === 'json' ? 'not JSON' : editedFloor);
+      const base = {
+        type: 'mota-editor',
+        editorSessionId: s.editor.editorSessionId,
+        requestId,
+        sessionIndex: open.sessionIndex,
+        editorEpoch: 1,
+        method: 'editor.stage',
+      };
+      const metadata = {
+        file: floorName,
+        expectedHash: hash(originalFloor),
+        contentLength: bytes.length + (fault === 'length' ? 1 : 0),
+        contentHash: fault === 'hash' ? '0'.repeat(64) : hash(bytes),
+      };
+      expect(await editorWire(s.child, { ...base, phase: 'begin', frameSeq: 0, input: metadata })).toMatchObject({ ok: true });
+      let bad;
+      const chunk = {
+        ...base,
+        phase: 'chunk',
+        frameSeq: fault === 'missing' ? 2 : 1,
+        input: { base64: bytes.toString('base64') },
+        ...(fault === 'request' ? { requestId: randomUUID() } : {}),
+        ...(fault === 'session' ? { editorSessionId: randomUUID() } : {}),
+        ...(fault === 'index' ? { sessionIndex: 999 } : {}),
+        ...(fault === 'epoch' ? { editorEpoch: 99 } : {}),
+        ...(fault === 'extra' ? { root: '/forged' } : {}),
+      };
+      const first = await editorWire(s.child, chunk);
+      if (['missing', 'request', 'session', 'index', 'epoch', 'length', 'extra'].includes(fault)) bad = first;
+      else if (fault === 'repeat') bad = await editorWire(s.child, chunk);
+      else bad = await editorWire(s.child, { ...base, phase: 'end', frameSeq: 2, input: {} });
+      expect(bad).toMatchObject({ ok: false });
+      expect(
+        await editorWire(s.child, { ...base, method: 'editor.revoke', phase: 'single', frameSeq: 0, requestId: randomUUID(), input: {} }),
+      ).toMatchObject({ ok: true, data: { settled: true } });
+      expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(originalFloor);
+    },
+  );
+
+  it('tombstones a revoke before delayed open and rejects unsupported private reads without rebasing', async () => {
+    const f = await fixture();
+    const s = await pipeBound(f.root);
+    expect(await s.editor.call('editor.revoke')).toMatchObject({ ok: true });
+    const sessionId = randomUUID();
+    const base = {
+      type: 'mota-editor',
+      editorSessionId: sessionId,
+      requestId: randomUUID(),
+      sessionIndex: 9,
+      editorEpoch: 2,
+      frameSeq: 0,
+      phase: 'single',
+    };
+    expect(await editorWire(s.child, { ...base, method: 'editor.revoke', input: {} })).toMatchObject({ ok: true });
+    expect(
+      await editorWire(s.child, {
+        ...base,
+        requestId: randomUUID(),
+        method: 'editor.open',
+        input: { ...s.editor.binding, editorEpoch: 2 },
+      }),
+    ).toMatchObject({ ok: false, error: { code: 'revoked' } });
+    await writeFile(path.join(f.root, floorName), originalFloor + ' '.repeat(262144));
+    const next = await privateEditor(s.child, 2);
+    expect(await next.read(floorName)).toMatchObject({ ok: false, error: { code: 'invalid_content' } });
+    expect((await readFile(path.join(f.root, floorName))).length).toBeGreaterThan(262144);
+    await writeFile(path.join(f.root, floorName), editedFloor);
+    expect(await next.read(floorName)).toMatchObject({ ok: false, error: { code: 'source_changed' } });
+  });
+
+  it.each(['oversize', 'unsupported'])('refuses %s initial read bytes intact rather than truncating a saveable snapshot', async (kind) => {
+    const f = await fixture();
+    const source = kind === 'oversize' ? '{"extension":"' + 'x'.repeat(262144) + '"}' : '[]';
+    await writeFile(path.join(f.root, '_server/config.json'), source);
+    const s = await pipeBound(f.root);
+    expect(await s.editor.read('_server/config.json')).toMatchObject({ ok: false, error: { code: 'invalid_content' } });
+    expect(await readFile(path.join(f.root, '_server/config.json'), 'utf8')).toBe(source);
+  });
   it('uses exact binding, literal byte edits and idempotent operation receipts', async () => {
     const f = await fixture();
     const source =
@@ -642,22 +1031,18 @@ describe('Mota task controls and editor snapshot saves', () => {
     expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(source);
   });
 
-  it('requires an editor nonce and advances only the successful page snapshot', async () => {
+  it('requires a private owner and advances only its successful read baseline', async () => {
     const f = await fixture();
     const s = await bound(f.root);
-    const other = await editorHeaders(s.port, s.origin, '/editor-mobile.html');
     expect(await http(s.port, s.origin, '/writeFile', { method: 'POST', body: writeBody(floorName, editedFloor) })).toMatchObject({
       status: 403,
     });
-    expect(
-      await http(s.port, s.origin, '/writeFile', { method: 'POST', headers: s.editorHeaders, body: writeBody(floorName, editedFloor) }),
-    ).toMatchObject({ status: 200 });
-    expect(
-      await http(s.port, s.origin, '/writeFile', { method: 'POST', headers: other, body: writeBody(floorName, originalFloor) }),
-    ).toMatchObject({ status: 409, body: expect.stringContaining('刷新编辑器') });
-    expect(
-      await http(s.port, s.origin, '/writeFile', { method: 'POST', headers: s.editorHeaders, body: writeBody(floorName, originalFloor) }),
-    ).toMatchObject({ status: 200 });
+    expect(await s.editor.save(floorName, editedFloor)).toMatchObject({ ok: true, data: { status: 'committed' } });
+    expect(await s.editor.save(floorName, originalFloor, randomUUID(), hash(originalFloor))).toMatchObject({
+      ok: false,
+      error: { code: 'source_changed' },
+    });
+    expect(await s.editor.save(floorName, originalFloor)).toMatchObject({ ok: true, data: { status: 'committed' } });
     expect(await readFile(path.join(f.root, 'editor.html'), 'utf8')).toBe('<!doctype html><title>Synthetic editor</title>');
   });
 
@@ -666,24 +1051,15 @@ describe('Mota task controls and editor snapshot saves', () => {
     const s = await bound(f.root);
     const binding = taskBinding();
     await control(s.child, binding, 'acquire');
-    expect(
-      await http(s.port, s.origin, '/writeFile', { method: 'POST', headers: s.editorHeaders, body: writeBody(floorName, editedFloor) }),
-    ).toMatchObject({ status: 423, body: expect.stringContaining('AI 正在编辑') });
+    expect(await s.editor.save(floorName, editedFloor)).toMatchObject({ ok: false, error: { code: 'busy' } });
     expect(await control(s.child, binding, 'map.set', changeInput())).toMatchObject({ ok: true });
     await control(s.child, binding, 'release');
     for (const name of [floorName, '_server/config.json']) {
-      expect(
-        await http(s.port, s.origin, '/writeFile', {
-          method: 'POST',
-          headers: s.editorHeaders,
-          body: writeBody(name, name === floorName ? editedFloor : '{}'),
-        }),
-      ).toMatchObject({ status: 409 });
+      expect(await s.editor.save(name, name === floorName ? editedFloor : '{}')).toMatchObject({ ok: false, error: { code: 'revoked' } });
     }
-    const refreshed = await editorHeaders(s.port, s.origin);
-    expect(
-      await http(s.port, s.origin, '/writeFile', { method: 'POST', headers: refreshed, body: writeBody(floorName, editedFloor) }),
-    ).toMatchObject({ status: 200 });
+    expect(await s.editor.call('editor.revoke')).toMatchObject({ ok: true, data: { settled: true } });
+    const refreshed = await privateEditor(s.child);
+    expect(await refreshed.save(floorName, editedFloor)).toMatchObject({ ok: true, data: { status: 'committed' } });
     expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(editedFloor);
   });
 
@@ -691,9 +1067,7 @@ describe('Mota task controls and editor snapshot saves', () => {
     const f = await fixture();
     const s = await bound(f.root);
     const binding = taskBinding();
-    expect(
-      await http(s.port, s.origin, '/writeFile', { method: 'POST', headers: s.editorHeaders, body: writeBody(floorName, editedFloor) }),
-    ).toMatchObject({ status: 200 });
+    expect(await s.editor.save(floorName, editedFloor)).toMatchObject({ ok: true, data: { status: 'committed' } });
     await control(s.child, binding, 'acquire');
     expect(await control(s.child, binding, 'map.set', changeInput())).toMatchObject({ ok: false, error: { code: 'stale_source' } });
     expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(editedFloor);
@@ -757,59 +1131,21 @@ if(String(name).endsWith('/project/floors')) handle.sync=async()=>{throw new Err
     expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(originalFloor);
   }, 10000);
 
-  it('injects a scoped XHR nonce and preserves callback failures with Chinese 409/423 messages', async () => {
+  it('serves unchanged untrusted editor HTML without nonce, script or an HTTP save capability', async () => {
     const f = await fixture();
     const s = await bound(f.root);
     const response = await http(s.port, s.origin, '/editor.html');
-    const match = /<script data-wsl-editor-session="([a-f0-9]{48})">([\s\S]*?)<\/script>/.exec(response.body);
-    if (!match?.[1] || !match[2]) throw new Error('missing injected script');
-    class FakeXHR {
-      headers: Record<string, string> = {};
-      calls = 0;
-      open(_method: string, _url: string) {
-        this.headers = {};
-      }
-      setRequestHeader(name: string, value: string) {
-        this.headers[name] = value;
-      }
-      send(_body: string) {
-        this.calls++;
-      }
-    }
-    type Write = (name: string, data: string, encoding: string, callback: (error: unknown, data?: unknown) => void) => void;
-    const browser: { location: { origin: string; href: string }; fs?: { writeFile: Write } } = {
-      location: { origin: s.origin, href: s.origin + '/editor.html' },
-    };
-    runInNewContext(match[2], { window: browser, XMLHttpRequest: FakeXHR, URL });
-    for (const target of ['/writeFile', s.origin + '/writeFile', '/readFile', '/writeFile?x=1', 'http://localhost:1/writeFile']) {
-      const xhr = new FakeXHR();
-      xhr.open('POST', target);
-      xhr.send('body');
-      expect(xhr.calls).toBe(1);
-      expect(xhr.headers['X-WSL-Editor-Session']).toBe(['/writeFile', s.origin + '/writeFile'].includes(target) ? match[1] : undefined);
-    }
-    let calls = 0;
-    let error: unknown;
-    browser.fs = {
-      writeFile: (_name, _data, _encoding, callback) => {
-        calls++;
-        callback('HTTP 409：请检查服务');
-      },
-    };
-    browser.fs.writeFile('project/floors/MT1.js', 'data', 'base64', (value) => {
-      error = value;
-    });
-    expect(error).toBe('地图已被其他操作更新，请刷新编辑器后重新检查再保存（409）。');
-    browser.fs.writeFile = (_name, _data, _encoding, callback) => {
-      calls++;
-      callback('HTTP 423');
-    };
-    browser.fs.writeFile('project/floors/MT1.js', 'data', 'base64', (value) => {
-      error = value;
-    });
-    expect(error).toBe('AI 正在编辑地图，请等待任务结束后再保存（423）。');
-    expect(calls).toBe(2);
-    expect(match[2]).not.toMatch(/\b(?:alert|confirm)\s*\(/);
+    expect(response.body).toBe(await readFile(path.join(f.root, 'editor.html'), 'utf8'));
+    expect(response.body).not.toMatch(/data-wsl-editor-session|<script|X-WSL-Editor-Session/);
+    expect((await http(s.port, s.origin, '/editor-mobile.html')).body).toBe(
+      await readFile(path.join(f.root, 'editor-mobile.html'), 'utf8'),
+    );
+    const legacyHeaders: Record<string, string>[] = [{}, { 'X-WSL-Editor-Session': '0'.repeat(48) }];
+    for (const headers of legacyHeaders)
+      expect(
+        await http(s.port, s.origin, '/writeFile', { method: 'POST', headers, body: writeBody(floorName, editedFloor) }),
+      ).toMatchObject({ status: 403, body: 'error: http_write_disabled' });
+    expect(await readFile(path.join(f.root, floorName), 'utf8')).toBe(originalFloor);
   });
 });
 

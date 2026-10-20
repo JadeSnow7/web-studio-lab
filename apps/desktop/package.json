@@ -8,10 +8,10 @@
   "author": "Web Studio Lab contributors",
   "main": "out/main/index.js",
   "scripts": {
-    "dev": "node ../../scripts/external-builds.mjs verify && electron-vite dev",
-    "build": "node ../../scripts/external-builds.mjs verify && electron-vite build",
+    "dev": "node ../../scripts/external-builds.mjs verify && node ../../scripts/build-mota-editor.mjs && electron-vite dev",
+    "build": "node ../../scripts/external-builds.mjs verify && node ../../scripts/build-mota-editor.mjs && electron-vite build",
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json",
-    "package": "node ../../scripts/external-builds.mjs verify && electron-vite build && electron-builder --mac --arm64 --publish never"
+    "package": "node ../../scripts/external-builds.mjs verify && node ../../scripts/build-mota-editor.mjs && electron-vite build && electron-builder --mac --arm64 --publish never"
   },
   "devDependencies": {
     "@types/node": "24.19.1",

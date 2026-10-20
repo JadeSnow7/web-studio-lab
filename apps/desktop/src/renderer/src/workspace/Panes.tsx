@@ -5,6 +5,7 @@ import { occlusion } from '../state/occlusion';
 import { workspaceCommand } from '../state/workspace';
 import { Files } from './Files';
 import { Browser } from './Browser';
+import { MotaEditorViewport } from './MotaEditorViewport';
 import { Terminal } from './Terminal';
 import { Session } from './Session';
 import { resourceIcons as icons } from './icons';
@@ -181,7 +182,19 @@ export function WorkspaceContent({
               if (pane && pane.paneId !== workspace.activePaneId) setPane(pane.paneId);
             }}
           >
-            {resource?.kind === 'web' ? (
+            {resource?.kind === 'web' && resource.appPage === 'editor' && workspace.managedApp?.profile?.projectKind === 'mota-web' ? (
+              <MotaEditorViewport
+                workspaceId={workspace.workspaceId}
+                resource={resource}
+                visible={visible}
+                occluded={occluded}
+                appInstanceId={workspace.managedApp.appInstanceId}
+                running={workspace.managedApp.state === 'running'}
+                gameResourceId={
+                  workspace.resources.find((entry) => entry.appProjectId === resource.appProjectId && entry.appPage === 'game')?.resourceId
+                }
+              />
+            ) : resource?.kind === 'web' ? (
               <Browser workspaceId={workspace.workspaceId} resource={resource} visible={visible} occluded={occluded} />
             ) : resource?.kind === 'terminal' || resource?.kind === 'ssh' ? (
               <Terminal

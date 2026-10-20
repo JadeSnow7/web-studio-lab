@@ -69,6 +69,45 @@ beforeEach(() => {
   mock.kill.mockClear();
 });
 describe('Mota exact control bridge', () => {
+  it.each([false, true])('uses an independent editor RPC and validates its complete original binding (mismatch=%s)', async (mismatch) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const request = {
+      binding: {
+        workspaceId: 'w',
+        environmentId: 'sandbox' as const,
+        projectId: crypto.randomUUID(),
+        appInstanceId: 'existing-app-id',
+        resourceId: 'editor',
+        resourceInstanceId: 'resource',
+        resourceGeneration: 1,
+        browserInstanceId: 'native',
+        browserGeneration: 2,
+        documentGeneration: 3,
+        editorEpoch: 4,
+      },
+      editorSessionId: crypto.randomUUID(),
+      requestId: crypto.randomUUID(),
+      method: 'editor.open' as const,
+      input: {},
+    };
+    const opening = service.motaEditorRequest(request);
+    const call = mock.postMessage.mock.calls.at(-1)![0];
+    expect(call.method).toBe('app.motaEditor');
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: call.id,
+      result: {
+        method: request.method,
+        editorSessionId: request.editorSessionId,
+        requestId: request.requestId,
+        binding: { ...request.binding, documentGeneration: mismatch ? 99 : 3 },
+        ok: true,
+        data: {},
+      },
+    });
+    if (mismatch) await expect(opening).rejects.toThrow();
+    else await expect(opening).resolves.toMatchObject({ ok: true, editorSessionId: request.editorSessionId });
+  });
   const binding = (): MotaTaskBinding => ({
     workspaceId: 'w',
     environmentId: 'sandbox',

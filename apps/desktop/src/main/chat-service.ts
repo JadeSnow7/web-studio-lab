@@ -1,4 +1,5 @@
 import type { EduTaskBinding } from '@wsl/protocol';
+import { MotaEditorRequestSchema, MotaEditorResultSchema, type MotaEditorRequest } from '@wsl/protocol';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { randomUUID } from 'node:crypto';
@@ -646,6 +647,18 @@ export class ChatService {
     if (response.requestId !== request.requestId || response.method !== request.method || JSON.stringify(response.binding) !== owner)
       throw new Error('魔塔控制回执归属不匹配；占用保留');
     if (request.method === 'release' && response.ok) this.motaCleanup.delete(owner);
+    return response;
+  }
+  async motaEditorRequest(input: MotaEditorRequest) {
+    const request = MotaEditorRequestSchema.parse(input);
+    const response = MotaEditorResultSchema.parse(await this.request({ method: 'app.motaEditor', payload: request }));
+    if (
+      response.requestId !== request.requestId ||
+      response.editorSessionId !== request.editorSessionId ||
+      response.method !== request.method ||
+      !isDeepStrictEqual(response.binding, request.binding)
+    )
+      throw new Error('编辑器回执归属不匹配；原操作保留为待核对');
     return response;
   }
   async appExport(target: AppTarget) {

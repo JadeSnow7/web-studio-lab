@@ -1,4 +1,6 @@
 import type { AppUiPort } from './app-control';
+import type { MotaEditorFacts } from './mota-editor';
+import type { MotaEditorProjection, MotaEditorRequest, MotaEditorResult, WorkspaceSnapshot } from '@wsl/protocol';
 import type {
   ResearchGrant,
   MotaTaskBinding,
@@ -190,7 +192,36 @@ export type WorkbenchRuntimeContract = [
   Assert<Exclude<OptionalKeys<WorkbenchRuntime>, OriginalRuntimeOptionalKeys> extends never ? true : false>,
 ];
 
+export interface MotaEditorNativePort {
+  ensureMotaEditor(workspaceId: string, resource: WorkbenchResource, app: ManagedApp, theme: WorkspaceSnapshot['theme']): void;
+  motaEditorFacts(resourceId: string): MotaEditorFacts | null;
+  motaEditorLayout(resourceId: string, layout: PreviewLayout): void;
+  motaEditorVisibility(resourceId: string, visible: boolean, projection?: MotaEditorProjection): void;
+  releaseMotaEditor(resourceId: string): void;
+}
+export interface MotaEditorServicePort {
+  motaEditorRequest(request: MotaEditorRequest): Promise<MotaEditorResult>;
+}
+export type MotaEditorRuntimeKeys =
+  'ensureMotaEditor' | 'motaEditorFacts' | 'motaEditorLayout' | 'motaEditorVisibility' | 'releaseMotaEditor' | 'motaEditorRequest';
+export type MotaEditorRuntime = WorkbenchRuntime & MotaEditorNativePort & MotaEditorServicePort;
+export type MotaEditorRuntimeContract = [
+  Assert<
+    Pick<MotaEditorRuntime, OriginalRuntimeKeys> extends WorkbenchRuntime
+      ? WorkbenchRuntime extends Pick<MotaEditorRuntime, OriginalRuntimeKeys>
+        ? true
+        : false
+      : false
+  >,
+  Assert<Exclude<keyof MotaEditorRuntime, OriginalRuntimeKeys | MotaEditorRuntimeKeys> extends never ? true : false>,
+  Assert<Exclude<OriginalRuntimeKeys | MotaEditorRuntimeKeys, keyof MotaEditorRuntime> extends never ? true : false>,
+  Assert<Extract<OptionalKeys<MotaEditorRuntime>, MotaEditorRuntimeKeys> extends never ? true : false>,
+  Assert<Exclude<OptionalKeys<Pick<MotaEditorRuntime, OriginalRuntimeKeys>>, OriginalRuntimeOptionalKeys> extends never ? true : false>,
+  Assert<Exclude<OriginalRuntimeOptionalKeys, OptionalKeys<Pick<MotaEditorRuntime, OriginalRuntimeKeys>>> extends never ? true : false>,
+];
+
 export interface WorkbenchHostEvents {
+  onMotaEditorFacts(facts: MotaEditorFacts): void;
   performActiveBrowserAction(action: 'reload' | 'openDevTools'): Promise<void>;
   onVerification(status: EduVerificationStatus): Promise<void>;
   onAdmissionRecovery(status: EduAdmissionRecoveryStatus): Promise<void>;

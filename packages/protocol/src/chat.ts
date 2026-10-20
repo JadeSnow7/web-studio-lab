@@ -6,6 +6,7 @@ import {
 } from './edu-verification';
 import { EduTaskBindingSchema, EduTaskDispatchRejectionSchema, EduTaskOperationResultSchema } from './edu-task';
 import { MotaTaskBindingSchema, MotaControlRequestSchema, MotaControlResponseSchema } from './mota-control';
+import { MotaEditorRequestSchema, MotaEditorResultSchema } from './mota-editor';
 import { WorkspaceObservationResultSchema, ObservationRequestSchema as RequestSchema, ObservationTurnScopeSchema } from './observation';
 import { EnvironmentListSchema, RuntimeResourceIdentitySchema } from './environments';
 import {
@@ -117,6 +118,7 @@ export const MotaTaskDispatchRejectionSchema = z
   .strict();
 export const ChatTargetSchema = z.object({ conversationId: ChatSlotSchema });
 export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
+  z.object({ id: z.string(), method: z.literal('app.motaEditor'), payload: MotaEditorRequestSchema }).strict(),
   z.object({ id: z.string(), method: z.literal('research.reply'), payload: ResearchReplySchema }).strict(),
   z.object({ id: z.string(), method: z.literal('app.motaControl'), payload: MotaControlRequestSchema }).strict(),
   z.object({ id: z.string(), method: z.literal('app.verification.begin'), payload: EduVerificationBeginSchema }).strict(),
@@ -260,6 +262,7 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
     type: z.literal('response'),
     id: z.string(),
     result: z.union([
+      MotaEditorResultSchema,
       MotaControlResponseSchema,
       MotaTaskDispatchRejectionSchema,
       EduTaskDispatchRejectionSchema,

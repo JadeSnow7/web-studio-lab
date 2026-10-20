@@ -2,6 +2,7 @@ export * from './app';
 export * from './managed-app';
 export * from './mota';
 export * from './mota-control';
+export * from './mota-editor';
 export * from './source-change';
 export * from './app-import';
 export * from './chat';

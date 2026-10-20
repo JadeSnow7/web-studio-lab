@@ -90,6 +90,10 @@ import type { AppControl, AppControlContext } from './app-control';
 import { AppControlFailure } from './app-control-failure';
 import { ResearchOwners, ResearchFailure, captureSummary } from './research';
 import { ResearchUseCase } from './research-use-case';
+import { MotaEditorAuthority, MOTA_EDITOR_URL, type MotaEditorFacts } from './mota-editor';
+import type { MotaEditorOperationStore } from './mota-editor-repository';
+import type { MotaEditorNativePort, MotaEditorServicePort } from './ports';
+import type { MotaEditorReadInput, MotaEditorSaveInput, MotaEditorCloseInput, MotaEditorStatusInput } from '@wsl/protocol';
 
 const activeStates = ['starting', 'running', 'cancelling'];
 type SourceRun = { target: AppTarget; baseline: AbortController; ready: boolean; capturing: boolean };
@@ -291,11 +295,17 @@ export class WorkbenchApplication implements WorkbenchHostEvents {
   private catalog: ResourceCatalogState = createResourceCatalog(randomUUID());
   private environmentRequest = 0;
   private emissionTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly motaEditor: MotaEditorAuthority | null;
+  private readonly editorAdmissions = new Map<string, number>();
   constructor(
     private readonly repository: WorkbenchRepository,
     private readonly runtime: WorkbenchRuntime,
     private readonly emit: (event: WorkbenchEvent) => void,
+    private readonly editorCapabilities?: { ports: MotaEditorNativePort & MotaEditorServicePort; store: MotaEditorOperationStore },
   ) {
+    this.motaEditor = editorCapabilities
+      ? new MotaEditorAuthority(editorCapabilities.ports, editorCapabilities.store, (facts) => this.editorScope(facts))
+      : null;
     this.ready = this.beginInitialization();
     const current = {
       activeWorkspaceId: () => this.snapshot.activeWorkspaceId,
@@ -614,6 +624,23 @@ export class WorkbenchApplication implements WorkbenchHostEvents {
     return snapshot;
   }
   command(command: WorkbenchCommand): Promise<WorkbenchResult> {
+    const released: string[] = [];
+    try {
+      this.admitEditorRevocation(command, released);
+    } catch (error) {
+      return Promise.resolve({ ok: false, error: this.commandError(error), snapshot: this.publicSnapshot() });
+    }
+    return this.dispatchCommand(command).finally(() => {
+      for (const resourceId of released) {
+        const count = (this.editorAdmissions.get(resourceId) ?? 1) - 1;
+        if (count) this.editorAdmissions.set(resourceId, count);
+        else this.editorAdmissions.delete(resourceId);
+        const facts = this.editorCapabilities?.ports.motaEditorFacts(resourceId);
+        if (facts) this.motaEditor?.factsChanged(facts);
+      }
+    });
+  }
+  private dispatchCommand(command: WorkbenchCommand): Promise<WorkbenchResult> {
     // Revoke before joining the metadata queue: a slow save must never delay cancellation.
     if (command.type === 'cancelRun') this.researchOwners.revoke(command.runId, command.workspaceId);
     if (['beginEduVerification', 'endEduVerification', 'reconcileEduVerification'].includes(command.type))
@@ -660,7 +687,153 @@ export class WorkbenchApplication implements WorkbenchHostEvents {
       return this.environments().then(() => this.enqueueCommand(command));
     return this.enqueueCommand(command);
   }
+  private editorScope(facts: MotaEditorFacts): boolean {
+    if (this.closing || this.editorAdmissions.has(facts.resourceId) || this.maintenanceLocked()) return false;
+    const w = this.snapshot.workspaces.find((entry) => entry.workspaceId === facts.workspaceId);
+    const resource = w?.resources.find((entry) => entry.resourceId === facts.resourceId);
+    return (
+      !!w &&
+      w.workspaceId === this.snapshot.activeWorkspaceId &&
+      w.managedApp?.state === 'running' &&
+      w.managedApp.profile?.projectKind === 'mota-web' &&
+      w.managedApp.appInstanceId === facts.appInstanceId &&
+      w.managedApp.projectId === facts.projectId &&
+      resource?.appPage === 'editor' &&
+      resource.appProjectId === facts.projectId &&
+      resource.instanceId === facts.resourceInstanceId &&
+      resource.generation === facts.resourceGeneration &&
+      panes(w.layout).some((pane) => w.tabs.some((tab) => tab.tabId === pane.tabId && tab.targetRef.resourceId === facts.resourceId))
+    );
+  }
+  /** Validate identities/revision before revocation, and before any metadata-queue wait. */
+  private admitEditorRevocation(c: WorkbenchCommand, released: string[]) {
+    if (!this.motaEditor || !this.initialized || this.commands.has(c.commandId)) return;
+    if (c.type === 'createWorkspace') {
+      if (this.snapshot.workspaces.some((owner) => owner.workspaceId === c.workspaceId)) throw new Error('conflict: 空间身份已存在');
+      for (const owner of this.snapshot.workspaces)
+        for (const resource of owner.resources.filter((entry) => entry.appPage === 'editor')) {
+          this.editorAdmissions.set(resource.resourceId, (this.editorAdmissions.get(resource.resourceId) ?? 0) + 1);
+          released.push(resource.resourceId);
+          this.motaEditor.revokeResource(resource.resourceId);
+        }
+      return;
+    }
+    if (
+      ![
+        'closeTab',
+        'activateTab',
+        'openTab',
+        'switchWorkspace',
+        'hideBrowsers',
+        'browserLayout',
+        'splitPane',
+        'closePane',
+        'focusPane',
+        'setRatio',
+        'stopApp',
+        'startApp',
+        'stopInstance',
+        'openAppPage',
+        'setPreferences',
+        'locateSession',
+        'createTab',
+      ].includes(c.type)
+    )
+      return;
+    const w = this.requireWorkspace(c.workspaceId);
+    if (c.expectedRevision !== undefined && c.expectedRevision !== w.revision) throw new Error('conflict: 空间已有较新修改');
+    if ((c.type === 'closeTab' || c.type === 'activateTab') && !w.tabs.some((tab) => tab.tabId === c.tabId))
+      throw new Error('not_found: 标签不存在');
+    if (c.type === 'openTab' || c.type === 'browserLayout' || c.type === 'stopInstance') this.resource(w, c.resourceId);
+    if (c.type === 'stopInstance') this.checkInstance(this.resource(w, c.resourceId), c.instanceId);
+    if (
+      c.type === 'openAppPage' &&
+      w.managedApp?.profile?.projectKind === 'mota-web' &&
+      (!['game', 'editor'].includes(c.page) ||
+        w.managedApp.state !== 'running' ||
+        !w.resources.some((entry) => entry.appProjectId === w.managedApp?.projectId && entry.appPage === c.page))
+    )
+      throw new Error('denied: 魔塔页面或运行身份无效');
+    if (c.type === 'createTab') {
+      if (c.kind === 'web') {
+        this.runtime.validateBrowserUrl(c.url || 'wsl-demo://taskflow/index.html');
+        if (c.environmentId && c.environmentId !== 'local') throw new Error('denied: 原生网页属于本设备');
+      } else {
+        if (c.url) throw new Error('denied: 只有网页资源接受 URL');
+        if (['file', 'terminal', 'ssh'].includes(c.kind)) {
+          const environment = this.snapshot.environments.find((entry) => entry.environmentId === c.environmentId);
+          const capability = c.kind === 'file' ? 'files' : 'terminal';
+          if (!environment?.capabilities[capability] || (c.kind === 'ssh' && c.environmentId !== 'ssh'))
+            throw new Error('denied: 环境资源能力不可用');
+        }
+      }
+    }
+    if (c.type === 'locateSession') {
+      const session = this.session(w, c.sessionId);
+      if (c.taskVersionId && !session.taskVersions.some((version) => version.taskVersionId === c.taskVersionId))
+        throw new Error('denied: 任务版本不属于会话');
+      if (c.runId) {
+        const run = this.run(w, c.runId);
+        if (run.sessionId !== session.sessionId || (c.taskVersionId && run.taskVersionId !== c.taskVersionId))
+          throw new Error('denied: 执行不属于指定会话或任务版本');
+      }
+    }
+    if (
+      (c.type === 'focusPane' || c.type === 'closePane' || c.type === 'setRatio') &&
+      !panes(w.layout).some((pane) => pane.paneId === c.paneId)
+    )
+      throw new Error('not_found: 窗格不存在');
+    if (c.type === 'closePane') closePane(w.layout, c.paneId);
+    if (c.type === 'setRatio') setRatio(w.layout, c.paneId, c.ratio);
+    if (c.type === 'splitPane') {
+      if (c.tabId && !w.tabs.some((tab) => tab.tabId === c.tabId)) throw new Error('not_found: 标签不存在');
+      splitPane(w.layout, c.paneId, c.direction, 'admission-only', c.tabId ?? null);
+    }
+    if (c.type === 'browserLayout' && c.layout.visible && c.layout.bounds.width > 0 && c.layout.bounds.height > 0) return;
+    // The window-selected workspace may differ from the global selection; hiding
+    // occludes every native view, so revoke all affected editors before queueing.
+    const workspaces =
+      c.type === 'switchWorkspace' || c.type === 'locateSession' || c.type === 'hideBrowsers' ? this.snapshot.workspaces : [w];
+    for (const owner of workspaces)
+      for (const resource of owner.resources.filter((entry) => entry.appPage === 'editor')) {
+        if (c.type === 'browserLayout' && resource.resourceId !== c.resourceId) continue;
+        this.editorAdmissions.set(resource.resourceId, (this.editorAdmissions.get(resource.resourceId) ?? 0) + 1);
+        released.push(resource.resourceId);
+        this.motaEditor.revokeResource(resource.resourceId);
+      }
+  }
+  onMotaEditorFacts(facts: MotaEditorFacts): void {
+    this.motaEditor?.factsChanged(facts);
+  }
+  openMotaEditor(resourceId: string): Promise<void> {
+    const facts = this.editorCapabilities?.ports.motaEditorFacts(resourceId);
+    if (!facts) return Promise.reject(new Error('unavailable: 可信编辑器原生视图不存在'));
+    return this.requireEditor().openMotaEditor(facts);
+  }
+  private requireEditor() {
+    if (!this.motaEditor) throw new Error('unavailable: 未配置可信编辑器能力');
+    return this.motaEditor;
+  }
+  readMotaEditorFile(resourceId: string, input: MotaEditorReadInput) {
+    return this.requireEditor().readMotaEditorFile(resourceId, input);
+  }
+  saveMotaEditorFile(resourceId: string, input: MotaEditorSaveInput) {
+    return this.requireEditor().saveMotaEditorFile(resourceId, input);
+  }
+  async closeMotaEditor(resourceId: string, input: MotaEditorCloseInput) {
+    await this.requireEditor().closeMotaEditor(resourceId, input);
+    const w = this.snapshot.workspaces.find((entry) => entry.resources.some((resource) => resource.resourceId === resourceId));
+    const tab = w?.tabs.find((entry) => entry.targetRef.resourceId === resourceId);
+    if (w && tab) await this.command({ type: 'closeTab', workspaceId: w.workspaceId, tabId: tab.tabId, commandId: randomUUID() });
+  }
+  motaEditorOperationStatus(resourceId: string, input: MotaEditorStatusInput) {
+    return this.requireEditor().motaEditorOperationStatus(resourceId, input);
+  }
   async onApp(app: NonNullable<WorkspaceSnapshot['managedApp']>) {
+    const owner = this.snapshot.workspaces.find((entry) => entry.workspaceId === app.workspaceId);
+    if (owner?.managedApp?.projectId === app.projectId && (app.state !== 'running' || app.appInstanceId !== owner.managedApp.appInstanceId))
+      for (const resource of owner.resources.filter((entry) => entry.appProjectId === app.projectId && entry.appPage === 'editor'))
+        this.motaEditor?.revokeResource(resource.resourceId);
     await this.serialize(async () => {
       const w = this.snapshot.workspaces.find((w) => w.workspaceId === app.workspaceId);
       if (!w?.managedApp || w.managedApp.projectId !== app.projectId || !sameAppProfile(w.managedApp, app)) return;
@@ -1802,7 +1975,7 @@ export class WorkbenchApplication implements WorkbenchHostEvents {
     if (!app.url) throw new Error('unavailable: 应用尚无运行地址');
     if (app.profile?.projectKind === 'mota-web') {
       if (!resource.appPage) throw new Error('invalid_input: 魔塔网页缺少页面角色');
-      return new URL(resource.appPage === 'editor' ? '/editor.html' : '/index.html', app.url).href;
+      return resource.appPage === 'editor' ? MOTA_EDITOR_URL : new URL('/index.html', app.url).href;
     }
     const previousPath = resource.url ? new URL(resource.url).pathname : '';
     return app.profile?.projectKind === 'edu-web' && ['/student', '/admin'].includes(previousPath)
@@ -2821,6 +2994,21 @@ export class WorkbenchApplication implements WorkbenchHostEvents {
   private result(): WorkbenchResult {
     return { ok: true, snapshot: this.publicSnapshot() };
   }
+  private commandError(error: unknown): Extract<WorkbenchResult, { ok: false }>['error'] {
+    const message = (error as Error).message;
+    const code = message.split(':')[0];
+    const allowed = [
+      'unsupported',
+      'disconnected',
+      'conflict',
+      'not_found',
+      'denied',
+      'execution_failed',
+      'invalid_input',
+      'pane_limit',
+    ] as const;
+    return { code: allowed.find((entry) => entry === code) ?? 'execution_failed', message };
+  }
   private rememberCommand(commandId: string, fingerprint: string, result: WorkbenchResult) {
     this.commands.set(commandId, { fingerprint, outcome: result.ok ? { ok: true } : { ok: false, error: result.error } });
     // Deduplication is bounded to the last 2048 commands in this app instance; reconnects query facts instead of replaying writes.
@@ -2996,7 +3184,12 @@ export class WorkbenchApplication implements WorkbenchHostEvents {
             w.layout = setRatio(w.layout, c.paneId, c.ratio);
             break;
           case 'setPreferences':
-            if (c.theme !== undefined) w.theme = c.theme;
+            if (c.theme !== undefined) {
+              w.theme = c.theme;
+              if (w.managedApp?.state === 'running')
+                for (const resource of w.resources.filter((entry) => entry.appPage === 'editor' && entry.instanceId))
+                  this.editorCapabilities?.ports.ensureMotaEditor(w.workspaceId, resource, w.managedApp, w.theme);
+            }
             break;
           case 'saveTaskCriteria': {
             const session = this.session(w, c.sessionId);
@@ -3239,7 +3432,10 @@ export class WorkbenchApplication implements WorkbenchHostEvents {
             if (c.layout.visible && this.snapshot.activeWorkspaceId !== w.workspaceId) throw new Error('denied: 不能显示后台空间网页');
             if (r.appProjectId && w.managedApp?.projectId === r.appProjectId && w.managedApp.state !== 'running') return rememberResult();
             this.ensureBrowser(w, r);
-            this.runtime.browserLayout(r.resourceId, c.layout);
+            if (r.appPage === 'editor') {
+              if (!this.editorCapabilities) throw new Error('unavailable: 未配置可信编辑器能力');
+              this.editorCapabilities.ports.motaEditorLayout(r.resourceId, c.layout);
+            } else this.runtime.browserLayout(r.resourceId, c.layout);
             return rememberResult();
           }
           case 'openAppPage': {
@@ -3390,20 +3586,7 @@ export class WorkbenchApplication implements WorkbenchHostEvents {
         this.snapshot = before;
         this.catalog = catalogBefore;
       }
-      const message = (error as Error).message;
-      const code = message.split(':')[0];
-      const allowed = [
-        'unsupported',
-        'disconnected',
-        'conflict',
-        'not_found',
-        'denied',
-        'execution_failed',
-        'invalid_input',
-        'pane_limit',
-      ] as const;
-      const matched = allowed.find((c) => c === code) ?? 'execution_failed';
-      const result: WorkbenchResult = { ok: false, error: { code: matched, message }, snapshot: this.publicSnapshot() };
+      const result: WorkbenchResult = { ok: false, error: this.commandError(error), snapshot: this.publicSnapshot() };
       this.rememberCommand(c.commandId, fingerprint, result);
       return result;
     }
@@ -3412,6 +3595,16 @@ export class WorkbenchApplication implements WorkbenchHostEvents {
     if (r.instanceId !== id) throw new Error('conflict: 运行实例已变化');
   }
   private ensureBrowser(w: WorkspaceSnapshot, r: WorkbenchResource, options?: { deferInitialLoad: boolean }) {
+    if (r.appPage === 'editor' && w.managedApp?.profile?.projectKind === 'mota-web') {
+      if (!this.editorCapabilities || w.managedApp.state !== 'running') throw new Error('unavailable: 可信编辑器不可用');
+      if (!r.instanceId) {
+        r.instanceId = randomUUID();
+        r.generation++;
+      }
+      this.editorCapabilities.ports.ensureMotaEditor(w.workspaceId, r, w.managedApp, w.theme);
+      r.preview = null;
+      return;
+    }
     if (!r.instanceId) {
       const candidate = { ...r, instanceId: randomUUID(), generation: r.generation + 1 };
       if (options) this.runtime.ensureBrowser(w.workspaceId, candidate, options);
@@ -3654,6 +3847,7 @@ export class WorkbenchApplication implements WorkbenchHostEvents {
     return RunPatchResultSchema.parse({ workspaceId, runId, patchSha256, patch });
   }
   async shutdown(): Promise<void> {
+    this.motaEditor?.revokeAll();
     this.closing = true;
     this.researchOwners.revokeAll();
     try {

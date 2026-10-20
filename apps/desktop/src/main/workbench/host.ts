@@ -33,8 +33,67 @@ import type { AppUiPort } from './app-control';
 import { AppControlFailure } from './app-control-failure';
 import { PreviewController } from '../preview/controller';
 import { DEMO_ORIGIN, installDemoProtocol } from '../preview/demo-protocol';
-import type { WorkbenchRuntime, WorkbenchHostEvents } from './ports';
-export class WorkbenchHost implements WorkbenchRuntime {
+import type { MotaEditorRuntime, WorkbenchHostEvents } from './ports';
+import type { MotaEditorProjection, MotaEditorRequest, PreviewLayout } from '@wsl/protocol';
+import { MotaEditorController } from '../mota-editor/controller';
+import { MotaEditorAssets, embeddedEditorManifest } from '../mota-editor/assets';
+import { MOTA_EDITOR_URL } from './mota-editor';
+export class WorkbenchHost implements MotaEditorRuntime {
+  readonly motaEditors = new Map<string, MotaEditorController>();
+  ensureMotaEditor(workspaceId: string, resource: WorkbenchResource, app: ManagedApp, theme: MotaEditorProjection['theme']) {
+    const lease = this.appLeases.get(app.projectId);
+    if (
+      !lease ||
+      lease.state !== 'running' ||
+      lease.workspaceId !== workspaceId ||
+      lease.appInstanceId !== app.appInstanceId ||
+      lease.profile?.projectKind !== 'mota-web' ||
+      resource.appPage !== 'editor' ||
+      resource.appProjectId !== app.projectId ||
+      resource.url !== MOTA_EDITOR_URL
+    )
+      throw new Error('denied: 编辑器不属于当前运行的魔塔实例');
+    const owner = this.motaEditors.get(resource.resourceId);
+    if (owner) {
+      owner.update(workspaceId, resource, app, theme);
+      return;
+    }
+    const assets = new MotaEditorAssets(path.join(__dirname, 'mota-editor'), embeddedEditorManifest());
+    const controller = new MotaEditorController(
+      this.window,
+      workspaceId,
+      resource,
+      app,
+      theme,
+      assets,
+      path.join(__dirname, '../preload/mota-editor.js'),
+      (facts) => this.application?.onMotaEditorFacts(facts),
+    );
+    this.motaEditors.set(resource.resourceId, controller);
+  }
+  motaEditorFacts(resourceId: string) {
+    return this.motaEditors.get(resourceId)?.getFacts() ?? null;
+  }
+  motaEditorLayout(resourceId: string, layout: PreviewLayout) {
+    const owner = this.motaEditors.get(resourceId);
+    if (!owner) throw new Error('unavailable: 编辑器视图不存在');
+    owner.layout(layout);
+  }
+  motaEditorVisibility(resourceId: string, visible: boolean, projection?: MotaEditorProjection) {
+    this.motaEditors.get(resourceId)?.visibility(visible, projection);
+  }
+  releaseMotaEditor(resourceId: string) {
+    this.motaEditors.get(resourceId)?.visibility(false);
+  }
+  hideMotaEditors() {
+    for (const owner of this.motaEditors.values()) owner.visibility(false);
+  }
+  motaEditorRequest(request: MotaEditorRequest) {
+    return this.chat.motaEditorRequest(request);
+  }
+  private revokeProjectEditors(projectId: string) {
+    for (const owner of this.motaEditors.values()) if (owner.getFacts().projectId === projectId) owner.visibility(false);
+  }
   async appSelectImportSource(signal: AbortSignal, progress: (value: ImportProgress) => void): Promise<AppImportSelection | null> {
     signal.throwIfAborted();
     const selected = await dialog.showOpenDialog(this.window, {
@@ -168,6 +227,7 @@ export class WorkbenchHost implements WorkbenchRuntime {
     if (failure) throw failure;
   }
   async appStop(target: AppTarget) {
+    this.revokeProjectEditors(target.projectId);
     this.appStarts.delete(target.projectId);
     this.appLeases.delete(target.projectId);
     const results = await Promise.allSettled([this.confirmAudioReleases(target.projectId), this.chat.appStop(target)]);
@@ -277,6 +337,7 @@ export class WorkbenchHost implements WorkbenchRuntime {
     return lease?.state === 'running' && lease.appInstanceId === appInstanceId;
   }
   releaseAppBrowser(resourceId: string) {
+    this.releaseMotaEditor(resourceId);
     this.appUis.get(resourceId)?.dispose();
     this.appUis.delete(resourceId);
     this.observers.get(resourceId)?.dispose();
@@ -467,6 +528,7 @@ export class WorkbenchHost implements WorkbenchRuntime {
       if (pending?.workspaceId === snapshot.workspaceId && ['failed', 'stopped', 'stopping'].includes(snapshot.state))
         pending.terminal.set(key, snapshot);
       if (lease && snapshot.state !== 'running') {
+        this.revokeProjectEditors(snapshot.projectId);
         this.appLeases.delete(snapshot.projectId);
         for (const [resourceId, binding] of this.browserBindings)
           if (binding.workspaceId === snapshot.workspaceId && this.appBrowserProjects.get(resourceId) === snapshot.projectId)
@@ -499,6 +561,7 @@ export class WorkbenchHost implements WorkbenchRuntime {
     }
   }
   ensureBrowser(workspaceId: string, resource: WorkbenchResource, options?: { deferInitialLoad: boolean }): void {
+    if (resource.appPage === 'editor') throw new Error('denied: 可信编辑器不接受通用 Browser 能力');
     if (options?.deferInitialLoad && resource.appProjectId) throw new Error('研究 reader 不能使用 App 资源');
     this.appBrowserPages.set(resource.resourceId, resource.appPage);
     const lease = resource.appProjectId ? this.appLeases.get(resource.appProjectId) : undefined;
@@ -624,6 +687,7 @@ export class WorkbenchHost implements WorkbenchRuntime {
     }
   }
   hideBrowsers() {
+    for (const owner of this.motaEditors.values()) owner.visibility(false);
     for (const p of this.browsers.values()) p.setLayout({ bounds: { x: 0, y: 0, width: 0, height: 0 }, visible: false });
   }
   terminalOpen(resourceId: string, cols: number, rows: number) {
@@ -675,6 +739,8 @@ export class WorkbenchHost implements WorkbenchRuntime {
     ).then(() => undefined);
   }
   dispose() {
+    for (const owner of this.motaEditors.values()) owner.dispose();
+    this.motaEditors.clear();
     for (const driver of this.appUis.values()) driver.dispose();
     this.appUis.clear();
     this.appStarts.clear();

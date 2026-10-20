@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-/* global Buffer, process, require, module, URL, TextDecoder, setTimeout, clearTimeout, window, XMLHttpRequest */
+/* global Buffer, process, require, module, URL, TextDecoder, setTimeout, clearTimeout */
 /* eslint-disable @typescript-eslint/no-require-imports -- Guest receives this standalone CommonJS adapter without a package loader. */
 
 // Fixed Mota adapter: serves validated copies, never executes project Node code.
@@ -15,10 +15,8 @@ const MARKER_CONTENT = 'mota-managed-copy-v1\n';
 const MAX_BODY = 1024 * 1024;
 const MAX_FILE = 12 * 1024 * 1024;
 const FLOOR_FILE = 'project/floors/MT1.js';
-const EDITOR_HEADER = 'x-wsl-editor-session';
 const OWNER_LIMIT = 1024;
 const OPERATION_LIMIT = 1024;
-const SESSION_LIMIT = 256;
 const QUEUE_LIMIT = 128;
 const WRITABLE = new Set(['project/floors/MT1.js', '_server/config.json']);
 const ROOT_FILES = new Set(['index.html', 'editor.html', 'editor-mobile.html', 'styles.css', 'main.js', 'logo.png']);
@@ -115,7 +113,9 @@ function identityValue(value) {
     typeof value.projectId !== 'string' ||
     !uuid.test(value.projectId) ||
     typeof value.appInstanceId !== 'string' ||
-    !uuid.test(value.appInstanceId)
+    !value.appInstanceId ||
+    value.appInstanceId.length > 200 ||
+    hasControl(value.appInstanceId)
   )
     fail('invalid_identity');
   return Object.freeze({
@@ -214,17 +214,17 @@ async function checkedPath(root, input, missingLeaf = false, directory = false) 
   if ((await fs.realpath(current)) !== current) fail('path_changed', 403);
   return current;
 }
-async function readSafe(root, name) {
+async function readSafe(root, name, maxBytes = MAX_FILE) {
   const filename = await checkedPath(root, name);
   const expected = await fs.lstat(filename);
   const handle = await fs.open(filename, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const stat = await handle.stat();
-    if (!stat.isFile() || stat.nlink !== 1 || stat.size > MAX_FILE || !sameFile(stat, expected)) fail('invalid_file', 403);
+    if (!stat.isFile() || stat.nlink !== 1 || stat.size > maxBytes || !sameFile(stat, expected)) fail('invalid_file', 403);
     await checkedPath(root, name);
     const data = await handle.readFile();
     const after = await handle.stat();
-    if (data.length > MAX_FILE || after.nlink !== 1 || stat.size !== after.size || stat.mtimeMs !== after.mtimeMs)
+    if (data.length > maxBytes || after.nlink !== 1 || stat.size !== after.size || stat.mtimeMs !== after.mtimeMs)
       fail('file_changed', 409);
     return data;
   } finally {
@@ -316,14 +316,8 @@ function parseRead(body) {
   if (!match) fail('invalid_read_body');
   return { encoding: match[1], name: relativeName(match[2]) };
 }
-function parseWrite(body) {
-  // The upstream editor sends raw UTF-8 and unescaped base64 '+' characters.
-  const match = /^type=(utf8|base64)&name=([^&]+)&value=([\s\S]*)$/.exec(body);
-  if (!match) fail('invalid_write_body');
-  const name = relativeName(match[2]);
-  if (!WRITABLE.has(name)) fail('write_not_allowed', 403);
-  if (match[1] === 'base64' && !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(match[3])) fail('invalid_base64');
-  const data = Buffer.from(match[3], match[1]);
+function editorData(name, data) {
+  if (!WRITABLE.has(name)) fail('invalid_content');
   if (data.length > 256 * 1024) fail('write_too_large', 413);
   let source;
   try {
@@ -343,7 +337,7 @@ function parseWrite(body) {
   } catch {
     fail('write_must_be_expected_json');
   }
-  return { name, data };
+  return data;
 }
 async function version(root, name) {
   try {
@@ -593,82 +587,88 @@ function coinEdit(document, x, y) {
   return Buffer.from(source.slice(0, span[0]) + '53' + source.slice(span[1]));
 }
 
-// This fixed bootstrap is injected into responses only, before editor scripts.
-// The nonce selects the server-side load snapshot; it never grants AI control.
-function editorBootstrap(nonce) {
-  const requests = new WeakMap();
-  const open = XMLHttpRequest.prototype.open;
-  const send = XMLHttpRequest.prototype.send;
-  XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-    let selected = false;
-    try {
-      const target = new URL(url, window.location.href);
-      selected =
-        String(method).toUpperCase() === 'POST' &&
-        target.origin === window.location.origin &&
-        target.pathname === '/writeFile' &&
-        !target.search &&
-        !target.hash &&
-        !target.username &&
-        !target.password;
-    } catch {
-      /* Invalid URLs keep the native XHR error behavior. */
-    }
-    requests.set(this, selected);
-    return open.call(this, method, url, ...rest);
-  };
-  XMLHttpRequest.prototype.send = function (...args) {
-    if (requests.get(this)) this.setRequestHeader('X-WSL-Editor-Session', nonce);
-    return send.apply(this, args);
-  };
-  // The original fs helper reduces non-200 replies to "HTTP <status>".
-  // Keep its callback route and translate only the two concurrency failures.
-  const wrap = (value) => {
-    if (!value || typeof value !== 'object') return value;
-    let write = value.writeFile;
-    const decorate = (fn) =>
-      typeof fn !== 'function'
-        ? fn
-        : function (...args) {
-            const callback = args[3];
-            if (typeof callback === 'function')
-              args[3] = function (error, ...result) {
-                if (typeof error === 'string' && error.includes('HTTP 409'))
-                  error = '地图已被其他操作更新，请刷新编辑器后重新检查再保存（409）。';
-                if (typeof error === 'string' && error.includes('HTTP 423')) error = 'AI 正在编辑地图，请等待任务结束后再保存（423）。';
-                return callback.call(this, error, ...result);
-              };
-            return fn.apply(this, args);
-          };
-    let current = decorate(write);
-    Object.defineProperty(value, 'writeFile', {
-      configurable: true,
-      enumerable: true,
-      get: () => current,
-      set: (fn) => {
-        write = fn;
-        current = decorate(write);
-      },
-    });
-    return value;
-  };
-  let filesystem = wrap(window.fs);
-  Object.defineProperty(window, 'fs', {
-    configurable: true,
-    enumerable: true,
-    get: () => filesystem,
-    set: (value) => {
-      filesystem = wrap(value);
-    },
-  });
+const EDITOR_BINDING_KEYS = [
+  'workspaceId',
+  'environmentId',
+  'projectId',
+  'appInstanceId',
+  'resourceId',
+  'resourceInstanceId',
+  'resourceGeneration',
+  'browserInstanceId',
+  'browserGeneration',
+  'documentGeneration',
+  'editorEpoch',
+];
+const EDITOR_KEYS = ['type', 'editorSessionId', 'requestId', 'sessionIndex', 'editorEpoch', 'method', 'phase', 'frameSeq', 'input'];
+const EDITOR_META = ['file', 'expectedHash', 'contentLength', 'contentHash'];
+const EDITOR_BYTES = 262144;
+const EDITOR_MS = 30000;
+function editorMetadata(input) {
+  return Object.fromEntries(EDITOR_META.map((key) => [key, input[key]]));
 }
-function editorDocument(data, nonce) {
-  const html = new TextDecoder('utf-8', { fatal: true }).decode(data);
-  const script = `<script data-wsl-editor-session="${nonce}">(${editorBootstrap.toString()})(${JSON.stringify(nonce)});</script>`;
-  if (/<head(?:\s[^>]*)?>/i.test(html)) return Buffer.from(html.replace(/<head(?:\s[^>]*)?>/i, (head) => head + script));
-  const doctype = /^\s*<!doctype[^>]*>/i.exec(html);
-  const index = doctype ? doctype[0].length : 0;
-  return Buffer.from(html.slice(0, index) + script + html.slice(index));
+function editorFrame(value) {
+  if (
+    !exactKeys(value, EDITOR_KEYS) ||
+    value.type !== 'mota-editor' ||
+    typeof value.editorSessionId !== 'string' ||
+    !UUID.test(value.editorSessionId) ||
+    typeof value.requestId !== 'string' ||
+    !UUID.test(value.requestId) ||
+    !Number.isSafeInteger(value.sessionIndex) ||
+    value.sessionIndex < 1 ||
+    !Number.isSafeInteger(value.editorEpoch) ||
+    value.editorEpoch < 1 ||
+    !Number.isInteger(value.frameSeq) ||
+    value.frameSeq < 0 ||
+    value.frameSeq > 263
+  )
+    fail('invalid_frame');
+  const { method, phase, input } = value;
+  if (['single', 'begin'].includes(phase) && value.frameSeq !== 0) fail('invalid_frame');
+  if (method === 'editor.open' && phase === 'single') {
+    if (!exactKeys(input, EDITOR_BINDING_KEYS)) fail('invalid_frame');
+    identityValue(Object.fromEntries(['workspaceId', 'environmentId', 'projectId', 'appInstanceId'].map((key) => [key, input[key]])));
+    for (const key of ['resourceId', 'resourceInstanceId', 'browserInstanceId'])
+      if (typeof input[key] !== 'string' || !input[key] || input[key].length > 200 || hasControl(input[key])) fail('invalid_frame');
+    for (const key of ['resourceGeneration', 'browserGeneration', 'documentGeneration', 'editorEpoch'])
+      if (!Number.isSafeInteger(input[key]) || input[key] < 0) fail('invalid_frame');
+    if (input.editorEpoch !== value.editorEpoch) fail('invalid_frame');
+  } else if ((method === 'editor.stage' && phase === 'begin') || (method === 'editor.commit' && phase === 'single')) {
+    if (
+      !exactKeys(input, EDITOR_META) ||
+      !WRITABLE.has(input.file) ||
+      !(input.expectedHash === null || (typeof input.expectedHash === 'string' && HASH.test(input.expectedHash))) ||
+      !Number.isInteger(input.contentLength) ||
+      input.contentLength < 0 ||
+      input.contentLength > EDITOR_BYTES ||
+      typeof input.contentHash !== 'string' ||
+      !HASH.test(input.contentHash)
+    )
+      fail('invalid_frame');
+  } else if (method === 'editor.stage' && phase === 'chunk') {
+    if (
+      !exactKeys(input, ['base64']) ||
+      typeof input.base64 !== 'string' ||
+      input.base64.length > 1368 ||
+      !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(input.base64)
+    )
+      fail('invalid_frame');
+    const data = Buffer.from(input.base64, 'base64');
+    if (!data.length || data.length > 1024 || data.toString('base64') !== input.base64) fail('invalid_frame');
+  } else if (method === 'editor.read' && phase === 'begin') {
+    if (!exactKeys(input, ['file']) || !WRITABLE.has(input.file)) fail('invalid_frame');
+  } else if (method === 'editor.status' && phase === 'single') {
+    if (!exactKeys(input, ['operationRequestId']) || !UUID.test(input.operationRequestId)) fail('invalid_frame');
+  } else if (
+    ((method === 'editor.read' && ['chunk', 'end'].includes(phase)) ||
+      (method === 'editor.stage' && phase === 'end') ||
+      (method === 'editor.revoke' && phase === 'single')) &&
+    exactKeys(input, [])
+  ) {
+    return value;
+  } else fail('invalid_frame');
+  return value;
 }
 function cliArgs(argv) {
   const values = new Map();
@@ -701,7 +701,15 @@ async function run(options) {
   const owners = new Map();
   const operations = new Map();
   const editorSessions = new Map();
+  const editorOperations = new Map();
+  let editorEpoch = 0;
+  let editorRead = null;
+  let editorStage = null;
   const emit = (event) => process.stdout.write(JSON.stringify(event) + '\n');
+  const emitEditor = (event) => {
+    if (Buffer.byteLength(JSON.stringify(event) + '\n') > 4096) return stop('invalid_control_frame', 1);
+    emit(event);
+  };
   const enqueue = (execute, rejected) => {
     if (queued >= QUEUE_LIMIT) {
       rejected();
@@ -717,6 +725,273 @@ async function run(options) {
     };
     queue = queue.then(run, run);
   };
+  const operationView = (operation) => ({
+    requestId: operation.requestId,
+    status: operation.status,
+    receipt: operation.receipt,
+    error: operation.error,
+  });
+  const editorOperation = (session, requestId) => editorOperations.get(session.id + ':' + requestId);
+  const editorError = (error) => {
+    if (['source_changed', 'file_changed'].includes(error.code)) return 'source_changed';
+    if (
+      ['invalid_frame', 'stale_instance', 'revoked', 'busy', 'operation_conflict', 'budget_exceeded', 'expired', 'unknown'].includes(
+        error.code,
+      )
+    )
+      return error.code;
+    return 'invalid_content';
+  };
+  async function editor(command, receivedAt) {
+    const { input, method, phase } = command;
+    const response = {
+      ...Object.fromEntries(EDITOR_KEYS.filter((key) => !['type', 'input'].includes(key)).map((key) => [key, command[key]])),
+      type: 'mota-editor-result',
+    };
+    const reply = (data) => {
+      const frame = { ...response, ok: true, data };
+      if (Buffer.byteLength(JSON.stringify(frame) + '\n') > 4096) fail('budget_exceeded');
+      emit(frame);
+    };
+    let session = editorSessions.get(command.editorSessionId);
+    try {
+      editorFrame(command);
+      if (closing) fail('revoked');
+      if (editorRead && Date.now() >= editorRead.deadline) editorRead = null;
+      if (editorStage && Date.now() >= editorStage.deadline) {
+        editorStage.operation.status = 'failed';
+        editorStage.operation.error = 'expired';
+        editorStage = null;
+      }
+      if (Date.now() - receivedAt >= EDITOR_MS) fail('expired');
+      if (session && (session.index !== command.sessionIndex || session.epoch !== command.editorEpoch)) fail('stale_instance');
+      if (method === 'editor.open') {
+        if (!sameIdentity(identity, input)) fail('stale_instance');
+        if (session || command.editorEpoch <= editorEpoch) fail('revoked');
+        if (editorSessions.size >= 1024 || [...editorSessions.values()].some((item) => !item.settled)) fail('budget_exceeded');
+        editorEpoch = command.editorEpoch;
+        session = {
+          id: command.editorSessionId,
+          index: command.sessionIndex,
+          epoch: command.editorEpoch,
+          binding: input,
+          revoked: false,
+          settled: false,
+          baseline: new Map(),
+          lastOperation: null,
+        };
+        editorSessions.set(session.id, session);
+        if (command.frameSeq !== 0) fail('invalid_frame');
+        reply({ settled: true });
+        return;
+      }
+      if (method === 'editor.revoke') {
+        if (command.frameSeq !== 0) fail('invalid_frame');
+        if (!session) {
+          if (editorSessions.size >= 1024) fail('budget_exceeded');
+          session = {
+            id: command.editorSessionId,
+            index: command.sessionIndex,
+            epoch: command.editorEpoch,
+            binding: null,
+            revoked: true,
+            settled: true,
+            baseline: new Map(),
+            lastOperation: null,
+          };
+          editorSessions.set(session.id, session);
+        }
+        editorEpoch = Math.max(editorEpoch, command.editorEpoch);
+        session.revoked = true;
+        session.settled = true;
+        const discarded = editorStage?.session === session;
+        if (discarded) {
+          if (editorStage.operation.status !== 'committed') {
+            editorStage.operation.status = 'failed';
+            editorStage.operation.error = 'revoked';
+          }
+          editorStage = null;
+        }
+        if (editorRead?.session === session) editorRead = null;
+        reply({ discarded, settled: true, operation: session.lastOperation ? operationView(session.lastOperation) : null });
+        return;
+      }
+      if (!session) fail('unknown');
+      if (method === 'editor.status') {
+        if (command.frameSeq !== 0) fail('invalid_frame');
+        const operation = editorOperation(session, input.operationRequestId);
+        reply(
+          operation ? operationView(operation) : { requestId: input.operationRequestId, status: 'unknown', receipt: null, error: null },
+        );
+        return;
+      }
+      // Idempotent committed/failed operations remain queryable after revocation.
+      const saved = editorOperation(session, command.requestId);
+      if (method === 'editor.commit' && saved) {
+        if (JSON.stringify(saved.metadata) !== JSON.stringify(editorMetadata(input))) fail('operation_conflict');
+        if (saved.status === 'failed') fail(saved.error);
+        if (saved.status === 'committed') {
+          reply(operationView(saved));
+          return;
+        }
+      }
+      if (session.revoked || session.epoch !== editorEpoch) fail('revoked');
+      if (method === 'editor.read') {
+        if (phase === 'begin') {
+          if (command.frameSeq !== 0 || editorRead || editorStage) fail('busy');
+          let bytes;
+          try {
+            bytes = await readSafe(root, input.file, EDITOR_BYTES);
+          } catch (error) {
+            if (error.code === 'ENOENT' && input.file === '_server/config.json') bytes = null;
+            else throw error;
+          }
+          const contentHash = bytes === null ? null : sha256(bytes);
+          if (contentHash !== versions.get(input.file)) fail('source_changed');
+          if (bytes !== null) editorData(input.file, bytes);
+          session.baseline.set(input.file, contentHash);
+          editorRead = {
+            session,
+            requestId: command.requestId,
+            bytes: bytes ?? Buffer.alloc(0),
+            offset: 0,
+            seq: 1,
+            deadline: receivedAt + EDITOR_MS,
+          };
+          reply({ contentLength: bytes?.length ?? 0, contentHash });
+        } else {
+          const read = editorRead;
+          if (!read || read.session !== session || read.requestId !== command.requestId || read.seq !== command.frameSeq)
+            fail('invalid_frame');
+          if (Date.now() >= read.deadline) {
+            editorRead = null;
+            fail('expired');
+          }
+          read.seq++;
+          if (phase === 'chunk') {
+            if (read.offset >= read.bytes.length) fail('invalid_frame');
+            const bytes = read.bytes.subarray(read.offset, read.offset + 1024);
+            read.offset += bytes.length;
+            reply({ base64: bytes.toString('base64') });
+          } else {
+            if (read.offset !== read.bytes.length) fail('invalid_frame');
+            editorRead = null;
+            reply({ settled: true });
+          }
+        }
+        return;
+      }
+      if (method === 'editor.stage') {
+        if (phase === 'begin') {
+          if (command.frameSeq !== 0 || editorRead || editorStage) fail('busy');
+          if (saved) {
+            if (JSON.stringify(saved.metadata) !== JSON.stringify(editorMetadata(input))) fail('operation_conflict');
+            if (saved.status === 'failed') fail(saved.error);
+            reply(operationView(saved));
+            return;
+          }
+          if (editorOperations.size >= 1024) fail('budget_exceeded');
+          if (
+            !session.baseline.has(input.file) ||
+            session.baseline.get(input.file) !== input.expectedHash ||
+            versions.get(input.file) !== input.expectedHash
+          )
+            fail('source_changed');
+          const operation = {
+            requestId: command.requestId,
+            metadata: editorMetadata(input),
+            status: 'staging',
+            receipt: null,
+            error: null,
+          };
+          editorOperations.set(session.id + ':' + command.requestId, operation);
+          session.lastOperation = operation;
+          editorStage = {
+            session,
+            operation,
+            bytes: Buffer.alloc(input.contentLength),
+            offset: 0,
+            seq: 1,
+            deadline: receivedAt + EDITOR_MS,
+          };
+          reply({ settled: true });
+        } else {
+          const stage = editorStage;
+          if (
+            !stage ||
+            stage.operation.status !== 'staging' ||
+            stage.session !== session ||
+            stage.operation.requestId !== command.requestId ||
+            stage.seq !== command.frameSeq
+          )
+            fail('invalid_frame');
+          if (Date.now() >= stage.deadline) fail('expired');
+          stage.seq++;
+          if (phase === 'chunk') {
+            const bytes = Buffer.from(input.base64, 'base64');
+            if (bytes.length !== Math.min(1024, stage.bytes.length - stage.offset)) fail('invalid_frame');
+            bytes.copy(stage.bytes, stage.offset);
+            stage.offset += bytes.length;
+            reply({ settled: true });
+          } else {
+            if (stage.offset !== stage.bytes.length || sha256(stage.bytes) !== stage.operation.metadata.contentHash)
+              fail('invalid_content');
+            editorData(stage.operation.metadata.file, stage.bytes);
+            stage.operation.status = 'staged';
+            reply(operationView(stage.operation));
+          }
+        }
+        return;
+      }
+      const stage = editorStage;
+      if (command.frameSeq !== 0 || !stage || stage.session !== session || stage.operation !== saved || saved.status !== 'staged')
+        fail('invalid_frame');
+      if (Date.now() >= stage.deadline) fail('expired');
+      if (lease) fail('busy');
+      if (session.baseline.get(input.file) !== input.expectedHash) fail('source_changed');
+      try {
+        await writeSafe(
+          root,
+          input.file,
+          stage.bytes,
+          versions,
+          () => closing || session.revoked || lease !== null || Date.now() >= stage.deadline,
+          input.expectedHash,
+          () => {
+            saved.status = 'committed';
+            saved.receipt = {
+              ...saved.metadata,
+              editorSessionId: session.id,
+              requestId: saved.requestId,
+              afterHash: input.contentHash,
+              durabilityError: null,
+            };
+            session.baseline.set(input.file, input.contentHash);
+          },
+        );
+      } catch (error) {
+        if (!saved.receipt) throw error;
+        saved.receipt.durabilityError = 'post_rename_io_failed';
+      }
+      editorStage = null;
+      reply(operationView(saved));
+    } catch (error) {
+      const code = error.code === 'server_closing' && editorStage && Date.now() >= editorStage.deadline ? 'expired' : editorError(error);
+      // A rejected partial transfer cannot later be turned into a commit.
+      if (
+        editorStage &&
+        editorStage.session === session &&
+        editorStage.operation.requestId === command.requestId &&
+        editorStage.operation.status !== 'committed'
+      ) {
+        editorStage.operation.status = 'failed';
+        editorStage.operation.error = code;
+        editorStage = null;
+      }
+      if (editorRead && editorRead.session === session && editorRead.requestId === command.requestId) editorRead = null;
+      emitEditor({ ...response, ok: false, error: { code, message: code } });
+    }
+  }
   async function control(command) {
     const response = { type: 'mota-control-result', requestId: command.requestId, binding: command.binding, method: command.method };
     try {
@@ -854,20 +1129,13 @@ async function run(options) {
             const mime = MIME[path.extname(name).toLowerCase()];
             if (!mime) fail('file_type_not_exposed', 403);
             data = await readSafe(root, name);
-            if (['editor.html', 'editor-mobile.html'].includes(name) && req.method === 'GET') {
-              const nonce = crypto.randomBytes(24).toString('hex');
-              const baseline = new Map();
-              for (const writable of WRITABLE) baseline.set(writable, await version(root, writable));
-              if (editorSessions.size >= SESSION_LIMIT) editorSessions.delete(editorSessions.keys().next().value);
-              editorSessions.set(nonce, { baseline, revoked: false });
-              data = editorDocument(data, nonce);
-            }
             res.setHeader('Content-Type', mime);
           }
           res.setHeader('Content-Length', data.length);
           res.end(req.method === 'HEAD' ? undefined : data);
         } else {
           if (!['/listFile', '/readFile', '/writeFile'].includes(pathname)) fail('endpoint_disabled', 404);
+          if (pathname === '/writeFile') fail('http_write_disabled', 403);
           const body = await bodyText(req);
           if (pathname === '/listFile') {
             if (!body.startsWith('name=')) fail('invalid_list_body');
@@ -879,31 +1147,12 @@ async function run(options) {
           } else if (pathname === '/readFile') {
             const { name, encoding } = parseRead(body);
             res.end((await readSafe(root, name)).toString(encoding));
-          } else {
-            const { name, data } = parseWrite(body);
-            const nonce = req.headers[EDITOR_HEADER];
-            if (typeof nonce !== 'string' || !/^[0-9a-f]{48}$/.test(nonce)) fail('editor_session_required', 403);
-            const session = editorSessions.get(nonce);
-            if (lease) fail('editor_busy', 423);
-            if (!session || session.revoked || session.baseline.get(name) !== (await version(root, name))) fail('editor_stale', 409);
-            await writeSafe(root, name, data, versions, () => closing || lease !== null, session.baseline.get(name));
-            session.baseline.set(name, sha256(data));
-            res.end('');
           }
         }
       } catch (error) {
         const status = error.status || (error.code === 'ENOENT' ? 404 : 500);
         if (!res.headersSent) res.writeHead(status);
-        const detail =
-          error.code === 'editor_busy'
-            ? 'AI 正在编辑地图，请等待任务结束后再保存（423）。'
-            : error.code === 'editor_stale'
-              ? '地图已被其他操作更新，请刷新编辑器后重新检查再保存（409）。'
-              : error.status
-                ? error.code
-                : status === 404
-                  ? 'not_found'
-                  : 'request_failed';
+        const detail = error.status ? error.code : status === 404 ? 'not_found' : 'request_failed';
         if (!res.writableEnded) res.end(`error: ${detail}`);
       }
     };
@@ -944,6 +1193,23 @@ async function run(options) {
       if (Buffer.byteLength(frame) > 4096) return stop('invalid_control_frame', 1);
       try {
         const command = JSON.parse(frame);
+        if (origin && command?.type === 'mota-editor') {
+          const receivedAt = Date.now();
+          if (Buffer.byteLength(frame + '\n') > 4096) return stop('invalid_control_frame', 1);
+          enqueue(
+            () => editor(command, receivedAt),
+            () => {
+              const response = {
+                ...Object.fromEntries(EDITOR_KEYS.filter((key) => !['type', 'input'].includes(key)).map((key) => [key, command[key]])),
+                type: 'mota-editor-result',
+                ok: false,
+                error: { code: 'budget_exceeded', message: 'budget_exceeded' },
+              };
+              emitEditor(response);
+            },
+          );
+          continue;
+        }
         if (origin && command?.type === 'mota-control') {
           controlRequest(command);
           enqueue(

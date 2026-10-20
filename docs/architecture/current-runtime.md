@@ -1,5 +1,7 @@
 # 当前运行时与目标架构的边界
 
+2026-10-19 R6 补充对应本地 `agent/refactor-modular-20261017` 工作树（HEAD `e6bb391` 加未提交候选）：可信编辑器保存链已实施，新默认窗口测试已准备、尚待实际执行，真实 guest 证据仍为 `not_run`。下段分支/commit 与原场景结果保留为历史基线，不能代表本次 R6 验收；具体当前边界见下文魔塔 profile。
+
 本记录以 PR #6 合并后的 main（`b5531e1`）为基线，描述当前候选整合 P0 D、edu-web、导入入口、受限 mota-web 与研究能力后的接线。当前候选分支为 `agent/submission-20261016`，实现 commit 为 `120d34777db305b99e9501951363fe64e049a69f`，版本与回归见[PR 整合记录](../acceptance/submission-20261016/README.md)。主线合并及保全迁移见[2026-10-14 收尾记录](../acceptance/consolidation-20261011/closeout-20261014.md)；历史整合及魔塔手动接入的验证见[2026-10-15 整合记录](../acceptance/mota-integration-20261015/README.md)，随后新增的专用 AI 工具及验证范围见[AI 阶段验收](../acceptance/mota-ai-20261015/README.md)。P0 D 的来源验证见[任务页真实 diff 计划](../plans/2026-10-15-p0-run-diff.md)。[PR 合并前说明](../acceptance/consolidation-20261011/PR.md)、[2026-10-11 整合记录](../acceptance/consolidation-20261011/README.md)、[INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)和[SR-1](../acceptance/space-remake/SPEC.md)保留各自基线与失败，历史通过不能替代本树复验。
 
 ## 2026-10-16 场景补充
@@ -176,13 +178,17 @@ Main 用实际启动操作和实例身份管理原生浏览器租约。旧实例
 
 `mota-web` profile v1 是外部工程副本，沿用 App 对话框的“导入已有工程”和两阶段导入事务。Main 原生选择目录，根据必需文件识别 profile；静态预览不执行工程脚本、不连接 guest，renderer 只拿到来源摘要与预算。确认时重新采集并核对摘要，再发送冻结的文件字节；已发布副本的取消保留项目并核对停止，不能把停止描述为复制回滚。魔塔不要求 Git，支持的内容上限为 512 文件、64 MiB 总量、12 MiB 单文件；只接纳固定页面和 `project/`、`libs/`、`extensions/`、`_server/`、`_docs/` 范围，排除链接、凭据/环境文件、依赖、原存档与来源工程服务脚本。Main 的 `import-source.ts`/`mota-source.ts` 与 protocol 的 `mota.ts` 共同定义识别及字节身份，edu 的来源合同与预算不变。
 
-service 使用随产品提供的 `mota-helper.py` 和 `mota-server.cjs`，在独立 guest 项目目录运行受限 Node 服务；不运行工程自带 Python/Node 服务、npm scripts、安装或网络发布命令。guest 需预先具备 Node/Python 3。随机 guest 端口发布到宿主回环地址后，必须完成本次完整实例身份的 origin 绑定回执与健康检查，才能报告 running。每次启动重新核对受保护源码；编辑器写入只允许 `project/floors/MT1.js` 和 `_server/config.json`，经路径、内容与当前文件版本检查后原子替换。其他文件写入、任意路径与发布端点不开放。这是受限 HTTP 服务边界，不是共享 guest 同 UID 文件系统的 OS 写入隔离。
+service 使用随产品提供的 `mota-helper.py` 和 `mota-server.cjs`，在独立 guest 项目目录运行受限 Node 服务；不运行工程自带 Python/Node 服务、npm scripts、安装或网络发布命令。guest 需预先具备 Node/Python 3。随机 guest 端口发布到宿主回环地址后，必须完成本次完整实例身份的 origin 绑定回执与健康检查，才能报告 running。每次启动重新核对受保护源码。R6 本地候选已关闭旧 `/writeFile` HTTP 写入口；手动保存仅允许 `project/floors/MT1.js` 和 `_server/config.json`，走可信产品编辑页、专用 IPC、Main 权威、service 私有分块管道及 guest 单一队列中的 `writeSafe`。经路径、完整内容与当前文件版本检查后原子替换，单文件读写上限 256 KiB；合法 JSON 扩展字段及中文/emoji 作为数据保留。HTTP 读取不授予写权限，也不刷新版本权威。这些应用层门禁不证明共享 guest 同 UID 文件系统的 OS 写入隔离。
 
-同一 project/AppInstance 对应两个稳定的网页资源：`appPage: game` 固定 `/index.html`，`appPage: editor` 固定 `/editor.html`。两者共享受管服务与工程文件，各自拥有 Browser 实例；重复打开只聚焦已有资源，不把两页导航到同一个根 URL。关闭标签仅关闭视图，服务继续运行。显式停止须核实所属服务与端口清理，并撤销两页租约；重启保留 resourceId 与 appPage，用新 AppInstance 和正确页面 URL 重新绑定。导入后的自动启动不无条件抢焦点；用户关闭对话框或切换空间后，迟到完成不得打开旧页面。
+同一 project/AppInstance 对应两个稳定资源：`appPage: game` 使用 guest `/index.html` 与普通 Browser；`appPage: editor` 使用固定产品 URL `wsl-editor://mota/index.html` 与专用、非持久 partition 的原生 WebContentsView。编辑器不进入通用 Browser 采集、脚本或 Agent 控制面。来源 `/editor.html` 仍是不可信静态内容，和游戏一样没有 `motaEditor` 或工作台 `studio` bridge。产品编辑器只有专用 `motaEditor` bridge；Main 每次核对实际 sender、顶层 frame、精确 URL、构建资产与当前可见实例。资产预构建清单嵌入 Main，缺失或篡改失败关闭，不回退加载来源编辑器。
+
+关闭/隐藏/切空间、原生导航开始（包括后续失败）、App 停止/换实例均撤销旧会话。关闭 View 保持 App 运行；物理 View 与草稿保留，重开必须新会话并重新读取。草稿保留原 hash，版本改变显示比较，不能静默采用新基线。重启 App 保留 resourceId/appPage，绑定新 AppInstance；迟到响应只结算原操作，不给新 owner 赋权。stage 不写盘，commit/revoke 按实际队列顺序结算；先完成的 rename 仍是已提交事实。Main 在 commit 前持久记录意图，回执与持久化异常分别保留；unknown 不重放、不提前释放占用。工作台进程重启只恢复操作元数据，不恢复草稿或权限。导入后的自动启动不无条件抢焦点；用户关闭对话框或切换空间后，迟到完成不得打开旧页面。
 
 用户在编辑器保存后，需刷新或重新开始游戏验证副本中的地图变化。该手动保存没有 Agent TaskRun，不属于上文 P0 D 的 Agent-run diff，也不产生验证通过或用户接受记录。新增 Mota 受限 AI 任务只提供下述专用操作；任意代码修改、标准 App 控制工具和源码导出继续拒绝，标准/edu 的能力和预算不直接扩展到魔塔。当前不提供任意楼层、全编辑器文件写入或回写宿主原件。
 
-`e2e/mota-app-live.spec.ts` 是手动接入的显式 opt-in 真实窗口验收入口，环境变量及命令见根 [AGENTS](../../AGENTS.md)。它要求临时源码副本、全新私有 profile、独立证据目录与指定已有 guest；仅原生目录选择响应自动提供，实际 Main/service/guest/Browser、编辑器保存、游戏输入及所属进程审计不 mock。打包模式只接受独立核验后原样复制的 runtime 描述，不合成 ready，也不证明 Setup UI。模型、导出、麦克风、Azure 与手动编辑的 D diff 均不在该用例覆盖范围；上一阶段实际输入、失败和结果保留于[整合记录](../acceptance/mota-integration-20261015/README.md)，不能替代新增 AI 接线的验证。
+R6 当前为本地实施候选：B1 controller 已完成真实 localhost server 的 70/70 回归，B2 Main/native/UI/journal 单元与构建通过；这些不代表真实 Electron 或 guest 验收。新增默认 [mota-editor.spec.ts](../../e2e/mota-editor.spec.ts) 与 [transport fixture](../../e2e/fixtures/sbx-mota-app.mjs) 等待 controller 实际窗口执行（`not_run`）。fixture 明确模拟本地导入接收、guest 启动及端口映射，使用全新临时源码/profile，从实际 service helper 提取编译内置 server，真实转发私有帧并实际落盘；游戏是合成读回页，不证明真实魔塔游戏、Setup 或 guest。
+
+`e2e/mota-app-live.spec.ts` 已迁移到产品可信编辑页与实际键鼠输入，仍为另行授权的 opt-in 真实 guest/窗口入口，本轮未运行。它要求临时源码副本、全新私有 profile、独立证据目录与指定已有 guest；仅原生目录选择响应自动提供，实际 Main/service/guest/Browser、编辑器保存、游戏输入及所属进程审计不 mock。打包模式只接受独立核验后原样复制的 runtime 描述，不合成 ready，也不证明 Setup UI。模型、导出、麦克风、Azure 与手动编辑的 D diff 均不在该用例覆盖范围；上一阶段结果保留于[整合记录](../acceptance/mota-integration-20261015/README.md)，不能用于本次 R6。R6 真实 guest 完成门槛仍不完整/`not_run`，R4 模型拒绝门禁不变，无 S4 通过结论。
 
 ### Mota 专用 AI 工具与执行边界
 
