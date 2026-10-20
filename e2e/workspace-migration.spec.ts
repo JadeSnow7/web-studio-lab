@@ -1,6 +1,7 @@
 import { expect, test, type ElectronApplication } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 import {
+  ensureForeground,
   launchApp,
   openBrowserMenu,
   setWindowSize,
@@ -180,6 +181,7 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
     const workspace = snapshot.workspaces[0]!;
     const web = workspace.resources.find((r) => r.title === 'TaskFlow 预览')!;
     focusTarget = { webContentsId: web.preview!.page.webContentsId, workspaceId: workspace.workspaceId };
+    await ensureForeground(app, page);
     focusAttemptBefore = await nativeFocusSnapshot(app);
     await app.evaluate(({ webContents, BrowserWindow }, id) => {
       BrowserWindow.getAllWindows()[0]!.focus();
