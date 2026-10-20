@@ -7,8 +7,8 @@ export default defineConfig({
   test: {
     include,
     environment: 'node',
-    // Isolation experiment: keep PTY first, without other tests implicitly warming its runtime.
-    // Preserve its existing readiness budget; the CI startup delay's cause is still undetermined.
+    // Keep PTY first, without other tests implicitly warming its selected runtime.
+    // Its explicit functional wait is separate from startup performance measurements.
     projects: [
       {
         extends: false,
