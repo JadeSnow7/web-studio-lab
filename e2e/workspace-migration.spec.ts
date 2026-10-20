@@ -1,5 +1,5 @@
 import { expect, test, type ElectronApplication } from '@playwright/test';
-import { launchApp, openBrowserMenu, setWindowSize, workspaceSnapshot, workshopNavigate, target } from './helpers';
+import { ensureForeground, launchApp, openBrowserMenu, setWindowSize, workspaceSnapshot, workshopNavigate, target } from './helpers';
 
 const fixture = new URL('./fixtures/sbx.mjs', import.meta.url).pathname;
 
@@ -165,6 +165,7 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
     const snapshot = await workspaceSnapshot(page);
     const workspace = snapshot.workspaces[0]!;
     const web = workspace.resources.find((r) => r.title === 'TaskFlow 预览')!;
+    await ensureForeground(app, page);
     await app.evaluate(({ webContents, BrowserWindow }, id) => {
       BrowserWindow.getAllWindows()[0]!.focus();
       const contents = webContents.fromId(id)!;
