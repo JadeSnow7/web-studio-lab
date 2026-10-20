@@ -26,6 +26,8 @@ import {
   AgentCliEnvelopeSchema,
   AppOperationReceiptSchema,
   AppTargetSchema,
+  AppSourceSchema,
+  appExportBudget,
   type AppSourceSnapshotResult,
   type AgentCliEnvelope,
   type AppAgentOperation,
@@ -449,6 +451,7 @@ export class AppService {
             projectId,
             appInstanceId,
             profile: entry.snapshot.profile,
+            ...(operation === 'export' ? { exportBudget: appExportBudget(entry.snapshot.profile) } : {}),
             ...(files ? { files } : {}),
             ...(task ? { task } : {}),
             ...(operation === 'start' && entry.agentToken ? { agentToken: entry.agentToken } : {}),
@@ -1862,7 +1865,7 @@ export class AppService {
     await this.ensureLoaded();
     if (this.closing) throw new Error('应用服务正在关闭');
     const entry = this.entry(key);
-    if (entry.snapshot.profile.projectKind === 'mota-web') throw new Error('unsupported: mota-web source export');
+    appExportBudget(entry.snapshot.profile);
     if (this.imports.busy(key)) throw new Error('import_in_progress');
     if (this.sourceProcesses.has(this.id(key)) || (!task && this.eduTaskOperations.busy(key))) throw new Error('source_helper_busy');
     if (
@@ -1880,7 +1883,10 @@ export class AppService {
     let result: { files: AppSourceFile[] } | undefined;
     entry.operation = (async () => {
       try {
-        result = z.object({ files: z.array(fileSchema) }).parse(await this.command(entry, 'export', undefined, task));
+        result = z
+          .object({ files: AppSourceSchema.shape.files })
+          .strict()
+          .parse(await this.command(entry, 'export', undefined, task));
         validateAppSources(result.files);
         if (entry.snapshot.profile.projectKind === 'edu-web')
           entry.snapshot.sourceSha256 = validateEduSources(result.files, entry.snapshot.profile.source, false);

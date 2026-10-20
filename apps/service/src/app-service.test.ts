@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { EDU_REQUIRED_FILES, type AppProfile } from '@wsl/protocol';
+import { AppSourceSchema, ChatServiceMessageSchema, EDU_REQUIRED_FILES, MOTA_REQUIRED_FILES, type AppProfile } from '@wsl/protocol';
 import { mkdtemp, readFile, rm, mkdir, writeFile, symlink } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -577,6 +577,196 @@ describe('R3 App asynchronous completion failures', () => {
   });
 });
 
+describe('R5 service export budget authority and shared consumers', () => {
+  function boundaryFiles(kind: 'standard-app' | 'edu-web', count: number, bytes: number) {
+    const names = kind === 'edu-web' ? [...EDU_REQUIRED_FILES] : [];
+    while (names.length < count) names.push(`admin/src/中文-${names.length}.ts`);
+    const sourceFiles = names.sort().map((path) => ({ path, base64: '' }));
+    const prefix = Buffer.from('中文🙂');
+    sourceFiles.find((file) => file.path.startsWith('admin/src/'))!.base64 = Buffer.concat([
+      prefix,
+      Buffer.alloc(bytes - prefix.length, 97),
+    ]).toString('base64');
+    return sourceFiles;
+  }
+
+  it('R5 keeps create/import validation at 255/256/257 files and decoded 524287/524288/524289 bytes', () => {
+    for (const kind of ['standard-app', 'edu-web'] as const) {
+      for (const count of [255, 256, 257]) {
+        const validate = () => validateAppSources(boundaryFiles(kind, count, 10));
+        if (count === 257) expect(validate).toThrow(/256/);
+        else expect(validate).not.toThrow();
+      }
+      for (const bytes of [524287, 524288, 524289]) {
+        const validate = () => validateAppSources(boundaryFiles(kind, 8, bytes));
+        if (bytes === 524289) expect(validate).toThrow(/预算|budget/);
+        else expect(validate).not.toThrow();
+      }
+    }
+    expect(() => validateAppSources([{ path: 'src/空.ts', base64: '' }])).not.toThrow();
+  });
+
+  for (const kind of ['standard-app', 'edu-web'] as const) {
+    it(`R5 ${kind} chooses the private helper budget from the registered profile for export and taskSource`, async () => {
+      const sourceFiles = kind === 'edu-web' ? structuredClone(eduFiles) : structuredClone(files);
+      const test = fixture({ sourceFiles });
+      try {
+        const snapshot =
+          kind === 'edu-web'
+            ? await test.service.importEdu({ ...key, files: sourceFiles, source: eduSource(sourceFiles) })
+            : await test.service.create({ ...key, files: sourceFiles });
+        const registered = structuredClone(snapshot.profile);
+        Object.assign(snapshot.profile, { projectKind: 'mota-web', exportBudget: { maxFiles: 512, maxSourceBytes: 8388608 } });
+        expect(test.service.get(key).profile).toEqual(registered);
+        for (const taskSnapshot of [false, true]) {
+          const exported = await test.service.export(key, taskSnapshot);
+          expect(AppSourceSchema.parse(exported)).toEqual(exported);
+          expect(exported.files).toEqual(sourceFiles);
+          expect(exported.profile).toEqual(registered);
+        }
+        const prompts = test.prompts();
+        expect(prompts.filter((prompt) => prompt['operation'] !== 'export').every((prompt) => !('exportBudget' in prompt))).toBe(true);
+        const exports = prompts.filter((prompt) => prompt['operation'] === 'export');
+        expect(exports).toHaveLength(2);
+        for (const prompt of exports) {
+          expect(prompt['profile']).toEqual(registered);
+          expect(prompt['exportBudget']).toEqual({ maxFiles: 256, maxSourceBytes: 524288 });
+          console.info(
+            'R5 trusted export prompt',
+            JSON.stringify({
+              kind,
+              promptBytes: Buffer.byteLength(JSON.stringify(prompt)),
+              promptUtf16Units: JSON.stringify(prompt).length,
+            }),
+          );
+        }
+      } finally {
+        await test.service.shutdown();
+      }
+    });
+
+    it(`R5 ${kind} preserves maximum create/import and task sources while rejecting an oversized helper result`, async () => {
+      const valid = boundaryFiles(kind, 256, 524288);
+      const settings = { sourceFiles: valid };
+      const test = fixture(settings);
+      try {
+        if (kind === 'edu-web') await test.service.importEdu({ ...key, files: valid, source: eduSource(valid) });
+        else await test.service.create({ ...key, files: valid });
+        const previous = await test.service.export(key, true);
+        expect(AppSourceSchema.parse(previous).files).toEqual(valid);
+        expect(previous.sha256).toBe(createHash('sha256').update(JSON.stringify(valid)).digest('hex'));
+        settings.sourceFiles = boundaryFiles(kind, 256, 524289);
+        await expect(test.service.export(key)).rejects.toThrow(/预算|budget/);
+        settings.sourceFiles = [...valid, { path: 'admin/src/extra.ts', base64: '' }];
+        await expect(test.service.export(key)).rejects.toThrow(/256/);
+        settings.sourceFiles = valid;
+        expect(await test.service.export(key, true)).toEqual(previous);
+        expect(previous.files).toEqual(valid);
+        console.info(
+          'R5 service source response',
+          JSON.stringify({
+            kind,
+            decodedSourceBytes: 524288,
+            responseBytes: Buffer.byteLength(JSON.stringify(previous)),
+            responseUtf16Units: JSON.stringify(previous).length,
+          }),
+        );
+      } finally {
+        await test.service.shutdown();
+      }
+    });
+  }
+
+  it('R5 accounts for maximum Unicode paths in the actual export prompt and response envelope', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-r5-transport-'));
+    const sourceFiles = boundaryFiles('edu-web', 256, 524288);
+    for (const [index, file] of sourceFiles.entries()) {
+      if (!file.path.startsWith('admin/src/')) continue;
+      const prefix = 'admin/src/' + ('界'.repeat(60) + '/').repeat(7);
+      const suffix = `/${index}.ts`;
+      file.path = prefix + '界'.repeat(500 - prefix.length - suffix.length) + suffix;
+    }
+    const profile: AppProfile = { projectKind: 'edu-web', profileVersion: 1, source: eduSource(sourceFiles) };
+    const test = fixture({ sourceFiles });
+    const start = vi.spyOn(test.connection, 'start');
+    const registryPath = path.join(root, 'registry.json');
+    const service = new AppService(test.connection, { ...test.options, registryPath });
+    try {
+      // Restore a registered baseline: this measures export, without pretending a mocked import proves framing.
+      await writeFile(
+        registryPath,
+        JSON.stringify({ version: 2, sandbox: 'sandbox-test', apps: [{ ...key, profile, state: 'stopped', cleanupConfirmed: true }] }),
+      );
+      const exported = await service.export(key);
+      const response = { type: 'response', id: 'r5-transport', result: exported };
+      expect(ChatServiceMessageSchema.parse(response)).toEqual(response);
+      expect(exported.files).toEqual(sourceFiles);
+      expect(start).toHaveBeenCalledTimes(1);
+      const frame = start.mock.calls[0]![0];
+      if (frame.mode !== 'codex') throw new Error('Expected finite export helper');
+      const prompt = frame.prompt!;
+      const outerFrameBytes = Buffer.byteLength(JSON.stringify(frame) + '\n');
+      const responseBytes = Buffer.byteLength(JSON.stringify(response));
+      expect(outerFrameBytes).toBeLessThanOrEqual(1048576);
+      expect(Buffer.byteLength(prompt)).toBeLessThanOrEqual(1048576);
+      expect(responseBytes).toBeGreaterThan(1048576);
+      expect(JSON.stringify({ files: sourceFiles }).length).toBeLessThan(12 * 1024 * 1024);
+      console.info(
+        'R5 transport accounting',
+        JSON.stringify({
+          sourceBytes: 524288,
+          files: sourceFiles.length,
+          encodedUnits: sourceFiles.reduce((sum, file) => sum + file.base64.length, 0),
+          promptBytes: Buffer.byteLength(prompt),
+          promptUtf16Units: prompt.length,
+          outerFrameBytes,
+          mockHelperResultBytes: Buffer.byteLength('WSL_APP_RESULT:' + JSON.stringify({ files: sourceFiles }) + '\n'),
+          responseBytes,
+          responseUtf16Units: JSON.stringify(response).length,
+        }),
+      );
+    } finally {
+      await service.shutdown();
+      start.mockRestore();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('R5 refuses a registered Mota export and taskSource before helper dispatch', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-r5-mota-registry-'));
+    const test = fixture();
+    const registryPath = path.join(root, 'registry.json');
+    const metadata = MOTA_REQUIRED_FILES.map((path) => ({ path, sha256: createHash('sha256').update('').digest('hex'), bytes: 0 })).sort(
+      (a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0),
+    );
+    const profile: AppProfile = {
+      projectKind: 'mota-web',
+      profileVersion: 1,
+      source: {
+        sourceSha256: createHash('sha256').update(JSON.stringify(metadata)).digest('hex'),
+        files: metadata,
+      },
+    };
+    const contents = JSON.stringify({
+      version: 2,
+      sandbox: 'sandbox-test',
+      apps: [{ ...key, profile, state: 'stopped', cleanupConfirmed: true }],
+    });
+    const service = new AppService(test.connection, { ...test.options, registryPath });
+    try {
+      await writeFile(registryPath, contents);
+      expect((await service.restore(key)).profile).toEqual(profile);
+      for (const taskSnapshot of [false, true]) await expect(service.export(key, taskSnapshot)).rejects.toThrow(/unsupported.*mota-web/i);
+      expect(test.starts()).toBe(0);
+      expect(test.prompts()).toEqual([]);
+      expect(await readFile(registryPath, 'utf8')).toBe(contents);
+    } finally {
+      await service.shutdown();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('managed edu project profile', () => {
   it('imports, runs and exports edu with its own health contract and immutable source provenance', async () => {
     const test = fixture({ sourceFiles: eduFiles });
@@ -1091,7 +1281,13 @@ exec(sys.argv[3],scope)
 scope['ROOT']=Path(sys.argv[1])
 scope['run'](json.loads(sys.argv[2]))`,
           root,
-          JSON.stringify({ ...key, workspaceId, operation, files }),
+          JSON.stringify({
+            ...key,
+            workspaceId,
+            operation,
+            files,
+            ...(operation === 'export' ? { exportBudget: { maxFiles: 256, maxSourceBytes: 524288 } } : {}),
+          }),
           appHelper,
         ],
         { encoding: 'utf8', timeout: 2000, stdio: ['ignore', 'pipe', 'pipe'] },

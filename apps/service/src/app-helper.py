@@ -30,6 +30,25 @@ EDU_ROOT_FILES = {'README.md', 'SPEC.md', 'API.md', 'DESIGN.md', 'UX-CONTRACT.md
 EDU_REQUIRED = {'admin/package.json', 'admin/package-lock.json', 'server/app.py', 'server/requirements.lock', 'server/requirements-test.lock', 'server/wsl_runtime.py'}
 EDU_EXCLUDED = EXCLUDED | {'.venv', 'venv', '__pycache__', '.pytest_cache', '.ruff_cache', '.mypy_cache', '.runtime', 'coverage'}
 STANDARD_PROFILE = {'projectKind': 'standard-app', 'profileVersion': 1}
+EXPORT_CONTRACTS = {
+    'standard-app': {'maxFiles': 256, 'maxSourceBytes': 524288},
+    'edu-web': {'maxFiles': 256, 'maxSourceBytes': 524288},
+}
+
+
+def export_policy(request):
+    profile = request.get('profile', STANDARD_PROFILE)
+    if not isinstance(profile, dict) or profile.get('projectKind') not in ('standard-app', 'edu-web') or type(profile.get('profileVersion')) is not int or profile['profileVersion'] != 1:
+        raise ValueError('unsupported source export profile')
+    if profile['projectKind'] == 'edu-web':
+        edu_profile(profile)
+    elif set(profile) != {'projectKind', 'profileVersion'}:
+        raise ValueError('invalid standard source export profile')
+    expected = EXPORT_CONTRACTS[profile['projectKind']]
+    budget = request.get('exportBudget')
+    if not isinstance(budget, dict) or set(budget) != set(expected) or any(type(budget[key]) is not int or budget[key] != expected[key] for key in expected):
+        raise ValueError('invalid source export budget')
+    return expected
 
 
 def relative_path(value):
@@ -107,7 +126,9 @@ def edu_profile(profile):
     return source
 
 
-def edu_inventory(root):
+def edu_inventory(root, export_budget=None):
+    max_files = 256 if export_budget is None else export_budget['maxFiles']
+    max_bytes = EDU_LIMIT if export_budget is None else export_budget['maxSourceBytes']
     files = []
     total = 0
     visited = 0
@@ -133,14 +154,16 @@ def edu_inventory(root):
             return
         if not edu_path(relative):
             return
-        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_size + total > EDU_LIMIT or len(files) >= 256:
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_size + total > max_bytes or len(files) >= max_files:
             raise ValueError('invalid edu source file or byte budget')
         with os.fdopen(os.open(source, os.O_RDONLY | os.O_NOFOLLOW), 'rb') as handle:
             opened = os.fstat(handle.fileno())
             if (opened.st_dev, opened.st_ino, opened.st_nlink) != (info.st_dev, info.st_ino, 1):
                 raise ValueError('edu source changed while reading')
-            content = handle.read(EDU_LIMIT - total + 1)
+            content = handle.read(max_bytes - total + 1)
             after = os.fstat(handle.fileno())
+        if export_budget is not None and total + len(content) > max_bytes:
+            raise ValueError('edu export exceeds byte budget')
         if len(content) != info.st_size or (after.st_size, after.st_mtime_ns, after.st_ctime_ns) != (info.st_size, info.st_mtime_ns, info.st_ctime_ns) or source.resolve() != source:
             raise ValueError('edu source changed while reading')
         total += len(content)
@@ -151,9 +174,9 @@ def edu_inventory(root):
     return files
 
 
-def edu_validate_current(root, profile):
+def edu_validate_current(root, profile, export_budget=None):
     baseline = edu_profile(profile)
-    files = edu_inventory(root)
+    files = edu_inventory(root, export_budget)
     metadata, digest = edu_metadata(files)
     protected = lambda entries: [entry for entry in entries if not entry['path'].startswith('admin/src/')]
     if protected(metadata) != protected(baseline['files']):
@@ -588,6 +611,7 @@ def mota_start(request):
 
 
 def run(request):
+    budget = export_policy(request) if request.get('operation') == 'export' else None
     if request.get('type') == 'begin':
         mota_module()['transfer'](request, sys.stdin.buffer, globals())
         return
@@ -658,7 +682,7 @@ def run(request):
         raise ValueError('app profile identity mismatch')
     if edu:
         if request['operation'] == 'export':
-            files, _ = edu_validate_current(root, profile)
+            files, _ = edu_validate_current(root, profile, budget)
             output({'files': files})
         elif request['operation'] == 'recover-owned':
             _, digest = edu_validate_current(root, profile)
@@ -737,11 +761,13 @@ def run(request):
                 if not source.is_file():
                     raise ValueError('app source is not a regular file')
                 with source.open('rb') as handle:
-                    content = handle.read(LIMIT + 1)
+                    content = handle.read(budget['maxSourceBytes'] - total + 1)
                 total += len(content)
-                if total > LIMIT or len(files) >= 256:
+                if total > budget['maxSourceBytes'] or len(files) >= budget['maxFiles']:
                     raise ValueError('app export exceeds budget')
                 files.append({'path': relative, 'base64': base64.b64encode(content).decode('ascii')})
+        if not files:
+            raise ValueError('invalid app export source count')
         files.sort(key=lambda entry: entry['path'])
         output({'files': files})
         return

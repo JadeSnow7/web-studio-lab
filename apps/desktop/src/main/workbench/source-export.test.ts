@@ -3,7 +3,7 @@ import { mkdtemp, readFile, readdir, stat, rm } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, expect, it } from 'vitest';
-import { EDU_REQUIRED_FILES, type AppSource } from '@wsl/protocol';
+import { AppProfileSchema, EDU_REQUIRED_FILES, MOTA_REQUIRED_FILES, type AppSource } from '@wsl/protocol';
 import { exportAppSource } from './source-export';
 
 const hash = (content: string | Buffer) => createHash('sha256').update(content).digest('hex');
@@ -89,6 +89,143 @@ describe('Main-owned source export publication', () => {
       expect(await readFile(path.join(result.path, 'package.json'), 'utf8')).toBe('{}');
       expect(result.manifestPath).toBe(result.path + '.manifest.json');
       expect(result.sha256).toBe(hash(JSON.stringify(files)));
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('R5 Main export contract before publication', () => {
+  function boundary(kind: 'standard-app' | 'edu-web'): AppSource {
+    const names = kind === 'edu-web' ? [...EDU_REQUIRED_FILES] : [];
+    while (names.length < 256) names.push(`admin/src/中文-${names.length}.ts`);
+    const files = names.sort().map((path) => ({ path, base64: '' }));
+    const editable = files.filter((file) => file.path.startsWith('admin/src/'));
+    editable[0]!.base64 = Buffer.concat([Buffer.from('中文🙂'), Buffer.alloc(262134, 97)]).toString('base64');
+    editable[1]!.base64 = Buffer.alloc(262144, 98).toString('base64');
+    const metadata = files.map((file) => {
+      const bytes = Buffer.from(file.base64, 'base64');
+      return { path: file.path, sha256: hash(bytes), bytes: bytes.length };
+    });
+    return {
+      files,
+      sha256: hash(JSON.stringify(files)),
+      profile:
+        kind === 'standard-app'
+          ? { projectKind: 'standard-app', profileVersion: 1 }
+          : {
+              projectKind: 'edu-web',
+              profileVersion: 1,
+              source: {
+                repository: { commit: 'a'.repeat(40), dirty: false },
+                files: metadata,
+                sourceSha256: hash(JSON.stringify(metadata)),
+              },
+            },
+    };
+  }
+
+  async function inventory(root: string, relative = ''): Promise<{ path: string; sha256: string | null }[]> {
+    const entries = [];
+    for (const item of await readdir(path.join(root, relative), { withFileTypes: true })) {
+      const name = path.join(relative, item.name);
+      entries.push({ path: name, sha256: item.isDirectory() ? null : hash(await readFile(path.join(root, name))) });
+      if (item.isDirectory()) entries.push(...(await inventory(root, name)));
+    }
+    return entries.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  }
+
+  for (const kind of ['standard-app', 'edu-web'] as const) {
+    it(`R5 ${kind} publishes all 256 files and 524288 decoded bytes with the original hash contract`, async () => {
+      const directory = await mkdtemp(path.join(os.tmpdir(), 'wsl-r5-export-'));
+      try {
+        const input = boundary(kind);
+        const original = JSON.stringify(input);
+        const result = await exportAppSource(directory, target, input);
+        const manifest = JSON.parse(await readFile(result.manifestPath, 'utf8'));
+        expect(input.files).toHaveLength(256);
+        expect(input.files.reduce((sum, file) => sum + Buffer.from(file.base64, 'base64').length, 0)).toBe(524288);
+        for (const file of input.files)
+          expect(await readFile(path.join(result.path, file.path))).toEqual(Buffer.from(file.base64, 'base64'));
+        if (input.profile?.projectKind === 'edu-web') {
+          expect(path.basename(result.path)).toBe('source');
+          expect(manifest.workbench.importBase).toEqual(input.profile.source);
+          expect(manifest.files).toEqual(input.profile.source.files);
+          expect(manifest.sourceSha256).toBe(hash(JSON.stringify(manifest.files)));
+          expect(result.sha256).toBe(manifest.sourceSha256);
+          expect(result.manifestPath).toBe(path.join(path.dirname(result.path), 'manifest.json'));
+        } else {
+          expect(result.manifestPath).toBe(result.path + '.manifest.json');
+          expect(result.sha256).toBe(hash(JSON.stringify(input.files)));
+          expect(manifest.files).toEqual(input.files);
+          expect(manifest.sha256).toBe(result.sha256);
+        }
+        expect(JSON.stringify(input)).toBe(original);
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    });
+
+    it.each(['file-count', 'decoded-bytes'])(
+      `R5 ${kind} rejects %s before creating a parent or changing prior exports`,
+      async (failure) => {
+        const directory = await mkdtemp(path.join(os.tmpdir(), 'wsl-r5-export-reject-'));
+        try {
+          const previous = await exportAppSource(directory, target, source());
+          const before = await inventory(directory);
+          const input = boundary(kind);
+          if (failure === 'file-count') input.files.push({ path: 'admin/src/extra.ts', base64: '' });
+          else {
+            const mutable = input.files.find((file) => file.path.startsWith('admin/src/'))!;
+            mutable.base64 = Buffer.concat([Buffer.from(mutable.base64, 'base64'), Buffer.from('x')]).toString('base64');
+          }
+          input.sha256 = hash(JSON.stringify(input.files));
+          expect(AppProfileSchema.safeParse(input.profile).success).toBe(true);
+          expect(input.sha256).toBe(hash(JSON.stringify(input.files)));
+          const original = JSON.stringify(input);
+          const reason = failure === 'file-count' ? /256|budget|预算/i : /524288|budget|预算/i;
+          const absentParent = path.join(directory, 'not-created');
+          await expect(exportAppSource(absentParent, target, input)).rejects.toThrow(reason);
+          await expect(stat(absentParent)).rejects.toMatchObject({ code: 'ENOENT' });
+          await expect(exportAppSource(directory, target, input)).rejects.toThrow(reason);
+          expect(await inventory(directory)).toEqual(before);
+          expect(JSON.stringify(input)).toBe(original);
+          expect(await readFile(path.join(previous.path, 'server/app.py'), 'utf8')).toBe('server/app.py');
+        } finally {
+          await rm(directory, { recursive: true, force: true });
+        }
+      },
+    );
+  }
+
+  it.each(['mota-web', 'unknown-kind', 'unknown-version'])('R5 rejects %s without standard fallback or new output', async (kind) => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'wsl-r5-export-profile-'));
+    try {
+      const previous = await exportAppSource(directory, target, source());
+      const before = await inventory(directory);
+      const files = MOTA_REQUIRED_FILES.map((path) => ({ path, base64: '' })).sort((a, b) => (a.path < b.path ? -1 : 1));
+      const metadata = files.map((file) => ({ path: file.path, sha256: hash(''), bytes: 0 }));
+      const input: AppSource = {
+        files,
+        sha256: hash(JSON.stringify(files)),
+        profile: {
+          projectKind: 'mota-web',
+          profileVersion: 1,
+          source: { files: metadata, sourceSha256: hash(JSON.stringify(metadata)) },
+        },
+      };
+      expect(AppProfileSchema.safeParse(input.profile).success).toBe(true);
+      if (kind === 'unknown-kind') Object.assign(input, { profile: { projectKind: 'unknown', profileVersion: 1 } });
+      if (kind === 'unknown-version') Object.assign(input, { profile: { projectKind: 'standard-app', profileVersion: 2 } });
+      const original = JSON.stringify(input);
+      const absentParent = path.join(directory, 'not-created');
+      const reason = /unsupported|不支持|profile|projectKind|profileVersion|discriminator/i;
+      await expect(exportAppSource(absentParent, target, input)).rejects.toThrow(reason);
+      await expect(stat(absentParent)).rejects.toMatchObject({ code: 'ENOENT' });
+      await expect(exportAppSource(directory, target, input)).rejects.toThrow(reason);
+      expect(await inventory(directory)).toEqual(before);
+      expect(JSON.stringify(input)).toBe(original);
+      expect(await readFile(path.join(previous.path, 'server/app.py'), 'utf8')).toBe('server/app.py');
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

@@ -60,6 +60,19 @@ export const AppProfileSchema = z.discriminatedUnion('projectKind', [
   z.object({ projectKind: z.literal('edu-web'), profileVersion: z.literal(1), source: EduSourceSchema }).strict(),
   z.object({ projectKind: z.literal('mota-web'), profileVersion: z.literal(1), source: MotaSourceSchema }).strict(),
 ]);
+const sourceExportBudget = { maxFiles: 256, maxSourceBytes: 524288 } as const;
+const appExportContracts = {
+  'standard-app': { profileVersion: 1, budget: sourceExportBudget },
+  'edu-web': { profileVersion: 1, budget: sourceExportBudget },
+} as const;
+export function appExportBudget(profile?: AppProfile) {
+  const kind = profile === undefined ? 'standard-app' : profile.projectKind;
+  if (kind !== 'standard-app' && kind !== 'edu-web') throw new Error('unsupported: ' + kind + ' source export');
+  const contract = appExportContracts[kind];
+  if (profile !== undefined && profile.profileVersion !== contract.profileVersion)
+    throw new Error('unsupported source export profileVersion');
+  return { ...contract.budget };
+}
 export const AppTargetSchema = z.object({ workspaceId: z.string().min(1).max(200), projectId: z.uuid() }).strict();
 export const SpaceAppSchema = AppTargetSchema.extend({
   appId: z.uuid(),
@@ -70,9 +83,23 @@ export const SpaceAppSchema = AppTargetSchema.extend({
 export type SpaceApp = z.infer<typeof SpaceAppSchema>;
 export const AppSourceFileSchema = z.object({ path: z.string().min(1).max(500), base64: z.string().max(4_000_000) }).strict();
 export const EduImportSchema = AppTargetSchema.extend({ files: z.array(AppSourceFileSchema).min(1).max(256), source: EduSourceSchema });
-export const AppSourceSchema = z
-  .object({ files: z.array(AppSourceFileSchema).min(1).max(256), sha256, profile: AppProfileSchema.optional() })
-  .strict();
+// Export and edu task snapshots share this envelope; import/start profiles remain independent.
+const appSourceFilesSchema = z
+  .array(AppSourceFileSchema)
+  .min(1)
+  .max(sourceExportBudget.maxFiles)
+  .superRefine((files, context) => {
+    let total = 0;
+    for (const [index, file] of files.entries()) {
+      if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(file.base64)) {
+        context.addIssue({ code: 'custom', path: [index, 'base64'], message: 'invalid source base64' });
+        continue;
+      }
+      total += (file.base64.length / 4) * 3 - (file.base64.endsWith('==') ? 2 : file.base64.endsWith('=') ? 1 : 0);
+    }
+    if (total > sourceExportBudget.maxSourceBytes) context.addIssue({ code: 'custom', message: 'source byte budget exceeded (524288)' });
+  });
+export const AppSourceSchema = z.object({ files: appSourceFilesSchema, sha256, profile: AppProfileSchema.optional() }).strict();
 export const ManagedAppSchema = AppTargetSchema.extend({
   profile: AppProfileSchema.optional(),
   sourceSha256: sha256.optional(),

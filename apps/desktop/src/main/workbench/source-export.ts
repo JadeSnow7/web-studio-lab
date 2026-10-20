@@ -4,8 +4,8 @@ import path from 'node:path';
 import {
   AppSourceSchema,
   AppTargetSchema,
+  appExportBudget,
   EDU_REQUIRED_FILES,
-  EDU_SOURCE_BYTES,
   isEduSourcePath,
   type AppSource,
   type AppTarget,
@@ -15,6 +15,7 @@ const hash = (content: Buffer | string) => createHash('sha256').update(content).
 export async function exportAppSource(directory: string, target: AppTarget, supplied: AppSource) {
   AppTargetSchema.parse(target);
   const source = AppSourceSchema.parse(supplied);
+  const budget = appExportBudget(source.profile);
   if (hash(JSON.stringify(source.files)) !== source.sha256) throw new Error('源码导出散列不匹配');
   const paths = new Set<string>();
   let total = 0;
@@ -31,7 +32,7 @@ export async function exportAppSource(directory: string, target: AppTarget, supp
     paths.add(file.path);
     const bytes = Buffer.from(file.base64, 'base64');
     total += bytes.length;
-    if (total > EDU_SOURCE_BYTES) throw new Error('源码导出超出预算');
+    if (total > budget.maxSourceBytes) throw new Error('源码导出超出预算');
     return { path: file.path, bytes };
   });
   for (const file of decoded) {
