@@ -8,7 +8,7 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 
 ## 当前状态
 
-当前候选树整合 Electron 工作台、统一观察、受管标准 App、账户资源目录、App 控制面、App 名称/说明和任务目标绑定，以及统一状态呈现与诊断。六板块布局继续遵循[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)。2026-10-13 的 PR 范围、审查修复、实际验证与未运行项见[当前 PR 说明](docs/acceptance/consolidation-20261011/PR.md)；[2026-10-11 整合记录](docs/acceptance/consolidation-20261011/README.md)、[状态界面实施与修复记录](docs/acceptance/status-surface-20261011/README.md)及更早记录保留为历史，不能替代当前版本复验。edu 导入/运行与独立源码工具保留在各自分支，不纳入本候选。
+当前候选树整合 Electron 工作台、统一观察、受管标准 App、账户资源目录、App 控制面、App 名称/说明和任务目标绑定，以及统一状态呈现与诊断。六板块布局继续遵循[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)。2026-10-13 的 PR 范围、审查修复、实际验证与未运行项见[当前 PR 说明](docs/acceptance/consolidation-20261011/PR.md)；[2026-10-11 整合记录](docs/acceptance/consolidation-20261011/README.md)、[状态界面实施与修复记录](docs/acceptance/status-surface-20261011/README.md)及更早记录保留为历史，不能替代当前版本复验。独立源码工具支持 edu-web 源码快照、校验、三方合并和人工冲突解决，见[CLI 说明](docs/development/edu-source-cli.md)；edu 导入/运行接线仍保留在独立分支。
 
 | 能力         | 实现与验证边界                                                                                                                                                          |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
