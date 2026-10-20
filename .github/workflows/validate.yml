@@ -13,9 +13,12 @@ jobs:
   check-and-e2e:
     runs-on: macos-15
     timeout-minutes: 60
+    env:
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
@@ -31,8 +34,29 @@ jobs:
           python-version: '3.12'
       - name: Verify source and toolchain
         env:
-          EXPECTED_COMMIT: ${{ github.sha }}
+          EXPECTED_COMMIT: ${{ env.CANDIDATE_SHA }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EVENT_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import { mkdirSync, writeFileSync } from 'node:fs';
+          const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
+          const source = {
+            candidateSha: process.env.EXPECTED_COMMIT,
+            actualHead: git('rev-parse', 'HEAD'),
+            tree: git('rev-parse', 'HEAD^{tree}'),
+            prBaseSha: process.env.PR_BASE_SHA || null,
+            prHeadSha: process.env.PR_HEAD_SHA || null,
+            eventSha: process.env.EVENT_SHA,
+            eventName: process.env.EVENT_NAME,
+          };
+          mkdirSync('test-results/ci-source', { recursive: true });
+          writeFileSync('test-results/ci-source/macos.json', JSON.stringify(source, null, 2) + '\n');
+          console.log(JSON.stringify(source));
+          NODE
           test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
           test -z "$(git status --porcelain)"
           node -e 'if(process.platform!=="darwin"||process.arch!=="arm64"||process.version!=="v24.21.0")throw Error("Expected macOS ARM64 / Node 24.21.0"); console.log(JSON.stringify({node:process.version,platform:process.platform,arch:process.arch}))'
@@ -56,7 +80,9 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: macos-e2e-${{ runner.arch }}-${{ github.sha }}-${{ github.run_attempt }}
-          path: test-results/e2e-runs/
+          name: macos-e2e-${{ runner.arch }}-${{ env.CANDIDATE_SHA }}-${{ github.run_attempt }}
+          path: |
+            test-results/e2e-runs/
+            test-results/ci-source/macos.json
           if-no-files-found: error
           retention-days: 14
