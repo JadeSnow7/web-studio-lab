@@ -1684,7 +1684,8 @@ test('会话：执行中点「取消回复」后焦点交给输入框，不落�
   const { app, page } = await launchApp({ sbxBin });
   try {
     await openSessionTab(page);
-    await sessionMessageBox(page).fill('[delayed-complete] 取消焦点用例');
+    // 让 fixture 持续执行直到取消，避免自然完成在点击前卸载「取消回复」按钮。
+    await sessionMessageBox(page).fill('[slow] 取消焦点用例');
     await sessionRegion(page).getByRole('button', { name: '发送', exact: true }).click();
     const cancel = sessionRegion(page).getByRole('button', { name: '取消回复', exact: true });
     await expect(cancel).toBeVisible();
