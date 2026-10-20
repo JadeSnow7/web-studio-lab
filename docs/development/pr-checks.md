@@ -10,10 +10,40 @@ checkout 明确使用事件中的 `pull_request.head.sha`，并在安装前、�
 
 1. 根目录 `pnpm install --frozen-lockfile`；模板 `npm --prefix templates/standard-app ci --ignore-scripts --no-audit --no-fund`。模板不属于 pnpm workspace，必须单独安装。
 2. 报告门禁的负例单测；维护目录 `apps`、`packages`、`e2e`、`scripts`、`templates/standard-app` 的 ESLint 和 Prettier；PR merge base 至 head 的全部现存变更文件格式检查及 JS/TS lint。
-3. `pnpm typecheck`、完整 `pnpm test`（Vitest、packaging、external-builds）、`pnpm baseline:selftest`、`node scripts/check-docs.mjs`。
+3. `pnpm typecheck`；将原 `pnpm test` 的三个阶段分别串行执行为 `pnpm exec vitest run`、`pnpm test:packaging`、`pnpm test:external-builds`，全部执行并分别保留退出码；随后执行 `pnpm baseline:selftest`、`node scripts/check-docs.mjs`。原 `pnpm test` 命令不变，CI 不再因其中的 `&&` 丢失后续阶段结果。
 4. `pnpm build`；构建通过后执行完整默认 `pnpm exec playwright test --workers=1 --retries=0 --reporter=list,json`。这是 `pnpm test:e2e` 中的构建与默认 Electron 测试，拆开以保留各自退出码，并避免重复构建。没有指定测试文件、grep 或分片。
 
 安装失败会留下后续逐项 `not_run`；普通检查失败仍继续收集其他结果；构建失败不启动 E2E。子进程清除继承的 `WSL_*`、`ELECTRON_RUN_AS_NODE`、`NODE_OPTIONS` 和 `TSESTREE_SINGLE_RUN`，不启用真实模型、guest live、打包、签名或发布。依赖安装需要网络；“离线测试”指用受控 fixture、不使用真实模型或 guest 的默认测试。
+
+## PTY 调度隔离实验
+
+候选 `82e7e6fee4d04188c49a90ca517020bcaa3938a7` 的 [CI 39434384871](https://github.com/JadeSnow7/web-studio-lab/actions/runs/39434384871) 中，首个 local PTY 用例在 1005 ms 仍为 `starting`，同文件后续 5 项通过。该证据不能区分系统 Python 首次启动与其他测试竞争；根因仍为 `undetermined`，不能把调度调整写成已证明的 CPU 故障修复。
+
+`vitest.config.ts` 仅将 `apps/service/src/local-terminal.test.ts` 放入首个独占 project（`groupOrder: 0`）；原有 include 的其余文件排除这一个文件后进入第二组（`groupOrder: 1`）。既有 1000 ms 等待、测试断言、重试和跳过条件不变。首组不依赖其他测试预热 Python，后续结果仍需实际验证；若仍失败，应继续定位启动阶段，不能靠反复重跑或延长预算宣称通过。
+
+主线程可用 Vitest 的实际文件发现结果核对每个文件只属于一个 project；以下命令只列出文件，不执行测试。将输出文件数与原 CI 的 93 个文件对照，后续新增用例时重新核对范围，不把该历史数量固化为永久门禁。
+
+```sh
+pnpm exec vitest list --filesOnly --json=test-results/pr-check-collected-files.json
+node --input-type=module <<'NODE'
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+const rows = JSON.parse(readFileSync('test-results/pr-check-collected-files.json', 'utf8'));
+const target = resolve('apps/service/src/local-terminal.test.ts');
+assert.ok(rows.length > 0, 'No test files collected');
+assert.equal(new Set(rows.map((row) => resolve(row.file))).size, rows.length, 'A file was scheduled more than once');
+assert.equal(rows.filter((row) => resolve(row.file) === target).length, 1, 'PTY file must be collected exactly once');
+for (const row of rows) {
+  assert.equal(row.projectName, resolve(row.file) === target ? 'local-terminal' : 'ordinary');
+}
+console.log(JSON.stringify({
+  files: rows.length,
+  localTerminal: rows.filter((row) => row.projectName === 'local-terminal').length,
+  ordinary: rows.filter((row) => row.projectName === 'ordinary').length,
+}));
+NODE
+```
 
 ## lint 与格式的边界
 

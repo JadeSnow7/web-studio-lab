@@ -119,7 +119,10 @@ try {
     await run('format-changed', 'pnpm', ['exec', 'prettier', '--check', '--ignore-unknown', '--', ...manifest.changedFiles]);
   } else await notRun('format-changed', 'No added/modified/renamed/copied files against the PR merge base.', true);
   await run('typecheck', 'pnpm', ['typecheck']);
-  await run('offline-tests', 'pnpm', ['test']);
+  // Preserve every stage of pnpm test, collecting later results even when an earlier stage fails.
+  await run('offline-vitest', 'pnpm', ['exec', 'vitest', 'run']);
+  await run('offline-packaging', 'pnpm', ['test:packaging']);
+  await run('offline-external-builds', 'pnpm', ['test:external-builds']);
   await run('baseline-selftest', 'pnpm', ['baseline:selftest']);
   await run('docs', 'node', ['scripts/check-docs.mjs']);
   if (await run('build', 'pnpm', ['build'])) {
@@ -150,7 +153,9 @@ try {
     'lint-changed',
     'format-changed',
     'typecheck',
-    'offline-tests',
+    'offline-vitest',
+    'offline-packaging',
+    'offline-external-builds',
     'baseline-selftest',
     'docs',
     'build',
