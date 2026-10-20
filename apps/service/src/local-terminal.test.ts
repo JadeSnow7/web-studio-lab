@@ -61,6 +61,16 @@ const traceFrameSchema = z.union([
     .strict(),
 ]);
 
+type NativeSample = {
+  mode: 'sampling-after-poll-failure';
+  intervened: boolean;
+  outcome: 'observed' | 'undetermined';
+  reason: 'complete' | 'unavailable' | 'incomplete' | 'denied' | 'output-limit' | 'sample-failed' | 'no-symbols' | 'cleanup-unconfirmed';
+  image: 'system-python-wrapper' | 'xcrun' | 'python-framework' | 'unknown';
+  frames: { xcselect: number; xcrun: number; loader: number; cpythonInit: number };
+  cleanupConfirmed: boolean;
+};
+
 function instrumentFirstHelper(source: string, requested: string) {
   const imports = 'import base64, codecs, ctypes, errno, fcntl, json, os, pty, select, signal, struct, sys, tempfile, termios, time, uuid';
   const mark = (phase: z.infer<typeof phaseSchema>) => `_wsl_start_probe('${phase}')`;
@@ -112,13 +122,14 @@ function traceFirstSpawn() {
     wallMs: number;
     python?: z.infer<typeof traceFrameSchema>;
     exitCode?: number | null;
+    sampling?: NativeSample;
   };
   const events: Event[] = [];
   let traceBytes = 0;
   let truncated = false;
   let invalidMarkers = 0;
   const detach: (() => void)[] = [];
-  const record = (event: string, detail: Pick<Event, 'python' | 'exitCode'> = {}) => {
+  const record = (event: string, detail: Pick<Event, 'python' | 'exitCode' | 'sampling'> = {}) => {
     // Wall time estimates same-host delivery delay; monotonic deltas expose clock adjustments.
     const value = { event, nodeMs: Number(process.hrtime.bigint() - started) / 1e6, wallMs: Date.now(), ...detail };
     const bytes = Buffer.byteLength(JSON.stringify(value)) + 1;
@@ -130,7 +141,7 @@ function traceFirstSpawn() {
     events.push(value);
     traceBytes += bytes;
   };
-  const lines = (accept: (line: string) => void) => {
+  const lines = (accept: (line: string) => void, onOversized?: () => void) => {
     let pending = '';
     let oversized = false;
     return (chunk: Buffer | string) => {
@@ -141,6 +152,7 @@ function traceFirstSpawn() {
         const end = newline < 0 ? text.length : newline;
         if (!oversized && pending.length + end - offset <= 1024) pending += text.slice(offset, end);
         else {
+          if (!oversized) onOversized?.();
           pending = '';
           oversized = true;
         }
@@ -153,6 +165,10 @@ function traceFirstSpawn() {
     };
   };
   let spawned = false;
+  let sampling: NativeSample | undefined;
+  let startSampling: (() => void) | undefined;
+  let stopSampling = () => {};
+  let finishSampling = async () => {};
   spawnDiagnostic.intercept = (spawn, command, args, options) => {
     if (spawned) throw new Error('PTY diagnostic permits exactly one real spawn');
     if (command !== python || args.length !== 5 || args.slice(0, 4).join(' ') !== '-I -B -u -c' || typeof args[4] !== 'string')
@@ -165,6 +181,159 @@ function traceFirstSpawn() {
     // The actual executable, options and transport remain unchanged. Only this call's source has markers.
     const child = spawn(command, [...args.slice(0, 4), source], options);
     record('spawnReturned');
+    startSampling = () => {
+      if (sampling) return;
+      const result: NativeSample = {
+        mode: 'sampling-after-poll-failure',
+        intervened: false,
+        outcome: 'undetermined',
+        reason: 'unavailable',
+        image: 'unknown',
+        frames: { xcselect: 0, xcrun: 0, loader: 0, cpythonInit: 0 },
+        cleanupConfirmed: true,
+      };
+      sampling = result;
+      if (process.platform !== 'darwin' || !child.pid || child.exitCode !== null || child.signalCode !== null) return;
+      let sampler: ReturnType<Spawn>;
+      try {
+        result.intervened = true;
+        // Sampling suspends the target: all subsequent timings are diagnostic, not cold-start performance.
+        sampler = spawn('/usr/bin/sample', [String(child.pid), '1', '10', '-file', '/dev/stdout'], {
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+      } catch {
+        result.reason = 'sample-failed';
+        return;
+      }
+      result.reason = 'incomplete';
+      result.cleanupConfirmed = false;
+      let closed = false;
+      let stopped = false;
+      let inputBytes = 0;
+      let inGraph = false;
+      let graphEnded = false;
+      let issue: NativeSample['reason'] | undefined;
+      let settled: (() => void) | undefined;
+      stopSampling = () => {
+        if (closed || stopped) return;
+        stopped = true;
+        issue ??= 'incomplete';
+        result.outcome = 'undetermined';
+        result.reason = issue;
+        try {
+          sampler.kill('SIGKILL');
+        } catch {
+          result.reason = 'cleanup-unconfirmed';
+        }
+      };
+      const limit = () => {
+        issue = 'output-limit';
+        stopSampling();
+      };
+      const stdoutLines = lines((line) => {
+        if (issue) return;
+        if (line.startsWith('Path:')) {
+          const image = line.slice(5).trim();
+          result.image =
+            image === '/usr/bin/python3'
+              ? 'system-python-wrapper'
+              : image.endsWith('/usr/bin/xcrun')
+                ? 'xcrun'
+                : image.includes('/Python3.framework/')
+                  ? 'python-framework'
+                  : 'unknown';
+        }
+        if (line === 'Call graph:') {
+          inGraph = true;
+          return;
+        }
+        if (/^(?:Total number in stack|Sort by top of stack|Binary Images:)/.test(line)) {
+          graphEnded ||= inGraph;
+          inGraph = false;
+        }
+        if (!inGraph) return;
+        const frame = /^[ \t+|:!]*(\d{1,7})[ \t]+(.+?) \(in ([^()]+)\)(?: .*)?$/.exec(line);
+        if (!frame || Number(frame[1]) < 1) return;
+        const [, , symbol, image] = frame;
+        if (!symbol || !image) return;
+        // Count matching call-graph rows, not elapsed time or loaded-image presence.
+        if (image === 'libxcselect.dylib' && /^_?xcselect_/.test(symbol)) result.frames.xcselect++;
+        else if (image === 'xcrun' && /^[A-Za-z_]/.test(symbol)) result.frames.xcrun++;
+        else if (image === 'dyld' && /^dyld[34]::(?:(?:Loader|JustInTimeLoader|PrebuiltLoader|APIs|RuntimeState)::|prepare\()/.test(symbol))
+          result.frames.loader++;
+        else if (
+          /^(?:Python3?|python3)$/.test(image) &&
+          /^(?:_?Py_Initialize(?:FromConfig|Ex|Main)?|_?Py_PreInitialize(?:FromArgs|FromBytesArgs)?|_PyRuntime_Initialize|pyinit_[A-Za-z_]+|pycore_init_[A-Za-z_]+|init_interp_main)\b/.test(
+            symbol,
+          )
+        )
+          result.frames.cpythonInit++;
+      }, limit);
+      const stderrLines = lines((line) => {
+        if (/(?:permission denied|not permitted|access denied)/i.test(line)) issue ??= 'denied';
+        else if (/(?:no such process|does not appear to exist|process (?:has )?exited)/i.test(line)) issue ??= 'unavailable';
+        else if (/(?:cannot examine process|unable to get task port)/i.test(line)) issue ??= 'sample-failed';
+      }, limit);
+      const bounded = (consume: (chunk: Buffer | string) => void) => (chunk: Buffer | string) => {
+        if (stopped) return;
+        inputBytes += Buffer.byteLength(chunk);
+        // A validated report was ~69 KB with its image list; bound total input without retaining it.
+        if (inputBytes > 256 * 1024) {
+          limit();
+          return;
+        }
+        consume(chunk);
+      };
+      const sampleStdout = bounded(stdoutLines);
+      const sampleStderr = bounded(stderrLines);
+      sampler.stdout?.on('data', sampleStdout);
+      sampler.stderr?.on('data', sampleStderr);
+      const sampleError = () => {
+        issue ??= 'sample-failed';
+      };
+      sampler.once('error', sampleError);
+      sampler.stdout?.once('error', sampleError);
+      sampler.stderr?.once('error', sampleError);
+      sampler.once('close', (code) => {
+        closed = true;
+        result.cleanupConfirmed = true;
+        result.reason =
+          issue ??
+          (code !== 0
+            ? 'sample-failed'
+            : !graphEnded
+              ? 'incomplete'
+              : Object.values(result.frames).every((count) => count === 0)
+                ? 'no-symbols'
+                : 'complete');
+        result.outcome = result.reason === 'complete' ? 'observed' : 'undetermined';
+        settled?.();
+      });
+      finishSampling = async () => {
+        stopSampling();
+        if (!closed)
+          await new Promise<void>((resolve) => {
+            const timer = setTimeout(() => {
+              settled = undefined;
+              resolve();
+            }, 250);
+            settled = () => {
+              clearTimeout(timer);
+              settled = undefined;
+              resolve();
+            };
+          });
+        sampler.stdout?.off('data', sampleStdout);
+        sampler.stderr?.off('data', sampleStderr);
+        if (!closed) {
+          result.outcome = 'undetermined';
+          result.reason = 'cleanup-unconfirmed';
+          sampler.stdout?.destroy();
+          sampler.stderr?.destroy();
+          sampler.unref();
+        }
+      };
+    };
     if (!child.stderr || !child.stdout) throw new Error('PTY diagnostic streams are unavailable');
     const stderr = lines((line) => {
       if (!line.startsWith(tracePrefix)) return;
@@ -185,7 +354,10 @@ function traceFirstSpawn() {
     });
     const onSpawn = () => record('spawnEvent');
     const onError = () => record('childError');
-    const onClose = (exitCode: number | null) => record('childClose', { exitCode });
+    const onClose = (exitCode: number | null) => {
+      record('childClose', { exitCode });
+      stopSampling();
+    };
     child.stderr.on('data', stderr);
     child.stdout.on('data', stdout);
     child.once('spawn', onSpawn);
@@ -204,8 +376,27 @@ function traceFirstSpawn() {
   };
   return {
     record,
-    finish() {
-      record('probeEnd');
+    sampleAfterFailure() {
+      try {
+        startSampling?.();
+      } catch {
+        if (sampling) {
+          sampling.outcome = 'undetermined';
+          sampling.reason = 'sample-failed';
+        }
+        stopSampling();
+      }
+    },
+    async finish() {
+      try {
+        await finishSampling();
+      } catch {
+        if (sampling) {
+          sampling.outcome = 'undetermined';
+          sampling.reason = 'cleanup-unconfirmed';
+        }
+      }
+      record('probeEnd', sampling ? { sampling } : {});
       spawnDiagnostic.intercept = undefined;
       for (const release of detach) release();
       process.stderr.write(
@@ -270,6 +461,7 @@ describe('local terminal lifecycle', () => {
           trace.record('pollPassed');
         } catch (error) {
           trace.record('pollFailed');
+          trace.sampleAfterFailure();
           throw error;
         }
         terminal.write(opened.sessionId!, 'false\n');
@@ -284,7 +476,7 @@ describe('local terminal lifecycle', () => {
       expect(terminal.get().state).toBe('closed');
     } finally {
       // Keep listeners through the existing close, including ready frames arriving after a poll failure.
-      trace.finish();
+      await trace.finish();
     }
   }, 15000);
   it('bounds cleanup when foreground process ignores hangup', async () => {
