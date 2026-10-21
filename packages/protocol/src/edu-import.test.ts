@@ -13,7 +13,11 @@ const source = {
   sourceSha256: 'b'.repeat(64),
   files: [{ path: 'admin/src/App.tsx', sha256: 'c'.repeat(64), bytes: 0 }],
 };
-const request = () => ({ ...target, source: structuredClone(source), files: [{ path: 'admin/src/App.tsx', base64: '' }] });
+const request = () => ({
+  ...target,
+  source: { ...source, repository: { ...source.repository }, files: source.files.map((file) => ({ ...file })) },
+  files: [{ path: 'admin/src/App.tsx', base64: '' }],
+});
 describe('edu-only import protocol boundary', () => {
   it('accepts an explicit edu import while refusing renderer paths and alternative profile requests', () => {
     expect(AppImportRequestSchema.safeParse(request()).success).toBe(true);

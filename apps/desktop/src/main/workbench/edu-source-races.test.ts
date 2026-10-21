@@ -1,5 +1,6 @@
 import { mkdtemp, mkdir, writeFile, rename, rm, readFile, realpath } from 'node:fs/promises';
 import type { FileHandle } from 'node:fs/promises';
+import type * as FsPromises from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -8,7 +9,7 @@ import { collectEduSource } from './edu-source';
 
 const hooks = vi.hoisted(() => ({ afterOpen: null as null | ((name: string, handle: FileHandle) => Promise<void>) }));
 vi.mock('node:fs/promises', async (original) => {
-  const actual = await original<typeof import('node:fs/promises')>();
+  const actual = await original<typeof FsPromises>();
   return {
     ...actual,
     open: async (...args: Parameters<typeof actual.open>) => {
