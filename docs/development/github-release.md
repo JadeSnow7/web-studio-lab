@@ -29,6 +29,12 @@
 
 ## 构建与发布门槛
 
+桌面的 `out` 使用显式 FileSet 打入原有 `out/` ASAR 路径，使外置构建目录的符号链接仍能交付 Main、Preload 与 Renderer 的实际字节；其他未声明的外部链接不纳入打包。签名、hardened runtime 和公证门禁保持原要求。
+
+guest 与模板依赖归档的目录固定为 `0755`、普通数据为 `0644`、已有可执行文件为 `0755`，归档文件本身为 `0644`，不受构建进程的 `umask` 影响。guest staging 在审计前按同一规则规范化且不跟随符号链接修改外部文件。Node/Codex 原生入口仍须为 Linux ARM64 ELF；pnpm、pnpx 和 Codex 的固定包内入口必须存在、为普通文件并具有 `0755` 权限，`usr/local/bin` 的合法内部命令链接保留。
+
+`pnpm test:packaging` 使用已安装 builder 的真实文件匹配器与 ASAR 写入器核对合成应用的精确字节，并覆盖归档权限、缺失或错误类型的入口、外部链接不变和临时夹具清理。它不签名、不公证，也不替代实际 guest、完整安装包与首次安装验收。
+
 构建使用 ARM64 `macos-15`、Node 24.21.0、pnpm 10.34.6 和固定 commit 的官方 Actions。runner 显式准备 ripgrep 并打印版本；安装锁文件依赖、生成并校验载荷后，用同一包内 Python 探测隔离标准库导入、SSL 与 PTY。真实本地终端生命周期和分离子进程测试均使用 `WSL_TEST_PYTHON`，启动失败只打印状态、时间与清理标记，不记录终端内容或环境。同一预探针还执行原始 PTY helper 与 zsh 集成的首次 start → ready → close → cleanup：5 秒 ready 截止、10 秒整体预算、失败不重试，单独记录耗时与清理结果。后续单测保留原等待预算；不能把预探针后的单测当作冷启动性能承诺。随后执行类型检查、离线单测、打包门禁测试、基线自检、当前应用及脚本的 lint 和文档链接检查。历史证据目录不进入这轮 lint。
 
 正式 `pnpm package` 保持 `--publish never`，完成 Python 与 App 签名、App/DMG 公证、票据和 Gatekeeper 验证。Python 探针使用 `-I -B`，避免在签名包内写入 pyc；探针前后都检查 App 签名。随后运行安装配置、只读本地文件与本地 PTY 的有限 Electron smoke，再次检查签名。CI 不登录 Docker、不创建 sbx、不调用真实模型。

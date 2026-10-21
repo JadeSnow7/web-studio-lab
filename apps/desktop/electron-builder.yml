@@ -8,7 +8,10 @@ directories:
 beforePack: ../../scripts/packaging/before-pack.cjs
 forceCodeSigning: true
 files:
-  - out/**
+  # The verified external output is a symlink; a FileSet expands its root explicitly.
+  - from: out
+    to: out
+    filter: ['**/*']
   - resources/branding/**
   - package.json
 extraResources:
