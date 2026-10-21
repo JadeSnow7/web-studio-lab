@@ -6,6 +6,7 @@
 
 - 所有 Codex 轮次都在同一个 guest 目录 `/home/agent/workspace` 内以 `workspace-write` 运行（`apps/service/src/guest-helper.py` 的 `CWD` 与 `Popen(cwd=...)`），与发起它的空间和会话无关；受管 App 源码位于其中的 `.wsl-apps/`。
 - 轮次有两个入口：空间会话的 TaskRun（`WorkbenchApplication.startRun` → `WorkbenchRuntime.send`）和旧个人对话（`ipc.ts` 的 `chat:send`，不经过 WorkbenchApplication）。两者都进入 Main `ChatService.send`。
+- 2026-10-21 PR #14 在 service 层保留了“正常会话仍可并行”（`codex-chat-lifecycle.test.ts`）。用户于 2026-10-22 确认：Lane 落地前保留 W0，会话之间先串行写入；service 层行为与测试不变，限制只加在 Main。
 - 现有并发限制只有两层：Main 拒绝同一会话的第二个活动 TaskRun；service `CodexChat` 拒绝同一会话槽的第二个活动轮次。不同会话之间、以及个人对话与空间会话之间，可以同时写同一个 guest 目录。
 
 ## 2. 范围
