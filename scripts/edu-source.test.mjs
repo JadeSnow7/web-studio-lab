@@ -684,6 +684,14 @@ test('verifies genuine workbench-export and preserves manual merge identity', as
   const result = await mergeSnapshots(b.output, b.output, upstream.output, path.join(b.directory, 'merged'));
   assert.equal(result.manifest.sourceKind, 'manual-merge-candidate');
 });
+for (const field of ['projectId', 'exportId']) {
+  test('rejects array-valued workbench identity: ' + field, async (t) => {
+    const b = await workbenchBundle(t);
+    b.manifest.workbench[field] = [b.manifest.workbench[field]];
+    await writeFile(path.join(b.output, 'manifest.json'), JSON.stringify(b.manifest));
+    await assert.rejects(verifySnapshot(b.output), /invalid workbench identity/);
+  });
+}
 for (const defect of ['extra', 'base-hash', 'base-files', 'instance', 'date', 'repository', 'protected']) {
   test('rejects workbench provenance defect: ' + defect, async (t) => {
     const b = await workbenchBundle(t);

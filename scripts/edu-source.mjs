@@ -411,7 +411,9 @@ export async function verifySnapshot(directory) {
       typeof w.workspaceId !== 'string' ||
       !w.workspaceId.length ||
       w.workspaceId.length > 200 ||
+      typeof w.projectId !== 'string' ||
       !uuid.test(w.projectId) ||
+      typeof w.exportId !== 'string' ||
       !uuid.test(w.exportId) ||
       w.environmentId !== 'sandbox'
     )

@@ -74,9 +74,9 @@ node scripts/check-docs.mjs
 
 [独立 PR 检查](../../.github/workflows/edu-source-cli.yml) 在 Ubuntu 24.04、Node 24.21.0 上执行上述四个命令，不安装 npm 依赖。它检出 PR head SHA，并记录实际 head/base/tree、运行环境及每项命令退出码；手动运行时 base 取检出的远端默认分支。失败也上传日志。此检查只覆盖独立 CLI 和文档，不替代全仓检查、Electron E2E 或产品验收。
 
-实现与全部测试原字节提取自本仓库 [PR #9](https://github.com/JadeSnow7/web-studio-lab/pull/9) 的固定提交 `b5ded08630e279e0c663312411895c90cabab598`：
+初始独立提取提交 `c99c134b287aa3a2d1bde6f70939bb9eef74ec73` 的实现与测试原字节来自本仓库 [PR #9](https://github.com/JadeSnow7/web-studio-lab/pull/9) 的固定提交 `b5ded08630e279e0c663312411895c90cabab598`：
 
 - [`scripts/edu-source.mjs`](https://github.com/JadeSnow7/web-studio-lab/blob/b5ded08630e279e0c663312411895c90cabab598/scripts/edu-source.mjs)
 - [`scripts/edu-source.test.mjs`](https://github.com/JadeSnow7/web-studio-lab/blob/b5ded08630e279e0c663312411895c90cabab598/scripts/edu-source.test.mjs)
 
-独立提取基于 main `b5531e1ac3b3da7adf000f6ba61f2c5b19a0755f`，仅新增命令/测试入口和本文档，不继承该 PR 的旧 edu 产品接入。源码继续适用仓库 [Apache-2.0 许可证](../../LICENSE)。历史分支结果不作为本次提取的验证结果；实际检查状态以本次 PR 的固定提交和执行证据为准。
+初始独立提取基于 main `b5531e1ac3b3da7adf000f6ba61f2c5b19a0755f`；本次组合基于已合并 PR #11 的 main `d505431d577058c81b9a569703b5b8b563f2a4ae`，保留其修复与通用检查。组合后增加 `projectId`、`exportId` 的字符串类型校验及两项数组负例，并将 `pnpm test:edu-source` 显式纳入通用 PR 检查的必要阶段 `offline-edu-source`，因此当前实现与测试不再与初始来源逐字节相同。不继承 PR #9 的旧 edu 产品接入。源码继续适用仓库 [Apache-2.0 许可证](../../LICENSE)。历史分支结果不作为本次提取的验证结果；实际检查状态以本次 PR 的固定提交和执行证据为准。
