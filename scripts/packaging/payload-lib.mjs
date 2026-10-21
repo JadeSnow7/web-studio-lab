@@ -1,7 +1,7 @@
 /* global Buffer, fetch */
 import { createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, readFile, readdir, lstat, readlink, rm, rename } from 'node:fs/promises';
+import { mkdir, readFile, readdir, lstat, readlink, rm, rename, chmod } from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -157,6 +157,23 @@ export async function inventory(directory, prefix = '') {
 export async function expandedBytes(directory) {
   return (await inventory(directory)).reduce((size, entry) => size + (entry.stat.isFile() ? entry.stat.size : 0), 0);
 }
+// Runtime payloads are extracted as root but consumed by the non-root guest agent.
+// Canonical modes must not depend on the packager's umask; links are never followed.
+function payloadMode(type, mode) {
+  return type === '5' ? 0o755 : type === '2' ? 0o777 : mode & 0o111 ? 0o755 : 0o644;
+}
+export function assertPayloadPermissions(name, type, mode, executable = false) {
+  if (type === '2') return;
+  const valid = type === '5' ? mode === 0o755 : executable ? mode === 0o755 : mode === 0o644 || mode === 0o755;
+  if (!valid) throw new Error(`Invalid payload permissions: ${name} (${mode.toString(8)})`);
+}
+export async function normalizePayloadPermissions(directory) {
+  await chmod(directory, 0o755);
+  for (const entry of await inventory(directory)) {
+    if (entry.stat.isSymbolicLink()) continue;
+    await chmod(entry.absolute, payloadMode(entry.stat.isDirectory() ? '5' : '0', entry.stat.mode));
+  }
+}
 function headerFor(name, size, mode, type, link = '') {
   const header = Buffer.alloc(512);
   const write = (value, offset, length) => {
@@ -192,7 +209,8 @@ export async function deterministicArchive(directory, destination) {
       const directory = entry.stat.isDirectory();
       const size = entry.stat.isFile() ? entry.stat.size : 0;
       const link = symlink ? await readlink(entry.absolute) : '';
-      yield headerFor(entry.relative, size, entry.stat.mode, symlink ? '2' : directory ? '5' : '0', link);
+      const type = symlink ? '2' : directory ? '5' : '0';
+      yield headerFor(entry.relative, size, payloadMode(type, entry.stat.mode), type, link);
       if (entry.stat.isFile()) {
         for await (const chunk of createReadStream(entry.absolute)) yield chunk;
         if (size % 512) yield Buffer.alloc(512 - (size % 512));
@@ -201,4 +219,5 @@ export async function deterministicArchive(directory, destination) {
     yield Buffer.alloc(1024);
   }
   await pipeline(Readable.from(contents()), createGzip({ level: 6 }), createWriteStream(destination));
+  await chmod(destination, 0o644);
 }

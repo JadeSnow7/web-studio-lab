@@ -1,11 +1,34 @@
-/* global Buffer */
+/* global Buffer, process */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm, access } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, access, chmod, symlink, lstat } from 'node:fs/promises';
 import os from 'node:os';
+import { URL } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import { gzipSync, gunzipSync } from 'node:zlib';
 import path from 'node:path';
 import { auditGuestArchive, auditGuestDirectory, prunePnpmForeignTargets, requiredGuestBinaries } from './guest-platform.mjs';
-import { deterministicArchive, digest, root } from './payload-lib.mjs';
+import { deterministicArchive, digest, root, inspectTar, inventory } from './payload-lib.mjs';
+import * as payload from './payload-lib.mjs';
+
+// These exact package entry paths are part of the pinned guest payload contract.
+const requiredGuestScripts = [
+  'usr/local/lib/node_modules/pnpm/bin/pnpm.cjs',
+  'usr/local/lib/node_modules/pnpm/bin/pnpx.cjs',
+  'usr/local/lib/node_modules/@openai/codex/bin/codex.js',
+];
+const requiredGuestExecutables = [...requiredGuestBinaries, ...requiredGuestScripts];
+async function removeFixture(file, recursive = false) {
+  await rm(file, { recursive, force: true });
+  await assert.rejects(lstat(file), { code: 'ENOENT' });
+}
+async function canonicalFixtureModes(directory) {
+  await chmod(directory, 0o755);
+  for (const entry of await inventory(directory)) {
+    if (entry.stat.isSymbolicLink()) continue;
+    await chmod(entry.absolute, entry.stat.isDirectory() || entry.stat.mode & 0o111 ? 0o755 : 0o644);
+  }
+}
 import { verifyPayloads } from './release-gates.mjs';
 
 function elf(machine = 183) {
@@ -16,11 +39,18 @@ function elf(machine = 183) {
 }
 async function fixture(t) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'wsl-guest-platform-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
+  t.after(() => removeFixture(directory, true));
   for (const relative of requiredGuestBinaries) {
     await mkdir(path.dirname(path.join(directory, relative)), { recursive: true });
     await writeFile(path.join(directory, relative), elf());
+    await chmod(path.join(directory, relative), 0o755);
   }
+  for (const relative of requiredGuestExecutables.filter((name) => !requiredGuestBinaries.includes(name))) {
+    await mkdir(path.dirname(path.join(directory, relative)), { recursive: true });
+    await writeFile(path.join(directory, relative), '#!/usr/bin/env node', { mode: 0o755 });
+    await chmod(path.join(directory, relative), 0o755);
+  }
+  await canonicalFixtureModes(directory);
   return directory;
 }
 test('pnpm platform pruning removes only macOS/Windows targets and preserves Linux ARM64 native bytes', async (t) => {
@@ -37,23 +67,24 @@ test('pnpm platform pruning removes only macOS/Windows targets and preserves Lin
   assert.equal(removed.length, 2);
   await assert.rejects(access(path.join(pnpm, removed[0])), /ENOENT/);
   assert.deepEqual(await readFile(linux), bytes);
+  await canonicalFixtureModes(directory);
   const audit = await auditGuestDirectory(directory);
   assert.equal(audit.elfFiles.length, 3);
   const archive = path.join(os.tmpdir(), path.basename(directory) + '.tar.gz');
-  t.after(() => rm(archive, { force: true }));
+  t.after(() => removeFixture(archive));
   await deterministicArchive(directory, archive);
   assert.deepEqual(auditGuestArchive(await readFile(archive)), audit);
 });
 test('guest archive audit rejects residual Mach-O and PE even outside pnpm', async (t) => {
   const directory = await fixture(t);
   const runtime = await mkdtemp(path.join(os.tmpdir(), 'wsl-stale-payload-'));
-  t.after(() => rm(runtime, { recursive: true, force: true }));
+  t.after(() => removeFixture(runtime, true));
   const lock = JSON.parse(await readFile(path.join(root, 'packaging/dependencies.lock.json'), 'utf8'));
   const python = lock.sources.find((source) => source.id === 'python');
   await mkdir(path.join(runtime, 'python/bin'), { recursive: true });
   await writeFile(path.join(runtime, 'python/bin/python3'), 'python');
   const archive = path.join(os.tmpdir(), path.basename(directory) + '.tar.gz');
-  t.after(() => rm(archive, { force: true }));
+  t.after(() => removeFixture(archive));
   for (const [kind, bytes] of [
     ['Mach-O', Buffer.from('cffaedfe', 'hex')],
     ['PE', Buffer.from('MZ')],
@@ -97,4 +128,134 @@ test('guest audit rejects wrong ELF architecture or a missing required native ex
   await rm(path.join(directory, 'wrong-architecture.so'));
   await rm(path.join(directory, requiredGuestBinaries[0]));
   await assert.rejects(auditGuestDirectory(directory), /Required Linux ARM64 executable is missing/);
+});
+
+function changeTarMode(archive, name, mode) {
+  const bytes = gunzipSync(archive);
+  for (let offset = 0; offset + 512 <= bytes.length;) {
+    const header = bytes.subarray(offset, offset + 512);
+    const text = (part) => part.toString().replace(/\0.*$/s, '');
+    const entry = text(header.subarray(345, 500));
+    const current = (entry ? entry + '/' : '') + text(header.subarray(0, 100));
+    if (current === name) {
+      header.write(mode.toString(8).padStart(7, '0') + '\0', 100, 8);
+      header.write('        ', 148, 8);
+      const sum = header.reduce((total, byte) => total + byte, 0);
+      header.write(sum.toString(8).padStart(6, '0') + '\0 ', 148, 8);
+      return gzipSync(bytes);
+    }
+    offset += 512 + Math.ceil(parseInt(text(header.subarray(124, 136)) || '0', 8) / 512) * 512;
+  }
+  throw new Error('fixture member missing: ' + name);
+}
+test('guest permission audit refuses root-private directories, unreadable data and non-agent executables', async (t) => {
+  const directory = await fixture(t),
+    archive = path.join(directory, '../' + path.basename(directory) + '.tar.gz');
+  t.after(() => removeFixture(archive));
+  for (const file of requiredGuestBinaries) await chmod(path.join(directory, file), 0o755);
+  await writeFile(path.join(directory, 'usr/local/data.json'), '{}');
+  await deterministicArchive(directory, archive);
+  const bytes = await readFile(archive);
+  for (const [name, mode] of [
+    ['usr', 0o700],
+    ['usr/local', 0o750],
+    ['usr/local/data.json', 0o600],
+    [requiredGuestBinaries[0], 0o744],
+    [requiredGuestExecutables[2], 0o644],
+  ])
+    assert.throws(() => auditGuestArchive(changeTarMode(bytes, name, mode)), /payload permissions/);
+});
+test('guest and template-style archives are identical and agent-accessible under umask 077 and 022', async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'wsl-payload-umask-'));
+  t.after(() => removeFixture(directory, true));
+  const moduleUrl = new URL('./payload-lib.mjs', import.meta.url).href;
+  const script = `import {mkdir,writeFile,symlink} from 'node:fs/promises';import path from 'node:path';import {deterministicArchive} from ${JSON.stringify(moduleUrl)};process.umask(parseInt(process.argv[3],8));const root=process.argv[1];await mkdir(path.join(root,'usr/local/bin'),{recursive:true});await mkdir(path.join(root,'node_modules/tool/bin'),{recursive:true});await writeFile(path.join(root,'usr/local/bin/tool'),${JSON.stringify('#!/bin/sh\nexit 0\n')},{mode:0o755});await writeFile(path.join(root,'node_modules/tool/bin/cli'),${JSON.stringify('#!/bin/sh\nexit 0\n')},{mode:0o755});await writeFile(path.join(root,'node_modules/tool/package.json'),'{}');await symlink('tool/bin/cli',path.join(root,'node_modules/tool-link'));await deterministicArchive(root,process.argv[2]);`;
+  for (const mask of ['077', '022'])
+    execFileSync(process.execPath, [
+      '--input-type=module',
+      '-e',
+      script,
+      path.join(directory, mask),
+      path.join(directory, mask + '.tar.gz'),
+      mask,
+    ]);
+  const a = await readFile(path.join(directory, '077.tar.gz')),
+    b = await readFile(path.join(directory, '022.tar.gz'));
+  const extracted = path.join(directory, 'extracted');
+  await mkdir(extracted);
+  execFileSync('/usr/bin/tar', ['-xzpf', path.join(directory, '077.tar.gz'), '-C', extracted]);
+  execFileSync(path.join(extracted, 'usr/local/bin/tool'));
+  execFileSync(path.join(extracted, 'node_modules/tool-link'));
+  assert.equal(await readFile(path.join(extracted, 'node_modules/tool/package.json'), 'utf8'), '{}');
+  assert.deepEqual(a, b);
+  for (const entry of inspectTar(a))
+    assert.equal(
+      entry.mode,
+      entry.type === '5' ? 0o755 : entry.type === '2' ? 0o777 : entry.name.endsWith('/cli') || entry.name.endsWith('/tool') ? 0o755 : 0o644,
+    );
+  assert.equal((await lstat(path.join(directory, '077.tar.gz'))).mode & 0o777, 0o644);
+});
+
+test('staging normalization fixes guest directories and data without following links outside the payload', async (t) => {
+  const directory = await fixture(t);
+  const outside = path.join(os.tmpdir(), path.basename(directory) + '-outside');
+  await writeFile(outside, 'private', { mode: 0o600 });
+  t.after(() => removeFixture(outside));
+  await symlink(outside, path.join(directory, 'outside-link'));
+  await chmod(path.join(directory, 'usr'), 0o700);
+  await writeFile(path.join(directory, 'usr/data'), '{}', { mode: 0o600 });
+  await payload.normalizePayloadPermissions(directory);
+  assert.equal((await lstat(path.join(directory, 'usr'))).mode & 0o777, 0o755);
+  assert.equal((await lstat(path.join(directory, 'usr/data'))).mode & 0o777, 0o644);
+  assert.equal((await lstat(outside)).mode & 0o777, 0o600);
+  assert.equal(await readFile(outside, 'utf8'), 'private');
+  assert.equal((await lstat(path.join(directory, 'outside-link'))).isSymbolicLink(), true);
+  await auditGuestDirectory(directory);
+});
+
+for (const source of ['directory', 'archive']) {
+  for (const kind of ['missing', 'directory', 'symlink']) {
+    test(`guest ${source} audit rejects required package scripts that are ${kind}`, async (t) => {
+      for (const relative of requiredGuestScripts) {
+        const directory = await fixture(t);
+        const file = path.join(directory, relative);
+        await rm(file);
+        if (kind === 'directory') await mkdir(file, { mode: 0o755 });
+        if (kind === 'symlink') {
+          await writeFile(path.join(path.dirname(file), 'non-executable-data'), 'not executable', { mode: 0o644 });
+          await symlink('non-executable-data', file);
+        }
+        const expected = /Required guest executable is missing or not a regular file/;
+        if (source === 'directory') await assert.rejects(auditGuestDirectory(directory), expected);
+        else {
+          const archive = path.join(os.tmpdir(), path.basename(directory) + '.tar.gz');
+          t.after(() => removeFixture(archive));
+          await deterministicArchive(directory, archive);
+          const bytes = await readFile(archive);
+          assert.throws(() => auditGuestArchive(bytes), expected);
+        }
+      }
+    });
+  }
+}
+
+test('guest audits accept ordinary package scripts and their internal command symlinks', async (t) => {
+  const directory = await fixture(t);
+  const commands = {
+    pnpm: '../lib/node_modules/pnpm/bin/pnpm.cjs',
+    pnpx: '../lib/node_modules/pnpm/bin/pnpx.cjs',
+    codex: '../lib/node_modules/@openai/codex/bin/codex.js',
+  };
+  for (const [name, target] of Object.entries(commands)) await symlink(target, path.join(directory, 'usr/local/bin', name));
+  const audit = await auditGuestDirectory(directory);
+  const archive = path.join(os.tmpdir(), path.basename(directory) + '.tar.gz');
+  t.after(() => removeFixture(archive));
+  await deterministicArchive(directory, archive);
+  const bytes = await readFile(archive);
+  assert.deepEqual(auditGuestArchive(bytes), audit);
+  for (const [name, target] of Object.entries(commands)) {
+    const entry = inspectTar(bytes).find((entry) => entry.name === 'usr/local/bin/' + name);
+    assert.equal(entry.type, '2');
+    assert.equal(entry.link, target);
+  }
 });
