@@ -4,6 +4,7 @@ import type { WorkbenchCommand, WorkbenchEvent, WorkbenchResult, WorkbenchSnapsh
 import type { ChatConversation, ChatSlot, ChatStatus } from './chat';
 import type { AppInfo, ShellCommand } from './app';
 import type { ExecutionStatus } from './execution';
+import type { RunPatchResult } from './source-change';
 
 import type { CatalogAction, ResourceRevision, CatalogReferenceSnapshot } from './resource-catalog';
 export type Unsubscribe = () => void;
@@ -32,6 +33,7 @@ export interface StudioApi {
     catalogCommand(command: CatalogAction): Promise<WorkbenchResult>;
     resourceRevision(resourceId: string, version: number): Promise<ResourceRevision>;
     runReferences(workspaceId: string, runId: string): Promise<CatalogReferenceSnapshot | null>;
+    runPatch(workspaceId: string, runId: string): Promise<RunPatchResult>;
     command(command: WorkbenchCommand): Promise<WorkbenchResult>;
     onEvent(listener: (event: WorkbenchEvent) => void): Unsubscribe;
   };

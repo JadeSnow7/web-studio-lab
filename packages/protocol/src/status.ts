@@ -122,10 +122,13 @@ export const RunStatusRawSchema = z
     state: WorkbenchRunSchema.shape.state.optional(),
     cleanupPending: z.boolean().optional(),
     appCleanupPending: z.boolean().optional(),
+    sourceCleanupPending: z.boolean().optional(),
+    eduTaskCleanupPending: z.boolean().optional(),
     executorState: z.object({ state: ChatConversationSchema.shape.state, cleanupPending: z.boolean() }).strict().optional(),
     cleanupRetryAvailable: z.boolean().optional(),
     cleanupReconciling: z.boolean().optional(),
     taskVersionId: z.string().optional(),
+    sourceChangeState: z.enum(['baseline', 'captured', 'unavailable']).optional(),
     ...Truncated,
   })
   .strict();

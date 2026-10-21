@@ -1,21 +1,53 @@
 import * as fs from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { AppSourceSchema, ChatServiceMessageSchema, EDU_REQUIRED_FILES, MOTA_REQUIRED_FILES, type AppProfile } from '@wsl/protocol';
 import { mkdtemp, readFile, rm, mkdir, writeFile, symlink } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, expect, it, vi } from 'vitest';
 import { AppService, validateAppSources, type AppKey } from './app-service';
+import { setup as setupMain, state as pageFixture, capture as captureFixture } from '../../desktop/src/main/workbench/sha-main-fixture';
 import { AppControl } from '../../desktop/src/main/workbench/app-control';
 import appHelper from './app-helper.py?raw';
 import type { GuestFrame, GuestOutcome, GuestStart } from './sbx';
 
 vi.mock('node:fs/promises', async (original) => ({ ...(await original<typeof fs>()) }));
 
-const key: AppKey = { workspaceId: 'space-test', projectId: 'project-test' };
+const key: AppKey = { workspaceId: 'space-test', projectId: '767c75f6-ad3f-4905-81ed-7892ed7941ab' };
 const files = [{ path: 'package.json', base64: Buffer.from('{}').toString('base64') }];
+const eduFiles = [...EDU_REQUIRED_FILES, 'admin/src/App.tsx']
+  .sort()
+  .map((path) => ({ path, base64: Buffer.from(path).toString('base64') }));
+function eduSource(sourceFiles = eduFiles) {
+  const metadata = [...sourceFiles]
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+    .map((file) => {
+      const bytes = Buffer.from(file.base64, 'base64');
+      return { path: file.path, sha256: createHash('sha256').update(bytes).digest('hex'), bytes: bytes.length };
+    });
+  return {
+    repository: { commit: 'a'.repeat(40), dirty: false },
+    sourceSha256: createHash('sha256').update(JSON.stringify(metadata)).digest('hex'),
+    files: metadata,
+  };
+}
 function fixture(
   settings: {
+    sourceFiles?: typeof files;
+    identityKey?: AppKey;
+    recoveryError?: string;
+    recoveryWrongIdentity?: boolean;
+    recoveryEarlyExit?: boolean;
+    crashOutcome?: GuestOutcome;
+    startupFailure?: { stderr: string[]; stdout?: string; outcome?: GuestOutcome };
+    startCleanupFailure?: boolean;
+    startCloseError?: string;
+    commandCloseError?: string;
+    deferStartDoneOnClose?: boolean;
+    recoveryBootReplacement?: 'valid' | 'invalid';
+    healthTemplate?: string;
     closeGate?: Promise<void>;
     agentOutcome?: GuestOutcome;
     agentGate?: Promise<void>;
@@ -41,16 +73,28 @@ function fixture(
   let closes = 0;
   let starts = 0;
   let crash: (() => void) | undefined;
+  let rejectApp: ((error: Error) => void) | undefined;
+  let appOutput: ((frame: GuestFrame) => void) | undefined;
   let identity: Record<string, unknown> = {};
+  const recoveryBootId = randomUUID();
   const commands: string[][] = [];
   const prompts: Record<string, unknown>[] = [];
   const agentRequests: { url: string; token: string | null; body: string | null }[] = [];
+  let templateId = 'wsl-standard-app';
+  const requests: { operation: string; profile?: AppProfile }[] = [];
   const connection = {
     runtimeTarget: () => ({ binary: '/configured/sbx', sandbox: 'sandbox-test' }),
     getStatus: () => ({ available: true, reason: null, sandbox: 'sandbox-test', version: 'fixture', cwd: '/home/agent/workspace' }),
     start: (start: GuestStart, onFrame: (frame: GuestFrame) => void) => {
       if (start.mode !== 'codex') throw new Error('unexpected mode');
-      const input = JSON.parse(start.prompt ?? '{}') as { operation: string; appInstanceId: string };
+      const input = JSON.parse(start.prompt ?? '{}') as {
+        operation: string;
+        appInstanceId: string;
+        importOperationId?: string;
+        profile?: AppProfile;
+      };
+      requests.push(input);
+      templateId = input.profile?.projectKind === 'edu-web' ? 'edu-web' : 'wsl-standard-app';
       prompts.push(input);
       starts++;
       let finish: ((result: GuestOutcome) => void) | undefined;
@@ -59,21 +103,33 @@ function fixture(
         finish = resolve;
         rejectDone = reject;
       });
-      identity = { ...key, environmentId: 'sandbox', appInstanceId: input.appInstanceId };
-      if (input.operation === 'start') crash = () => finish?.({ confirmed: true, exitCode: 17, error: null });
+      identity = { ...(settings.identityKey ?? key), environmentId: 'sandbox', appInstanceId: input.appInstanceId };
+      if (input.operation === 'start') rejectApp = rejectDone;
+      if (input.operation === 'start') appOutput = onFrame;
+      if (input.operation === 'start') crash = () => finish?.(settings.crashOutcome ?? { confirmed: true, exitCode: 17, error: null });
       if (input.operation === 'start')
-        queueMicrotask(() =>
+        queueMicrotask(() => {
+          if (settings.startupFailure) {
+            if (settings.startupFailure.stdout) onFrame({ type: 'output', stream: 'stdout', data: settings.startupFailure.stdout });
+            for (const data of settings.startupFailure.stderr) onFrame({ type: 'output', stream: 'stderr', data });
+            finish?.(settings.startupFailure.outcome ?? { confirmed: true, exitCode: 7, error: null });
+            return;
+          }
           onFrame({
             type: 'output',
             stream: 'stdout',
             data:
+              (input.profile?.projectKind === 'edu-web'
+                ? 'WSL_APP_SOURCE:' + eduSource(settings.sourceFiles ?? eduFiles).sourceSha256 + '\n'
+                : '') +
               JSON.stringify({
                 event: 'app-ready',
                 port: guestPort,
                 identity: { ...identity, ...(settings.wrongReadyIdentity ? { appInstanceId: randomUUID() } : {}) },
-              }) + '\n',
-          }),
-        );
+              }) +
+              '\n',
+          });
+        });
       if (input.operation !== 'start')
         queueMicrotask(async () => {
           if (input.operation === 'export' && settings.exportGate) await settings.exportGate;
@@ -86,17 +142,48 @@ function fixture(
             type: 'output',
             stream: 'stdout',
             data: `WSL_APP_RESULT:${JSON.stringify(
-              input.operation === 'create'
-                ? { created: true }
-                : input.operation === 'agent'
-                  ? {
-                      exitCode: 0,
-                      stdout: 'noise\n' + JSON.stringify({ ok: true, data: { args: (input as { args?: unknown }).args } }) + '\n',
-                      stderr: '',
-                    }
-                  : { files },
+              input.operation === 'import-source'
+                ? {
+                    importOperationId: input.importOperationId,
+                    outcome: 'imported',
+                    retryable: false,
+                    errorCode: null,
+                    profile: input.profile,
+                    sourceSha256: input.profile?.projectKind === 'edu-web' ? input.profile.source.sourceSha256 : undefined,
+                  }
+                : input.operation === 'create'
+                  ? { created: true }
+                  : input.operation === 'agent'
+                    ? {
+                        exitCode: 0,
+                        stdout: 'noise\n' + JSON.stringify({ ok: true, data: { args: (input as { args?: unknown }).args } }) + '\n',
+                        stderr: '',
+                      }
+                    : input.operation === 'recover-owned'
+                      ? settings.recoveryError
+                        ? { recoveryError: settings.recoveryError }
+                        : {
+                            cleanupConfirmed: true,
+                            identity: { ...identity, ...(settings.recoveryWrongIdentity ? { appInstanceId: randomUUID() } : {}) },
+                            sourceSha256: eduSource(settings.sourceFiles ?? eduFiles).sourceSha256,
+                            bootId: recoveryBootId,
+                            ...(settings.recoveryBootReplacement
+                              ? {
+                                  bootReplacement: {
+                                    previousBootId: settings.recoveryBootReplacement === 'valid' ? recoveryBootId : randomUUID(),
+                                    currentBootId: randomUUID(),
+                                  },
+                                }
+                              : {}),
+                            leader: { pid: 111, startTicks: '42' },
+                            members: [{ pid: 111, startTicks: '42' }],
+                          }
+                      : input.operation === 'apply-task'
+                        ? { applied: true }
+                        : { files: settings.sourceFiles ?? files },
             )}\n`,
           });
+          if (input.operation === 'recover-owned' && !settings.recoveryEarlyExit) return;
           finish?.(
             input.operation === 'agent' && settings.agentOutcome ? settings.agentOutcome : { confirmed: true, exitCode: 0, error: null },
           );
@@ -106,12 +193,18 @@ function fixture(
         close: async () => {
           closes++;
           if (input.operation === 'agent' && settings.agentCloseError) throw new Error(settings.agentCloseError);
+          if (input.operation === 'start' && settings.startCloseError) throw new Error(settings.startCloseError);
+          if (input.operation === 'export' && settings.commandCloseError) throw new Error(settings.commandCloseError);
           if (settings.closeGate) await settings.closeGate;
+          if (input.operation === 'start' && settings.deferStartDoneOnClose) return { confirmed: true, exitCode: -15, error: null };
           commands.push(['child-close']);
           finish?.({
-            confirmed: settings.cleanup !== false,
+            confirmed: settings.cleanup !== false && !(input.operation === 'start' && settings.startCleanupFailure),
             exitCode: -15,
-            error: settings.cleanup === false ? 'fixture cleanup unknown' : null,
+            error:
+              settings.cleanup === false || (input.operation === 'start' && settings.startCleanupFailure)
+                ? 'fixture cleanup unknown'
+                : null,
           });
           return done;
         },
@@ -149,8 +242,8 @@ function fixture(
       return new Response(
         JSON.stringify({
           ok: true,
-          templateId: 'wsl-standard-app',
-          templateVersion: '1.1.0',
+          templateId: settings.healthTemplate ?? templateId,
+          templateVersion: templateId === 'edu-web' ? '1.0.0' : '1.1.0',
           identity: { ...identity, ...(settings.wrongIdentity ? { appInstanceId: randomUUID() } : {}) },
         }),
       );
@@ -163,9 +256,15 @@ function fixture(
     commands: () => commands,
     prompts: () => prompts,
     agentRequests: () => agentRequests,
+    requests: () => requests,
     closes: () => closes,
     starts: () => starts,
     crash: () => crash?.(),
+    rejectApp: () => {
+      if (!rejectApp) throw new Error('No App process');
+      return rejectApp;
+    },
+    output: (data: string, stream: 'stdout' | 'stderr' = 'stdout') => appOutput?.({ type: 'output', stream, data }),
     rebind: (port: number) => {
       mappedHostPort = port;
     },
@@ -182,7 +281,608 @@ function fixture(
   };
 }
 
+describe('R3 App asynchronous completion failures', () => {
+  it('publishes persistence failure after done resolves and keeps unknown cleanup blocked', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-completion-'));
+    const registryPath = path.join(root, 'registry.json');
+    const test = fixture();
+    const onSnapshot = vi.fn();
+    const service = new AppService(test.connection, { ...test.options, registryPath, onSnapshot });
+    let writing: ReturnType<typeof vi.spyOn> | undefined;
+    try {
+      await service.create({ ...key, files });
+      const running = await service.start(key);
+      writing = vi.spyOn(fs, 'writeFile').mockRejectedValueOnce(new Error('controlled_exit_persist_failure'));
+      test.crash();
+      await expect.poll(() => service.get(key).error).toContain('controlled_exit_persist_failure');
+      expect(service.get(key)).toMatchObject({ appInstanceId: running.appInstanceId, state: 'failed', cleanupConfirmed: false, url: null });
+      expect(onSnapshot).toHaveBeenLastCalledWith(
+        expect.objectContaining({ state: 'failed', error: expect.stringContaining('controlled_exit_persist_failure') }),
+      );
+      await expect(service.start(key)).rejects.toThrow(/清理|进行中/);
+      writing.mockRestore();
+      const stopped = await service.stop(key);
+      expect(stopped.cleanupConfirmed).toBe(false);
+      expect(JSON.parse(await readFile(registryPath, 'utf8')).apps[0]).toMatchObject({ state: 'failed', cleanupConfirmed: false });
+      expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+    } finally {
+      writing?.mockRestore();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('keeps a rejected close visible and does not release the same-instance restart gate', async () => {
+    const test = fixture({ startCloseError: 'controlled_exit_close_failure' });
+    await test.service.create({ ...key, files });
+    await test.service.start(key);
+    test.crash();
+    await expect.poll(() => test.service.get(key).error).toContain('controlled_exit_close_failure');
+    expect(test.service.get(key)).toMatchObject({ state: 'failed', cleanupConfirmed: false, url: null });
+    await expect(test.service.start(key)).rejects.toThrow(/清理|进行中/);
+    expect((await test.service.stop(key)).cleanupConfirmed).toBe(false);
+  });
+  it('retains a throwing snapshot publisher error in the queryable failed snapshot', async () => {
+    const test = fixture();
+    const service = new AppService(test.connection, {
+      ...test.options,
+      onSnapshot: (snapshot) => {
+        if (snapshot.state === 'failed') throw new Error('controlled_exit_publish_failure');
+      },
+    });
+    await service.create({ ...key, files });
+    await service.start(key);
+    test.crash();
+    await expect.poll(() => service.get(key).error).toContain('controlled_exit_publish_failure');
+    expect(service.get(key)).toMatchObject({ state: 'failed', cleanupConfirmed: false, url: null });
+  });
+  it('awaits a rejected asynchronous snapshot publisher before releasing exit completion', async () => {
+    const test = fixture();
+    const service = new AppService(test.connection, {
+      ...test.options,
+      onSnapshot: async (snapshot) => {
+        if (snapshot.state === 'failed') {
+          await Promise.resolve();
+          throw new Error('controlled_async_publish_failure');
+        }
+      },
+    });
+    await service.create({ ...key, files });
+    await service.start(key);
+    test.crash();
+    await expect.poll(() => service.get(key).error).toContain('controlled_async_publish_failure');
+    expect(service.get(key)).toMatchObject({ state: 'failed', cleanupConfirmed: false, url: null });
+  });
+  it('handles a rejected running done without inventing an exit or cleanup receipt', async () => {
+    const test = fixture();
+    await test.service.create({ ...key, files });
+    const running = await test.service.start(key);
+    test.rejectApp()(new Error('controlled_running_done_rejection'));
+    await expect.poll(() => test.service.get(key).state).toBe('failed');
+    await expect.poll(() => test.service.get(key).error).toContain('controlled_running_done_rejection');
+    expect(test.service.get(key)).toMatchObject({ appInstanceId: running.appInstanceId, cleanupConfirmed: false, url: null });
+    await expect(test.service.start(key)).rejects.toThrow(/清理|进行中/);
+    expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+  });
+  it('does not discard an edu handle whose done and close both reject', async () => {
+    const test = fixture({ sourceFiles: eduFiles });
+    await test.service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+    await test.service.start(key);
+    test.rejectApp()(new Error('controlled_edu_transport_unknown'));
+    await expect.poll(() => test.service.get(key).error).toContain('controlled_edu_transport_unknown');
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    const stopped = await test.service.stop(key);
+    expect(stopped).toMatchObject({ state: 'failed', cleanupConfirmed: false });
+    expect(test.requests().some((request) => request.operation === 'recover-owned')).toBe(false);
+    expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+    await expect(test.service.start(key)).rejects.toThrow(/清理/);
+  });
+  it('handles done rejection during startup before reporting a running App', async () => {
+    const test = fixture();
+    const service = new AppService(test.connection, {
+      ...test.options,
+      fetch: async (...args) => {
+        test.rejectApp()(new Error('controlled_startup_done_rejection'));
+        return test.options.fetch(...args);
+      },
+    });
+    await service.create({ ...key, files });
+    const result = await service.start(key);
+    expect(result).toMatchObject({ state: 'failed', cleanupConfirmed: false, url: null });
+    expect(result.error).toContain('controlled_startup_done_rejection');
+  });
+  it('ignores a former process rejection after confirmed stop and a new AppInstance', async () => {
+    const test = fixture({ deferStartDoneOnClose: true });
+    await test.service.create({ ...key, files });
+    const first = await test.service.start(key);
+    const rejectOld = test.rejectApp();
+    expect((await test.service.stop(key)).cleanupConfirmed).toBe(true);
+    const second = await test.service.start(key);
+    expect(second.appInstanceId).not.toBe(first.appInstanceId);
+    rejectOld(new Error('controlled_stale_done_rejection'));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(test.service.get(key)).toEqual(second);
+    expect(test.hasMapping()).toBe(true);
+    expect((await test.service.stop(key)).cleanupConfirmed).toBe(true);
+  });
+  it('rechecks process continuity after cleanup persistence before unpublishing', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-continuity-'));
+    const test = fixture();
+    const service = new AppService(test.connection, { ...test.options, registryPath: path.join(root, 'registry.json') });
+    const originalWrite = fs.writeFile;
+    let writing: ReturnType<typeof vi.spyOn> | undefined;
+    try {
+      await service.create({ ...key, files });
+      await service.start(key);
+      writing = vi.spyOn(fs, 'writeFile').mockImplementationOnce(async (...args) => {
+        test.crash();
+        test.rebind(49999);
+        await originalWrite(...args);
+      });
+      const stopped = await service.stop(key);
+      expect(stopped).toMatchObject({ state: 'failed', cleanupConfirmed: false });
+      expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+      expect(test.hasMapping()).toBe(true);
+    } finally {
+      writing?.mockRestore();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('records finite-helper close rejection without leaving stopping stuck and permits explicit recovery', async () => {
+    let release: () => void = () => {
+      throw new Error('Uninitialised gate');
+    };
+    const settings = {
+      exportGate: new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+      commandCloseError: 'controlled_command_close_failure' as string | undefined,
+    };
+    const test = fixture(settings);
+    await test.service.create({ ...key, files });
+    const exporting = expect(test.service.export(key)).rejects.toThrow('取消');
+    try {
+      await expect.poll(test.starts).toBe(2);
+      await expect(test.service.stop(key)).rejects.toThrow('controlled_command_close_failure');
+      expect(test.service.get(key)).toMatchObject({
+        state: 'failed',
+        cleanupConfirmed: false,
+        error: expect.stringContaining('controlled_command_close_failure'),
+      });
+      await expect(test.service.start(key)).rejects.toThrow(/进行中|清理/);
+    } finally {
+      settings.commandCloseError = undefined;
+      release();
+      await exporting;
+      await test.service.stop(key);
+    }
+    expect(test.service.get(key)).toMatchObject({ state: 'stopped', cleanupConfirmed: true });
+  });
+  it('recovers an exited edu instance after a failed completion write without replaying a start', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-exit-recovery-'));
+    const test = fixture({ sourceFiles: eduFiles });
+    const service = new AppService(test.connection, { ...test.options, registryPath: path.join(root, 'registry.json') });
+    let writing: ReturnType<typeof vi.spyOn> | undefined;
+    try {
+      await service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+      const before = await service.start(key);
+      writing = vi.spyOn(fs, 'writeFile').mockRejectedValueOnce(new Error('controlled_recovery_persist_failure'));
+      test.crash();
+      await expect.poll(() => service.get(key).error).toContain('controlled_recovery_persist_failure');
+      writing.mockRestore();
+      const recovered = await service.stop(key);
+      expect(recovered).toMatchObject({ state: 'stopped', cleanupConfirmed: true, appInstanceId: before.appInstanceId });
+      expect(test.requests().filter((request) => request.operation === 'start')).toHaveLength(1);
+      expect(test.requests().filter((request) => request.operation === 'recover-owned')).toHaveLength(1);
+      const next = await service.start(key);
+      expect(next.state).toBe('running');
+      expect(next.appInstanceId).not.toBe(before.appInstanceId);
+      await service.stop(key);
+    } finally {
+      writing?.mockRestore();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('does not turn confirmed cleanup into unknown when the final stop write fails', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-confirmed-stop-'));
+    const test = fixture();
+    const service = new AppService(test.connection, { ...test.options, registryPath: path.join(root, 'registry.json') });
+    const originalWrite = fs.writeFile;
+    let writing: ReturnType<typeof vi.spyOn> | undefined;
+    try {
+      await service.create({ ...key, files });
+      await service.start(key);
+      writing = vi
+        .spyOn(fs, 'writeFile')
+        .mockImplementationOnce(originalWrite)
+        .mockRejectedValueOnce(new Error('controlled_final_stop_write'));
+      await expect(service.stop(key)).rejects.toThrow('controlled_final_stop_write');
+      expect(service.get(key)).toMatchObject({
+        state: 'failed',
+        cleanupConfirmed: true,
+        url: null,
+        error: expect.stringContaining('controlled_final_stop_write'),
+      });
+      expect(test.hasMapping()).toBe(false);
+      writing.mockRestore();
+      expect((await service.stop(key)).state).toBe('stopped');
+    } finally {
+      writing?.mockRestore();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('explicit stop still cancels a finite helper after waiting for unexpected App exit cleanup', async () => {
+    let releaseClose: () => void = () => {
+      throw new Error('Uninitialised close gate');
+    };
+    let releaseExport: () => void = () => {
+      throw new Error('Uninitialised export gate');
+    };
+    const closeGate = new Promise<void>((resolve) => {
+      releaseClose = resolve;
+    });
+    const exportGate = new Promise<void>((resolve) => {
+      releaseExport = resolve;
+    });
+    const settings = { sourceFiles: eduFiles, closeGate, exportGate: exportGate as Promise<void> | undefined };
+    const test = fixture(settings);
+    await test.service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+    await test.service.start(key);
+    const exporting = test.service.export(key, true).then(
+      () => null,
+      (error: unknown) => error,
+    );
+    let stopping: Promise<unknown> | undefined;
+    try {
+      await expect.poll(test.starts).toBe(3);
+      settings.exportGate = undefined;
+      test.crash();
+      await expect.poll(test.closes).toBe(1);
+      stopping = test.service.stop(key);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(test.closes()).toBe(1);
+      releaseClose();
+      await stopping;
+      expect(test.closes()).toBe(3);
+      expect(String(await exporting)).toContain('取消');
+      expect(test.requests().some((request) => request.operation === 'recover-owned')).toBe(true);
+      expect(test.service.get(key).cleanupConfirmed).toBe(true);
+    } finally {
+      releaseClose();
+      releaseExport();
+      await Promise.all([exporting, stopping]);
+    }
+  });
+  it('shares unexpected-exit cleanup with stop and shutdown instead of closing twice', async () => {
+    let release: () => void = () => {
+      throw new Error('Uninitialised gate');
+    };
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const test = fixture({ closeGate: gate });
+    await test.service.create({ ...key, files });
+    await test.service.start(key);
+    test.crash();
+    await expect.poll(test.closes).toBe(1);
+    const stopping = test.service.stop(key);
+    const closing = expect(test.service.shutdown()).rejects.toThrow(/清理|映射/);
+    try {
+      await expect(test.service.start(key)).rejects.toThrow(/关闭|清理|进行中/);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(test.closes()).toBe(1);
+    } finally {
+      release();
+      await Promise.all([stopping, closing]);
+    }
+    expect(test.closes()).toBe(1);
+  });
+});
+
+describe('R5 service export budget authority and shared consumers', () => {
+  function boundaryFiles(kind: 'standard-app' | 'edu-web', count: number, bytes: number) {
+    const names = kind === 'edu-web' ? [...EDU_REQUIRED_FILES] : [];
+    while (names.length < count) names.push(`admin/src/中文-${names.length}.ts`);
+    const sourceFiles = names.sort().map((path) => ({ path, base64: '' }));
+    const prefix = Buffer.from('中文🙂');
+    sourceFiles.find((file) => file.path.startsWith('admin/src/'))!.base64 = Buffer.concat([
+      prefix,
+      Buffer.alloc(bytes - prefix.length, 97),
+    ]).toString('base64');
+    return sourceFiles;
+  }
+
+  it('R5 keeps create/import validation at 255/256/257 files and decoded 524287/524288/524289 bytes', () => {
+    for (const kind of ['standard-app', 'edu-web'] as const) {
+      for (const count of [255, 256, 257]) {
+        const validate = () => validateAppSources(boundaryFiles(kind, count, 10));
+        if (count === 257) expect(validate).toThrow(/256/);
+        else expect(validate).not.toThrow();
+      }
+      for (const bytes of [524287, 524288, 524289]) {
+        const validate = () => validateAppSources(boundaryFiles(kind, 8, bytes));
+        if (bytes === 524289) expect(validate).toThrow(/预算|budget/);
+        else expect(validate).not.toThrow();
+      }
+    }
+    expect(() => validateAppSources([{ path: 'src/空.ts', base64: '' }])).not.toThrow();
+  });
+
+  for (const kind of ['standard-app', 'edu-web'] as const) {
+    it(`R5 ${kind} chooses the private helper budget from the registered profile for export and taskSource`, async () => {
+      const sourceFiles = kind === 'edu-web' ? structuredClone(eduFiles) : structuredClone(files);
+      const test = fixture({ sourceFiles });
+      try {
+        const snapshot =
+          kind === 'edu-web'
+            ? await test.service.importEdu({ ...key, files: sourceFiles, source: eduSource(sourceFiles) })
+            : await test.service.create({ ...key, files: sourceFiles });
+        const registered = structuredClone(snapshot.profile);
+        Object.assign(snapshot.profile, { projectKind: 'mota-web', exportBudget: { maxFiles: 512, maxSourceBytes: 8388608 } });
+        expect(test.service.get(key).profile).toEqual(registered);
+        for (const taskSnapshot of [false, true]) {
+          const exported = await test.service.export(key, taskSnapshot);
+          expect(AppSourceSchema.parse(exported)).toEqual(exported);
+          expect(exported.files).toEqual(sourceFiles);
+          expect(exported.profile).toEqual(registered);
+        }
+        const prompts = test.prompts();
+        expect(prompts.filter((prompt) => prompt['operation'] !== 'export').every((prompt) => !('exportBudget' in prompt))).toBe(true);
+        const exports = prompts.filter((prompt) => prompt['operation'] === 'export');
+        expect(exports).toHaveLength(2);
+        for (const prompt of exports) {
+          expect(prompt['profile']).toEqual(registered);
+          expect(prompt['exportBudget']).toEqual({ maxFiles: 256, maxSourceBytes: 524288 });
+          console.info(
+            'R5 trusted export prompt',
+            JSON.stringify({
+              kind,
+              promptBytes: Buffer.byteLength(JSON.stringify(prompt)),
+              promptUtf16Units: JSON.stringify(prompt).length,
+            }),
+          );
+        }
+      } finally {
+        await test.service.shutdown();
+      }
+    });
+
+    it(`R5 ${kind} preserves maximum create/import and task sources while rejecting an oversized helper result`, async () => {
+      const valid = boundaryFiles(kind, 256, 524288);
+      const settings = { sourceFiles: valid };
+      const test = fixture(settings);
+      try {
+        if (kind === 'edu-web') await test.service.importEdu({ ...key, files: valid, source: eduSource(valid) });
+        else await test.service.create({ ...key, files: valid });
+        const previous = await test.service.export(key, true);
+        expect(AppSourceSchema.parse(previous).files).toEqual(valid);
+        expect(previous.sha256).toBe(createHash('sha256').update(JSON.stringify(valid)).digest('hex'));
+        settings.sourceFiles = boundaryFiles(kind, 256, 524289);
+        await expect(test.service.export(key)).rejects.toThrow(/预算|budget/);
+        settings.sourceFiles = [...valid, { path: 'admin/src/extra.ts', base64: '' }];
+        await expect(test.service.export(key)).rejects.toThrow(/256/);
+        settings.sourceFiles = valid;
+        expect(await test.service.export(key, true)).toEqual(previous);
+        expect(previous.files).toEqual(valid);
+        console.info(
+          'R5 service source response',
+          JSON.stringify({
+            kind,
+            decodedSourceBytes: 524288,
+            responseBytes: Buffer.byteLength(JSON.stringify(previous)),
+            responseUtf16Units: JSON.stringify(previous).length,
+          }),
+        );
+      } finally {
+        await test.service.shutdown();
+      }
+    });
+  }
+
+  it('R5 accounts for maximum Unicode paths in the actual export prompt and response envelope', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-r5-transport-'));
+    const sourceFiles = boundaryFiles('edu-web', 256, 524288);
+    for (const [index, file] of sourceFiles.entries()) {
+      if (!file.path.startsWith('admin/src/')) continue;
+      const prefix = 'admin/src/' + ('界'.repeat(60) + '/').repeat(7);
+      const suffix = `/${index}.ts`;
+      file.path = prefix + '界'.repeat(500 - prefix.length - suffix.length) + suffix;
+    }
+    const profile: AppProfile = { projectKind: 'edu-web', profileVersion: 1, source: eduSource(sourceFiles) };
+    const test = fixture({ sourceFiles });
+    const start = vi.spyOn(test.connection, 'start');
+    const registryPath = path.join(root, 'registry.json');
+    const service = new AppService(test.connection, { ...test.options, registryPath });
+    try {
+      // Restore a registered baseline: this measures export, without pretending a mocked import proves framing.
+      await writeFile(
+        registryPath,
+        JSON.stringify({ version: 2, sandbox: 'sandbox-test', apps: [{ ...key, profile, state: 'stopped', cleanupConfirmed: true }] }),
+      );
+      const exported = await service.export(key);
+      const response = { type: 'response', id: 'r5-transport', result: exported };
+      expect(ChatServiceMessageSchema.parse(response)).toEqual(response);
+      expect(exported.files).toEqual(sourceFiles);
+      expect(start).toHaveBeenCalledTimes(1);
+      const frame = start.mock.calls[0]![0];
+      if (frame.mode !== 'codex') throw new Error('Expected finite export helper');
+      const prompt = frame.prompt!;
+      const outerFrameBytes = Buffer.byteLength(JSON.stringify(frame) + '\n');
+      const responseBytes = Buffer.byteLength(JSON.stringify(response));
+      expect(outerFrameBytes).toBeLessThanOrEqual(1048576);
+      expect(Buffer.byteLength(prompt)).toBeLessThanOrEqual(1048576);
+      expect(responseBytes).toBeGreaterThan(1048576);
+      expect(JSON.stringify({ files: sourceFiles }).length).toBeLessThan(12 * 1024 * 1024);
+      console.info(
+        'R5 transport accounting',
+        JSON.stringify({
+          sourceBytes: 524288,
+          files: sourceFiles.length,
+          encodedUnits: sourceFiles.reduce((sum, file) => sum + file.base64.length, 0),
+          promptBytes: Buffer.byteLength(prompt),
+          promptUtf16Units: prompt.length,
+          outerFrameBytes,
+          mockHelperResultBytes: Buffer.byteLength('WSL_APP_RESULT:' + JSON.stringify({ files: sourceFiles }) + '\n'),
+          responseBytes,
+          responseUtf16Units: JSON.stringify(response).length,
+        }),
+      );
+    } finally {
+      await service.shutdown();
+      start.mockRestore();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('R5 refuses a registered Mota export and taskSource before helper dispatch', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-r5-mota-registry-'));
+    const test = fixture();
+    const registryPath = path.join(root, 'registry.json');
+    const metadata = MOTA_REQUIRED_FILES.map((path) => ({ path, sha256: createHash('sha256').update('').digest('hex'), bytes: 0 })).sort(
+      (a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0),
+    );
+    const profile: AppProfile = {
+      projectKind: 'mota-web',
+      profileVersion: 1,
+      source: {
+        sourceSha256: createHash('sha256').update(JSON.stringify(metadata)).digest('hex'),
+        files: metadata,
+      },
+    };
+    const contents = JSON.stringify({
+      version: 2,
+      sandbox: 'sandbox-test',
+      apps: [{ ...key, profile, state: 'stopped', cleanupConfirmed: true }],
+    });
+    const service = new AppService(test.connection, { ...test.options, registryPath });
+    try {
+      await writeFile(registryPath, contents);
+      expect((await service.restore(key)).profile).toEqual(profile);
+      for (const taskSnapshot of [false, true]) await expect(service.export(key, taskSnapshot)).rejects.toThrow(/unsupported.*mota-web/i);
+      expect(test.starts()).toBe(0);
+      expect(test.prompts()).toEqual([]);
+      expect(await readFile(registryPath, 'utf8')).toBe(contents);
+    } finally {
+      await service.shutdown();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('managed edu project profile', () => {
+  it('imports, runs and exports edu with its own health contract and immutable source provenance', async () => {
+    const test = fixture({ sourceFiles: eduFiles });
+    const source = eduSource();
+    const imported = await test.service.importEdu({ ...key, files: eduFiles, source });
+    expect(imported.profile).toEqual({ projectKind: 'edu-web', profileVersion: 1, source });
+    if (imported.profile?.projectKind === 'edu-web') imported.profile.source.repository.commit = 'f'.repeat(40);
+    expect(test.service.get(key).profile).toEqual({ projectKind: 'edu-web', profileVersion: 1, source });
+    const running = await test.service.start(key);
+    expect(running).toMatchObject({ state: 'running', sourceSha256: source.sourceSha256 });
+    await expect(test.service.export(key)).rejects.toThrow('停止');
+    expect((await test.service.stop(key)).cleanupConfirmed).toBe(true);
+    const exported = await test.service.export(key);
+    expect(exported.files).toEqual(eduFiles);
+    expect(exported.profile).toEqual({ projectKind: 'edu-web', profileVersion: 1, source });
+    expect(test.requests().map((request) => request.profile?.projectKind)).toEqual(['edu-web', 'edu-web', 'edu-web']);
+  });
+  it('does not accept standard-template health for an edu project', async () => {
+    const test = fixture({ sourceFiles: eduFiles, healthTemplate: 'wsl-standard-app' });
+    await test.service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+    const result = await test.service.start(key);
+    expect(result).toMatchObject({ state: 'failed', cleanupConfirmed: true, url: null });
+    expect(result.error).toContain('身份不匹配');
+  });
+  it.each(['file-hash', 'aggregate-hash', 'missing-required', 'secret-path'])(
+    'rejects invalid import %s before starting a guest',
+    async (kind) => {
+      const test = fixture();
+      const input = { ...key, files: structuredClone(eduFiles), source: eduSource() };
+      if (kind === 'file-hash') input.files[0]!.base64 = Buffer.from('changed').toString('base64');
+      if (kind === 'aggregate-hash') input.source.sourceSha256 = '0'.repeat(64);
+      if (kind === 'missing-required') {
+        input.files.shift();
+        input.source = eduSource(input.files);
+      }
+      if (kind === 'secret-path') {
+        input.files.push({ path: 'server/.env.py', base64: Buffer.from('excluded').toString('base64') });
+        input.source = eduSource(input.files);
+      }
+      await expect(test.service.importEdu(input)).rejects.toThrow();
+      expect(test.starts()).toBe(0);
+    },
+  );
+  it('persists an explicit versioned profile and restores it without starting a guest', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-edu-registry-'));
+    try {
+      const test = fixture({ sourceFiles: eduFiles });
+      const registryPath = path.join(root, 'registry.json');
+      const first = new AppService(test.connection, { ...test.options, registryPath });
+      await first.importEdu({ ...key, files: eduFiles, source: eduSource() });
+      const bytes = JSON.parse(await readFile(registryPath, 'utf8'));
+      expect(bytes.version).toBe(3);
+      expect(bytes.apps[0].profile.projectKind).toBe('edu-web');
+      const before = test.starts();
+      const restored = await new AppService(test.connection, { ...test.options, registryPath }).restore(key);
+      expect(restored).toMatchObject({
+        state: 'stopped',
+        cleanupConfirmed: true,
+        profile: { projectKind: 'edu-web', profileVersion: 1, source: eduSource() },
+      });
+      expect(test.starts()).toBe(before);
+      bytes.apps[0].profile.profileVersion = 99;
+      const invalid = JSON.stringify(bytes);
+      await writeFile(registryPath, invalid);
+      await expect(new AppService(test.connection, { ...test.options, registryPath }).restore(key)).rejects.toThrow();
+      expect(await readFile(registryPath, 'utf8')).toBe(invalid);
+      expect(test.starts()).toBe(before);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('managed app ownership', () => {
+  it.each(['standard-app', 'edu-web'] as const)(
+    'keeps bounded startup stderr for %s without exposing mixed stdout or stale attempts',
+    async (profile) => {
+      const settings = {
+        sourceFiles: profile === 'edu-web' ? eduFiles : files,
+        startupFailure: {
+          stderr: ['discarded-old-prefix\n' + 'x'.repeat(5000), 'fixture: startup ', 'intentionally rejected\n'],
+          stdout: 'stdout is not the startup diagnostic\n',
+        },
+      };
+      const test = fixture(settings);
+      if (profile === 'edu-web') await test.service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+      else await test.service.create({ ...key, files });
+      const failed = await test.service.start(key);
+      expect(failed).toMatchObject({ state: 'failed', cleanupConfirmed: true, url: null });
+      expect(failed.error).toContain('fixture: startup intentionally rejected');
+      expect(failed.error).toContain('exitCode=7，cleanupConfirmed=true');
+      expect(failed.error).not.toContain('stdout is not');
+      expect(failed.error).not.toContain('discarded-old-prefix');
+      expect(failed.error!.length).toBeLessThan(4200);
+      expect(test.commands().some((command) => command[0] === '--publish')).toBe(false);
+      settings.startupFailure.stderr = ['fresh startup diagnostic\n'];
+      const retried = await test.service.start(key);
+      expect(retried.error).toContain('fresh startup diagnostic');
+      expect(retried.error).not.toContain('fixture: startup intentionally rejected');
+    },
+  );
+  it('keeps startup stderr alongside transport and cleanup uncertainty', async () => {
+    const test = fixture({
+      startupFailure: {
+        stderr: ['fixture: startup intentionally rejected\n'],
+        outcome: { confirmed: false, exitCode: 7, error: 'transport cleanup unknown' },
+      },
+    });
+    await test.service.create({ ...key, files });
+    const failed = await test.service.start(key);
+    expect(failed).toMatchObject({ state: 'failed', cleanupConfirmed: false });
+    expect(failed.error).toContain('fixture: startup intentionally rejected');
+    expect(failed.error).toContain('cleanupConfirmed=false');
+    expect(failed.error).toContain('transport cleanup unknown');
+    await expect(test.service.start(key)).rejects.toThrow('清理尚未确认');
+  });
   it('rejects export after shutdown and closes admission before loading settles', async () => {
     const test = fixture();
     await test.service.create({ ...key, files });
@@ -274,7 +974,7 @@ describe('managed app ownership', () => {
   it.each([
     '{broken',
     JSON.stringify({ version: 1, sandbox: null, apps: [] }),
-    JSON.stringify({ version: 2, sandbox: 'sandbox-test', apps: [] }),
+    JSON.stringify({ version: 99, sandbox: 'sandbox-test', apps: [] }),
   ])('preserves an invalid registry and retries reading after external repair: %s', async (original) => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-invalid-'));
     try {
@@ -361,8 +1061,32 @@ describe('managed app ownership', () => {
       expect(onSnapshot).toHaveBeenCalledTimes(2);
       expect(onSnapshot).toHaveBeenLastCalledWith(expect.objectContaining({ ...second, state: 'stopped', cleanupConfirmed: true }));
       expect(JSON.parse(await readFile(registryPath, 'utf8')).apps).toEqual([
-        { ...key, state: 'failed', cleanupConfirmed: false },
-        { ...second, state: 'stopped', cleanupConfirmed: true },
+        {
+          ...key,
+          state: 'failed',
+          cleanupConfirmed: false,
+          profile: { projectKind: 'standard-app', profileVersion: 1 },
+          appInstanceId: null,
+          url: null,
+          guestPort: null,
+          portPending: false,
+          portRemovalPending: false,
+          port: null,
+          processExpected: false,
+        },
+        {
+          ...second,
+          state: 'stopped',
+          cleanupConfirmed: true,
+          profile: { projectKind: 'standard-app', profileVersion: 1 },
+          appInstanceId: null,
+          url: null,
+          guestPort: null,
+          portPending: false,
+          portRemovalPending: false,
+          port: null,
+          processExpected: false,
+        },
       ]);
       expect(test.starts()).toBe(0);
     } finally {
@@ -557,7 +1281,13 @@ exec(sys.argv[3],scope)
 scope['ROOT']=Path(sys.argv[1])
 scope['run'](json.loads(sys.argv[2]))`,
           root,
-          JSON.stringify({ ...key, workspaceId, operation, files }),
+          JSON.stringify({
+            ...key,
+            workspaceId,
+            operation,
+            files,
+            ...(operation === 'export' ? { exportBudget: { maxFiles: 256, maxSourceBytes: 524288 } } : {}),
+          }),
           appHelper,
         ],
         { encoding: 'utf8', timeout: 2000, stdio: ['ignore', 'pipe', 'pipe'] },
@@ -1058,4 +1788,738 @@ describe('Main read reservation follows actual Service transport', () => {
       }
     },
   );
+});
+
+describe('running edu task sources and candidate ownership', () => {
+  it('freezes and applies against the running instance while retaining its process and mapping owner', async () => {
+    const test = fixture({ sourceFiles: eduFiles });
+    const source = eduSource();
+    await test.service.importEdu({ ...key, files: eduFiles, source });
+    const running = await test.service.start(key);
+    const binding = {
+      ...key,
+      runId: randomUUID(),
+      appInstanceId: running.appInstanceId!,
+      resourceId: 'web',
+      instanceId: 'browser',
+      generation: 1,
+      webContentsId: 1,
+      documentGeneration: 1,
+      sourceSha256: source.sourceSha256,
+      protectedFiles: source.files.filter((file) => !file.path.startsWith('admin/src/')),
+    };
+    const workspace = await test.service.taskSource(binding);
+    expect(workspace.files).toEqual(eduFiles);
+    expect(await test.service.prepareTask(binding, workspace)).toEqual({ binding, operation: 'prepare', ok: true, cleanupConfirmed: true });
+    expect(await test.service.applyTask(binding, workspace)).toMatchObject({
+      binding,
+      operation: 'apply',
+      ok: true,
+      cleanupConfirmed: true,
+      app: { appInstanceId: running.appInstanceId, state: 'running' },
+    });
+    expect(test.service.get(key)).toMatchObject({ state: 'running', appInstanceId: running.appInstanceId, cleanupConfirmed: false });
+    const stopped = await test.service.stop(key);
+    expect(stopped.state).toBe('stopped');
+    expect(test.commands()).toContainEqual(['--unpublish', '43187/tcp4']);
+  });
+  it('rejects changed application instances before exporting or applying', async () => {
+    const test = fixture({ sourceFiles: eduFiles });
+    const source = eduSource();
+    await test.service.importEdu({ ...key, files: eduFiles, source });
+    await test.service.start(key);
+    const binding = {
+      ...key,
+      runId: randomUUID(),
+      appInstanceId: randomUUID(),
+      resourceId: 'web',
+      instanceId: 'browser',
+      generation: 1,
+      webContentsId: 1,
+      documentGeneration: 1,
+      sourceSha256: source.sourceSha256,
+      protectedFiles: source.files.filter((file) => !file.path.startsWith('admin/src/')),
+    };
+    const count = test.requests().length;
+    await expect(test.service.taskSource(binding)).rejects.toThrow('instance changed');
+    expect(test.requests().length).toBe(count);
+    await test.service.stop(key);
+  });
+});
+
+describe('edu two-phase commit admission', () => {
+  it('refuses unprepared commit and a stopped instance after preparation without dispatching writes', async () => {
+    const test = fixture({ sourceFiles: eduFiles });
+    const source = eduSource();
+    await test.service.importEdu({ ...key, files: eduFiles, source });
+    const running = await test.service.start(key);
+    const binding = {
+      ...key,
+      runId: randomUUID(),
+      appInstanceId: running.appInstanceId!,
+      resourceId: 'web',
+      instanceId: 'browser',
+      generation: 1,
+      webContentsId: 1,
+      documentGeneration: 1,
+      sourceSha256: source.sourceSha256,
+      protectedFiles: source.files.filter((file) => !file.path.startsWith('admin/src/')),
+    };
+    const candidate = { runId: binding.runId, files: eduFiles };
+    await expect(test.service.applyTask(binding, candidate)).resolves.toMatchObject({
+      binding,
+      operation: 'apply',
+      ok: false,
+      cleanupConfirmed: false,
+      error: expect.stringContaining('not prepared'),
+    });
+    await test.service.prepareTask(binding, candidate);
+    expect(test.requests().some((request) => request.operation === 'apply-task')).toBe(false);
+    await test.service.stop(key);
+    await expect(test.service.applyTask(binding, candidate)).resolves.toMatchObject({
+      binding,
+      operation: 'apply',
+      ok: false,
+      cleanupConfirmed: true,
+      error: expect.stringContaining('not prepared'),
+    });
+    expect(test.requests().some((request) => request.operation === 'apply-task')).toBe(false);
+  });
+});
+
+describe('edu standard control and send exclusion', () => {
+  it.each(['running', 'stopped'] as const)('rejects Hono/PGlite operations and unbound sends on %s edu project', async (state) => {
+    const test = fixture({ sourceFiles: eduFiles });
+    const source = eduSource();
+    await test.service.importEdu({ ...key, files: eduFiles, source });
+    const running = await test.service.start(key);
+    if (state === 'stopped') await test.service.stop(key);
+    const before = test.prompts().length;
+    for (const operation of [
+      { op: 'describe' },
+      { op: 'query', sql: 'select 1', limit: 1 },
+      { op: 'reset', operationId: randomUUID() },
+    ] as const) {
+      expect(await test.service.agent(key, running.appInstanceId, operation, new AbortController().signal)).toMatchObject({
+        envelope: { ok: false, error: { code: 'unsupported' } },
+        operationDispatched: false,
+      });
+    }
+    expect(test.prompts().length).toBe(before);
+    expect(test.agentRequests()).toEqual([]);
+    expect(
+      test
+        .prompts()
+        .filter((prompt) => prompt.operation === 'start')
+        .every((prompt) => !('agentToken' in prompt)),
+    ).toBe(true);
+    await expect(test.service.assertTaskAdmission(key.workspaceId)).rejects.toThrow('frozen candidate');
+    if (state === 'running') await test.service.stop(key);
+  });
+});
+
+describe('leased app stdout boundary', () => {
+  it('intercepts a fragmented assessment above normal log budget and never logs audio or stderr', async () => {
+    const t = fixture({ sourceFiles: eduFiles });
+    const source = eduSource();
+    await t.service.importEdu({ ...key, files: eduFiles, source });
+    const lease = {
+      schemaVersion: 1 as const,
+      sessionId: randomUUID(),
+      identity: { ...key, environmentId: 'sandbox' as const, appInstanceId: randomUUID() },
+      sourceSha256: source.sourceSha256,
+      expiresAtMs: Date.now() + 300000,
+    };
+    const request = vi.fn(),
+      fail = vi.fn();
+    await t.service.start(key, { lease, request, fail });
+    const line = 'WSL_EDU_ASSESSMENT_REQUEST:' + JSON.stringify({ audioBase64: 'SYNTHETIC'.repeat(10000) }) + '\n';
+    t.output(line.slice(0, 10));
+    t.output(line.slice(10, 70000));
+    t.output(line.slice(70000));
+    t.output('PRIVATE_KEY_AUDIO', 'stderr');
+    expect(request).toHaveBeenCalledExactlyOnceWith(line);
+    expect(fail).not.toHaveBeenCalled();
+    expect((await t.service.logs(key, 65536)).text).toBe('');
+    t.output('unknown leased runtime output\n');
+    expect(fail).toHaveBeenCalledOnce();
+    await t.service.stop(key);
+  });
+  it('rejects an oversized leased frame without expanding ordinary ready budget', async () => {
+    const t = fixture({ sourceFiles: eduFiles });
+    const source = eduSource();
+    await t.service.importEdu({ ...key, files: eduFiles, source });
+    const lease = {
+      schemaVersion: 1 as const,
+      sessionId: randomUUID(),
+      identity: { ...key, environmentId: 'sandbox' as const, appInstanceId: randomUUID() },
+      sourceSha256: source.sourceSha256,
+      expiresAtMs: Date.now() + 300000,
+    };
+    const request = vi.fn(),
+      fail = vi.fn();
+    await t.service.start(key, { lease, request, fail });
+    t.output('WSL_EDU_ASSESSMENT_REQUEST:' + 'x'.repeat(1500000));
+    expect(fail).toHaveBeenCalledOnce();
+    expect(request).not.toHaveBeenCalled();
+    expect((await t.service.logs(key, 65536)).text).toBe('');
+    await t.service.stop(key);
+  });
+});
+
+describe('default AI0 edu interrupted process recovery', () => {
+  it('explicit stop reaches owned recovery after v3 registry restart without a lease journal', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'edu-default-recovery-'));
+    const t = fixture({ sourceFiles: eduFiles });
+    const options = { ...t.options, registryPath: path.join(root, 'registry.json') };
+    const owner = new AppService(t.connection, options);
+    try {
+      const source = eduSource();
+      await owner.importEdu({ ...key, files: eduFiles, source });
+      await owner.start(key);
+      const restarted = new AppService(t.connection, options);
+      const failed = await restarted.restore(key);
+      expect(failed.state).toBe('failed');
+      expect(failed.cleanupConfirmed).toBe(false);
+      const capture = vi.spyOn(restarted, 'captureRecoverySource').mockResolvedValue(source.sourceSha256);
+      const recover = vi.spyOn(restarted, 'recoverOwned').mockResolvedValue({ ...failed, state: 'stopped', cleanupConfirmed: true });
+      expect((await restarted.stop(key)).cleanupConfirmed).toBe(true);
+      expect(capture).toHaveBeenCalledOnce();
+      expect(recover).toHaveBeenCalledOnce();
+    } finally {
+      await owner.stop(key);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('default edu recovery through actual registry, source and keeper adapters', () => {
+  it.each(['valid', 'wrong-instance', 'source-changed', 'keeper-lost', 'helper-lost', 'foreign-mapping'] as const)(
+    'handles %s without adopting unknown processes or mappings',
+    async (kind) => {
+      const root = await mkdtemp(path.join(os.tmpdir(), 'edu-owned-stop-'));
+      const currentFiles = eduFiles.map((file) => ({ ...file }));
+      const t = fixture({
+        sourceFiles: currentFiles,
+        recoveryWrongIdentity: kind === 'wrong-instance',
+        recoveryEarlyExit: kind === 'keeper-lost',
+        ...(kind === 'helper-lost' ? { recoveryError: 'verification_recovery_helper_lost' } : {}),
+      });
+      const options = { ...t.options, registryPath: path.join(root, 'registry.json') };
+      const owner = new AppService(t.connection, options);
+      try {
+        await owner.importEdu({ ...key, files: currentFiles, source: eduSource(currentFiles) });
+        await owner.start(key);
+        if (kind === 'source-changed')
+          currentFiles.find((file) => file.path === 'admin/src/App.tsx')!.base64 = Buffer.from('concurrent edit').toString('base64');
+        if (kind === 'foreign-mapping') t.addCompetingMapping();
+        const restarted = new AppService(t.connection, options);
+        const recovered = await restarted.stop(key);
+        if (kind === 'valid') {
+          expect(recovered).toMatchObject({ state: 'stopped', cleanupConfirmed: true });
+          expect(t.commands()).toContainEqual(['--unpublish', '43187/tcp4']);
+        } else {
+          expect(recovered).toMatchObject({ state: 'failed', cleanupConfirmed: false });
+          expect(t.commands().some((command) => command[0] === '--unpublish')).toBe(false);
+        }
+        const requests = t.prompts().filter((request) => request.operation === 'recover-owned');
+        expect(requests).toHaveLength(kind === 'source-changed' ? 0 : 1);
+      } finally {
+        await owner.stop(key);
+        await rm(root, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
+describe('durable mapping intent recovery', () => {
+  it.each(['already-removed', 'publish-unknown', 'rebound'] as const)('keeps %s distinct from a confirmed owned tuple', async (kind) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'edu-mapping-intent-'));
+    const t = fixture({ sourceFiles: eduFiles, unrelatedMapping: true });
+    const file = path.join(root, 'registry.json');
+    const options = { ...t.options, registryPath: file };
+    const owner = new AppService(t.connection, options);
+    try {
+      await owner.importEdu({ ...key, files: eduFiles, source: eduSource() });
+      await owner.start(key);
+      const saved = JSON.parse(await readFile(file, 'utf8'));
+      if (kind === 'already-removed') {
+        saved.apps[0].portRemovalPending = true;
+        t.dropMapping();
+      }
+      if (kind === 'publish-unknown') saved.apps[0].port = null;
+      if (kind === 'rebound') t.rebind(50123);
+      await writeFile(file, JSON.stringify(saved));
+      const restarted = new AppService(t.connection, options);
+      const result = await restarted.stop(key);
+      if (kind === 'already-removed') expect(result).toMatchObject({ state: 'stopped', cleanupConfirmed: true });
+      else
+        expect(result).toMatchObject({
+          state: 'failed',
+          cleanupConfirmed: false,
+          error: kind === 'publish-unknown' ? 'verification_recovery_publish_unknown' : 'verification_recovery_mapping_changed',
+        });
+      expect(t.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+    } finally {
+      await owner.stop(key);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('ended edu transport recovery admission', () => {
+  it.each(['valid', 'bad-boot-evidence', 'source-changed', 'helper-lost', 'foreign-mapping'] as const)(
+    'rechecks %s after the original transport ended unconfirmed',
+    async (kind) => {
+      const currentFiles = eduFiles.map((file) => ({ ...file }));
+      const t = fixture({
+        sourceFiles: currentFiles,
+        crashOutcome: { confirmed: false, exitCode: 1, error: '[Errno 5] Input/output error' },
+        recoveryBootReplacement: kind === 'bad-boot-evidence' ? 'invalid' : 'valid',
+        ...(kind === 'helper-lost' ? { recoveryError: 'verification_recovery_helper_lost' } : {}),
+      });
+      await t.service.importEdu({ ...key, files: currentFiles, source: eduSource(currentFiles) });
+      await t.service.start(key);
+      if (kind === 'source-changed')
+        currentFiles.find((f) => f.path === 'admin/src/App.tsx')!.base64 = Buffer.from('concurrent edit').toString('base64');
+      if (kind === 'foreign-mapping') t.addCompetingMapping();
+      t.crash();
+      await Promise.resolve();
+      const result = await t.service.stop(key);
+      expect(result.cleanupConfirmed).toBe(kind === 'valid');
+      expect(t.prompts().filter((p) => p.operation === 'recover-owned')).toHaveLength(kind === 'source-changed' ? 0 : 1);
+      if (kind === 'valid') {
+        expect(result.state).toBe('stopped');
+        expect((await t.service.stop(key)).cleanupConfirmed).toBe(true);
+        expect(t.prompts().filter((p) => p.operation === 'recover-owned')).toHaveLength(1);
+      } else expect(t.commands().some((cmd) => cmd[0] === '--unpublish')).toBe(false);
+    },
+  );
+  it('keeps unconfirmed standard transports outside edu recovery', async () => {
+    const t = fixture({ crashOutcome: { confirmed: false, exitCode: 1, error: 'unconfirmed' } });
+    await t.service.create({ ...key, files });
+    await t.service.start(key);
+    t.crash();
+    await Promise.resolve();
+    expect((await t.service.stop(key)).cleanupConfirmed).toBe(false);
+    expect(t.prompts().some((p) => p.operation === 'recover-owned')).toBe(false);
+  });
+});
+
+it('recovers an edu handle that becomes ended during the first stop before shared transport shutdown', async () => {
+  const t = fixture({ sourceFiles: eduFiles, startCleanupFailure: true, recoveryBootReplacement: 'valid' });
+  await t.service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+  await t.service.start(key);
+  await expect(t.service.shutdown()).resolves.toBeUndefined();
+  expect((await t.service.restore(key)).cleanupConfirmed).toBe(true);
+  expect(t.prompts().filter((p) => p.operation === 'recover-owned')).toHaveLength(1);
+});
+
+it('rechecks a cancelled startup operation after its unconfirmed transport has ended', async () => {
+  const t = fixture({ sourceFiles: eduFiles, startCleanupFailure: true, recoveryBootReplacement: 'valid' });
+  await t.service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+  const starting = t.service.start(key);
+  await vi.waitFor(() => expect(t.prompts().some((p) => p.operation === 'start')).toBe(true));
+  const stopped = await t.service.stop(key);
+  await starting;
+  expect(stopped.cleanupConfirmed).toBe(true);
+  expect(t.prompts().filter((p) => p.operation === 'recover-owned')).toHaveLength(1);
+});
+
+describe('durable edu applied-source publication', () => {
+  it.each([false, true])('publishes a changed candidate only after registry publication, fail=%s', async (fail) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-sha-event-'));
+    const registryPath = path.join(root, 'registry.json');
+    const test = fixture({ sourceFiles: eduFiles });
+    const source = eduSource();
+    const candidateFiles = eduFiles.map((f) =>
+      f.path === 'admin/src/App.tsx'
+        ? {
+            ...f,
+            base64: Buffer.from('actual changed frontend candidate').toString('base64'),
+          }
+        : f,
+    );
+    const changedSha = eduSource(candidateFiles).sourceSha256;
+    expect(changedSha).not.toBe(source.sourceSha256);
+    const events: Array<{
+      sha: string | undefined;
+      state: string;
+      durableSha: string;
+    }> = [];
+    const service = new AppService(test.connection, {
+      ...test.options,
+      registryPath,
+      onSnapshot: (app) => {
+        if (app.sourceSha256 === changedSha)
+          events.push({
+            sha: app.sourceSha256,
+            state: app.state,
+            durableSha: JSON.parse(readFileSync(registryPath, 'utf8')).apps[0].sourceSha256,
+          });
+      },
+    });
+    let release!: () => void, entered!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const writing = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const rename = fs.rename;
+    let restoreRename: (() => void) | undefined;
+    let operation: Promise<unknown> | undefined;
+    try {
+      await service.importEdu({ ...key, files: eduFiles, source });
+      const running = await service.start(key);
+      const binding = {
+        ...key,
+        runId: randomUUID(),
+        appInstanceId: running.appInstanceId!,
+        resourceId: 'web',
+        instanceId: 'browser',
+        generation: 1,
+        webContentsId: 1,
+        documentGeneration: 1,
+        sourceSha256: source.sourceSha256,
+        protectedFiles: source.files.filter((f) => !f.path.startsWith('admin/src/')),
+      };
+      const candidate = { runId: binding.runId, files: candidateFiles };
+      await service.prepareTask(binding, candidate);
+      const renameSpy = vi.spyOn(fs, 'rename').mockImplementation(async (from, to) => {
+        if (to === registryPath) {
+          entered();
+          await gate;
+          if (fail) throw new Error('controlled_registry_publication_failed');
+        }
+        return rename(from, to);
+      });
+      restoreRename = () => {
+        renameSpy.mockRestore();
+      };
+      operation = service.applyTask(binding, candidate);
+      await writing;
+      expect(structuredClone(events)).toEqual([]);
+      expect(JSON.parse(await readFile(registryPath, 'utf8')).apps[0].sourceSha256).toBe(source.sourceSha256);
+      release();
+      const outcome = (await operation) as Awaited<ReturnType<AppService['applyTask']>>;
+      if (fail) {
+        expect(outcome).toMatchObject({
+          ok: false,
+          operation: 'apply',
+          cleanupConfirmed: true,
+          error: 'controlled_registry_publication_failed',
+        });
+        expect(structuredClone(events)).toEqual([]);
+        expect(JSON.parse(await readFile(registryPath, 'utf8')).apps[0].sourceSha256).toBe(source.sourceSha256);
+      } else {
+        expect(outcome).toMatchObject({ ok: true, operation: 'apply', cleanupConfirmed: true, app: { sourceSha256: changedSha } });
+        expect(structuredClone(events)).toEqual([{ sha: changedSha, state: 'running', durableSha: changedSha }]);
+      }
+    } finally {
+      release();
+      if (operation) await operation;
+      restoreRename?.();
+      await service.stop(key);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+it('never rolls completed source back when real AppService events queue behind apply RPC', async () => {
+  const { app, runtime, workspace, command, published } = await setupMain();
+  const target: AppKey = {
+    workspaceId: workspace.workspaceId,
+    projectId: randomUUID(),
+  };
+  const test = fixture({ sourceFiles: eduFiles, identityKey: target });
+  const eventPromises: Promise<void>[] = [];
+  const actualEvents: Array<{ sourceSha256?: string }> = [];
+  const service = new AppService(test.connection, {
+    ...test.options,
+    onSnapshot: (snapshot) => {
+      actualEvents.push({ sourceSha256: snapshot.sourceSha256 });
+      eventPromises.push(app.onApp(snapshot));
+    },
+  });
+  const source = eduSource();
+  const candidateFiles = eduFiles.map((f) =>
+    f.path === 'admin/src/App.tsx'
+      ? {
+          ...f,
+          base64: Buffer.from('integration frontend changed').toString('base64'),
+        }
+      : f,
+  );
+  const changedSha = eduSource(candidateFiles).sourceSha256;
+  runtime.appSelectImportSource = vi.fn(async () => ({
+    source,
+    files: eduFiles,
+    preview: {
+      name: 'edu source fixture',
+      profile: 'edu-web' as const,
+      profileVersion: 1 as const,
+      repository: source.repository,
+      sourceSha256: source.sourceSha256,
+      fileCount: source.files.length,
+      totalBytes: source.files.reduce((total, file) => total + file.bytes, 0),
+      warnings: [],
+    },
+    revalidate: async () => ({ source, files: eduFiles }),
+  }));
+  runtime.appImportSource = vi.fn((key, selected, importOperationId) => {
+    // Confirmation allocates projectId and auto-starts before it returns. The
+    // fake guest's health receipt must bind that exact project at dispatch.
+    Object.assign(target, key);
+    return service.importSource({ ...key, ...selected, importOperationId });
+  });
+  runtime.appCancelImport = vi.fn((key, importOperationId) => service.cancelImport({ ...key, importOperationId }));
+  runtime.appStart = vi.fn((key) => service.start(key));
+  runtime.appStop = vi.fn((key) => service.stop(key));
+  runtime.eduTaskSource = vi.fn((key) => service.export(key, true));
+  runtime.eduTaskCancel = vi.fn((binding) => service.cancelEduTask(binding));
+  runtime.eduTaskPrepare = vi.fn((binding) =>
+    service.prepareTask(binding, {
+      runId: binding.runId,
+      files: candidateFiles,
+    }),
+  );
+  let eventsAtDispatch = 0;
+  runtime.eduTaskApply = vi.fn((binding) => {
+    eventsAtDispatch = actualEvents.length;
+    return service.applyTask(binding, {
+      runId: binding.runId,
+      files: candidateFiles,
+    });
+  });
+  runtime.registerSession = vi.fn();
+  const sessionId = workspace.sessions[0]!.sessionId;
+  const conversation = {
+    conversationId: sessionId,
+    generation: 'generation',
+    turnId: 'turn',
+    threadId: 'thread',
+    seq: 1,
+    state: 'running' as const,
+    cleanupPending: true,
+    messages: [],
+    toolExecutions: [],
+    warnings: [],
+    error: null,
+  };
+  runtime.send = vi.fn(async () => conversation);
+  let projectId: string | undefined;
+  try {
+    const importResult = await command({ type: 'importEduApp' });
+    if (!importResult.ok) throw new Error(importResult.error.message);
+    expect(importResult.ok).toBe(true);
+    expect(runtime.appImportSource).not.toHaveBeenCalled();
+    const preview = (await app.getSnapshot()).workspaces[0]!.appImport!;
+    expect(preview.phase).toBe('ready');
+    const confirmed = await command({ type: 'confirmAppImport', previewId: preview.previewId, sourceSha256: source.sourceSha256 });
+    if (!confirmed.ok) throw new Error(confirmed.error.message);
+    expect(runtime.appImportSource).toHaveBeenCalledTimes(1);
+    expect(test.prompts().filter((prompt) => prompt.operation === 'import-source')).toHaveLength(1);
+    const imported = (await app.getSnapshot()).workspaces[0]!.managedApp!;
+    projectId = imported.projectId;
+    // Confirming the two-phase import already starts the bound project once.
+    expect(target.projectId).toBe(projectId);
+    expect(runtime.appStart).toHaveBeenCalledExactlyOnceWith({ workspaceId: workspace.workspaceId, projectId });
+    expect(imported).toMatchObject({ state: 'running', sourceSha256: source.sourceSha256 });
+    const running = (await app.getSnapshot()).workspaces[0]!.managedApp!;
+    const resource = (await app.getSnapshot()).workspaces[0]!.resources.find((r) => r.appProjectId === projectId)!;
+    const page = {
+      ...pageFixture,
+      page: { ...pageFixture.page, url: running.url + '/student' },
+    };
+    vi.mocked(runtime.browserState).mockReturnValue(page);
+    expect(
+      (
+        await command({
+          type: 'captureContext',
+          resourceId: resource.resourceId,
+          sessionId,
+          requestId: 'sha-capture',
+        })
+      ).ok,
+    ).toBe(true);
+    const active = (await app.getSnapshot()).workspaces[0]!.resources.find((r) => r.resourceId === resource.resourceId)!;
+    app.onCapture(resource.resourceId, { ...captureFixture, page: page.page }, active.instanceId, active.generation, 'sha-capture');
+    await app.getSnapshot();
+    expect(
+      (
+        await command({
+          type: 'confirmTask',
+          sessionId,
+          goal: 'frontend change',
+          targetRef: { kind: 'web', resourceId: resource.resourceId },
+        })
+      ).ok,
+    ).toBe(true);
+    const version = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions.at(-1)!;
+    expect(
+      (
+        await command({
+          type: 'startRun',
+          sessionId,
+          taskVersionId: version.taskVersionId,
+        })
+      ).ok,
+    ).toBe(true);
+    await vi.waitFor(() => expect(runtime.send).toHaveBeenCalledOnce());
+    const run = (await app.getSnapshot()).workspaces[0]!.runs.at(-1)!;
+    app.onConversation({
+      ...conversation,
+      state: 'idle',
+      seq: 2,
+      cleanupPending: false,
+      eduCandidateRunId: run.runId,
+    });
+    await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]!.runs.at(-1)?.state).toBe('completed'));
+    await Promise.all(eventPromises);
+    const completedSnapshots = published.filter(
+      (snapshot) => snapshot.workspaces[0]?.runs.find((r) => r.runId === run.runId)?.state === 'completed',
+    );
+    expect(completedSnapshots.length).toBeGreaterThan(0);
+    expect(completedSnapshots.map((s) => s.workspaces[0]!.managedApp?.sourceSha256)).toEqual(completedSnapshots.map(() => changedSha));
+    expect(actualEvents.slice(eventsAtDispatch).map((e) => e.sourceSha256)).toEqual([changedSha]);
+    const current = (await app.getSnapshot()).workspaces[0]!.managedApp!;
+    await app.onApp({
+      ...current,
+      appInstanceId: randomUUID(),
+      sourceSha256: source.sourceSha256,
+    });
+    expect((await app.getSnapshot()).workspaces[0]!.managedApp?.sourceSha256).toBe(changedSha);
+  } finally {
+    if (projectId) await service.stop({ workspaceId: workspace.workspaceId, projectId });
+    await Promise.all(eventPromises);
+  }
+});
+
+describe('edu finite helper cleanup facts', () => {
+  const bindingFor = (appInstanceId: string) => {
+    const source = eduSource();
+    return {
+      ...key,
+      runId: randomUUID(),
+      appInstanceId,
+      resourceId: 'web',
+      instanceId: 'browser',
+      generation: 1,
+      webContentsId: 1,
+      documentGeneration: 1,
+      sourceSha256: source.sourceSha256,
+      protectedFiles: source.files.filter((file) => !file.path.startsWith('admin/src/')),
+    };
+  };
+  it('cancel before queued source dispatch leaves a tombstone and never stops the App', async () => {
+    const test = fixture({ sourceFiles: eduFiles });
+    await test.service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+    const running = await test.service.start(key);
+    const binding = bindingFor(running.appInstanceId!);
+    test.service.registerEduTask(binding);
+    const count = test.starts();
+    expect(await test.service.cancelEduTask(binding)).toEqual({ binding, operation: 'cancel', ok: true, cleanupConfirmed: true });
+    await expect(test.service.taskSource(binding)).rejects.toThrow('cancelled');
+    expect(await test.service.prepareTask(binding, { runId: binding.runId, files: eduFiles })).toMatchObject({
+      ok: false,
+      cleanupConfirmed: true,
+    });
+    expect(test.starts()).toBe(count);
+    expect(test.service.get(key)).toMatchObject({ state: 'running', appInstanceId: running.appInstanceId });
+    expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+    await test.service.stop(key);
+  });
+  it('cancel waits for the precise export helper while preserving the long-lived App', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const test = fixture({ sourceFiles: eduFiles, exportGate: gate });
+    await test.service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+    const running = await test.service.start(key);
+    const binding = bindingFor(running.appInstanceId!);
+    const preparing = test.service.prepareTask(binding, { runId: binding.runId, files: eduFiles });
+    await vi.waitFor(() => expect(test.prompts().some((p) => p.operation === 'export')).toBe(true));
+    const result = await test.service.cancelEduTask(binding);
+    expect(result).toMatchObject({ operation: 'cancel', ok: true, cleanupConfirmed: true });
+    expect(await preparing).toMatchObject({ operation: 'prepare', ok: false, cleanupConfirmed: true });
+    expect(test.service.get(key)).toMatchObject({ state: 'running', appInstanceId: running.appInstanceId });
+    expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+    release();
+    await test.service.stop(key);
+  });
+  it('unknown old run cancellation cannot certify cleanup or permit a delayed prepare', async () => {
+    const test = fixture({ sourceFiles: eduFiles });
+    await test.service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+    const running = await test.service.start(key);
+    const binding = bindingFor(running.appInstanceId!);
+    const count = test.starts();
+    expect(await test.service.cancelEduTask(binding)).toMatchObject({ ok: false, cleanupConfirmed: false });
+    expect(await test.service.prepareTask(binding, { runId: binding.runId, files: eduFiles })).toMatchObject({
+      ok: false,
+      cleanupConfirmed: false,
+    });
+    expect(test.starts()).toBe(count);
+    expect(await test.service.stop(key)).toMatchObject({ cleanupConfirmed: false });
+  });
+  it('preserves dispatch uncertainty even when the running App is healthy', async () => {
+    const test = fixture({ sourceFiles: eduFiles });
+    await test.service.importEdu({ ...key, files: eduFiles, source: eduSource() });
+    const running = await test.service.start(key);
+    const binding = bindingFor(running.appInstanceId!);
+    const start = vi.spyOn(test.connection, 'start').mockImplementation(() => {
+      throw new Error('transport lost after dispatch');
+    });
+    try {
+      expect(await test.service.prepareTask(binding, { runId: binding.runId, files: eduFiles })).toMatchObject({
+        ok: false,
+        cleanupConfirmed: false,
+      });
+      expect(await test.service.cancelEduTask(binding)).toMatchObject({ ok: false, cleanupConfirmed: false });
+      expect(await test.service.sourceSnapshot(key)).toMatchObject({ ok: false, cleanupConfirmed: true });
+      expect(start).toHaveBeenCalledOnce();
+    } finally {
+      start.mockRestore();
+      await test.service.stop(key);
+    }
+  });
+});
+
+it.each([1, 2] as const)('upgrades registry v%s without replaying a process or changing profile provenance', async (version) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-registry-upgrade-'));
+  const registryPath = path.join(root, 'registry.json');
+  const source = eduSource();
+  const profile: AppProfile =
+    version === 1 ? { projectKind: 'standard-app', profileVersion: 1 } : { projectKind: 'edu-web', profileVersion: 1, source };
+  const original = JSON.stringify({
+    version,
+    sandbox: 'sandbox-test',
+    apps: [
+      {
+        ...key,
+        state: 'stopped',
+        cleanupConfirmed: true,
+        ...(version === 2 ? { profile, sourceSha256: source.sourceSha256 } : {}),
+      },
+    ],
+  });
+  const test = fixture();
+  try {
+    await writeFile(registryPath, original);
+    const service = new AppService(test.connection, { ...test.options, registryPath });
+    expect(await service.restore(key)).toMatchObject({ profile, cleanupConfirmed: true });
+    await service.stop(key);
+    const saved = JSON.parse(await readFile(registryPath, 'utf8'));
+    expect(saved.version).toBe(3);
+    expect(saved.apps[0]).toMatchObject({ profile, processExpected: false, port: null, portPending: false });
+    expect(test.starts()).toBe(0);
+    if (version === 1) expect(await readFile(registryPath + '.schema-v1.json', 'utf8')).toBe(original);
+    else {
+      expect(saved.apps[0].sourceSha256).toBe(source.sourceSha256);
+      await expect(readFile(registryPath + '.schema-v1.json')).rejects.toMatchObject({ code: 'ENOENT' });
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

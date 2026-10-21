@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile, cp, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { inspectLinuxBinary } from './guest-platform.mjs';
-import { root, inspectTar, fileHash, inventory, expandedBytes, deterministicArchive } from './payload-lib.mjs';
+import { root, inspectTar, assertPayloadPermissions, fileHash, inventory, expandedBytes, deterministicArchive } from './payload-lib.mjs';
 
 export const templateBinaries = [
   'node_modules/@esbuild/linux-arm64/bin/esbuild',
@@ -16,9 +16,10 @@ export function auditTemplateArchive(bytes) {
   const entries = inspectTar(bytes);
   for (const entry of entries) {
     if (entry.name !== 'node_modules' && !entry.name.startsWith('node_modules/')) throw new Error('Template payload outside node_modules');
+    assertPayloadPermissions(entry.name, entry.type, entry.mode);
     if (entry.type === '0') inspectLinuxBinary(entry.name, entry.header, elf);
     if (/linux-(?:x64|ia32)|darwin-|win32-|linux-arm64-musl/.test(entry.name)) throw new Error(`Foreign template target: ${entry.name}`);
-    if (entry.name === templateBinaries[0] && !(entry.mode & 0o111)) throw new Error('Template esbuild is not executable');
+    if (entry.name === templateBinaries[0] && (entry.mode & 0o111) !== 0o111) throw new Error('Template esbuild is not executable');
   }
   for (const name of templateBinaries) if (!elf.has(name)) throw new Error(`Required template Linux ARM64 binary missing: ${name}`);
   return { platform: 'linux', arch: 'arm64', libc: 'glibc', elfFiles: [...elf].sort(), entries: entries.length };

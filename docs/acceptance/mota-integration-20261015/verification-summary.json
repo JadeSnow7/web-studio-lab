@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "status": "implemented-live-accepted-local-uncommitted",
+  "baseCommit": "b5531e1ac3b3da7adf000f6ba61f2c5b19a0755f",
+  "branch": "agent/mota-preparation-20261015",
+  "live": {
+    "receipt": "mota-live-03/result.json",
+    "result": "passed",
+    "startedAt": "2026-10-15T09:44:22.184Z",
+    "endedAt": "2026-10-15T09:46:00.529Z",
+    "projectId": "673b5bbd-6ab0-48f1-8f4b-b9e23499b081",
+    "sourceSha256": "4b2a8d996de4797141cef530f7622b08fca1ae7863d1a3a761d87e98f20216ad",
+    "manualEditorSave": {
+      "path": "project/floors/MT1.js",
+      "beforeSha256": "b700c9fe6d918b813c46ee6826b918ae7d83bb3171851ad327d57ff84bc31ce6",
+      "afterSha256": "cbdfeb44e7a4b18d72f755d20a469c21c07308142e60bc29e1695f82392f8562",
+      "beforeBytes": 2982,
+      "afterBytes": 2982,
+      "cell": {
+        "x": 6,
+        "y": 10,
+        "before": 0,
+        "after": 31
+      },
+      "diffEvidence": "independent guest bytes and hashes; D run diff does not cover manual editor"
+    },
+    "firstPotion": {
+      "floorId": "MT1",
+      "x": 6,
+      "y": 10,
+      "hp": 1050,
+      "tile": null,
+      "route": ["up"],
+      "lockControl": false
+    },
+    "noSecondPotion": {
+      "floorId": "MT1",
+      "x": 6,
+      "y": 10,
+      "hp": 1050,
+      "tile": null,
+      "route": ["up", "down", "up"],
+      "lockControl": false
+    },
+    "electronExit": {
+      "code": 0,
+      "signal": null
+    },
+    "portsRestored": true,
+    "sourceUnchanged": true,
+    "cleanupErrors": [],
+    "currentBundlesMatch": true
+  },
+  "checks": {
+    "vitestSerial": {
+      "passed": 1709,
+      "skipped": 18,
+      "receipt": "final-vitest-serial-01.json"
+    },
+    "vitestDefaultConcurrency": {
+      "passed": 1707,
+      "failed": 2,
+      "skipped": 18,
+      "receipt": "final-vitest-01.json",
+      "status": "terminal-cleanup instability, root cause undetermined; original failures retained"
+    },
+    "terminalIndividualRechecks": {
+      "detachedPassed": 2,
+      "terminalPassed": 6
+    },
+    "nodeTests": {
+      "passed": 75,
+      "receipt": "final-node-tests-01.json"
+    },
+    "pythonMota": {
+      "passed": 21,
+      "receipt": "mota-python-01.json"
+    },
+    "pythonSourceSnapshot": {
+      "passed": 24,
+      "receipt": "stage1-python-source-02.json"
+    },
+    "typecheck": "final-typecheck-01.json",
+    "lint": "final-lint-01.json",
+    "build": "mota-build-02.json",
+    "baselineSelftest": {
+      "passed": 12,
+      "receipt": "mota-baseline-selftest-01.json"
+    },
+    "format": {
+      "exitCode": 1,
+      "unchangedSourceDocument": "docs/acceptance/consolidation-20261011/closeout-20261014.md",
+      "receipt": "final-format-01.json"
+    }
+  },
+  "integrity": {
+    "checkedAt": "2026-10-15T09:59:28.927172+00:00",
+    "scope": "original Mota and prepared source full bytes/path/device/inode audit",
+    "original": {
+      "root": "/Volumes/Developer/Migrated/2026-10-11/Downloads/50新样板重置版ver2.09（二段技能）/50新(正式版)",
+      "filesChecked": 378,
+      "added": [],
+      "removed": [],
+      "issues": []
+    },
+    "fixture": {
+      "root": "/private/tmp/wsl-mota-preparation-20261015/mota-fixture/source",
+      "filesChecked": 378,
+      "added": [],
+      "removed": [],
+      "issues": []
+    }
+  },
+  "limitations": [
+    "native directory-picker response automated; manual native-picker UI not accepted",
+    "build target, no signed-package acceptance",
+    "Mota Agent/AI, standard App controls and source export unsupported",
+    "manual editor changes are not D Agent-run diff",
+    "no two-run game demonstration, coin modification, model, Azure or web search performed"
+  ],
+  "sourceLockSha256": "ea999b3a5f504d56df752ac5795a46f43f4c3e4d61236c9116fc331d59b43136",
+  "createdAt": "2026-10-15T09:59:29.482600+00:00"
+}

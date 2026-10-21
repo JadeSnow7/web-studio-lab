@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveDemoFile } from './demo-path';
 import { attributesToMap, quadToRect } from './element-summary';
 import { clampToViewport } from './geometry';
-import { isAllowedPreviewUrl, previewOriginOf } from './navigation-policy';
+import { isAllowedManagedAppUrl, isAllowedPreviewUrl, previewOriginOf } from './navigation-policy';
 
 describe('导航白名单', () => {
   const allowed = ['wsl-demo://taskflow'];
@@ -20,6 +20,22 @@ describe('导航白名单', () => {
   it('端口不同视为不同来源', () => {
     expect(isAllowedPreviewUrl('http://127.0.0.1:5174/', ['http://127.0.0.1:5173'])).toBe(false);
     expect(isAllowedPreviewUrl('http://127.0.0.1:5173/tasks', ['http://127.0.0.1:5173'])).toBe(true);
+  });
+});
+
+describe('managed app navigation lease', () => {
+  it.each(['/', '/student', '/student?mode=practice#record'])('retains the exact app origin while navigating %s', (route) => {
+    expect(isAllowedManagedAppUrl('http://127.0.0.1:49152' + route, 'http://127.0.0.1:49152')).toBe(true);
+  });
+  it.each([
+    'http://127.0.0.1:49153/student',
+    'http://localhost:49152/student',
+    'http://name:password@127.0.0.1:49152/student',
+    'https://127.0.0.1:49152/student',
+    'file:///tmp/student',
+    'not a url',
+  ])('rejects another authority or invalid URL: %s', (url) => {
+    expect(isAllowedManagedAppUrl(url, 'http://127.0.0.1:49152')).toBe(false);
   });
 });
 

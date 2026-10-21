@@ -1,5 +1,6 @@
 """Linux guest only: owned session cleanup and framed Codex/PTY transport."""
 import base64
+from pathlib import Path
 import codecs
 import ctypes
 import errno
@@ -22,6 +23,7 @@ import time
 PREFIX = "WSL_GUEST_FRAME:"
 CWD = "/home/agent/workspace"
 TERMINAL_RC_BASE64 = ""
+OWNED_PROCESS_BASE64 = ""
 RESOURCE_MCP_BASE64 = ""  # Replaced only by the trusted host build, never by a page or frame.
 WORKSPACE_BYTES = 524288
 
@@ -82,9 +84,14 @@ def create_workspace(payload):
         raise
 
 
-def snapshot_workspace(root, run_id):
+def snapshot_workspace(root, run_id, strict=False, original_files=()):
     files = []
     total = 0
+    original_directories = {
+        "/".join(entry["path"].split("/")[:index])
+        for entry in original_files
+        for index in range(1, len(entry["path"].split("/")))
+    }
     def walk(directory, prefix=""):
         nonlocal total
         for entry in sorted(os.scandir(directory), key=lambda item: item.name):
@@ -92,9 +99,18 @@ def snapshot_workspace(root, run_id):
             workspace_path(root, relative)
             if entry.is_symlink():
                 raise ValueError("guest workspace symlink: " + relative)
+            if entry.is_file(follow_symlinks=False) and entry.stat(follow_symlinks=False).st_nlink != 1:
+                raise ValueError("guest workspace hardlink: " + relative)
             if not prefix and entry.name in ("node_modules", "dist", ".vite") and entry.is_dir(follow_symlinks=False):
+                # edu candidates may only change admin/src; filtering build output
+                # would hide forbidden writes and links from the host's apply gate.
+                if strict:
+                    raise ValueError("guest edu workspace forbidden directory: " + relative)
                 continue
             if entry.is_dir(follow_symlinks=False):
+                if (strict and relative not in original_directories and
+                        relative != "admin/src" and not relative.startswith("admin/src/")):
+                    raise ValueError("guest edu workspace forbidden directory: " + relative)
                 walk(entry.path, relative + "/")
             elif entry.is_file(follow_symlinks=False):
                 with open(entry.path, "rb") as source:
@@ -135,7 +151,7 @@ def emit(kind, **fields):
     print(PREFIX + json.dumps({"type": kind, **fields}), flush=True)
 
 
-def owned_members(sid):
+def owned_members(sid, leader_identity=None):
     processes = {}
     for entry in os.scandir("/proc"):
         if not entry.name.isdigit():
@@ -153,7 +169,12 @@ def owned_members(sid):
         if descendants.issubset(owned):
             break
         owned.update(descendants)
-    owned.update(pid for pid, (_, session) in processes.items() if session == sid)
+    same_session = True
+    if leader_identity is not None:
+        current = ownership_identity(sid)
+        same_session = current is None or current == leader_identity
+    if same_session:
+        owned.update(pid for pid, (_, session) in processes.items() if session == sid)
     owned.discard(os.getpid())
     return owned
 
@@ -169,15 +190,69 @@ def reap(members, leader):
             pass
 
 
-def cleanup(sid, child):
+def ownership_identity(pid):
+    try:
+        fields = Path('/proc/%d/stat' % pid).read_text().rsplit(')', 1)[1].split()
+        return {'pid': pid, 'startTicks': fields[19]}
+    except FileNotFoundError:
+        return None
+
+
+def research_process(pid):
+    fields = Path('/proc/%d/stat' % pid).read_text().rsplit(')', 1)[1].split()
+    return {'pid': pid, 'parent': int(fields[1]), 'startTicks': fields[19]}
+
+
+def research_peer_identity(client):
+    # Linux kernel credentials, never a PID or identity supplied in the request.
+    if sys.platform != 'linux' or not hasattr(socket, 'SO_PEERCRED'):
+        raise ValueError('research caller credentials unavailable')
+    pid, uid, _ = struct.unpack('3i', client.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize('3i')))
+    if uid != os.getuid() or pid <= 0:
+        raise ValueError('research caller identity mismatch')
+    process = research_process(pid)
+    return {'pid': pid, 'startTicks': process['startTicks']}
+
+
+def research_peer_owned(client, leader, peer=None):
+    # A same-UID sibling App is not the current model. Require a live ancestry
+    # chain to this exact Codex process; unknown/changed identities fail closed.
+    try:
+        actual = research_peer_identity(client)
+        if leader is None or (peer is not None and peer != actual):
+            return None
+        chain = []
+        current = actual['pid']
+        for _ in range(64):
+            record = research_process(current)
+            if not chain and record['startTicks'] != actual['startTicks']:
+                return None
+            if any(item['pid'] == current for item in chain):
+                return None
+            chain.append(record)
+            if current == leader['pid']:
+                if record['startTicks'] != leader['startTicks']:
+                    return None
+                if any(research_process(item['pid']) != item for item in chain):
+                    return None
+                return actual
+            current = record['parent']
+            if current <= 1:
+                return None
+    except (OSError, ValueError, IndexError, KeyError, TypeError, struct.error):
+        return None
+    return None
+
+
+def cleanup(sid, child, leader_identity=None):
     # Subreaper adopts orphaned background jobs, so zombies can actually be reaped.
     for sig, duration in [(signal.SIGTERM, 1.5), (signal.SIGKILL, 3.0)]:
         deadline = time.monotonic() + duration
         while True:
             child.poll()
-            members = owned_members(sid)
+            members = owned_members(sid, leader_identity)
             reap(members, child.pid)
-            members = owned_members(sid)
+            members = owned_members(sid, leader_identity)
             if not members:
                 return
             for pid in members:
@@ -216,27 +291,55 @@ def read_start():
     start = json.loads(first)
     if not isinstance(start, dict) or start.get("type") != "start" or start.get("mode") not in ("codex", "terminal"):
         raise ValueError("invalid start frame")
-    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "prompt", "resourceBundle", "observation", "observationImages", "workspace"}
-    for key in ("observation", "observationImages"):
+    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "duplex", "eduOwner", "strictWorkspace", "motaControl", "webResearch"}
+    for key in ("observation", "observationImages", "duplex", "strictWorkspace", "motaControl", "webResearch"):
         if key in start and type(start[key]) is not bool:
             raise ValueError("invalid observation capability")
     if set(start) - allowed:
         raise ValueError("unknown start fields")
+    if start.get("motaControl") is True:
+        argv = start.get("argv", [])
+        if (start.get("mode") != "codex" or start.get("observation") is not True
+                or start.get("strictWorkspace") is not True or "workspace" not in start
+                or "resourceBundle" not in start or not isinstance(argv, list)
+                or argv != ["codex", "exec", "--sandbox", "read-only", "-c", 'web_search="disabled"', "--json", "--skip-git-repo-check", "-"]
+                or start.get("webResearch") is True
+                or start.get("observationImages") is True or start.get("duplex") is True):
+            raise ValueError("invalid Mota read-only capability")
+    if start.get("webResearch") is True:
+        argv = start.get("argv", [])
+        prefix = ["codex", "exec", "--sandbox", "workspace-write", "-c", 'web_search="live"']
+        suffix = argv[len(prefix):] if isinstance(argv, list) else []
+        valid_suffix = suffix == ["--json", "--skip-git-repo-check", "-"] or (
+            len(suffix) == 5 and suffix[:3] == ["resume", "--json", "--skip-git-repo-check"]
+            and isinstance(suffix[3], str) and 0 < len(suffix[3]) <= 200 and suffix[4] == "-")
+        if (start.get("mode") != "codex" or not isinstance(argv, list) or argv[:len(prefix)] != prefix or not valid_suffix
+                or start.get("observation") is not True or "resourceBundle" not in start
+                or start.get("observationImages") is True or start.get("duplex") is True
+                or start.get("motaControl") is True or "eduOwner" in start or "workspace" in start
+                or start.get("strictWorkspace") is True):
+            raise ValueError("invalid public research capability")
     return start
 
 
 def main(start):
     os.makedirs(CWD, exist_ok=True)
     env = dict(os.environ)
+    if start.get("motaControl") is True:
+        env.pop("WSL_APP_CHANNEL", None)
     env["PATH"] = "/usr/local/bin:/usr/local/share/npm-global/bin:" + env.get("PATH", "")
     terminal = start["mode"] == "terminal"
     master = None
     child = None
+    owner = None
+    ownership = None
     resource_fd = None
     observer = None
     observer_dir = None
     cli_channel = None
     observer_clients = {}
+    research_peers = {}
+    research_leader = None
     observation_count = 0
     terminal_rc = None
     workspace = None
@@ -247,6 +350,7 @@ def main(start):
             emit("observation-cancel", id=call_id)
             client.close()
         observer_clients.clear()
+        research_peers.clear()
         if cli_channel is not None:
             for call_id in list(cli_channel.active):
                 emit("observation-cancel", id=call_id)
@@ -297,30 +401,56 @@ def main(start):
                     observer.bind(observation_path)
                     observer.listen(4)
                     observer.setblocking(False)
-                    observation_args = [observation_path, "images" if start.get("observationImages") is True else "text"]
-                    # CLI uses filesystem IPC inside the unchanged command sandbox.
-                    cli_channel_path = observer_dir.name + "/app-channel"
-                    cli_channel = module["AppCliSlots"](cli_channel_path)
-                    cli_source = observer_dir.name + "/wsl_app.py"
-                    with open(cli_source, "w", encoding="utf-8") as target:
-                        target.write(source)
-                    cli = observer_dir.name + "/wsl-app"
-                    with open(cli, "w", encoding="utf-8") as target:
-                        target.write("#!/bin/sh\nexec python3 -I -u '" + cli_source + "' --cli \"$@\"\n")
-                    os.chmod(cli, 0o755)
-                    env["WSL_APP_CHANNEL"] = cli_channel_path
-                    env["PATH"] = observer_dir.name + ":" + env["PATH"]
+                    observation_args = [observation_path, "mota" if start.get("motaControl") is True else "research" if start.get("webResearch") is True else "images" if start.get("observationImages") is True else "text"]
+                    if start.get("motaControl") is not True:
+                        # CLI uses filesystem IPC inside the unchanged command sandbox.
+                        cli_channel_path = observer_dir.name + "/app-channel"
+                        cli_channel = module["AppCliSlots"](cli_channel_path)
+                        cli_source = observer_dir.name + "/wsl_app.py"
+                        with open(cli_source, "w", encoding="utf-8") as target:
+                            target.write(source)
+                        cli = observer_dir.name + "/wsl-app"
+                        with open(cli, "w", encoding="utf-8") as target:
+                            target.write("#!/bin/sh\nexec python3 -I -u '" + cli_source + "' --cli \"$@\"\n")
+                        os.chmod(cli, 0o755)
+                        env["WSL_APP_CHANNEL"] = cli_channel_path
+                        env["PATH"] = observer_dir.name + ":" + env["PATH"]
                 # TOML basic strings/arrays use the same escaping used here by JSON.
                 config = ["-c", 'mcp_servers.wsl_space.command="python3"', "-c",
                           "mcp_servers.wsl_space.args=" + json.dumps(["-I", "-u", "-c", source, descriptor, *observation_args]),
                           "-c", "mcp_servers.wsl_space.required=true"]
-                argv = [argv[0], *config, *argv[1:]]
+                if start.get("webResearch") is True:
+                    # The run grant authorizes this one public-reader operation.
+                    config.extend(["-c", 'mcp_servers.wsl_space.tools.research_open.approval_mode="approve"'])
+                    # Probe standalone search compatibility only for this granted run.
+                    config.extend(["-c", "model_providers.sandboxd.supports_standalone_web_search=true"])
+                # Keep MCP and caller-supplied -c overrides in the exec parser layer.
+                # Split root/subcommand -c overrides can discard root MCP registration.
+                exec_index = argv.index("exec") + 1
+                argv = [*argv[:exec_index], *config, *argv[exec_index:]]
             if "workspace" in start:
                 workspace = create_workspace(start["workspace"])
+                if os.path.basename(argv[0]) == 'codex':
+                    # A resumed thread must not recover its previous candidate cwd.
+                    argv = [argv[0], '--cd', workspace.name, *argv[1:]]
             child = subprocess.Popen(argv, cwd=workspace.name if workspace else CWD, env=env, stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+            if start.get('webResearch') is True:
+                research_leader = ownership_identity(child.pid)
+                if research_leader is None:
+                    raise RuntimeError('research leader identity unavailable')
+            if "eduOwner" in start:
+                if not OWNED_PROCESS_BASE64:
+                    raise ValueError("owned edu receipt implementation missing")
+                ownership = {"__name__": "wsl_edu_owned"}
+                exec(compile(base64.b64decode(OWNED_PROCESS_BASE64), "<edu-owned-process>", "exec"), ownership)
+                owner = ownership["begin"](start["eduOwner"], child.pid)
             child.stdin.write(start.get("prompt", "").encode())
-            child.stdin.close()
+            if start.get("duplex"):
+                child.stdin.flush()
+                os.set_blocking(child.stdin.fileno(), False)
+            else:
+                child.stdin.close()
             streams = {child.stdout.fileno(): ("stdout", codecs.getincrementaldecoder("utf-8")("replace")),
                        child.stderr.fileno(): ("stderr", codecs.getincrementaldecoder("utf-8")("replace"))}
         emit("ready", pid=child.pid)
@@ -331,8 +461,14 @@ def main(start):
         buffer = b""
         closing = False
         pending_input = b""
+        input_fd = master if terminal else child.stdin.fileno() if start.get("duplex") else None
         leader_cleaned = False
         while (streams or child.poll() is None) and not closing:
+            if owner:
+                ownership["update"](owner, owned_members(child.pid, owner[1]["leader"] if owner else None))
+                if ownership["revoked"](owner):
+                    closing = True
+                    break
             if cli_channel is not None:
                 calls, cancelled, admitted = cli_channel.poll(4 - len(observer_clients) - len(cli_channel.active), 64 - observation_count)
                 observation_count += admitted
@@ -340,9 +476,9 @@ def main(start):
                     emit("observation-cancel", id=call_id)
                 for call_id, request in calls:
                     emit("observation-call", id=call_id, tool=request["tool"], args=request["args"])
-            readable, writable, _ = select.select([stdin, *streams, *([observer.fileno()] if observer else []), *[client.fileno() for client, pending, _ in observer_clients.values()]], [master] if pending_input else [], [], 0.1)
+            readable, writable, _ = select.select([stdin, *streams, *([observer.fileno()] if observer else []), *[client.fileno() for client, pending, _ in observer_clients.values()]], [input_fd] if pending_input and input_fd is not None else [], [], 0.1)
             if writable:
-                written = os.write(master, pending_input)
+                written = os.write(input_fd, pending_input)
                 pending_input = pending_input[written:]
             for call_id, (client, pending, deadline) in list(observer_clients.items()):
                 if time.monotonic() > deadline:
@@ -354,15 +490,29 @@ def main(start):
                 if observer and fd == observer.fileno():
                     client, _ = observer.accept()
                     client.setblocking(False)
+                    peer = research_peer_owned(client, research_leader) if start.get('webResearch') is True else None
+                    if start.get('webResearch') is True and peer is None:
+                        client.close()
+                        continue
                     if len(observer_clients) + (len(cli_channel.active) if cli_channel else 0) >= 4 or observation_count >= 64:
                         client.close()
                     else:
-                        observer_clients[str(uuid.uuid4())] = (client, b"", time.monotonic() + 20)
+                        call_id = str(uuid.uuid4())
+                        observer_clients[call_id] = (client, b"", time.monotonic() + 20)
+                        if peer is not None:
+                            research_peers[call_id] = peer
                         observation_count += 1
                     continue
                 observer_id = next((key for key, (client, _, _) in observer_clients.items() if client.fileno() == fd), None)
                 if observer_id:
                     client, pending, deadline = observer_clients[observer_id]
+                    if start.get('webResearch') is True and not research_peer_owned(client, research_leader, research_peers.get(observer_id)):
+                        if pending is None:
+                            emit('observation-cancel', id=observer_id)
+                        client.close()
+                        del observer_clients[observer_id]
+                        research_peers.pop(observer_id, None)
+                        continue
                     try:
                         chunk = client.recv(16385)
                     except OSError:
@@ -388,6 +538,11 @@ def main(start):
                             client.close()
                             del observer_clients[observer_id]
                             continue
+                        if start.get('webResearch') is True and not research_peer_owned(client, research_leader, research_peers.get(observer_id)):
+                            client.close()
+                            del observer_clients[observer_id]
+                            research_peers.pop(observer_id, None)
+                            continue
                         emit("observation-call", id=observer_id, tool=request["tool"], args=request["args"])
                         # Control-plane calls (scenario/waitFor) may run up to Codex's 60s MCP limit.
                         if request["tool"].startswith("app."):
@@ -410,7 +565,7 @@ def main(start):
                         if not isinstance(frame, dict):
                             raise ValueError("invalid control frame")
                         kind = frame.get("type")
-                        keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "input": {"type", "data"}, "resize": {"type", "cols", "rows"}}
+                        keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "close-input": {"type"}, "input": {"type", "data"}, "resize": {"type", "cols", "rows"}}
                         if kind not in keys or set(frame) != keys[kind]:
                             raise ValueError("invalid control fields")
                         if cli_channel is not None:
@@ -430,6 +585,17 @@ def main(start):
                                 client.close()
                         elif kind == "close":
                             closing = True
+                        elif not terminal and start.get("duplex") and kind == "close-input":
+                            pending_input = b""
+                            input_fd = None
+                            child.stdin.close()
+                        elif not terminal and start.get("duplex") and kind == "input":
+                            data = frame["data"]
+                            if not isinstance(data, str) or not 0 < len(data.encode()) <= 65536 or child.stdin.closed:
+                                raise ValueError("invalid duplex input")
+                            pending_input += data.encode()
+                            if len(pending_input) > 65536:
+                                raise ValueError("duplex input queue too large")
                         elif terminal and kind == "input":
                             data = frame["data"]
                             if not isinstance(data, str) or not 0 < len(data.encode()) <= 65536:
@@ -461,17 +627,20 @@ def main(start):
                         del streams[fd]
             # Leader exit does not imply background jobs have released the streams.
             if child.poll() is not None and not leader_cleaned:
-                cleanup(child.pid, child)
+                cleanup(child.pid, child, owner[1]["leader"] if owner else None)
                 leader_cleaned = True
         if closing:
-            cleanup(child.pid, child)
+            cleanup(child.pid, child, owner[1]["leader"] if owner else None)
             drain_streams(streams)
         else:
             child.wait()
-            cleanup(child.pid, child)
+            cleanup(child.pid, child, owner[1]["leader"] if owner else None)
+        if owner:
+            ownership["complete"](owner)
         emit("exit", exitCode=child.returncode)
         if workspace is not None:
-            snapshot_workspace(workspace.name, start["workspace"]["runId"])
+            snapshot_workspace(workspace.name, start["workspace"]["runId"], strict=start.get("strictWorkspace", False),
+                               original_files=start["workspace"]["files"])
             workspace.cleanup()
             workspace = None
         close_observers()
@@ -480,7 +649,7 @@ def main(start):
         emit("error", error=str(error))
         if child is not None:
             try:
-                cleanup(child.pid, child)
+                cleanup(child.pid, child, owner[1]["leader"] if owner else None)
                 drain_streams(streams)
             except BaseException as cleanup_error:
                 report_retained_workspace(workspace, start, cleanup_error)
@@ -488,11 +657,15 @@ def main(start):
                 return
         if workspace is not None:
             try:
-                snapshot_workspace(workspace.name, start["workspace"]["runId"])
+                snapshot_workspace(workspace.name, start["workspace"]["runId"], strict=start.get("strictWorkspace", False),
+                               original_files=start["workspace"]["files"])
             except BaseException as snapshot_error:
-                emit("error", error=str(snapshot_error))
+                emit("error", error="guest candidate retained at " + workspace.name + " after snapshot rejection: " + str(snapshot_error),
+                     runId=start["workspace"]["runId"], workspaceDir=workspace.name)
+                workspace = None
             try:
-                workspace.cleanup()
+                if workspace is not None:
+                    workspace.cleanup()
                 workspace = None
             except BaseException as cleanup_error:
                 report_retained_workspace(workspace, start, cleanup_error)
@@ -504,8 +677,15 @@ def main(start):
             emit("error", error=str(cleanup_error))
             emit("cleanup", ok=False, error=str(cleanup_error))
             return
+        if owner:
+            ownership["complete"](owner)
         emit("cleanup", ok=True)
     finally:
+        # A dead host can break stdout before a cleanup event is delivered. The
+        # durable receipt must still be completed independently of that pipe.
+        if owner and not owner[1]["cleanupConfirmed"]:
+            cleanup(child.pid, child, owner[1]["leader"])
+            ownership["complete"](owner)
         try:
             close_observers()
         except BaseException as cleanup_error:

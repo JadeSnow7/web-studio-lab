@@ -1,178 +1,72 @@
-# Web Studio Lab 参赛源稿证据索引
+# 参赛证据索引 · 2026-10-16
 
-本文配套 [作品介绍源稿](oschina-2026.md)。2026-10-08 本地整合稿继承远端 `606556c` 的证据索引。E02–E11 保留 VS001 的历史快照与判定；E01、E12、E14 描述当前本地产品。未推送的提交与本轮文件使用本地链接，不构造尚不可访问的 GitHub 固定链接。
+本索引描述历史回执的只读核查所得；本次 PR 回归另见[整合记录](../acceptance/submission-20261016/README.md)，不追溯改变历史运行结论。仓库内路径是当前候选的相对路径；外部证据使用交付包名和文件名定位，实际可访问链接见[材料入口](README.md)，尚未填写的链接不能视为已交付。原始回执可能含机器路径或测试内容，对外提供前需脱敏，本文不复制这些内容。
 
-## 快照与判定规则
+## E01
 
-| 字段                    | 值                                                                 |
-| ----------------------- | ------------------------------------------------------------------ |
-| VS001 历史仓库快照      | `2466936454658153e47a430ce1da853826f69f69`                         |
-| 产品起点                | `536f0a1948e522a09310aa20784ec512476dc7be`                         |
-| VS001 方法归档 runId    | `78531515-547a-4d5e-a572-ff6efbf2a80b`                             |
-| 归档中的方法修复前 HEAD | `81efecd5c27c94e853db40db206603f1affe5bdc`                         |
-| VS001 基准 SHA-256      | `e6e980c11e0ac84baf26c52b5724a9a6706e3de480494aba549293425a2ab928` |
-| VS001 任务 SHA-256      | `d3e338da7ff71fa7b69dbe778f9e50d1ea904079f359aaf8f3025b5c08180dcf` |
-| VS001 manifest SHA-256  | `1aa8af00d1f6028b60286e3912f44218f781ae286fed0253b14df59ca8cce5c8` |
+**版本与范围。** [根 README](../../README.md)、[当前运行时](../architecture/current-runtime.md)、[开发规范](../../CONTRIBUTING.md)、根 `package.json` 与 `LICENSE`。录像源仓库为 `JadeSnow7/web-studio-lab`，历史 HEAD 为 `b5531e1ac3b3da7adf000f6ba61f2c5b19a0755f`，原分支 `agent/mota-preparation-20261015` 含未提交改动，故该 HEAD 不能单独标识录像代码；历史复现需其完整源码清单及对应构建指纹。当前候选分支为 `agent/submission-20261016`，实现 commit 为 `120d34777db305b99e9501951363fe64e049a69f`，准确版本与回归另登记于[PR 整合记录](../acceptance/submission-20261016/README.md)。
 
-receipt 的 `methodRevisionBase` 和 environment 的 `gitHead` 属于归档时的现场。方法修复当时未提交，manifest 用逐文件 SHA-256 绑定实际基准；本文的仓库快照包含后来合并的内容，不能替换归档 HEAD。
+## E02
 
-“源码已存在”“合成自检通过”“真实产品运行通过”分别使用各自证据。`failed / target_missing / performed=false` 始终保留原判定，不改写为通过、跳过或已执行的真实产品测试。哈希完整性不等于执行真实性。
+**魔塔接入与模型验收。** [手动整合记录](../acceptance/mota-integration-20261015/README.md)、[AI 阶段验收](../acceptance/mota-ai-20261015/README.md)。外部包 `mota-integration-20261015-verified/README.md`、`mota-ai-20261015-verified/report.md` 及后者 `evidence/model-03/result.json`。
 
-## 论点与证据对应
+- 手动整合：真实目录接入、游戏/编辑器、手动保存、停止重启有对应结果。其单 worker 单测为 1709 通过、18 条件跳过，不能概括为默认并发一次全绿。
+- build03 的 model03：普通/金币两局分别 59/61 次工具调用，均通过 12 个有序检查点，终点 MT4 `(11,10)`、HP926、money 7/14。仅改 MT1 `(6,10)` 的 `0→53`。
+- 后续 build04 默认 E2E 为 168 通过、22 跳过、0 失败；先前 6 项失败及格式遗留问题保留。build04 的默认 E2E 不等同于重跑 model03。
+- OS 探针在真正验证隔离前退出，未证明 OS 写入或网络阻断；UI 聚合历史存在输出上限。
 
-| 源稿论点                                  | 索引     | 可以支持的范围                                 |
-| ----------------------------------------- | -------- | ---------------------------------------------- |
-| 六板块空间产品已存在；完整业务闭环未完成  | E01、E14 | 当前源码、本地提交与分阶段实测                 |
-| VS001 固定目标、职责分工与首个 slice 范围 | E02-E04  | 契约、fixture 和冻结成功条件                   |
-| 页面观察、独立断言与证据校验已有代码      | E05-E07  | 验收端源码及合成反例，非真实 Electron 正向运行 |
-| 复现环境、安装与类型检查                  | E08-E10  | 固定依赖、归档命令和原始结果                   |
-| 自检 8/8；B01-B05 全部失败且未执行        | E09-E10  | 方法修复后的同一归档运行                       |
-| 方法修复与历史证据保留                    | E09、E11 | 新旧方法指纹及归档适用范围                     |
-| Apache-2.0、上游边界、现有治理与缺项      | E12      | 当前文件和目录，不证明成熟社区治理             |
-| 评分结构、截止与提交材料                  | E13      | 赛事规则的来源与本轮核验限制                   |
+## E03
 
-## 逐项来源
+**魔塔正式成片，独立于 model03。** 外部包 `mota-demo-video-20261015/`：`delivery.json`、`segments.json`、`web-studio-mota-demo-zh.verification.json`、`qa/visual-review.json`、`evidence/validation-2026-10-15T15-30-46-104Z.json`。
 
-### E01
+成片 `web-studio-mota-demo-zh.mp4`：84 秒，1920×1080，30 fps，H.264，无音频，6,005,717 字节；SHA-256 为 `ac9cd71f793bf00e3f93ff3b8c04f728962e472520aa785471f106839fd8f092`。本次 build04 录像的普通/金币两轮为 58/61 次调用，各 12 个有序检查点，终点与 7/14 对照通过。回执记录完整解码通过、14 个关键帧审阅；本次文档任务没有重新解码或逐帧审片。
 
-**当前产品与历史边界。**
+`segments.json` 保留实际原片区间与 1、2、4、6.5、15 倍速。剪掉等待与重复停留；差异卡来自本次实际文件。第二轮开局与拾币没有游戏动画画面，以回执说明。清理后观察轮询出现 closed-page，保留原记录；sandbox 停止前没有独立重核 guest PID 消失，不能把 UI 清理确认扩大为该项实测。
 
-[当前 README](../../README.md)、[运行时](../architecture/current-runtime.md)、[整合合同](../acceptance/integration-20261008/SPEC.md)和[阶段记录](../acceptance/integration-20261008/task-summary.md)为当前入口。空间重制基准为本地 `9e1df45`，观察 Provider 工作包为 `331c47f`；完整整合是否完成以 E14 的最终记录为准。
+## E04
 
-当前已有 Electron 主进程、preload、六板块 renderer、空间/标签/四窗格、原生网页、Codex/sbx 会话、PTY、任务历史、通知与恢复。`src/vertical-slice/adapter.ts` 仍不存在；当前 Electron 功能不能改写 VS001 的 target_missing 失败，也不能证明母模板、独立检查器或完整 IDE 已完成。
+**标准模板与本地存储。** [标准模板说明](../../templates/standard-app/README.md)，源码 `templates/standard-app/server/db.ts`、`templates/standard-app/server/`、`templates/standard-app/agent/`。PGlite 接收模板配置的数据目录；标准 App 初始种子不是“完全空数据库”。源码证明所用机制，具体手帐行为由 E05/E06 各自回执证明，不从模板推定所有生成应用都正确。
 
-原稿所述“没有 Electron”仅适用于[旧目录快照](https://github.com/JadeSnow7/web-studio-lab/tree/2466936454658153e47a430ce1da853826f69f69)。历史快照保留，不作为当前产品目录说明。
+## E05
 
-### E02
+**手帐录前检查与完整 v5 彩排。** 外部包 `journal-recording-preflight-20261016/README.md`、`full-rehearsal-addendum.md`，以及补充说明引用的保存、研究限制、刷新 GET 比较和清理回执。
 
-**冻结场景、五项验收与执行边界。**
+录前记录仅说明当时状态；随后完整彩排完成新搜索、3 个正文来源读取及显式纳入、正常 UI 保存和刷新核对。经历目标未绑定取消、生成阶段点击验证失败、中文 testid 拒绝及 fresh ref 续跑。AI 保存/刷新与主控独立刷新分别记录。完整准备至退出耗时 41 分 8.045 秒；原 owner observer 仍为 exit 1，含 3 条历史 guard 错误，补充 observer 为 exit 0，不能写成全部零错误。
 
-[本地 VS001](../acceptance/VS001.md) / [固定 VS001](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/docs/acceptance/VS001.md)。任务只改运行副本的 `src/App.tsx`，一次真实 harness 会话；验收端独立观察与截图。首个 slice 不要求完整 Workshop、编辑器、交互终端、Hono API、多模板或安装包。
+搜索日志缺失候选 URL 列表，保存的来源字段不证明候选归属。Wikivoyage 是回执校验失败，不据此归因网站 HTTP 拒绝。本文不重审来源正文与建议的逐句语义，也不公开手帐正文。彩排不等于正式录像。
 
-这些是成功条件及未来 adapter 的要求，不能作为已经成功执行的证据。
+## E06
 
-### E03
+**手帐正式生成、17 日验收与 18 日补录。** 外部包 `journal-demo-video-20261016/` 的 `formal-generation-acceptance.md/.json`、`formal-research-acceptance.md/.json`、`formal-retry18-acceptance.md/.json`，以及各自引用的完成回执。三次运行与 v5 彩排分别记录。
 
-**实际数据契约。**
+生成 run `d2e0c322-eaf4-4784-9b14-abd38127b269` 耗时 468.008 秒，6 个文件变更在允许范围；最终类型检查、4 个既有模板测试文件、清单检查和受管构建启动通过。首次清单失败及两次鼠标定位失败保留；键盘路径完成测试保存/刷新，测试文字经 UI 清空后留有空记录。55 份工具回执有 3 个失败、8 个截断，未新增手帐专属测试。
 
-[本地 contracts.ts](../../tests/vertical-slice/contracts.ts) / [固定 contracts.ts](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/tests/vertical-slice/contracts.ts)。`taskSchema`、`productEventSchema`、`identitySchema`、`rawLogSchema` 和 `observationSchema` 是严格运行时结构；`ExecuteTask` / `AdapterContext` 定义产品接点职责。文档不另立字段定义或放宽目标。
+17 日 run `c044720d-5d75-453b-b246-d0ae0880bbd8` 耗时 149.887 秒。新搜索完成，HSLY 正文读取并纳入各 1 条；AI 正常 UI 按 Enter 保存、刷新重选，以及主控独立刷新后的 GET 四字段一致。UNESCO HTTP 403 未纳入；保存刷新后的 Control+Home 被 schema 拒绝，随后普通滚动成功。录屏因窗口 metadata 校验失败而中止，具体失败字段及原因未确认，没有可用 MOV，不能用业务回执补造保存画面；见 `raw-research-save-01/result.json` 与 `raw-research-save-01-recording-correction.json`。
 
-### E04
+18 日 run `a5994dc7-be02-41d2-baa4-39271511689f` 于 07:51:41.709–07:53:24.989 UTC 执行，耗时 103.280 秒。在原先空白的 18 日重新搜索，重新读取并纳入已知 HSLY 来源；正文散列与 17 日相同，不证明新发现或内容更新。AI 填写后以 Enter 保存，正常导航并重开日期；AI 保存、AI 刷新及主控独立刷新后的 GET 四字段一致。
 
-**固定页面输入。**
+`formal-retry18-after-ai.json` 和 `formal-retry18-after-independent-refresh.json` 均 HTTP 200、1,872 字节，响应 SHA-256 为 `ecad316d2ff81aa90ea7a475b0b45ab865da6a329070d1e7452a3bb88754fb29`。`formal-retry18-preserved17.json` 与原 17 日刷新后数据四字段相同。18 份 MCP 回执本轮无失败，5 份快照截断，1 份纳入回执有意省略来源正文；源码 patch 为空，Main validation 仍 `not_run`。
 
-[本地页面](../../fixtures/vertical-slice/page/src/App.tsx) / [固定 fixture 目录](https://github.com/JadeSnow7/web-studio-lab/tree/2466936454658153e47a430ce1da853826f69f69/fixtures/vertical-slice/page)。初始标题为 `Hello baseline`，选择器为 `[data-testid="greeting"]`。fixture 是测试输入，不是 Electron 产品或已完成的 Agent 产出。
+以上结果不等于全 UI、停止重启、全部数据库或媒体验收。正式 API 使用 `source` 且无 updatedAt，不与旧手帐 `sourceUrl/updatedAt` 混用。候选 URL 没有投影，来源正文省略，不能独立确认 URL 来自该次搜索、旅游事实或发布主体；商业/非官方来源说明不代表官方核验。
 
-### E05
+## E07
 
-**验收调度、CDP 观察与独立断言源码。**
+**技术能力与未演示范围。** `apps/desktop/src/main/workbench/`、`apps/service/src/resource_mcp.py`、`apps/service/src/research-runtime.ts`、`packages/protocol/src/mota-control.ts`、`packages/protocol/src/research.ts`；总体结构见[架构](../ARCHITECTURE.md)。
 
-- [本地 run.ts](../../tests/vertical-slice/run.ts) / [固定 run.ts](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/tests/vertical-slice/run.ts)：创建副本、分类结果、注册清理和写出报告；入口不存在时五项均设为 failed，performed=false。
-- [本地 cdp.ts](../../tests/vertical-slice/cdp.ts) / [固定 cdp.ts](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/tests/vertical-slice/cdp.ts)：回环地址边界、Electron discovery、指定 target、导航、原始协议记录与 PNG 采集代码。
-- [本地 postcondition.ts](../../tests/vertical-slice/postcondition.ts) / [固定 postcondition.ts](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/tests/vertical-slice/postcondition.ts)：URL/runId/就绪状态、唯一性、可见性、精确文本及观测异常断言。
+源码中魔塔工具限定状态/操作/读图/改图；改图 schema 限定 `0→53` 并要求预期散列。研究接口区分打开与显式纳入。协议允许 `candidateUrls` 不等于本次日志实际包含该字段。SSH、PTY、多会话等实现及历史验证见[运行时](../architecture/current-runtime.md)，未在本次两场景中逐项复验。
 
-归档没有执行真实 CDP 路径；源码审阅和合成 transport 自检不能证明真实 Electron 集成通过。`webContentsId → targetId` 映射还需审阅未来产品代码。
+## E08
 
-### E06
+**手帐成片、原片与收尾保全。** 外部包 `journal-demo-video-20261016/` 的 `DELIVERY.md`、`web-studio-journal-demo-zh.verification.json`、`final-cut-review-v1/independent-qa.md/.json`、`raw-research-save-02-segments/result.json`、`research-segments-final-qa/raw-independent-verification.md/.json` 和 `journal-final-edit-plan-v2.json`。计划中的待渲染状态保留为编排时点历史，完成状态以最终编码回执与交付说明为准。
 
-**证据绑定与完整性核验源码。**
+成片 `web-studio-journal-demo-zh.mp4` 为 130.000 秒、1920×1080、H.264/yuv420p、30 fps、3900 帧、无音轨、3,255,337 字节；SHA-256 为 `da6e638388a299f7fb276a7b06fe5f16fe301955845bcebbbbd61962edd017cb`。编码回执完整解码通过，独立 QA 重算成片及使用的六份原片散列吻合，并逐张检查 32 张顺序解码样本；主控另查其中 14 张。这是稀疏样本核验，不是逐帧隐私保证。本次文档任务只读回执，未重新解码媒体。
 
-[本地 evidence.ts](../../tests/vertical-slice/evidence.ts) / [固定 evidence.ts](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/tests/vertical-slice/evidence.ts)。关键入口是 `baselineFingerprint`、`ProductTranscript`、`verifyManifest`，覆盖基准指纹、事件顺序与身份、产物字节数和哈希等检查。
+18 日七段原片共 366.086667 秒，既有回执均记录完整解码通过；六处进程时标间隔合计 37.172752 秒，非逐帧精确缺口。最终 15 个片段使用原速及 2×、3×、4×、8×，人工采集/切页/展示/独立刷新、17 日录像失败和 18 日新运行均有说明。正文输入开头未直接录到，完整四字段一致由回执支持。早期快速 seek 抽帧出现文字缺失，顺序解码对照正常；不据此推断原片损坏。前 50 秒生成、后 80 秒研究保存是剪辑时长，不是实际完成耗时。
 
-完整性检查能发现缺失、改变与串用；无法密码学证明 harness 来源、执行者诚实或产品身份映射。本轮发现 B03/B04 独立证据门槛缺口（F08），已修复源码并补充独立负例；正式复验与新方法指纹由 E14 的阶段记录给出，E09 的旧指纹只对应历史方法。
+保全依据 `formal-final-old-journal-independent-review.json`、`formal-final-preservation-freeze-v2.json` 和 `formal-recovery-closeout-20261016T082334Z.md`：旧项目 15–18 日四条记录六字段含 updatedAt 一致；339 个源码与 8 个输出内容、元数据一致，43 条变更清单和 8 项构建指纹吻合。此为列明范围的时点核对，不是全系统审计。
 
-### E07
+退出前 App 均 stopped/cleanupConfirmed，22 个 run clean；Electron 正常 UI Quit 已发出，随后两个目标 PID 均不存在。原 owner/keeper 的退出方式与退出码未知，PID 消失不等于 exit 0。恢复时 sandbox 已 stopped、端口为空，偏离原四条映射基线，原 owner cleanup gate 未通过。旧魔塔成片是 dataless 云端占位，本轮未读取、下载或重算哈希，只引用 06:11 UTC 历史校验；其当前字节一致性为 `not_run`。首次冻结失败保留；v2 宿主冻结 `passed`，整体保全 `undetermined`，不称所有清理条件无异常。
 
-**合成自检范围。**
+## 证据使用规则
 
-[本地 selftest.test.ts](../../tests/vertical-slice/selftest.test.ts) / [固定自检源码](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/tests/vertical-slice/selftest.test.ts)。历史固定快照的八项均显式标注 synthetic，覆盖严格契约、postcondition 反例、串用/顺序/生命周期、改动边界、manifest 以及空 DOM、loading、错误 URL 和单匹配等判定逻辑。通过记录见 E10；不是 B01-B05 的真实产品运行。
-
-### E08
-
-**VS001 历史依赖、命令和类型检查范围。**
-
-以下固定链接用于复现当时归档。当前产品安装使用 pnpm-lock.yaml 与根 packageManager；请遵循[当前开发入口](../../README.md)，不要在当前树执行旧 npm ci。
-
-- [本地 package.json](../../package.json) / [固定清单](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/package.json)：历史固定清单要求 Node.js ≥22.12，并包含 typecheck/selftest/baseline 入口；本地清单已扩展产品依赖和 Node 24 要求。
-- [本地锁文件](../../package-lock.json) / [固定锁文件](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/package-lock.json)。
-- [本地 tsconfig](../../tsconfig.json) / [固定 tsconfig](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/tsconfig.json)：检查 src 的 TS/TSX、测试与 fixture。
-- [验收使用说明](../acceptance/README.md) / [固定说明](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/docs/acceptance/README.md)。
-
-当前没有实际 adapter 可供编译；将 src 纳入范围不等于已经实现 adapter 或自动验证任意动态导出。
-
-### E09
-
-**2026-10-07 当前方法回执与运行现场。**
-
-[固定当前归档目录](https://github.com/JadeSnow7/web-studio-lab/tree/2466936454658153e47a430ce1da853826f69f69/docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b)。
-
-- [本地 receipt](../acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/receipt.json) / [固定 receipt](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/receipt.json)：run、任务/基准/manifest 指纹、产品起点、方法修订起点及命令输出哈希。
-- [本地 environment](../acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/environment.json) / [固定 environment](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/environment.json)：darwin / arm64 / Node v26.5.0、归档 HEAD、未提交方法修复、adapter 哈希为 null。
-- [本地 manifest](../acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/manifest.json) / [固定 manifest](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/manifest.json)：逐文件基准与产物指纹。
-
-### E10
-
-**2026-10-07 原始判定与命令输出。**
-
-[固定 commands 目录](https://github.com/JadeSnow7/web-studio-lab/tree/2466936454658153e47a430ce1da853826f69f69/docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands)。
-
-| 原始文件                                                                                                                                                                                                                                                                                                  | 可直接读到的结果                                                         |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| [typecheck.json](../acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/typecheck.json)                                                                                                                                                                                            | 命令退出 0                                                               |
-| [selftest.json](../acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/selftest.json) 与 [selftest.stdout.txt](../acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/selftest.stdout.txt)                                                                  | 8 pass、0 fail、0 skipped、0 todo，退出 0                                |
-| [baseline.json](../acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/commands/baseline.json)                                                                                                                                                                                              | 命令退出 1                                                               |
-| [run/report.json](../acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/report.json) / [固定 report](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/docs/acceptance/preimplementation/78531515-547a-4d5e-a572-ff6efbf2a80b/run/report.json) | B01-B05 全部 failed、code=target_missing、performed=false；identity=null |
-
-receipt 的解释字段明确：未调用 Agent、启动 Electron、执行 CDP 观察或生成截图。不存在可以引用为本次正向结果的截图或演示视频。空日志边界不表示观察到了“没有运行异常”。
-
-### E11
-
-**2026-10-06 历史方法归档。**
-
-[本地旧 receipt](../acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686/receipt.json) / [固定旧归档](https://github.com/JadeSnow7/web-studio-lab/tree/2466936454658153e47a430ce1da853826f69f69/docs/acceptance/preimplementation/d1c9bc9e-4092-4697-83cf-d52d334b7686)。旧自检 5/5，产品五项仍失败；旧基准 SHA-256 为 `92ac18313e5a30a5d72570c138f27ac41d6727d80a74f7bcff085cb67f318f6a`。旧内容与回执保留，不当作当前方法的相同指纹复验。
-
-### E12
-
-**许可、来源与现有治理边界。**
-
-- [本地 LICENSE](../../LICENSE) / [固定 LICENSE](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/LICENSE)：Apache License 2.0。
-- [固定 README 的来源边界](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/README.md)：独立历史、未迁入上游代码、迁移时保留来源与许可的原则。
-- [本地 .gitignore](../../.gitignore) / [固定 .gitignore](https://github.com/JadeSnow7/web-studio-lab/blob/2466936454658153e47a430ce1da853826f69f69/.gitignore)：运行记录、构建、环境与常见凭据排除规则。
-- [上游固定提交](https://github.com/JadeSnow7/Web-Studio/tree/f377db874f0ecba3390804146776b5e5786d2f86)：仅作 README 指明的参考来源，不借用其能力作为 Lab 运行证明。
-
-当前已有[开发与贡献规范](../../CONTRIBUTING.md)、[Agent协作约定](../../AGENTS.md)、模块依赖 lint 和分层验证入口。旧 E01 快照缺少 CONTRIBUTING 的事实不适用于当前树。安全报告流程、独立第三方许可清单、平台发布与社区规模仍需对应材料；本轮不宣称完成依赖安全审计。
-
-### E13
-
-**赛事条款与报名状态。**
-
-[2026 上海开源软件应用创新大赛官网](https://www.oschina.net/os2026/)，历史核验日期 2026-10-07；2026-10-08 尝试直接读取该官方页面未取得正文，以下保留为历史条款摘要，正式提交前需再次核对。
-
-- 2026-10-07 原稿记录的官方页面搜索索引支持：作品材料截止为 10 月 16 日 24:00；组委会审核后发报名确认邮件；收到确认后按指引提交完整可运行代码的仓库链接、介绍文档（推荐 PDF）和核心功能演示视频链接。
-- 四项维度及权重采用本次任务提供的 2026-10-07 核验记录：技术创新 30%、场景落地 30%、开源治理 20%、长期发展 20%。原稿的直接页面抓取未取得赛事正文，不声称保存了官网完整快照；正式提交前再核对官网或确认邮件。
-- 未访问报名确认邮件，不把公开仓库、稿件、合并 PR 或其他赛事登记当作本赛事报名证明。
-- 官网所列截止未在已取得条款中明确时区。源稿按北京时间安排准备工作，实际要求以确认邮件或主办方通知为准。
-
-### E14
-
-**2026-10-08 本地代码整合与验收。**
-
-- [来源与验收合同](../acceptance/integration-20261008/SPEC.md)：全部工作树及分支候选、只读来源边界、本地提交与禁止发布范围。
-- [审查记录](../acceptance/integration-20261008/review.md)：实际缺陷、失败证据、修复和未解决项。
-- [当前阶段](../acceptance/integration-20261008/task-summary.md)：本地提交、能力接线、最终验证与缺口。
-- [原始基线](../acceptance/integration-20261008/evidence/baseline/summary.json)：类型/构建/单元结果及 Electron 窄窗失败，不能筛除失败后宣称全绿。
-- [Main/持久化/MCP 源码指纹与复验](../acceptance/integration-20261008/evidence/phase2b-final-source-manifest-v2.json)：`d9beb8a`，393 项单元通过、8 项既有 live 跳过；这是该阶段快照，不能替代最终验证。
-- [Provider 源码指纹与复验](../acceptance/integration-20261008/evidence/phase1-source-manifest.json)：类型、341项单元、定向lint/format与构建通过；8项live未运行不计通过。
-
-- [空间文件与会话观察源码及证据](../acceptance/integration-20261008/evidence/phase3-final-source-manifest-v3.json)：`612cde0`，406 项单元通过，Electron 相关子集 46 通过、1 焦点失败、2 live 跳过；Mac 锁定使原生焦点、真实拖拽和中文候选窗验收待解锁复跑。
-
-- [验证工具修复与新方法指纹](../acceptance/integration-20261008/evidence/phase4a-final-source-manifest.json)：`46cab72`，406 项单元、12 项 VS001 合成自检通过；F08 独立证据门槛与 JSON 字段顺序已修复，历史固定目标和原失败保持。新方法指纹 `94536a5749212a9526ef89c53a3c4b8e39b8f06a2f69d996eff46d0369e3e332` 不替换 E09。
-
-[最终完整验收记录](../acceptance/integration-20261008/evidence/final/README.md)分别列出最终源码检查、打包、live、原生界面结果及未完成项。原始证据绑定其运行源码；Provider测试通过不代表产品UI、真实模型、packaged或外部SSH验收完成。
-
-## 后续证据更新规则
-
-1. 在独立产品实现完成后引用新的真实运行目录、产品提交与版本；不要更改当前或历史实现前回执。
-2. 只有全部检查实际执行并通过后，才能新增“VS001 固定场景通过”的描述；保持结论范围与场景一致。
-3. 分别补充演示视频的可访问链接、对应提交/run、启动说明、正式 PDF 和实际报名信息，不以概念图或合成样本替代。
-4. 本文与投稿稿不进入 `baselineFingerprint` 的文件集合；新增这些文档不应改变现有基准指纹。
+散列证明所比较文件的字节一致性，不独立证明执行真实、来源授权或功能正确。成功、失败、跳过和未运行分别记载；所有结论限定到其运行和版本。项目级独立检查器、用户接受、新发行版发布、跨平台导出及最终参赛提交，均不能从以上局部结果推定完成。

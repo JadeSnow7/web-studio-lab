@@ -1,11 +1,17 @@
 /* global Buffer */
 import { open, rm } from 'node:fs/promises';
-import { inventory, inspectTar } from './payload-lib.mjs';
+import { inventory, inspectTar, assertPayloadPermissions } from './payload-lib.mjs';
 
 const macho = new Set(['feedface', 'cefaedfe', 'feedfacf', 'cffaedfe', 'cafebabe', 'bebafeca', 'cafebabf', 'bfbafeca']);
 export const requiredGuestBinaries = [
   'usr/local/bin/node',
   'usr/local/lib/node_modules/@openai/codex-linux-arm64/vendor/aarch64-unknown-linux-musl/bin/codex',
+];
+export const requiredGuestExecutables = [
+  ...requiredGuestBinaries,
+  'usr/local/lib/node_modules/pnpm/bin/pnpm.cjs',
+  'usr/local/lib/node_modules/pnpm/bin/pnpx.cjs',
+  'usr/local/lib/node_modules/@openai/codex/bin/codex.js',
 ];
 function format(header) {
   if (macho.has(header.subarray(0, 4).toString('hex'))) return 'Mach-O';
@@ -51,12 +57,21 @@ function verifyRequired(elfFiles) {
 }
 export async function auditGuestDirectory(directory) {
   const elfFiles = new Set();
-  for (const entry of await inventory(directory))
-    if (entry.stat.isFile()) inspectLinuxBinary(entry.relative, await readHeader(entry.absolute), elfFiles);
+  const entries = await inventory(directory);
+  for (const entry of entries) if (entry.stat.isFile()) inspectLinuxBinary(entry.relative, await readHeader(entry.absolute), elfFiles);
+  for (const entry of entries)
+    assertPayloadPermissions(
+      entry.relative,
+      entry.stat.isDirectory() ? '5' : entry.stat.isSymbolicLink() ? '2' : '0',
+      entry.stat.mode & 0o7777,
+      requiredGuestExecutables.includes(entry.relative),
+    );
   return verifyRequired(elfFiles);
 }
 export function auditGuestArchive(archive) {
   const elfFiles = new Set();
-  for (const entry of inspectTar(archive)) if (entry.type === '0') inspectLinuxBinary(entry.name, entry.header, elfFiles);
+  const entries = inspectTar(archive);
+  for (const entry of entries) if (entry.type === '0') inspectLinuxBinary(entry.name, entry.header, elfFiles);
+  for (const entry of entries) assertPayloadPermissions(entry.name, entry.type, entry.mode, requiredGuestExecutables.includes(entry.name));
   return verifyRequired(elfFiles);
 }

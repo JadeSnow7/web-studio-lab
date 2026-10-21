@@ -1,11 +1,45 @@
+import type { EduTaskBinding } from '@wsl/protocol';
+import { MotaEditorRequestSchema, MotaEditorResultSchema, type MotaEditorRequest } from '@wsl/protocol';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { app, utilityProcess, type UtilityProcess } from 'electron';
+import { RunDispatchFailure } from './workbench/ports';
 import {
+  ResearchCallSchema,
+  ResearchReplySchema,
+  ResearchGrantSchema,
+  type ResearchCall,
+  type ResearchReply,
+  type ResearchGrant,
+  MotaTaskBindingSchema,
+  MotaTaskDispatchRejectionSchema,
+  MotaControlRequestSchema,
+  MotaControlResponseSchema,
+  type MotaTaskBinding,
+  type MotaControlRequest,
+  type MotaControlResponse,
+  EduTaskBindingSchema,
+  EduTaskDispatchRejectionSchema,
+  EduTaskOperationResultSchema,
+  type EduTaskOperation,
+  type EduTaskOperationResult,
+  EduVerificationStatusSchema,
+  EduAdmissionRecoveryStatusSchema,
+  type EduAdmissionRecoveryStatus,
+  type EduVerificationBegin,
+  type EduVerificationTarget,
+  type EduVerificationStatus,
   ManagedAppSchema,
+  AppImportOutcomeSchema,
+  type AppImportRequest,
+  type AppImportTarget,
   AppSourceSchema,
+  AppSourceSnapshotResultSchema,
+  type AppSourceSnapshotResult,
   type AppTarget,
   type AppSource,
+  type EduImport,
   type ManagedApp,
   EnvironmentListSchema,
   ServiceRuntimeConfigSchema,
@@ -36,6 +70,27 @@ import {
 export class ChatService {
   private child: UtilityProcess;
   private readonly managedApps = new Map<string, ManagedApp>();
+  private verificationListener: ((status: EduVerificationStatus) => void) | null = null;
+  private verification: EduVerificationStatus | null = null;
+  private admissionRecovery: EduAdmissionRecoveryStatus | null = null;
+  private admissionListener: ((status: EduAdmissionRecoveryStatus) => void) | null = null;
+  setAdmissionRecoveryListener(listener: (status: EduAdmissionRecoveryStatus) => void) {
+    this.admissionListener = listener;
+    if (this.admissionRecovery) listener(this.admissionRecovery);
+  }
+  private readonly completedVerificationSessions = new Set<string>();
+  private verificationGuard: (() => boolean) | null = null;
+  setVerificationGuard(guard: () => boolean) {
+    this.verificationGuard = guard;
+  }
+  private assertMaintenance(): void {
+    if (this.verificationGuard?.() || this.verification?.maintenanceLocked || this.admissionRecovery?.maintenanceLocked)
+      throw new Error('发音验证期间维护已暂停；请先退出验证并确认恢复');
+  }
+  setVerificationListener(listener: (status: EduVerificationStatus) => void) {
+    this.verificationListener = listener;
+    if (this.verification) listener(this.verification);
+  }
   private appListener: ((snapshot: ManagedApp) => void) | null = null;
   setAppListener(listener: (snapshot: ManagedApp) => void) {
     this.appListener = listener;
@@ -49,6 +104,9 @@ export class ChatService {
       start: { kind: 'chat'; slot: ChatSlot; seq: number } | { kind: 'terminal'; seq: number; resourceId: string } | null;
     }
   >();
+  private readonly sourceCleanup = new Set<string>();
+  private readonly eduTaskCleanup = new Map<string, string>();
+  private readonly motaCleanup = new Set<string>();
   private unknownCleanup = false;
   private initializationPending = true;
   private failure: string | null = null;
@@ -68,6 +126,11 @@ export class ChatService {
       ) => Promise<WorkspaceObservationResult>)
     | null = null;
   private readonly observationCalls = new Map<string, AbortController>();
+  private researchReader: ((call: ResearchCall, signal: AbortSignal) => Promise<ResearchReply>) | null = null;
+  private readonly researchCalls = new Map<string, AbortController>();
+  setResearchReader(reader: NonNullable<ChatService['researchReader']>) {
+    this.researchReader = reader;
+  }
   setObservationReader(reader: NonNullable<ChatService['observationReader']>) {
     this.observationReader = reader;
   }
@@ -103,6 +166,43 @@ export class ChatService {
     this.child.on('message', (raw: unknown) => {
       try {
         const message = ChatServiceMessageSchema.parse(raw);
+        if (message.type === 'edu-admission-recovery-event') {
+          const next = message.status;
+          const previous = this.admissionRecovery;
+          if (
+            previous?.recoveryId === next.recoveryId &&
+            (previous.phase === 'ended' ||
+              previous.sourceSha256 !== next.sourceSha256 ||
+              JSON.stringify(previous.originalIdentity) !== JSON.stringify(next.originalIdentity) ||
+              (previous.phase === 'restoring' && next.phase === 'revoking'))
+          )
+            return;
+          if (previous && previous.recoveryId !== next.recoveryId && previous.maintenanceLocked) return;
+          this.admissionRecovery = next;
+          this.admissionListener?.(next);
+          return;
+        }
+        if (message.type === 'edu-verification-event') {
+          const next = message.status;
+          const previous = this.verification;
+          if (this.completedVerificationSessions.has(next.lease.sessionId)) return;
+          if (previous && previous.lease.sessionId !== next.lease.sessionId && previous.maintenanceLocked) return;
+          if (
+            previous?.lease.sessionId === next.lease.sessionId &&
+            (previous.lease.identity.workspaceId !== next.lease.identity.workspaceId ||
+              previous.lease.identity.projectId !== next.lease.identity.projectId ||
+              previous.lease.identity.appInstanceId !== next.lease.identity.appInstanceId ||
+              previous.lease.sourceSha256 !== next.lease.sourceSha256 ||
+              previous.callsUsed > next.callsUsed ||
+              (next.phase === 'active' && !['preparing', 'active'].includes(previous.phase)) ||
+              (next.phase === 'preparing' && previous.phase !== 'preparing'))
+          )
+            return;
+          this.verification = next;
+          if (next.phase === 'ended') this.completedVerificationSessions.add(next.lease.sessionId);
+          this.verificationListener?.(next);
+          return;
+        }
         if (message.type === 'app-event') {
           this.managedApps.set(message.snapshot.projectId, message.snapshot);
           this.appListener?.(message.snapshot);
@@ -144,6 +244,52 @@ export class ChatService {
               (error) => {
                 this.appCalls.delete(message.id);
                 this.fail('控制面返回通道失败：' + (error as Error).message);
+              },
+            );
+          return;
+        }
+        if (message.type === 'research-abort') {
+          this.researchCalls.get(message.callId)?.abort();
+          return;
+        }
+        if (message.type === 'research-call') {
+          const { type: _type, ...input } = message;
+          const call = ResearchCallSchema.parse(input);
+          if (this.researchCalls.has(call.callId)) throw new Error('研究调用身份重复');
+          const controller = new AbortController();
+          this.researchCalls.set(call.callId, controller);
+          const failed = (error: unknown): ResearchReply => ({
+            callId: call.callId,
+            context: call.context,
+            result: {
+              ok: false,
+              tool: call.tool,
+              error: {
+                code: controller.signal.aborted ? 'cancelled' : 'unavailable',
+                message: (error instanceof Error ? error.message : 'Main研究通道未接入').slice(0, 1000) || '研究调用失败',
+              },
+            },
+          });
+          void Promise.resolve()
+            .then(() => {
+              if (!this.researchReader) throw new Error('Main研究通道未接入');
+              return this.researchReader(call, controller.signal);
+            })
+            .then((value) => {
+              const reply = ResearchReplySchema.parse(value);
+              if (reply.callId !== call.callId || reply.result.tool !== call.tool || !isDeepStrictEqual(reply.context, call.context))
+                throw new Error('研究回执归属不匹配');
+              return controller.signal.aborted ? failed(new Error('研究已取消')) : reply;
+            })
+            .catch(failed)
+            .then((reply) => this.request({ method: 'research.reply', payload: reply }))
+            .then(
+              () => {
+                this.researchCalls.delete(call.callId);
+              },
+              (error: unknown) => {
+                this.researchCalls.delete(call.callId);
+                this.fail('研究返回通道失败：' + (error as Error).message);
               },
             );
           return;
@@ -201,7 +347,10 @@ export class ChatService {
         this.pending.delete(message.id);
         if (message.type === 'error') request.reject(new Error(message.error));
         else {
-          if (message.result && 'conversationId' in message.result) this.remember(message.result);
+          if (message.result && 'conversationId' in message.result) {
+            const conversation = ChatConversationSchema.safeParse(message.result);
+            if (conversation.success) this.remember(conversation.data);
+          }
           if (message.result && 'sessionId' in message.result) {
             if (request.resourceId) {
               const before = this.terminals.get(request.resourceId);
@@ -222,7 +371,21 @@ export class ChatService {
       this.conversations.set(conversation.conversationId, conversation);
   }
   private fail(reason: string) {
+    if (this.admissionRecovery?.maintenanceLocked) {
+      this.admissionRecovery = {
+        ...this.admissionRecovery,
+        phase: 'failed',
+        maintenanceLocked: true,
+        error: 'verification_service_disconnected',
+      };
+      this.admissionListener?.(this.admissionRecovery);
+    }
+    if (this.verification?.maintenanceLocked) {
+      this.verification = { ...this.verification, phase: 'failed', maintenanceLocked: true, error: 'verification_service_disconnected' };
+      this.verificationListener?.(this.verification);
+    }
     for (const controller of this.observationCalls.values()) controller.abort();
+    for (const controller of this.researchCalls.values()) controller.abort();
     for (const controller of this.appCalls.values()) controller.abort();
     this.failure ??= reason;
     for (const current of this.managedApps.values()) {
@@ -245,7 +408,13 @@ export class ChatService {
       // 新快照的清理确认可解除尚未收到 ACK 的启动请求占用。
       if (!current || current.seq <= start.seq || current.cleanupPending) this.unknownCleanup = true;
     }
-    for (const request of this.pending.values()) request.reject(new Error(this.failure));
+    for (const request of this.pending.values()) {
+      const start = request.start;
+      if (start?.kind === 'chat') {
+        const current = this.conversations.get(start.slot);
+        request.reject(new RunDispatchFailure(this.failure, !current || current.seq <= start.seq || current.cleanupPending));
+      } else request.reject(new Error(this.failure));
+    }
     this.pending.clear();
     if (this.stopped) return;
     this.onStatus({
@@ -253,6 +422,9 @@ export class ChatService {
       reason:
         this.initializationPending ||
         this.unknownCleanup ||
+        this.sourceCleanup.size > 0 ||
+        this.eduTaskCleanup.size > 0 ||
+        this.motaCleanup.size > 0 ||
         [...this.conversations.values()].some((conversation) => conversation.cleanupPending) ||
         [...this.terminals.values()].some((t) => t.cleanupPending)
           ? this.failure + '；guest 清理未确认'
@@ -322,6 +494,79 @@ export class ChatService {
     await this.request({ method: 'resource.release', payload: binding });
     this.resourceBindings.delete(binding.resourceId);
   }
+  async appSourceSnapshot(target: AppTarget, signal: AbortSignal): Promise<AppSourceSnapshotResult> {
+    if (signal.aborted || this.stopped || this.failure)
+      return { ok: false, target, cleanupConfirmed: true, error: '源码采集已取消或服务不可用；未发送采集请求' };
+    const callId = randomUUID();
+    this.sourceCleanup.add(callId);
+    let cancellation: Promise<unknown> | undefined;
+    const cancel = () => {
+      cancellation = this.request({ method: 'app.source.cancel', payload: { callId } }).catch(() => undefined);
+    };
+    signal.addEventListener('abort', cancel, { once: true });
+    try {
+      const result = AppSourceSnapshotResultSchema.parse(
+        await this.request({ method: 'app.source.snapshot', payload: { callId, target } }),
+      );
+      const identity = result.ok ? result.snapshot : result.target;
+      if (identity.workspaceId !== target.workspaceId || identity.projectId !== target.projectId) throw new Error('源码回执归属不匹配');
+      if (result.cleanupConfirmed) this.sourceCleanup.delete(callId);
+      return result;
+    } catch {
+      return { ok: false, target, cleanupConfirmed: false, error: '源码 helper 回执无效或传输中断；清理未确认' };
+    } finally {
+      signal.removeEventListener('abort', cancel);
+      await cancellation;
+    }
+  }
+  async verificationBegin(input: EduVerificationBegin): Promise<EduVerificationStatus> {
+    const result = EduVerificationStatusSchema.parse(await this.request({ method: 'app.verification.begin', payload: input }));
+    if (
+      result.lease.identity.workspaceId !== input.workspaceId ||
+      result.lease.identity.projectId !== input.projectId ||
+      result.lease.sourceSha256 !== input.sourceSha256 ||
+      result.lease.identity.appInstanceId === input.appInstanceId
+    )
+      throw new Error('发音验证返回身份或源码不匹配');
+    return result;
+  }
+  private verificationResult(raw: unknown, target: EduVerificationTarget): EduVerificationStatus {
+    const result = EduVerificationStatusSchema.parse(raw);
+    const lease = result.lease;
+    if (
+      lease.sessionId !== target.sessionId ||
+      lease.identity.workspaceId !== target.workspaceId ||
+      lease.identity.projectId !== target.projectId ||
+      lease.identity.appInstanceId !== target.appInstanceId
+    )
+      throw new Error('发音验证返回会话或实例不匹配');
+    return result;
+  }
+  async verificationEnd(target: EduVerificationTarget): Promise<EduVerificationStatus> {
+    return this.verificationResult(await this.request({ method: 'app.verification.end', payload: target }), target);
+  }
+  async verificationRecoverAdmission(original: EduVerificationBegin): Promise<EduAdmissionRecoveryStatus> {
+    const result = EduAdmissionRecoveryStatusSchema.parse(
+      await this.request({ method: 'app.verification.recoverAdmission', payload: original }),
+    );
+    if (
+      result.originalIdentity.workspaceId !== original.workspaceId ||
+      result.originalIdentity.projectId !== original.projectId ||
+      result.originalIdentity.appInstanceId !== original.appInstanceId ||
+      result.sourceSha256 !== original.sourceSha256
+    )
+      throw new Error('未接管验证恢复返回的原始身份或源码不匹配');
+    return result;
+  }
+  async verificationReconcile(target: EduVerificationTarget): Promise<EduVerificationStatus> {
+    // An explicit recovery may emit a new restoring sequence for an already
+    // ended journal; ordinary late active receipts remain rejected.
+    this.completedVerificationSessions.delete(target.sessionId);
+    return this.verificationResult(await this.request({ method: 'app.verification.reconcile', payload: target }), target);
+  }
+  async verificationStatus(target: EduVerificationTarget): Promise<EduVerificationStatus> {
+    return this.verificationResult(await this.request({ method: 'app.verification.status', payload: target }), target);
+  }
   async appGet(target: AppTarget) {
     const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.get', payload: target }));
     this.managedApps.set(target.projectId, snapshot);
@@ -331,6 +576,21 @@ export class ChatService {
     const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.create', payload: { ...target, files } }));
     this.managedApps.set(target.projectId, snapshot);
     return snapshot;
+  }
+  async appImportEdu(payload: EduImport) {
+    const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.importEdu', payload }));
+    this.managedApps.set(payload.projectId, snapshot);
+    return snapshot;
+  }
+  async appImportSource(payload: AppImportRequest) {
+    const result = AppImportOutcomeSchema.parse(await this.request({ method: 'app.importSource', payload }));
+    if (result.app) this.managedApps.set(payload.projectId, result.app);
+    return result;
+  }
+  async appCancelImport(payload: AppImportTarget) {
+    const result = AppImportOutcomeSchema.parse(await this.request({ method: 'app.cancelImport', payload }));
+    if (result.app) this.managedApps.set(payload.projectId, result.app);
+    return result;
   }
   async appStart(target: AppTarget) {
     const previous = this.managedApps.get(target.projectId);
@@ -343,6 +603,63 @@ export class ChatService {
     const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.stop', payload: target }));
     this.managedApps.set(target.projectId, snapshot);
     return snapshot;
+  }
+  async appEduTaskSource(target: AppTarget) {
+    return AppSourceSchema.parse(await this.request({ method: 'app.taskSource', payload: target }));
+  }
+  private async eduTaskOperation(input: EduTaskBinding, operation: EduTaskOperation): Promise<EduTaskOperationResult> {
+    const binding = EduTaskBindingSchema.parse(input);
+    const owner = JSON.stringify(binding);
+    const callId = randomUUID();
+    this.eduTaskCleanup.set(owner, callId);
+    const method = { prepare: 'app.prepareEduTask', apply: 'app.applyEduTask', cancel: 'app.cancelEduTask' } as const;
+    try {
+      const result = EduTaskOperationResultSchema.parse(await this.request({ method: method[operation], payload: binding }));
+      if (result.operation !== operation || JSON.stringify(result.binding) !== owner) throw new Error('edu 任务回执归属不匹配');
+      if (
+        result.ok &&
+        result.operation === 'apply' &&
+        (result.app.workspaceId !== binding.workspaceId ||
+          result.app.projectId !== binding.projectId ||
+          result.app.appInstanceId !== binding.appInstanceId)
+      )
+        throw new Error('edu 任务写回应用身份不匹配');
+      if (result.cleanupConfirmed && this.eduTaskCleanup.get(owner) === callId) this.eduTaskCleanup.delete(owner);
+      return result;
+    } catch {
+      return { binding, operation, ok: false, cleanupConfirmed: false, error: 'edu 任务 helper 回执无效或传输中断；清理未确认' };
+    }
+  }
+  appPrepareEduTask(binding: EduTaskBinding): Promise<EduTaskOperationResult> {
+    return this.eduTaskOperation(binding, 'prepare');
+  }
+  appApplyEduTask(binding: EduTaskBinding): Promise<EduTaskOperationResult> {
+    return this.eduTaskOperation(binding, 'apply');
+  }
+  appCancelEduTask(binding: EduTaskBinding): Promise<EduTaskOperationResult> {
+    return this.eduTaskOperation(binding, 'cancel');
+  }
+  async motaControl(input: MotaControlRequest): Promise<MotaControlResponse> {
+    const request = MotaControlRequestSchema.parse(input);
+    const owner = JSON.stringify(request.binding);
+    if (request.method === 'acquire' || request.method === 'map.set' || request.method === 'release') this.motaCleanup.add(owner);
+    const response = MotaControlResponseSchema.parse(await this.request({ method: 'app.motaControl', payload: request }));
+    if (response.requestId !== request.requestId || response.method !== request.method || JSON.stringify(response.binding) !== owner)
+      throw new Error('魔塔控制回执归属不匹配；占用保留');
+    if (request.method === 'release' && response.ok) this.motaCleanup.delete(owner);
+    return response;
+  }
+  async motaEditorRequest(input: MotaEditorRequest) {
+    const request = MotaEditorRequestSchema.parse(input);
+    const response = MotaEditorResultSchema.parse(await this.request({ method: 'app.motaEditor', payload: request }));
+    if (
+      response.requestId !== request.requestId ||
+      response.editorSessionId !== request.editorSessionId ||
+      response.method !== request.method ||
+      !isDeepStrictEqual(response.binding, request.binding)
+    )
+      throw new Error('编辑器回执归属不匹配；原操作保留为待核对');
+    return response;
   }
   async appExport(target: AppTarget) {
     return AppSourceSchema.parse(await this.request({ method: 'app.export', payload: target }));
@@ -392,10 +709,53 @@ export class ChatService {
   async get(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'get', payload: { conversationId: id } }));
   }
-  async send(id: ChatSlot, text: string, observationScope: ObservationTurnScope | undefined, references: CatalogReferenceSnapshot) {
-    return ChatConversationSchema.parse(
-      await this.request({ method: 'send', payload: { conversationId: id, text, observationScope, references } }),
-    );
+  async send(
+    id: ChatSlot,
+    text: string,
+    observationScope: ObservationTurnScope | undefined,
+    references: CatalogReferenceSnapshot,
+    eduTask?: EduTaskBinding,
+    motaTask?: MotaTaskBinding,
+    researchGrant?: ResearchGrant,
+  ) {
+    try {
+      this.assertMaintenance();
+    } catch (error) {
+      throw new RunDispatchFailure(error instanceof Error ? error.message : '维护期间不能派发任务', false, true);
+    }
+    const binding = eduTask && EduTaskBindingSchema.parse(eduTask);
+    const motaBinding = motaTask && MotaTaskBindingSchema.parse(motaTask);
+    if (motaBinding) this.motaCleanup.add(JSON.stringify(motaBinding));
+    const result = await this.request({
+      method: 'send',
+      payload: {
+        conversationId: id,
+        text,
+        observationScope,
+        references,
+        eduTask: binding,
+        motaTask: motaBinding,
+        researchGrant: researchGrant && ResearchGrantSchema.parse(researchGrant),
+      },
+    });
+    const motaRejection = MotaTaskDispatchRejectionSchema.safeParse(result);
+    if (motaRejection.success) {
+      if (
+        !motaBinding ||
+        motaRejection.data.conversationId !== id ||
+        JSON.stringify(motaRejection.data.binding) !== JSON.stringify(motaBinding)
+      )
+        throw new RunDispatchFailure('魔塔任务派发拒绝回执归属不匹配', true);
+      throw new RunDispatchFailure(motaRejection.data.error, false);
+    }
+    const rejection = EduTaskDispatchRejectionSchema.safeParse(result);
+    if (rejection.success) {
+      if (!binding || rejection.data.conversationId !== id || JSON.stringify(rejection.data.binding) !== JSON.stringify(binding))
+        throw new RunDispatchFailure('edu 任务派发拒绝回执归属不匹配', true);
+      // The RPC ran, so its finite helper must still be reconciled by exact binding.
+      throw new RunDispatchFailure(rejection.data.error, false);
+    }
+    return ChatConversationSchema.parse(result);
   }
   async cancel(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'cancel', payload: { conversationId: id } }));
@@ -407,9 +767,11 @@ export class ChatService {
     return TerminalSnapshotSchema.parse(await this.request({ method: 'terminal.get', resourceId }));
   }
   async terminalOpen(cols: number, rows: number, resourceId: string) {
+    this.assertMaintenance();
     return TerminalSnapshotSchema.parse(await this.request({ method: 'terminal.open', payload: { cols, rows, resourceId } }));
   }
   async terminalWrite(sessionId: string, data: string, resourceId: string) {
+    this.assertMaintenance();
     await this.request({ method: 'terminal.write', payload: { sessionId, data, resourceId } });
   }
   async terminalResize(sessionId: string, cols: number, rows: number, resourceId: string) {
@@ -426,6 +788,9 @@ export class ChatService {
         this.failure &&
         (this.initializationPending ||
           this.unknownCleanup ||
+          this.sourceCleanup.size > 0 ||
+          this.eduTaskCleanup.size > 0 ||
+          this.motaCleanup.size > 0 ||
           [...this.conversations.values()].some((conversation) => conversation.cleanupPending) ||
           [...this.terminals.values()].some((t) => t.cleanupPending))
       )

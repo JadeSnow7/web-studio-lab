@@ -1,3 +1,12 @@
+import {
+  EduAdmissionRecoveryStatusSchema,
+  EduVerificationBeginSchema,
+  EduVerificationTargetSchema,
+  EduVerificationStatusSchema,
+} from './edu-verification';
+import { EduTaskBindingSchema, EduTaskDispatchRejectionSchema, EduTaskOperationResultSchema } from './edu-task';
+import { MotaTaskBindingSchema, MotaControlRequestSchema, MotaControlResponseSchema } from './mota-control';
+import { MotaEditorRequestSchema, MotaEditorResultSchema } from './mota-editor';
 import { WorkspaceObservationResultSchema, ObservationRequestSchema as RequestSchema, ObservationTurnScopeSchema } from './observation';
 import { EnvironmentListSchema, RuntimeResourceIdentitySchema } from './environments';
 import {
@@ -7,7 +16,9 @@ import {
   FileInvalidationHintSchema,
 } from './observation';
 import { z } from 'zod';
-import { AppTargetSchema, AppSourceFileSchema, ManagedAppSchema, AppSourceSchema } from './managed-app';
+import { AppTargetSchema, AppSourceFileSchema, ManagedAppSchema, AppSourceSchema, EduImportSchema } from './managed-app';
+import { AppImportRequestSchema, AppImportTargetSchema, AppImportOutcomeSchema } from './app-import';
+import { AppSourceSnapshotResultSchema } from './source-change';
 import { AppAgentOperationSchema, AppAgentResultSchema, AppControlResultSchema, AppLogsSchema, AppToolNameSchema } from './app-control';
 const BufferlessBytes = (value: string) => {
   let bytes = 0;
@@ -22,6 +33,7 @@ import { TerminalOpenSchema, TerminalWriteSchema, TerminalResizeSchema, Terminal
 import { ChatSlotSchema } from './chat-slot';
 export { ChatSlotSchema } from './chat-slot';
 import { CatalogReferenceSnapshotSchema } from './resource-catalog';
+import { ResearchCallSchema, ResearchGrantSchema, ResearchNativeSearchRecordsSchema, ResearchReplySchema } from './research';
 export const ChatStatusSchema = z.object({
   available: z.boolean(),
   reason: z.string().nullable(),
@@ -54,6 +66,9 @@ export const ChatConversationSchema = z.object({
   warnings: z.array(z.string().max(2000)).max(20),
   cleanupPending: z.boolean(),
   error: z.string().nullable(),
+  eduCandidateRunId: z.uuid().optional(),
+  nativeSearches: ResearchNativeSearchRecordsSchema.optional(),
+  nativeSearchesTruncated: z.boolean().optional(),
 });
 export const ChatSendSchema = z
   .object({
@@ -61,10 +76,74 @@ export const ChatSendSchema = z
     text: z.string().trim().min(1).max(32000),
     observationScope: ObservationTurnScopeSchema.optional(),
     references: CatalogReferenceSnapshotSchema,
+    eduTask: EduTaskBindingSchema.optional(),
+    motaTask: MotaTaskBindingSchema.optional(),
+    researchGrant: ResearchGrantSchema.optional(),
+  })
+  .strict()
+  .refine((request) => !(request.eduTask && request.motaTask), 'task profiles are exclusive')
+  .refine((request) => !(request.researchGrant && (request.eduTask || request.motaTask)), '研究只允许标准 App 任务')
+  .refine(
+    (request) =>
+      !request.researchGrant ||
+      (request.conversationId !== 'conv-personal-default' &&
+        request.researchGrant.accountId === request.references.accountId &&
+        request.researchGrant.workspaceId === request.references.workspaceId &&
+        request.researchGrant.sessionId === request.conversationId &&
+        request.researchGrant.sessionId === request.references.sessionId &&
+        request.researchGrant.runId === request.observationScope?.runId &&
+        request.researchGrant.sessionId === request.observationScope.sessionId &&
+        request.researchGrant.workspaceId === request.observationScope.workspaceId),
+    '研究授权必须属于当前账户、空间、会话与运行',
+  )
+  .refine(
+    (request) =>
+      !request.motaTask ||
+      (request.motaTask.sessionId === request.conversationId &&
+        request.motaTask.workspaceId === request.references.workspaceId &&
+        request.motaTask.sessionId === request.references.sessionId &&
+        request.motaTask.runId === request.observationScope?.runId &&
+        request.motaTask.sessionId === request.observationScope.sessionId &&
+        request.motaTask.workspaceId === request.observationScope.workspaceId),
+    'Mota task must belong to the exact observed run',
+  );
+export const MotaTaskDispatchRejectionSchema = z
+  .object({
+    kind: z.literal('mota-task-dispatch-rejected'),
+    conversationId: ChatSlotSchema,
+    binding: MotaTaskBindingSchema,
+    executorStarted: z.literal(false),
+    error: z.string().min(1).max(1000),
   })
   .strict();
 export const ChatTargetSchema = z.object({ conversationId: ChatSlotSchema });
 export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
+  z.object({ id: z.string(), method: z.literal('app.motaEditor'), payload: MotaEditorRequestSchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('research.reply'), payload: ResearchReplySchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('app.motaControl'), payload: MotaControlRequestSchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('app.verification.begin'), payload: EduVerificationBeginSchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('app.verification.recoverAdmission'), payload: EduVerificationBeginSchema }).strict(),
+  ...(['app.verification.end', 'app.verification.status', 'app.verification.reconcile'] as const).map((method) =>
+    z.object({ id: z.string(), method: z.literal(method), payload: EduVerificationTargetSchema }).strict(),
+  ),
+  z
+    .object({
+      id: z.string(),
+      method: z.enum(['app.prepareEduTask', 'app.applyEduTask', 'app.cancelEduTask']),
+      payload: EduTaskBindingSchema,
+    })
+    .strict(),
+  z.object({ id: z.string(), method: z.literal('app.importEdu'), payload: EduImportSchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('app.importSource'), payload: AppImportRequestSchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('app.cancelImport'), payload: AppImportTargetSchema }).strict(),
+  z
+    .object({
+      id: z.string(),
+      method: z.literal('app.source.snapshot'),
+      payload: z.object({ callId: z.uuid(), target: AppTargetSchema }).strict(),
+    })
+    .strict(),
+  z.object({ id: z.string(), method: z.literal('app.source.cancel'), payload: z.object({ callId: z.uuid() }).strict() }).strict(),
   z
     .object({
       id: z.string(),
@@ -72,7 +151,7 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
       payload: AppTargetSchema.extend({ files: z.array(AppSourceFileSchema).min(1).max(256) }),
     })
     .strict(),
-  ...(['app.get', 'app.start', 'app.stop', 'app.export'] as const).map((method) =>
+  ...(['app.get', 'app.start', 'app.stop', 'app.export', 'app.taskSource'] as const).map((method) =>
     z.object({ id: z.string(), method: z.literal(method), payload: AppTargetSchema }).strict(),
   ),
   z
@@ -142,6 +221,13 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
   z.object({ id: z.string(), method: z.literal('shutdown') }),
 ]);
 export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
+  z.discriminatedUnion('tool', [
+    ResearchCallSchema.options[0].extend({ type: z.literal('research-call') }),
+    ResearchCallSchema.options[1].extend({ type: z.literal('research-call') }),
+  ]),
+  z.object({ type: z.literal('research-abort'), callId: z.uuid() }).strict(),
+  z.object({ type: z.literal('edu-verification-event'), status: EduVerificationStatusSchema }).strict(),
+  z.object({ type: z.literal('edu-admission-recovery-event'), status: EduAdmissionRecoveryStatusSchema }).strict(),
   z.object({ type: z.literal('initialized'), status: ChatStatusSchema, cleanupPending: z.boolean() }),
   z.object({ type: z.literal('app-event'), snapshot: ManagedAppSchema }).strict(),
   z.object({ type: z.literal('event'), conversation: ChatConversationSchema }),
@@ -176,9 +262,18 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
     type: z.literal('response'),
     id: z.string(),
     result: z.union([
+      MotaEditorResultSchema,
+      MotaControlResponseSchema,
+      MotaTaskDispatchRejectionSchema,
+      EduTaskDispatchRejectionSchema,
+      EduTaskOperationResultSchema,
+      AppSourceSnapshotResultSchema,
+      EduVerificationStatusSchema,
+      EduAdmissionRecoveryStatusSchema,
       AppAgentResultSchema,
       AppLogsSchema,
       ManagedAppSchema,
+      AppImportOutcomeSchema,
       AppSourceSchema,
       ChatStatusSchema,
       ChatConversationSchema,

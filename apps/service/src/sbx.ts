@@ -6,16 +6,20 @@ import { createInterface } from 'node:readline';
 import { z } from 'zod';
 import {
   ResourceBundleSchema,
+  DependencyManifestSchema,
   type AppControlResult,
   type ChatStatus,
   type ResourceBundle,
   type WorkspaceObservationResult,
+  type ResearchToolResult,
 } from '@wsl/protocol';
 import helper from './guest-helper.py?raw';
+import ownedProcess from './edu-owned-process.py?raw';
 import resourceMcp from './resource_mcp.py?raw';
 import terminalRc from './terminal-bash-integration.sh?raw';
 
 const guestHelper = helper
+  .replace('OWNED_PROCESS_BASE64 = ""', `OWNED_PROCESS_BASE64 = "${Buffer.from(ownedProcess).toString('base64')}"`)
   .replace('TERMINAL_RC_BASE64 = ""', `TERMINAL_RC_BASE64 = "${Buffer.from(terminalRc).toString('base64')}"`)
   .replace('RESOURCE_MCP_BASE64 = ""', `RESOURCE_MCP_BASE64 = "${Buffer.from(resourceMcp).toString('base64')}"`);
 
@@ -57,6 +61,16 @@ export type GuestStart =
       observation?: boolean;
       observationImages?: boolean;
       workspace?: GuestWorkspace;
+      strictWorkspace?: boolean;
+      /** Trusted Mota read-only execution; disables filesystem CLI IPC. */
+      motaControl?: boolean;
+      /** This turn's Main-issued public research grant; no persistent setting. */
+      webResearch?: boolean;
+      duplex?: boolean;
+      eduOwner?: {
+        identity: { workspaceId: string; environmentId: 'sandbox'; projectId: string; appInstanceId: string };
+        sourceSha256: string;
+      };
     }
   | { type: 'start'; mode: 'terminal'; cols: number; rows: number };
 
@@ -108,7 +122,7 @@ export class GuestProcess {
     this.done = new Promise((resolve) => {
       this.finish = resolve;
     });
-    this.child = spawn(binary, ['exec', '-i', '-w', GUEST_CWD, sandbox, 'python3', '-u', '-c', guestHelper], {
+    this.child = spawn(binary, ['exec', '-i', '-w', GUEST_CWD, sandbox, 'python3', '-I', '-u', '-c', guestHelper], {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     this.timer = setTimeout(() => this.fail('guest helper 启动超时'), 30000);
@@ -163,14 +177,18 @@ export class GuestProcess {
   }
   write(
     frame:
-      | { type: 'observation-result'; id: string; result: WorkspaceObservationResult | AppControlResult }
+      | { type: 'observation-result'; id: string; result: WorkspaceObservationResult | AppControlResult | ResearchToolResult }
       | GuestStart
       | { type: 'input'; data: string }
       | { type: 'resize'; cols: number; rows: number }
-      | { type: 'close' },
+      | { type: 'close' }
+      | { type: 'close-input' },
   ) {
     if (this.ended) throw new Error('guest 传输已关闭');
     this.child.stdin.write(JSON.stringify(frame) + '\n');
+  }
+  closeInput(): void {
+    this.write({ type: 'close-input' });
   }
   private fail(reason: string) {
     this.error ??= reason;
@@ -249,6 +267,12 @@ export class SbxConnection {
   getStatus(): ChatStatus {
     return { ...this.status };
   }
+  assertMotaCapability(): void {
+    const expected = `codex-cli ${DependencyManifestSchema.shape.guest.shape.codex.value}`;
+    if (this.getStatus().version !== expected)
+      throw new Error(`mota_native_tools_unverified: 魔塔受限任务需要已核验的 ${expected} 原生工具限制，当前版本不匹配`);
+    throw new Error(`mota_native_tools_unverified: ${expected} 的仅四个专用工具模式尚未验证，拒绝启动；只读沙箱和提示词不是原生工具限制`);
+  }
   getCleanupPending(): boolean {
     return this.probe !== null || this.cleanupUnknown;
   }
@@ -266,6 +290,7 @@ export class SbxConnection {
   ): GuestProcess {
     if (this.closing) throw new Error('sbx 服务正在关闭');
     if (!this.status.available || !this.binary || !this.status.sandbox) throw new Error(this.status.reason ?? 'sbx 不可用');
+    if (start.mode === 'codex' && start.motaControl) this.assertMotaCapability();
     const guest = new GuestProcess(this.binary, this.status.sandbox, start, onFrame, onTransportOutput);
     void guest.done.then((outcome) => {
       if (!outcome.confirmed) this.cleanupUnknown = true;

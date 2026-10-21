@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>魔塔文本编辑器</title>
+    <script type="module" src="./editor.ts"></script>
+  </head>
+  <body>
+    <main class="editor-shell">
+      <header class="editor-header">
+        <div>
+          <h1>魔塔编辑器</h1>
+          <p class="muted">编辑副本中的地图与配置，保存后可刷新游戏查看。</p>
+        </div>
+        <button class="btn" type="button" id="close">关闭视图</button>
+      </header>
+      <section class="editor-toolbar" aria-label="文件操作">
+        <label for="file">文件</label>
+        <select class="field" id="file">
+          <option value="project/floors/MT1.js">地图 · MT1</option>
+          <option value="_server/config.json">编辑器配置</option>
+        </select>
+        <button class="btn" type="button" id="read">读取当前版本</button>
+        <button class="btn primary" type="button" id="save">保存到副本</button>
+        <button class="btn" type="button" id="status">核对保存状态</button>
+      </section>
+      <p id="state" class="editor-state" role="status" aria-live="polite">正在连接编辑器…</p>
+      <p id="operation-state" class="editor-state" aria-live="polite" hidden></p>
+      <section class="editor-body">
+        <label for="content">文件内容 <span class="muted">仅文本 / JSON · 最多 256 KiB</span></label>
+        <textarea class="field editor-text" id="content" spellcheck="false" aria-describedby="state" disabled></textarea>
+        <section id="conflict" class="editor-conflict" hidden aria-label="版本冲突核对">
+          <p>草稿保留了原基线。请比较后决定；读取新版本不会覆盖草稿。</p>
+          <div class="editor-comparison">
+            <label>草稿原始版本<textarea class="field" id="before" readonly aria-label="草稿原始版本"></textarea></label>
+            <label>副本当前版本<textarea class="field" id="current" readonly aria-label="副本当前版本"></textarea></label>
+          </div>
+          <button class="btn" type="button" id="use-current">放弃此文件草稿，采用当前版本</button>
+        </section>
+        <p class="muted" id="recovery" hidden>保存结果尚未确认。请核对原操作状态；不会自动重发。重启应用不能代替原提交回执。</p>
+      </section>
+      <footer class="editor-footer muted">关闭视图会保留本次工作台中的草稿，游戏继续运行。</footer>
+    </main>
+  </body>
+</html>

@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { build } from 'vite';
 import { AppScenarioSchema, comparableTrace, type AppControlResult, type AppScenarioTrace } from '../packages/protocol/src';
+import { desktopStateSnapshot, nativeFocusSnapshot } from './helpers';
 
 /**
  * 真实 Electron + 真实 CDP + 本机构建的 standard-app（非 sandbox、无模型）。
@@ -372,6 +373,7 @@ test('reference implementation: describe, snapshot→act, stale refs/leases/runs
     // A07：AI 动作进行中用户在 Browser 区点击 → paused_by_user；焦点不被抢；需用户恢复。
     await harness(app, 'focusWorkbench');
     const focusBefore = await harness(app, 'focus');
+    const a07NativeBefore = await nativeFocusSnapshot(app);
     const waiting = call(app, 'app.ui.act', {
       ...(await invokeBinding()),
       action: { type: 'waitFor', target: { testid: 'never-appears' }, timeoutMs: 8000 },
@@ -383,6 +385,7 @@ test('reference implementation: describe, snapshot→act, stale refs/leases/runs
     const pausedState = await harness<{ state: string }>(app, 'agentControl');
     const blocked = await call(app, 'app.ui.act', { ...(await invokeBinding()), action: { type: 'press', key: 'Tab' } });
     const focusAfter = await harness(app, 'focus');
+    const a07NativeAfter = await nativeFocusSnapshot(app);
     await harness(app, 'resume');
     const resumed = await call(app, 'app.ui.act', { ...(await invokeBinding()), action: { type: 'press', key: 'Tab' } });
     await record('A07.takeover', {
@@ -392,11 +395,25 @@ test('reference implementation: describe, snapshot→act, stale refs/leases/runs
       resumed: code(resumed),
       focusBefore,
       focusAfter,
+      nativeFocusBefore: a07NativeBefore,
+      nativeFocusAfter: a07NativeAfter,
       previewIndicator: (await harness<{ agentControl?: unknown }>(app, 'previewState')).agentControl,
     });
     expect(code(paused)).toBe('paused_by_user');
     expect(pausedState.state).toBe('paused_by_user');
     expect(code(blocked)).toBe('paused_by_user');
+    if (JSON.stringify(focusAfter) !== JSON.stringify(focusBefore)) {
+      // 仅在焦点对比不一致时附桌面状态；采样只读，不影响下面原始断言。
+      const desktop = await desktopStateSnapshot(app).catch((reason) => ({ error: String(reason).slice(0, 512) }));
+      await test.info().attach('a07-desktop-state', {
+        body: JSON.stringify(
+          { desktop, focusBefore, focusAfter, nativeFocusBefore: a07NativeBefore, nativeFocusAfter: a07NativeAfter },
+          null,
+          2,
+        ),
+        contentType: 'application/json',
+      });
+    }
     expect(focusAfter).toEqual(focusBefore);
     expect(code(resumed)).toBe('ok');
 

@@ -51,12 +51,19 @@ function fakePage() {
   let picking = false;
   const calls: { method: string; params?: Record<string, unknown> }[] = [];
   let hit = 11;
+  let offset = { pageX: 0, pageY: 0 };
+  let descendantHit = false;
+  let coordinateHit = false;
+  let width = 800;
+  let quad = [10, 10, 30, 10, 30, 20, 10, 20];
   let reordered = false;
   let bridgeValue: unknown = JSON.stringify({ ok: true, data: { version: 1, commands: [], states: [] } });
   let testidMatches = [11];
   let replyGate: { method: string; type?: string; remaining: number; wait: Promise<void> } | null = null;
   const send = vi.fn(async (method: string, params?: Record<string, unknown>) => {
     calls.push({ method, params });
+    // Freeze the observed hit before delaying its delivery, so a later scroll cannot manufacture an overlay failure.
+    const observedHit = coordinateHit && (params?.x !== 20 + offset.pageX || params?.y !== 15 + offset.pageY) ? 99 : hit;
     if (replyGate?.method === method && (replyGate.type === undefined || replyGate.type === params?.type))
       if (--replyGate.remaining <= 0) await replyGate.wait;
     switch (method) {
@@ -107,15 +114,17 @@ function fakePage() {
           return {
             result: { value: { visible: true, disabled: false, text: params?.objectId === 'obj-11' ? '保存欢迎语' : '', value: null } },
           };
-        if (declaration.includes('contains')) return { result: { value: false } };
+        if (declaration.includes('contains')) return { result: { value: descendantHit } };
         return { result: { value: true } };
       }
       case 'Runtime.evaluate':
         return { result: { objectId: 'global' } };
       case 'DOM.getContentQuads':
-        return { quads: [[10, 10, 30, 10, 30, 20, 10, 20]] };
+        return { quads: [quad] };
+      case 'Page.getLayoutMetrics':
+        return { cssLayoutViewport: { ...offset, clientWidth: width, clientHeight: 600 } };
       case 'DOM.getNodeForLocation':
-        return { backendNodeId: hit };
+        return { backendNodeId: observedHit };
       default:
         return {};
     }
@@ -171,11 +180,81 @@ function fakePage() {
       debuggerApi.emit('detach', {}, 'devtools');
     },
     setHit: (value: number) => (hit = value),
+    setWidth: (value: number) => (width = value),
+    shiftQuad: () => {
+      quad = quad.map((value) => value + 1);
+    },
+    setOffset: (pageX: number, pageY: number) => {
+      offset = { pageX, pageY };
+      coordinateHit = true;
+    },
+    setDescendantHit: () => {
+      hit = 13;
+      descendantHit = true;
+    },
     setPicking: (value: boolean) => (picking = value),
     setBridge: (value: unknown) => (bridgeValue = value),
     setTestidMatches: (value: number[]) => (testidMatches = value),
   };
 }
+
+describe('AppUiDriver screenshot', () => {
+  const validPng = () =>
+    Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aN1cAAAAASUVORK5CYII=', 'base64');
+  function fixture({ empty = false, width = 1, height = 1, png = validPng() } = {}) {
+    const page = fakePage();
+    const image = {
+      isEmpty: vi.fn(() => empty),
+      getSize: vi.fn(() => ({ width, height })),
+      toPNG: vi.fn(() => png),
+    };
+    page.wc.capturePage.mockResolvedValue(image);
+    return { ...page, image, png };
+  }
+
+  it('rejects an empty NativeImage without encoding it or retrying capture', async () => {
+    const { driver, wc, image } = fixture({ empty: true });
+    await expect(driver.screenshot()).rejects.toMatchObject({ code: 'unavailable' });
+    expect(image.toPNG).not.toHaveBeenCalled();
+    expect(wc.capturePage).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { width: 0, height: 1 },
+    { width: 1, height: 0 },
+    { width: 0, height: 0 },
+    { width: -1, height: 1 },
+    { width: 1, height: -1 },
+  ])('rejects invalid dimensions $width × $height before encoding', async (size) => {
+    const { driver, image } = fixture(size);
+    await expect(driver.screenshot()).rejects.toMatchObject({ code: 'unavailable' });
+    expect(image.toPNG).not.toHaveBeenCalled();
+  });
+
+  it('rejects a nonempty image whose PNG encoding is empty', async () => {
+    const { driver, wc, image } = fixture({ png: Buffer.alloc(0) });
+    await expect(driver.screenshot()).rejects.toMatchObject({ code: 'unavailable' });
+    expect(image.toPNG).toHaveBeenCalledOnce();
+    expect(wc.capturePage).toHaveBeenCalledOnce();
+  });
+
+  it('returns the original PNG bytes from a valid image', async () => {
+    const { driver, wc, image, png } = fixture();
+    await expect(driver.screenshot()).resolves.toBe(png);
+    expect(image.toPNG).toHaveBeenCalledOnce();
+    expect(wc.capturePage).toHaveBeenCalledOnce();
+  });
+
+  it('preserves the inclusive 4,000,000-byte budget boundary', async () => {
+    const { driver, png } = fixture({ png: Buffer.alloc(4_000_000) });
+    await expect(driver.screenshot()).resolves.toBe(png);
+  });
+
+  it('preserves budget_exceeded for PNG output above 4,000,000 bytes', async () => {
+    const { driver } = fixture({ png: Buffer.alloc(4_000_001) });
+    await expect(driver.screenshot()).rejects.toMatchObject({ code: 'budget_exceeded' });
+  });
+});
 
 describe('AppUiDriver', () => {
   it('new snapshot invalidates Save ref before dispatch when the same document reuses e1 for Delete', async () => {
@@ -279,6 +358,78 @@ describe('AppUiDriver', () => {
       'element_obscured',
     );
     expect(page.calls.slice(before).some((call) => call.method === 'Input.dispatchMouseEvent')).toBe(false);
+  });
+  it.each([
+    [0, 320],
+    [180, 0],
+    [-80, 320],
+  ])('hit-tests document coordinates after scrolling %s/%s but clicks viewport coordinates', async (x, y) => {
+    const page = fakePage();
+    page.setOffset(x, y);
+    expect(await code(page.driver.act({ type: 'click', target: { testid: 'welcome-save' } }, { runId: 'r', documentGeneration: 1 }))).toBe(
+      'ok',
+    );
+    expect(page.calls.find((call) => call.method === 'DOM.getNodeForLocation')?.params).toMatchObject({ x: 20 + x, y: 15 + y });
+    expect(page.calls.filter((call) => call.method === 'Input.dispatchMouseEvent').map((call) => [call.params?.x, call.params?.y])).toEqual(
+      [
+        [20, 15],
+        [20, 15],
+        [20, 15],
+      ],
+    );
+  });
+  it('accepts a descendant at the document point but rejects a scrolled overlay without input', async () => {
+    const page = fakePage();
+    page.setOffset(100, 320);
+    page.setDescendantHit();
+    expect(await code(page.driver.act({ type: 'click', target: { testid: 'welcome-save' } }, { runId: 'r', documentGeneration: 1 }))).toBe(
+      'ok',
+    );
+    const overlay = fakePage();
+    overlay.setOffset(100, 320);
+    overlay.setHit(99);
+    expect(
+      await code(overlay.driver.act({ type: 'click', target: { testid: 'welcome-save' } }, { runId: 'r', documentGeneration: 1 })),
+    ).toBe('element_obscured');
+    expect(overlay.calls.some((call) => call.method.startsWith('Input.'))).toBe(false);
+  });
+  it.each(['cancel', 'navigate', 'detach', 'pause'])('click stops after delayed layout metrics and %s', async (change) => {
+    const page = fakePage();
+    const open = page.gateReply('Page.getLayoutMetrics');
+    const controller = new AbortController();
+    const pending = code(
+      page.driver.act({ type: 'click', target: { testid: 'welcome-save' } }, { runId: 'r', documentGeneration: 1 }, controller.signal),
+    );
+    await vi.waitFor(() => expect(page.calls.some((call) => call.method === 'Page.getLayoutMetrics')).toBe(true));
+    if (change === 'cancel') controller.abort();
+    if (change === 'navigate') page.navigate();
+    if (change === 'detach') page.detach();
+    if (change === 'pause') page.latch.observeInput('mouseDown');
+    open();
+    expect(await pending).toBe(
+      change === 'cancel'
+        ? 'cancelled'
+        : change === 'navigate'
+          ? 'stale_document'
+          : change === 'detach'
+            ? 'cdp_detached'
+            : 'paused_by_user',
+    );
+    expect(page.calls.some((call) => call.method.startsWith('Input.'))).toBe(false);
+    expect(page.calls.some((call) => call.method === 'DOM.getNodeForLocation')).toBe(false);
+  });
+  it.each(['scroll', 'resize', 'move'])('refuses %s between geometry and hit verification without dispatching input', async (change) => {
+    const page = fakePage();
+    page.setOffset(0, 320);
+    const open = page.gateReply('DOM.getNodeForLocation');
+    const pending = code(page.driver.act({ type: 'click', target: { testid: 'welcome-save' } }, { runId: 'r', documentGeneration: 1 }));
+    await vi.waitFor(() => expect(page.calls.some((call) => call.method === 'DOM.getNodeForLocation')).toBe(true));
+    if (change === 'scroll') page.setOffset(0, 420);
+    if (change === 'resize') page.setWidth(600);
+    if (change === 'move') page.shiftQuad();
+    open();
+    expect(await pending).toBe('element_obscured');
+    expect(page.calls.some((call) => call.method.startsWith('Input.'))).toBe(false);
   });
   it('ambiguous or missing testids, picking, pauses and CDP detach are refused before input dispatch', async () => {
     const page = fakePage();

@@ -662,6 +662,90 @@ describe('projectFacts: 受管 App', () => {
 describe('projectFacts: 运行', () => {
   const runFacts = (overrides: Record<string, unknown>) => factsOf({ runs: [run('r1', overrides)] });
 
+  it('源码证据状态不把差异当成检查通过或用户接受，raw 不含路径和内容', () => {
+    const baseTree = 'a'.repeat(40);
+    const baseline = { state: 'baseline', baseTree };
+    expect(find(runFacts({ state: 'running', cleanupPending: true, sourceChange: baseline }), 'run:r1:source-change')).toMatchObject({
+      label: '源码基线已保存，等待执行结束',
+      kind: 'steady',
+    });
+    expect(find(runFacts({ state: 'completed', sourceChange: baseline }), 'run:r1:source-change')).toMatchObject({
+      label: '正在采集结束源码…',
+      kind: 'progress',
+    });
+    expect(find(runFacts({ state: 'cancelling', cleanupPending: true, sourceChange: baseline }), 'run:r1:source-change')).toMatchObject({
+      kind: 'unresolved',
+    });
+    const captured = {
+      state: 'captured',
+      baseTree,
+      afterTree: baseTree,
+      files: [],
+      additions: 0,
+      deletions: 0,
+      truncated: false,
+      patchSha256: 'a'.repeat(64),
+    };
+    const facts = runFacts({ state: 'completed', sourceChange: captured });
+    expect(find(facts, 'run:r1:source-change')).toMatchObject({ label: '源码无改动', raw: { sourceChangeState: 'captured' } });
+    expect(find(facts, 'validation:r1:state')).toMatchObject({ label: '尚未检查' });
+    expect(find(facts, 'review:r1:state')).toMatchObject({ label: '尚未审阅' });
+    expect(JSON.stringify(find(facts, 'run:r1:source-change')?.raw)).not.toContain(baseTree);
+    expect(find(runFacts({ sourceChange: { state: 'unavailable', reason: '重启前未完成采集' } }), 'run:r1:source-change')).toMatchObject({
+      label: '源码差异不可用',
+      detail: '重启前未完成采集',
+    });
+  });
+
+  it('reports unresolved source cleanup independently and does not confuse an active ending collector with executor cleanup', () => {
+    const facts = runFacts({
+      state: 'cancelling',
+      cleanupPending: true,
+      sourceCleanupPending: true,
+      executorState: { state: 'cancelled', cleanupPending: false },
+      sourceChange: { state: 'unavailable', reason: 'synthetic failure' },
+    });
+    expect(find(facts, 'run:r1:source-cleanup')).toMatchObject({
+      kind: 'unresolved',
+      label: '源码 helper 清理未确认，项目仍被占用',
+      raw: { sourceCleanupPending: true },
+    });
+    expect(find(facts, 'run:r1:source-cleanup')?.action).toBeUndefined();
+    expect(find(facts, 'validation:r1:state')).toMatchObject({ label: '尚未检查' });
+    const collecting = runFacts({
+      state: 'completed',
+      cleanupPending: true,
+      sourceCleanupPending: true,
+      sourceChange: { state: 'baseline', baseTree: 'a'.repeat(40) },
+    });
+    expect(find(collecting, 'run:r1:source-change')).toMatchObject({ label: '正在采集结束源码…', kind: 'progress' });
+  });
+
+  it('keeps edu and source helper cleanup as independent unresolved facts', () => {
+    const facts = runFacts({
+      state: 'cancelling',
+      cleanupPending: true,
+      sourceCleanupPending: true,
+      eduTaskCleanupPending: true,
+      executorState: { state: 'cancelled', cleanupPending: false },
+      sourceChange: { state: 'unavailable', reason: 'collector cleanup unknown' },
+    });
+    for (const suffix of ['source-cleanup', 'edu-task-cleanup']) {
+      const fact = find(facts, `run:r1:${suffix}`)!;
+      expect(fact).toMatchObject({
+        phase: 'unknown',
+        kind: 'unresolved',
+        raw: { sourceCleanupPending: true, eduTaskCleanupPending: true },
+      });
+      expect(fact.action).toBeUndefined();
+      expect(StatusFactSchema.safeParse(fact).success).toBe(true);
+    }
+    expect(find(facts, 'run:r1:edu-task-cleanup')).toMatchObject({ label: 'edu 任务 helper 清理未确认，项目仍被占用' });
+    expect(find(facts, 'validation:r1:state')).toMatchObject({ label: '尚未检查' });
+    expect(find(facts, 'review:r1:state')).toMatchObject({ label: '尚未审阅' });
+    expect(find(runFacts({ eduTaskCleanupPending: false }), 'run:r1:edu-task-cleanup')).toBeUndefined();
+  });
+
   it('每个 state 都有映射', () => {
     const expected = {
       starting: ['pending', 'progress', '正在启动…', '取消回复'],
@@ -1290,4 +1374,14 @@ describe('projectFacts: 键、raw 白名单、限制与纯度', () => {
   it('全空输入只产出 chat 读取中', () => {
     expect(projectFacts(input()).map((fact) => fact.key)).toEqual(['chat:global:state']);
   });
+});
+
+it('disables maintenance status actions across workspaces while verification recovery is unconfirmed', () => {
+  const facts = factsOf(
+    {},
+    { eduVerification: { status: null, original: null, target: null, urls: [], recoveryRequired: true, error: null } },
+  );
+  const create = facts.find((fact) => fact.action?.id === 'app.create');
+  expect(create?.action?.disabled).toBe(true);
+  expect(factsOf().find((fact) => fact.action?.id === 'app.create')?.action?.disabled).not.toBe(true);
 });

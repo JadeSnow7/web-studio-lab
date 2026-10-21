@@ -1,3 +1,4 @@
+import { ioregScalar, parseIoregLocks } from './ioreg-state';
 import type { StudioApi, StudioDebugApi } from '../packages/protocol/src';
 declare global {
   interface Window {
@@ -6,22 +7,142 @@ declare global {
 }
 import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { _electron, type ElectronApplication, type Locator, type Page } from '@playwright/test';
+import { _electron, expect, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import { appControlInjection } from './fixtures/app-control-injection';
+import { motaModelTurnInjection } from './fixtures/mota-model-turn-injection';
 import { appControlCancelGate } from './fixtures/app-control-cancel-gate';
+import { sourceSnapshotFixture } from './fixtures/source-snapshot-fixture';
+import { sourceDispatchAudit } from './fixtures/source-dispatch-audit';
+import { addressInitialLoadGate } from './fixtures/address-initial-load-gate';
+import { addressNavigationObserver } from './fixtures/address-navigation-observer';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const fixtureSandbox =
   process.env['WSL_E2E_TARGET'] === 'packaged' ? 'wsl-competition-00000000-0000-4000-8000-000000000001' : 'fixture-sandbox';
 const desktopDir = path.join(root, 'apps/desktop');
-export const screensDir = path.join(root, 'test-results/screens', process.env['WSL_E2E_TARGET'] === 'packaged' ? 'packaged' : 'build');
+export const screensDir = path.join(
+  process.env['WSL_E2E_EVIDENCE_DIR'] ?? path.join(root, 'test-results'),
+  'screens',
+  process.env['WSL_E2E_TARGET'] === 'packaged' ? 'packaged' : 'build',
+);
 
 /** WSL_E2E_TARGET=packaged 时启动 pnpm package 生成的 .app，否则启动 pnpm build 的产物。 */
 export const target = process.env['WSL_E2E_TARGET'] === 'packaged' ? 'packaged' : 'build';
+
+async function defaultWindowGeometry(app: ElectronApplication, page: Page) {
+  const native = await app.evaluate(({ BrowserWindow, screen }, url) => {
+    const window = BrowserWindow.getAllWindows().find((candidate) => candidate.webContents.getURL() === url);
+    if (!window) throw new Error('E2E workbench window is unavailable');
+    const bounds = window.getBounds();
+    const display = screen.getDisplayMatching(bounds);
+    return {
+      windowId: window.id,
+      visible: window.isVisible(),
+      bounds,
+      contentBounds: window.getContentBounds(),
+      workArea: display.workArea,
+      scaleFactor: display.scaleFactor,
+    };
+  }, page.url());
+  const renderer = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, devicePixelRatio }));
+  return { ...native, renderer };
+}
+
+async function prepareDefaultWindow(app: ElectronApplication, page: Page) {
+  const requested = { width: 1440, height: 900, minimumHeight: 640 };
+  try {
+    await expect
+      .poll(async () => (await defaultWindowGeometry(app, page)).visible, {
+        timeout: 10000,
+        message: 'The E2E workbench window must be shown before its default size is established',
+      })
+      .toBe(true);
+    console.info('[e2e-default-window]', JSON.stringify({ phase: 'before', requested, ...(await defaultWindowGeometry(app, page)) }));
+    await app.evaluate(
+      ({ BrowserWindow }, { url, width, height }) => {
+        const window = BrowserWindow.getAllWindows().find((candidate) => candidate.webContents.getURL() === url);
+        if (!window) throw new Error('E2E workbench window is unavailable');
+        window.setContentSize(width, height);
+      },
+      { url: page.url(), width: requested.width, height: requested.height },
+    );
+    // macOS may cap the height to its work area. Default cases require the wide
+    // layout; later explicit setWindowSize calls still exercise narrow layouts.
+    await page.waitForFunction(({ width, minimumHeight }) => innerWidth === width && innerHeight >= minimumHeight, requested, {
+      timeout: 10000,
+    });
+    const actual = await defaultWindowGeometry(app, page);
+    console.info('[e2e-default-window]', JSON.stringify({ phase: 'ready', requested, ...actual }));
+    assert.equal(actual.contentBounds.width, requested.width, 'Default E2E content width must be 1440');
+    assert.ok(actual.contentBounds.height >= requested.minimumHeight, 'Default E2E content height must be at least 640');
+  } catch (error) {
+    try {
+      console.error('[e2e-default-window]', JSON.stringify({ phase: 'failed', requested, ...(await defaultWindowGeometry(app, page)) }));
+    } catch (diagnosticError) {
+      console.error('[e2e-default-window] geometry unavailable', String(diagnosticError).slice(0, 2048));
+    }
+    throw error;
+  }
+}
+
+/** Establish the owned native window prerequisite before modeling a user click. */
+export async function ensureForeground(app: ElectronApplication, page: Page): Promise<void> {
+  const state = () =>
+    app.evaluate(({ app, BrowserWindow, webContents }, url) => {
+      const window = BrowserWindow.getAllWindows().find((candidate) => candidate.webContents.getURL() === url);
+      if (!window) throw new Error('E2E workbench window is unavailable');
+      return {
+        windowId: window.id,
+        visible: window.isVisible(),
+        focused: window.isFocused(),
+        appHidden: process.platform === 'darwin' ? app.isHidden() : null,
+        focusedWebContentsId: webContents.getFocusedWebContents()?.id ?? null,
+      };
+    }, page.url());
+  try {
+    console.info('[e2e-foreground]', JSON.stringify({ phase: 'before', ...(await state()) }));
+    await app.evaluate(({ app, BrowserWindow }, url) => {
+      const window = BrowserWindow.getAllWindows().find((candidate) => candidate.webContents.getURL() === url);
+      if (!window) throw new Error('E2E workbench window is unavailable');
+      if (process.platform === 'darwin') app.show();
+      else window.show();
+      app.focus({ steal: true });
+      window.focus();
+    }, page.url());
+    await expect
+      .poll(
+        async () => {
+          const actual = await state();
+          return actual.visible && actual.focused;
+        },
+        { timeout: 10000, message: 'The owned E2E workbench window must be visible and natively focused' },
+      )
+      .toBe(true);
+    console.info('[e2e-foreground]', JSON.stringify({ phase: 'ready', ...(await state()) }));
+  } catch (error) {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const actual = await Promise.race([
+        state(),
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => reject(new Error('Foreground diagnostic timed out')), 2000);
+        }),
+      ]);
+      console.error('[e2e-foreground]', JSON.stringify({ phase: 'failed', ...actual }));
+    } catch (diagnosticError) {
+      console.error('[e2e-foreground] state unavailable', String(diagnosticError).slice(0, 2048));
+    } finally {
+      clearTimeout(timeout);
+    }
+    throw error;
+  }
+}
 
 export async function launchApp(
   options: {
@@ -30,8 +151,16 @@ export async function launchApp(
     controlledObservation?: boolean;
     /** 测试专用：在 Main↔service 边界代替 guest Codex 轮次以驱动控制面，不调用模型。 */
     appControlInjection?: boolean;
+    /** Mota live only: retain real service send/acquire, replace only its Codex process. */
+    motaModelTurnInjection?: boolean;
     /** Test-only: observe real app calls and delay one genuine reply across cancellation. */
     appControlCancelGate?: boolean;
+    sourceSnapshotFixture?: boolean;
+    sourceDispatchAudit?: boolean;
+    /** Test-only: defer the first genuine preview load until the address has focus. */
+    addressInitialLoadGate?: boolean;
+    /** Test-only: observe settlement of original address navigation invokes in the preload. */
+    addressNavigationObserver?: boolean;
     controlledTerminal?: boolean;
     codexBin?: string;
     sbxBin?: string;
@@ -109,16 +238,29 @@ export async function launchApp(
   delete env['WSL_STATUS_LOG'];
   if (options.debugStatus) env['WSL_DEBUG_STATUS'] = '1';
   if (options.debugStatus && options.statusLog) env['WSL_STATUS_LOG'] = options.statusLog;
-  // Install the observer before the real entrypoint creates any renderer.
+  // The build bootstrap installs fixtures before the real entrypoint creates any renderer.
   const bootstrap = path.join(await mkdtemp(path.join(tmpdir(), 'wsl-e2e-bootstrap-')), 'main.cjs');
+  const addressPreload = path.join(path.dirname(bootstrap), 'address-navigation-observer.cjs');
+  if (options.addressNavigationObserver) await writeFile(addressPreload, addressNavigationObserver);
   await writeFile(
     bootstrap,
     `
 const { app } = require('electron');
 app.setAppPath(${JSON.stringify(desktopDir)});
 globalThis.__wslRendererErrors = [];
+${
+  options.addressNavigationObserver
+    ? `app.once('ready', () => {
+  require('electron').session.defaultSession.registerPreloadScript({ type: 'frame', filePath: ${JSON.stringify(addressPreload)} });
+});`
+    : ''
+}
 ${options.appControlInjection ? appControlInjection : ''}
+${options.motaModelTurnInjection ? motaModelTurnInjection : ''}
 ${options.appControlCancelGate ? appControlCancelGate : ''}
+${options.sourceSnapshotFixture ? sourceSnapshotFixture : ''}
+${options.sourceDispatchAudit ? sourceDispatchAudit : ''}
+${options.addressInitialLoadGate ? addressInitialLoadGate : ''}
 ${
   options.controlledObservation || options.controlledTerminal
     ? `
@@ -213,11 +355,28 @@ require(${JSON.stringify(path.join(desktopDir, 'out/main/index.js'))});
     assert.deepEqual(rendererErrors, [], 'Workbench renderer exceptions/errors fail every E2E');
   };
   try {
+    if (target === 'packaged' && options.addressNavigationObserver) {
+      // Packaged launches bypass the bootstrap; reload so the same session preload precedes the real preload.
+      await app.evaluate(({ session }, filePath) => {
+        session.defaultSession.registerPreloadScript({ type: 'frame', filePath });
+      }, addressPreload);
+      await page.reload();
+    }
     await page.waitForSelector('div.app', { timeout: 10000 });
+    await ensureForeground(app, page);
+    await prepareDefaultWindow(app, page);
     if (!options.cleanInstall) await page.waitForSelector('[data-pane-id]', { state: 'attached', timeout: options.live ? 60000 : 10000 });
   } catch (error) {
-    console.error('Renderer startup', rendererErrors, await page.locator('body').innerText());
-    await app.close();
+    try {
+      console.error('Renderer startup', rendererErrors, (await page.locator('body').innerText({ timeout: 2000 })).slice(0, 8192));
+    } catch (diagnosticError) {
+      console.error('Renderer startup diagnostics unavailable', String(diagnosticError).slice(0, 2048));
+    }
+    try {
+      await app.close();
+    } catch (cleanupError) {
+      console.error('Renderer startup cleanup failed', cleanupError);
+    }
     throw error;
   }
   return { app, page, rendererErrors };
@@ -493,4 +652,77 @@ export async function setWorkspaceTheme(page: Page, theme: string) {
 async function expectTheme(page: Page, theme: string) {
   const snapshot = await workspaceSnapshot(page);
   assert.equal(snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId)?.theme, theme);
+}
+
+// 只读的原生焦点观测：区分"App 未拿到系统前台"与"App 内部焦点路由出错"；不改变任何被测状态。
+export interface NativeFocusSnapshot {
+  timestamp: string;
+  focusedWindowId: number | null;
+  focusedWebContentsId: number | null;
+  windows: { id: number; isFocused: boolean; isVisible: boolean; isMinimized: boolean }[];
+}
+export function nativeFocusSnapshot(app: ElectronApplication): Promise<NativeFocusSnapshot> {
+  return app
+    .evaluate(({ BrowserWindow, webContents }) => ({
+      focusedWindowId: BrowserWindow.getFocusedWindow()?.id ?? null,
+      focusedWebContentsId: webContents.getFocusedWebContents()?.id ?? null,
+      windows: BrowserWindow.getAllWindows().map((window) => ({
+        id: window.id,
+        isFocused: window.isFocused(),
+        isVisible: window.isVisible(),
+        isMinimized: window.isMinimized(),
+      })),
+    }))
+    .then((snapshot) => ({ timestamp: new Date().toISOString(), ...snapshot }));
+}
+
+// 桌面状态白名单采集：每条外部命令约 3 秒超时；任一段失败只记 'unavailable'，不影响测试。
+export interface DesktopStateSnapshot {
+  timestamp: string;
+  appPid: number | null;
+  locks:
+    | 'unavailable'
+    | {
+        IOConsoleLocked?: boolean;
+        kCGSSessionOnConsoleKey?: boolean;
+        kCGSessionLoginDoneKey?: boolean;
+        CGSSessionScreenIsLocked?: boolean;
+        CGSSessionScreenLockedTime?: string;
+      };
+  frontmostApp: 'unavailable' | { name?: string; pid?: number };
+  hidIdleTimeNs: 'unavailable' | number;
+}
+const execWhitelist = promisify(execFile);
+async function whitelistCommand(file: string, args: string[]): Promise<string | null> {
+  try {
+    const { stdout } = await execWhitelist(file, args, { timeout: 3000 });
+    return stdout;
+  } catch {
+    return null;
+  }
+}
+export async function desktopStateSnapshot(app: ElectronApplication): Promise<DesktopStateSnapshot> {
+  const [ioreg, hid] = await Promise.all([
+    whitelistCommand('ioreg', ['-n', 'Root', '-d', '1']),
+    whitelistCommand('ioreg', ['-c', 'IOHIDSystem']),
+  ]);
+  const front = await whitelistCommand('lsappinfo', ['front']);
+  const frontAsn = front?.trim();
+  const frontInfo = frontAsn ? await whitelistCommand('lsappinfo', ['info', frontAsn]) : null;
+  const hidIdle = hid ? ioregScalar(hid, 'HIDIdleTime') : undefined;
+  const nameMatch =
+    frontInfo?.match(/"LSDisplayName"\s*=\s*"([^"]*)"/) ??
+    frontInfo?.match(/bundleID\s*=\s*"([^"]*)"/) ??
+    frontInfo?.match(/bundle path\s*=\s*"([^"]*)"/);
+  const pidMatch = frontInfo?.match(/"pid"\s*=\s*(\d+)/) ?? frontInfo?.match(/\bpid\s*=\s*(\d+)/);
+  return {
+    timestamp: new Date().toISOString(),
+    appPid: app.process()?.pid ?? null,
+    locks: ioreg ? parseIoregLocks(ioreg) : 'unavailable',
+    frontmostApp:
+      frontInfo && (nameMatch || pidMatch)
+        ? { name: nameMatch?.[1]?.trim().replace(/^"|"$/g, ''), pid: pidMatch ? Number(pidMatch[1]) : undefined }
+        : 'unavailable',
+    hidIdleTimeNs: hidIdle !== undefined && /^\d+$/.test(hidIdle) ? Number(hidIdle) : 'unavailable',
+  };
 }

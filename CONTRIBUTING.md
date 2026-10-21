@@ -59,9 +59,9 @@ git diff --cached --check
 git status --short
 ```
 
-`check-docs` 检查列明的一方规范文件及本地链接目标、尾随空白；不联网、不验证外部链接、Markdown 锚点、Mermaid 渲染或语义，也不扫描历史证据目录。`git diff --check` 不覆盖未跟踪文件，故新增规范文件由脚本纳入。两者通过不等于架构正确。
+`check-docs` 检查列明的一方规范文件、本次修订计划以及 `docs/architecture/adr/` 下的 Markdown 文件，验证本地链接目标和尾随空白；不联网、不验证外部链接、Markdown 锚点、Mermaid 渲染或语义，也不扫描历史证据目录。`git diff --check` 不覆盖未跟踪文件，故新增规范文件由脚本纳入。两者通过不等于架构正确。
 
-需要完整结果时，应独立执行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check` 和 `pnpm test`；`pnpm check` 在首个失败时停止，不能用来证明后续检查已经运行。原始来源存档和历史失败保持原字节；全树检查命中这些文件时单独列明，当前改动再做定向检查，不自动格式化封存证据。
+需要完整结果时，应独立执行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check` 和 `pnpm test`；`pnpm check` 在首个失败时停止，不能用来证明后续检查已经运行。原始来源存档和历史失败保持原字节；[冻结清单](scripts/frozen-inputs.json) 通过固定来源与 SHA-256 校验 14 个输入，之后才应用精确的格式/风格例外。不得从当前工作树刷新期望值，也不得扩大目录忽略。检查需要能读取两个固定 Git 提交；CI 获取完整历史，浅克隆或对象不可用时应补齐固定对象，不能改成验证当前字节来自当前字节。根 `package.json` 的命令可维护，但原 VS001 每轮指纹仍捕获它，旧整体验收不能据此复用。
 
 | 改动                     | 必须完成的验证                                                             | 不要求的工作                       |
 | ------------------------ | -------------------------------------------------------------------------- | ---------------------------------- |
@@ -74,7 +74,7 @@ git status --short
 
 根 `package.json` 与 `pnpm-lock.yaml` 是当前安装和运行入口。`pnpm check` 检查产品及基线类型、lint、格式和离线单测；`pnpm baseline:selftest` 单独运行 VS001 合成负例，不调用模型。`pnpm baseline` 是需要真实产品 adapter 的独立验收入口，不纳入默认检查；adapter 的接入、运行前置条件与未执行项见 [VS001 接入记录](docs/acceptance/integrated-app-installer-public-20261009/README.md)。原 main 的 npm manifest/lock 按原字节保留用于历史复现与版本溯源；固定验收指纹所需文件也保留，当前安装仍只使用 pnpm，不在根目录执行旧 `npm ci`。
 
-桌面端到端入口为 `pnpm test:e2e`；打包入口为 `pnpm package` 与 `pnpm test:e2e:packaged`。这些命令的存在不代表本次已运行，真实模型和 sandbox live 检查必须显式授权。
+桌面端到端前先显式执行 `pnpm test:e2e:prepare` 安装锁定模板依赖，再运行 `pnpm test:e2e`。globalSetup 仅检查依赖，不自动修复环境；入口仅对子进程清除 Electron Node 模式，在 `test-results/e2e-runs/run-*/` 保留独立日志、失败上下文、JSON、跳过清单和源码/构建指纹。先前失败与后续复跑不得覆盖；报告缺失、全部跳过或运行中输入漂移不得算通过。打包入口仍为 `pnpm package` 与 `pnpm test:e2e:packaged`；后者额外核对 `WSL_E2E_APP_PATH` 所选 `.app`（未指定则使用默认构建路径）的实际路径、完整文件/目录清单、内容 SHA-256、权限及内部符号链接，拒绝缺失输入、越界链接或运行中产物漂移。该指纹不是签名、公证或系统权限验证，合成产物测试也不替代真实打包验收。命令或 CI 配置的存在不代表本次已运行，真实模型、sandbox live、签名和发布必须显式授权。
 
 源码导入约束与覆盖缺口：renderer 禁所有 Node 内置模块（含裸名、`node:`、动态导入）、Electron 与 main/preload 内部；protocol 禁业务实现与平台依赖；执行核心禁 Electron；领域禁具体适配器。选择现有 lint 和 TS 项目引用能覆盖的部分，真实负例验证规则会失败，审查未覆盖的动态依赖；不要为没有代码的路径宣布通过。
 

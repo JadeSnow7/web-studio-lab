@@ -17,7 +17,9 @@ if (args[0] === 'inspect') {
 if (args[0] !== 'exec' || !args.includes('python3')) process.exit(8);
 const frame = (value) => console.log(`WSL_GUEST_FRAME:${JSON.stringify(value)}`);
 const output = (data) => frame({ type: 'output', stream: 'stdout', data });
+let taskWorkspace;
 const finish = (exitCode = 0) => {
+  if (taskWorkspace) frame({ type: 'workspace', ...taskWorkspace });
   frame({ type: 'exit', exitCode });
   frame({ type: 'cleanup', ok: true });
   process.exit(0);
@@ -31,6 +33,7 @@ rl.on('line', (line) => {
   const value = JSON.parse(line);
   if (value.type === 'start') {
     mode = value.mode;
+    taskWorkspace = value.workspace;
     frame({ type: 'ready', pid: process.pid });
     if (mode === 'terminal') {
       size = `${value.rows} ${value.cols}`;

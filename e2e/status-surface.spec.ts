@@ -4,8 +4,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { expect, test, type ElectronApplication, type Locator, type Page } from '@playwright/test';
+import type { WorkbenchSnapshot } from '../packages/protocol/src';
 import {
   fixtureSandbox,
+  browserState,
   installStatusShim,
   launchApp,
   openBrowserMenu,
@@ -153,12 +155,20 @@ test('960 宽：两个标题栏按钮与铃铛都在视口内且互不重叠', a
 });
 
 test('存储横幅与工作区错误 Toast 叠放：同时可见、互不遮挡，Toast 的关闭按钮可点击', async () => {
-  // 让数据目录只读，使下一次持久化失败，Main 发布 storageError。
   const userData = await mkdtemp(path.join(tmpdir(), 'wsl-status-storage-'));
   const { app, page } = await launchApp({ userData });
   try {
+    // 先确认初始网页加载完成，避免依赖启动时偶然迟到的 runtime 事件。
+    await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
+    await expect.poll(async () => (await browserState(page)).loading).toBe(false);
+    const generation = (await browserState(page)).page.documentGeneration;
     await run('chmod', ['-R', 'a-w', userData]);
-    // 持久化失败的同时，这条命令会以失败返回，工作区错误也出现。
+    // 真实刷新产生不可回滚的网页状态；保存失败后 Main 保留内存状态并发布 storageError。
+    await page.getByRole('button', { name: '刷新页面', exact: true }).click();
+    await expect.poll(async () => (await browserState(page)).page.documentGeneration).toBeGreaterThan(generation);
+    await expect.poll(async () => (await browserState(page)).loading).toBe(false);
+    await expect.poll(async () => (await workspaceSnapshot(page)).storageError).toContain('工作现场保存失败');
+    // 分屏命令的持久化失败会回滚布局，并单独产生工作区错误 Toast。
     await page.getByRole('button', { name: '左右分屏', exact: true }).last().click();
     const banner = page.getByRole('alert').filter({ hasText: '持久化失败' });
     const toast = page.locator('.toasts .workspace-error');
@@ -774,6 +784,10 @@ async function onPreview(app: ElectronApplication, fault: 'detach-cdp' | 'block-
 async function failPageLoad(app: ElectronApplication, page: Page) {
   await controlledResourceNetwork(app);
   const address = page.getByLabel('页面地址');
+  // Initial readiness belongs to this business setup; address races have separate controlled regressions.
+  await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
+  await expect.poll(async () => (await browserState(page)).loading).toBe(false);
+  await expect(address).toHaveValue('wsl-demo://taskflow/index.html');
   await address.fill('https://example.com/missing');
   await address.press('Enter');
   await expect(browserSlotItems(page).filter({ hasText: '页面加载失败' })).toBeVisible();
@@ -1420,7 +1434,8 @@ test('会话「运行记录 ⌄」：视图收为五项，Tab 到触发器、Ent
     await page.keyboard.press('Enter');
     await expect(menu).toHaveCount(0);
     await expect(trigger).toBeFocused();
-    await expect(sessionRegion(page).getByRole('region', { name: '运行详情' })).toContainText('真实 diff 尚未记录');
+    await expect(sessionRegion(page).getByRole('region', { name: '运行详情' })).toContainText('源码差异不可用');
+    await expect(sessionRegion(page).getByRole('region', { name: '运行详情' })).toContainText('任务未绑定受管 App 工程，无法采集源码差异');
     await expectNativePage(app, page, true);
     // 再次展开时从当前项开始，并标出当前项。
     await page.keyboard.press('Enter');
@@ -1671,7 +1686,8 @@ test('会话：执行中点「取消回复」后焦点交给输入框，不落�
   const { app, page } = await launchApp({ sbxBin });
   try {
     await openSessionTab(page);
-    await sessionMessageBox(page).fill('[delayed-complete] 取消焦点用例');
+    // 让 fixture 持续执行直到取消，避免自然完成在点击前卸载「取消回复」按钮。
+    await sessionMessageBox(page).fill('[slow] 取消焦点用例');
     await sessionRegion(page).getByRole('button', { name: '发送', exact: true }).click();
     const cancel = sessionRegion(page).getByRole('button', { name: '取消回复', exact: true });
     await expect(cancel).toBeVisible();
@@ -1869,6 +1885,12 @@ test('首页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（发送被
         await setWorkspaceTheme(page, theme);
         for (const width of [1440, 960]) {
           await resize(app, page, width, width === 1440 ? 900 : 700);
+          // innerWidth 已变化不代表 React 已切换布局；先确认本轮导航使用的实际模式。
+          if (width === 1440) await expect(page.locator('.workshop-docked')).toBeVisible();
+          else {
+            await expect(page.locator('.workshop-docked')).toHaveCount(0);
+            await expect(page.locator('#left-panel-trigger')).toHaveAttribute('aria-expanded', 'false');
+          }
           await workshopNavigate(page, '首页');
           const region = homeRegion(page);
           if (state === 'abnormal') await blockHomeSend(page, '被阻止的草稿');
@@ -2644,5 +2666,109 @@ test('App 对话框：启动中强制结束应用后重启，恢复为 failed + 
       await exited;
     }
     await rm(profile, { recursive: true, force: true });
+  }
+});
+
+// Only the presentation snapshot is substituted; this does not begin a lease.
+test('发音倒计时：长期关闭后首 tick 前刷新，关闭重开且清理计时器', async () => {
+  const { app, page } = await launchApp({ sbxBin: appSbxBin });
+  try {
+    await createManagedApp(page, '发音倒计时展示');
+    await openAppDialog(page);
+    await appDialog(page).getByRole('button', { name: '关闭', exact: true }).click();
+    const start = await page.evaluate(() => Date.now());
+    await page.clock.install({ time: new Date(start) });
+    await page.clock.pauseAt(new Date(start + 1000));
+    await page.evaluate(() => {
+      const timers: Window = window;
+      const set = timers.setInterval.bind(timers),
+        clear = timers.clearInterval.bind(timers);
+      const active = new Set<number>();
+      timers.setInterval = (...args: Parameters<typeof set>) => {
+        const id = set(...args);
+        if (args[1] === 1000) active.add(id);
+        return id;
+      };
+      timers.clearInterval = (id) => {
+        active.delete(id!);
+        clear(id);
+      };
+      (window as unknown as { countdownIntervals(): number }).countdownIntervals = () => active.size;
+    });
+    await page.clock.setSystemTime(new Date(start + 31 * 60000));
+    const expiresAtMs = await page.evaluate(() => Date.now() + 300000);
+    await app.evaluate(({ ipcMain, BrowserWindow }, expiresAtMs) => {
+      type Handler = (event: Electron.IpcMainInvokeEvent, request?: unknown) => Promise<unknown>;
+      const handlers = (ipcMain as unknown as { _invokeHandlers: Map<string, Handler> })._invokeHandlers;
+      const get = handlers.get('workbench:get-snapshot')!,
+        command = handlers.get('workbench:command')!;
+      const transform = (snapshot: WorkbenchSnapshot): WorkbenchSnapshot => {
+        const next = structuredClone(snapshot);
+        const workspaceId = 'taskflow-demo';
+        const projectId = next.workspaces.find((w) => w.workspaceId === workspaceId)!.managedApp!.projectId;
+        const appInstanceId = '11111111-1111-4111-8111-111111111111',
+          sessionId = '22222222-2222-4222-8222-222222222222';
+        next.eduVerification = {
+          original: { workspaceId, projectId, appInstanceId, sourceSha256: 'a'.repeat(64) },
+          target: { workspaceId, projectId, appInstanceId, sessionId },
+          urls: [],
+          recoveryRequired: false,
+          error: null,
+          status: {
+            phase: 'active',
+            maintenanceLocked: true,
+            callsUsed: 0,
+            error: null,
+            lease: {
+              schemaVersion: 1,
+              sessionId,
+              identity: { workspaceId, projectId, appInstanceId, environmentId: 'sandbox' },
+              sourceSha256: 'a'.repeat(64),
+              expiresAtMs,
+            },
+          },
+        };
+        return next;
+      };
+      ipcMain.removeHandler('workbench:get-snapshot');
+      ipcMain.handle('workbench:get-snapshot', async (event) => transform((await get(event)) as WorkbenchSnapshot));
+      ipcMain.removeHandler('workbench:command');
+      ipcMain.handle('workbench:command', async (event, request) => {
+        const result = (await command(event, request)) as { snapshot: WorkbenchSnapshot };
+        return { ...result, snapshot: transform(result.snapshot) };
+      });
+      const contents = BrowserWindow.getAllWindows()[0]!.webContents,
+        send = contents.send.bind(contents);
+      contents.send = ((channel: string, ...args: Array<{ snapshot?: WorkbenchSnapshot }>) => {
+        const payload = args[0];
+        return channel === 'workbench:event' && payload?.snapshot
+          ? send(channel, { ...payload, snapshot: transform(payload.snapshot) })
+          : send(channel, ...args);
+      }) as typeof contents.send;
+    }, expiresAtMs);
+    await pushWorkbenchSnapshot(page);
+    const trigger = page.getByRole('button', { name: '管理 App', exact: true });
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    const dialog = appDialog(page);
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('剩余 2 / 2 次 · 剩余 5 分 0 秒');
+    expect(await page.evaluate(() => (window as unknown as { countdownIntervals(): number }).countdownIntervals())).toBe(1);
+    await page.clock.runFor(1000);
+    await expect(dialog).toContainText('剩余 4 分 59 秒');
+    await page.keyboard.press('Escape');
+    await expect(dialog).not.toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { countdownIntervals(): number }).countdownIntervals())).toBe(0);
+    await page.clock.setSystemTime(new Date(start + 33 * 60000));
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('剩余 3 分 0 秒');
+    expect(await page.evaluate(() => (window as unknown as { countdownIntervals(): number }).countdownIntervals())).toBe(1);
+    await dialog.getByRole('button', { name: '关闭', exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { countdownIntervals(): number }).countdownIntervals())).toBe(0);
+  } finally {
+    await app.close();
   }
 });

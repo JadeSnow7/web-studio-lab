@@ -1,6 +1,13 @@
 import { emptyReferences } from '../../../service/src/reference-test-fixture';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ChatConversation, ChatStatus, ResourceInstanceIdentity, TerminalSnapshot } from '@wsl/protocol';
+import type {
+  ChatConversation,
+  ChatStatus,
+  EduTaskBinding,
+  MotaTaskBinding,
+  ResourceInstanceIdentity,
+  TerminalSnapshot,
+} from '@wsl/protocol';
 const mock = vi.hoisted(() => ({
   callbacks: new Map<string, (value: unknown) => void>(),
   postMessage: vi.fn(),
@@ -60,6 +67,137 @@ beforeEach(() => {
   mock.callbacks.clear();
   mock.postMessage.mockClear();
   mock.kill.mockClear();
+});
+describe('Mota exact control bridge', () => {
+  it.each([false, true])('uses an independent editor RPC and validates its complete original binding (mismatch=%s)', async (mismatch) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const request = {
+      binding: {
+        workspaceId: 'w',
+        environmentId: 'sandbox' as const,
+        projectId: crypto.randomUUID(),
+        appInstanceId: 'existing-app-id',
+        resourceId: 'editor',
+        resourceInstanceId: 'resource',
+        resourceGeneration: 1,
+        browserInstanceId: 'native',
+        browserGeneration: 2,
+        documentGeneration: 3,
+        editorEpoch: 4,
+      },
+      editorSessionId: crypto.randomUUID(),
+      requestId: crypto.randomUUID(),
+      method: 'editor.open' as const,
+      input: {},
+    };
+    const opening = service.motaEditorRequest(request);
+    const call = mock.postMessage.mock.calls.at(-1)![0];
+    expect(call.method).toBe('app.motaEditor');
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: call.id,
+      result: {
+        method: request.method,
+        editorSessionId: request.editorSessionId,
+        requestId: request.requestId,
+        binding: { ...request.binding, documentGeneration: mismatch ? 99 : 3 },
+        ok: true,
+        data: {},
+      },
+    });
+    if (mismatch) await expect(opening).rejects.toThrow();
+    else await expect(opening).resolves.toMatchObject({ ok: true, editorSessionId: request.editorSessionId });
+  });
+  const binding = (): MotaTaskBinding => ({
+    workspaceId: 'w',
+    environmentId: 'sandbox',
+    projectId: crypto.randomUUID(),
+    appInstanceId: crypto.randomUUID(),
+    runId: crypto.randomUUID(),
+    sessionId: 'session-00000000-0000-4000-8000-000000000001',
+    resourceId: 'game',
+    browserInstanceId: 'browser',
+    browserGeneration: 0,
+    webContentsId: 1,
+    documentGeneration: 0,
+  });
+  it('rejects a receipt for another page generation and keeps cleanup unknown', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const owner = binding();
+    const control = {
+      type: 'mota-control' as const,
+      requestId: crypto.randomUUID(),
+      binding: owner,
+      method: 'release' as const,
+      input: {},
+    };
+    const releasing = service.motaControl(control);
+    const call = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: call.id,
+      result: {
+        type: 'mota-control-result',
+        requestId: control.requestId,
+        binding: { ...owner, documentGeneration: 1 },
+        method: 'release',
+        ok: true,
+        data: { settled: true },
+      },
+    });
+    await expect(releasing).rejects.toThrow('归属不匹配');
+    mock.callbacks.get('exit')?.(1);
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('treats exact pre-model rejection as executor not started but still releases the Mota lease separately', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const owner = binding();
+    const sending = service.send(
+      owner.sessionId,
+      'read state',
+      { workspaceId: owner.workspaceId, sessionId: owner.sessionId, runId: owner.runId, sources: [] },
+      emptyReferences(owner.sessionId, owner.workspaceId),
+      undefined,
+      owner,
+    );
+    const rejected = expect(sending).rejects.toMatchObject({ cleanupPending: false, knownNotSent: false });
+    const call = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: call.id,
+      result: {
+        kind: 'mota-task-dispatch-rejected',
+        conversationId: owner.sessionId,
+        binding: owner,
+        executorStarted: false,
+        error: 'lease unavailable',
+      },
+    });
+    await rejected;
+    const control = {
+      type: 'mota-control' as const,
+      requestId: crypto.randomUUID(),
+      binding: owner,
+      method: 'release' as const,
+      input: {},
+    };
+    const releasing = service.motaControl(control);
+    const release = mock.postMessage.mock.calls.at(-1)![0];
+    expect(release).toMatchObject({ method: 'app.motaControl', payload: control });
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: release.id,
+      result: {
+        type: 'mota-control-result',
+        requestId: control.requestId,
+        binding: owner,
+        method: 'release',
+        ok: true,
+        data: { settled: true },
+      },
+    });
+    await expect(releasing).resolves.toMatchObject({ ok: true, method: 'release' });
+  });
 });
 describe('对话服务宿主故障', () => {
   it('send ACK 后服务退出仍推送不可用与会话失败', async () => {
@@ -409,6 +547,374 @@ describe('control-plane relay', () => {
   });
 });
 
+describe('source snapshot cleanup transport', () => {
+  const target = { workspaceId: 'w', projectId: '00000000-0000-4000-8000-000000000003' };
+  it.each([true, false])('preserves typed cleanupConfirmed=%s from an owned source failure receipt', async (cleanupConfirmed) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const pending = service.appSourceSnapshot(target, new AbortController().signal).catch((error: unknown) => error);
+    const request = mock.postMessage.mock.calls.at(-1)?.[0];
+    const result = { ok: false, target, cleanupConfirmed, error: 'synthetic collector failure' };
+    mock.callbacks.get('message')?.({ type: 'response', id: request.id, result });
+    expect(await pending).toEqual(result);
+    mock.callbacks.get('exit')?.(1);
+    if (cleanupConfirmed) await expect(service.shutdown()).resolves.toBeUndefined();
+    else await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('does not treat a cancel ACK as source cleanup, and keeps transport loss unresolved', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const controller = new AbortController();
+    let settled = false;
+    const pending = service
+      .appSourceSnapshot(target, controller.signal)
+      .catch((error: unknown) => error)
+      .then((result) => {
+        settled = true;
+        return result;
+      });
+    const request = mock.postMessage.mock.calls.at(-1)?.[0];
+    controller.abort();
+    const cancel = mock.postMessage.mock.calls.at(-1)?.[0];
+    expect(cancel).toMatchObject({ method: 'app.source.cancel', payload: { callId: request.payload.callId } });
+    mock.callbacks.get('message')?.({ type: 'response', id: cancel.id, result: null });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    mock.callbacks.get('exit')?.(1);
+    expect(await pending).toMatchObject({ ok: false, target, cleanupConfirmed: false });
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('does not dispatch a pre-cancelled source request or invent an unresolved helper', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const controller = new AbortController();
+    controller.abort();
+    expect(await service.appSourceSnapshot(target, controller.signal)).toMatchObject({ ok: false, target, cleanupConfirmed: true });
+    expect(mock.postMessage).not.toHaveBeenCalled();
+    mock.callbacks.get('exit')?.(0);
+    await expect(service.shutdown()).resolves.toBeUndefined();
+  });
+  it('does not use foreign or stale source receipts to release another helper', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const first = service.appSourceSnapshot(target, new AbortController().signal);
+    const oldRequest = mock.postMessage.mock.calls.at(-1)?.[0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: oldRequest.id,
+      result: { ok: false, target, cleanupConfirmed: true, error: 'synthetic clean failure' },
+    });
+    expect(await first).toMatchObject({ cleanupConfirmed: true });
+    const second = service.appSourceSnapshot(target, new AbortController().signal);
+    const newRequest = mock.postMessage.mock.calls.at(-1)?.[0];
+    expect(newRequest.payload.callId).not.toBe(oldRequest.payload.callId);
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: oldRequest.id,
+      result: { ok: false, target, cleanupConfirmed: false, error: 'stale' },
+    });
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: newRequest.id,
+      result: { ok: false, target: { ...target, workspaceId: 'foreign' }, cleanupConfirmed: true, error: 'foreign' },
+    });
+    expect(await second).toMatchObject({ ok: false, target, cleanupConfirmed: false });
+    mock.callbacks.get('exit')?.(1);
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('accepts only the matching successful source receipt, including its cleanup fact', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const pending = service.appSourceSnapshot(target, new AbortController().signal).catch((error: unknown) => error);
+    const request = mock.postMessage.mock.calls.at(-1)?.[0];
+    const result = { ok: true, cleanupConfirmed: true, snapshot: { ...target, files: [], totalBytes: 0 } };
+    mock.callbacks.get('message')?.({ type: 'response', id: request.id, result });
+    expect(await pending).toEqual(result);
+    mock.callbacks.get('exit')?.(0);
+    await expect(service.shutdown()).resolves.toBeUndefined();
+  });
+});
+
+describe('edu task cleanup transport', () => {
+  const binding: EduTaskBinding = {
+    runId: '00000000-0000-4000-8000-000000000001',
+    workspaceId: 'workspace',
+    projectId: '00000000-0000-4000-8000-000000000002',
+    appInstanceId: '00000000-0000-4000-8000-000000000003',
+    resourceId: 'browser-resource',
+    instanceId: 'browser-instance',
+    generation: 1,
+    webContentsId: 7,
+    documentGeneration: 2,
+    sourceSha256: 'a'.repeat(64),
+    protectedFiles: [{ path: 'admin/src/App.tsx', sha256: 'b'.repeat(64), bytes: 1 }],
+  };
+  const app = {
+    workspaceId: binding.workspaceId,
+    projectId: binding.projectId,
+    environmentId: 'sandbox',
+    appInstanceId: binding.appInstanceId,
+    state: 'running',
+    url: 'http://127.0.0.1:3000',
+    guestCwd: '/home/agent/workspace/.wsl-apps/project',
+    error: null,
+    cleanupConfirmed: false,
+  };
+  it.each([true, false])('preserves an owned failure cleanupConfirmed=%s independently of operation success', async (cleanupConfirmed) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const pending = service.appPrepareEduTask(binding);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    expect(request).toMatchObject({ method: 'app.prepareEduTask', payload: binding });
+    const result = { binding, operation: 'prepare', ok: false, cleanupConfirmed, error: 'helper failed' };
+    mock.callbacks.get('message')?.({ type: 'response', id: request.id, result });
+    expect(await pending).toEqual(result);
+    mock.callbacks.get('exit')?.(1);
+    if (cleanupConfirmed) await expect(service.shutdown()).resolves.toBeUndefined();
+    else await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('accepts a confirmed apply without confusing the running App with its completed finite helper', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const pending = service.appApplyEduTask(binding);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    expect(request).toMatchObject({ method: 'app.applyEduTask', payload: binding });
+    const result = { binding, operation: 'apply', ok: true, cleanupConfirmed: true, app };
+    mock.callbacks.get('message')?.({ type: 'response', id: request.id, result });
+    expect(await pending).toEqual(result);
+    mock.callbacks.get('exit')?.(0);
+    await expect(service.shutdown()).resolves.toBeUndefined();
+  });
+  it.each([
+    { runId: '00000000-0000-4000-8000-000000000009' },
+    { workspaceId: 'foreign-workspace' },
+    { projectId: '00000000-0000-4000-8000-000000000009' },
+    { appInstanceId: '00000000-0000-4000-8000-000000000009' },
+    { resourceId: 'foreign-resource' },
+    { instanceId: 'foreign-instance' },
+    { generation: 2 },
+    { webContentsId: 8 },
+    { documentGeneration: 3 },
+    { sourceSha256: 'c'.repeat(64) },
+    { protectedFiles: [{ path: 'admin/src/App.tsx', sha256: 'c'.repeat(64), bytes: 1 }] },
+  ])('rejects foreign binding fields %j without releasing the original helper', async (change) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const pending = service.appPrepareEduTask(binding);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: request.id,
+      result: { binding: { ...binding, ...change }, operation: 'prepare', ok: true, cleanupConfirmed: true },
+    });
+    expect(await pending).toMatchObject({ binding, operation: 'prepare', ok: false, cleanupConfirmed: false });
+    mock.callbacks.get('exit')?.(1);
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it.each(['workspaceId', 'projectId', 'appInstanceId'] as const)('rejects successful apply for another App %s', async (field) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const pending = service.appApplyEduTask(binding);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: request.id,
+      result: {
+        binding,
+        operation: 'apply',
+        ok: true,
+        cleanupConfirmed: true,
+        app: { ...app, [field]: '00000000-0000-4000-8000-000000000009' },
+      },
+    });
+    expect(await pending).toMatchObject({ binding, operation: 'apply', ok: false, cleanupConfirmed: false });
+    mock.callbacks.get('exit')?.(1);
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it.each([
+    { binding, operation: 'cancel', ok: true, cleanupConfirmed: true },
+    { binding, operation: 'prepare', ok: true },
+    { binding: { ...binding, resourceId: undefined }, operation: 'prepare', ok: true, cleanupConfirmed: true },
+    null,
+  ])('keeps an operation mismatch or malformed receipt unresolved: %j', async (result) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const pending = service.appPrepareEduTask(binding);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({ type: 'response', id: request.id, result });
+    expect(await pending).toMatchObject({ binding, operation: 'prepare', ok: false, cleanupConfirmed: false });
+    mock.callbacks.get('exit')?.(1);
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('allows only an owned confirmed cancellation to settle the earlier unknown operation', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const preparing = service.appPrepareEduTask(binding);
+    const prepare = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: prepare.id,
+      result: { binding, operation: 'prepare', ok: false, cleanupConfirmed: false, error: 'helper wait incomplete' },
+    });
+    expect(await preparing).toMatchObject({ cleanupConfirmed: false });
+    const cancelling = service.appCancelEduTask(binding);
+    const cancel = mock.postMessage.mock.calls.at(-1)![0];
+    expect(cancel).toMatchObject({ method: 'app.cancelEduTask', payload: binding });
+    const reorderedBinding = Object.fromEntries(Object.entries(binding).reverse());
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: cancel.id,
+      result: { binding: reorderedBinding, operation: 'cancel', ok: true, cleanupConfirmed: true },
+    });
+    expect(await cancelling).toEqual({ binding, operation: 'cancel', ok: true, cleanupConfirmed: true });
+    mock.callbacks.get('exit')?.(0);
+    await expect(service.shutdown()).resolves.toBeUndefined();
+  });
+  it('does not let a late prepare confirmation clear the newer unconfirmed cancel', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const preparing = service.appPrepareEduTask(binding);
+    const prepare = mock.postMessage.mock.calls.at(-1)![0];
+    const cancelling = service.appCancelEduTask(binding);
+    const cancel = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: prepare.id,
+      result: { binding, operation: 'prepare', ok: true, cleanupConfirmed: true },
+    });
+    await preparing;
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: cancel.id,
+      result: { binding, operation: 'cancel', ok: false, cleanupConfirmed: false, error: 'helper cleanup unknown' },
+    });
+    await cancelling;
+    mock.callbacks.get('exit')?.(1);
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('retains unresolved D source cleanup after the edu helper is confirmed clean', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const target = { workspaceId: binding.workspaceId, projectId: binding.projectId };
+    const collecting = service.appSourceSnapshot(target, new AbortController().signal);
+    const source = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: source.id,
+      result: { target, ok: false, cleanupConfirmed: false, error: 'source cleanup unknown' },
+    });
+    await collecting;
+    const cancelling = service.appCancelEduTask(binding);
+    const cancel = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: cancel.id,
+      result: { binding, operation: 'cancel', ok: true, cleanupConfirmed: true },
+    });
+    await cancelling;
+    mock.callbacks.get('exit')?.(1);
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('keeps an interrupted apply unresolved and marks a maintenance refusal as undispatched', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    service.setVerificationGuard(() => true);
+    await expect(
+      service.send('conv-personal-default', 'blocked', undefined, emptyReferences('conv-personal-default')),
+    ).rejects.toMatchObject({
+      cleanupPending: false,
+      knownNotSent: true,
+    });
+    expect(mock.postMessage).not.toHaveBeenCalled();
+    const applying = service.appApplyEduTask(binding);
+    mock.callbacks.get('exit')?.(1);
+    expect(await applying).toMatchObject({ binding, operation: 'apply', ok: false, cleanupConfirmed: false });
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('does not mistake a newer executor cleanup snapshot for proof that the edu request was never sent', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const pending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'), binding);
+    expect(mock.postMessage.mock.calls.at(-1)?.[0]).toMatchObject({ method: 'send', payload: { eduTask: binding } });
+    mock.callbacks.get('message')?.({ type: 'event', conversation: { ...snapshot, seq: 2, state: 'cancelled', cleanupPending: false } });
+    mock.callbacks.get('exit')?.(1);
+    await expect(pending).rejects.toMatchObject({ cleanupPending: false, knownNotSent: false });
+  });
+  it.each([true, false])('accepts exact pre-model rejection while separately reconciling helper cleanup=%s', async (cleanupConfirmed) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    mock.callbacks.get('message')?.({ type: 'event', conversation: { ...snapshot, seq: 8, state: 'idle', cleanupPending: false } });
+    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'), binding);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: request.id,
+      result: {
+        kind: 'edu-task-dispatch-rejected',
+        conversationId: 'conv-personal-default',
+        binding,
+        executorStarted: false,
+        error: 'source mismatch',
+      },
+    });
+    await expect(sending).rejects.toMatchObject({ message: 'source mismatch', cleanupPending: false, knownNotSent: false });
+    const cancelling = service.appCancelEduTask(binding);
+    const cancel = mock.postMessage.mock.calls.at(-1)![0];
+    expect(cancel).toMatchObject({ method: 'app.cancelEduTask', payload: binding });
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: cancel.id,
+      result: { binding, operation: 'cancel', ok: false, cleanupConfirmed, error: 'helper outcome' },
+    });
+    await expect(cancelling).resolves.toMatchObject({ cleanupConfirmed });
+    mock.callbacks.get('exit')?.(1);
+    if (cleanupConfirmed) await expect(service.shutdown()).resolves.toBeUndefined();
+    else await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it.each([
+    { conversationId: 'session-foreign' },
+    { binding: { ...binding, resourceId: 'foreign-resource' } },
+    { binding: { ...binding, sourceSha256: 'c'.repeat(64) } },
+    { binding: { ...binding, protectedFiles: [{ ...binding.protectedFiles[0]!, bytes: 2 }] } },
+  ])('keeps a foreign pre-model rejection unresolved: %j', async (change) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'), binding);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: request.id,
+      result: {
+        kind: 'edu-task-dispatch-rejected',
+        conversationId: 'conv-personal-default',
+        binding,
+        executorStarted: false,
+        error: 'source mismatch',
+        ...change,
+      },
+    });
+    await expect(sending).rejects.toMatchObject({ cleanupPending: true, knownNotSent: false });
+  });
+  it('does not cache a dispatch rejection as a conversation or poison the next failure sequence', async () => {
+    const states: ChatConversation[] = [];
+    const service = new ChatService((state) => states.push(state), vi.fn());
+    mock.callbacks.get('message')?.({ type: 'event', conversation: { ...snapshot, seq: 8 } });
+    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'), binding);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: request.id,
+      result: {
+        kind: 'edu-task-dispatch-rejected',
+        conversationId: 'conv-personal-default',
+        binding,
+        executorStarted: false,
+        error: 'source mismatch',
+      },
+    });
+    await expect(sending).rejects.toMatchObject({ cleanupPending: false, knownNotSent: false });
+    expect(states).toHaveLength(1);
+    mock.callbacks.get('exit')?.(1);
+    expect(states.at(-1)).toMatchObject({ state: 'failed', seq: 9, messages: snapshot.messages, cleanupPending: true });
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('does not infer dispatch facts from a plain service error message', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const sending = service
+      .send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'), binding)
+      .catch((error: unknown) => error);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({ type: 'error', id: request.id, error: 'executor never started; helper clean' });
+    const error = await sending;
+    expect(error).toBeInstanceOf(Error);
+    expect(error).not.toHaveProperty('cleanupPending', false);
+    expect(error).not.toHaveProperty('knownNotSent', true);
+  });
+});
+
 describe('CLI read cancellation before adapter dispatch', () => {
   it('clears the reserved Main occupancy when real ChatService sees cancellation after pending metadata was saved', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
@@ -458,4 +964,152 @@ it('pre-cancelled cleanup reconciliation cannot claim the original operation was
   const result = await service.appAgent({ workspaceId: 'w', projectId: 'p' }, null, { op: 'reconcile-cli' }, controller.signal);
   expect(result.operationDispatched).toBeUndefined();
   expect(mock.postMessage.mock.calls.filter(([request]) => request.method.startsWith('app.agent'))).toEqual([]);
+});
+
+describe('发音验证服务边界', () => {
+  const status = () => ({
+    lease: {
+      schemaVersion: 1 as const,
+      sessionId: '00000000-0000-4000-8000-000000000001',
+      identity: {
+        workspaceId: 'edu',
+        projectId: '00000000-0000-4000-8000-000000000002',
+        environmentId: 'sandbox' as const,
+        appInstanceId: '00000000-0000-4000-8000-000000000003',
+      },
+      sourceSha256: 'a'.repeat(64),
+      expiresAtMs: Date.now() + 300000,
+    },
+    phase: 'active' as const,
+    callsUsed: 0,
+    maintenanceLocked: true,
+    error: null,
+  });
+  const target = () => {
+    const { workspaceId, projectId, appInstanceId } = status().lease.identity;
+    return { workspaceId, projectId, appInstanceId, sessionId: status().lease.sessionId };
+  };
+  it('replays startup journal state to late listeners and fails closed on service exit', async () => {
+    const service = new ChatService(
+      () => undefined,
+      () => undefined,
+    );
+    const value = status();
+    mock.callbacks.get('message')?.({ type: 'edu-verification-event', status: value });
+    const listener = vi.fn();
+    service.setVerificationListener(listener);
+    expect(listener).toHaveBeenLastCalledWith(value);
+    await expect(service.send('conv-personal-default', 'blocked', undefined, emptyReferences('conv-personal-default'))).rejects.toThrow();
+    await expect(service.terminalOpen(80, 24, terminalBinding.resourceId)).rejects.toThrow();
+    mock.callbacks.get('exit')?.(1);
+    expect(listener).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phase: 'failed', maintenanceLocked: true, error: 'verification_service_disconnected' }),
+    );
+  });
+  it('ended receipts retire the session so late active events cannot pause a healthy default instance', async () => {
+    const service = new ChatService(
+      () => undefined,
+      () => undefined,
+    );
+    const listener = vi.fn();
+    service.setVerificationListener(listener);
+    mock.callbacks.get('message')?.({ type: 'edu-verification-event', status: status() });
+    mock.callbacks.get('message')?.({
+      type: 'edu-verification-event',
+      status: {
+        ...status(),
+        lease: { ...status().lease, identity: { ...status().lease.identity, projectId: '00000000-0000-4000-8000-000000000009' } },
+      },
+    });
+    mock.callbacks.get('message')?.({ type: 'edu-verification-event', status: { ...status(), phase: 'ended', maintenanceLocked: false } });
+    mock.callbacks.get('message')?.({ type: 'edu-verification-event', status: status() });
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener).toHaveBeenLastCalledWith(expect.objectContaining({ phase: 'ended', maintenanceLocked: false }));
+  });
+  it('Main recovery guard blocks legacy sends even before journal events arrive', async () => {
+    const service = new ChatService(
+      () => undefined,
+      () => undefined,
+    );
+    service.setVerificationGuard(() => true);
+    await expect(service.send('conv-personal-default', 'blocked', undefined, emptyReferences('conv-personal-default'))).rejects.toThrow();
+    expect(mock.postMessage).not.toHaveBeenCalled();
+  });
+  it('uses typed reconcile RPC and rejects mismatched session responses', async () => {
+    const service = new ChatService(
+      () => undefined,
+      () => undefined,
+    );
+    const pending = service.verificationReconcile(target());
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    expect(request).toMatchObject({ method: 'app.verification.reconcile', payload: target() });
+    mock.callbacks.get('message')?.({ type: 'response', id: request.id, result: status() });
+    await expect(pending).resolves.toMatchObject({ phase: 'active' });
+    const mismatch = service.verificationStatus(target());
+    const query = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: query.id,
+      result: { ...status(), lease: { ...status().lease, sessionId: '00000000-0000-4000-8000-000000000004' } },
+    });
+    await expect(mismatch).rejects.toThrow('会话或实例不匹配');
+  });
+});
+
+describe('未接管验证恢复服务边界', () => {
+  const original = {
+    workspaceId: 'w',
+    projectId: '00000000-0000-4000-8000-000000000011',
+    appInstanceId: '00000000-0000-4000-8000-000000000012',
+    sourceSha256: 'c'.repeat(64),
+  };
+  const recovery = {
+    schemaVersion: 1 as const,
+    kind: 'admission-recovery' as const,
+    recoveryId: '00000000-0000-4000-8000-000000000013',
+    originalIdentity: {
+      workspaceId: original.workspaceId,
+      projectId: original.projectId,
+      environmentId: 'sandbox' as const,
+      appInstanceId: original.appInstanceId,
+    },
+    sourceSha256: original.sourceSha256,
+    phase: 'restoring' as const,
+    restoredIdentity: {
+      workspaceId: original.workspaceId,
+      projectId: original.projectId,
+      environmentId: 'sandbox' as const,
+      appInstanceId: '00000000-0000-4000-8000-000000000014',
+    },
+    maintenanceLocked: true,
+    error: null,
+  };
+  it('retains startup recovery for late listeners and fails closed after service exit', async () => {
+    const service = new ChatService(
+      () => undefined,
+      () => undefined,
+    );
+    mock.callbacks.get('message')?.({ type: 'edu-admission-recovery-event', status: recovery });
+    const listener = vi.fn();
+    service.setAdmissionRecoveryListener(listener);
+    expect(listener).toHaveBeenLastCalledWith(recovery);
+    await expect(service.send('conv-personal-default', 'blocked', undefined, emptyReferences('conv-personal-default'))).rejects.toThrow();
+    mock.callbacks.get('exit')?.(1);
+    expect(listener).toHaveBeenLastCalledWith(expect.objectContaining({ phase: 'failed', maintenanceLocked: true }));
+  });
+  it('sends only frozen begin fields and rejects mismatched original response identities', async () => {
+    const service = new ChatService(
+      () => undefined,
+      () => undefined,
+    );
+    const pending = service.verificationRecoverAdmission(original);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    expect(request).toMatchObject({ method: 'app.verification.recoverAdmission', payload: original });
+    mock.callbacks.get('message')?.({ type: 'response', id: request.id, result: recovery });
+    await expect(pending).resolves.toEqual(recovery);
+    const mismatch = service.verificationRecoverAdmission(original);
+    const next = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({ type: 'response', id: next.id, result: { ...recovery, sourceSha256: 'd'.repeat(64) } });
+    await expect(mismatch).rejects.toThrow('原始身份或源码不匹配');
+  });
 });

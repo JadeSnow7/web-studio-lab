@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "commit": "b5531e1ac3b3da7adf000f6ba61f2c5b19a0755f",
+      "files": {
+        "docs/acceptance/VS001.md": "6fadef2edeb1c7667464dcae582bf06d01258d3d1ab50a252bf94303fbcc4c9e",
+        "fixtures/vertical-slice/page/index.html": "2e0bec22a4ff3f281f5091e9b46bb54c324bed39f74c6425d169cdd3c01e3f5f",
+        "fixtures/vertical-slice/page/package.json": "49befb94c2dbe187dbe6dc3f479704169329db23d460677c8f05d779665fe7cc",
+        "fixtures/vertical-slice/page/src/App.tsx": "68e8ed1a1f1cc31599555eaa14ac5687eb32cadcbc8900f519ce952459247630",
+        "fixtures/vertical-slice/page/src/main.tsx": "d1f5ea830ecfce9c200352fd49edbfb92b3eeeaa0b624c8fb78260bf0e010b36",
+        "package-lock.json": "f9494aa9639637b438929aee8061429ea123879607d5ad63319f7a8e5eb9cd37",
+        "tests/vertical-slice/cdp.ts": "08f7eb8bb48cb0f4cb344f25246e2f733df0019c06bd8a34611f8547ece85da0",
+        "tests/vertical-slice/contracts.ts": "4f4e47294f2e2650db775a78674a85099e3a7da34e020045b945b63f58193e00",
+        "tests/vertical-slice/evidence.ts": "89637e2a6aeacc9d4c0ea384e1aedb5f375ef27f47658cd7e502da4afd171aa1",
+        "tests/vertical-slice/postcondition.ts": "20920d99eb9280ec6fd62a025eea6489ff893a863095cb977d4a52f4e3d5627c",
+        "tests/vertical-slice/run.ts": "f335a3439e293372ab645810398644a1d211cec314c53982ee69a9316b5fdde4",
+        "tests/vertical-slice/selftest.test.ts": "8476ca90b1bff6cebfe41edc59e7bb00112809eeddf2f9d7323b129d582acfee",
+        "tsconfig.json": "4a7a58e5cdf40cf08aee0aa74b4a60693c73232b4df58a7fad075788325c426a"
+      }
+    },
+    {
+      "commit": "d91701382e5e8950d695e9ef21fa521043407660",
+      "files": {
+        "docs/acceptance/consolidation-20261011/closeout-20261014.md": "2767761603e01568830d67da9adc9d5eaa7db52c78c56ad4bad69e1442a7132f"
+      }
+    }
+  ]
+}

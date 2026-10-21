@@ -2,13 +2,13 @@ import { test, expect } from '@playwright/test';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { launchApp, workspaceSnapshot, previewInfo, setWindowSize, setWorkspaceTheme } from './helpers';
+import { launchApp, workspaceSnapshot, previewInfo, setWindowSize, setWorkspaceTheme, screensDir } from './helpers';
 
 test('Workshop typed creation persists resources and restores modal focus', async () => {
   const { app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx.mjs', import.meta.url).pathname });
   try {
     await setWorkspaceTheme(page, 'dark');
-    await page.screenshot({ path: 'test-results/screens/workshop-actions-dark.png' });
+    await page.screenshot({ path: path.join(screensDir, 'workshop-actions-dark.png') });
     await expect(page.getByRole('region', { name: '标准应用服务' })).toHaveCount(0);
     for (const [label, kind, title] of [
       ['新建网页', 'web', '文档页'],
@@ -56,7 +56,7 @@ test('Workshop typed creation persists resources and restores modal focus', asyn
     await page.getByRole('button', { name: '展开 Workshop', exact: true }).click();
     for (const name of ['新建网页', '新建终端', '新建会话', '新建 App'])
       await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
-    await page.screenshot({ path: 'test-results/screens/workshop-actions-narrow.png' });
+    await page.screenshot({ path: path.join(screensDir, 'workshop-actions-narrow.png') });
   } finally {
     await app.close();
   }
@@ -87,7 +87,7 @@ test('Workshop App dialog creates, exports, reports startup failure and restores
     await expect(dialog.getByRole('status').first()).toHaveText('已创建');
     const getApp = async () => (await workspaceSnapshot(page)).workspaces.find((w) => w.workspaceId === 'taskflow-demo')!.managedApp!;
     const projectId = (await getApp()).projectId;
-    await page.screenshot({ path: 'test-results/screens/workshop-actions-app.png' });
+    await page.screenshot({ path: path.join(screensDir, 'workshop-actions-app.png') });
     expect((await getApp()).appInstanceId).toBeNull();
     await dialog.getByRole('button', { name: '导出源码', exact: true }).click();
     await expect(dialog.getByText(/源码已导出/)).toBeVisible();

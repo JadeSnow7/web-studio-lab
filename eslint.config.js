@@ -16,16 +16,38 @@ export default tseslint.config(
       'test-results/**',
       'demo/**',
       'docs/design/**',
+      // 既往验收的原始探针与嵌套源码副本不是当前执行源码。
+      'docs/acceptance/integration-20261008/evidence/**',
+      'docs/acceptance/integration-20261008/sources/**',
     ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   { languageOptions: { parserOptions: { tsconfigRootDir: import.meta.dirname } } },
+  { name: 'frozen-vs001-style', files: ['tests/vertical-slice/cdp.ts'], rules: { 'prefer-const': 'off' } },
   {
     files: ['**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       '@typescript-eslint/consistent-type-imports': 'error',
+    },
+  },
+  {
+    name: 'app-service-promises',
+    files: ['apps/service/src/app-service.ts'],
+    languageOptions: { parserOptions: { project: './apps/service/tsconfig.json' } },
+    rules: {
+      '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: false }],
+      '@typescript-eslint/no-misused-promises': 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'ExpressionStatement > CallExpression[callee.property.name="then"][arguments.0.async=true][arguments.length=2], ExpressionStatement > UnaryExpression[operator="void"] > CallExpression[callee.property.name="then"][arguments.0.async=true][arguments.length=2]',
+          message:
+            'Handle the Promise returned by then(async ..., onRejected); onRejected does not catch rejections from the async callback.',
+        },
+      ],
     },
   },
   {

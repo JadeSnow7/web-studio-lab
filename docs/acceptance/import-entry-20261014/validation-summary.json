@@ -1,0 +1,498 @@
+{
+  "schemaVersion": 1,
+  "scope": "edu-web import entry; local build, no model/Azure/physical recording; no push/merge/release",
+  "status": "local_scope_completed",
+  "baselineCommit": "b5531e1ac3b3da7adf000f6ba61f2c5b19a0755f",
+  "baselineIncludesFrozenUncommittedWork": true,
+  "buildArtifacts": [
+    {
+      "path": "apps/desktop/out/main/index.js",
+      "bytes": 1013543,
+      "sha256": "ff07f5b9386175a947fc34b707350f97923aabc89cb68edb5a39fee24e03d9fb"
+    },
+    {
+      "path": "apps/desktop/out/preload/index.js",
+      "bytes": 274357,
+      "sha256": "1e7d4ab20ef35e35ac0cf3e35fb7411ff940d52434e27d79c45ff75a946e8435"
+    },
+    {
+      "path": "apps/service/out/index.cjs",
+      "bytes": 1611006,
+      "sha256": "18cc8a2cdf1f569b30c078390d2327e94c87ce76cd34a859452419ddee7f41c2"
+    },
+    {
+      "path": "apps/desktop/out/renderer/assets/index-BvpEXYjY.css",
+      "bytes": 65128,
+      "sha256": "ec3e2c404ad7f0c782f4b7e1704c79bdeb34ca5791375bfffa1811528a0371f0"
+    },
+    {
+      "path": "apps/desktop/out/renderer/assets/index-DP0IhjZL.js",
+      "bytes": 1724193,
+      "sha256": "891ce39d1766ed683e4337d856cb5c72e9a31746f770597d7735eb19a5356111"
+    },
+    {
+      "path": "apps/desktop/out/renderer/assets/logo-4zP3d_OM.svg",
+      "bytes": 4791,
+      "sha256": "e096693d1bc36cf3ab1f07a58b4e10ca833b41cc2db2060eb3aa80ff8a589818"
+    },
+    {
+      "path": "apps/desktop/out/renderer/assets/logo-small-CQUwV1yR.svg",
+      "bytes": 3471,
+      "sha256": "d89746bb06266c72a436037261524ee185a0e8f14b3e4513b94fb3454e286a2c"
+    },
+    {
+      "path": "apps/desktop/out/renderer/index.html",
+      "bytes": 656,
+      "sha256": "d962ac105497b6c4c01c1012a08c82ac74151bfc753cef90e7d3ce8b4ecb41ca"
+    }
+  ],
+  "commands": [
+    {
+      "label": "check-01",
+      "command": ["pnpm", "check"],
+      "startedAt": "2026-10-14T05:38:33.143144+00:00",
+      "completedAt": "2026-10-14T05:39:24.670696+00:00",
+      "exitCode": 1,
+      "privateLogSha256": "d6dd0aa8d29a135a74eea6df9800e624593e2bff5061919c56cc22836c75a2eb"
+    },
+    {
+      "label": "test-host-01",
+      "command": ["pnpm", "test"],
+      "startedAt": "2026-10-14T05:39:55.634063+00:00",
+      "completedAt": "2026-10-14T05:40:12.716272+00:00",
+      "exitCode": 1,
+      "privateLogSha256": "2e0db422042e389b68059b2e283f480039f1161d589eb0fc833888c92cbddca3"
+    },
+    {
+      "label": "vitest-host-serial-01",
+      "command": ["pnpm", "exec", "vitest", "run", "--maxWorkers=1", "--no-file-parallelism"],
+      "startedAt": "2026-10-14T05:40:58.619482+00:00",
+      "completedAt": "2026-10-14T05:42:10.193885+00:00",
+      "exitCode": 0,
+      "privateLogSha256": "f1d6698eadfa7c7c539b9fd3d5dd01b23fac82c4bf25a1768453f09021f5684b"
+    },
+    {
+      "label": "node-tests-01",
+      "command": [
+        "node",
+        "--test",
+        "scripts/packaging/ci.test.mjs",
+        "scripts/packaging/external-output.test.mjs",
+        "scripts/packaging/guest-platform.test.mjs",
+        "scripts/packaging/packaging.test.mjs",
+        "scripts/packaging/template-payload.test.mjs",
+        "scripts/edu-source.test.mjs"
+      ],
+      "startedAt": "2026-10-14T05:42:57.689068+00:00",
+      "completedAt": "2026-10-14T05:43:01.801486+00:00",
+      "exitCode": 0,
+      "privateLogSha256": "07bc912c3d27f5f2f33f198c7d88497c3c06160558b1347be7b12762d1847c47"
+    },
+    {
+      "label": "external-build-tests-01",
+      "command": ["pnpm", "test:external-builds"],
+      "startedAt": "2026-10-14T05:43:19.235920+00:00",
+      "completedAt": "2026-10-14T05:43:19.623520+00:00",
+      "exitCode": 0,
+      "privateLogSha256": "7c6dd430c0ef6c3706dd19fd1c5d263afcdadb70a2848e8b3645350b4e90a7a9"
+    },
+    {
+      "label": "baseline-selftest-01",
+      "command": ["pnpm", "baseline:selftest"],
+      "startedAt": "2026-10-14T05:43:31.318065+00:00",
+      "completedAt": "2026-10-14T05:43:32.799584+00:00",
+      "exitCode": 0,
+      "privateLogSha256": "17a65b5206bb234483a120d41ff25940dc4b2dcde36c22b4debfe3cdd0d7c154"
+    },
+    {
+      "label": "e2e-01",
+      "command": ["pnpm", "test:e2e"],
+      "startedAt": "2026-10-14T05:44:04.413346+00:00",
+      "completedAt": "2026-10-14T05:49:31.922337+00:00",
+      "exitCode": 1,
+      "privateLogSha256": "7527b719ee430dfe4b64bc57ae78e0a97650ba54a8f52564a3c55d556fcc41fc"
+    },
+    {
+      "label": "e2e-regression-02",
+      "command": ["pnpm", "exec", "playwright", "test", "e2e/app-control-harness.spec.ts", "e2e/shutdown.spec.ts"],
+      "startedAt": "2026-10-14T05:52:05.778295+00:00",
+      "completedAt": "2026-10-14T05:52:55.989009+00:00",
+      "exitCode": 0,
+      "privateLogSha256": "d040e3cd53553cbe4354c81ddd19587548551fb352c046e31dac743d6a0afb47"
+    },
+    {
+      "label": "accessibility-02",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "e2e/sbx.spec.ts",
+        "e2e/chat.spec.ts",
+        "e2e/resources.spec.ts",
+        "e2e/edu-app-ui.spec.ts"
+      ],
+      "startedAt": "2026-10-14T05:54:25.883771+00:00",
+      "completedAt": "2026-10-14T05:55:07.655690+00:00",
+      "exitCode": 0,
+      "privateLogSha256": "15b08f2ed22ddb8fe9591b0f5f88466b46ca6936453f9b5915dccd1c89da1bd2"
+    },
+    {
+      "label": "build-final-01",
+      "command": ["pnpm", "build"],
+      "startedAt": "2026-10-14T05:53:54.950928+00:00",
+      "completedAt": "2026-10-14T05:54:01.905588+00:00",
+      "exitCode": 0,
+      "privateLogSha256": "3dcf733188a1569f26aafe56d8e9f7232407b60b6d2e9d83a3dc7c4dfc5c2226"
+    },
+    {
+      "label": "edu-live-01",
+      "command": [
+        "env",
+        "WSL_EDU_LIVE=1",
+        "WSL_SBX_NAME=<exclusive-guest>",
+        "WSL_EDU_SOURCE_ROOT=<source-root>",
+        "WSL_EDU_EXPECTED_SHA256=c109a1c125f470d6d1be61d7969eb9f619fae18295e63cc279a6dad009c322c1",
+        "WSL_EDU_EVIDENCE=<new-private-evidence>",
+        "WSL_EDU_PROFILE=<new-private-profile>",
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "e2e/edu-app-live.spec.ts"
+      ],
+      "startedAt": "2026-10-14T05:56:58.375704+00:00",
+      "completedAt": "2026-10-14T05:59:22.347691+00:00",
+      "exitCode": 0,
+      "privateLogSha256": "82dea9cc06c0804771f909ff70372b79652cc985ace5568656d558e79be3cd51"
+    },
+    {
+      "label": "type-final-01",
+      "command": ["pnpm", "typecheck"],
+      "startedAt": "2026-10-14T05:58:13.087866+00:00",
+      "completedAt": "2026-10-14T05:58:34.037405+00:00",
+      "exitCode": 0,
+      "privateLogSha256": "4e06784c3e8944172a3c7399a6d07a2771d6ed4feb3239d7d9396d3e4e598e46"
+    },
+    {
+      "label": "lint-final-01",
+      "command": ["pnpm", "lint"],
+      "startedAt": "2026-10-14T06:01:24.316043+00:00",
+      "completedAt": "2026-10-14T06:01:39.252803+00:00",
+      "exitCode": 0,
+      "privateLogSha256": "0f4c0956f92d0ba8f7d5441ea93fcc58366a149e3912020f5920cab18657f39f"
+    },
+    {
+      "label": "format-final-01",
+      "command": ["pnpm", "format:check"],
+      "startedAt": "2026-10-14T06:02:06.602922+00:00",
+      "completedAt": "2026-10-14T06:02:20.735887+00:00",
+      "exitCode": 0,
+      "privateLogSha256": "6d4313e979c6c52d3fea4b06a2c74916d3e9d656f86379a561f08bed53a66fed"
+    },
+    {
+      "label": "docs-final-01",
+      "command": ["node", "scripts/check-docs.mjs"],
+      "startedAt": "2026-10-14T06:02:06.602821+00:00",
+      "completedAt": "2026-10-14T06:02:06.739266+00:00",
+      "exitCode": 0,
+      "privateLogSha256": "6bdf8f1eed25a3229ab989c9d6ed9069230b38c3812a65eea110b08f4f603708"
+    },
+    {
+      "label": "e2e-final-02",
+      "command": ["env", "WSL_EDU_AUDIO_MODE=synthetic-device", "pnpm", "test:e2e"],
+      "startedAt": "2026-10-14T06:00:02.865521+00:00",
+      "completedAt": "2026-10-14T06:06:03.834889+00:00",
+      "elapsedSeconds": 360.968,
+      "exitCode": 0,
+      "privateLogSha256": "c7d9a39073b13129632565bcc55755ec5eef90423e96188fa8be5f73e047b34f"
+    }
+  ],
+  "summaries": {
+    "vitest-host-serial-01": {
+      "passed": 1278,
+      "skipped": 16,
+      "filesPassed": 110,
+      "filesSkipped": 6
+    },
+    "node-tests-01": {
+      "passed": 65
+    },
+    "external-build-tests-01": {
+      "passed": 6
+    },
+    "baseline-selftest-01": {
+      "passed": 12
+    },
+    "e2e-01": {
+      "passed": 159,
+      "failed": 3,
+      "skipped": 17,
+      "notRun": 1
+    },
+    "e2e-regression-02": {
+      "passed": 7
+    },
+    "accessibility-02": {
+      "passed": 21,
+      "skipped": 2
+    },
+    "premium-audit-01": {
+      "mode": "strict",
+      "errors": 0,
+      "warnings": 0,
+      "findings": 0
+    },
+    "e2e-final-02": {
+      "passed": 163,
+      "skipped": 17,
+      "failed": 0,
+      "notRun": 0,
+      "audioMode": "synthetic-device",
+      "liveOptIns": false
+    }
+  },
+  "nativePicker": {
+    "receipt": "native-picker-02/result.json",
+    "privateReceiptSha256": "5777aa93814080d3c37e5e4d8623b2da11ac76f458302e3a7058e8b4b3baf51b",
+    "result": "passed",
+    "selection": "real macOS folder picker through CUA; no picker mock",
+    "phases": ["selecting", "scanning", "ready", "cancelled"],
+    "sourceSha256": "c109a1c125f470d6d1be61d7969eb9f619fae18295e63cc279a6dad009c322c1",
+    "fileCount": 48,
+    "totalBytes": 476938,
+    "appCreated": false,
+    "guestStarted": false,
+    "ownedProcessExited": true
+  },
+  "retainedFailures": [
+    {
+      "run": "check-01",
+      "cause": "Sandbox denied loopback listen (EPERM); file watcher budget hit EMFILE during default parallel Vitest. Earlier type/lint/format stages completed.",
+      "followup": "Native serial Vitest plus separate Node/external-build suites passed."
+    },
+    {
+      "run": "test-host-01",
+      "cause": "Default parallel native Vitest exceeded the existing 5000 ms MCP fixture timeout.",
+      "followup": "Same assertions passed with serial file execution; timeout was not increased."
+    },
+    {
+      "run": "e2e-01",
+      "cause": "Control harness could not build the standard template because isolated-copy dependencies were absent.",
+      "followup": "Installed locked template dependencies with ignore-scripts in the independent copy; regression-02 passed."
+    },
+    {
+      "run": "e2e-01",
+      "cause": "New narrow-theme test clicked a sidebar button after responsive layout had intentionally unmounted the sidebar.",
+      "followup": "Test now opens the existing Workshop titlebar trigger at narrow width; accessibility-02 passed all seven import UI cases."
+    },
+    {
+      "run": "e2e-01",
+      "cause": "Inherited future-version shutdown fixture used supported registry version 2.",
+      "followup": "Fixture changed to unsupported 999, preserving shutdown assertions and production behavior; regression-02 passed."
+    },
+    {
+      "run": "native-picker-01",
+      "cause": "Harness called app.process() after app.close(), after Playwright disposed the dispatcher; final receipt was not written.",
+      "followup": "Captured owned ChildProcess before close; native-picker-02 passed with explicit exit proof. First screenshots/failure retained privately."
+    }
+  ],
+  "pending": [],
+  "notCovered": [
+    "new signed package/DMG release",
+    "first-install Setup",
+    "complete contest/migration lifecycle",
+    "real model maintenance",
+    "physical microphone and Azure scoring",
+    "deployment of exported artifact"
+  ],
+  "liveImport": {
+    "result": "passed",
+    "receipt": "live-01/result.json",
+    "privateReceiptSha256": "2ad8b6df3b61788ee0ca332fca9c6eb2b576d094e6b75ad57817cbadc2d4a12c",
+    "startedAt": "2026-10-14T05:56:59.707Z",
+    "endedAt": "2026-10-14T05:59:22.303Z",
+    "productBundles": {
+      "apps/desktop/out/main/index.js": "ff07f5b9386175a947fc34b707350f97923aabc89cb68edb5a39fee24e03d9fb",
+      "apps/desktop/out/preload/index.js": "1e7d4ab20ef35e35ac0cf3e35fb7411ff940d52434e27d79c45ff75a946e8435",
+      "apps/service/out/index.cjs": "18cc8a2cdf1f569b30c078390d2327e94c87ce76cd34a859452419ddee7f41c2"
+    },
+    "sourceSha256": "c109a1c125f470d6d1be61d7969eb9f619fae18295e63cc279a6dad009c322c1",
+    "sourceAuditBefore": "41c540a214001e9997695806a4502491a79c150e91e4681a6fced9cf11cafe95",
+    "sourceAuditAfter": "41c540a214001e9997695806a4502491a79c150e91e4681a6fced9cf11cafe95",
+    "sourceUnchanged": true,
+    "automaticStudentPage": true,
+    "adminLogin": true,
+    "databasePreserved": true,
+    "startupCancelled": true,
+    "exportSourceSha256": "c109a1c125f470d6d1be61d7969eb9f619fae18295e63cc279a6dad009c322c1",
+    "exportFileCount": 48,
+    "baselinePorts": [],
+    "finalPorts": [],
+    "stoppedProcesses": [],
+    "restoredProcesses": [],
+    "cancelledProcesses": [],
+    "ownedElectronExits": [
+      {
+        "pid": 95485,
+        "code": 0,
+        "signal": null
+      },
+      {
+        "pid": 95778,
+        "code": 0,
+        "signal": null
+      }
+    ],
+    "cleanupErrors": [],
+    "guestOriginalDataUnchanged": true,
+    "guestExistingProjectsCount": 17,
+    "guestNewProjectsCount": 1,
+    "guestProjectProcessesAfter": [],
+    "microphone": "not requested",
+    "modelCalls": false,
+    "azureCalls": false
+  },
+  "taskCode": {
+    "scope": "task-changed source and tests only; excludes documentation, generated builds, dependencies and private evidence",
+    "files": [
+      {
+        "path": "apps/desktop/src/main/chat-service.ts",
+        "sha256": "5b6ee8edd14295b50ae862784b4d28a22a18b65b9785db97b3742a31312537f7"
+      },
+      {
+        "path": "apps/desktop/src/main/workbench/app-import-flow.test.ts",
+        "sha256": "8096ec9f3be1b471b511d1a925ab46a3d993bf5e4ae0a31a6f539548ef25facc"
+      },
+      {
+        "path": "apps/desktop/src/main/workbench/application.ts",
+        "sha256": "ed90e55daeb42e9405de506d69cd1e07228e7ac4409973ec20ed863a0afc759d"
+      },
+      {
+        "path": "apps/desktop/src/main/workbench/edu-source.ts",
+        "sha256": "d13da1485f4fa8eecbd6938d2470b63c07913d87c5946ba0335147a210ea91ba"
+      },
+      {
+        "path": "apps/desktop/src/main/workbench/edu-verification-workbench.test.ts",
+        "sha256": "220f4459a2f047136efd8acd60b73ec7d68cb1d5c0f6e6aa01ab889b459036e2"
+      },
+      {
+        "path": "apps/desktop/src/main/workbench/host.ts",
+        "sha256": "a6a5c40309c98e92069492b2e8e65279f3d92f4f23a142a631ae6f5a978bb437"
+      },
+      {
+        "path": "apps/desktop/src/main/workbench/import-source.test.ts",
+        "sha256": "025412e36472401af98cf7ddb610553cc4473ac278522ec0cf5cad829648eac5"
+      },
+      {
+        "path": "apps/desktop/src/main/workbench/import-source.ts",
+        "sha256": "16a681d5fc78f5bfff442fc36add28d1f7c4e87ab3786971e4df88e7b9d5525f"
+      },
+      {
+        "path": "apps/desktop/src/main/workbench/managed-app.test.ts",
+        "sha256": "79689c846c8e43ccdb8732b8e8c2035a95b4e9ad23939dddc73d4b829de092fa"
+      },
+      {
+        "path": "apps/desktop/src/main/workbench/ports.ts",
+        "sha256": "ecee40a35e16947a66a185a967e92a5317c0a2e93c5d77a389eab567a0c6244d"
+      },
+      {
+        "path": "apps/desktop/src/main/workbench/runtime-outcomes.test.ts",
+        "sha256": "965a8c5d656cd06c3dee19b39042180db9e42bc6484a4cc28a952df055eabe34"
+      },
+      {
+        "path": "apps/desktop/src/renderer/src/state/workspace.ts",
+        "sha256": "4cd1e2a104f20b53643541aa367d22a5f4335ac39ea6fb38e31f3b0cb5a644bf"
+      },
+      {
+        "path": "apps/desktop/src/renderer/src/styles/app.css",
+        "sha256": "74b4202aaf469b80f200ec82b6a6c49f12489a1c0c11734546976e742d38b361"
+      },
+      {
+        "path": "apps/desktop/src/renderer/src/workspace/AppImportPanel.tsx",
+        "sha256": "5b0338248c756241821b51805afc6f5f28f87cf86d0f53056b34c671d74a46be"
+      },
+      {
+        "path": "apps/desktop/src/renderer/src/workspace/ManagedAppDialog.tsx",
+        "sha256": "5381d56f1912300a71bedbaaad2bac192326fc69917b13504a32583efcd6b6ce"
+      },
+      {
+        "path": "apps/service/src/app-helper.py",
+        "sha256": "687dcb06d85003474e2d05b551887f4247c884992b8388e1ebd755d339c01651"
+      },
+      {
+        "path": "apps/service/src/app-imports.test.ts",
+        "sha256": "23ae6018c451b5094b07e5e0d099b09b5d221e76228cd47c49187a4640868aaf"
+      },
+      {
+        "path": "apps/service/src/app-imports.ts",
+        "sha256": "fb7361e4f35d981fc4c75e4d32791adcf9844a8e042e1276a399cae704cb261d"
+      },
+      {
+        "path": "apps/service/src/app-service.ts",
+        "sha256": "a800209f5a425fbc77fe3a435048db808cc26a6a4e4fcbc1bb66ae325491d0bf"
+      },
+      {
+        "path": "apps/service/src/edu-import-helper.test.ts",
+        "sha256": "aa659b8d791a3ca9ec521e301abccf1dcb845c0710a2b032b39bb948abfdf024"
+      },
+      {
+        "path": "apps/service/src/index.test.ts",
+        "sha256": "d95ccf8d289ac94b85e2d41d53a6c9731a948fdddb89c684ea60b599bb95c0d2"
+      },
+      {
+        "path": "apps/service/src/index.ts",
+        "sha256": "83a372500a2ececf2af6591aa68b3eab97d4ac16f0a0dbcefeacd1440b54b71a"
+      },
+      {
+        "path": "e2e/edu-app-live.spec.ts",
+        "sha256": "643a6a9305aa10c9316e8e3ff3290155a88688133337f78523e05ccbab19550f"
+      },
+      {
+        "path": "e2e/edu-app-ui.spec.ts",
+        "sha256": "a76784ced13e66758ec980e8ab7b0181b9f33b30724e100d8529e3a714186167"
+      },
+      {
+        "path": "e2e/edu-import-fixture.ts",
+        "sha256": "4df891de82ef25ecaad465f84446834e5244df6f0786bb39f165a0cffbb121ea"
+      },
+      {
+        "path": "e2e/shutdown.spec.ts",
+        "sha256": "7bee27df4347325d1987a45604feeb39105021da049d01d88c8a8564ee7f332a"
+      },
+      {
+        "path": "packages/protocol/src/app-import.ts",
+        "sha256": "6731aef3c2f6b2ebd9b70d466b8567810ae296c467c6edccbeb07653a05e0af8"
+      },
+      {
+        "path": "packages/protocol/src/chat.ts",
+        "sha256": "44f53554fbfd6cb215f5dd0267dc374118dd93ea6889cfe054cf17132f550407"
+      },
+      {
+        "path": "packages/protocol/src/index.ts",
+        "sha256": "36b5ab7602abc527482eb8fc4864cad1d3592c09101509b322fe990eff264d37"
+      },
+      {
+        "path": "packages/protocol/src/workspace.ts",
+        "sha256": "3920139fc8e85ee5434c604657558ed1df2c4083351a80cf1b86d60d9843f8e0"
+      }
+    ],
+    "sha256": "b44a6bf8f4f8f7b9d92476e9fe4b1d85e18ba1565fb68513860c9186e3cddea8",
+    "algorithm": "SHA256 of compact sorted-key JSON of sorted path/sha256 entries, UTF-8"
+  },
+  "aggregateCaveat": "Default pnpm check and parallel pnpm test retained failures; serial Vitest and independently executed components passed. Do not describe the original default commands as passing.",
+  "frozenSourceAudit": {
+    "receipt": "post-validation-source-comparison.json",
+    "privateReceiptSha256": "393d4e624f48ff04fcc32307e4dae3bd75a2f9d05cf386fe6ace182738421988",
+    "originalUnchanged": true,
+    "baselineFileCount": 5070,
+    "changedOriginalFiles": []
+  },
+  "guestFinal": {
+    "state": "stopped",
+    "sessions": 0,
+    "runtime_mounts": [],
+    "checkedAt": "2026-10-14T06:03:19.869751+00:00"
+  },
+  "buildIdentityRecheckedAfterE2E": true
+}

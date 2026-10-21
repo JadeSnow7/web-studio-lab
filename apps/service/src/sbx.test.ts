@@ -13,6 +13,27 @@ beforeEach(() => {
   connection = new SbxConnection();
 });
 afterEach(() => vi.unstubAllEnvs());
+describe('R4 Mota native capability admission', () => {
+  it.each([null, 'codex-cli 0.160.0', 'codex-cli 0.159.0', 'codex-cli 0.161.0'])(
+    'rejects unverified native restrictions for %s before dispatch',
+    async (version) => {
+      await connection.initialize();
+      const status = vi.spyOn(connection, 'getStatus').mockReturnValue({ ...connection.getStatus(), version });
+      let child: GuestProcess | undefined;
+      try {
+        expect(() => {
+          child = connection.start({ type: 'start', mode: 'codex', argv: ['codex', 'exec'], motaControl: true }, vi.fn());
+        }).toThrow('mota_native_tools_unverified');
+        expect(child).toBeUndefined();
+      } finally {
+        await child?.close();
+        status.mockRestore();
+        await connection.shutdown();
+      }
+    },
+  );
+});
+
 describe('guest helper 宿主边界', () => {
   it('拒绝挂载host的目标而不调用Codex', async () => {
     vi.stubEnv('WSL_SBX_FIXTURE_CASE', 'mounted');
