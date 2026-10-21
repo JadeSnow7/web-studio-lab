@@ -1,5 +1,5 @@
 import { expect, test, type ElectronApplication } from '@playwright/test';
-import { launchApp, openBrowserMenu, setWindowSize, workspaceSnapshot, workshopNavigate, target } from './helpers';
+import { ensureForeground, launchApp, openBrowserMenu, setWindowSize, workspaceSnapshot, workshopNavigate, target } from './helpers';
 
 const fixture = new URL('./fixtures/sbx.mjs', import.meta.url).pathname;
 
@@ -151,7 +151,12 @@ test('R4 单窗格窄窗从网页关联会话并采集', async () => {
 });
 
 test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保持焦点', async () => {
+  const testInfo = test.info();
   const { app, page } = await launchApp();
+  let failed = false;
+  let identities: Array<{ resourceId: string; webContentsId: number }> = [];
+  let lastFrontend: unknown = null;
+  let reopenMode: 'after-destroyed' | 'on-window-closed' | null = null;
   try {
     await page.getByRole('button', { name: '左右分屏', exact: true }).click();
     await page.getByRole('button', { name: '新建标签', exact: true }).click();
@@ -165,6 +170,11 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
     const snapshot = await workspaceSnapshot(page);
     const workspace = snapshot.workspaces[0]!;
     const web = workspace.resources.find((r) => r.title === 'TaskFlow 预览')!;
+    identities = [web, secondResource].map((resource) => ({
+      resourceId: resource.resourceId,
+      webContentsId: resource.preview!.page.webContentsId,
+    }));
+    await ensureForeground(app, page);
     await app.evaluate(({ webContents, BrowserWindow }, id) => {
       BrowserWindow.getAllWindows()[0]!.focus();
       const contents = webContents.fromId(id)!;
@@ -198,8 +208,8 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
         async () => (await workspaceSnapshot(page)).workspaces[0]!.resources.find((r) => r.resourceId === web.resourceId)!.preview!.loading,
       )
       .toBe(false);
-    const ownedFrontend = () =>
-      app.evaluate(async ({ BrowserWindow, webContents }, id) => {
+    const ownedFrontend = async () => {
+      const frontend = await app.evaluate(async ({ BrowserWindow, webContents }, id) => {
         const tools = webContents.fromId(id)!.devToolsWebContents;
         if (!tools || tools.isDestroyed()) return null;
         const window = BrowserWindow.fromWebContents(tools);
@@ -210,40 +220,118 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
           ready: await tools.executeJavaScript("document.readyState === 'complete' && !!document.querySelector('.root-view')"),
         };
       }, web.preview!.page.webContentsId);
+      lastFrontend = frontend;
+      return frontend;
+    };
     await menu(app, '打开 Browser 区页面 DevTools');
     await expect
-      .poll(async () => {
-        const f = await ownedFrontend();
-        return !!f?.visible && f.ready && f.url.startsWith('devtools://devtools/bundled/devtools_app.html');
-      })
-      .toBe(true);
+      .poll(ownedFrontend)
+      .toMatchObject({ visible: true, ready: true, url: expect.stringMatching(/^devtools:\/\/devtools\/bundled\/devtools_app\.html/) });
     expect(
       await app.evaluate(
         ({ webContents }, id) => webContents.fromId(id)!.devToolsWebContents?.id ?? null,
         secondResource.preview!.page.webContentsId,
       ),
     ).toBeNull();
-    const oldDevToolsId = (await ownedFrontend())!.id;
-    await app.evaluate(
-      ({ BrowserWindow, webContents }, id) => BrowserWindow.fromWebContents(webContents.fromId(id)!)!.close(),
-      oldDevToolsId,
-    );
-    await expect.poll(() => app.evaluate(({ webContents }, id) => webContents.fromId(id)?.isDestroyed() ?? true, oldDevToolsId)).toBe(true);
-    await menu(app, '打开 Browser 区页面 DevTools');
-    await expect
-      .poll(async () => {
-        const f = await ownedFrontend();
-        return !!f?.visible && f.ready && f.id !== oldDevToolsId && f.url.startsWith('devtools://devtools/bundled/devtools_app.html');
-      })
-      .toBe(true);
-    expect(
+    for (const mode of ['after-destroyed', 'on-window-closed'] as const) {
+      reopenMode = mode;
+      const oldDevToolsId = (await ownedFrontend())!.id;
       await app.evaluate(
-        ({ webContents }, id) => webContents.fromId(id)!.devToolsWebContents?.id ?? null,
-        secondResource.preview!.page.webContentsId,
-      ),
-    ).toBeNull();
+        ({ BrowserWindow, Menu, webContents }, { oldDevToolsId, mode }) => {
+          const window = BrowserWindow.fromWebContents(webContents.fromId(oldDevToolsId)!)!;
+          if (mode === 'on-window-closed') {
+            const find = (items: Electron.MenuItem[]): Electron.MenuItem | undefined => {
+              for (const item of items) {
+                if (item.label === '打开 Browser 区页面 DevTools') return item;
+                const child = item.submenu && find(item.submenu.items);
+                if (child) return child;
+              }
+              return undefined;
+            };
+            const item = find(Menu.getApplicationMenu()?.items ?? []);
+            if (!item) throw new Error('Missing DevTools menu');
+            window.once('closed', () => item.click(undefined, BrowserWindow.getAllWindows()[0], undefined as never));
+          }
+          window.close();
+        },
+        { oldDevToolsId, mode },
+      );
+      await expect
+        .poll(() => app.evaluate(({ webContents }, id) => webContents.fromId(id)?.isDestroyed() ?? true, oldDevToolsId))
+        .toBe(true);
+      if (mode === 'after-destroyed') await menu(app, '打开 Browser 区页面 DevTools');
+      await expect
+        .poll(async () => {
+          const f = await ownedFrontend();
+          return f && { ...f, replaced: f.id !== oldDevToolsId };
+        })
+        .toMatchObject({
+          visible: true,
+          ready: true,
+          replaced: true,
+          url: expect.stringMatching(/^devtools:\/\/devtools\/bundled\/devtools_app\.html/),
+        });
+      expect(
+        await app.evaluate(
+          ({ webContents }, id) => webContents.fromId(id)!.devToolsWebContents?.id ?? null,
+          secondResource.preview!.page.webContentsId,
+        ),
+      ).toBeNull();
+    }
+  } catch (error) {
+    failed = true;
+    let diagnosticTimer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        (async () => {
+          const snapshot = await workspaceSnapshot(page);
+          const workspace = snapshot.workspaces.find((w) => w.workspaceId === snapshot.activeWorkspaceId);
+          const native = await app.evaluate(
+            ({ BrowserWindow, webContents }, identities) => ({
+              pages: identities.map((identity) => ({
+                ...identity,
+                frontendId: webContents.fromId(identity.webContentsId)?.devToolsWebContents?.id ?? null,
+              })),
+              windows: BrowserWindow.getAllWindows().map((window) => ({
+                windowId: window.id,
+                webContentsId: window.webContents.id,
+                visible: window.isVisible(),
+                url: window.webContents.getURL(),
+              })),
+            }),
+            identities,
+          );
+          await testInfo.attach('r3-devtools-failure.json', {
+            body: JSON.stringify(
+              {
+                reopenMode,
+                lastFrontend,
+                activePaneId: workspace?.activePaneId,
+                layout: workspace?.layout,
+                tabs: workspace?.tabs.map(({ tabId, targetRef }) => ({ tabId, targetRef })),
+                native,
+              },
+              null,
+              2,
+            ),
+            contentType: 'application/json',
+          });
+        })(),
+        new Promise((_, reject) => {
+          diagnosticTimer = setTimeout(() => reject(new Error('R3 failure evidence collection exceeded 1000 ms')), 1000);
+        }),
+      ]);
+    } catch (collectionError) {
+      console.error('R3 DevTools failure evidence collection failed', collectionError);
+    } finally {
+      clearTimeout(diagnosticTimer);
+    }
+    throw error;
   } finally {
-    await app.close();
+    await app.close().catch((error) => {
+      if (!failed) throw error;
+      console.error('R3 cleanup also failed after the original test failure', error);
+    });
   }
 });
 

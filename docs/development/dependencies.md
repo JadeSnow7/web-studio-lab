@@ -219,4 +219,8 @@ WSL_LIVE_SBX=1 WSL_SBX_NAME=wsl-sbx-smoke-20261006 npx pnpm@10.34.6 exec playwri
 
 本地文件读取使用固定根描述符和逐级不跟随符号链接的路径打开；续读核对内容散列，变化提示可能合并，不能证明文件从未变化。SFTP 的路径检查不能提供恶意远端并发替换下的原子 beneath 保证，远端权限范围仍需由可信服务器约束。
 
-本地终端通过 Python 3 标准库 PTY 实现，当前固定调用 `/usr/bin/python3`，macOS 使用 `/bin/zsh`，其他受支持实现使用 `/bin/bash`；应先用 `/usr/bin/python3 --version` 确认系统路径，安装 Homebrew Python 或修改 PATH 不会改变 PTY 调用路径。不安装 node-pty。文件安全读取另用 PATH 中的 `python3` 提供 openat/dir_fd，需用 `python3 --version` 确认。终端以当前用户权限运行，起始目录不是操作系统沙箱。关闭时只追踪本轮继承标记与出生身份相符的进程；无法确认清理时保留 unknown 状态并阻止静默替换。文件授权根不会限制用户在终端中执行命令的权限。
+本地终端通过 Python 3 标准库 PTY 实现，不安装 node-pty。正常 setup 使用受管 Python：开发时为 `packaging/generated/runtime/python/bin/python3`，安装包为 `process.resourcesPath/runtime/python/bin/python3`，版本和归档哈希由 `packaging/dependencies.lock.json` 锁定。未打包应用显式设置 `WSL_SBX_NAME`、`WSL_SBX_BIN`、`WSL_OBSERVATION_ROOT` 或 `WSL_SSH_HOST` 任一开发覆盖变量时，不传 setup 运行时配置，本地 PTY 回落到 `/usr/bin/python3`；这条开发系统路径仍受支持，安装 Homebrew Python 或修改 PATH 不会改变它。macOS 使用 `/bin/zsh`；源码还有 `/bin/bash` 分支，但不能据此声称其他平台已验收。
+
+普通环境诊断可用所选绝对 Python 路径执行 `--version`。若正在记录首次使用基线，须先采样、后执行版本探测，不能把预检后的启动称为冷启动。测试用 `WSL_TEST_PYTHON` 选择实际运行时，未设置时为系统路径；测试名称不能作为随包运行时的身份凭证。两条路径的功能等待与独立启动基线见 [PTY 验收约定](pr-checks.md#pty-功能验收与性能记录)：ready 功能等待 5 秒，清理 5 秒，性能 SLO 尚未建立；不新增生产启动 deadline。
+
+显式开发覆盖模式下，文件安全读取另用 PATH 中的 `python3` 提供 openat/dir_fd；正常 setup 则传入受管 Python。终端以当前用户权限运行，起始目录不是操作系统沙箱。关闭时只追踪本轮继承标记与出生身份相符的进程；无法确认清理时保留 unknown 状态并阻止静默替换。文件授权根不会限制用户在终端中执行命令的权限。

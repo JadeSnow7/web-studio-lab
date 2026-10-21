@@ -10,9 +10,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { _electron, type ElectronApplication, type Locator, type Page } from '@playwright/test';
+import { _electron, expect, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import { appControlInjection } from './fixtures/app-control-injection';
 import { appControlCancelGate } from './fixtures/app-control-cancel-gate';
+import { addressInitialLoadGate } from './fixtures/address-initial-load-gate';
+import { addressNavigationObserver } from './fixtures/address-navigation-observer';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const fixtureSandbox =
@@ -23,6 +25,115 @@ export const screensDir = path.join(root, 'test-results/screens', process.env['W
 /** WSL_E2E_TARGET=packaged 时启动 pnpm package 生成的 .app，否则启动 pnpm build 的产物。 */
 export const target = process.env['WSL_E2E_TARGET'] === 'packaged' ? 'packaged' : 'build';
 
+async function defaultWindowGeometry(app: ElectronApplication, page: Page) {
+  const native = await app.evaluate(({ BrowserWindow, screen }, url) => {
+    const window = BrowserWindow.getAllWindows().find((candidate) => candidate.webContents.getURL() === url);
+    if (!window) throw new Error('E2E workbench window is unavailable');
+    const bounds = window.getBounds();
+    const display = screen.getDisplayMatching(bounds);
+    return {
+      windowId: window.id,
+      visible: window.isVisible(),
+      bounds,
+      contentBounds: window.getContentBounds(),
+      workArea: display.workArea,
+      scaleFactor: display.scaleFactor,
+    };
+  }, page.url());
+  const renderer = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, devicePixelRatio }));
+  return { ...native, renderer };
+}
+
+async function prepareDefaultWindow(app: ElectronApplication, page: Page) {
+  const requested = { width: 1440, height: 900, minimumHeight: 640 };
+  try {
+    await expect
+      .poll(async () => (await defaultWindowGeometry(app, page)).visible, {
+        timeout: 10000,
+        message: 'The E2E workbench window must be shown before its default size is established',
+      })
+      .toBe(true);
+    console.info('[e2e-default-window]', JSON.stringify({ phase: 'before', requested, ...(await defaultWindowGeometry(app, page)) }));
+    await app.evaluate(
+      ({ BrowserWindow }, { url, width, height }) => {
+        const window = BrowserWindow.getAllWindows().find((candidate) => candidate.webContents.getURL() === url);
+        if (!window) throw new Error('E2E workbench window is unavailable');
+        window.setContentSize(width, height);
+      },
+      { url: page.url(), width: requested.width, height: requested.height },
+    );
+    // macOS may cap the height to its work area. Default cases require the wide
+    // layout; later explicit setWindowSize calls still exercise narrow layouts.
+    await page.waitForFunction(({ width, minimumHeight }) => innerWidth === width && innerHeight >= minimumHeight, requested, {
+      timeout: 10000,
+    });
+    const actual = await defaultWindowGeometry(app, page);
+    console.info('[e2e-default-window]', JSON.stringify({ phase: 'ready', requested, ...actual }));
+    assert.equal(actual.contentBounds.width, requested.width, 'Default E2E content width must be 1440');
+    assert.ok(actual.contentBounds.height >= requested.minimumHeight, 'Default E2E content height must be at least 640');
+  } catch (error) {
+    try {
+      console.error('[e2e-default-window]', JSON.stringify({ phase: 'failed', requested, ...(await defaultWindowGeometry(app, page)) }));
+    } catch (diagnosticError) {
+      console.error('[e2e-default-window] geometry unavailable', String(diagnosticError).slice(0, 2048));
+    }
+    throw error;
+  }
+}
+
+/** Establish the owned native window prerequisite before modeling a user click. */
+export async function ensureForeground(app: ElectronApplication, page: Page): Promise<void> {
+  const state = () =>
+    app.evaluate(({ app, BrowserWindow, webContents }, url) => {
+      const window = BrowserWindow.getAllWindows().find((candidate) => candidate.webContents.getURL() === url);
+      if (!window) throw new Error('E2E workbench window is unavailable');
+      return {
+        windowId: window.id,
+        visible: window.isVisible(),
+        focused: window.isFocused(),
+        appHidden: process.platform === 'darwin' ? app.isHidden() : null,
+        focusedWebContentsId: webContents.getFocusedWebContents()?.id ?? null,
+      };
+    }, page.url());
+  try {
+    console.info('[e2e-foreground]', JSON.stringify({ phase: 'before', ...(await state()) }));
+    await app.evaluate(({ app, BrowserWindow }, url) => {
+      const window = BrowserWindow.getAllWindows().find((candidate) => candidate.webContents.getURL() === url);
+      if (!window) throw new Error('E2E workbench window is unavailable');
+      if (process.platform === 'darwin') app.show();
+      else window.show();
+      app.focus({ steal: true });
+      window.focus();
+    }, page.url());
+    await expect
+      .poll(
+        async () => {
+          const actual = await state();
+          return actual.visible && actual.focused;
+        },
+        { timeout: 10000, message: 'The owned E2E workbench window must be visible and natively focused' },
+      )
+      .toBe(true);
+    console.info('[e2e-foreground]', JSON.stringify({ phase: 'ready', ...(await state()) }));
+  } catch (error) {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const actual = await Promise.race([
+        state(),
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => reject(new Error('Foreground diagnostic timed out')), 2000);
+        }),
+      ]);
+      console.error('[e2e-foreground]', JSON.stringify({ phase: 'failed', ...actual }));
+    } catch (diagnosticError) {
+      console.error('[e2e-foreground] state unavailable', String(diagnosticError).slice(0, 2048));
+    } finally {
+      clearTimeout(timeout);
+    }
+    throw error;
+  }
+}
+
 export async function launchApp(
   options: {
     observationRoot?: string;
@@ -32,6 +143,10 @@ export async function launchApp(
     appControlInjection?: boolean;
     /** Test-only: observe real app calls and delay one genuine reply across cancellation. */
     appControlCancelGate?: boolean;
+    /** Test-only: defer the first genuine preview load until the address has focus. */
+    addressInitialLoadGate?: boolean;
+    /** Test-only: observe settlement of original address navigation invokes in the preload. */
+    addressNavigationObserver?: boolean;
     controlledTerminal?: boolean;
     codexBin?: string;
     sbxBin?: string;
@@ -109,16 +224,26 @@ export async function launchApp(
   delete env['WSL_STATUS_LOG'];
   if (options.debugStatus) env['WSL_DEBUG_STATUS'] = '1';
   if (options.debugStatus && options.statusLog) env['WSL_STATUS_LOG'] = options.statusLog;
-  // Install the observer before the real entrypoint creates any renderer.
+  // The build bootstrap installs fixtures before the real entrypoint creates any renderer.
   const bootstrap = path.join(await mkdtemp(path.join(tmpdir(), 'wsl-e2e-bootstrap-')), 'main.cjs');
+  const addressPreload = path.join(path.dirname(bootstrap), 'address-navigation-observer.cjs');
+  if (options.addressNavigationObserver) await writeFile(addressPreload, addressNavigationObserver);
   await writeFile(
     bootstrap,
     `
 const { app } = require('electron');
 app.setAppPath(${JSON.stringify(desktopDir)});
 globalThis.__wslRendererErrors = [];
+${
+  options.addressNavigationObserver
+    ? `app.once('ready', () => {
+  require('electron').session.defaultSession.registerPreloadScript({ type: 'frame', filePath: ${JSON.stringify(addressPreload)} });
+});`
+    : ''
+}
 ${options.appControlInjection ? appControlInjection : ''}
 ${options.appControlCancelGate ? appControlCancelGate : ''}
+${options.addressInitialLoadGate ? addressInitialLoadGate : ''}
 ${
   options.controlledObservation || options.controlledTerminal
     ? `
@@ -213,11 +338,28 @@ require(${JSON.stringify(path.join(desktopDir, 'out/main/index.js'))});
     assert.deepEqual(rendererErrors, [], 'Workbench renderer exceptions/errors fail every E2E');
   };
   try {
+    if (target === 'packaged' && options.addressNavigationObserver) {
+      // Packaged launches bypass the bootstrap; reload so the same session preload precedes the real preload.
+      await app.evaluate(({ session }, filePath) => {
+        session.defaultSession.registerPreloadScript({ type: 'frame', filePath });
+      }, addressPreload);
+      await page.reload();
+    }
     await page.waitForSelector('div.app', { timeout: 10000 });
+    await ensureForeground(app, page);
+    await prepareDefaultWindow(app, page);
     if (!options.cleanInstall) await page.waitForSelector('[data-pane-id]', { state: 'attached', timeout: options.live ? 60000 : 10000 });
   } catch (error) {
-    console.error('Renderer startup', rendererErrors, await page.locator('body').innerText());
-    await app.close();
+    try {
+      console.error('Renderer startup', rendererErrors, (await page.locator('body').innerText({ timeout: 2000 })).slice(0, 8192));
+    } catch (diagnosticError) {
+      console.error('Renderer startup diagnostics unavailable', String(diagnosticError).slice(0, 2048));
+    }
+    try {
+      await app.close();
+    } catch (cleanupError) {
+      console.error('Renderer startup cleanup failed', cleanupError);
+    }
     throw error;
   }
   return { app, page, rendererErrors };

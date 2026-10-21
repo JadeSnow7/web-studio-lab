@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { expect, test, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import {
   fixtureSandbox,
+  browserState,
   installStatusShim,
   launchApp,
   openBrowserMenu,
@@ -153,12 +154,20 @@ test('960 宽：两个标题栏按钮与铃铛都在视口内且互不重叠', a
 });
 
 test('存储横幅与工作区错误 Toast 叠放：同时可见、互不遮挡，Toast 的关闭按钮可点击', async () => {
-  // 让数据目录只读，使下一次持久化失败，Main 发布 storageError。
   const userData = await mkdtemp(path.join(tmpdir(), 'wsl-status-storage-'));
   const { app, page } = await launchApp({ userData });
   try {
+    // 先确认初始网页加载完成，避免依赖启动时偶然迟到的 runtime 事件。
+    await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
+    await expect.poll(async () => (await browserState(page)).loading).toBe(false);
+    const generation = (await browserState(page)).page.documentGeneration;
     await run('chmod', ['-R', 'a-w', userData]);
-    // 持久化失败的同时，这条命令会以失败返回，工作区错误也出现。
+    // 真实刷新产生不可回滚的网页状态；保存失败后 Main 保留内存状态并发布 storageError。
+    await page.getByRole('button', { name: '刷新页面', exact: true }).click();
+    await expect.poll(async () => (await browserState(page)).page.documentGeneration).toBeGreaterThan(generation);
+    await expect.poll(async () => (await browserState(page)).loading).toBe(false);
+    await expect.poll(async () => (await workspaceSnapshot(page)).storageError).toContain('工作现场保存失败');
+    // 分屏命令的持久化失败会回滚布局，并单独产生工作区错误 Toast。
     await page.getByRole('button', { name: '左右分屏', exact: true }).last().click();
     const banner = page.getByRole('alert').filter({ hasText: '持久化失败' });
     const toast = page.locator('.toasts .workspace-error');
@@ -774,6 +783,10 @@ async function onPreview(app: ElectronApplication, fault: 'detach-cdp' | 'block-
 async function failPageLoad(app: ElectronApplication, page: Page) {
   await controlledResourceNetwork(app);
   const address = page.getByLabel('页面地址');
+  // Initial readiness belongs to this business setup; address races have separate controlled regressions.
+  await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
+  await expect.poll(async () => (await browserState(page)).loading).toBe(false);
+  await expect(address).toHaveValue('wsl-demo://taskflow/index.html');
   await address.fill('https://example.com/missing');
   await address.press('Enter');
   await expect(browserSlotItems(page).filter({ hasText: '页面加载失败' })).toBeVisible();
@@ -1671,7 +1684,8 @@ test('会话：执行中点「取消回复」后焦点交给输入框，不落�
   const { app, page } = await launchApp({ sbxBin });
   try {
     await openSessionTab(page);
-    await sessionMessageBox(page).fill('[delayed-complete] 取消焦点用例');
+    // 让 fixture 持续执行直到取消，避免自然完成在点击前卸载「取消回复」按钮。
+    await sessionMessageBox(page).fill('[slow] 取消焦点用例');
     await sessionRegion(page).getByRole('button', { name: '发送', exact: true }).click();
     const cancel = sessionRegion(page).getByRole('button', { name: '取消回复', exact: true });
     await expect(cancel).toBeVisible();
@@ -1869,6 +1883,12 @@ test('首页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（发送被
         await setWorkspaceTheme(page, theme);
         for (const width of [1440, 960]) {
           await resize(app, page, width, width === 1440 ? 900 : 700);
+          // innerWidth 已变化不代表 React 已切换布局；先确认本轮导航使用的实际模式。
+          if (width === 1440) await expect(page.locator('.workshop-docked')).toBeVisible();
+          else {
+            await expect(page.locator('.workshop-docked')).toHaveCount(0);
+            await expect(page.locator('#left-panel-trigger')).toHaveAttribute('aria-expanded', 'false');
+          }
           await workshopNavigate(page, '首页');
           const region = homeRegion(page);
           if (state === 'abnormal') await blockHomeSend(page, '被阻止的草稿');
