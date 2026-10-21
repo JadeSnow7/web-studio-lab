@@ -35,9 +35,12 @@ import {
   type AppAgentOperation,
   type AppControlResult,
 } from '@wsl/protocol';
+import { GuestWriteLease } from './workbench/guest-write-lease';
 
 export class ChatService {
   private child: UtilityProcess;
+  /** 所有会话槽共享同一个 guest 工作目录；轮次发送前在此取得写入许可。 */
+  private readonly writeLease = new GuestWriteLease();
   private readonly managedApps = new Map<string, ManagedApp>();
   private appListener: ((snapshot: ManagedApp) => void) | null = null;
   setAppListener(listener: (snapshot: ManagedApp) => void) {
@@ -243,8 +246,10 @@ export class ChatService {
   }
   private remember(conversation: ChatConversation) {
     this.sequence = Math.max(this.sequence, conversation.seq);
-    if ((this.conversations.get(conversation.conversationId)?.seq ?? -1) < conversation.seq)
+    if ((this.conversations.get(conversation.conversationId)?.seq ?? -1) < conversation.seq) {
       this.conversations.set(conversation.conversationId, conversation);
+      this.writeLease.observe(conversation);
+    }
   }
   private fail(reason: string) {
     for (const controller of this.observationCalls.values()) controller.abort();
@@ -462,8 +467,14 @@ export class ChatService {
   async get(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'get', payload: { conversationId: id } }));
   }
+  /** 当前持有 guest 工作区写入许可的会话槽；无人持有时为 null。 */
+  writeHolder(): ChatSlot | null {
+    return this.writeLease.current();
+  }
   async send(id: ChatSlot, text: string, observationScope: ObservationTurnScope | undefined, references: CatalogReferenceSnapshot) {
+    // 服务已失败或正在关闭时不取得许可，让请求按原有原因拒绝，避免用写入冲突掩盖真实故障。
     if (this.stopped || this.failure) throw new RunDispatchFailure(this.failure ?? '对话服务正在关闭', false, true);
+    this.writeLease.acquire(id, this.conversations.get(id)?.seq ?? -1);
     try {
       const result = ChatConversationSchema.parse(
         await this.request({ method: 'send', payload: { conversationId: id, text, observationScope, references } }),
@@ -471,7 +482,12 @@ export class ChatService {
       if (result.conversationId !== id) throw new Error('对话启动回执归属不匹配');
       return result;
     } catch (error) {
-      if (error instanceof RunDispatchFailure) throw error;
+      if (error instanceof RunDispatchFailure) {
+        // 只有判定为从未启动的拒绝才按最新快照尝试释放；已接纳但清理未知或通信失败时保留许可，
+        // 已接纳且已确认清理的轮次由 remember() 采信的新快照经 observe 释放。
+        if (error.knownNotSent) this.writeLease.sendRejected(id, this.conversations.get(id));
+        throw error;
+      }
       this.unknownCleanup = true;
       throw new RunDispatchFailure(error instanceof Error ? error.message : '对话启动回执无效', true);
     }

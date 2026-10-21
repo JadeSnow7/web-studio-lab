@@ -58,6 +58,7 @@ import type { WorkbenchRepository } from './repository';
 import { RunDispatchFailure, type WorkbenchRuntime } from './ports';
 import type { AppControl, AppControlContext } from './app-control';
 import { AppControlFailure } from './app-control-failure';
+import { conflictMessage } from './guest-write-lease';
 
 type SourceRun = { target: AppTarget; baseline: AbortController; ready: boolean; capturing: boolean };
 const activeStates = ['starting', 'running', 'cancelling'];
@@ -2338,6 +2339,12 @@ export class WorkbenchApplication {
     )
       throw new Error('conflict: 同项目执行、清理或结束源码采集尚未完成');
     if (w.runs.some((r) => r.sessionId === sessionId && activeStates.includes(r.state))) throw new Error('conflict: 会话已有执行');
+    // 所有会话共享同一个 sandbox guest 工作目录；在创建执行记录前拒绝，避免留下失败记录。发送时 ChatService 再次检查以兜底竞争。
+    const writer = this.runtime.writeHolder?.() ?? null;
+    if (writer && writer !== sessionId) {
+      const holder = this.snapshot.workspaces.flatMap((workspace) => workspace.sessions).find((session) => session.sessionId === writer);
+      throw new Error(conflictMessage(writer, holder?.title ?? (writer === 'conv-personal-default' ? '个人对话' : undefined)));
+    }
     if (v.targetRef?.kind === 'web') {
       const r = this.resource(w, v.targetRef.resourceId, 'web');
       if (
