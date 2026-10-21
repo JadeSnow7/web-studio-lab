@@ -17,6 +17,8 @@ export interface AcpClientHandlers {
   onNotification(method: string, params: unknown): void;
   /** Agent 发给客户端的请求；抛出 AcpMethodNotFound 时回复 -32601。 */
   onRequest(method: string, params: unknown): Promise<unknown>;
+  /** 收到本端请求的响应时同步调用，先于 promise 结算；用于在同一批输入中立即关闭后续更新的入口。 */
+  onResponse?(method: string): void;
 }
 export class AcpMethodNotFound extends Error {}
 
@@ -81,6 +83,7 @@ export class AcpClient {
     const pending = typeof id === 'number' ? this.pending.get(id) : undefined;
     if (!pending) throw new AcpProtocolError(`ACP 返回了未知请求身份 ${String(id)}`);
     this.pending.delete(id as number);
+    this.handlers.onResponse?.(pending.method);
     if ('error' in message) pending.reject(new AcpRemoteError(pending.method, message.error.code, message.error.message));
     else pending.resolve(message.result);
   }

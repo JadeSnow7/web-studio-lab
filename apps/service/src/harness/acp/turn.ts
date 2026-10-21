@@ -70,7 +70,7 @@ interface ToolState {
 export class AcpTurn {
   readonly client: AcpClient;
   private sessionId: string | null = null;
-  private phase: 'init' | 'loading' | 'prompting' | 'done' = 'init';
+  private phase: 'init' | 'loading' | 'prompting' | 'finishing' | 'done' = 'init';
   private cancelRequested = false;
   private readonly pendingPermissions = new Set<(outcome: PermissionOutcome) => void>();
   private readonly tools = new Map<string, ToolState>();
@@ -88,6 +88,10 @@ export class AcpTurn {
     this.client = new AcpClient(write, {
       onNotification: (method, params) => this.notification(method, params),
       onRequest: (method, params) => this.request(method, params),
+      // ACP 要求所有更新先于 prompt 响应发出：响应一到即同步关闭更新入口，同一批输入里随后的行不进入本轮。
+      onResponse: (method) => {
+        if (method === 'session/prompt' && this.phase === 'prompting') this.phase = 'finishing';
+      },
     });
   }
 

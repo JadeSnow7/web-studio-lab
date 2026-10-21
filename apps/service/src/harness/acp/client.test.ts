@@ -62,3 +62,19 @@ describe('AcpClient（W3a）', () => {
     await expect(client.request('b', null)).rejects.toThrow('已关闭');
   });
 });
+
+describe('AcpClient 响应钩子', () => {
+  it('响应钩子先于 promise 结算同步调用', async () => {
+    const order: string[] = [];
+    const client = new AcpClient(() => undefined, {
+      onNotification: () => order.push('notification'),
+      onRequest: async () => null,
+      onResponse: (method) => order.push(`response:${method}`),
+    });
+    const pending = client.request('session/prompt', {}).then(() => order.push('settled'));
+    client.receive(JSON.stringify({ jsonrpc: '2.0', id: 1, result: {} }));
+    client.receive(JSON.stringify({ jsonrpc: '2.0', method: 'session/update', params: {} }));
+    await pending;
+    expect(order).toEqual(['response:session/prompt', 'notification', 'settled']);
+  });
+});
