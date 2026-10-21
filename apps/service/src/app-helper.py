@@ -100,6 +100,11 @@ def run(request):
                 archive.unlink()
         return
     if request['operation'] == 'export':
+        budget = request.get('exportBudget')
+        if (not isinstance(budget, dict) or set(budget) != {'maxFiles', 'maxSourceBytes'} or
+                type(budget['maxFiles']) is not int or type(budget['maxSourceBytes']) is not int or
+                budget['maxFiles'] != 256 or budget['maxSourceBytes'] != 524288):
+            raise ValueError('invalid app export budget')
         files = []
         total = 0
         for parent, directories, names in os.walk(root, followlinks=False):
@@ -114,12 +119,16 @@ def run(request):
                 relative = relative_path(source.relative_to(root).as_posix())
                 if not source.is_file():
                     raise ValueError('app source is not a regular file')
+                if len(files) >= budget['maxFiles']:
+                    raise ValueError('app export exceeds budget')
                 with source.open('rb') as handle:
-                    content = handle.read(LIMIT + 1)
+                    content = handle.read(budget['maxSourceBytes'] - total + 1)
                 total += len(content)
-                if total > LIMIT or len(files) >= 256:
+                if total > budget['maxSourceBytes']:
                     raise ValueError('app export exceeds budget')
                 files.append({'path': relative, 'base64': base64.b64encode(content).decode('ascii')})
+        if not files:
+            raise ValueError('empty app export')
         files.sort(key=lambda entry: entry['path'])
         output({'files': files})
         return

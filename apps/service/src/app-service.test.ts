@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm, mkdir, writeFile, symlink } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -22,6 +22,7 @@ function fixture(
     agentCloseError?: string;
     agentDoneError?: string;
     exportGate?: Promise<void>;
+    exportFiles?: typeof files;
     wrongIdentity?: boolean;
     wrongReadyIdentity?: boolean;
     guestPort?: number;
@@ -94,7 +95,7 @@ function fixture(
                       stdout: 'noise\n' + JSON.stringify({ ok: true, data: { args: (input as { args?: unknown }).args } }) + '\n',
                       stderr: '',
                     }
-                  : { files },
+                  : { files: settings.exportFiles ?? files },
             )}\n`,
           });
           finish?.(
@@ -542,10 +543,79 @@ describe('managed app ownership', () => {
 
 // Executes the same source/ownership helper on a private host test root. This is
 // a filesystem boundary test, not a substitute for sandbox process acceptance.
+describe('standard app export service contract', () => {
+  it.each(['running', 'unknown'])('rejects export while app cleanup is %s without starting a helper', async (state) => {
+    const settings = { cleanup: state !== 'unknown' };
+    const test = fixture(settings);
+    try {
+      await test.service.create({ ...key, files });
+      await test.service.start(key);
+      if (state === 'unknown') expect((await test.service.stop(key)).cleanupConfirmed).toBe(false);
+      const before = test.starts();
+      await expect(test.service.export(key)).rejects.toThrow('请先停止应用并确认清理');
+      expect(test.starts()).toBe(before);
+    } finally {
+      if (state === 'unknown') await expect(test.service.shutdown()).rejects.toThrow('fixture cleanup unknown');
+      else await test.service.shutdown();
+    }
+  });
+  it.each(['../x', '/x', 'a//b', 'node_modules/a', '.data/pglite', '.wsl-identity.json'])(
+    'retains export rejection of unsafe/reserved path %s',
+    async (unsafe) => {
+      const test = fixture({ exportFiles: [{ path: unsafe, base64: '' }] });
+      try {
+        await test.service.create({ ...key, files });
+        await expect(test.service.export(key)).rejects.toThrow('不安全');
+      } finally {
+        await test.service.shutdown();
+      }
+    },
+  );
+  it('retains export duplicate rejection', async () => {
+    const test = fixture({ exportFiles: [...files, ...files] });
+    try {
+      await test.service.create({ ...key, files });
+      await expect(test.service.export(key)).rejects.toThrow('重复');
+    } finally {
+      await test.service.shutdown();
+    }
+  });
+  it('sends the fixed budget only to export and preserves its result hash', async () => {
+    const test = fixture();
+    try {
+      await test.service.create({ ...key, files });
+      const result = await test.service.export(key);
+      expect(test.prompts().find((request) => request.operation === 'create')).not.toHaveProperty('exportBudget');
+      expect(test.prompts().find((request) => request.operation === 'export')).toMatchObject({
+        exportBudget: { maxFiles: 256, maxSourceBytes: 524288 },
+      });
+      expect(result.files).toEqual(files);
+      expect(result.sha256).toBe(createHash('sha256').update(JSON.stringify(files)).digest('hex'));
+    } finally {
+      await test.service.shutdown();
+    }
+  });
+  it.each(['Zg==!', 'A'.repeat(5592408)])(
+    'rejects malformed or oversized guest export without a raw engine error (%#)',
+    async (encoded) => {
+      const test = fixture({ exportFiles: [{ path: 'file', base64: encoded }] });
+      try {
+        await test.service.create({ ...key, files });
+        const failure = await test.service.export(key).catch((error: unknown) => error);
+        expect(failure).toBeInstanceOf(Error);
+        expect(failure).not.toBeInstanceOf(RangeError);
+        expect((await test.service.get(key)).cleanupConfirmed).toBe(true);
+      } finally {
+        await test.service.shutdown();
+      }
+    },
+  );
+});
+
 describe('app helper filesystem boundaries', () => {
   async function setup() {
     const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-files-'));
-    const execute = (operation: string, workspaceId = key.workspaceId) =>
+    const execute = (operation: string, workspaceId = key.workspaceId, exportBudget: unknown = { maxFiles: 256, maxSourceBytes: 524288 }) =>
       execFileSync(
         'python3',
         [
@@ -557,7 +627,7 @@ exec(sys.argv[3],scope)
 scope['ROOT']=Path(sys.argv[1])
 scope['run'](json.loads(sys.argv[2]))`,
           root,
-          JSON.stringify({ ...key, workspaceId, operation, files }),
+          JSON.stringify({ ...key, workspaceId, operation, files, ...(operation === 'export' ? { exportBudget } : {}) }),
           appHelper,
         ],
         { encoding: 'utf8', timeout: 2000, stdio: ['ignore', 'pipe', 'pipe'] },
@@ -640,6 +710,139 @@ print(json.dumps(dict(error=error,exists=exists,foreign=foreign,retry_error=retr
       }
     },
   );
+  it.each([524287, 524288, 524289])('enforces fixed helper decoded budget for one file at %i bytes', async (size) => {
+    const test = await setup();
+    const content = Buffer.alloc(size, 97);
+    try {
+      await writeFile(path.join(test.project, 'package.json'), content);
+      if (size > 524288) {
+        try {
+          test.execute('export');
+          throw new Error('unexpected export success');
+        } catch (error) {
+          expect(error).toMatchObject({ status: 1 });
+          expect(String((error as { stdout?: unknown }).stdout)).not.toContain('WSL_APP_RESULT:');
+        }
+      } else {
+        const result = JSON.parse(test.execute('export').trim().slice('WSL_APP_RESULT:'.length));
+        expect(Buffer.from(result.files[0].base64, 'base64').equals(content)).toBe(true);
+      }
+      expect((await readFile(path.join(test.project, 'package.json'))).equals(content)).toBe(true);
+    } finally {
+      await rm(test.root, { recursive: true, force: true });
+    }
+  });
+  it.each([524287, 524288, 524289])('enforces fixed helper aggregate budget at %i bytes', async (size) => {
+    const test = await setup();
+    const first = Buffer.alloc(262144, 97);
+    const second = Buffer.alloc(size - first.length, 98);
+    try {
+      await writeFile(path.join(test.project, 'package.json'), first);
+      await writeFile(path.join(test.project, 'second'), second);
+      if (size > 524288) expect(() => test.execute('export')).toThrow();
+      else {
+        const result = JSON.parse(test.execute('export').trim().slice('WSL_APP_RESULT:'.length));
+        expect(result.files).toHaveLength(2);
+        expect(Buffer.from(result.files[0].base64, 'base64').equals(first)).toBe(true);
+        expect(Buffer.from(result.files[1].base64, 'base64').equals(second)).toBe(true);
+      }
+      expect((await readFile(path.join(test.project, 'package.json'))).equals(first)).toBe(true);
+      expect((await readFile(path.join(test.project, 'second'))).equals(second)).toBe(true);
+    } finally {
+      await rm(test.root, { recursive: true, force: true });
+    }
+  });
+  it.each([0, 255, 256, 257])('enforces helper result count %i including empty files', async (count) => {
+    const test = await setup();
+    try {
+      await rm(path.join(test.project, 'package.json'));
+      for (let index = 0; index < count; index++) await writeFile(path.join(test.project, String(index)), '');
+      if (count === 0 || count > 256) expect(() => test.execute('export')).toThrow();
+      else expect(JSON.parse(test.execute('export').trim().slice('WSL_APP_RESULT:'.length)).files).toHaveLength(count);
+    } finally {
+      await rm(test.root, { recursive: true, force: true });
+    }
+  });
+  it.each([
+    null,
+    {},
+    { maxFiles: 257, maxSourceBytes: 524288 },
+    { maxFiles: 256, maxSourceBytes: 8388608 },
+    { maxFiles: 256, maxSourceBytes: 524288, extra: true },
+    { maxFiles: 1, maxSourceBytes: 1 },
+  ])('rejects nonfixed helper export budget %j', async (budget) => {
+    const test = await setup();
+    try {
+      expect(() => test.execute('export', key.workspaceId, budget)).toThrow();
+      expect(await readFile(path.join(test.project, 'package.json'), 'utf8')).toBe('{}');
+    } finally {
+      await rm(test.root, { recursive: true, force: true });
+    }
+  });
+  it('bounds every actual helper read by remaining budget plus one, including growth at open', async () => {
+    const test = await setup();
+    try {
+      const result = execFileSync(
+        'python3',
+        [
+          '-c',
+          `import sys,json
+from pathlib import Path
+scope={'__name__':'wsl_test'}
+exec(sys.argv[3],scope)
+scope['ROOT']=Path(sys.argv[1])
+root=Path(sys.argv[1])/json.loads(sys.argv[2])['projectId']
+(root/'a').write_bytes(b'a'*524287)
+(root/'z').write_bytes(b'z')
+(root/'package.json').unlink()
+original=Path.open
+reads=[]
+class Reader:
+    def __init__(self,handle,name): self.handle=handle; self.name=name
+    def __enter__(self): self.handle.__enter__(); return self
+    def __exit__(self,*args): return self.handle.__exit__(*args)
+    def read(self,size): reads.append([self.name,size]); return self.handle.read(size)
+def opened(self,*args,**kwargs):
+    if self==root/'z' and args==('rb',):
+        with original(self,'ab') as out: out.write(b'growth')
+    handle=original(self,*args,**kwargs)
+    return Reader(handle,self.name) if args==('rb',) else handle
+Path.open=opened
+error=None
+try: scope['run'](dict(json.loads(sys.argv[2]),operation='export',exportBudget=dict(maxFiles=256,maxSourceBytes=524288)))
+except Exception as failure: error=str(failure)
+finally: Path.open=original
+print(json.dumps(dict(error=error,reads=reads)))`,
+          test.root,
+          JSON.stringify(key),
+          appHelper,
+        ],
+        { encoding: 'utf8', timeout: 2000 },
+      );
+      const receipt = JSON.parse(result.trim().split('\n').at(-1) ?? '');
+      expect(receipt.error).toMatch(/budget/);
+      expect(receipt.reads).toEqual([
+        ['a', 524289],
+        ['z', 2],
+      ]);
+      expect(result).not.toContain('WSL_APP_RESULT:');
+    } finally {
+      await rm(test.root, { recursive: true, force: true });
+    }
+  });
+  it('preserves real helper Unicode bytes and empty files with padded base64', async () => {
+    const test = await setup();
+    try {
+      const contents = Buffer.from('中文!');
+      await writeFile(path.join(test.project, '中文.txt'), contents);
+      await writeFile(path.join(test.project, 'empty'), '');
+      const result = JSON.parse(test.execute('export').trim().slice('WSL_APP_RESULT:'.length));
+      expect(result.files).toEqual([{ path: 'empty', base64: '' }, ...files, { path: '中文.txt', base64: contents.toString('base64') }]);
+      expect(await readFile(path.join(test.project, '中文.txt'))).toEqual(contents);
+    } finally {
+      await rm(test.root, { recursive: true, force: true });
+    }
+  });
   it('exports source bytes while excluding persistent data, dependencies and build output', async () => {
     const test = await setup();
     try {
