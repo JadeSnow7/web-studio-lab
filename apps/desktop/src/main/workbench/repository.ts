@@ -2,7 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
+import { RunSourceRepository } from './run-source-repository';
 import {
+  type AppSourceSnapshot,
+  type CapturedSourceChange,
   WorkbenchSnapshotSchema,
   WorkbenchResourceSchema,
   WorkspaceSnapshotSchema,
@@ -91,10 +94,26 @@ export interface WorkbenchRepository {
   loadCatalog(snapshot: WorkbenchSnapshot | null): Promise<ResourceCatalogState>;
   save(snapshot: WorkbenchSnapshot, catalog: ResourceCatalogState): Promise<void>;
   appendObservation(record: ObservationRecord): Promise<string>;
+  createSourceBaseline?(runId: string, source: AppSourceSnapshot, signal: AbortSignal): Promise<{ baseTree: string }>;
+  captureSourceChange?(runId: string, baseTree: string, source: AppSourceSnapshot, signal: AbortSignal): Promise<CapturedSourceChange>;
+  readRunPatch?(runId: string, patchSha256: string): Promise<string>;
 }
 export class FileWorkbenchRepository implements WorkbenchRepository {
   private loadedFile: z.infer<typeof FileSchema> | null | undefined;
-  constructor(private readonly file: string) {}
+  private readonly sourceRepository: RunSourceRepository;
+  constructor(private readonly file: string) {
+    this.sourceRepository = new RunSourceRepository(path.join(path.dirname(file), 'runs'));
+  }
+  createSourceBaseline(runId: string, source: AppSourceSnapshot, signal: AbortSignal) {
+    return this.sourceRepository.createBaseline(runId, source, signal);
+  }
+  captureSourceChange(runId: string, baseTree: string, source: AppSourceSnapshot, signal: AbortSignal) {
+    return this.sourceRepository.capture(runId, baseTree, source, signal);
+  }
+  readRunPatch(runId: string, patchSha256: string) {
+    return this.sourceRepository.readPatch(runId, patchSha256);
+  }
+
   get migrationPending(): boolean {
     return this.loadedFile != null && this.loadedFile.schemaVersion !== 4;
   }

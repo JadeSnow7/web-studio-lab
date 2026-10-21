@@ -8,6 +8,8 @@ import re
 import subprocess
 import sys
 import tarfile
+import stat
+import unicodedata
 
 ROOT = Path('/home/agent/workspace/.wsl-apps')
 LIMIT = 8 * 1024 * 1024
@@ -30,6 +32,11 @@ def run(request):
     project = request['projectId']
     if not isinstance(project, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}', project):
         raise ValueError('invalid project identity')
+    if request['operation'] == 'source-snapshot':
+        if set(request) != {'operation', 'workspaceId', 'projectId'}:
+            raise ValueError('unsupported source request')
+        source_snapshot(project, request['workspaceId'])
+        return
     ROOT.mkdir(exist_ok=True)
     if ROOT.is_symlink():
         raise ValueError('app root must not be a symlink')
@@ -166,6 +173,165 @@ def run(request):
     if token and build[-1] == 'build:agent':
         env['WSL_AGENT_TOKEN'] = token
     os.execvpe('npm', ['npm', 'start'], env)
+
+
+SOURCE_MAX_BYTES = 200 * 1024 * 1024
+SOURCE_MAX_FILES = 20000
+SOURCE_MAX_DIRECTORIES = 20000
+SOURCE_CHUNK_BYTES = 48 * 1024
+SOURCE_EXCLUDED = {'node_modules', 'dist', '.data', 'data', '.git', '.vite',
+                   '.env', '.npmrc', '.netrc', '.pypirc', '.git-credentials',
+                   '.ssh', '.aws', '.azure', '.gnupg', '.codex', '.docker',
+                   'id_rsa', 'id_dsa', 'id_ecdsa', 'id_ed25519', 'id_ecdsa_sk', 'id_ed25519_sk'}
+
+
+def source_frame(value):
+    print('WSL_SOURCE:' + json.dumps(value, ensure_ascii=False, separators=(',', ':')), flush=True)
+
+
+def source_path(value):
+    parts = value.split('/')
+    if (len(value.encode('utf-8')) > 1024 or len(parts) > 64 or unicodedata.normalize('NFC', value) != value
+            or '\\' in value or ':' in value or any(unicodedata.category(char) in ('Cc', 'Cf', 'Cs', 'Zl', 'Zp') for char in value)
+            or any(part in ('', '.', '..') or part.endswith(('.', ' ')) for part in parts)):
+        raise ValueError('unsafe or unsupported source path')
+    return value
+
+
+def source_stat(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def source_snapshot(project, workspace_id):
+    max_bytes = SOURCE_MAX_BYTES
+    max_files = SOURCE_MAX_FILES
+    excluded = SOURCE_EXCLUDED
+    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+    directory_flags = flags | os.O_DIRECTORY
+    parent = os.open('/', directory_flags)
+    try:
+        for part in ROOT.parts[1:]:
+            child = os.open(part, directory_flags, dir_fd=parent)
+            os.close(parent)
+            parent = child
+        root = os.open(project, directory_flags, dir_fd=parent)
+        try:
+            root_stat = source_stat(os.fstat(root))
+            if root_stat[2] & 0o7000:
+                raise ValueError('source special modes are unsupported')
+            identity_fd = os.open('.wsl-identity.json', flags, dir_fd=root)
+            try:
+                identity_stat = os.fstat(identity_fd)
+                if not stat.S_ISREG(identity_stat.st_mode) or identity_stat.st_mode & 0o7000 or identity_stat.st_nlink != 1 or identity_stat.st_size > 4096:
+                    raise ValueError('unsafe source identity')
+                identity = json.loads(os.read(identity_fd, 4097))
+                if identity != {'workspaceId': workspace_id, 'environmentId': 'sandbox', 'projectId': project}:
+                    raise ValueError('app workspace identity mismatch')
+                if source_stat(identity_stat) != source_stat(os.fstat(identity_fd)):
+                    raise ValueError('source identity changed')
+            finally:
+                os.close(identity_fd)
+            # Standard projects do not carry imported-product profile receipts.
+            # Do not silently collect an unsupported product as a standard App.
+            try:
+                os.stat('.wsl-profile.json', dir_fd=root, follow_symlinks=False)
+            except FileNotFoundError:
+                pass
+            else:
+                raise ValueError('unsupported source profile receipt')
+            facts = {}
+            folded = {}
+            total = 0
+            count = 0
+            directories = 0
+
+            def names_in(fd):
+                names = []
+                with os.scandir(fd) as entries:
+                    for entry in entries:
+                        if len(names) >= SOURCE_MAX_FILES + SOURCE_MAX_DIRECTORIES:
+                            raise ValueError('source directory entry budget exceeded')
+                        names.append(entry.name)
+                return sorted(names)
+
+            def walk(fd, prefix, verify=False):
+                nonlocal total, count, directories
+                names = names_in(fd)
+                for name in names:
+                    if name.lower() in excluded or name.lower().startswith(('.wsl-', '.env.')):
+                        continue
+                    relative = source_path(prefix + name)
+                    info = os.stat(name, dir_fd=fd, follow_symlinks=False)
+                    if not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode)):
+                        raise ValueError('source links or special files are unsupported')
+                    if info.st_mode & 0o7000:
+                        raise ValueError('source special modes are unsupported')
+                    current = source_stat(info)
+                    if verify:
+                        if facts.pop(relative, None) != current:
+                            raise ValueError('source changed during snapshot')
+                    else:
+                        key = unicodedata.normalize('NFC', relative.upper().lower())
+                        if key in folded:
+                            raise ValueError('source path collision')
+                        folded[key] = relative
+                        facts[relative] = current
+                    if stat.S_ISDIR(info.st_mode):
+                        if not verify:
+                            directories += 1
+                            if directories > SOURCE_MAX_DIRECTORIES:
+                                raise ValueError('source directory budget exceeded')
+                        child = os.open(name, directory_flags, dir_fd=fd)
+                        try:
+                            if source_stat(os.fstat(child)) != current:
+                                raise ValueError('source directory changed')
+                            walk(child, relative + '/', verify)
+                            if source_stat(os.fstat(child)) != current:
+                                raise ValueError('source directory changed')
+                        finally:
+                            os.close(child)
+                    elif not verify:
+                        if info.st_nlink != 1 or info.st_mode & 0o7000:
+                            raise ValueError('source hardlinks or special modes are unsupported')
+                        count += 1
+                        if count > max_files or total + info.st_size > max_bytes:
+                            raise ValueError('source snapshot budget exceeded')
+                        source = os.open(name, flags, dir_fd=fd)
+                        try:
+                            if source_stat(os.fstat(source)) != current:
+                                raise ValueError('source file changed')
+                            source_frame({'type': 'file', 'path': relative, 'mode': '100755' if info.st_mode & 0o111 else '100644'})
+                            length = 0
+                            while True:
+                                content = os.read(source, SOURCE_CHUNK_BYTES)
+                                if not content:
+                                    break
+                                total += len(content)
+                                length += len(content)
+                                if total > max_bytes:
+                                    raise ValueError('source snapshot budget exceeded')
+                                source_frame({'type': 'chunk', 'base64': base64.b64encode(content).decode('ascii')})
+                            if length != info.st_size or source_stat(os.fstat(source)) != current:
+                                raise ValueError('source file changed')
+                            source_frame({'type': 'end-file'})
+                        finally:
+                            os.close(source)
+                    if source_stat(os.stat(name, dir_fd=fd, follow_symlinks=False)) != current:
+                        raise ValueError('source path changed')
+                if names != names_in(fd):
+                    raise ValueError('source directory changed')
+
+            walk(root, '')
+            walk(root, '', True)
+            if (facts or source_stat(os.fstat(root)) != root_stat
+                    or source_stat(os.stat(project, dir_fd=parent, follow_symlinks=False)) != root_stat
+                    or source_stat(os.stat('.wsl-identity.json', dir_fd=root, follow_symlinks=False)) != source_stat(identity_stat)):
+                raise ValueError('source changed during snapshot')
+            source_frame({'type': 'complete', 'totalBytes': total, 'fileCount': count})
+        finally:
+            os.close(root)
+    finally:
+        os.close(parent)
 
 
 AGENT_DB_READS = {'query', 'snapshot'}

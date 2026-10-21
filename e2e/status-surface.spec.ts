@@ -1433,7 +1433,15 @@ test('会话「运行记录 ⌄」：视图收为五项，Tab 到触发器、Ent
     await page.keyboard.press('Enter');
     await expect(menu).toHaveCount(0);
     await expect(trigger).toBeFocused();
-    await expect(sessionRegion(page).getByRole('region', { name: '运行详情' })).toContainText('真实 diff 尚未记录');
+    const run = (await workspaceSnapshot(page)).workspaces[0]?.runs.at(-1);
+    const unavailableReason = '任务未绑定受管 App 工程，无法采集源码差异';
+    expect(run?.sourceChange).toEqual({ state: 'unavailable', reason: unavailableReason });
+    expect(run?.validation.state).toBe('not_run');
+    expect(run?.review).toBeNull();
+    const runDetails = sessionRegion(page).getByRole('region', { name: '运行详情' });
+    await expect(runDetails).toContainText('源码差异不可用');
+    await expect(runDetails).toContainText(unavailableReason);
+    await expect(runDetails.getByLabel('源码 diff', { exact: true })).toHaveCount(0);
     await expectNativePage(app, page, true);
     // 再次展开时从当前项开始，并标出当前项。
     await page.keyboard.press('Enter');

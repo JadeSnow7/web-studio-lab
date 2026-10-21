@@ -1,6 +1,7 @@
 import { ObservationRecordSchema, FileInvalidationHintSchema } from './observation';
 import { EnvironmentListSchema } from './environments';
 import { z } from 'zod';
+import { SourceChangeSchema } from './source-change';
 import { CatalogSummarySchema, CatalogReferenceSnapshotSchema } from './resource-catalog';
 import { ManagedAppSchema, SpaceAppSchema } from './managed-app';
 import { ChatConversationSchema } from './chat';
@@ -58,6 +59,8 @@ export const WorkbenchTaskVersionSchema = z.object({
   allowedScopes: z.array(z.string()).default([]),
 });
 export const WorkbenchRunSchema = z.object({
+  sourceChange: SourceChangeSchema.optional(),
+  sourceCleanupPending: z.boolean().optional(),
   referenceSnapshot: CatalogReferenceSnapshotSchema.optional(),
   referenceSummary: z.array(z.object({ resourceId: Id, version: z.number().int().positive(), contentSha256: z.string() })).optional(),
   runId: Id,

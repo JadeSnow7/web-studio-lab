@@ -63,6 +63,9 @@ export class WorkbenchHost implements WorkbenchRuntime {
     this.appLeases.delete(target.projectId);
     return this.chat.appStop(target);
   }
+  appSourceSnapshot(target: AppTarget, signal: AbortSignal) {
+    return this.chat.appSourceSnapshot(target, signal);
+  }
   async appExport(target: AppTarget) {
     const source = await this.chat.appExport(target);
     return exportAppSource(path.join(app.getPath('userData'), 'exports'), target, source);

@@ -7,6 +7,7 @@ import {
   FileInvalidationHintSchema,
 } from './observation';
 import { z } from 'zod';
+import { AppSourceSnapshotResultSchema } from './source-change';
 import { AppTargetSchema, AppSourceFileSchema, ManagedAppSchema, AppSourceSchema } from './managed-app';
 import { AppAgentOperationSchema, AppAgentResultSchema, AppControlResultSchema, AppLogsSchema, AppToolNameSchema } from './app-control';
 const BufferlessBytes = (value: string) => {
@@ -65,6 +66,14 @@ export const ChatSendSchema = z
   .strict();
 export const ChatTargetSchema = z.object({ conversationId: ChatSlotSchema });
 export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
+  z
+    .object({
+      id: z.string(),
+      method: z.literal('app.source.snapshot'),
+      payload: z.object({ callId: z.uuid(), target: AppTargetSchema }).strict(),
+    })
+    .strict(),
+  z.object({ id: z.string(), method: z.literal('app.source.cancel'), payload: z.object({ callId: z.uuid() }).strict() }).strict(),
   z
     .object({
       id: z.string(),
@@ -176,6 +185,7 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
     type: z.literal('response'),
     id: z.string(),
     result: z.union([
+      AppSourceSnapshotResultSchema,
       AppAgentResultSchema,
       AppLogsSchema,
       ManagedAppSchema,

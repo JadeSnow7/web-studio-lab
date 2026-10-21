@@ -459,3 +459,216 @@ it('pre-cancelled cleanup reconciliation cannot claim the original operation was
   expect(result.operationDispatched).toBeUndefined();
   expect(mock.postMessage.mock.calls.filter(([request]) => request.method.startsWith('app.agent'))).toEqual([]);
 });
+
+describe('source snapshot cleanup transport', () => {
+  const target = { workspaceId: 'w', projectId: '00000000-0000-4000-8000-000000000003' };
+  it.each([true, false])('preserves typed cleanupConfirmed=%s from an owned source failure receipt', async (cleanupConfirmed) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const pending = service.appSourceSnapshot(target, new AbortController().signal).catch((error: unknown) => error);
+    const request = mock.postMessage.mock.calls.at(-1)?.[0];
+    const result = { ok: false, target, cleanupConfirmed, error: 'synthetic collector failure' };
+    mock.callbacks.get('message')?.({ type: 'response', id: request.id, result });
+    expect(await pending).toEqual(result);
+    mock.callbacks.get('exit')?.(1);
+    if (cleanupConfirmed) await expect(service.shutdown()).resolves.toBeUndefined();
+    else await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('does not treat a cancel ACK as source cleanup, and keeps transport loss unresolved', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const controller = new AbortController();
+    let settled = false;
+    const pending = service
+      .appSourceSnapshot(target, controller.signal)
+      .catch((error: unknown) => error)
+      .then((result) => {
+        settled = true;
+        return result;
+      });
+    const request = mock.postMessage.mock.calls.at(-1)?.[0];
+    controller.abort();
+    const cancel = mock.postMessage.mock.calls.at(-1)?.[0];
+    expect(cancel).toMatchObject({ method: 'app.source.cancel', payload: { callId: request.payload.callId } });
+    mock.callbacks.get('message')?.({ type: 'response', id: cancel.id, result: null });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    mock.callbacks.get('exit')?.(1);
+    expect(await pending).toMatchObject({ ok: false, target, cleanupConfirmed: false });
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('does not dispatch a pre-cancelled source request or invent an unresolved helper', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const controller = new AbortController();
+    controller.abort();
+    expect(await service.appSourceSnapshot(target, controller.signal)).toMatchObject({ ok: false, target, cleanupConfirmed: true });
+    expect(mock.postMessage).not.toHaveBeenCalled();
+    mock.callbacks.get('exit')?.(0);
+    await expect(service.shutdown()).resolves.toBeUndefined();
+  });
+  it('does not use foreign or stale source receipts to release another helper', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const first = service.appSourceSnapshot(target, new AbortController().signal);
+    const oldRequest = mock.postMessage.mock.calls.at(-1)?.[0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: oldRequest.id,
+      result: { ok: false, target, cleanupConfirmed: true, error: 'synthetic clean failure' },
+    });
+    expect(await first).toMatchObject({ cleanupConfirmed: true });
+    const second = service.appSourceSnapshot(target, new AbortController().signal);
+    const newRequest = mock.postMessage.mock.calls.at(-1)?.[0];
+    expect(newRequest.payload.callId).not.toBe(oldRequest.payload.callId);
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: oldRequest.id,
+      result: { ok: false, target, cleanupConfirmed: false, error: 'stale' },
+    });
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: newRequest.id,
+      result: { ok: false, target: { ...target, workspaceId: 'foreign' }, cleanupConfirmed: true, error: 'foreign' },
+    });
+    expect(await second).toMatchObject({ ok: false, target, cleanupConfirmed: false });
+    mock.callbacks.get('exit')?.(1);
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it('accepts only the matching successful source receipt, including its cleanup fact', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const pending = service.appSourceSnapshot(target, new AbortController().signal).catch((error: unknown) => error);
+    const request = mock.postMessage.mock.calls.at(-1)?.[0];
+    const result = { ok: true, cleanupConfirmed: true, snapshot: { ...target, files: [], totalBytes: 0 } };
+    mock.callbacks.get('message')?.({ type: 'response', id: request.id, result });
+    expect(await pending).toEqual(result);
+    mock.callbacks.get('exit')?.(0);
+    await expect(service.shutdown()).resolves.toBeUndefined();
+  });
+});
+
+describe('source task dispatch uncertainty', () => {
+  it('retains cleanup uncertainty when postMessage throws after attempting dispatch', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    mock.postMessage.mockImplementationOnce(() => {
+      throw new Error('synthetic post dispatch error');
+    });
+    await expect(service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'))).rejects.toMatchObject(
+      { cleanupPending: true, knownNotSent: false },
+    );
+    mock.callbacks.get('exit')?.(1);
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+  it.each([null, { ...snapshot, conversationId: 'session-foreign' }])(
+    'does not treat malformed or foreign send receipts as proof of cleanup',
+    async (result) => {
+      const service = new ChatService(vi.fn(), vi.fn());
+      const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'));
+      const rejection = expect(sending).rejects.toMatchObject({ cleanupPending: true, knownNotSent: false });
+      const request = mock.postMessage.mock.calls.at(-1)?.[0];
+      mock.callbacks.get('message')?.({ type: 'response', id: request.id, result });
+      await rejection;
+      mock.callbacks.get('exit')?.(1);
+      await expect(service.shutdown()).rejects.toThrow('清理未确认');
+    },
+  );
+});
+
+describe('source task explicit admission rejection', () => {
+  it('distinguishes an ordered service rejection before executor publication', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'));
+    const rejection = expect(sending).rejects.toMatchObject({ cleanupPending: false, knownNotSent: true });
+    const request = mock.postMessage.mock.calls.at(-1)?.[0];
+    mock.callbacks.get('message')?.({ type: 'error', id: request.id, error: 'synthetic admission denied' });
+    await rejection;
+    mock.callbacks.get('exit')?.(0);
+    await expect(service.shutdown()).resolves.toBeUndefined();
+  });
+  it('preserves a published executor cleanup obligation even when send subsequently returns an error', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'));
+    const rejection = expect(sending).rejects.toMatchObject({ cleanupPending: true, knownNotSent: false });
+    const request = mock.postMessage.mock.calls.at(-1)?.[0];
+    mock.callbacks.get('message')?.({ type: 'event', conversation: snapshot });
+    mock.callbacks.get('message')?.({ type: 'error', id: request.id, error: 'synthetic admitted failure' });
+    await rejection;
+    mock.callbacks.get('exit')?.(1);
+    await expect(service.shutdown()).rejects.toThrow('清理未确认');
+  });
+});
+
+describe('source dispatch receipt ownership', () => {
+  it.each(['error', 'exit'] as const)('never lets an A response publish a fake cleanup fact into a concurrent B %s', async (kind) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const a = 'conv-personal-default';
+    const b = 'session-00000000-0000-4000-8000-000000000004';
+    const sendingB = service.send(b, 'B', undefined, emptyReferences(b));
+    const rejectedB = expect(sendingB).rejects.toMatchObject({ cleanupPending: true, knownNotSent: false });
+    const requestB = mock.postMessage.mock.calls.at(-1)?.[0];
+    mock.callbacks.get('message')?.({ type: 'event', conversation: { ...snapshot, conversationId: b, seq: 2 } });
+    const sendingA = service.send(a, 'A', undefined, emptyReferences(a));
+    const rejectedA = expect(sendingA).rejects.toMatchObject({ cleanupPending: true });
+    const requestA = mock.postMessage.mock.calls.at(-1)?.[0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: requestA.id,
+      result: { ...snapshot, conversationId: b, seq: 100, state: 'idle', cleanupPending: false },
+    });
+    await rejectedA;
+    if (kind === 'error') mock.callbacks.get('message')?.({ type: 'error', id: requestB.id, error: 'B dispatch failed after admission' });
+    else mock.callbacks.get('exit')?.(1);
+    await rejectedB;
+  });
+  it('settles an owned source cleanup receipt before a delayed cancellation ACK without rejecting that late ACK', async () => {
+    const target = { workspaceId: 'w', projectId: '00000000-0000-4000-8000-000000000003' };
+    const service = new ChatService(vi.fn(), vi.fn());
+    const controller = new AbortController();
+    let settled = false;
+    const pending = service.appSourceSnapshot(target, controller.signal).then((value) => {
+      settled = true;
+      return value;
+    });
+    const snapshotRequest = mock.postMessage.mock.calls.at(-1)?.[0];
+    controller.abort();
+    const cancellation = mock.postMessage.mock.calls.at(-1)?.[0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: snapshotRequest.id,
+      result: { ok: false, target, cleanupConfirmed: true, error: 'cancelled' },
+    });
+    try {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(settled).toBe(true);
+    } finally {
+      mock.callbacks.get('message')?.({ type: 'response', id: cancellation.id, result: null });
+      await expect(pending).resolves.toMatchObject({ cleanupConfirmed: true });
+    }
+    expect(mock.kill).not.toHaveBeenCalled();
+    mock.callbacks.get('exit')?.(0);
+    await expect(service.shutdown()).resolves.toBeUndefined();
+  });
+});
+
+describe('source cleanup cache boundary', () => {
+  it.each(['source', 'get'] as const)('does not let a %s reply publish another pending send cleanup', async (method) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const target = { workspaceId: 'w', projectId: '00000000-0000-4000-8000-000000000003' };
+    const b = 'session-concurrent-source-owner';
+    const sendingB = service.send(b, 'B', undefined, emptyReferences(b)).catch((error: unknown) => error);
+    const requestB = mock.postMessage.mock.calls.at(-1)?.[0];
+    mock.callbacks.get('message')?.({ type: 'event', conversation: { ...snapshot, conversationId: b, seq: 2 } });
+    const other =
+      method === 'source'
+        ? service.appSourceSnapshot(target, new AbortController().signal)
+        : service.get('conv-personal-default').catch((error: unknown) => error);
+    const requestA = mock.postMessage.mock.calls.at(-1)?.[0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: requestA.id,
+      result: { ...snapshot, conversationId: b, seq: 100, state: 'idle', cleanupPending: false },
+    });
+    const otherResult = await other;
+    mock.callbacks.get('message')?.({ type: 'error', id: requestB.id, error: 'B failed after executor admission' });
+    const outcome = await sendingB;
+    expect(outcome).toMatchObject({ cleanupPending: true, knownNotSent: false });
+    if (method === 'source') expect(otherResult).toMatchObject({ ok: false, target, cleanupConfirmed: false });
+    else expect(otherResult).toBeInstanceOf(Error);
+  });
+});

@@ -113,7 +113,20 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
 
   const exit = new ExitCoordinator(
     async () => {
-      await shutdownOwners([() => setup.shutdown(), () => chat.shutdown()]);
+      await shutdownOwners([
+        () => setup.shutdown(),
+        async () => {
+          const errors: unknown[] = [];
+          for (const cleanup of [() => workbench?.shutdown(), () => chat.shutdown()]) {
+            try {
+              await cleanup();
+            } catch (error) {
+              errors.push(error);
+            }
+          }
+          if (errors.length) throw new AggregateError(errors, '任务和源码证据清理未确认');
+        },
+      ]);
       // Flush Main's queued cleanup receipts before closing the process.
       try {
         await workbench?.getSnapshot();

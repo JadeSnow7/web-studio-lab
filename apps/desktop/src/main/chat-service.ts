@@ -1,9 +1,12 @@
 import path from 'node:path';
+import { RunDispatchFailure } from './workbench/ports';
 import { randomUUID } from 'node:crypto';
 import { app, utilityProcess, type UtilityProcess } from 'electron';
 import {
   ManagedAppSchema,
   AppSourceSchema,
+  AppSourceSnapshotResultSchema,
+  type AppSourceSnapshotResult,
   type AppTarget,
   type AppSource,
   type ManagedApp,
@@ -46,9 +49,11 @@ export class ChatService {
       resolve: (result: unknown) => void;
       reject: (error: Error) => void;
       resourceId?: string;
+      conversationSlot?: ChatSlot;
       start: { kind: 'chat'; slot: ChatSlot; seq: number } | { kind: 'terminal'; seq: number; resourceId: string } | null;
     }
   >();
+  private readonly sourceCleanup = new Set<string>();
   private unknownCleanup = false;
   private initializationPending = true;
   private failure: string | null = null;
@@ -199,9 +204,29 @@ export class ChatService {
         const request = this.pending.get(message.id);
         if (!request) throw new Error('对话服务返回未知请求身份');
         this.pending.delete(message.id);
-        if (message.type === 'error') request.reject(new Error(message.error));
-        else {
-          if (message.result && 'conversationId' in message.result) this.remember(message.result);
+        if (message.type === 'error') {
+          const start = request.start;
+          if (start?.kind === 'chat') {
+            const current = this.conversations.get(start.slot);
+            // Service publishes a new conversation before starting its executor.
+            // An ordered error reply without that publication is a rejected admission.
+            const admitted = Boolean(current && current.seq > start.seq);
+            request.reject(new RunDispatchFailure(message.error, admitted && Boolean(current?.cleanupPending), !admitted));
+          } else request.reject(new Error(message.error));
+        } else {
+          if (request.conversationSlot || (message.result && 'conversationId' in message.result)) {
+            const conversation = ChatConversationSchema.safeParse(message.result);
+            if (!request.conversationSlot || !conversation.success || conversation.data.conversationId !== request.conversationSlot) {
+              // Validate both method and slot before publishing shared cleanup facts.
+              // Source RPCs and foreign get/cancel/reset replies cannot affect a send.
+              if (request.start?.kind === 'chat') {
+                this.unknownCleanup = true;
+                request.reject(new RunDispatchFailure('对话启动回执形状或归属不匹配', true));
+              } else request.reject(new Error('对话回执方法、形状或归属不匹配'));
+              return;
+            }
+            this.remember(conversation.data);
+          }
           if (message.result && 'sessionId' in message.result) {
             if (request.resourceId) {
               const before = this.terminals.get(request.resourceId);
@@ -245,7 +270,14 @@ export class ChatService {
       // 新快照的清理确认可解除尚未收到 ACK 的启动请求占用。
       if (!current || current.seq <= start.seq || current.cleanupPending) this.unknownCleanup = true;
     }
-    for (const request of this.pending.values()) request.reject(new Error(this.failure));
+    for (const request of this.pending.values()) {
+      const start = request.start;
+      if (start?.kind === 'chat') {
+        const current = this.conversations.get(start.slot);
+        request.reject(new RunDispatchFailure(this.failure, !current || current.seq <= start.seq || current.cleanupPending));
+      } else request.reject(new Error(this.failure));
+    }
+
     this.pending.clear();
     if (this.stopped) return;
     this.onStatus({
@@ -253,6 +285,7 @@ export class ChatService {
       reason:
         this.initializationPending ||
         this.unknownCleanup ||
+        this.sourceCleanup.size > 0 ||
         [...this.conversations.values()].some((conversation) => conversation.cleanupPending) ||
         [...this.terminals.values()].some((t) => t.cleanupPending)
           ? this.failure + '；guest 清理未确认'
@@ -304,8 +337,20 @@ export class ChatService {
           : 'payload' in data && 'resourceId' in data.payload
             ? data.payload.resourceId
             : undefined;
-      this.pending.set(data.id, { resolve, reject, start, resourceId });
-      this.child.postMessage(data);
+      const conversationSlot =
+        data.method === 'get' || data.method === 'send' || data.method === 'cancel' || data.method === 'reset'
+          ? data.payload.conversationId
+          : undefined;
+      this.pending.set(data.id, { resolve, reject, start, resourceId, conversationSlot });
+      try {
+        this.child.postMessage(data);
+      } catch (error) {
+        // A throwing transport cannot prove that the message did not reach the service.
+        this.pending.delete(data.id);
+        if (start) this.unknownCleanup = true;
+        const reason = error instanceof Error ? error.message : '对话服务传输失败';
+        reject(start?.kind === 'chat' ? new RunDispatchFailure(reason, true) : new Error(reason));
+      }
     });
   }
   async environmentsList() {
@@ -321,6 +366,31 @@ export class ChatService {
   async releaseResource(binding: ResourceInstanceIdentity) {
     await this.request({ method: 'resource.release', payload: binding });
     this.resourceBindings.delete(binding.resourceId);
+  }
+  async appSourceSnapshot(target: AppTarget, signal: AbortSignal): Promise<AppSourceSnapshotResult> {
+    if (signal.aborted || this.stopped || this.failure)
+      return { ok: false, target, cleanupConfirmed: true, error: '源码采集已取消或服务不可用；未发送采集请求' };
+    const callId = randomUUID();
+    this.sourceCleanup.add(callId);
+    const cancel = () => {
+      void this.request({ method: 'app.source.cancel', payload: { callId } }).catch(() => undefined);
+    };
+    signal.addEventListener('abort', cancel, { once: true });
+    try {
+      const result = AppSourceSnapshotResultSchema.parse(
+        await this.request({ method: 'app.source.snapshot', payload: { callId, target } }),
+      );
+      const identity = result.ok ? result.snapshot : result.target;
+      if (identity.workspaceId !== target.workspaceId || identity.projectId !== target.projectId) throw new Error('源码回执归属不匹配');
+      if (result.cleanupConfirmed) this.sourceCleanup.delete(callId);
+      return result;
+    } catch {
+      return { ok: false, target, cleanupConfirmed: false, error: '源码 helper 回执无效或传输中断；清理未确认' };
+    } finally {
+      signal.removeEventListener('abort', cancel);
+      // The owned snapshot receipt decides cleanup. A delayed cancellation ACK
+      // remains registered in pending, but cannot hold an already-clean helper.
+    }
   }
   async appGet(target: AppTarget) {
     const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.get', payload: target }));
@@ -393,9 +463,18 @@ export class ChatService {
     return ChatConversationSchema.parse(await this.request({ method: 'get', payload: { conversationId: id } }));
   }
   async send(id: ChatSlot, text: string, observationScope: ObservationTurnScope | undefined, references: CatalogReferenceSnapshot) {
-    return ChatConversationSchema.parse(
-      await this.request({ method: 'send', payload: { conversationId: id, text, observationScope, references } }),
-    );
+    if (this.stopped || this.failure) throw new RunDispatchFailure(this.failure ?? '对话服务正在关闭', false, true);
+    try {
+      const result = ChatConversationSchema.parse(
+        await this.request({ method: 'send', payload: { conversationId: id, text, observationScope, references } }),
+      );
+      if (result.conversationId !== id) throw new Error('对话启动回执归属不匹配');
+      return result;
+    } catch (error) {
+      if (error instanceof RunDispatchFailure) throw error;
+      this.unknownCleanup = true;
+      throw new RunDispatchFailure(error instanceof Error ? error.message : '对话启动回执无效', true);
+    }
   }
   async cancel(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'cancel', payload: { conversationId: id } }));
@@ -426,6 +505,7 @@ export class ChatService {
         this.failure &&
         (this.initializationPending ||
           this.unknownCleanup ||
+          this.sourceCleanup.size > 0 ||
           [...this.conversations.values()].some((conversation) => conversation.cleanupPending) ||
           [...this.terminals.values()].some((t) => t.cleanupPending))
       )

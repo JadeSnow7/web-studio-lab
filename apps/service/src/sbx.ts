@@ -108,7 +108,7 @@ export class GuestProcess {
     this.done = new Promise((resolve) => {
       this.finish = resolve;
     });
-    this.child = spawn(binary, ['exec', '-i', '-w', GUEST_CWD, sandbox, 'python3', '-u', '-c', guestHelper], {
+    this.child = spawn(binary, ['exec', '-i', '-w', GUEST_CWD, sandbox, 'python3', '-I', '-u', '-c', guestHelper], {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     this.timer = setTimeout(() => this.fail('guest helper 启动超时'), 30000);

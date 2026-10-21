@@ -27,3 +27,4 @@ export * from './resource-catalog';
 export * from './app-control';
 
 export * from './status';
+export * from './source-change';

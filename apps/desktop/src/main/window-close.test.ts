@@ -3,6 +3,7 @@ const fixture = vi.hoisted(() => ({
   listeners: new Map<string, (event: { preventDefault(): void }) => void>(),
   close: vi.fn(),
   shutdown: vi.fn(),
+  workbenchShutdown: vi.fn(),
   getSnapshot: vi.fn(),
   dispose: vi.fn(),
   dialog: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock('./chat-service', () => ({
 vi.mock('./workbench/application', () => ({
   WorkbenchApplication: class {
     getSnapshot = fixture.getSnapshot;
+    shutdown = fixture.workbenchShutdown;
     setAppControl = vi.fn();
   },
 }));
@@ -47,6 +49,7 @@ beforeEach(() => {
   fixture.listeners.clear();
   vi.clearAllMocks();
   fixture.shutdown.mockResolvedValue(undefined);
+  fixture.workbenchShutdown.mockResolvedValue(undefined);
   fixture.dialog.mockResolvedValue({ response: 1 });
   fixture.getSnapshot.mockRejectedValue(new Error('corrupt workspace file'));
 });
@@ -84,6 +87,36 @@ describe('window shutdown', () => {
     expect(fixture.dispose).not.toHaveBeenCalled();
     complete();
     await vi.waitFor(() => expect(fixture.close).toHaveBeenCalledOnce());
+  });
+  it('keeps the service available until workbench ending-source operations settle', async () => {
+    let finish: (() => void) | undefined;
+    fixture.workbenchShutdown.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    fixture.getSnapshot.mockResolvedValue(undefined);
+    await open();
+    close();
+    await vi.waitFor(() => expect(fixture.workbenchShutdown).toHaveBeenCalledOnce());
+    expect(fixture.shutdown).not.toHaveBeenCalled();
+    expect(fixture.close).not.toHaveBeenCalled();
+    if (!finish) throw new Error('workbench cleanup fixture was not invoked');
+    finish();
+    await vi.waitFor(() => expect(fixture.close).toHaveBeenCalledOnce());
+    expect(fixture.shutdown).toHaveBeenCalledOnce();
+    expect(fixture.dialog).not.toHaveBeenCalled();
+  });
+  it('still tries service cleanup after workbench cleanup fails, preserving the failure dialog', async () => {
+    fixture.workbenchShutdown.mockRejectedValue(new Error('source cleanup unknown'));
+    await open();
+    close();
+    await vi.waitFor(() => expect(fixture.dialog).toHaveBeenCalledOnce());
+    expect(fixture.shutdown).toHaveBeenCalledOnce();
+    expect(fixture.dialog.mock.calls[0]?.[1]).toMatchObject({ detail: expect.stringContaining('source cleanup unknown'), defaultId: 1 });
+    expect(fixture.close).not.toHaveBeenCalled();
+    expect(fixture.dispose).not.toHaveBeenCalled();
   });
   it('keeps the window open and shows the concrete cause when cancel is selected', async () => {
     fixture.shutdown.mockRejectedValue(new Error('registry sandbox:null'));

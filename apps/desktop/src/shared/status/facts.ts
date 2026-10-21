@@ -635,6 +635,28 @@ function appFacts(workspace: WorkspaceSnapshot): StatusFact[] {
 
 /* ---------- 运行、检查、审阅 ---------- */
 
+export function sourceChangeStatus(run: WorkbenchRun): Mapping & { detail?: string } {
+  const source = run.sourceChange;
+  if (!source)
+    return run.state === 'starting'
+      ? { phase: 'pending', kind: 'progress', priority: 45, label: '正在采集源码基线…' }
+      : { phase: 'unknown', kind: 'capability', priority: 5, label: '此历史运行未记录源码差异' };
+  if (source.state === 'unavailable')
+    return { phase: 'degraded', kind: 'capability', priority: 5, label: '源码差异不可用', detail: source.reason };
+  if (source.state === 'captured')
+    return {
+      phase: 'ok',
+      kind: 'steady',
+      priority: 5,
+      label: source.baseTree === source.afterTree ? '源码无改动' : source.truncated ? '源码差异已采集（有截断）' : '源码差异已采集',
+    };
+  if (['starting', 'running'].includes(run.state))
+    return { phase: 'pending', kind: 'steady', priority: 5, label: '源码基线已保存，等待执行结束' };
+  if ((run.cleanupPending || run.state === 'cancelling') && !run.sourceCleanupPending)
+    return { phase: 'unknown', kind: 'unresolved', priority: 45, label: '等待清理确认后采集源码差异…' };
+  return { phase: 'active', kind: 'progress', priority: 45, label: '正在采集结束源码…' };
+}
+
 function runFacts(workspaceId: string, run: WorkbenchRun): StatusFact[] {
   const scope = sessionScope(workspaceId, run.sessionId);
   const run_: Entity<'run'> = { domain: 'run', entityId: run.runId, scope, instanceToken: run.runId };
@@ -642,6 +664,7 @@ function runFacts(workspaceId: string, run: WorkbenchRun): StatusFact[] {
     state: run.state,
     cleanupPending: run.cleanupPending,
     appCleanupPending: run.appCleanupPending,
+    sourceCleanupPending: run.sourceCleanupPending,
     executorState: run.executorState,
     cleanupRetryAvailable: run.cleanupRetryAvailable,
     cleanupReconciling: run.cleanupReconciling,
@@ -650,6 +673,13 @@ function runFacts(workspaceId: string, run: WorkbenchRun): StatusFact[] {
   const facts: StatusFact[] = [
     build(run_, 'state', fromMapping(RUN_STATE[run.state], { raw, detail: run.state === 'failed' ? run.error : undefined })),
   ];
+  if (run.sourceChange)
+    facts.push(
+      build(run_, 'source-change', {
+        ...sourceChangeStatus(run),
+        raw: { state: run.state, taskVersionId: run.taskVersionId, sourceChangeState: run.sourceChange.state },
+      }),
+    );
   // 执行期间（starting / running / cancelling）进程本来就在；只有 run 已进入终态仍未核实退出时才产出。
   if (run.cleanupPending && ['completed', 'cancelled', 'failed', 'interrupted'].includes(run.state))
     facts.push(build(run_, 'process-cleanup', { phase: 'unknown', kind: 'unresolved', priority: 85, label: '正在核实所属进程退出…', raw }));
@@ -665,6 +695,17 @@ function runFacts(workspaceId: string, run: WorkbenchRun): StatusFact[] {
         action: run.cleanupRetryAvailable
           ? { id: 'run.reconcileCleanup', label: '重新核对', ...(run.cleanupReconciling ? { disabled: true } : {}) }
           : undefined,
+        raw,
+      }),
+    );
+
+  if (run.sourceCleanupPending && run.sourceChange?.state === 'unavailable')
+    facts.push(
+      build(run_, 'source-cleanup', {
+        phase: 'unknown',
+        kind: 'unresolved',
+        priority: 95,
+        label: '源码 helper 清理未确认，项目仍被占用',
         raw,
       }),
     );

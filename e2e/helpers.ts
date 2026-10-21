@@ -13,6 +13,8 @@ import { fileURLToPath } from 'node:url';
 import { _electron, expect, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import { appControlInjection } from './fixtures/app-control-injection';
 import { appControlCancelGate } from './fixtures/app-control-cancel-gate';
+import { sourceSnapshotFixture } from './fixtures/source-snapshot-fixture';
+import { sourceDispatchAudit } from './fixtures/source-dispatch-audit';
 import { addressInitialLoadGate } from './fixtures/address-initial-load-gate';
 import { addressNavigationObserver } from './fixtures/address-navigation-observer';
 
@@ -143,6 +145,10 @@ export async function launchApp(
     appControlInjection?: boolean;
     /** Test-only: observe real app calls and delay one genuine reply across cancellation. */
     appControlCancelGate?: boolean;
+    /** Test-only: synthetic source/model frames; retains real Main storage and patch IPC. */
+    sourceSnapshotFixture?: boolean;
+    /** Test-only: observe durable baseline before model dispatch without mutating requests. */
+    sourceDispatchAudit?: boolean;
     /** Test-only: defer the first genuine preview load until the address has focus. */
     addressInitialLoadGate?: boolean;
     /** Test-only: observe settlement of original address navigation invokes in the preload. */
@@ -243,6 +249,8 @@ ${
 }
 ${options.appControlInjection ? appControlInjection : ''}
 ${options.appControlCancelGate ? appControlCancelGate : ''}
+${options.sourceSnapshotFixture ? sourceSnapshotFixture : ''}
+${options.sourceDispatchAudit ? sourceDispatchAudit : ''}
 ${options.addressInitialLoadGate ? addressInitialLoadGate : ''}
 ${
   options.controlledObservation || options.controlledTerminal

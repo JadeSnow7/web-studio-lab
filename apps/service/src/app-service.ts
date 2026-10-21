@@ -9,6 +9,8 @@ import { z } from 'zod';
 import {
   AgentCliEnvelopeSchema,
   AppSourceSchema,
+  AppTargetSchema,
+  type AppSourceSnapshotResult,
   STANDARD_APP_EXPORT_BUDGET,
   AppOperationReceiptSchema,
   type AgentCliEnvelope,
@@ -18,6 +20,7 @@ import {
 } from '@wsl/protocol';
 import { type GuestOutcome, type GuestProcess, type SbxConnection } from './sbx';
 import helper from './app-helper.py?raw';
+import { SourceSnapshotReader } from './source-snapshot';
 
 const exec = promisify(execFile);
 const keySchema = z
@@ -69,6 +72,7 @@ export interface AppServiceOptions {
   ports?: (args: string[]) => Promise<string>;
   fetch?: typeof fetch;
   startupTimeoutMs?: number;
+  sourceSnapshotTimeoutMs?: number;
   reconciliationTimeoutMs?: number;
   registryPath?: string;
   dependencyArchivePath?: string;
@@ -106,6 +110,7 @@ export function validateAppSources(files: AppSourceFile[]): void {
 export class AppService {
   private entries = new Map<string, Entry>();
   private closing = false;
+  private readonly sourceProcesses = new Map<string, { stop: () => Promise<GuestOutcome>; settled: Promise<void> }>();
   private persistence: Promise<void> = Promise.resolve();
   private options: AppServiceOptions;
   private loaded: Promise<void> | null = null;
@@ -426,7 +431,8 @@ export class AppService {
     await this.ensureLoaded();
     if (this.closing) throw new Error('应用服务正在关闭');
     const entry = this.entry(key);
-    if (entry.exitCompletion || entry.operation || entry.stopping) throw new Error('应用操作进行中');
+    if (entry.exitCompletion || entry.operation || entry.stopping || this.sourceProcesses.has(this.id(key)))
+      throw new Error('应用操作进行中');
     if (entry.agentProcess || entry.httpOperation) throw new Error('应用控制面操作或结果待确认');
     if (entry.snapshot.state === 'running') return this.get(key);
     if (!entry.snapshot.cleanupConfirmed || entry.portPending || entry.process) throw new Error('上次应用清理尚未确认');
@@ -1023,10 +1029,123 @@ export class AppService {
     return unknown();
   }
 
+  async sourceSnapshot(key: AppKey, signal?: AbortSignal): Promise<AppSourceSnapshotResult> {
+    const target = AppTargetSchema.parse(key);
+    const id = this.id(key);
+    const unavailable = (error: string, cleanupConfirmed: boolean): AppSourceSnapshotResult => ({
+      ok: false,
+      target,
+      cleanupConfirmed,
+      error: error.slice(0, 1000),
+    });
+    try {
+      await this.ensureLoaded();
+      const entry = this.entry(key);
+      if (this.sourceProcesses.has(id)) return unavailable('上次源码 helper 尚未确认清理', false);
+      if (this.closing || signal?.aborted) return unavailable('源码采集已取消或服务正在关闭', true);
+      if (entry.exitCompletion || entry.operation || entry.stopping || entry.commandProcess)
+        return unavailable('工程有限 helper 正在运行或清理未确认；未启动源码采集', true);
+      if (!this.connection.getStatus().available) return unavailable('源码采集服务不可用；未启动 helper', true);
+    } catch {
+      return unavailable('源码工程不可用或未创建；未启动 helper', !this.sourceProcesses.has(id));
+    }
+    const reader = new SourceSnapshotReader();
+    let failure: string | null = null;
+    let accepting = true;
+    let stop: (() => Promise<GuestOutcome>) | undefined;
+    const unknownHandle = {
+      stop: async (): Promise<GuestOutcome> => ({ confirmed: false, exitCode: null, error: '源码 helper 派发结果未知' }),
+      settled: Promise.resolve(),
+    };
+    this.sourceProcesses.set(id, unknownHandle);
+    let child: Pick<GuestProcess, 'done' | 'close'>;
+    try {
+      child = this.connection.start(
+        {
+          type: 'start',
+          mode: 'codex',
+          argv: ['python3', '-I', '-u', '-c', helper],
+          prompt: JSON.stringify({ operation: 'source-snapshot', ...target }),
+        },
+        (frame) => {
+          if (!accepting || failure || frame.type !== 'output' || frame.stream !== 'stdout') return;
+          try {
+            reader.accept(frame.data);
+          } catch {
+            failure = '源码采集回执无效或超过路径、数量、字节预算';
+            if (stop)
+              stop().catch(() => {
+                failure = '源码 helper 清理失败';
+              });
+          }
+        },
+      );
+    } catch {
+      accepting = false;
+      return unavailable('源码 helper 派发结果未知；不能确认清理', false);
+    }
+    let resolveStopped: ((outcome: GuestOutcome) => void) | undefined;
+    let resolveSettled: (() => void) | undefined;
+    const stopped = new Promise<GuestOutcome>((resolve) => {
+      resolveStopped = resolve;
+    });
+    const settled = new Promise<void>((resolve) => {
+      resolveSettled = resolve;
+    });
+    let stopping: Promise<GuestOutcome> | undefined;
+    stop = () => {
+      if (!stopping) {
+        stopping = Promise.resolve()
+          .then(() => child.close())
+          .catch((): GuestOutcome => ({ confirmed: false, exitCode: null, error: '源码 helper 清理失败' }))
+          .then((outcome) => {
+            resolveStopped?.(outcome);
+            if (!outcome.confirmed) stopping = undefined;
+            return outcome;
+          });
+      }
+      return stopping;
+    };
+    const handle = { stop, settled };
+    this.sourceProcesses.set(id, handle);
+    const cancel = () => {
+      failure ??= '源码采集已取消或超时';
+      handle.stop().catch(() => {
+        failure = '源码 helper 清理失败';
+      });
+    };
+    signal?.addEventListener('abort', cancel, { once: true });
+    if (failure || signal?.aborted) cancel();
+    const timer = setTimeout(cancel, this.options.sourceSnapshotTimeoutMs ?? 120000);
+    let confirmed = false;
+    try {
+      const outcome = await Promise.race([
+        child.done.catch((): GuestOutcome => ({ confirmed: false, exitCode: null, error: '源码 helper 传输失败' })),
+        stopped,
+      ]);
+      const cleanup = stopping ? await stopping : outcome;
+      confirmed = outcome.confirmed && cleanup.confirmed;
+      if (!confirmed) throw new Error('源码 helper 清理未确认；保留所属句柄');
+      if (failure || this.closing) throw new Error(failure ?? '源码采集已取消，服务正在关闭');
+      if (outcome.error || outcome.exitCode !== 0) throw new Error('源码采集未完成：路径、链接、文件变化或预算限制；整份快照不可用');
+      return { ok: true, cleanupConfirmed: true, snapshot: reader.result(target) };
+    } catch (error) {
+      return unavailable(error instanceof Error ? error.message : '源码采集失败', confirmed);
+    } finally {
+      accepting = false;
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', cancel);
+      stop = undefined;
+      if (confirmed && this.sourceProcesses.get(id) === handle) this.sourceProcesses.delete(id);
+      resolveSettled?.();
+    }
+  }
+
   async export(key: AppKey): Promise<{ files: AppSourceFile[]; sha256: string }> {
     await this.ensureLoaded();
     if (this.closing) throw new Error('应用服务正在关闭');
     const entry = this.entry(key);
+    if (this.sourceProcesses.has(this.id(key))) throw new Error('source_helper_busy');
     if (
       entry.exitCompletion ||
       entry.operation ||
@@ -1062,6 +1181,12 @@ export class AppService {
     this.closing = true;
     await this.ensureLoaded();
     const errors: unknown[] = [];
+    for (const [id, handle] of this.sourceProcesses) {
+      const outcome = await handle.stop();
+      await handle.settled;
+      if (outcome.confirmed && this.sourceProcesses.get(id) === handle) this.sourceProcesses.delete(id);
+      else if (!outcome.confirmed) errors.push(new Error('源码 helper 清理未确认'));
+    }
     // Each stop persists the shared registry; settle sequentially to avoid stale writes.
     for (const entry of this.entries.values()) {
       try {
