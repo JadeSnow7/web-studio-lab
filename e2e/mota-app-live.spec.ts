@@ -23,6 +23,7 @@ const exec = promisify(execFile);
 const sha256 = (bytes: Buffer | string) => createHash('sha256').update(bytes).digest('hex');
 const workspaceId = 'taskflow-demo';
 const floorPath = 'project/floors/MT1.js';
+const configPath = '_server/config.json';
 type AppPage = 'game' | 'editor';
 type ProcessIdentity = { pid: number; startTime: string };
 type MotaCore = {
@@ -40,12 +41,24 @@ const parseFloor = (bytes: Buffer) =>
         .replace(/;?\s*$/, ''),
     ),
   );
-const GuestAudit = z.object({
+const GuestFileAudit = z.object({
   sha256: z.string().regex(/^[a-f0-9]{64}$/),
-  base64: z.string().max(2_000_000),
+  base64: z.string().max(349528),
   mode: z.number(),
+});
+const GuestAudit = GuestFileAudit.extend({
+  config: GuestFileAudit.nullable(),
   processes: z.array(z.object({ pid: z.number().int(), startTime: z.string() })),
   expectedRemaining: z.array(z.object({ pid: z.number().int(), startTime: z.string() })),
+});
+const targetSnapshot = (audit: z.infer<typeof GuestAudit>) => ({
+  floor: { sha256: audit.sha256, base64: audit.base64, mode: audit.mode },
+  config: audit.config,
+});
+const auditSummary = (audit: z.infer<typeof GuestAudit>) => ({
+  ...audit,
+  base64: undefined,
+  config: audit.config ? { ...audit.config, base64: undefined } : null,
 });
 const Ports = z.array(z.object({ sandbox_port: z.number(), host_port: z.number(), host_ip: z.string(), protocol: z.string() }));
 const orderedPorts = (ports: z.infer<typeof Ports>) =>
@@ -69,6 +82,60 @@ async function bounded<T>(operation: Promise<T>, milliseconds: number, message: 
   } finally {
     if (timer) clearTimeout(timer);
   }
+}
+
+async function deniedEditorSave(view: Page, input: MotaEditorSaveInput) {
+  // A closed document, missing bridge or transport error fails outside the save rejection check.
+  expect(view.url()).toBe('wsl-editor://mota/index.html');
+  expect(await view.evaluate(() => typeof Reflect.get(window, 'motaEditor'))).toBe('object');
+  const rejection = await view.evaluate(async (request) => {
+    try {
+      await (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor.save(request);
+      return 'resolved';
+    } catch (error) {
+      const match = /^Error: (?:Error invoking remote method 'mota-editor:save': Error: )?(denied|revoked):/.exec(String(error));
+      return match?.[1] ?? 'unexpected-rejection';
+    }
+  }, input);
+  expect(['denied', 'revoked']).toContain(rejection);
+  return { file: input.file, requestId: input.requestId, sessionIndex: input.sessionIndex, rejection };
+}
+
+async function untrustedSaveAttempts(view: Page) {
+  return view.evaluate(async () => {
+    const old = await fetch('/editor.html', { cache: 'no-store' });
+    const html = await old.text();
+    const nonce = /data-wsl-editor-session="([a-f0-9]{48})"/.exec(html)?.[1];
+    const statuses = [];
+    for (const file of ['project/floors/MT1.js', '_server/config.json']) {
+      const content = file.endsWith('.js') ? 'main.floors.MT1 = {"floorId":"MT1","map":[[9]]};\n' : '{"untrusted":true}\n';
+      const response = await fetch('/writeFile', {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded', 'X-WSL-Editor-Session': nonce ?? 'a'.repeat(48) },
+        body: new URLSearchParams({ name: file, type: 'base64', value: btoa(content) }),
+      });
+      statuses.push({ file, status: response.status, body: await response.text() });
+      window.postMessage({ type: 'mota-editor:save', file, content }, '*');
+    }
+    // Observe the message queue after both attacks; no fabricated product response or delay-based success.
+    await new Promise<void>((resolve) => {
+      const marker = crypto.randomUUID();
+      const listener = (event: MessageEvent) => {
+        if (event.source !== window || event.data !== marker) return;
+        window.removeEventListener('message', listener);
+        resolve();
+      };
+      window.addEventListener('message', listener);
+      window.postMessage(marker, '*');
+    });
+    return {
+      oldStatus: old.status,
+      nonceDisclosed: !!nonce,
+      editor: typeof Reflect.get(window, 'motaEditor'),
+      studio: typeof window.studio,
+      statuses,
+    };
+  });
 }
 
 /** Only admitted source paths; credentials, source servers and private data are never read by this audit. */
@@ -165,18 +232,28 @@ test('real Mota import, two native resources, editor save, fresh-game potion and
   };
   const auditGuest = async (projectId: string, expected: ProcessIdentity[] = [], guestPort?: number | null) => {
     if (!/^[a-f0-9-]{36}$/.test(projectId)) throw new Error('invalid owned project identity');
-    // Reads only this imported project's fixed floor file and process identity; no shell, process argv or credentials.
+    // Reads only this imported project's two fixed save targets and process identity; no arbitrary paths or credentials.
     const program = `import os,sys,json,stat,hashlib,base64
 root='/home/agent/workspace/.wsl-apps/'+sys.argv[1]
 if os.path.realpath(root)!=root or not stat.S_ISDIR(os.lstat(root).st_mode): raise RuntimeError('invalid_owned_root')
-filename=root+'/project/floors/MT1.js'
-if os.path.realpath(filename)!=filename: raise RuntimeError('linked_floor')
-fd=os.open(filename,os.O_RDONLY|os.O_NOFOLLOW)
-try:
- info=os.fstat(fd)
- if not stat.S_ISREG(info.st_mode) or info.st_nlink!=1 or info.st_size>1048576: raise RuntimeError('invalid_floor')
- with os.fdopen(fd,'rb',closefd=False) as stream: content=stream.read(1048577)
-finally: os.close(fd)
+def read_target(relative,optional=False):
+ filename=root+'/'+relative
+ if os.path.realpath(filename)!=filename: raise RuntimeError('linked_target')
+ try: original=os.lstat(filename)
+ except FileNotFoundError:
+  if optional: return None
+  raise
+ if not stat.S_ISREG(original.st_mode) or original.st_nlink!=1 or original.st_size>262144: raise RuntimeError('invalid_target')
+ fd=os.open(filename,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+ try:
+  info=os.fstat(fd)
+  if not stat.S_ISREG(info.st_mode) or info.st_nlink!=1 or info.st_size>262144: raise RuntimeError('invalid_target')
+  if (original.st_dev,original.st_ino)!=(info.st_dev,info.st_ino): raise RuntimeError('changed_target')
+  with os.fdopen(fd,'rb',closefd=False) as stream: content=stream.read(262145)
+  if len(content)>262144: raise RuntimeError('oversize_target')
+  return {'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b64encode(content).decode(),'mode':stat.S_IMODE(info.st_mode)}
+ finally: os.close(fd)
+floor=read_target('project/floors/MT1.js'); config=read_target('_server/config.json',True)
 processes=[]; expected_remaining=[]; expected=json.loads(sys.argv[2]); port=json.loads(sys.argv[3]); sockets=set()
 if port is not None:
  if not isinstance(port,int) or not 1<=port<=65535: raise RuntimeError('invalid_owned_port')
@@ -199,7 +276,7 @@ for item in os.listdir('/proc'):
     except (FileNotFoundError,ProcessLookupError,PermissionError): continue
     if owned: processes.append(identity); break
  except (FileNotFoundError,ProcessLookupError,PermissionError): pass
-print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b64encode(content).decode(),'mode':stat.S_IMODE(info.st_mode),'processes':processes,'expectedRemaining':expected_remaining}))`;
+print(json.dumps(dict(floor,config=config,processes=processes,expectedRemaining=expected_remaining)))`;
     const result = await exec(
       binary,
       ['exec', sandbox, 'python3', '-c', program, projectId, JSON.stringify(expected), JSON.stringify(guestPort ?? null)],
@@ -207,6 +284,7 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
     );
     const audit = GuestAudit.parse(JSON.parse(result.stdout));
     expect(sha256(Buffer.from(audit.base64, 'base64'))).toBe(audit.sha256);
+    if (audit.config) expect(sha256(Buffer.from(audit.config.base64, 'base64'))).toBe(audit.config.sha256);
     return audit;
   };
   let auditKeeper: ChildProcessWithoutNullStreams | undefined;
@@ -507,32 +585,22 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
     };
     // Await the actual save IPC. Closed targets, absent bridges, busy/conflict
     // errors and transport failures must not count as Main authorization denial.
-    const denial = await reopened.view.evaluate(async (input) => {
-      try {
-        await (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor.save(input);
-        return 'resolved';
-      } catch (error) {
-        const match = /^Error: (?:Error invoking remote method 'mota-editor:save': Error: )?(denied|revoked):/.exec(String(error));
-        return match?.[1] ?? 'unexpected-rejection';
-      }
-    }, deniedRequest);
+    const denial = await deniedEditorSave(reopened.view, deniedRequest);
     const afterRevocation = await auditGuest(projectId, [], first.guestPort);
     evidence['revokedEditorSave'] = {
       trigger: 'closed editor tab through product UI',
       liveDocumentAndBridgeConfirmed: true,
       oldSessionState: 'revoked',
       request: 'real motaEditor.save with a previously read session and valid changed MT1 text',
-      rejection: denial,
+      rejection: denial.rejection,
       file: floorPath,
       beforeSha256: beforeRevocation.sha256,
       afterSha256: afterRevocation.sha256,
       bytesUnchanged: afterRevocation.base64 === beforeRevocation.base64,
       modeUnchanged: afterRevocation.mode === beforeRevocation.mode,
+      configUnchanged: JSON.stringify(afterRevocation.config) === JSON.stringify(beforeRevocation.config),
     };
-    expect(['denied', 'revoked']).toContain(denial);
-    expect(afterRevocation.sha256).toBe(beforeRevocation.sha256);
-    expect(afterRevocation.base64 === beforeRevocation.base64).toBe(true);
-    expect(afterRevocation.mode).toBe(beforeRevocation.mode);
+    expect(targetSnapshot(afterRevocation)).toEqual(targetSnapshot(beforeRevocation));
     expect((await state()).managedApp).toMatchObject({ state: 'running', appInstanceId: first.appInstanceId });
     const afterClose = await openEntry('editor');
     expect(afterClose.resource.resourceId).toBe(editor.resource.resourceId);
@@ -567,6 +635,7 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
     const afterBytes = Buffer.from(after.base64, 'base64');
     expect(after.sha256).not.toBe(before.sha256);
     expect(parseFloor(afterBytes)).toEqual({ ...beforeFloor, map: editedMap });
+    expect(after.config).toEqual(before.config);
     const editorStatus = await editor.view.evaluate(() =>
       (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor.status({ sessionIndex: null, requestId: crypto.randomUUID() }),
     );
@@ -596,6 +665,57 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
       operation: manualCommit,
       diffEvidence: 'independent guest bytes and hashes; D run diff does not cover manual editor',
     };
+    // Use the real initial configuration state. Never delete an imported config to manufacture an absent-file case.
+    const originalConfig = after.config
+      ? z.record(z.string(), z.unknown()).parse(JSON.parse(Buffer.from(after.config.base64, 'base64').toString('utf8')))
+      : {};
+    const configSaves = [];
+    let configBaseline = after;
+    await editor.view.getByLabel('文件', { exact: true }).selectOption(configPath);
+    for (const revision of [1, 2]) {
+      await editor.view.getByRole('button', { name: '读取当前版本', exact: true }).click();
+      await expect(editor.view.getByRole('status')).toHaveText('已读取当前版本。');
+      await expect(editor.view.getByLabel(/^文件内容/)).toHaveValue(
+        configBaseline.config ? Buffer.from(configBaseline.config.base64, 'base64').toString('utf8') : '',
+      );
+      const configText = JSON.stringify({ ...originalConfig, __wslR6Acceptance: { projectId, revision } }) + '\n';
+      expect(Buffer.byteLength(configText)).toBeLessThanOrEqual(262144);
+      await editor.view.getByLabel(/^文件内容/).click();
+      await editor.view.keyboard.press('ControlOrMeta+A');
+      await editor.view.keyboard.insertText(configText);
+      await editor.view.getByRole('button', { name: '保存到副本', exact: true }).click();
+      await expect(editor.view.getByRole('status')).toHaveText('已保存到副本。可刷新游戏查看。');
+      const saved = await auditGuest(projectId, [], first.guestPort);
+      expect(saved.config).not.toBeNull();
+      expect(saved.config?.base64).toBe(Buffer.from(configText).toString('base64'));
+      expect(saved.config?.sha256).toBe(sha256(configText));
+      expect(targetSnapshot(saved).floor).toEqual(targetSnapshot(after).floor);
+      const projection = await editor.view.evaluate(() =>
+        (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor.status({ sessionIndex: null, requestId: crypto.randomUUID() }),
+      );
+      const operation = projection.operations.find(
+        (entry) => entry.operation.receipt?.file === configPath && entry.operation.receipt.afterHash === saved.config?.sha256,
+      );
+      expect(operation?.operation).toMatchObject({
+        status: 'committed',
+        receipt: {
+          file: configPath,
+          expectedHash: configBaseline.config?.sha256 ?? null,
+          contentHash: sha256(configText),
+          afterHash: sha256(configText),
+          contentLength: Buffer.byteLength(configText),
+          durabilityError: null,
+        },
+      });
+      expect(operation?.sessionIndex).toBe(projection.sessionIndex);
+      configSaves.push({ revision, before: auditSummary(configBaseline).config, after: auditSummary(saved).config, operation });
+      configBaseline = saved;
+    }
+    expect(new Set(configSaves.map((save) => save.operation?.operation.requestId)).size).toBe(2);
+    evidence['manualConfigSaves'] = { initialPresence: after.config === null ? 'absent' : 'present', saves: configSaves };
+    // Preserve the original MT1 draft and selection contract used by the stop/restart assertions below.
+    await editor.view.getByLabel('文件', { exact: true }).selectOption(floorPath);
+    await expect(editor.view.getByLabel(/^文件内容/)).toHaveValue(savedText);
     milestone('edited');
     await editor.view.screenshot({ path: path.join(evidenceRoot, '02-editor-saved.png') });
     const playable = (await openEntry('game')).view;
@@ -620,6 +740,77 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
       .toMatchObject({ x: 6, y: 10, hp: 1050, tile: null, route: ['up', 'down', 'up'], lockControl: false });
     evidence['noSecondPotion'] = await readGame(playable);
     milestone('potion');
+    const beforeAttacks = await auditGuest(projectId, [], first.guestPort);
+    expect(targetSnapshot(beforeAttacks)).toEqual(targetSnapshot(configBaseline));
+    const attacks = [];
+    for (const entry of ['game', 'imported-editor'] as const) {
+      if (entry === 'imported-editor') {
+        await playable.goto(first.url + '/editor.html', { waitUntil: 'domcontentloaded' });
+        expect(playable.url()).toBe(first.url + '/editor.html');
+      }
+      expect(await playable.evaluate(() => ({ editor: typeof Reflect.get(window, 'motaEditor'), studio: typeof window.studio }))).toEqual({
+        editor: 'undefined',
+        studio: 'undefined',
+      });
+      const attempt = await untrustedSaveAttempts(playable);
+      expect(attempt).toEqual({
+        oldStatus: 200,
+        nonceDisclosed: false,
+        editor: 'undefined',
+        studio: 'undefined',
+        statuses: [
+          { file: floorPath, status: 403, body: 'error: http_write_disabled' },
+          { file: configPath, status: 403, body: 'error: http_write_disabled' },
+        ],
+      });
+      const afterAttack = await auditGuest(projectId, [], first.guestPort);
+      expect(targetSnapshot(afterAttack)).toEqual(targetSnapshot(beforeAttacks));
+      attacks.push({ entry, ...attempt, unchangedTargets: [floorPath, configPath], audit: auditSummary(afterAttack) });
+    }
+    evidence['untrustedSaveAttempts'] = attacks;
+    // Restore the game resource's real route before the existing stop/rebind checks.
+    await playable.goto(first.url + '/index.html', { waitUntil: 'domcontentloaded' });
+    expect(playable.url()).toBe(first.url + '/index.html');
+    const beforeStopEditor = await openEntry('editor');
+    expect(beforeStopEditor.geometry?.webContentsId).toBe(editor.geometry?.webContentsId);
+    await expect
+      .poll(() =>
+        beforeStopEditor.view.evaluate(async () => {
+          const bridge = (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor;
+          return (await bridge.status({ sessionIndex: null, requestId: crypto.randomUUID() })).state;
+        }),
+      )
+      .toBe('active');
+    await expect(beforeStopEditor.view.getByLabel('文件', { exact: true })).toHaveValue(floorPath);
+    await beforeStopEditor.view.getByRole('button', { name: '读取当前版本', exact: true }).click();
+    await expect(beforeStopEditor.view.getByRole('status')).toHaveText('已读取当前版本。');
+    await expect(beforeStopEditor.view.getByLabel(/^文件内容/)).toHaveValue(savedText);
+    const saveTargets: MotaEditorReadInput['file'][] = [floorPath, configPath];
+    const stopBaselines = await beforeStopEditor.view.evaluate(async (files: MotaEditorReadInput['file'][]) => {
+      const bridge = (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor;
+      const current = await bridge.status({ sessionIndex: null, requestId: crypto.randomUUID() });
+      if (current.state !== 'active' || current.sessionIndex === null) throw new Error('pre-stop editor admission is not active');
+      const baselines = [];
+      for (const file of files) {
+        const baseline = await bridge.read({ file, sessionIndex: current.sessionIndex, requestId: crypto.randomUUID() });
+        baselines.push({ file, baseline });
+      }
+      return baselines;
+    }, saveTargets);
+    expect(new Set(stopBaselines.map((item) => item.baseline.sessionIndex)).size).toBe(1);
+    const stopRequests: MotaEditorSaveInput[] = stopBaselines.map(({ file, baseline }) => {
+      if (baseline.content === null) throw new Error('saved target must exist before stop: ' + file);
+      const expected = file === floorPath ? beforeAttacks : beforeAttacks.config;
+      expect(expected).not.toBeNull();
+      expect(baseline.contentHash).toBe(expected?.sha256);
+      expect(Buffer.from(baseline.content).toString('base64')).toBe(expected?.base64);
+      const content = baseline.content + '\n';
+      expect(Buffer.byteLength(content)).toBeLessThanOrEqual(262144);
+      expect(sha256(content)).not.toBe(baseline.contentHash);
+      if (file === floorPath) expect(parseFloor(Buffer.from(content))).toEqual(parseFloor(Buffer.from(baseline.content)));
+      else expect(JSON.parse(content)).toEqual(JSON.parse(baseline.content));
+      return { file, sessionIndex: baseline.sessionIndex, requestId: crypto.randomUUID(), expectedHash: baseline.contentHash, content };
+    });
     await page.getByRole('button', { name: '管理 App', exact: true }).click();
     await expect(page.getByRole('button', { name: '导出源码', exact: true })).toBeHidden();
     await page.getByRole('button', { name: '停止应用', exact: true }).click();
@@ -629,8 +820,18 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
     expect(await ports()).toEqual(baselinePorts);
     const stopped = await auditGuest(projectId, registered);
     expect(stopped).toMatchObject({ processes: [], expectedRemaining: [], sha256: after.sha256 });
+    expect(targetSnapshot(stopped)).toEqual(targetSnapshot(beforeAttacks));
+    const stoppedDenials = [];
+    for (const request of stopRequests) stoppedDenials.push(await deniedEditorSave(beforeStopEditor.view, request));
+    const afterStoppedDenials = await auditGuest(projectId, registered);
+    expect(targetSnapshot(afterStoppedDenials)).toEqual(targetSnapshot(stopped));
+    expect(afterStoppedDenials).toMatchObject({ processes: [], expectedRemaining: [] });
     await expect(fetch(first.url + '/api/health', { signal: AbortSignal.timeout(1500) })).rejects.toThrow();
-    evidence['stopped'] = { state: (await state()).managedApp, audit: { ...stopped, base64: undefined } };
+    evidence['stopped'] = {
+      state: (await state()).managedApp,
+      audit: auditSummary(afterStoppedDenials),
+      oldSessionDenials: stoppedDenials,
+    };
     milestone('stopped');
     await page.getByRole('button', { name: '启动应用', exact: true }).click();
     await waitState('running');
@@ -639,29 +840,63 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
     expect(second?.appInstanceId).not.toBe(first.appInstanceId);
     expect(second?.projectId).toBe(projectId);
     evidence['restartBinding'] = await ownedBinding(second.url, second.guestPort);
+    const beforeRestartDenials = await auditGuest(projectId, [], second.guestPort);
+    expect(beforeRestartDenials.processes.length).toBeGreaterThan(0);
+    expect(targetSnapshot(beforeRestartDenials)).toEqual(targetSnapshot(stopped));
+    registered = [...registered, ...beforeRestartDenials.processes];
+    const restartedDenials = [];
+    let restartedSessionIndex: number | null = null;
     await page.getByRole('dialog', { name: '空间 App' }).press('Escape');
     for (const entry of ['game', 'editor'] as const) {
       const rebound = await openEntry(entry);
       expect(rebound.resource.resourceId).toBe(entry === 'game' ? game.resource.resourceId : editor.resource.resourceId);
-      if (entry === 'game')
+      if (entry === 'game') {
+        expect(rebound.view.url()).toBe(second.url + '/index.html');
         expect(await rebound.view.evaluate(async () => (await fetch('/api/health')).json())).toMatchObject({
           identity: { projectId, appInstanceId: second?.appInstanceId },
         });
-      else {
+      } else {
         expect(rebound.view.url()).toBe('wsl-editor://mota/index.html');
         expect(rebound.geometry?.webContentsId).toBe(editor.geometry?.webContentsId);
+        await expect(rebound.view.getByLabel('文件', { exact: true })).toHaveValue(floorPath);
         await expect(rebound.view.getByLabel(/^文件内容/)).toHaveValue(savedText);
+        await expect(rebound.view.getByRole('button', { name: '保存到副本', exact: true })).toBeDisabled();
+        await expect
+          .poll(() =>
+            rebound.view.evaluate(async () => {
+              const bridge = (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor;
+              return (await bridge.status({ sessionIndex: null, requestId: crypto.randomUUID() })).state;
+            }),
+          )
+          .toBe('active');
+        const projection = await rebound.view.evaluate(() =>
+          (window as unknown as { motaEditor: MotaEditorBridge }).motaEditor.status({ sessionIndex: null, requestId: crypto.randomUUID() }),
+        );
+        expect(projection.sessionIndex).not.toBeNull();
+        restartedSessionIndex = projection.sessionIndex;
+        for (const request of stopRequests) {
+          expect(projection.sessionIndex).not.toBe(request.sessionIndex);
+          restartedDenials.push(await deniedEditorSave(rebound.view, { ...request, requestId: crypto.randomUUID() }));
+        }
+        const afterRestartDenials = await auditGuest(projectId, [], second.guestPort);
+        expect(targetSnapshot(afterRestartDenials)).toEqual(targetSnapshot(beforeRestartDenials));
         await expect(rebound.view.getByRole('button', { name: '保存到副本', exact: true })).toBeDisabled();
         await rebound.view.getByRole('button', { name: '读取当前版本', exact: true }).click();
         await expect(rebound.view.getByRole('status')).toHaveText('已读取当前版本。');
+        await expect(rebound.view.getByLabel(/^文件内容/)).toHaveValue(savedText);
       }
     }
     expect(second?.guestPort).toBeGreaterThan(0);
     const restarted = await auditGuest(projectId, [], second?.guestPort);
     expect(restarted.processes.length).toBeGreaterThan(0);
     expect(restarted.sha256).toBe(after.sha256);
-    registered = [...registered, ...restarted.processes];
-    evidence['restarted'] = { app: second, audit: { ...restarted, base64: undefined } };
+    expect(targetSnapshot(restarted)).toEqual(targetSnapshot(beforeAttacks));
+    evidence['restarted'] = {
+      app: second,
+      audit: auditSummary(restarted),
+      oldSessionDenials: restartedDenials,
+      freshSessionIndex: restartedSessionIndex,
+    };
     milestone('restarted');
     evidence['result'] = 'passed';
   } catch (error) {
@@ -755,7 +990,7 @@ print(json.dumps({'sha256':hashlib.sha256(content).hexdigest(),'base64':base64.b
     if (projectId) {
       try {
         const audit = await auditGuest(projectId, registered);
-        evidence['finalGuestAudit'] = { ...audit, base64: undefined };
+        evidence['finalGuestAudit'] = auditSummary(audit);
         expect(audit).toMatchObject({ processes: [], expectedRemaining: [] });
       } catch (error) {
         failCleanup('guest-audit', error);
