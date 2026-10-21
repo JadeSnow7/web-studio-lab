@@ -119,7 +119,7 @@ async function readBounded(absolute) {
     }
     if (before.size > MAX_BIGINT) fail(`file exceeds per-file bound: ${absolute}`);
     const expected = Number(before.size);
-    const buffer = Buffer.alloc(MAX_SOURCE_BYTES + 1);
+    const buffer = Buffer.alloc(expected + 1);
     let total = 0;
     while (total < buffer.length) {
       const { bytesRead } = await handle.read(buffer, total, buffer.length - total, total);
@@ -256,6 +256,18 @@ function checkRequired(paths) {
   }
 }
 
+async function assertOutputOutsideInputs(output, inputs) {
+  const target = path.resolve(output);
+  const parent = await fs.realpath(path.dirname(target));
+  const canonicalTarget = path.join(parent, path.basename(target));
+  for (const input of inputs) {
+    const canonicalInput = await fs.realpath(input);
+    const relative = path.relative(canonicalInput, canonicalTarget);
+    if (relative === '' || (relative !== '..' && !relative.startsWith('..' + path.sep) && !path.isAbsolute(relative)))
+      fail('output must not be inside an input directory');
+  }
+}
+
 async function publish(output, manifest, entries) {
   try {
     await fs.lstat(output);
@@ -320,6 +332,7 @@ async function prepareSnapshot(root, repository) {
 }
 
 export async function createSnapshot(root, output, repository) {
+  await assertOutputOutsideInputs(output, [root]);
   const prepared = await prepareSnapshot(root, repository);
   await publish(path.resolve(output), prepared.manifest, prepared.entries);
   return { manifest: prepared.manifest };
@@ -331,16 +344,25 @@ function checkExactKeys(value, allowed, label) {
   if (keys.join(',') !== expected.join(',')) fail(`manifest ${label} must contain exactly: ${expected.join(',')}`);
 }
 
-async function listSourceFiles(sourceDir) {
-  const found = [];
+async function listSourceFiles(sourceDir, declared) {
+  const parents = new Set();
+  for (const relative of declared) {
+    const parts = relative.split('/');
+    for (let i = 1; i < parts.length; i++) parents.add(parts.slice(0, i).join('/'));
+  }
+  const found = new Set();
   const walk = async (directory, relative) => {
-    for (const dirent of await fs.readdir(directory, { withFileTypes: true })) {
-      const name = dirent.name;
-      const rel = relative ? `${relative}/${name}` : name;
+    // Async iteration closes the directory even when a rejected entry throws.
+    for await (const dirent of await fs.opendir(directory)) {
+      const rel = relative ? `${relative}/${dirent.name}` : dirent.name;
       if (dirent.isSymbolicLink()) fail(`symlink inside bundle source: ${rel}`);
-      if (dirent.isDirectory()) await walk(path.join(directory, name), rel);
-      else if (dirent.isFile()) found.push(rel);
-      else fail(`special file inside bundle source: ${rel}`);
+      if (dirent.isDirectory()) {
+        if (!parents.has(rel)) fail(`undeclared directory inside bundle source: ${rel}`);
+        await walk(path.join(directory, dirent.name), rel);
+      } else if (dirent.isFile()) {
+        if (!declared.has(rel)) fail(`bundle source contains undeclared file: ${rel}`);
+        found.add(rel);
+      } else fail(`special file inside bundle source: ${rel}`);
     }
   };
   await walk(sourceDir, '');
@@ -351,14 +373,15 @@ export async function verifySnapshot(directory) {
   const bundle = path.resolve(directory);
   const info = await fs.lstat(bundle);
   if (info.isSymbolicLink() || !info.isDirectory()) fail('bundle path must be a real directory');
-  const top = await fs.readdir(bundle, { withFileTypes: true });
-  const names = top.map((entry) => entry.name).sort();
-  if (names.join(',') !== 'manifest.json,source') fail('bundle must contain exactly manifest.json and source/');
-  for (const entry of top) {
+  const top = new Set();
+  for await (const entry of await fs.opendir(bundle)) {
+    if (entry.name !== 'manifest.json' && entry.name !== 'source') fail('bundle must contain exactly manifest.json and source/');
+    top.add(entry.name);
     if (entry.isSymbolicLink()) fail(`symlink inside bundle root: ${entry.name}`);
     if (entry.name === 'manifest.json' && !entry.isFile()) fail('manifest.json must be a regular file');
     if (entry.name === 'source' && !entry.isDirectory()) fail('source must be a directory');
   }
+  if (top.size !== 2) fail('bundle must contain exactly manifest.json and source/');
   const raw = await readBounded(path.join(bundle, 'manifest.json'));
   let manifest;
   try {
@@ -461,11 +484,8 @@ export async function verifySnapshot(directory) {
   const sourceInfo = await fs.lstat(sourceDir);
   if (sourceInfo.isSymbolicLink() || !sourceInfo.isDirectory()) fail('source must be a real directory');
   const realSource = await fs.realpath(sourceDir);
-  const onDisk = await listSourceFiles(sourceDir);
-  if (onDisk.length !== declared.size) fail('bundle source contains files not declared in manifest');
-  for (const relative of onDisk) {
-    if (!declared.has(relative)) fail(`bundle source contains undeclared file: ${relative}`);
-  }
+  const onDisk = await listSourceFiles(sourceDir, declared);
+  if (onDisk.size !== declared.size) fail('bundle source contains files not declared in manifest');
   const entries = new Map();
   for (const entry of manifest.files) {
     const absolute = path.resolve(sourceDir, entry.path);
@@ -509,6 +529,7 @@ function selectMergeEntries(base, local, upstream) {
 }
 
 export async function mergeSnapshots(baseDirectory, localDirectory, upstreamDirectory, output) {
+  await assertOutputOutsideInputs(output, [baseDirectory, localDirectory, upstreamDirectory]);
   const base = await verifySnapshot(baseDirectory);
   const local = await verifySnapshot(localDirectory);
   const upstream = await verifySnapshot(upstreamDirectory);
@@ -550,6 +571,7 @@ export async function mergeSnapshots(baseDirectory, localDirectory, upstreamDire
 }
 
 export async function resolveSnapshots(baseDirectory, localDirectory, upstreamDirectory, resolvedDirectory, output) {
+  await assertOutputOutsideInputs(output, [baseDirectory, localDirectory, upstreamDirectory, resolvedDirectory]);
   const base = await verifySnapshot(baseDirectory);
   const local = await verifySnapshot(localDirectory);
   const upstream = await verifySnapshot(upstreamDirectory);
@@ -635,6 +657,7 @@ async function cli(argv) {
     const flags = parseFlags(rest);
     needFlags(flags, ['root', 'output']);
     const root = flags.get('root');
+    await assertOutputOutsideInputs(flags.get('output'), [root]);
     const before = await deriveRepository(root);
     const prepared = await prepareSnapshot(root, before.repository);
     const recollected = await collect(path.resolve(root));

@@ -15,13 +15,13 @@
 - 必需文件：`admin/package.json`、`admin/package-lock.json`、`server/app.py`、`server/requirements.lock`、`server/requirements-test.lock`、`server/wsl_runtime.py`。
 - 预算：最多 256 文件、源文件合计 524,288 字节、路径最多 500 字符；单文件 base64 长度上限 4,000,000 字符。
 
-采集跳过 `.git`、`node_modules`、`dist`、`.venv`、`venv`、`__pycache__`、`.pytest_cache`、`.ruff_cache`、`.mypy_cache`、`.vite`、`.data`、`data`、`.runtime`、`coverage` 目录，以及以 `.env`、`.wsl-` 开头的路径段。白名单之外的源码不会收录；被选目录中的符号链接和特殊文件、被选文件的硬链接会被拒绝。路径和预算约束同样适用于 bundle 校验。
+采集跳过 `.git`、`node_modules`、`dist`、`.venv`、`venv`、`__pycache__`、`.pytest_cache`、`.ruff_cache`、`.mypy_cache`、`.vite`、`.data`、`data`、`.runtime`、`coverage` 目录，以及以 `.env`、`.wsl-` 开头的路径段。白名单之外的源码不会收录；被选目录中的符号链接和特殊文件、被选文件的硬链接会被拒绝。路径和预算约束同样适用于 bundle 校验。校验以流式目录遍历立即拒绝未声明文件和非清单必需的目录，包括空目录；文件读取按实际大小加一字节分配，以保留增长检测。
 
-每个 `--output` 必须是尚不存在的路径，其父目录需已存在。bundle 包含 `manifest.json` 和 `source/`；新目录权限为 `0700`，文件为 `0600`。输入 bundle 保持原样。输出不是事务性发布：磁盘等 I/O 失败可能留下不完整目录，应保留现场并在排查后改用新的输出路径。不要在采集时并行编辑输入；重复采集与文件身份核对用于发现变化，不提供跨进程文件系统锁或来源签名。
+每个 `--output` 必须是尚不存在的路径，其父目录需已存在。输出不能位于任一输入目录内部；该检查解析父目录的真实路径，因此通过符号链接别名指向输入目录也会被拒绝。bundle 包含 `manifest.json` 和 `source/`；新目录权限为 `0700`，文件为 `0600`。输入 bundle 保持原样。输出不是事务性发布：磁盘等 I/O 失败可能留下不完整目录，应保留现场并在排查后改用新的输出路径。不要在采集时并行编辑输入；重复采集与文件身份核对用于发现变化，不提供跨进程文件系统锁或来源签名。
 
 ## 四个命令
 
-以下命令从 Web Studio Lab 仓库根目录执行。示例 `/path/to/...` 均需替换为实际路径；输出宜放在被采集工作树之外，避免下一次 dirty 状态包含生成物。也可用 `pnpm edu:source <command> ...` 调用相同入口。
+以下命令从 Web Studio Lab 仓库根目录执行。示例 `/path/to/...` 均需替换为实际路径；输出必须放在被采集工作树之外。也可用 `pnpm edu:source <command> ...` 调用相同入口。
 
 ```sh
 node scripts/edu-source.mjs --help

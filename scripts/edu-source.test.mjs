@@ -480,8 +480,9 @@ test('exact 500 character path accepted and 501 rejected during collection', asy
   const over = 'admin/' + 'a/'.repeat(245) + 'ff.ts';
   assert.equal(exact.length, MAX_PATH_CHARS);
   assert.equal(over.length, MAX_PATH_CHARS + 1);
-  const { manifest } = await bundle(t, { [exact]: 'x' });
+  const { manifest, output } = await bundle(t, { [exact]: 'x' });
   assert.ok(manifest.files.some((f) => f.path === exact));
+  await verifySnapshot(output);
   const directory = await fixture(t);
   const root = path.join(directory, 'checkout');
   await writeTree(root, { [over]: 'x' });
@@ -966,3 +967,161 @@ test('CLI resolve requires exact flags and original conflict merge still exits t
   assert.equal(record.baseSourceSha256, inputs.base.manifest.sourceSha256);
   assert.equal(resolveCli(inputs, { output: inputs.output + '-resolved' }).status, 0);
 });
+
+for (const conflict of [false, true]) {
+  test(`merge rejects output inside each input, including aliases (conflict=${conflict})`, async (t) => {
+    const inputs = await resolutionInputs(t);
+    const sides = ['base', 'local', 'upstream'];
+    const before = await Promise.all(sides.map((side) => bundleBytes(inputs[side].output)));
+    for (const side of sides) {
+      const alias = path.join(inputs[side].directory, 'alias');
+      await symlink(inputs[side].output, alias, 'dir');
+      for (const parent of [inputs[side].output, alias]) {
+        const output = path.join(parent, 'nested');
+        const args = conflict ? sides.map((name) => inputs[name].output) : sides.map(() => inputs[side].output);
+        await assert.rejects(mergeSnapshots(...args, output), /output.*inside.*input/);
+        await assert.rejects(access(output), /ENOENT/);
+      }
+    }
+    for (let i = 0; i < sides.length; i++) assert.deepEqual(await bundleBytes(inputs[sides[i]].output), before[i]);
+  });
+}
+
+test('resolve rejects output inside every input and its alias without changing inputs', async (t) => {
+  const inputs = await resolutionInputs(t);
+  for (const side of ['base', 'local', 'upstream', 'resolved']) {
+    const before = await bundleBytes(inputs[side].output);
+    const alias = path.join(inputs[side].directory, 'alias');
+    await symlink(inputs[side].output, alias, 'dir');
+    for (const parent of [inputs[side].output, alias]) {
+      const output = path.join(parent, 'nested');
+      const result = resolveCli(inputs, { output });
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /output.*inside.*input/);
+      await assert.rejects(access(output), /ENOENT/);
+    }
+    assert.deepEqual(await bundleBytes(inputs[side].output), before);
+  }
+});
+
+test('snapshot API and CLI reject nested and aliased output without changing source', async (t) => {
+  const directory = await fixture(t),
+    root = path.join(directory, 'checkout');
+  await writeTree(root, {}, { ignored: false });
+  await run('git', ['-C', root, 'init', '-q']);
+  await run('git', ['-C', root, 'add', '-A']);
+  await run('git', ['-C', root, '-c', 'user.name=test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'init']);
+  const alias = path.join(directory, 'alias');
+  await symlink(root, alias, 'dir');
+  const before = await bundleBytes(root);
+  for (const parent of [root, alias]) {
+    const output = path.join(parent, 'nested');
+    await assert.rejects(createSnapshot(root, output, REPOSITORY), /output.*inside.*input/);
+    const result = cli(['snapshot', '--root', root, '--output', output]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /output.*inside.*input/);
+    await assert.rejects(access(output), /ENOENT/);
+  }
+  assert.deepEqual(await bundleBytes(root), before);
+  const output = path.join(directory, 'sibling');
+  assert.equal(cli(['snapshot', '--root', root, '--output', output]).status, 0);
+  await verifySnapshot(output);
+});
+
+test('many tiny files retain memory proportional to their actual bytes', async (t) => {
+  const extra = {};
+  for (let i = Object.keys(BASE_TREE).length; i < MAX_FILES; i++) extra[`admin/src/tiny-${i}.ts`] = 'x';
+  const b = await bundle(t, extra);
+  const { entries } = await verifySnapshot(b.output);
+  assert.equal(entries.size, MAX_FILES);
+  let bytes = 0,
+    allocated = 0;
+  for (const data of entries.values()) {
+    bytes += data.length;
+    allocated += data.buffer.byteLength;
+  }
+  assert.ok(allocated <= bytes + entries.size, `${allocated} backing bytes for ${bytes} source bytes`);
+});
+
+test('verify rejects undeclared directories before opening them and allows shared declared parents', async (t) => {
+  const b = await bundle(t, { 'admin/src/nested/a.ts': 'a', 'admin/src/nested/b.ts': 'b' });
+  await verifySnapshot(b.output);
+  const unknown = path.join(b.output, 'source', 'unknown');
+  await mkdir(unknown);
+  for (let i = 0; i < 300; i++) await mkdir(path.join(unknown, `empty-${i}`));
+  const original = fsModule.opendir;
+  const opened = [];
+  fsModule.opendir = async (...args) => {
+    opened.push(args[0]);
+    return original(...args);
+  };
+  try {
+    await assert.rejects(verifySnapshot(b.output), /undeclared directory/);
+    assert.ok(!opened.includes(unknown), 'verifier descended into undeclared directory');
+  } finally {
+    fsModule.opendir = original;
+  }
+});
+
+for (const topLevel of [false, true]) {
+  test(`verify streams entries and stops on unknown file (topLevel=${topLevel})`, async (t) => {
+    const b = await bundle(t);
+    const target = topLevel ? b.output : path.join(b.output, 'source');
+    for (let i = 0; i < 300; i++) await writeFile(path.join(target, `unknown-${i}.ts`), 'x');
+    const original = fsModule.opendir;
+    let consumed = 0;
+    fsModule.opendir = async (...args) => {
+      const dir = await original(...args);
+      if (args[0] !== target) return dir;
+      return {
+        async *[Symbol.asyncIterator]() {
+          for await (const entry of dir) {
+            consumed++;
+            yield entry;
+          }
+        },
+      };
+    };
+    try {
+      await assert.rejects(verifySnapshot(b.output), /undeclared|exactly manifest/);
+      assert.ok(consumed > 0 && consumed < 20, `consumed ${consumed} entries before rejecting unknown file`);
+    } finally {
+      fsModule.opendir = original;
+    }
+  });
+}
+
+for (const initial of ['', 'original']) {
+  test(`verify detects one-byte growth during read and closes handle (initial bytes=${initial.length})`, async (t) => {
+    const b = await bundle(t, { 'admin/src/app.ts': initial });
+    const victim = path.join(b.output, 'source/admin/src/app.ts');
+    const original = fsModule.open;
+    let grew = false,
+      closed = false;
+    fsModule.open = async (...args) => {
+      const handle = await original(...args);
+      if (args[0] !== victim) return handle;
+      const read = handle.read.bind(handle),
+        close = handle.close.bind(handle);
+      handle.read = async (...readArgs) => {
+        if (!grew) {
+          grew = true;
+          await fsModule.appendFile(victim, 'x');
+        }
+        return read(...readArgs);
+      };
+      handle.close = async () => {
+        await close();
+        closed = true;
+      };
+      return handle;
+    };
+    try {
+      await assert.rejects(verifySnapshot(b.output), /file grew while reading/);
+      assert.equal(grew, true);
+      assert.equal(closed, true);
+    } finally {
+      fsModule.open = original;
+    }
+  });
+}
