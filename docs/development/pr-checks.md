@@ -10,7 +10,7 @@ checkout 明确使用事件中的 `pull_request.head.sha`，并在安装前、�
 
 1. 根目录 `pnpm install --frozen-lockfile`；模板 `npm --prefix templates/standard-app ci --ignore-scripts --no-audit --no-fund`。模板不属于 pnpm workspace，必须单独安装。
 2. 报告门禁的负例单测；维护目录 `apps`、`packages`、`e2e`、`scripts`、`templates/standard-app` 的 ESLint 和 Prettier；PR merge base 至 head 的全部现存变更文件格式检查及 JS/TS lint。
-3. `pnpm typecheck`；将原 `pnpm test` 的三个阶段分别串行执行为 `pnpm exec vitest run`、`pnpm test:packaging`、`pnpm test:external-builds`，全部执行并分别保留退出码；随后执行 `pnpm baseline:selftest`、`node scripts/check-docs.mjs`。原 `pnpm test` 命令不变，CI 不再因其中的 `&&` 丢失后续阶段结果。
+3. `pnpm typecheck`；将 `pnpm test` 的四个阶段分别串行执行为 `pnpm exec vitest run`、`pnpm test:packaging`、`pnpm test:external-builds`、`pnpm test:edu-source`，全部执行并分别保留退出码；随后执行 `pnpm baseline:selftest`、`node scripts/check-docs.mjs`。CLI 阶段以 `offline-edu-source` 单独记录并列为必要步骤；CI 不因 `pnpm test` 中的 `&&` 丢失后续阶段结果。
 4. `pnpm build`；构建通过后执行完整默认 `pnpm exec playwright test --workers=1 --retries=0 --reporter=list,json`。这是 `pnpm test:e2e` 中的构建与默认 Electron 测试，拆开以保留各自退出码，并避免重复构建。没有指定测试文件、grep 或分片。
 
 安装失败会留下后续逐项 `not_run`；普通检查失败仍继续收集其他结果；构建失败不启动 E2E。子进程清除继承的 `WSL_*`、`ELECTRON_RUN_AS_NODE`、`NODE_OPTIONS` 和 `TSESTREE_SINGLE_RUN`，不启用真实模型、guest live、打包、签名或发布。依赖安装需要网络；“离线测试”指用受控 fixture、不使用真实模型或 guest 的默认测试。
@@ -65,7 +65,7 @@ NODE
 
 ## lint 与格式的边界
 
-这是有明确范围的新增门禁，不代表全树 `pnpm lint` 或 `pnpm format:check` 已通过。根 `package.json`、ESLint/Prettier 配置、忽略规则及原命令均不改变。
+这是有明确范围的新增门禁，不代表全树 `pnpm lint` 或 `pnpm format:check` 已通过。门禁沿用既有 ESLint/Prettier 配置和忽略规则。本次 CLI 组合在根 `package.json` 新增 `edu:source`、`test:edu-source`，并在 `pnpm test` 末尾追加 CLI 阶段；其他原命令保持不变。
 
 引入此门禁时，原主线 `b5531e1ac3b3da7adf000f6ba61f2c5b19a0755f` 的全树 lint 有 217 个错误、涉及 139 个原字节文件：138 个在 `docs/acceptance`，另一个是 `tests/vertical-slice/cdp.ts`。格式检查涉及 801 个原字节文件：730 个 acceptance、63 个 verification、4 个 fixtures/vertical-slice、3 个 tests/vertical-slice 和 `docs/architecture/baseline-2026-10-06.md`。这些固定基线与历史证据不纳入维护目录门禁，也不在本次自动格式化。
 

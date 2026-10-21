@@ -123,6 +123,7 @@ try {
   await run('offline-vitest', 'pnpm', ['exec', 'vitest', 'run']);
   await run('offline-packaging', 'pnpm', ['test:packaging']);
   await run('offline-external-builds', 'pnpm', ['test:external-builds']);
+  await run('offline-edu-source', 'pnpm', ['test:edu-source']);
   await run('baseline-selftest', 'pnpm', ['baseline:selftest']);
   await run('docs', 'node', ['scripts/check-docs.mjs']);
   if (await run('build', 'pnpm', ['build'])) {
@@ -156,6 +157,7 @@ try {
     'offline-vitest',
     'offline-packaging',
     'offline-external-builds',
+    'offline-edu-source',
     'baseline-selftest',
     'docs',
     'build',

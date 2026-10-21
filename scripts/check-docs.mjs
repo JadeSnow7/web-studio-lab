@@ -17,6 +17,7 @@ const documents = [
   'docs/architecture/current-runtime.md',
   'docs/development/dependencies.md',
   'docs/development/pr-checks.md',
+  'docs/development/edu-source-cli.md',
   'docs/submission/README.md',
   'docs/submission/oschina-2026.md',
   'docs/submission/oschina-2026-evidence.md',

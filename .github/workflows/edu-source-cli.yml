@@ -1,0 +1,102 @@
+name: edu-web source CLI
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/edu-source.mjs'
+      - 'scripts/edu-source.test.mjs'
+      - 'scripts/check-docs.mjs'
+      - 'docs/development/edu-source-cli.md'
+      - 'README.md'
+      - 'package.json'
+      - '.github/workflows/edu-source-cli.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-cli:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+      - name: Record and verify exact source
+        shell: bash
+        run: |
+          mkdir -p .local/edu-source-cli
+          node --input-type=module <<'NODE' 2>&1 | tee .local/edu-source-cli/source.log
+          import { execFileSync } from 'node:child_process';
+          import { writeFileSync } from 'node:fs';
+          const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
+          const head = git('rev-parse', 'HEAD');
+          const baseRef = process.env.EXPECTED_BASE_SHA || `refs/remotes/origin/${process.env.DEFAULT_BRANCH}`;
+          const base = git('rev-parse', '--verify', `${baseRef}^{commit}`);
+          const status = git('status', '--porcelain=v1', '--untracked-files=all');
+          const source = {
+            schemaVersion: 1,
+            event: process.env.GITHUB_EVENT_NAME,
+            head,
+            expectedHead: process.env.EXPECTED_HEAD_SHA,
+            headTree: git('rev-parse', 'HEAD^{tree}'),
+            base,
+            expectedBase: process.env.EXPECTED_BASE_SHA || null,
+            baseRef,
+            baseTree: git('rev-parse', `${base}^{tree}`),
+            status,
+            node: process.version,
+            git: git('--version'),
+            platform: process.platform,
+            arch: process.arch,
+            runId: process.env.GITHUB_RUN_ID,
+            runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+          };
+          writeFileSync('.local/edu-source-cli/source.json', JSON.stringify(source, null, 2) + '\n');
+          console.log(JSON.stringify(source, null, 2));
+          if (head !== process.env.EXPECTED_HEAD_SHA) throw new Error('Checkout does not match requested head');
+          if (process.env.EXPECTED_BASE_SHA && base !== process.env.EXPECTED_BASE_SHA) {
+            throw new Error('Base does not match pull request event');
+          }
+          if (status) throw new Error('Checkout is not clean');
+          NODE
+      - name: Run offline CLI checks
+        shell: bash
+        run: |
+          failed=0
+          printf 'label\tcommand\texit_code\n' > .local/edu-source-cli/commands.tsv
+          run_check() {
+            local label="$1"
+            shift
+            local status=0
+            "$@" > ".local/edu-source-cli/${label}.log" 2>&1 || status=$?
+            cat ".local/edu-source-cli/${label}.log"
+            printf '%s\t%s\t%s\n' "$label" "$*" "$status" >> .local/edu-source-cli/commands.tsv
+            if [ "$status" -ne 0 ]; then failed=1; fi
+          }
+          run_check source-syntax node --check scripts/edu-source.mjs
+          run_check test-syntax node --check scripts/edu-source.test.mjs
+          run_check cli-tests node --test scripts/edu-source.test.mjs
+          run_check documentation node scripts/check-docs.mjs
+          cat .local/edu-source-cli/commands.tsv
+          exit "$failed"
+      - name: Upload source identity and command logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: edu-source-cli-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
+          path: .local/edu-source-cli/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
