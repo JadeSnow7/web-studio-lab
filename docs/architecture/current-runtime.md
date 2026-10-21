@@ -162,3 +162,13 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 - 模板：standard-app 1.1.0 内建 registry/bridge、agent-cli、`/api/__agent` 与 manifest；受管启动对含 `build:agent` 的项目改用 agent 构建，旧 1.0.0 项目照旧生产构建并返回 `unsupported`。健康检查接受 1.0.0 与 1.1.0。
 - 验证：修复后的 A03/A07 无模型 live 通过；[A11 真实模型与 Host 固定复验](../verification/2026-10-11-app-control-plane/round-09-model-live/README.md) 通过，真实 MCP describe、UI、state、query 链路已运行。[round-10](../verification/2026-10-11-app-control-plane/round-10-cli/README.md) 在保持 `workspace-write` 与 Main 权限不变的前提下改用 CLI 文件通道，真实命令沙箱 11 项检查（含两项 Main 拒绝）、MCP 及 Host 固定 16 步通过；所属进程、映射和通道清理确认。[round-11](../verification/2026-10-11-app-control-plane/round-11-cli-cancel/README.md) 通过实际产品按钮取消真实在途 CLI，核对 11 个所属进程退出、通道删除、45 个源码文件保留及下一轮真实 CLI 的迟到响应隔离；按钮为 Playwright 自动点击，返回帧延迟由测试启动层控制。
 - 缺口：独立产品检查器仍未接入，测试内 Host 复验不写入 TaskRun 的 validation，也不构成用户接受；真人输入、安装包复验未在本轮执行；Expo（阶段 B）与 Android（阶段 C）未实现。
+
+## edu 导入 / R5 切片（本地实现）
+
+从 `130066850086ffab6295d46e410ae152294a654f` 按行为提取 edu-only 导入、运行和导出链，叠加在已合并标准 source 链之上。Main collector 只读采集原生选择的 Git 根，固定 Git 配置且拒绝外部过滤器、partial clone、submodule、链接和超预算目录；256 文件 / 524288 解码字节限制保持。renderer 只提交预览身份和确认散列。
+
+Main 持久化未决操作，service journal 与 guest staging / 原子发布 / receipt 核对同一 workspace、project、operation 和源码身份。取消、退出未确认或重启期间不释放未知占用，不自动重放副作用。edu 运行使用既有所属进程记录与恢复通道，默认 AI0，要求 guest Python 3.12。每次启动先只读采集并冻结当前源码清单摘要；持久化记录、所属进程、启动请求和就绪回执必须绑定同一摘要，guest 在创建构建目录前复核。启动前后校验保护文件，锁定依赖安装、测试和构建发生在 guest，可能访问依赖下载网络。
+
+R5 edu 导出保留 main 已合入的线性有界编码检查、NFC/大小写路径别名、文件/目录冲突和 UTF-8 完整路径预检。输出实际源码字节、实际文件清单和不可变 importBase；标准 App 的原输出布局不变。只有 `admin/src/` 差异允许，其他来源文件增删改必须重新导入。
+
+本片不接 edu 模型候选、任务写回或发音验证；Main、service 和 UI 明确拒绝相应任务入口。Mota/R6 权限、保存、撤权和攻击防护仍须作为后续完整切片；research 与纯模块化整理未迁移。离线 fixture 覆盖不代表真实 guest、真实模型、已安装应用或用户产品验收；实际执行结果随候选提交单独记录。

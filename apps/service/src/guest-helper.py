@@ -1,5 +1,6 @@
 """Linux guest only: owned session cleanup and framed Codex/PTY transport."""
 import base64
+from pathlib import Path
 import codecs
 import ctypes
 import errno
@@ -22,6 +23,7 @@ import time
 PREFIX = "WSL_GUEST_FRAME:"
 CWD = "/home/agent/workspace"
 TERMINAL_RC_BASE64 = ""
+OWNED_PROCESS_BASE64 = ""
 RESOURCE_MCP_BASE64 = ""  # Replaced only by the trusted host build, never by a page or frame.
 WORKSPACE_BYTES = 524288
 
@@ -135,7 +137,7 @@ def emit(kind, **fields):
     print(PREFIX + json.dumps({"type": kind, **fields}), flush=True)
 
 
-def owned_members(sid):
+def owned_members(sid, leader_identity=None):
     processes = {}
     for entry in os.scandir("/proc"):
         if not entry.name.isdigit():
@@ -153,7 +155,12 @@ def owned_members(sid):
         if descendants.issubset(owned):
             break
         owned.update(descendants)
-    owned.update(pid for pid, (_, session) in processes.items() if session == sid)
+    same_session = True
+    if leader_identity is not None:
+        current = ownership_identity(sid)
+        same_session = current is None or current == leader_identity
+    if same_session:
+        owned.update(pid for pid, (_, session) in processes.items() if session == sid)
     owned.discard(os.getpid())
     return owned
 
@@ -169,15 +176,23 @@ def reap(members, leader):
             pass
 
 
-def cleanup(sid, child):
+def ownership_identity(pid):
+    try:
+        fields = Path('/proc/%d/stat' % pid).read_text().rsplit(')', 1)[1].split()
+        return {'pid': pid, 'startTicks': fields[19]}
+    except FileNotFoundError:
+        return None
+
+
+def cleanup(sid, child, leader_identity=None):
     # Subreaper adopts orphaned background jobs, so zombies can actually be reaped.
     for sig, duration in [(signal.SIGTERM, 1.5), (signal.SIGKILL, 3.0)]:
         deadline = time.monotonic() + duration
         while True:
             child.poll()
-            members = owned_members(sid)
+            members = owned_members(sid, leader_identity)
             reap(members, child.pid)
-            members = owned_members(sid)
+            members = owned_members(sid, leader_identity)
             if not members:
                 return
             for pid in members:
@@ -216,8 +231,8 @@ def read_start():
     start = json.loads(first)
     if not isinstance(start, dict) or start.get("type") != "start" or start.get("mode") not in ("codex", "terminal"):
         raise ValueError("invalid start frame")
-    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "prompt", "resourceBundle", "observation", "observationImages", "workspace"}
-    for key in ("observation", "observationImages"):
+    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "duplex", "eduOwner"}
+    for key in ("observation", "observationImages", "duplex"):
         if key in start and type(start[key]) is not bool:
             raise ValueError("invalid observation capability")
     if set(start) - allowed:
@@ -232,6 +247,8 @@ def main(start):
     terminal = start["mode"] == "terminal"
     master = None
     child = None
+    owner = None
+    ownership = None
     resource_fd = None
     observer = None
     observer_dir = None
@@ -319,8 +336,18 @@ def main(start):
                 workspace = create_workspace(start["workspace"])
             child = subprocess.Popen(argv, cwd=workspace.name if workspace else CWD, env=env, stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+            if "eduOwner" in start:
+                if not OWNED_PROCESS_BASE64:
+                    raise ValueError("owned edu receipt implementation missing")
+                ownership = {"__name__": "wsl_edu_owned"}
+                exec(compile(base64.b64decode(OWNED_PROCESS_BASE64), "<edu-owned-process>", "exec"), ownership)
+                owner = ownership["begin"](start["eduOwner"], child.pid)
             child.stdin.write(start.get("prompt", "").encode())
-            child.stdin.close()
+            if start.get("duplex"):
+                child.stdin.flush()
+                os.set_blocking(child.stdin.fileno(), False)
+            else:
+                child.stdin.close()
             streams = {child.stdout.fileno(): ("stdout", codecs.getincrementaldecoder("utf-8")("replace")),
                        child.stderr.fileno(): ("stderr", codecs.getincrementaldecoder("utf-8")("replace"))}
         emit("ready", pid=child.pid)
@@ -331,8 +358,14 @@ def main(start):
         buffer = b""
         closing = False
         pending_input = b""
+        input_fd = master if terminal else child.stdin.fileno() if start.get("duplex") else None
         leader_cleaned = False
         while (streams or child.poll() is None) and not closing:
+            if owner:
+                ownership["update"](owner, owned_members(child.pid, owner[1]["leader"]))
+                if ownership["revoked"](owner):
+                    closing = True
+                    break
             if cli_channel is not None:
                 calls, cancelled, admitted = cli_channel.poll(4 - len(observer_clients) - len(cli_channel.active), 64 - observation_count)
                 observation_count += admitted
@@ -340,9 +373,9 @@ def main(start):
                     emit("observation-cancel", id=call_id)
                 for call_id, request in calls:
                     emit("observation-call", id=call_id, tool=request["tool"], args=request["args"])
-            readable, writable, _ = select.select([stdin, *streams, *([observer.fileno()] if observer else []), *[client.fileno() for client, pending, _ in observer_clients.values()]], [master] if pending_input else [], [], 0.1)
+            readable, writable, _ = select.select([stdin, *streams, *([observer.fileno()] if observer else []), *[client.fileno() for client, pending, _ in observer_clients.values()]], [input_fd] if pending_input and input_fd is not None else [], [], 0.1)
             if writable:
-                written = os.write(master, pending_input)
+                written = os.write(input_fd, pending_input)
                 pending_input = pending_input[written:]
             for call_id, (client, pending, deadline) in list(observer_clients.items()):
                 if time.monotonic() > deadline:
@@ -410,7 +443,7 @@ def main(start):
                         if not isinstance(frame, dict):
                             raise ValueError("invalid control frame")
                         kind = frame.get("type")
-                        keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "input": {"type", "data"}, "resize": {"type", "cols", "rows"}}
+                        keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "close-input": {"type"}, "input": {"type", "data"}, "resize": {"type", "cols", "rows"}}
                         if kind not in keys or set(frame) != keys[kind]:
                             raise ValueError("invalid control fields")
                         if cli_channel is not None:
@@ -430,6 +463,17 @@ def main(start):
                                 client.close()
                         elif kind == "close":
                             closing = True
+                        elif not terminal and start.get("duplex") and kind == "close-input":
+                            pending_input = b""
+                            input_fd = None
+                            child.stdin.close()
+                        elif not terminal and start.get("duplex") and kind == "input":
+                            data = frame["data"]
+                            if not isinstance(data, str) or not 0 < len(data.encode()) <= 65536 or child.stdin.closed:
+                                raise ValueError("invalid duplex input")
+                            pending_input += data.encode()
+                            if len(pending_input) > 65536:
+                                raise ValueError("duplex input queue too large")
                         elif terminal and kind == "input":
                             data = frame["data"]
                             if not isinstance(data, str) or not 0 < len(data.encode()) <= 65536:
@@ -461,14 +505,16 @@ def main(start):
                         del streams[fd]
             # Leader exit does not imply background jobs have released the streams.
             if child.poll() is not None and not leader_cleaned:
-                cleanup(child.pid, child)
+                cleanup(child.pid, child, owner[1]["leader"] if owner else None)
                 leader_cleaned = True
         if closing:
-            cleanup(child.pid, child)
+            cleanup(child.pid, child, owner[1]["leader"] if owner else None)
             drain_streams(streams)
         else:
             child.wait()
-            cleanup(child.pid, child)
+            cleanup(child.pid, child, owner[1]["leader"] if owner else None)
+        if owner:
+            ownership["complete"](owner)
         emit("exit", exitCode=child.returncode)
         if workspace is not None:
             snapshot_workspace(workspace.name, start["workspace"]["runId"])
@@ -480,8 +526,10 @@ def main(start):
         emit("error", error=str(error))
         if child is not None:
             try:
-                cleanup(child.pid, child)
+                cleanup(child.pid, child, owner[1]["leader"] if owner else None)
                 drain_streams(streams)
+                if owner:
+                    ownership["complete"](owner)
             except BaseException as cleanup_error:
                 report_retained_workspace(workspace, start, cleanup_error)
                 emit("cleanup", ok=False, error=str(cleanup_error))
