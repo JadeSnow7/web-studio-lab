@@ -16,7 +16,7 @@ import {
   type AppAgentResult,
   type AppLogs,
 } from '@wsl/protocol';
-import { type GuestProcess, type SbxConnection } from './sbx';
+import { type GuestOutcome, type GuestProcess, type SbxConnection } from './sbx';
 import helper from './app-helper.py?raw';
 
 const exec = promisify(execFile);
@@ -56,6 +56,8 @@ interface Entry {
   readyPort: number | null;
   readyError: string | null;
   processExited: boolean;
+  processOutcomeUnknown?: boolean;
+  exitCompletion?: Promise<AppSnapshot>;
   /** 每次启动随机生成，仅经 guest 进程环境传给受管开发实例的 /api/__agent；停止即作废。 */
   agentToken: string | null;
   agentProcess: Pick<GuestProcess, 'done' | 'close'> | null;
@@ -71,7 +73,7 @@ export interface AppServiceOptions {
   registryPath?: string;
   dependencyArchivePath?: string;
   dependencyManifest?: { archiveSha256: string; lockSha256: string; platform: 'linux'; arch: 'arm64'; libc: 'glibc' };
-  onSnapshot?: (snapshot: AppSnapshot) => void;
+  onSnapshot?: (snapshot: AppSnapshot) => void | Promise<void>;
 }
 
 function validateAppSourcePath(sourcePath: string, seen: Set<string>): void {
@@ -253,7 +255,8 @@ export class AppService {
     );
   }
   private launch(entry: Entry, operation: 'create' | 'start' | 'export', files?: AppSourceFile[]) {
-    const { workspaceId, projectId, appInstanceId } = entry.snapshot;
+    const snapshot = entry.snapshot;
+    const { workspaceId, projectId, appInstanceId } = snapshot;
     entry.log = '';
     entry.readyPort = null;
     entry.readyError = null;
@@ -320,11 +323,21 @@ export class AppService {
     );
     entry.process = child;
     entry.processExited = false;
-    void child.done.then(() => {
-      if (entry.process === child) entry.processExited = true;
-    });
+    entry.processOutcomeUnknown = false;
+    child.done.then(
+      () => {
+        if (entry.process === child && entry.snapshot === snapshot) entry.processExited = true;
+      },
+      (error: unknown) => {
+        if (entry.process !== child || entry.snapshot !== snapshot) return;
+        // A rejected notification proves neither process exit nor remote cleanup.
+        entry.processOutcomeUnknown = true;
+        entry.readyError = `应用进程完成通知失败：${String(error).slice(0, 1000)}`;
+        this.appendFailure(snapshot, entry.readyError);
+      },
+    );
     entry.snapshot.cleanupConfirmed = false;
-    this.options.onSnapshot?.({ ...entry.snapshot });
+    this.notify(entry);
     return child;
   }
   private async command(entry: Entry, operation: 'create' | 'export', files?: AppSourceFile[]) {
@@ -332,7 +345,12 @@ export class AppService {
     entry.commandProcess = child;
     const timeout = setTimeout(() => {
       entry.cancelled = true;
-      void child.close();
+      child.close().catch((error: unknown) => {
+        if (entry.commandProcess !== child) return;
+        entry.snapshot.state = 'failed';
+        entry.snapshot.cleanupConfirmed = false;
+        this.appendFailure(entry.snapshot, error);
+      });
     }, 30000);
     try {
       const result = await child.done;
@@ -408,11 +426,16 @@ export class AppService {
     await this.ensureLoaded();
     if (this.closing) throw new Error('应用服务正在关闭');
     const entry = this.entry(key);
-    if (entry.operation || entry.stopping) throw new Error('应用操作进行中');
+    if (entry.exitCompletion || entry.operation || entry.stopping) throw new Error('应用操作进行中');
     if (entry.agentProcess || entry.httpOperation) throw new Error('应用控制面操作或结果待确认');
     if (entry.snapshot.state === 'running') return this.get(key);
     if (!entry.snapshot.cleanupConfirmed || entry.portPending || entry.process) throw new Error('上次应用清理尚未确认');
-    if ([...this.entries.values()].some((other) => other !== entry && ['starting', 'running', 'stopping'].includes(other.snapshot.state)))
+    if (
+      [...this.entries.values()].some(
+        (other) =>
+          other !== entry && (other.exitCompletion !== undefined || ['starting', 'running', 'stopping'].includes(other.snapshot.state)),
+      )
+    )
       throw new Error('首版仅允许一个应用服务运行');
     entry.cancelled = false;
     entry.agentToken = randomBytes(32).toString('hex');
@@ -503,7 +526,7 @@ export class AppService {
         child.once('error', reject);
       });
       stream.pipe(child.stdin);
-      this.options.onSnapshot?.({ ...entry.snapshot });
+      this.notify(entry);
       const code = await done;
       entry.snapshot.cleanupConfirmed = output.split('\n').includes('WSL_APP_RESULT:{"dependenciesCleanup":true}');
       if (code !== 0 || !output.includes('"dependenciesImported":true') || !entry.snapshot.cleanupConfirmed)
@@ -534,20 +557,28 @@ export class AppService {
       if (this.options.dependencyArchivePath) await this.importDependencies(entry, this.options.dependencyArchivePath);
       check();
       const child = this.launch(entry, 'start');
-      let exited = false;
-      void child.done.then(() => {
-        exited = true;
-      });
+      const snapshot = entry.snapshot;
+      let childOutcome: GuestOutcome | null = null;
+      const done = child.done.then(
+        (outcome) => (childOutcome = outcome),
+        (error: unknown): GuestOutcome =>
+          (childOutcome = { confirmed: false, exitCode: null, error: `应用进程结果未知：${String(error).slice(0, 1000)}` }),
+      );
+      const checkChild = () => {
+        if (childOutcome) throw new Error(childOutcome.error ?? `应用启动进程退出（${childOutcome.exitCode}）：${entry.log.slice(-4000)}`);
+      };
       while (entry.readyPort === null) {
         check();
         if (entry.readyError) throw new Error(entry.readyError);
-        if (exited) throw new Error(`应用就绪前退出：${entry.log.slice(-4000)}`);
+        checkChild();
         await delay(50);
       }
       check();
       if (entry.readyError) throw new Error(entry.readyError);
       const guestPort = entry.readyPort;
-      if ((await this.listPorts()).some((port) => port.sandbox_port === guestPort)) throw new Error('应用实际端口已有未知映射');
+      const initialPorts = await this.listPorts();
+      checkChild();
+      if (initialPorts.some((port) => port.sandbox_port === guestPort)) throw new Error('应用实际端口已有未知映射');
       check();
       // Register uncertain publication before asking sandboxd to mutate bindings.
       entry.portPending = true;
@@ -555,14 +586,16 @@ export class AppService {
       const published = /^Published 127\.0\.0\.1:(\d+) -> (\d+)\/tcp4\s*$/m.exec(receipt);
       if (!published || Number(published[2]) !== guestPort) throw new Error('端口发布回执未知，不能推断映射所有权');
       entry.port = portSchema.parse({ host_ip: '127.0.0.1', host_port: Number(published[1]), sandbox_port: guestPort, protocol: 'tcp4' });
+      checkChild();
       check();
       const ports = await this.listPorts();
+      checkChild();
       const ownedPort = entry.port;
       if (!ports.some((port) => this.samePort(port, ownedPort))) throw new Error('映射核对与发布回执不同');
       const url = `http://127.0.0.1:${entry.port.host_port}`;
       while (true) {
         check();
-        if (exited) throw new Error(`应用启动进程退出：${entry.log.slice(-4000)}`);
+        checkChild();
         try {
           const response = await (this.options.fetch ?? fetch)(`${url}/api/health`, {
             signal: AbortSignal.timeout(1500),
@@ -593,25 +626,64 @@ export class AppService {
         }
         await delay(200);
       }
+      checkChild();
       check();
-      entry.snapshot.state = 'running';
-      entry.snapshot.url = url;
-      void child.done.then(async (outcome) => {
-        if (entry.process !== child || entry.snapshot.state !== 'running') return;
-        entry.snapshot.state = 'failed';
-        entry.snapshot.error = outcome.error ?? `应用进程意外退出（${outcome.exitCode}）`;
-        await this.cleanup(entry);
-        await this.persist();
-        this.options.onSnapshot?.({ ...entry.snapshot });
-      });
+      snapshot.state = 'running';
+      snapshot.url = url;
+      done
+        .then((outcome) => {
+          if (entry.process !== child || entry.snapshot !== snapshot || snapshot.state !== 'running') return;
+          snapshot.state = 'failed';
+          this.appendFailure(snapshot, outcome.error ?? `应用进程意外退出（${outcome.exitCode}）`);
+          const completion = (async () => {
+            try {
+              await this.cleanup(entry);
+              await this.persist();
+            } catch (error) {
+              this.appendFailure(snapshot, error);
+            }
+            if (entry.snapshot === snapshot) {
+              try {
+                await this.options.onSnapshot?.({ ...snapshot });
+              } catch (error) {
+                this.appendFailure(snapshot, error);
+              }
+            }
+            return { ...snapshot };
+          })().finally(() => {
+            if (entry.exitCompletion === completion) entry.exitCompletion = undefined;
+          });
+          entry.exitCompletion = completion;
+          return completion;
+        })
+        .catch((error: unknown) => {
+          if (entry.snapshot !== snapshot) return;
+          this.appendFailure(snapshot, error);
+        });
     } catch (error) {
-      entry.snapshot.error = String(error);
+      this.appendFailure(entry.snapshot, error);
       await this.cleanup(entry);
       entry.snapshot.state = 'failed';
     } finally {
       clearTimeout(timer);
     }
     return { ...entry.snapshot };
+  }
+  private notify(entry: Entry): void {
+    const snapshot = entry.snapshot;
+    // Preserve synchronous publisher failures. An asynchronous notification does
+    // not delay dispatch or change process/cleanup facts; retain its owned error.
+    const publication = this.options.onSnapshot?.({ ...snapshot });
+    if (publication)
+      publication.catch((error: unknown) => {
+        if (entry.snapshot === snapshot) this.appendFailure(snapshot, error);
+      });
+  }
+  private appendFailure(snapshot: AppSnapshot, error: unknown): void {
+    // Match the existing 4000 UTF-16 code-unit startup diagnostic budget. Keep each
+    // recent cause's prefix and bound the accumulated tail, independent of flags.
+    const message = String(error).slice(0, 1000);
+    snapshot.error = [snapshot.error, message].filter(Boolean).join('; ').slice(-4000);
   }
   private async cleanup(entry: Entry): Promise<void> {
     entry.snapshot.url = null;
@@ -623,9 +695,9 @@ export class AppService {
         const outcome = await entry.agentProcess.close();
         agentConfirmed = outcome.confirmed;
         if (outcome.confirmed) entry.agentProcess = null;
-        else entry.snapshot.error = [entry.snapshot.error, outcome.error ?? 'agent-cli 清理未确认'].filter(Boolean).join('; ');
+        else this.appendFailure(entry.snapshot, outcome.error ?? 'agent-cli 清理未确认');
       } catch (error) {
-        entry.snapshot.error = [entry.snapshot.error, String(error)].filter(Boolean).join('; ');
+        this.appendFailure(entry.snapshot, error);
       }
     }
     // Keep the guest session alive while removing its published mapping. Closing
@@ -634,8 +706,13 @@ export class AppService {
       try {
         const ownedPort = entry.port;
         if (!ownedPort) throw new Error('映射发布结果未知，不能清理未归属端口');
-        if (entry.processExited) throw new Error('guest进程已退出，沙箱映射连续性未知；不触碰可能重绑定的端口');
+        const checkContinuity = () => {
+          if (entry.processExited || entry.processOutcomeUnknown)
+            throw new Error('guest进程已退出或结果未知，沙箱映射连续性未知；不触碰可能重绑定的端口');
+        };
+        checkContinuity();
         const before = await this.listPorts();
+        checkContinuity();
         const matches = before.filter((port) => port.sandbox_port === ownedPort.sandbox_port);
         if (matches.length > 1) throw new Error('所属端口映射重复，清理状态未知');
         if (matches.length !== 1 || !this.samePort(matches[0]!, ownedPort)) throw new Error('所属端口映射已变化或丢失，清理状态未知');
@@ -648,7 +725,7 @@ export class AppService {
         entry.portPending = false;
       } catch (error) {
         confirmed = false;
-        entry.snapshot.error = [entry.snapshot.error, String(error)].filter(Boolean).join('; ');
+        this.appendFailure(entry.snapshot, error);
       }
     }
     if (entry.process) {
@@ -656,11 +733,10 @@ export class AppService {
         const outcome = await entry.process.close();
         confirmed = confirmed && outcome.confirmed;
         if (outcome.confirmed) entry.process = null;
-        if (!outcome.confirmed)
-          entry.snapshot.error = [entry.snapshot.error, outcome.error ?? '应用进程清理未确认'].filter(Boolean).join('; ');
+        if (!outcome.confirmed) this.appendFailure(entry.snapshot, outcome.error ?? '应用进程清理未确认');
       } catch (error) {
         confirmed = false;
-        entry.snapshot.error = [entry.snapshot.error, String(error)].filter(Boolean).join('; ');
+        this.appendFailure(entry.snapshot, error);
       }
     }
     entry.snapshot.cleanupConfirmed = confirmed && agentConfirmed;
@@ -673,7 +749,9 @@ export class AppService {
     entry.cancelled = true;
     entry.snapshot.state = 'stopping';
     const operation = entry.operation;
+    const exitCompletion = entry.exitCompletion;
     entry.stopping = (async () => {
+      if (exitCompletion) await exitCompletion;
       // Finite create/export helpers own no published mapping. Cancel them now;
       // a running app must retain its process until cleanup removes that mapping.
       if (entry.commandProcess) await entry.commandProcess.close();
@@ -683,11 +761,15 @@ export class AppService {
       await this.cleanup(entry);
       entry.snapshot.state = entry.snapshot.cleanupConfirmed ? 'stopped' : 'failed';
       await this.persist();
-      this.options.onSnapshot?.({ ...entry.snapshot });
+      await this.options.onSnapshot?.({ ...entry.snapshot });
       return { ...entry.snapshot };
     })();
     try {
       return await entry.stopping;
+    } catch (error) {
+      entry.snapshot.state = 'failed';
+      this.appendFailure(entry.snapshot, error);
+      throw error;
     } finally {
       entry.stopping = null;
     }
@@ -727,7 +809,7 @@ export class AppService {
         cleanupConfirmed: !entry.agentProcess && entry.snapshot.cleanupConfirmed,
       };
     if (operation.op === 'reconcile') return this.reconcileAgent(entry, appInstanceId, operation.operationId, operation.operation);
-    if (entry.operation || entry.stopping || (write && entry.httpOperation))
+    if (entry.exitCompletion || entry.operation || entry.stopping || (write && entry.httpOperation))
       return { ...fail('app_busy', '应用操作进行中'), operationDispatched: false };
     if (entry.snapshot.state === 'running') {
       if (appInstanceId !== null && appInstanceId !== entry.snapshot.appInstanceId)
@@ -945,7 +1027,15 @@ export class AppService {
     await this.ensureLoaded();
     if (this.closing) throw new Error('应用服务正在关闭');
     const entry = this.entry(key);
-    if (entry.operation || entry.stopping || entry.process || entry.agentProcess || entry.httpOperation || !entry.snapshot.cleanupConfirmed)
+    if (
+      entry.exitCompletion ||
+      entry.operation ||
+      entry.stopping ||
+      entry.process ||
+      entry.agentProcess ||
+      entry.httpOperation ||
+      !entry.snapshot.cleanupConfirmed
+    )
       throw new Error('请先停止应用并确认清理，再导出源码');
     entry.cancelled = false;
     let result: { files: AppSourceFile[] } | undefined;

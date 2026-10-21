@@ -20,6 +20,9 @@ function fixture(
     agentOutcome?: GuestOutcome;
     agentGate?: Promise<void>;
     agentCloseError?: string;
+    startCloseError?: string;
+    commandCloseError?: string;
+    deferStartDoneOnClose?: boolean;
     agentDoneError?: string;
     exportGate?: Promise<void>;
     exportFiles?: typeof files;
@@ -42,6 +45,7 @@ function fixture(
   let closes = 0;
   let starts = 0;
   let crash: (() => void) | undefined;
+  let rejectApp: ((error: Error) => void) | undefined;
   let identity: Record<string, unknown> = {};
   const commands: string[][] = [];
   const prompts: Record<string, unknown>[] = [];
@@ -55,13 +59,18 @@ function fixture(
       prompts.push(input);
       starts++;
       let finish: ((result: GuestOutcome) => void) | undefined;
-      let rejectDone!: (error: Error) => void;
+      let rejectDone: (error: Error) => void = () => {
+        throw new Error('Uninitialised done rejection');
+      };
       const done = new Promise<GuestOutcome>((resolve, reject) => {
         finish = resolve;
         rejectDone = reject;
       });
       identity = { ...key, environmentId: 'sandbox', appInstanceId: input.appInstanceId };
-      if (input.operation === 'start') crash = () => finish?.({ confirmed: true, exitCode: 17, error: null });
+      if (input.operation === 'start') {
+        crash = () => finish?.({ confirmed: true, exitCode: 17, error: null });
+        rejectApp = rejectDone;
+      }
       if (input.operation === 'start')
         queueMicrotask(() =>
           onFrame({
@@ -107,8 +116,11 @@ function fixture(
         close: async () => {
           closes++;
           if (input.operation === 'agent' && settings.agentCloseError) throw new Error(settings.agentCloseError);
+          if (input.operation === 'start' && settings.startCloseError) throw new Error(settings.startCloseError);
+          if (['create', 'export'].includes(input.operation) && settings.commandCloseError) throw new Error(settings.commandCloseError);
           if (settings.closeGate) await settings.closeGate;
           commands.push(['child-close']);
+          if (input.operation === 'start' && settings.deferStartDoneOnClose) return { confirmed: true, exitCode: -15, error: null };
           finish?.({
             confirmed: settings.cleanup !== false,
             exitCode: -15,
@@ -167,6 +179,10 @@ function fixture(
     closes: () => closes,
     starts: () => starts,
     crash: () => crash?.(),
+    rejectApp: () => {
+      if (!rejectApp) throw new Error('No App process');
+      return rejectApp;
+    },
     rebind: (port: number) => {
       mappedHostPort = port;
     },
@@ -182,6 +198,354 @@ function fixture(
     },
   };
 }
+
+async function settleAppFixture(service: AppService): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      service.stop(key).catch(() => undefined),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error('Fixture cleanup did not settle')), 2000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+describe('R3 App asynchronous completion failures', () => {
+  it('publishes exit persistence failure while retaining unknown cleanup', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-completion-'));
+    const registryPath = path.join(root, 'registry.json');
+    const test = fixture();
+    const onSnapshot = vi.fn();
+    const service = new AppService(test.connection, { ...test.options, registryPath, onSnapshot });
+    let writing: ReturnType<typeof vi.spyOn> | undefined;
+    try {
+      await service.create({ ...key, files });
+      const running = await service.start(key);
+      writing = vi.spyOn(fs, 'writeFile').mockRejectedValueOnce(new Error('controlled_exit_persist_failure'));
+      test.crash();
+      await expect.poll(() => service.get(key).error).toContain('controlled_exit_persist_failure');
+      expect(service.get(key)).toMatchObject({ appInstanceId: running.appInstanceId, state: 'failed', cleanupConfirmed: false, url: null });
+      expect(onSnapshot).toHaveBeenLastCalledWith(
+        expect.objectContaining({ state: 'failed', error: expect.stringContaining('controlled_exit_persist_failure') }),
+      );
+      await expect(service.start(key)).rejects.toThrow(/清理|进行中/);
+      writing.mockRestore();
+      expect((await service.stop(key)).cleanupConfirmed).toBe(false);
+      expect(JSON.parse(await readFile(registryPath, 'utf8')).apps[0]).toMatchObject({ state: 'failed', cleanupConfirmed: false });
+      expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+    } finally {
+      writing?.mockRestore();
+      await settleAppFixture(service);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it.each(['sync', 'async'] as const)('retains a %s publisher failure in the queryable snapshot', async (kind) => {
+    const test = fixture();
+    const service = new AppService(test.connection, {
+      ...test.options,
+      onSnapshot: (snapshot) => {
+        if (snapshot.state !== 'failed') return;
+        const error = new Error(`controlled_${kind}_publish_failure`);
+        if (kind === 'async') return Promise.reject(error);
+        throw error;
+      },
+    });
+    await service.create({ ...key, files });
+    await service.start(key);
+    test.crash();
+    await expect.poll(() => service.get(key).error).toContain(`controlled_${kind}_publish_failure`);
+    expect(service.get(key)).toMatchObject({ state: 'failed', cleanupConfirmed: false, url: null });
+  });
+  it('does not invent an exit or cleanup receipt when running done rejects', async () => {
+    const test = fixture();
+    await test.service.create({ ...key, files });
+    const running = await test.service.start(key);
+    test.rejectApp()(new Error('controlled_running_done_rejection'));
+    await expect.poll(() => test.service.get(key).state).toBe('failed');
+    await expect.poll(() => test.service.get(key).error).toContain('controlled_running_done_rejection');
+    expect(test.service.get(key)).toMatchObject({ appInstanceId: running.appInstanceId, cleanupConfirmed: false, url: null });
+    await expect(test.service.start(key)).rejects.toThrow(/清理|进行中/);
+    expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+  });
+  it('rejects startup when done rejects before the successful health reply returns', async () => {
+    const test = fixture();
+    const service = new AppService(test.connection, {
+      ...test.options,
+      fetch: async (...args) => {
+        test.rejectApp()(new Error('controlled_startup_done_rejection'));
+        return test.options.fetch(...args);
+      },
+    });
+    await service.create({ ...key, files });
+    const result = await service.start(key);
+    expect(result).toMatchObject({ state: 'failed', cleanupConfirmed: false, url: null });
+    expect(result.error).toContain('controlled_startup_done_rejection');
+  });
+  it('ignores a former process rejection after confirmed stop and replacement', async () => {
+    const test = fixture({ deferStartDoneOnClose: true });
+    await test.service.create({ ...key, files });
+    const first = await test.service.start(key);
+    const rejectOld = test.rejectApp();
+    expect((await test.service.stop(key)).cleanupConfirmed).toBe(true);
+    const second = await test.service.start(key);
+    expect(second.appInstanceId).not.toBe(first.appInstanceId);
+    rejectOld(new Error('controlled_stale_done_rejection'));
+    try {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(test.service.get(key)).toEqual(second);
+      expect(test.hasMapping()).toBe(true);
+    } finally {
+      await test.service.stop(key);
+    }
+  });
+  it.each(['exit', 'rejection'] as const)('does not unpublish after process %s during the cleanup port query', async (kind) => {
+    const test = fixture();
+    let armed = false;
+    const service = new AppService(test.connection, {
+      ...test.options,
+      ports: async (args) => {
+        const receipt = await test.options.ports(args);
+        if (armed && args[0] === '--json') {
+          armed = false;
+          if (kind === 'exit') test.crash();
+          else test.rejectApp()(new Error('controlled_cleanup_query_rejection'));
+        }
+        return receipt;
+      },
+    });
+    await service.create({ ...key, files });
+    await service.start(key);
+    armed = true;
+    const stopped = await service.stop(key);
+    expect(armed).toBe(false);
+    expect(stopped).toMatchObject({ state: 'failed', cleanupConfirmed: false });
+    expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+    expect(test.hasMapping()).toBe(true);
+  });
+  it('records finite-helper close rejection and allows explicit cleanup after the operation ends', async () => {
+    let release: () => void = () => {
+      throw new Error('Uninitialised gate');
+    };
+    const settings = {
+      exportGate: new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+      commandCloseError: undefined as string | undefined,
+    };
+    const test = fixture(settings);
+    await test.service.create({ ...key, files });
+    settings.commandCloseError = 'controlled_command_close_failure';
+    const exporting = expect(test.service.export(key)).rejects.toThrow('取消');
+    try {
+      await expect.poll(test.starts).toBe(2);
+      await expect(test.service.stop(key)).rejects.toThrow('controlled_command_close_failure');
+      expect(test.service.get(key)).toMatchObject({
+        state: 'failed',
+        cleanupConfirmed: false,
+        error: expect.stringContaining('controlled_command_close_failure'),
+      });
+      await expect(test.service.start(key)).rejects.toThrow(/进行中|清理/);
+    } finally {
+      settings.commandCloseError = undefined;
+      release();
+      await exporting;
+      await test.service.stop(key);
+    }
+    expect(test.service.get(key)).toMatchObject({ state: 'stopped', cleanupConfirmed: true });
+  });
+  it('waits for the asynchronous exit publisher before stop completes and admission reopens', async () => {
+    let release: () => void = () => {
+      throw new Error('Uninitialised gate');
+    };
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let publishing = false;
+    const test = fixture();
+    const service = new AppService(test.connection, {
+      ...test.options,
+      onSnapshot: async (snapshot) => {
+        if (snapshot.state === 'failed' && !publishing) {
+          publishing = true;
+          await gate;
+        }
+      },
+    });
+    await service.create({ ...key, files });
+    const otherKey = { ...key, projectId: 'project-second' };
+    await service.create({ ...otherKey, files });
+    const running = await service.start(key);
+    test.crash();
+    let stopped = false;
+    let stopping: Promise<unknown> | undefined;
+    try {
+      await expect.poll(() => publishing).toBe(true);
+      const admitted = test.starts();
+      await expect(service.start(key)).rejects.toThrow(/进行中|清理/);
+      await expect(service.export(key)).rejects.toThrow(/停止|进行中/);
+      const request = await service.agent(key, running.appInstanceId, { op: 'describe' }, new AbortController().signal);
+      expect(request.envelope).toMatchObject({ ok: false, error: { code: 'app_busy' } });
+      await expect(service.start(otherKey)).rejects.toThrow(/首版|进行中/);
+      expect(test.starts()).toBe(admitted);
+      expect(test.agentRequests()).toHaveLength(0);
+      stopping = service.stop(key).then((result) => {
+        stopped = true;
+        return result;
+      });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(stopped).toBe(false);
+    } finally {
+      release();
+      await stopping;
+      await settleAppFixture(service);
+    }
+    expect(stopped).toBe(true);
+  });
+
+  it.each(['create', 'start'] as const)(
+    'records an asynchronous %s notification failure without changing operation facts',
+    async (phase) => {
+      const test = fixture();
+      const service = new AppService(test.connection, {
+        ...test.options,
+        onSnapshot: async (snapshot) => {
+          if (snapshot.state === (phase === 'create' ? 'created' : 'starting')) throw new Error(`controlled_${phase}_notification_failure`);
+        },
+      });
+      try {
+        await service.create({ ...key, files });
+        if (phase === 'start') await service.start(key);
+        await expect.poll(() => service.get(key).error).toContain(`controlled_${phase}_notification_failure`);
+        expect(service.get(key)).toMatchObject({ state: phase === 'create' ? 'created' : 'running', cleanupConfirmed: phase === 'create' });
+        expect(test.starts()).toBe(phase === 'create' ? 1 : 2);
+        expect(test.hasMapping()).toBe(phase === 'start');
+      } finally {
+        await settleAppFixture(service);
+      }
+    },
+  );
+  it('ignores a stale asynchronous creation notification after a new running snapshot owns the project', async () => {
+    let reject: (error: Error) => void = (_error) => {
+      throw new Error('Uninitialised publisher rejection');
+    };
+    const publication = new Promise<void>((_resolve, rejectPublication) => {
+      reject = rejectPublication;
+    });
+    const test = fixture();
+    const service = new AppService(test.connection, {
+      ...test.options,
+      onSnapshot: (snapshot) => (snapshot.state === 'created' ? publication : undefined),
+    });
+    try {
+      await service.create({ ...key, files });
+      const running = await service.start(key);
+      reject(new Error('controlled_stale_publication'));
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(service.get(key)).toEqual(running);
+      expect(service.get(key).error).toBeNull();
+      expect(test.hasMapping()).toBe(true);
+    } finally {
+      reject(new Error('fixture publication settled'));
+      await settleAppFixture(service);
+    }
+  });
+  it('bounds accumulated snapshot errors while retaining the latest failure and unknown ownership', async () => {
+    const settings = { startCloseError: 'controlled_long_close_' + 'x'.repeat(10000) };
+    const test = fixture(settings);
+    await test.service.create({ ...key, files });
+    await test.service.start(key);
+    test.crash();
+    await expect.poll(() => test.service.get(key).state).toBe('failed');
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(test.service.get(key).error?.length).toBeLessThanOrEqual(4000);
+    for (let index = 0; index < 12; index++) {
+      settings.startCloseError = `controlled_latest_close_${index}_` + 'y'.repeat(10000);
+      const stopped = await test.service.stop(key);
+      expect(stopped).toMatchObject({ state: 'failed', cleanupConfirmed: false, url: null });
+      expect(stopped.error).toContain(`controlled_latest_close_${index}_`);
+      expect(stopped.error?.length).toBeLessThanOrEqual(4000);
+    }
+    expect(test.commands().some((args) => args[0] === '--unpublish')).toBe(false);
+  });
+  it.each(['persist', 'publisher'] as const)('preserves confirmed cleanup when the final stop %s fails', async (kind) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-confirmed-stop-'));
+    const test = fixture();
+    let failPublication = false;
+    const service = new AppService(test.connection, {
+      ...test.options,
+      registryPath: path.join(root, 'registry.json'),
+      onSnapshot: async (snapshot) => {
+        if (failPublication && snapshot.state === 'stopped') throw new Error('controlled_final_stop_publisher');
+      },
+    });
+    let writing: ReturnType<typeof vi.spyOn> | undefined;
+    try {
+      await service.create({ ...key, files });
+      const running = await service.start(key);
+      const starts = test.starts();
+      if (kind === 'persist') writing = vi.spyOn(fs, 'writeFile').mockRejectedValueOnce(new Error('controlled_final_stop_persist'));
+      else failPublication = true;
+      await expect(service.stop(key)).rejects.toThrow(`controlled_final_stop_${kind}`);
+      expect(service.get(key)).toMatchObject({
+        state: 'failed',
+        cleanupConfirmed: true,
+        url: null,
+        appInstanceId: running.appInstanceId,
+        error: expect.stringContaining(`controlled_final_stop_${kind}`),
+      });
+      expect(test.hasMapping()).toBe(false);
+      expect(test.starts()).toBe(starts);
+      writing?.mockRestore();
+      failPublication = false;
+      expect((await service.stop(key)).state).toBe('stopped');
+      expect(test.starts()).toBe(starts);
+    } finally {
+      writing?.mockRestore();
+      failPublication = false;
+      await settleAppFixture(service);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('retains finite-helper ownership when the unchanged 30-second cancellation close rejects', async () => {
+    let release: () => void = () => {
+      throw new Error('Uninitialised gate');
+    };
+    const settings = {
+      exportGate: new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+      commandCloseError: undefined as string | undefined,
+    };
+    const test = fixture(settings);
+    await test.service.create({ ...key, files });
+    settings.commandCloseError = 'controlled_timeout_close_failure';
+    vi.useFakeTimers();
+    const exporting = expect(test.service.export(key)).rejects.toThrow('取消');
+    try {
+      await vi.waitFor(() => expect(test.starts()).toBe(2));
+      await vi.advanceTimersByTimeAsync(30000);
+      expect(test.closes()).toBe(1);
+      expect(test.service.get(key)).toMatchObject({
+        state: 'failed',
+        cleanupConfirmed: false,
+        error: expect.stringContaining('controlled_timeout_close_failure'),
+      });
+      await expect(test.service.start(key)).rejects.toThrow(/进行中|清理/);
+      await expect(test.service.export(key)).rejects.toThrow(/停止|进行中/);
+      expect(test.starts()).toBe(2);
+    } finally {
+      vi.useRealTimers();
+      settings.commandCloseError = undefined;
+      release();
+      await exporting;
+      await settleAppFixture(test.service);
+    }
+    expect(test.service.get(key)).toMatchObject({ state: 'stopped', cleanupConfirmed: true });
+  });
+});
 
 describe('managed app ownership', () => {
   it('rejects export after shutdown and closes admission before loading settles', async () => {
