@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { BudgetSchema, CaseIdSchema } from './task';
+import { HarnessIdSchema } from './harness';
 
 /**
  * 记录来源。demo 只用于界面检查，内容由仓库内的演示数据给出，
@@ -113,7 +114,13 @@ export const RunRecordSchema = z.object({
   mode: RunModeSchema,
   caseId: CaseIdSchema,
   taskRef: z.object({ taskId: z.string(), version: z.number().int().min(1) }),
-  harness: z.object({ name: z.literal('Codex CLI'), version: z.string().nullable(), model: z.string().nullable() }),
+  harness: z.object({
+    /** 缺省为 codex（引入多 Harness 之前的记录）。 */
+    harnessId: HarnessIdSchema.optional(),
+    name: z.string().min(1),
+    version: z.string().nullable(),
+    model: z.string().nullable(),
+  }),
   budget: BudgetSchema,
   status: RunStatusSchema,
   statusReason: z.string().nullable(),

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { harnessDisplayName } from '@wsl/protocol';
 import { useStore } from '../lib/store';
 import { chatActions, chatStore } from '../state/chat';
 
@@ -18,7 +19,7 @@ export function ChatMessages({ conversationId }: { conversationId: string }) {
     <>
       <div className="row space-between">
         <span className="muted small" aria-label="对话执行环境">
-          sbx · {status?.sandbox ?? '未选择沙箱'} · {status?.cwd ?? '工作目录未读取'} · Codex CLI ·{' '}
+          sbx · {status?.sandbox ?? '未选择沙箱'} · {status?.cwd ?? '工作目录未读取'} · {harnessDisplayName(status)} ·{' '}
           {status?.available ? status.version : (status?.reason ?? '检查中')} · 应用内消息仅本次启动可见
         </span>
         <button type="button" className="btn btn-ghost" disabled={pending || busy} onClick={() => void chatActions.reset(conversationId)}>
@@ -40,7 +41,7 @@ export function ChatMessages({ conversationId }: { conversationId: string }) {
           conversation.messages.map((message) => (
             <div key={message.id} className={`message message-${message.role === 'user' ? 'user' : 'agent'}`}>
               <p style={{ whiteSpace: 'pre-wrap' }}>{message.text}</p>
-              <span>{message.role === 'user' ? '你' : 'Codex CLI'}</span>
+              <span>{message.role === 'user' ? '你' : harnessDisplayName(status)}</span>
             </div>
           ))
         ) : (

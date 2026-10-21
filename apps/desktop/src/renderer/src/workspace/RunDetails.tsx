@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { CapturedSourceChange, StatusScope, WorkbenchRun } from '@wsl/protocol';
+import { harnessDisplayName, type CapturedSourceChange, type StatusScope, type WorkbenchRun } from '@wsl/protocol';
 import { sourceChangeStatus } from '../../../shared/status';
 import { PatchView } from '../components/PatchView';
 import { StatusDot } from '../components/Status';
@@ -133,7 +133,7 @@ export function RunDetails({ run, view }: { run: WorkbenchRun; view: RunView }) 
               <div role="log" aria-label="运行消息">
                 {run.conversation.messages.map((m) => (
                   <p key={m.id}>
-                    {m.role === 'user' ? '你' : 'Codex CLI'}：{m.text}
+                    {m.role === 'user' ? '你' : harnessDisplayName(run)}：{m.text}
                   </p>
                 ))}
               </div>

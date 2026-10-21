@@ -121,3 +121,24 @@ describe('真实子进程生命周期（fixture）', () => {
     expect((await finish()).messages.map((message) => message.text)).toEqual(['fresh', 'fixture 回复：fresh']);
   });
 });
+
+describe('Harness 端口（W2）', () => {
+  it('状态报告 Codex 描述符，版本与连接检查一致', () => {
+    const status = chat.getStatus();
+    expect(status.available).toBe(true);
+    expect(status.harness).toMatchObject({ harnessId: 'codex', displayName: 'Codex CLI', adapter: 'native', version: status.version });
+  });
+  it('start 帧显式声明 MCP 挂载方式，参数由适配器构造', async () => {
+    const start = vi.spyOn(chat.connection, 'start');
+    await chat.send(personal, '记住晴川742', undefined, emptyReferences(personal));
+    expect((await finish()).state).toBe('idle');
+    const frame = start.mock.calls[0]![0];
+    expect(frame).toMatchObject({ type: 'start', mode: 'codex', mcp: 'codex-config' });
+    expect(frame.type === 'start' && frame.mode === 'codex' ? frame.argv.slice(0, 4) : null).toEqual([
+      'codex',
+      'exec',
+      '--sandbox',
+      'workspace-write',
+    ]);
+  });
+});

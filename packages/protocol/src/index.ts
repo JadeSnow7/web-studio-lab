@@ -28,3 +28,5 @@ export * from './app-control';
 
 export * from './status';
 export * from './source-change';
+
+export * from './harness';

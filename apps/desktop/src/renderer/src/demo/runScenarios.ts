@@ -94,7 +94,7 @@ function base(runId: string, status: RunStatus, overrides: Partial<RunRecord>): 
     mode: 'online',
     caseId: 'c1',
     taskRef: { taskId: 'demo-task', version: 1 },
-    harness: { name: 'Codex CLI', version: null, model: null },
+    harness: { harnessId: 'codex', name: 'Codex CLI', version: null, model: null },
     budget: { ...DEFAULT_BUDGET },
     status,
     statusReason: null,

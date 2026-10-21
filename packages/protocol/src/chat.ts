@@ -23,12 +23,15 @@ import { TerminalOpenSchema, TerminalWriteSchema, TerminalResizeSchema, Terminal
 import { ChatSlotSchema } from './chat-slot';
 export { ChatSlotSchema } from './chat-slot';
 import { CatalogReferenceSnapshotSchema } from './resource-catalog';
+import { HarnessDescriptorSchema } from './harness';
 export const ChatStatusSchema = z.object({
   available: z.boolean(),
   reason: z.string().nullable(),
   version: z.string().nullable(),
   sandbox: z.string().nullable(),
   cwd: z.string().nullable(),
+  /** 本对话服务使用的 Harness；旧版本服务不报告时缺省。 */
+  harness: HarnessDescriptorSchema.optional(),
 });
 export const ChatMessageSchema = z.object({ id: z.string(), role: z.enum(['user', 'assistant']), text: z.string() });
 export const ChatConversationSchema = z.object({

@@ -1,4 +1,6 @@
 import { Icon } from '../components/Icon';
+import { harnessDisplayName } from '@wsl/protocol';
+import { chatStore } from '../state/chat';
 import { Shape } from '../components/Status';
 import { BrandLogo } from '../components/BrandLogo';
 import { useStore } from '../lib/store';
@@ -45,6 +47,7 @@ export function TitleBar({ leftMode, rightMode }: { leftMode: PanelMode; rightMo
   const workspace = state.snapshot?.workspaces.find((w) => w.workspaceId === state.selectedId);
   // 健康与读取中都不外露；持续存在的全局 problem 才在标题栏出现，点击进入设置页。
   const { chat, setup, moreSetup } = useTitlebarStatus();
+  const harnessName = useStore(chatStore, (state) => harnessDisplayName(state.status));
   const unread = state.snapshot?.notifications.filter((n) => !n.readAt).length ?? 0;
   const leftLabel = leftMode === 'collapsed' ? '展开 Workshop' : '收起 Workshop';
   return (
@@ -85,7 +88,9 @@ export function TitleBar({ leftMode, rightMode }: { leftMode: PanelMode; rightMo
             恢复布局
           </button>
         ) : null}
-        {chat ? <TitlebarStatus view={chat} text={`Codex CLI · ${chat.label}`} onClick={() => shellActions.navigate('settings')} /> : null}
+        {chat ? (
+          <TitlebarStatus view={chat} text={`${harnessName} · ${chat.label}`} onClick={() => shellActions.navigate('settings')} />
+        ) : null}
         {setup ? (
           <TitlebarStatus
             view={setup}
