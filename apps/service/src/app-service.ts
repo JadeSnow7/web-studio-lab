@@ -8,6 +8,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { z } from 'zod';
 import {
   AgentCliEnvelopeSchema,
+  AppSourceSchema,
+  STANDARD_APP_EXPORT_BUDGET,
   AppOperationReceiptSchema,
   type AgentCliEnvelope,
   type AppAgentOperation,
@@ -72,21 +74,25 @@ export interface AppServiceOptions {
   onSnapshot?: (snapshot: AppSnapshot) => void;
 }
 
+function validateAppSourcePath(sourcePath: string, seen: Set<string>): void {
+  if (
+    sourcePath.includes('\\') ||
+    sourcePath.includes('\0') ||
+    sourcePath.startsWith('.wsl-') ||
+    sourcePath.split('/').some((part) => !part || part === '.' || part === '..') ||
+    /^(node_modules|dist|data|\.data|\.git|\.vite|\.wsl-identity\.json)(\/|$)/.test(sourcePath)
+  )
+    throw new Error('不安全的应用源码路径');
+  if (seen.has(sourcePath)) throw new Error('重复应用源码路径');
+  seen.add(sourcePath);
+}
+
 export function validateAppSources(files: AppSourceFile[]): void {
   z.array(fileSchema).min(1).max(256).parse(files);
   const seen = new Set<string>();
   let total = 0;
   for (const file of files) {
-    if (
-      file.path.includes('\\') ||
-      file.path.includes('\0') ||
-      file.path.startsWith('.wsl-') ||
-      file.path.split('/').some((part) => !part || part === '.' || part === '..') ||
-      /^(node_modules|dist|data|\.data|\.git|\.vite|\.wsl-identity\.json)(\/|$)/.test(file.path)
-    )
-      throw new Error('不安全的应用源码路径');
-    if (seen.has(file.path)) throw new Error('重复应用源码路径');
-    seen.add(file.path);
+    validateAppSourcePath(file.path, seen);
     if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(file.base64)) throw new Error('无效源码编码');
     total += Buffer.from(file.base64, 'base64').length;
   }
@@ -263,6 +269,7 @@ export class AppService {
           projectId,
           appInstanceId,
           ...(files ? { files } : {}),
+          ...(operation === 'export' ? { exportBudget: STANDARD_APP_EXPORT_BUDGET } : {}),
           ...(operation === 'start' && entry.agentToken ? { agentToken: entry.agentToken } : {}),
         }),
       },
@@ -944,8 +951,10 @@ export class AppService {
     let result: { files: AppSourceFile[] } | undefined;
     entry.operation = (async () => {
       try {
-        result = z.object({ files: z.array(fileSchema) }).parse(await this.command(entry, 'export'));
-        validateAppSources(result.files);
+        result = AppSourceSchema.omit({ sha256: true }).parse(await this.command(entry, 'export'));
+        // Export encoding and decoded budget are checked by the shared wire contract.
+        const paths = new Set<string>();
+        for (const file of result.files) validateAppSourcePath(file.path, paths);
         return { ...entry.snapshot };
       } finally {
         await this.persist();

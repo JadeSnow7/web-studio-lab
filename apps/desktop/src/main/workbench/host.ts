@@ -1,9 +1,8 @@
 import { isAllowedPreviewUrl } from '../preview/navigation-policy';
 import { parsePublicUrl } from '../preview/public-document';
 import { app, session, type BrowserWindow } from 'electron';
-import { readFile, readdir, lstat, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
-import { randomUUID, createHash } from 'node:crypto';
 import type { AppTarget, ManagedApp, AppSource, CatalogReferenceSnapshot, AppAgentOperation } from '@wsl/protocol';
 import type { ObservationRequest, ObservationTurnScope, ResourceInstanceIdentity, WorkbenchResource } from '@wsl/protocol';
 import type { ChatService } from '../chat-service';
@@ -15,6 +14,7 @@ import { PreviewController } from '../preview/controller';
 import { DEMO_ORIGIN, installDemoProtocol } from '../preview/demo-protocol';
 import type { WorkbenchRuntime } from './ports';
 import type { WorkbenchApplication } from './application';
+import { exportAppSource } from './source-export';
 export class WorkbenchHost implements WorkbenchRuntime {
   async reload(): Promise<void> {
     await this.application?.performActiveBrowserAction('reload');
@@ -65,27 +65,7 @@ export class WorkbenchHost implements WorkbenchRuntime {
   }
   async appExport(target: AppTarget) {
     const source = await this.chat.appExport(target);
-    if (createHash('sha256').update(JSON.stringify(source.files)).digest('hex') !== source.sha256) throw new Error('源码导出散列不匹配');
-    const directory = path.join(app.getPath('userData'), 'exports');
-    await mkdir(directory, { recursive: true, mode: 0o700 });
-    const exported = path.join(directory, target.projectId + '-' + randomUUID());
-    await mkdir(exported, { mode: 0o700 });
-    for (const sourceFile of source.files) {
-      if (
-        sourceFile.path.includes('\\') ||
-        sourceFile.path.includes('\0') ||
-        sourceFile.path.split('/').some((part) => !part || part === '.' || part === '..')
-      )
-        throw new Error('源码导出路径无效');
-      const file = path.join(exported, sourceFile.path);
-      await mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
-      await writeFile(file, Buffer.from(sourceFile.base64, 'base64'), { flag: 'wx', mode: 0o600 });
-    }
-    await writeFile(`${exported}.manifest.json`, JSON.stringify({ ...target, ...source }, null, 2), {
-      flag: 'wx',
-      mode: 0o600,
-    });
-    return { path: exported, manifestPath: `${exported}.manifest.json`, sha256: source.sha256 };
+    return exportAppSource(path.join(app.getPath('userData'), 'exports'), target, source);
   }
   private readonly appUis = new Map<string, AppUiDriver>();
   /** 只为受管 App 的 Browser 资源提供控制面端口；演示页与公开只读文档永远不可写。 */
