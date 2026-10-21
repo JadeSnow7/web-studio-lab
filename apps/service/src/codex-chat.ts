@@ -17,7 +17,7 @@ import {
   type ChatStatus,
   type CatalogReferenceSnapshot,
 } from '@wsl/protocol';
-import { SbxConnection, type GuestProcess } from './sbx';
+import { SbxConnection, type GuestProcess, type GuestOutcome } from './sbx';
 
 const EventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('thread.started'), thread_id: z.string().min(1) }),
@@ -166,6 +166,10 @@ interface Turn {
   completed: boolean;
   replied: boolean;
   cleanupError: string | null;
+  cleanupConfirmed: boolean;
+  finishing: boolean;
+  closePromise: Promise<GuestOutcome | null> | null;
+  completion: Promise<void> | null;
   observation: AbortController;
   calls: Map<string, AbortController>;
 }
@@ -252,7 +256,33 @@ export class CodexChat {
     if (this.connection.getCleanupPending()) throw new Error('共享 sandbox 清理状态未知');
     for (const slot of this.slots.values()) {
       if (slot.active?.cleanupError) throw new Error(slot.active.cleanupError);
+      if (slot.active?.failure && slot.conversation.cleanupPending) throw new Error('失败轮次的 guest 清理尚未确认');
     }
+  }
+  private completionFailed(slot: Slot, turn: Turn, error: unknown): void {
+    if (slot.active !== turn) return;
+    const reason = error instanceof Error ? error.message : String(error);
+    turn.failure ??= reason;
+    turn.observation.abort();
+    if (!turn.cleanupConfirmed) turn.cleanupError ??= reason;
+    slot.conversation.state = 'failed';
+    slot.conversation.cleanupPending = !turn.cleanupConfirmed;
+    slot.conversation.error = [...new Set([turn.failure, slot.conversation.error, reason].filter(Boolean))].join('; ');
+    try {
+      this.publish(slot);
+    } catch (publishError) {
+      slot.conversation.error += `; ${publishError instanceof Error ? publishError.message : String(publishError)}`;
+    }
+    if (turn.cleanupConfirmed && slot.active === turn) slot.active = null;
+  }
+  private closeTurn(slot: Slot, turn: Turn): Promise<GuestOutcome | null> {
+    turn.closePromise ??= Promise.resolve()
+      .then(() => turn.process.close())
+      .catch((error: unknown) => {
+        this.completionFailed(slot, turn, error);
+        return null;
+      });
+    return turn.closePromise;
   }
   async send(
     id: ChatSlot,
@@ -272,7 +302,7 @@ export class CodexChat {
     const slot = this.slot(id);
     if (slot.active) throw new Error(slot.active?.cleanupError ?? '当前会话正在等待回复');
     const spaceId = this.workspaceBySession.get(id) ?? null;
-    if (spaceId) this.assertCleanupKnown();
+    this.assertCleanupKnown();
     const turnId = randomUUID();
     if (references.sessionId !== id || references.workspaceId !== spaceId) throw new Error('参考资料不属于已注册会话');
     const resourceBundle = ResourceBundleSchema.parse({
@@ -294,9 +324,18 @@ export class CodexChat {
     let buffer = '';
     let stderr = '';
     const fail = (reason: string) => {
-      turn.failure ??= reason;
+      if (slot.active !== turn || turn.failure) return;
+      turn.failure = reason;
       turn.observation.abort();
-      void turn.process.close();
+      slot.conversation.state = 'failed';
+      slot.conversation.error = reason;
+      slot.conversation.cleanupPending = !turn.cleanupConfirmed;
+      void this.closeTurn(slot, turn);
+      try {
+        this.publish(slot);
+      } catch (error) {
+        this.completionFailed(slot, turn, error);
+      }
     };
     const consume = (line: string) => {
       if (turn.cancel || turn.failure || slot.active !== turn || !line.trim()) return;
@@ -393,14 +432,16 @@ export class CodexChat {
         observationImages: false,
       },
       (frame) => {
+        if (slot.active !== turn || turn.finishing) return;
         if (frame.type === 'observation-cancel') {
           turn.calls.get(frame.id)?.abort();
           return;
         }
         if (frame.type === 'observation-call') {
+          if (turn.failure || turn.cancel || turn.observation.signal.aborted) return;
           const appTool = frame.tool.startsWith('app.');
           const reply = (result: WorkspaceObservationResult | AppControlResult) => {
-            if (slot.active !== turn || turn.cancel || turn.observation.signal.aborted) return;
+            if (slot.active !== turn || turn.failure || turn.cancel || turn.observation.signal.aborted) return;
             const bounded = boundedObservationReply(frame.id, result);
             process.write(bounded);
           };
@@ -453,8 +494,8 @@ export class CodexChat {
           return;
         }
         if (frame.type === 'cleanup') {
-          slot.conversation.cleanupPending = !frame.ok;
-          this.publish(slot);
+          // A frame is not the transport's settled cleanup receipt.
+          if (!frame.ok) turn.cleanupError ??= frame.error ?? 'guest 清理未确认';
         }
         if (frame.type !== 'output') return;
         if (frame.stream === 'stderr') {
@@ -481,36 +522,44 @@ export class CodexChat {
       completed: false,
       replied: false,
       cleanupError: null,
+      cleanupConfirmed: false,
+      finishing: false,
+      closePromise: null,
+      completion: null,
       observation: new AbortController(),
       calls: new Map(),
     };
     slot.active = turn;
-    void process.done.then((outcome) => {
-      turn.observation.abort();
-      if (buffer.trim()) consume(buffer);
-      if (slot.active !== turn) return;
-      turn.cleanupError = !outcome.confirmed ? (outcome.error ?? 'guest 清理未确认') : null;
-      slot.conversation.cleanupPending = !outcome.confirmed;
-      if (!turn.cleanupError) slot.active = null;
-      const failure =
-        turn.cleanupError ??
-        outcome.error ??
-        turn.failure ??
-        (!turn.cancel
-          ? outcome.exitCode !== 0
-            ? `Codex 退出失败（${outcome.exitCode}）${stderr ? `：${stderr}` : ''}`
-            : !turn.completed
-              ? 'Codex 未返回对话完成事件'
-              : !slot.conversation.threadId
-                ? 'Codex 未返回会话身份'
-                : !turn.replied
-                  ? 'Codex 未返回助手回复'
-                  : null
-          : null);
-      slot.conversation.state = failure ? 'failed' : turn.cancel ? 'cancelled' : 'idle';
-      slot.conversation.error = failure;
-      this.publish(slot);
-    });
+    turn.completion = process.done
+      .then((outcome) => {
+        if (slot.active !== turn) return;
+        turn.finishing = true;
+        turn.observation.abort();
+        // The final JSON event need not end with a newline. Only new frames are
+        // blocked while finishing; this already-received tail is still consumed.
+        if (buffer.trim()) consume(buffer);
+        turn.cleanupConfirmed = outcome.confirmed;
+        turn.cleanupError = !outcome.confirmed ? (outcome.error ?? 'guest 清理未确认') : null;
+        slot.conversation.cleanupPending = !outcome.confirmed;
+        const failure =
+          [...new Set([turn.failure, turn.cleanupError, outcome.error].filter(Boolean))].join('; ') ||
+          (!turn.cancel
+            ? outcome.exitCode !== 0
+              ? `Codex 退出失败（${outcome.exitCode}）${stderr ? `：${stderr}` : ''}`
+              : !turn.completed
+                ? 'Codex 未返回对话完成事件'
+                : !slot.conversation.threadId
+                  ? 'Codex 未返回会话身份'
+                  : !turn.replied
+                    ? 'Codex 未返回助手回复'
+                    : null
+            : null);
+        slot.conversation.state = failure ? 'failed' : turn.cancel ? 'cancelled' : 'idle';
+        slot.conversation.error = failure;
+        this.publish(slot);
+        if (turn.cleanupConfirmed) slot.active = null;
+      })
+      .catch((error: unknown) => this.completionFailed(slot, turn, error));
     return this.get(id);
   }
   private cancelUnstarted(slot: Slot, turnId: string): ChatConversation {
@@ -522,18 +571,35 @@ export class CodexChat {
     const slot = this.slot(id);
     const turn = slot.active;
     if (!turn) return queuedSend ? this.cancelUnstarted(slot, randomUUID()) : this.get(id);
+    // A synchronous subscriber may cancel while the settled outcome is being
+    // published. It must await that publication without changing the terminal state.
+    if (turn.finishing) {
+      await turn.completion;
+      if (!turn.cleanupConfirmed) throw new Error(turn.cleanupError ?? 'guest 清理未确认');
+      return this.get(id);
+    }
     if (turn.cleanupError) throw new Error(turn.cleanupError);
-    turn.cancel = true;
-    turn.observation.abort();
-    slot.conversation.state = 'cancelling';
-    this.publish(slot);
-    const outcome = await turn.process.close();
-    if (!outcome.confirmed || outcome.error) throw new Error(outcome.error ?? 'guest 清理未确认');
+    if (!turn.failure) {
+      turn.cancel = true;
+      turn.observation.abort();
+      slot.conversation.state = 'cancelling';
+      try {
+        this.publish(slot);
+      } catch (error) {
+        // Publication failure must not prevent the owned process from closing.
+        this.completionFailed(slot, turn, error);
+      }
+    }
+    const outcome = await this.closeTurn(slot, turn);
+    if (!outcome || !outcome.confirmed || outcome.error) throw new Error(turn.cleanupError ?? outcome?.error ?? 'guest 清理未确认');
+    await turn.completion;
+    if (!turn.cleanupConfirmed) throw new Error(turn.cleanupError ?? 'guest 清理未确认');
     return this.get(id);
   }
   async reset(id: ChatSlot): Promise<ChatConversation> {
     if (this.closing) throw new Error('对话服务正在关闭');
     await this.cancel(id);
+    this.assertCleanupKnown();
     this.slots.delete(id);
     return this.publish(this.slot(id));
   }
