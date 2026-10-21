@@ -17,10 +17,13 @@ sudo -n tar -xzf "$sbx_node_archive" -C /usr/local --strip-components=1
 export PATH="/usr/local/bin:/usr/local/share/npm-global/bin:$PATH"
 test "$(node --version)" = v24.21.0
 npm install --global --prefix /usr/local/share/npm-global \
-  @openai/codex@0.160.0 pnpm@10.34.6
+  @openai/codex@0.160.0 pnpm@10.34.6 @agentclientprotocol/claude-agent-acp@0.94.0
 test "$(codex --version)" = 'codex-cli 0.160.0'
 test "$(pnpm --version)" = 10.34.6
+# Claude Code 的 ACP 包装器（ADR-0003 W3b）；登录在 guest 终端内单独完成，本脚本不处理认证。
+test "$(claude-agent-acp --version)" = 0.94.0
 node --version
 npm --version
 codex --version
 pnpm --version
+claude-agent-acp --version

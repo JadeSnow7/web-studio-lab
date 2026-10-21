@@ -9,7 +9,8 @@ import type { HarnessDescriptor } from '@wsl/protocol';
 
 /** 归一化事件。执行核心只消费这一组事件，不识别各 Harness 的原始事件类型。 */
 export type HarnessEvent =
-  | { type: 'session'; ref: string }
+  /** fresh：Agent 无法恢复上一轮会话而新建了会话；执行核心据此替换会话身份而不判为冲突。 */
+  | { type: 'session'; ref: string; fresh?: boolean }
   | { type: 'message'; id: string; text: string }
   | { type: 'warning'; text: string }
   | {

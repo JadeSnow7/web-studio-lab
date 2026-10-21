@@ -29,6 +29,15 @@ const IGNORED_UPDATES = new Set([
   'compaction_summary_chunk',
 ]);
 
+/** initialize 请求参数：声明不提供客户端 fs 与 terminal。轮次与可用性探测共用。 */
+export function acpInitializeParams(clientInfo: { name: string; version: string } = { name: 'web-studio-lab', version: '0' }) {
+  return {
+    protocolVersion: ACP_PROTOCOL_VERSION,
+    clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false },
+    clientInfo,
+  };
+}
+
 export type PermissionDecider = (params: RequestPermissionParams) => PermissionOutcome | Promise<PermissionOutcome>;
 
 /** 默认策略：一律拒绝（优先 reject_once）。审批接到 Main 之前，ACP Agent 不能自行获得额外权限。 */
@@ -115,13 +124,7 @@ export class AcpTurn {
     signal.addEventListener('abort', onAbort, { once: true });
     try {
       if (signal.aborted) return this.result('cancelled', init);
-      init = InitializeResultSchema.parse(
-        await this.client.request('initialize', {
-          protocolVersion: ACP_PROTOCOL_VERSION,
-          clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false },
-          clientInfo: this.input.clientInfo ?? { name: 'web-studio-lab', version: '0' },
-        }),
-      );
+      init = InitializeResultSchema.parse(await this.client.request('initialize', acpInitializeParams(this.input.clientInfo)));
       if (init.protocolVersion !== ACP_PROTOCOL_VERSION) throw new AcpProtocolError(`ACP 协议版本不兼容：${init.protocolVersion}`);
       if (signal.aborted) return this.result('cancelled', init);
       const canLoad = init.agentCapabilities?.loadSession === true;
@@ -139,7 +142,11 @@ export class AcpTurn {
           await this.client.request('session/new', { cwd: this.input.cwd, mcpServers: this.input.mcpServers }),
         ).sessionId;
       }
-      this.emit({ type: 'session', ref: this.sessionId });
+      this.emit({
+        type: 'session',
+        ref: this.sessionId,
+        ...(this.input.sessionRef && this.sessionId !== this.input.sessionRef ? { fresh: true } : {}),
+      });
       if (signal.aborted) return this.result('cancelled', init);
       this.phase = 'prompting';
       const response = PromptResultSchema.parse(

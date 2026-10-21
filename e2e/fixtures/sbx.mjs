@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 const args = process.argv.slice(2);
 if (args[0] === 'version') {
   console.log('sbx version: fixture');
@@ -27,8 +28,31 @@ let mode;
 let input = '';
 let cwd = '/home/agent/workspace';
 let size;
+// W3b relay：在本机启动 argv 指定的进程（测试中是确定性的假 ACP Agent），转发 input / input-end；不运行 guest 或模型。
+let relayChild = null;
 rl.on('line', (line) => {
   const value = JSON.parse(line);
+  if (value.type === 'start' && value.stdin === 'relay') {
+    mode = value.mode;
+    if (value.mcp === 'acp-stdio')
+      frame({ type: 'mcp-server', name: 'wsl_space', command: '/usr/bin/python3', args: ['-I', '-u', '-c', 'pass'] });
+    relayChild = spawn(value.argv[0], value.argv.slice(1), { stdio: ['pipe', 'pipe', 'pipe'] });
+    relayChild.on('error', (error) => {
+      frame({ type: 'error', error: error.message });
+      finish(127);
+    });
+    relayChild.stdout.on('data', (data) => output(data.toString()));
+    relayChild.stderr.on('data', (data) => frame({ type: 'output', stream: 'stderr', data: data.toString() }));
+    relayChild.on('close', (code) => finish(code ?? 1));
+    frame({ type: 'ready', pid: process.pid });
+    return;
+  }
+  if (relayChild && value.type === 'input') return void relayChild.stdin.write(value.data);
+  if (relayChild && value.type === 'input-end') return void relayChild.stdin.end();
+  if (relayChild && value.type === 'close') {
+    relayChild.kill('SIGKILL');
+    return;
+  }
   if (value.type === 'start') {
     mode = value.mode;
     frame({ type: 'ready', pid: process.pid });
