@@ -257,7 +257,12 @@ test('D: high-line-count evidence stays intact while PatchView renders bounded p
     await expect(diff).toContainText('+// first-page');
     expect(await f.page.evaluate((runId) => window.studio.workbench.runPatch('taskflow-demo', runId), run.runId)).toEqual(saved);
     await setWorkspaceTheme(f.page, 'dark');
-    await setWindowSize(f.app, 900, 700);
+    await setWindowSize(f.app, 960, 700);
+    await expect.poll(() => f.page.evaluate(() => window.innerWidth)).toBe(960);
+    // Native resizing completes before React projects the narrow layout and removes the docked rail.
+    // Observe the collapsed UI before the navigation helper decides whether it must open Workshop.
+    await expect(f.page.locator('.workshop-docked')).toHaveCount(0);
+    await expect(f.page.locator('#left-panel-trigger')).toHaveAttribute('aria-expanded', 'false');
     await f.select(run.runId);
     await expect(details(f.page).getByRole('list', { name: '修改文件' })).toContainText(longPath);
     const bounds = await details(f.page)
@@ -272,6 +277,23 @@ test('D: high-line-count evidence stays intact while PatchView renders bounded p
     expect(bounds.item.left).toBeGreaterThanOrEqual(bounds.region.left);
     expect(bounds.item.right).toBeLessThanOrEqual(bounds.region.right + 1);
     await f.page.screenshot({ path: test.info().outputPath('paged-diff-narrow-dark.png') });
+    // Narrow navigation closes the temporary panel. Widening preserves its pinned preference,
+    // but reopening remains an explicit user action after the route change.
+    await setWindowSize(f.app, 1440, 900);
+    await expect.poll(() => f.page.evaluate(() => window.innerWidth)).toBe(1440);
+    await expect(f.page.locator('#left-panel-trigger')).toHaveAttribute('aria-expanded', 'false');
+    await f.page.getByRole('button', { name: '展开 Workshop', exact: true }).click();
+    await expect(f.page.locator('.workshop-docked')).toBeVisible();
+    await expect(f.page.getByRole('button', { name: '取消固定 Workshop', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await f.select(run.runId);
+    await expect(
+      f.page.getByRole('navigation', { name: 'Workshop 导航' }).getByRole('button', { name: '任务', exact: true }),
+    ).toHaveAttribute('aria-current', 'page');
+    await expect(diff.locator(':scope > span')).toHaveCount(500);
+    await expect(diff).toContainText('+// first-page');
+    await expect(details(f.page).getByRole('list', { name: '修改文件' })).toContainText(longPath);
+    expect(await f.page.evaluate((runId) => window.studio.workbench.runPatch('taskflow-demo', runId), run.runId)).toEqual(saved);
+    await f.page.screenshot({ path: test.info().outputPath('paged-diff-restored-wide-dark.png') });
     expect(run.validation.state).toBe('not_run');
     expect(run.review).toBeNull();
     expect(f.rendererErrors).toEqual([]);
