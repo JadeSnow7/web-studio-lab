@@ -1,5 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto';
 import {
+  AppSourceSnapshotResultSchema,
+  SourceChangeSchema,
+  CapturedSourceChangeSchema,
+  RunPatchQuerySchema,
+  RunPatchResultSchema,
+  type AppTarget,
+  type RunPatchResult,
   CatalogActionSchema,
   PageResourceSnapshotSchema,
   ResourceBundleSchema,
@@ -48,10 +55,11 @@ import {
 import { parseResourceCatalog } from './resource-catalog-repository';
 import { activateTab, closePane, closeTab, panes, setRatio, splitPane } from './layout';
 import type { WorkbenchRepository } from './repository';
-import type { WorkbenchRuntime } from './ports';
+import { RunDispatchFailure, type WorkbenchRuntime } from './ports';
 import type { AppControl, AppControlContext } from './app-control';
 import { AppControlFailure } from './app-control-failure';
 
+type SourceRun = { target: AppTarget; baseline: AbortController; ready: boolean; capturing: boolean };
 const activeStates = ['starting', 'running', 'cancelling'];
 function workspace(workspaceId: string, name: string): WorkspaceSnapshot {
   const paneId = randomUUID();
@@ -190,7 +198,11 @@ export class WorkbenchApplication {
   private readonly observationCounts = new Map<string, number>();
   private readonly observationScopes = new Map<string, ObservationTurnScope>();
   private readonly runLaunches = new Map<string, () => Promise<void>>();
-  private readonly runLaunchPhases = new Map<string, 'registering' | 'sending'>();
+  private readonly runLaunchPhases = new Map<string, 'registering' | 'baseline' | 'sending'>();
+  private readonly sourceRuns = new Map<string, SourceRun>();
+  private readonly projectWriters = new Map<string, string>();
+  private readonly runOperations = new Set<Promise<unknown>>();
+  private closing = false;
   private readonly terminalLaunches = new Map<string, Promise<TerminalSnapshot>>();
   private readonly commands = new Map<
     string,
@@ -294,20 +306,40 @@ export class WorkbenchApplication {
               threadId: null,
             };
         for (const run of w.runs)
-          if (activeStates.includes(run.state)) {
+          if (run.sourceChange?.state === 'baseline') {
+            run.sourceChange = { state: 'unavailable', reason: '重启前未完成采集' };
             recoveredExecution = true;
+          }
+        for (const run of w.runs)
+          if (activeStates.includes(run.state) || run.sourceCleanupPending) {
+            recoveredExecution = true;
+            if (
+              !run.sourceChange &&
+              w.sessions
+                .find((session) => session.sessionId === run.sessionId)
+                ?.taskVersions.find((version) => version.taskVersionId === run.taskVersionId)?.appTarget
+            )
+              run.sourceChange = { state: 'unavailable', reason: '重启前未完成采集' };
             run.appCleanupPending = this.appControl?.hasPending(w.workspaceId, run.runId) ?? false;
             run.cleanupRetryAvailable = this.appControl?.canRetryCleanup(run.runId) ?? false;
-            run.cleanupPending = run.appCleanupPending;
-            run.state = run.cleanupPending ? 'cancelling' : 'interrupted';
-            run.endedAt = run.cleanupPending ? null : new Date().toISOString();
+            const boundProject = w.sessions
+              .find((session) => session.sessionId === run.sessionId)
+              ?.taskVersions.find((version) => version.taskVersionId === run.taskVersionId)?.appTarget;
             const modelCleanupUnknown =
               !run.executorState || run.executorState.cleanupPending || activeStates.includes(run.executorState.state);
+            run.cleanupPending = run.appCleanupPending || Boolean(run.sourceCleanupPending) || Boolean(boundProject && modelCleanupUnknown);
+            if (!run.sourceCleanupPending || !['completed', 'failed'].includes(run.state)) {
+              run.state = run.cleanupPending ? 'cancelling' : 'interrupted';
+              run.endedAt = run.cleanupPending ? null : new Date().toISOString();
+            }
             run.error = run.appCleanupPending
               ? modelCleanupUnknown
                 ? '应用重启；旧模型进程清理未确认，App 数据操作结果待确认；未重放执行'
                 : '应用重启；App 数据操作结果待确认；未重放执行'
-              : '应用重启；未重放执行';
+              : boundProject && modelCleanupUnknown
+                ? '应用重启；旧模型进程清理未确认，项目仍被占用；未重放执行'
+                : '应用重启；未重放执行';
+            if (run.sourceCleanupPending) run.error += '；源码 helper 清理未确认，未重放采集，项目仍被占用';
             if (run.appCleanupPending) {
               if (run.conversation) run.conversation = { ...run.conversation, state: 'cancelling', cleanupPending: true, error: run.error };
               const session = w.sessions.find((item) => item.sessionId === run.sessionId);
@@ -491,6 +523,14 @@ export class WorkbenchApplication {
         if (c.expectedRevision !== undefined && c.expectedRevision !== w.revision) throw new Error('conflict: 空间已有较新修改');
         const appBefore = structuredClone(w.managedApp ?? null);
         if (c.type !== 'stopApp' && this.appControl?.hasPending(w.workspaceId)) throw new Error('conflict: App 数据操作结果待确认');
+        const writerId = w.managedApp ? this.projectWriters.get(w.managedApp.projectId) : undefined;
+        const sourceOwner = writerId ? this.sourceRuns.get(writerId) : undefined;
+        if (
+          c.type === 'startApp' &&
+          ((sourceOwner && (!sourceOwner.ready || sourceOwner.capturing)) ||
+            w.runs.some((run) => run.sourceCleanupPending || (run.cleanupPending && !this.runLogBaselines.has(run.runId))))
+        )
+          throw new Error('conflict: 项目源码采集或 helper 清理未确认，暂不能启动写入工程的构建');
         const pending = this.appOperations.get(w.workspaceId);
         if (pending && c.type !== 'stopApp') throw new Error('conflict: 应用操作正在进行');
         if (c.type === 'createApp') {
@@ -622,7 +662,9 @@ export class WorkbenchApplication {
       const launch = this.runLaunches.get(command.commandId);
       if (!launch) return result;
       this.runLaunches.delete(command.commandId);
-      await launch();
+      const operation = launch();
+      this.trackRunOperation(operation);
+      await operation;
       return { ...result, snapshot: this.publicSnapshot() };
     });
   }
@@ -1784,11 +1826,43 @@ export class WorkbenchApplication {
           case 'cancelRun': {
             const run = this.run(w, c.runId);
             if (!activeStates.includes(run.state)) break;
-            if (this.runLaunchPhases.get(run.runId) === 'registering') {
+            if (run.cleanupPending && !this.runLogBaselines.has(run.runId) && !this.sourceRuns.has(run.runId)) {
+              // Restart restores an obligation, not an executor handle. A fresh
+              // service's idle slot cannot confirm the old process has stopped.
+              const target = this.session(w, run.sessionId).taskVersions.find(
+                (version) => version.taskVersionId === run.taskVersionId,
+              )?.appTarget;
+              if (target) return rememberResult();
+            }
+            const phase = this.runLaunchPhases.get(run.runId);
+            const executor = run.executorState;
+            if (
+              run.sourceCleanupPending &&
+              (phase === 'baseline' ||
+                !this.runTurns.has(run.runId) ||
+                (executor && !executor.cleanupPending && !activeStates.includes(executor.state)))
+            ) {
+              run.state = 'cancelling';
+              if (phase === 'baseline') run.executorState = { state: 'cancelled', cleanupPending: false };
+              run.cleanupPending = true;
+              run.endedAt = null;
+              this.sourceRuns.get(run.runId)?.baseline.abort();
+              if (!run.sourceChange) run.sourceChange = { state: 'unavailable', reason: '执行启动前已取消，等待源码 helper 清理确认' };
+              this.runLogBaselines.delete(run.runId);
+              this.releaseObservationScope(w, run.runId);
+              await this.persist(w, c.commandId);
+              return rememberResult();
+            }
+            if (phase === 'registering' || phase === 'baseline') {
               // No executor was dispatched, so cancellation is already a confirmed fact.
               // Keep that fact in memory even if disk fails; a late registration must never launch it.
               run.state = 'cancelled';
+              run.executorState = { state: 'cancelled', cleanupPending: false };
+              run.cleanupPending = false;
               run.endedAt = new Date().toISOString();
+              this.sourceRuns.get(run.runId)?.baseline.abort();
+              if (!run.sourceChange) run.sourceChange = { state: 'unavailable', reason: '执行启动前已取消，未完成源码基线采集' };
+              if (phase === 'registering') this.releaseSourceRun(run.runId);
               this.runLogBaselines.delete(run.runId);
               this.releaseObservationScope(w, run.runId);
               try {
@@ -2016,10 +2090,253 @@ export class WorkbenchApplication {
       return w;
     });
   }
+  private trackRunOperation(operation: Promise<unknown>) {
+    this.runOperations.add(operation);
+    void operation.then(
+      () => this.runOperations.delete(operation),
+      () => this.runOperations.delete(operation),
+    );
+  }
+  private releaseSourceRun(runId: string) {
+    const control = this.sourceRuns.get(runId);
+    if (control) {
+      const run = this.run(this.requireWorkspace(control.target.workspaceId), runId);
+      if (run.sourceCleanupPending) return;
+    }
+    if (control && this.projectWriters.get(control.target.projectId) === runId) this.projectWriters.delete(control.target.projectId);
+    this.sourceRuns.delete(runId);
+  }
+  private markSourceCleanupUnknown(run: WorkbenchRun) {
+    if (!run.sourceCleanupPending) return;
+    run.cleanupPending = true;
+    if (!['completed', 'failed'].includes(run.state)) {
+      run.state = 'cancelling';
+      run.endedAt = null;
+    }
+    run.executorState ??= { state: 'failed', cleanupPending: false };
+    run.error = '源码 helper 清理未确认，项目仍被占用；不能确认取消或正常退出';
+  }
+  private async sourceSnapshot(runId: string, control: SourceRun, signal: AbortSignal) {
+    if (!this.runtime.appSourceSnapshot) throw new Error('源码采集服务未配置');
+    signal.throwIfAborted();
+    const { target } = control;
+    const terminal = await this.serialize(async () => {
+      const w = this.requireWorkspace(target.workspaceId);
+      const current = this.run(w, runId);
+      if (this.sourceRuns.get(runId) !== control || this.projectWriters.get(target.projectId) !== runId)
+        throw new Error('源码采集归属已失效');
+      const before = {
+        sourceCleanupPending: current.sourceCleanupPending,
+        cleanupPending: current.cleanupPending,
+        state: current.state,
+        endedAt: current.endedAt,
+      };
+      current.sourceCleanupPending = true;
+      current.cleanupPending = true;
+      if (current.state === 'cancelled') {
+        current.state = 'cancelling';
+        current.endedAt = null;
+      }
+      try {
+        await this.persist(w, runId);
+      } catch (error) {
+        Object.assign(current, before);
+        throw error;
+      }
+      return ['completed', 'failed', 'cancelled'].includes(before.state) ? { state: before.state, endedAt: before.endedAt } : null;
+    });
+    const parsed = AppSourceSnapshotResultSchema.safeParse(await this.runtime.appSourceSnapshot(target, signal));
+    if (!parsed.success) throw new Error('源码快照归属、路径、清理事实或预算无效');
+    const result = parsed.data;
+    const identity = result.ok ? result.snapshot : result.target;
+    if (identity.workspaceId !== target.workspaceId || identity.projectId !== target.projectId)
+      throw new Error('源码快照归属无效，所属 helper 清理未确认');
+    await this.serialize(async () => {
+      const w = this.requireWorkspace(target.workspaceId);
+      const current = this.run(w, runId);
+      if (this.sourceRuns.get(runId) !== control || this.projectWriters.get(target.projectId) !== runId)
+        throw new Error('源码采集归属已失效');
+      current.sourceCleanupPending = !result.cleanupConfirmed;
+      current.cleanupPending = current.sourceCleanupPending || Boolean(current.appCleanupPending || current.executorState?.cleanupPending);
+      this.markSourceCleanupUnknown(current);
+      const model = current.executorState;
+      if (!current.cleanupPending && current.state === 'cancelling' && model && !activeStates.includes(model.state)) {
+        // An idle executor may have produced a candidate the user cancelled.
+        // Source collection must preserve that business outcome.
+        current.state = terminal?.state ?? (model.state === 'idle' ? 'completed' : model.state);
+        current.endedAt = terminal?.endedAt ?? new Date().toISOString();
+      }
+      await this.persist(w, runId);
+    });
+    if (!result.ok) throw new Error(result.error);
+    signal.throwIfAborted();
+    return result.snapshot;
+  }
+  private async collectRunBaseline(workspaceId: string, runId: string) {
+    const control = await this.serialize(() => {
+      const current = this.run(this.requireWorkspace(workspaceId), runId);
+      const owner = this.sourceRuns.get(runId);
+      if (!owner || current.state !== 'starting' || this.closing || this.projectWriters.get(owner.target.projectId) !== runId) return null;
+      this.runLaunchPhases.set(runId, 'baseline');
+      return owner;
+    });
+    if (!control) return;
+    try {
+      if (!this.repository.createSourceBaseline) throw new Error('宿主源码证据存储未配置');
+      const snapshot = await this.sourceSnapshot(runId, control, control.baseline.signal);
+      const baseline = await this.repository.createSourceBaseline(runId, snapshot, control.baseline.signal);
+      const sourceChange = SourceChangeSchema.parse({ state: 'baseline', baseTree: baseline.baseTree });
+      await this.serialize(async () => {
+        const w = this.requireWorkspace(workspaceId);
+        const current = this.run(w, runId);
+        if (this.sourceRuns.get(runId) !== control || this.projectWriters.get(control.target.projectId) !== runId) return;
+        current.sourceChange = sourceChange;
+        await this.persist(w, runId);
+      });
+    } catch (error) {
+      await this.updateRuntime(() => {
+        const w = this.requireWorkspace(workspaceId);
+        const current = this.run(w, runId);
+        if (this.sourceRuns.get(runId) !== control) return null;
+        this.markSourceCleanupUnknown(current);
+        current.sourceChange = {
+          state: 'unavailable',
+          reason: `${control.baseline.signal.aborted ? '执行启动前已取消，未完成源码基线采集' : '源码基线不可用'}：${error instanceof Error ? error.message.slice(0, 900) : '采集失败'}`,
+        };
+        return w;
+      });
+    } finally {
+      await this.serialize(() => {
+        if (this.sourceRuns.get(runId) !== control) return;
+        control.ready = true;
+        const w = this.requireWorkspace(workspaceId);
+        this.captureRunSource(w, this.run(w, runId));
+      });
+    }
+  }
+  private captureRunSource(w: WorkspaceSnapshot, run: WorkbenchRun) {
+    const control = this.sourceRuns.get(run.runId);
+    if (!control || !control.ready || control.capturing || !['completed', 'failed', 'cancelled'].includes(run.state)) return;
+    const executor = run.executorState;
+    if (!executor || executor.cleanupPending || activeStates.includes(executor.state) || run.cleanupPending) return;
+    if (run.sourceChange?.state !== 'baseline') {
+      this.releaseSourceRun(run.runId);
+      return;
+    }
+    control.capturing = true;
+    const { runId } = run;
+    const workspaceId = w.workspaceId;
+    const { baseTree } = run.sourceChange;
+    const signal = new AbortController().signal;
+    const operation = Promise.resolve().then(async () => {
+      await this.queue;
+      try {
+        if (!this.repository.captureSourceChange) throw new Error('宿主 diff 存储未配置');
+        const snapshot = await this.sourceSnapshot(runId, control, signal);
+        const captured = CapturedSourceChangeSchema.parse(await this.repository.captureSourceChange(runId, baseTree, snapshot, signal));
+        if (captured.baseTree !== baseTree) throw new Error('源码 diff 与宿主基线不一致');
+        await this.serialize(async () => {
+          const workspace = this.requireWorkspace(workspaceId);
+          const current = this.run(workspace, runId);
+          if (
+            this.sourceRuns.get(runId) !== control ||
+            this.projectWriters.get(control.target.projectId) !== runId ||
+            current.sourceChange?.state !== 'baseline' ||
+            current.sourceChange.baseTree !== baseTree
+          )
+            return null;
+          current.sourceChange = captured;
+          await this.persist(workspace, runId);
+        });
+      } catch (error) {
+        await this.updateRuntime(() => {
+          const workspace = this.requireWorkspace(workspaceId);
+          const current = this.run(workspace, runId);
+          if (this.sourceRuns.get(runId) !== control) return null;
+          this.markSourceCleanupUnknown(current);
+          current.sourceChange = {
+            state: 'unavailable',
+            reason: `结束源码采集不可用：${error instanceof Error ? error.message.slice(0, 900) : '采集失败'}`,
+          };
+          return workspace;
+        });
+      } finally {
+        await this.serialize(() => {
+          if (this.sourceRuns.get(runId) === control) this.releaseSourceRun(runId);
+        });
+      }
+    });
+    this.trackRunOperation(operation);
+  }
+  async runPatch(workspaceId: string, runId: string): Promise<RunPatchResult> {
+    RunPatchQuerySchema.parse({ workspaceId, runId });
+    const patchSha256 = await this.serialize(() => {
+      const run = this.run(this.requireWorkspace(workspaceId), runId);
+      if (run.workspaceId !== workspaceId || run.sourceChange?.state !== 'captured')
+        throw new Error('not_found: 此运行没有已采集的源码 diff');
+      return run.sourceChange.patchSha256;
+    });
+    if (!this.repository.readRunPatch) throw new Error('unavailable: diff 存储未配置');
+    const patch = await this.repository.readRunPatch(runId, patchSha256);
+    if (createHash('sha256').update(patch, 'utf8').digest('hex') !== patchSha256) throw new Error('conflict: diff SHA-256 不匹配');
+    return RunPatchResultSchema.parse({ workspaceId, runId, patchSha256, patch });
+  }
+  async shutdown(): Promise<void> {
+    this.closing = true;
+    try {
+      await this.ready;
+    } catch (error) {
+      if (!this.initialized && !this.sourceRuns.size && !this.runOperations.size) return;
+      throw error;
+    }
+    const active = await this.serialize(() =>
+      this.snapshot.workspaces.flatMap((w) =>
+        w.runs.filter((run) => activeStates.includes(run.state)).map((run) => ({ workspaceId: w.workspaceId, runId: run.runId })),
+      ),
+    );
+    for (const run of active) await this.command({ type: 'cancelRun', commandId: randomUUID(), ...run });
+    while (this.runOperations.size) {
+      await Promise.allSettled([...this.runOperations]);
+      await this.queue;
+    }
+    await this.serialize(async () => {
+      let pending = false;
+      for (const workspace of this.snapshot.workspaces) {
+        let changed = false;
+        for (const run of workspace.runs) {
+          if (activeStates.includes(run.state) || run.cleanupPending || run.sourceCleanupPending) {
+            pending = true;
+            if (run.sourceChange?.state === 'baseline') {
+              run.sourceChange = { state: 'unavailable', reason: '退出前未完成采集：执行器或所属操作清理未确认' };
+              changed = true;
+            }
+          }
+        }
+        if (changed) await this.persist(workspace, randomUUID());
+      }
+      if (pending) throw new Error('任务执行或所属操作清理未确认，结束源码尚不能采集');
+    });
+  }
   private async startRun(w: WorkspaceSnapshot, sessionId: string, versionId: string) {
+    if (this.closing) throw new Error('unavailable: 工作台正在关闭，不能开始新执行');
     const s = this.session(w, sessionId);
     const v = s.taskVersions.find((v) => v.taskVersionId === versionId);
     if (!v) throw new Error('not_found: 任务版本不存在');
+    if (
+      v.appTarget &&
+      (this.projectWriters.has(v.appTarget.projectId) ||
+        this.snapshot.workspaces.some((space) =>
+          space.runs.some(
+            (run) =>
+              (activeStates.includes(run.state) || run.cleanupPending || run.sourceCleanupPending) &&
+              space.sessions
+                .find((session) => session.sessionId === run.sessionId)
+                ?.taskVersions.find((version) => version.taskVersionId === run.taskVersionId)?.appTarget?.projectId ===
+                v.appTarget?.projectId,
+          ),
+        ))
+    )
+      throw new Error('conflict: 同项目执行、清理或结束源码采集尚未完成');
     if (w.runs.some((r) => r.sessionId === sessionId && activeStates.includes(r.state))) throw new Error('conflict: 会话已有执行');
     if (v.targetRef?.kind === 'web') {
       const r = this.resource(w, v.targetRef.resourceId, 'web');
@@ -2067,6 +2384,7 @@ export class WorkbenchApplication {
       conversation: null,
       executionBinding: null,
       referenceSnapshot: freezeCatalogReferences(this.catalog, { workspaceId: w.workspaceId, sessionId, references: [] }),
+      ...(!v.appTarget ? { sourceChange: { state: 'unavailable' as const, reason: '任务未绑定受管 App 工程，无法采集源码差异' } } : {}),
     };
     const referenceSnapshot = run.referenceSnapshot;
     if (!referenceSnapshot) throw new Error('执行缺少已冻结参考');
@@ -2097,13 +2415,23 @@ export class WorkbenchApplication {
       throw error;
     }
     this.runLaunchPhases.set(run.runId, 'registering');
+    if (v.appTarget) {
+      this.sourceRuns.set(run.runId, {
+        target: { workspaceId: w.workspaceId, projectId: v.appTarget.projectId },
+        baseline: new AbortController(),
+        ready: false,
+        capturing: false,
+      });
+      this.projectWriters.set(v.appTarget.projectId, run.runId);
+    }
     const workspaceId = w.workspaceId;
     return async () => {
       try {
         await this.runtime.registerSession(sessionId, workspaceId);
+        await this.collectRunBaseline(workspaceId, run.runId);
         const launch = await this.serialize(() => {
           const current = this.run(this.requireWorkspace(workspaceId), run.runId);
-          if (current.state !== 'starting') return false;
+          if (current.state !== 'starting' || this.closing) return false;
           this.runLaunchPhases.set(run.runId, 'sending');
           // Dispatch under the ownership check, but never await external I/O on the metadata queue.
           return { receipt: this.runtime.send(sessionId, text, structuredClone(scope), structuredClone(referenceSnapshot)) };
@@ -2122,10 +2450,23 @@ export class WorkbenchApplication {
           const workspace = this.requireWorkspace(workspaceId);
           const current = this.run(workspace, run.runId);
           if (!activeStates.includes(current.state)) return null;
+          if (current.sourceCleanupPending) {
+            this.markSourceCleanupUnknown(current);
+            return workspace;
+          }
+          if ((error instanceof RunDispatchFailure && error.cleanupPending) || current.executorState?.cleanupPending) {
+            current.state = 'cancelling';
+            current.cleanupPending = true;
+            current.executorState = { state: 'failed', cleanupPending: true };
+            current.error = '启动回执失败；模型清理未确认，结束源码尚不能采集';
+            return workspace;
+          }
           // A rejected dispatch started no executor, so a pending cancellation is already settled here;
           // the later cancel receipt only reflects the unchanged conversation and must not decide this run.
           const cancelled = current.state === 'cancelling';
           current.state = cancelled ? 'cancelled' : 'failed';
+          current.executorState = { state: cancelled ? 'cancelled' : 'failed', cleanupPending: false };
+          current.cleanupPending = false;
           current.error = (cancelled ? '取消前启动已失败：' : '') + (error as Error).message;
           current.endedAt = new Date().toISOString();
           this.runLogBaselines.delete(run.runId);
@@ -2133,7 +2474,17 @@ export class WorkbenchApplication {
           return workspace;
         });
       } finally {
-        this.runLaunchPhases.delete(run.runId);
+        await this.updateRuntime(() => {
+          this.runLaunchPhases.delete(run.runId);
+          const workspace = this.requireWorkspace(workspaceId);
+          const current = this.run(workspace, run.runId);
+          const control = this.sourceRuns.get(run.runId);
+          if (!control) return null;
+          control.ready = true;
+          if (!current.sourceChange) current.sourceChange = { state: 'unavailable', reason: '执行启动前未完成源码基线采集' };
+          this.captureRunSource(workspace, current);
+          return workspace;
+        });
       }
     };
   }
@@ -2221,7 +2572,7 @@ export class WorkbenchApplication {
   private requestCancellation(workspaceId: string, runId: string, binding: { generation: string; turnId: string | null } | undefined) {
     const run = this.run(this.requireWorkspace(workspaceId), runId);
     // Cleanup can take arbitrarily long; its completion rejoins the metadata queue with the original run binding.
-    void Promise.resolve()
+    const operation = Promise.resolve()
       .then(() => this.runtime.cancel(run.sessionId))
       .then(
         (conversation) =>
@@ -2244,6 +2595,7 @@ export class WorkbenchApplication {
             return w;
           }),
       );
+    this.trackRunOperation(operation);
   }
   private applyConversation(w: WorkspaceSnapshot, conversation: ChatConversation) {
     const s = w.sessions.find((s) => s.sessionId === conversation.conversationId);
@@ -2251,16 +2603,25 @@ export class WorkbenchApplication {
     const executing = w.runs.findLast((r) => r.sessionId === s.sessionId && activeStates.includes(r.state));
     if (executing?.state === 'cancelling' && ['starting', 'running'].includes(conversation.state)) return;
     if (
+      executing?.sourceCleanupPending &&
+      executing.executorState &&
+      !executing.executorState.cleanupPending &&
+      !activeStates.includes(executing.executorState.state)
+    )
+      return;
+    if (
       w.runs.some(
         (run) =>
           run.sessionId === s.sessionId &&
-          run.state === 'cancelled' &&
+          run.runId !== executing?.runId &&
+          !activeStates.includes(run.state) &&
           run.executionBinding?.generation === conversation.generation &&
           run.executionBinding.turnId === conversation.turnId,
       )
     )
       return;
     const bound = executing ? this.runTurns.get(executing.runId) : null;
+    if (executing && !bound && ['registering', 'baseline'].includes(this.runLaunchPhases.get(executing.runId) ?? '')) return;
     if (bound && (bound.generation !== conversation.generation || bound.turnId !== conversation.turnId)) return;
     if (!executing && s.conversation && s.conversation.generation !== conversation.generation) return;
     if (s.conversation?.generation === conversation.generation && s.conversation.seq >= conversation.seq) return;
@@ -2281,7 +2642,7 @@ export class WorkbenchApplication {
     }
     if (executing) {
       executing.appCleanupPending = this.appControl?.hasPending(w.workspaceId, executing.runId) ?? false;
-      executing.cleanupPending = executing.appCleanupPending || conversation.cleanupPending;
+      executing.cleanupPending = executing.appCleanupPending || conversation.cleanupPending || Boolean(executing.sourceCleanupPending);
       executing.cleanupRetryAvailable = this.appControl?.canRetryCleanup(executing.runId) ?? false;
       executing.cleanupReconciling = this.appControl?.isReconciling(executing.runId) ?? false;
       if (executing.cleanupPending && !['starting', 'running'].includes(conversation.state)) {
@@ -2313,7 +2674,7 @@ export class WorkbenchApplication {
       const model = run.executorState;
       // 历史 conversation 是展示记录，不能替代旧执行器的退出回执。
       const modelCleanupUnknown = !model || model.cleanupPending || activeStates.includes(model.state);
-      run.cleanupPending = run.appCleanupPending || modelCleanupUnknown;
+      run.cleanupPending = run.appCleanupPending || modelCleanupUnknown || Boolean(run.sourceCleanupPending);
       run.cleanupRetryAvailable = this.appControl?.canRetryCleanup(runId) ?? false;
       run.cleanupReconciling = this.appControl?.isReconciling(runId) ?? false;
       if (
@@ -2365,6 +2726,7 @@ export class WorkbenchApplication {
     return this.result();
   }
   private releaseObservationScope(workspace: WorkspaceSnapshot, runId: string) {
+    this.captureRunSource(workspace, this.run(workspace, runId));
     this.appControl?.releaseRun(runId);
     this.observationScopes.delete(runId);
     this.observationCounts.delete(runId);

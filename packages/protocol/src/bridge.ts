@@ -1,4 +1,5 @@
 import type { SetupSnapshot, RuntimeConfig } from './setup';
+import type { RunPatchResult } from './source-change';
 import type { EnvironmentDescription, WorkbenchObservationInput, WorkspaceObservationResult } from './index';
 import type { WorkbenchCommand, WorkbenchEvent, WorkbenchResult, WorkbenchSnapshot } from './workspace';
 import type { ChatConversation, ChatSlot, ChatStatus } from './chat';
@@ -32,6 +33,7 @@ export interface StudioApi {
     catalogCommand(command: CatalogAction): Promise<WorkbenchResult>;
     resourceRevision(resourceId: string, version: number): Promise<ResourceRevision>;
     runReferences(workspaceId: string, runId: string): Promise<CatalogReferenceSnapshot | null>;
+    runPatch(workspaceId: string, runId: string): Promise<RunPatchResult>;
     command(command: WorkbenchCommand): Promise<WorkbenchResult>;
     onEvent(listener: (event: WorkbenchEvent) => void): Unsubscribe;
   };

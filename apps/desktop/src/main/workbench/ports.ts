@@ -1,5 +1,6 @@
 import type { AppUiPort } from './app-control';
 import type {
+  AppSourceSnapshotResult,
   AppAgentOperation,
   AppAgentResult,
   AppLogs,
@@ -19,7 +20,17 @@ import type {
   TerminalSnapshot,
   WorkbenchResource,
 } from '@wsl/protocol';
+export class RunDispatchFailure extends Error {
+  constructor(
+    message: string,
+    readonly cleanupPending: boolean,
+    readonly knownNotSent = false,
+  ) {
+    super(message);
+  }
+}
 export interface WorkbenchRuntime {
+  appSourceSnapshot?(target: AppTarget, signal: AbortSignal): Promise<AppSourceSnapshotResult>;
   appGet?(target: AppTarget): Promise<ManagedApp>;
   appCreate?(target: AppTarget): Promise<ManagedApp>;
   appStart?(target: AppTarget): Promise<ManagedApp>;

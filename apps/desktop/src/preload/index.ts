@@ -36,6 +36,7 @@ const studio: StudioApi & { debug?: StudioDebugApi } = {
     reload: () => invoke('workbench:reload'),
     getSnapshot: () => invoke('workbench:get-snapshot'),
     catalogCommand: (command) => invoke('workbench:catalog-command', command),
+    runPatch: (workspaceId, runId) => invoke('workbench:run-patch', { workspaceId, runId }),
     resourceRevision: (resourceId, version) => invoke('workbench:resource-revision', { resourceId, version }),
     runReferences: (workspaceId, runId) => invoke('workbench:run-references', { workspaceId, runId }),
     command: (command) => invoke('workbench:command', command),

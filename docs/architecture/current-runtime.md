@@ -1,6 +1,6 @@
 # 当前运行时与目标架构的边界
 
-本记录描述2026-10-13候选树的实际接线；本轮范围、审查修复、验证与未运行项见[当前 PR 说明](../acceptance/consolidation-20261011/PR.md)。[2026-10-11 整合记录](../acceptance/consolidation-20261011/README.md)保留当时的来源去向与验证边界。2026-10-08[INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)和[SR-1](../acceptance/space-remake/SPEC.md)保留各自源码基线与历史窗口证据，历史通过不能替代当前版本复验。
+本记录以2026-10-13候选树为基础，后续切片在对应段落更新实际接线；本轮范围、审查修复、验证与未运行项见[当前 PR 说明](../acceptance/consolidation-20261011/PR.md)。[2026-10-11 整合记录](../acceptance/consolidation-20261011/README.md)保留当时的来源去向与验证边界。2026-10-08[INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)和[SR-1](../acceptance/space-remake/SPEC.md)保留各自源码基线与历史窗口证据，历史通过不能替代当前版本复验。
 
 ## 已有能力和缺口
 
@@ -11,13 +11,21 @@
 - `packages/protocol` 是跨进程schema来源；空间操作经workbench命令，旧空间/预览/运行/资源/终端renderer控制器随消费者迁移退役。个人会话仍使用窄chat接口。
 - `tests/vertical-slice`、`fixtures/vertical-slice/page` 与 [VS001](../acceptance/README.md) 保留 main 的固定验收与负例。`src/vertical-slice/adapter.ts` 已复用 sbx/Codex、Vite 和产品 Browser 接入冻结契约；[本轮记录](../acceptance/integrated-app-installer-public-20261009/README.md)区分最终整合验证与历史离线验证。
 - 空间元数据、草稿、任务版本、历史运行与阅读回执可以恢复；重启不重放任务和PTY。空间运行、取消、检查与审阅为独立事实；独立检查器尚未接入时明确blocked，不能接受结果。
-- 固定母模板与受管App第一工作包已接入，见下文；priority业务API、C1–C3完整固定验收及任务页真实diff/报告产物仍有缺口；VS001 adapter 的代码接入不能替代真实五项复验。独立文件、终端观察和SSH/SFTP Provider、Main/MCP及空间界面已接入，验收仍按本轮阶段记录判断；Provider单元测试不证明可见功能或生产远端验收。演示页面和历史记录不能当作真实闭环证据。
+- 固定母模板与受管App第一工作包已接入，见下文；priority业务API、C1–C3完整固定验收及独立报告产物仍有缺口；标准 App 的任务源码证据与真实 diff 读取已接线，见[源码证据合同](../plans/2026-10-15-p0-run-diff.md)，当前测试与产品验收仍须分别确认；VS001 adapter 的代码接入不能替代真实五项复验。独立文件、终端观察和SSH/SFTP Provider、Main/MCP及空间界面已接入，验收仍按本轮阶段记录判断；Provider单元测试不证明可见功能或生产远端验收。演示页面和历史记录不能当作真实闭环证据。
 
 ## 现有契约与目标约束的协调
 
 真实运行使用workspace协议中的工作台运行记录；演示 `RunRecord` 只服务于明确标注的历史样本。执行完成、检查passed/current、用户接受分别保存；通知打开和标记已读不推导这些状态。日志归属明确的run；缺少diff或检查证据时展示原因。旧计划中的 `replay` 只读历史概念不意味着启动新run；固定比赛验收和VS001属于不同范围。
 
 原产品合同的进程安全、公开资源和聊天边界继续适用，具体实现如下。任务编排的未来状态机以架构基线为约束，未实现的 CLI 入口不得报告为可用。
+
+## 标准任务源码基线与差异
+
+标准受管 App 的任务在执行前由独立只读 helper 采集源码，Main 先持久化采集意图，再尝试将实际内容保存为宿主独占 Git 对象基线。普通基线采集或宿主 Git 失败、但 helper 清理已确认时，按既有合同将 `sourceChange` 标为 unavailable 并允许执行继续；基线成功不是模型派发的无条件前置。清理未知仍阻止派发。基线存在且执行与所属清理确认后再次采集，生成不可覆写的摘要和 patch；同项目占用保持到结束采集完成。collector 与长期 App 的句柄、状态和日志分开，取消回执不能代替退出/清理确认。采集清理未知时保留 `sourceCleanupPending` 和项目占用；执行器清理未决同样不释放项目。重启不重放副作用，也不清除模型或 collector 的未知清理状态。没有 source 字段的旧 schema 4 历史继续显示未记录。
+
+采集限制为 200 MiB 原始字节、20000 文件/目录、48 KiB 分块与 352 MiB 传输；宿主摘要最多 200 文件、UTF-8 patch 最多 256 KiB，超出时明确标记。它与标准源码导出的 256 文件/524288 字节合同独立。固定排除凭据与运行/构建产物，不服从工程 Git 排除规则；拒绝路径别名、链接、特殊文件及不完整帧。宿主 Git 环境隔离，不运行工程 hooks、外部 diff 或 textconv；内容只进入对象库，不向 guest 暴露宿主证据路径。
+
+任务页通过具名 `workbench.runPatch` 读取真实 patch，Main 校验空间/run、文件身份和哈希，Renderer 再绑定返回身份并忽略迟到旧响应。源码状态来自 shared status；失败允许显式重新读取，正文每页最多 500 行，完整证据保留在宿主。源码差异不改变独立检查或审阅事实。完整合同、测试入口与未验证边界见[标准 App 任务源码证据](../plans/2026-10-15-p0-run-diff.md)；确定性 fixture 不等于真实 guest/model 验收。
 
 ## 4. Electron 安全基线
 

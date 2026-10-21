@@ -1,4 +1,7 @@
-import type { StatusScope, WorkbenchRun } from '@wsl/protocol';
+import { useEffect, useState } from 'react';
+import type { CapturedSourceChange, StatusScope, WorkbenchRun } from '@wsl/protocol';
+import { sourceChangeStatus } from '../../../shared/status';
+import { PatchView } from '../components/PatchView';
 import { StatusDot } from '../components/Status';
 import { useStatusViewByKey } from '../state/status-view';
 
@@ -40,6 +43,85 @@ export function RunStatusFields({ run, fields }: { run: WorkbenchRun; fields: Re
   );
 }
 
+function CapturedRunPatch({ workspaceId, runId, source }: { workspaceId: string; runId: string; source: CapturedSourceChange }) {
+  const [result, setResult] = useState<{ patch: string; error: null } | { patch: null; error: string } | null>(null);
+  const [readAttempt, setReadAttempt] = useState(0);
+  const patchSha256 = source.patchSha256;
+  useEffect(() => {
+    let current = true;
+    void window.studio.workbench.runPatch(workspaceId, runId).then(
+      (response) => {
+        if (!current) return;
+        if (response.workspaceId !== workspaceId || response.runId !== runId || response.patchSha256 !== patchSha256) {
+          setResult({ patch: null, error: '源码 diff 返回的运行或摘要身份不一致' });
+          return;
+        }
+        setResult({ patch: response.patch, error: null });
+      },
+      (error: unknown) => {
+        if (current) setResult({ patch: null, error: `源码 diff 读取失败：${error instanceof Error ? error.message : '不可用'}` });
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [workspaceId, runId, patchSha256, readAttempt]);
+  return (
+    <>
+      <p className="muted">
+        合计 <span className="text-ok">+{source.additions}</span> / <span className="text-bad">−{source.deletions}</span>
+      </p>
+      {source.truncated ? (
+        <p className="muted">摘要最多显示 200 个文件，patch 最多 256 KiB；此证据已截断，行数合计仍覆盖完整差异。</p>
+      ) : null}
+      <PatchView files={source.files} patch={result?.patch ?? null} emptyText="没有改动文件。" />
+      {!result ? (
+        <p role="status">正在读取源码 diff…</p>
+      ) : result.error ? (
+        <div>
+          <p role="alert">{result.error}</p>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              setResult(null);
+              setReadAttempt((attempt) => attempt + 1);
+            }}
+          >
+            重新读取
+          </button>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function RunDiff({ run }: { run: WorkbenchRun }) {
+  const source = run.sourceChange;
+  const fact = sourceChangeStatus(run);
+  return (
+    <>
+      <RunStatusFields run={run} fields={['run']} />
+      {source ? (
+        <StatusField scope={sessionScopeOf(run)} statusKey={`run:${run.runId}:source-change`} name="源码" />
+      ) : (
+        <p role="status">{fact.label}</p>
+      )}
+      <StatusField scope={sessionScopeOf(run)} statusKey={`run:${run.runId}:source-cleanup`} />
+      {fact.detail ? <p className="muted">{fact.detail}</p> : null}
+      {source?.state === 'captured' ? (
+        <CapturedRunPatch
+          key={`${run.workspaceId}:${run.runId}:${source.patchSha256}`}
+          workspaceId={run.workspaceId}
+          runId={run.runId}
+          source={source}
+        />
+      ) : null}
+      <p className="muted small">源码差异是本次执行前后的内容证据，不代表独立检查通过或用户接受。</p>
+    </>
+  );
+}
+
 export function RunDetails({ run, view }: { run: WorkbenchRun; view: RunView }) {
   return (
     <section aria-label="运行详情" className="version-card">
@@ -75,10 +157,7 @@ export function RunDetails({ run, view }: { run: WorkbenchRun; view: RunView }) 
           {run.error || run.conversation?.error ? <p role="alert">{run.error ?? run.conversation?.error}</p> : null}
         </>
       ) : view === 'diff' ? (
-        <>
-          <RunStatusFields run={run} fields={['run']} />
-          <p>真实 diff 尚未记录，无法展示文件修改证据。</p>
-        </>
+        <RunDiff run={run} />
       ) : (
         <>
           <RunStatusFields run={run} fields={['run', 'validation']} />

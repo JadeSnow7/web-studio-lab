@@ -88,6 +88,7 @@ chat.setAppControlReader(
     }),
 );
 const agentCalls = new Map<string, AbortController>();
+const sourceCalls = new Map<string, AbortController>();
 const observations = new Map<string, AbortController>();
 const terminalFor = (resourceId: string) => environments.terminal(environments.identity(resourceId));
 const ready = chat.initialize().then((status) => {
@@ -100,7 +101,10 @@ let sendOperations: Promise<unknown> = Promise.resolve();
 const pendingSends = new Map<string, Set<{ cancelled: boolean }>>();
 parent.on('message', ({ data }) => {
   const request = ChatServiceRequestSchema.parse(data);
-  if (request.method === 'shutdown') chat.beginShutdown();
+  if (request.method === 'shutdown') {
+    chat.beginShutdown();
+    for (const controller of sourceCalls.values()) controller.abort();
+  }
   if (request.method === 'cancel' || request.method === 'reset') {
     for (const pending of pendingSends.get(request.payload.conversationId) ?? []) pending.cancelled = true;
   }
@@ -115,6 +119,22 @@ parent.on('message', ({ data }) => {
       if (request.method === 'send') await ready;
       let result;
       switch (request.method) {
+        case 'app.source.snapshot': {
+          if (sourceCalls.has(request.payload.callId)) throw new Error('Duplicate source snapshot call');
+          const controller = new AbortController();
+          sourceCalls.set(request.payload.callId, controller);
+          try {
+            await ready;
+            result = await apps.sourceSnapshot(request.payload.target, controller.signal);
+          } finally {
+            sourceCalls.delete(request.payload.callId);
+          }
+          break;
+        }
+        case 'app.source.cancel':
+          sourceCalls.get(request.payload.callId)?.abort();
+          result = null;
+          break;
         case 'app.get':
           await ready;
           result = await apps.restore(request.payload);
@@ -262,7 +282,13 @@ parent.on('message', ({ data }) => {
       send({ type: 'response', id: request.id, result });
       // ACK须由宿主收到后再结束utility，立即exit会丢失仍在传输的消息。
     } catch (error) {
-      send({ type: 'error', id: request.id, error: (error as Error).message });
+      if (request.method === 'app.source.snapshot')
+        send({
+          type: 'response',
+          id: request.id,
+          result: { ok: false, target: request.payload.target, cleanupConfirmed: false, error: '源码 helper 启动或回执异常；清理未确认' },
+        });
+      else send({ type: 'error', id: request.id, error: (error as Error).message });
     } finally {
       if (request.method === 'send' && admission) {
         const pending = pendingSends.get(request.payload.conversationId);
@@ -278,6 +304,7 @@ parent.on('message', ({ data }) => {
 
 process.on('SIGTERM', () => {
   chat.beginShutdown();
+  for (const controller of sourceCalls.values()) controller.abort();
   for (const controller of observations.values()) controller.abort();
   void shutdownServiceOwners(
     () => apps.shutdown(),
