@@ -1,3 +1,4 @@
+import { codexHarnessRuntime } from './harness-test-fixture';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -11,6 +12,7 @@ async function runningFixture() {
   const file = path.join(await mkdtemp(path.join(os.tmpdir(), 'wsl-recovery-')), 'workbench.json');
   const repository = new FileWorkbenchRepository(file);
   const runtime = {
+    ...codexHarnessRuntime,
     validateBrowserUrl: vi.fn(),
     environmentsList: vi.fn().mockResolvedValue([
       {

@@ -911,7 +911,7 @@ describe('Toast 队列与错误出口', () => {
     const snapshot = { ...snapshotOf({}), storageError: '磁盘只读' } as WorkbenchSnapshot;
     const deps = {
       snapshot,
-      chat: { available: false, reason: '未安装', version: null, sandbox: null, cwd: null },
+      chat: { available: false, reason: '未安装', version: null, sandbox: null, cwd: null, harnesses: [] },
       setup: null,
       execution: { available: false, reason: '未接入', harness: { state: 'unavailable' } } as never,
       presentation: EMPTY_PRESENTATION,
@@ -1060,7 +1060,8 @@ describe('标题栏通道', () => {
   it('deriveStatus.titlebar：事实消失即消失，没有关闭记录', () => {
     const base = { snapshot: null, chat: null, setup: null, execution: null, presentation: EMPTY_PRESENTATION, workspaceError: null };
     expect(
-      deriveStatus({ ...base, chat: { available: false, reason: '未安装', version: null, sandbox: null, cwd: null } }).titlebar.chat,
+      deriveStatus({ ...base, chat: { available: false, reason: '未安装', version: null, sandbox: null, cwd: null, harnesses: [] } })
+        .titlebar.chat,
     ).not.toBeNull();
     expect(
       deriveStatus({ ...base, chat: { available: true, reason: null, version: '1', sandbox: 's', cwd: '/w' } as never }).titlebar,

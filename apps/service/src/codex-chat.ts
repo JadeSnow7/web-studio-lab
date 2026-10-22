@@ -11,7 +11,13 @@ import {
   type ChatConversation,
   type ChatSlot,
   type ChatStatus,
+  type SandboxStatus,
   type CatalogReferenceSnapshot,
+  type HarnessAvailability,
+  type ProfileCheckResult,
+  type ProfileDir,
+  type TurnHarness,
+  profileDirOf,
 } from '@wsl/protocol';
 import { SbxConnection, GUEST_CWD, type GuestProcess, type GuestOutcome } from './sbx';
 import { codexAdapter } from './harness/codex/adapter';
@@ -21,12 +27,15 @@ import { AcpClient, AcpMethodNotFound, AcpProtocolError } from './harness/acp/cl
 import { ACP_PROTOCOL_VERSION, InitializeResultSchema, type AcpStdioMcpServer, type InitializeResult } from './harness/acp/protocol';
 import { AcpTurn, acpInitializeParams } from './harness/acp/turn';
 import { workspaceWritePolicy } from './harness/acp/policy';
+import { harnessIdOf } from './harness/registry';
 
 export { parseCodexLine } from './harness/codex/adapter';
 
 /** 执行核心使用的 Harness：native 逐行解析一次性进程的输出；acp 经 stdin relay 与长连接 Agent 往返。 */
 export type ChatHarness = { kind: 'native'; adapter: NativeHarnessAdapter } | { kind: 'acp'; spec: AcpAgentSpec };
 export const CODEX_HARNESS: ChatHarness = { kind: 'native', adapter: codexAdapter };
+/** Codex 内置 Profile 的本轮选择。service 入口总是显式传入 Main 解析的选择；缺省值只供直接驱动执行核心的测试使用。 */
+export const CODEX_DEFAULT_TURN: TurnHarness = { harnessId: 'codex', profileId: 'codex:default', profileDir: null };
 
 interface Turn {
   process: GuestProcess;
@@ -45,6 +54,13 @@ interface Turn {
 interface Slot {
   conversation: ChatConversation;
   active: Turn | null;
+  /** 当前 threadId 由哪个 Harness 与 Profile 建立；换用其他组合时不复用该会话身份。 */
+  threadOwner: { harnessId: string; profileId: string } | null;
+}
+interface RegisteredHarness {
+  harness: ChatHarness;
+  acpInit: InitializeResult | null;
+  acpFailure: string | null;
 }
 export class CodexChat {
   private observationReader:
@@ -80,40 +96,48 @@ export class CodexChat {
     _root: string,
     private readonly emit: (conversation: ChatConversation) => void,
     connection = new SbxConnection(),
-    /** 本执行核心使用的 Harness；默认 Codex native。 */
-    private readonly harness: ChatHarness = CODEX_HARNESS,
+    /** 本执行核心可用的全部 Harness；每轮由调用方按 harnessId 选择其一（W4）。 */
+    harnesses: readonly ChatHarness[] = [CODEX_HARNESS],
   ) {
     this.connection = connection;
+    for (const harness of harnesses) {
+      const id = harnessIdOf(harness);
+      if (this.harnesses.has(id)) throw new Error(`Harness 重复注册：${id}`);
+      this.harnesses.set(id, { harness, acpInit: null, acpFailure: null });
+    }
   }
-  private acpInit: InitializeResult | null = null;
-  private acpFailure: string | null = null;
-  private get label() {
-    return this.harness.kind === 'native' ? this.harness.adapter.label : this.harness.spec.label;
-  }
+  private readonly harnesses = new Map<string, RegisteredHarness>();
   async initialize(): Promise<ChatStatus> {
     const status = await this.connection.initialize();
-    if (this.harness.kind === 'acp' && status.available) await this.probeAcp(this.harness.spec);
-    return this.withHarness(status);
+    if (status.available) for (const entry of this.harnesses.values()) if (entry.harness.kind === 'acp') await this.probeAcp(entry);
+    return this.withHarnesses(status);
   }
   getStatus(): ChatStatus {
-    return this.withHarness(this.connection.getStatus());
+    return this.withHarnesses(this.connection.getStatus());
   }
-  private withHarness(status: ChatStatus): ChatStatus {
-    if (this.harness.kind === 'native')
-      return { ...status, harness: this.harness.adapter.descriptor(status.available ? status.version : null) };
-    const harness = acpDescriptor(this.harness.spec, this.acpInit);
-    if (!status.available) return { ...status, harness };
-    if (!this.acpInit)
-      return { ...status, available: false, reason: `${this.label} 不可用：${this.acpFailure ?? '尚未完成检查'}`, version: null, harness };
-    return { ...status, version: harness.version, harness };
+  private withHarnesses(status: SandboxStatus): ChatStatus {
+    return { ...status, harnesses: [...this.harnesses.values()].map((entry) => this.availability(entry, status)) };
+  }
+  private availability(entry: RegisteredHarness, status: SandboxStatus): HarnessAvailability {
+    const { harness } = entry;
+    if (harness.kind === 'native') {
+      const descriptor = harness.adapter.descriptor(status.available ? status.version : null);
+      return { descriptor, available: status.available, reason: status.available ? null : status.reason };
+    }
+    const descriptor = acpDescriptor(harness.spec, entry.acpInit);
+    if (!status.available) return { descriptor, available: false, reason: status.reason };
+    if (!entry.acpInit)
+      return { descriptor, available: false, reason: `${harness.spec.label} 不可用：${entry.acpFailure ?? '尚未完成检查'}` };
+    return { descriptor, available: true, reason: null };
   }
   /**
    * 可用性探测：在 guest 内启动 ACP Agent，只发 initialize（不调用模型），据回复声明能力，然后关闭 stdin 并确认清理。
-   * 清理未确认时判为不可用，避免留下未知进程。
+   * 清理未确认时判为不可用，避免留下未知进程。探测使用默认配置目录，不代表任何 Profile 已登录。
    */
-  private async probeAcp(spec: AcpAgentSpec) {
-    this.acpInit = null;
-    this.acpFailure = null;
+  private async probeAcp(entry: RegisteredHarness) {
+    const spec = (entry.harness as Extract<ChatHarness, { kind: 'acp' }>).spec;
+    entry.acpInit = null;
+    entry.acpFailure = null;
     let buffer = '';
     const probe = this.connection.start({ type: 'start', mode: 'codex', argv: spec.command, stdin: 'relay' }, (frame) => {
       if (frame.type !== 'output' || frame.stream !== 'stdout') return;
@@ -140,9 +164,9 @@ export class CodexChat {
     try {
       const init = InitializeResultSchema.parse(await client.request('initialize', acpInitializeParams()));
       if (init.protocolVersion !== ACP_PROTOCOL_VERSION) throw new AcpProtocolError(`ACP 协议版本不兼容：${init.protocolVersion}`);
-      this.acpInit = init;
+      entry.acpInit = init;
     } catch (error) {
-      this.acpFailure = (error as Error).message;
+      entry.acpFailure = (error as Error).message;
     } finally {
       clearTimeout(timer);
       client.close('探测结束');
@@ -156,9 +180,55 @@ export class CodexChat {
     const settled = outcome ?? (await probe.close());
     await exited;
     if (!settled.confirmed) {
-      this.acpInit = null;
-      this.acpFailure = settled.error ?? '探测进程清理未确认';
+      entry.acpInit = null;
+      entry.acpFailure = settled.error ?? '探测进程清理未确认';
     }
+  }
+  /**
+   * 无模型自检一个 Profile（W4）：在 guest 内以其配置目录依次运行版本命令与登录状态命令。
+   * 只保留解析出的版本与登录状态；原始输出可能含账号信息，读完即丢弃。清理未确认时结果为 undetermined。
+   */
+  async checkProfile(harnessId: string, profileDir: ProfileDir | null): Promise<ProfileCheckResult> {
+    if (this.closing) throw new Error('对话服务正在关闭');
+    const entry = this.harnesses.get(harnessId);
+    if (!entry) throw new Error(`未注册的 Harness：${harnessId}`);
+    const check = entry.harness.kind === 'native' ? entry.harness.adapter.selfCheck : entry.harness.spec.selfCheck;
+    this.assertProfileDir(entry.harness, harnessId, profileDir);
+    if (!this.connection.getStatus().available)
+      return { cliVersion: null, login: 'undetermined', reason: this.connection.getStatus().reason };
+    const run = async (argv: string[]) => {
+      let stdout = '';
+      const process = this.connection.start({ type: 'start', mode: 'codex', argv, ...(profileDir ? { profileDir } : {}) }, (frame) => {
+        if (frame.type === 'output' && frame.stream === 'stdout' && stdout.length < 65536) stdout += frame.data;
+      });
+      const outcome = await Promise.race([process.done, new Promise<null>((resolve) => setTimeout(() => resolve(null), 30000))]);
+      const settled = outcome ?? (await process.close());
+      return { stdout, settled };
+    };
+    const version = await run(check.versionArgv);
+    if (!version.settled.confirmed)
+      return { cliVersion: null, login: 'undetermined', reason: version.settled.error ?? '自检进程清理未确认' };
+    const cliVersion = version.settled.exitCode === 0 ? version.stdout.trim().split('\n')[0]?.slice(0, 200) || null : null;
+    const status = await run(check.statusArgv);
+    if (!status.settled.confirmed) return { cliVersion, login: 'undetermined', reason: status.settled.error ?? '自检进程清理未确认' };
+    const login = check.parseStatus(status.settled.exitCode, status.stdout);
+    return {
+      cliVersion,
+      login,
+      reason: login === 'undetermined' ? `无法从登录状态命令判断（退出码 ${String(status.settled.exitCode)}）` : null,
+    };
+  }
+  /** 配置目录必须正好是该 Profile 的约定目录，并映射到该 Harness 声明的环境变量；内置 Profile 不带目录。 */
+  private assertProfileDir(harness: ChatHarness, harnessId: string, profileDir: ProfileDir | null, profileId?: string) {
+    if (!profileDir) {
+      if (profileId !== undefined && !profileId.endsWith(':default')) throw new Error('非内置 Profile 缺少配置目录');
+      return;
+    }
+    const env = harness.kind === 'native' ? harness.adapter.configDirEnv : harness.spec.configDirEnv;
+    const id = profileDir.path.split('/').at(-1) ?? '';
+    const expected = profileDirOf(harnessId, profileId ?? id);
+    if (!env || env !== profileDir.env || !expected || expected.path !== profileDir.path || expected.env !== profileDir.env)
+      throw new Error('Profile 配置目录与 Harness 声明不符');
   }
   private slot(id: ChatSlot): Slot {
     let slot = this.slots.get(id);
@@ -178,6 +248,7 @@ export class CodexChat {
           error: null,
         },
         active: null,
+        threadOwner: null,
       };
       this.slots.set(id, slot);
     }
@@ -229,6 +300,7 @@ export class CodexChat {
     text: string,
     observationScope: ObservationTurnScope | undefined,
     references: CatalogReferenceSnapshot,
+    turnHarness: TurnHarness = CODEX_DEFAULT_TURN,
   ): Promise<ChatConversation> {
     if (this.closing) throw new Error('对话服务正在关闭');
     if (id !== 'conv-personal-default' && !this.workspaceBySession.has(id)) throw new Error('会话尚未由宿主注册');
@@ -237,8 +309,13 @@ export class CodexChat {
       if (observationScope.sessionId !== id || this.workspaceBySession.get(id) !== observationScope.workspaceId)
         throw new Error('观察会话不属于已注册空间');
     }
-    const status = this.getStatus();
+    const status = this.connection.getStatus();
     if (!status.available) throw new Error(status.reason ?? 'sbx 不可用');
+    const entry = this.harnesses.get(turnHarness.harnessId);
+    if (!entry) throw new Error(`未注册的 Harness：${turnHarness.harnessId}`);
+    const availability = this.availability(entry, status);
+    if (!availability.available) throw new Error(availability.reason ?? `${availability.descriptor.displayName} 不可用`);
+    this.assertProfileDir(entry.harness, turnHarness.harnessId, turnHarness.profileDir, turnHarness.profileId);
     const slot = this.slot(id);
     if (slot.active) throw new Error(slot.active?.cleanupError ?? '当前会话正在等待回复');
     const spaceId = this.workspaceBySession.get(id) ?? null;
@@ -256,9 +333,19 @@ export class CodexChat {
         throw new Error('参考资料正文摘要不匹配');
     Object.assign(slot.conversation, { turnId, state: 'running', error: null, cleanupPending: true });
     slot.conversation.messages.push({ id: turnId, role: 'user', text });
+    const owner = { harnessId: turnHarness.harnessId, profileId: turnHarness.profileId };
+    if (slot.conversation.threadId && (slot.threadOwner?.harnessId !== owner.harnessId || slot.threadOwner.profileId !== owner.profileId)) {
+      // 另一个 Harness 或账号建立的会话身份不能在这里恢复：开始新的 Agent 会话，并保留可见说明。
+      slot.conversation.threadId = null;
+      const warning = `本轮改用 ${availability.descriptor.displayName}（${owner.profileId}），已开始新的 Agent 会话；之前的上下文不会带入`;
+      if (!slot.conversation.warnings.includes(warning)) slot.conversation.warnings.push(warning);
+      slot.conversation.warnings = slot.conversation.warnings.slice(-20);
+    }
+    slot.threadOwner = owner;
     this.publish(slot);
-    const harness = this.harness;
-    const label = this.label;
+    const harness = entry.harness;
+    const label = harness.kind === 'native' ? harness.adapter.label : harness.spec.label;
+    const profileDir = turnHarness.profileDir;
     const native = harness.kind === 'native' ? harness.adapter : null;
     const argv = native ? native.argv(slot.conversation.threadId) : (harness as Extract<ChatHarness, { kind: 'acp' }>).spec.command;
     const maxLineChars = native ? native.maxLineChars : 1048576;
@@ -398,6 +485,7 @@ export class CodexChat {
         mode: 'codex',
         argv,
         ...(native ? { mcp: native.mcpInjection, prompt: text } : { mcp: 'acp-stdio' as const, stdin: 'relay' as const }),
+        ...(profileDir ? { profileDir } : {}),
         resourceBundle,
         observation: Boolean(observationScope && this.observationReader),
         observationImages: false,

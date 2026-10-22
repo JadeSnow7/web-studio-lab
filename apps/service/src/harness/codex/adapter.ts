@@ -152,6 +152,19 @@ export const codexAdapter: NativeHarnessAdapter = {
   mcpInjection: 'codex-config',
   requiresSessionRef: true,
   maxLineChars: 1048576,
+  harnessId: 'codex',
+  configDirEnv: 'CODEX_HOME',
+  // 2026-10-22 在 guest 实测：已登录退出 0 并以“Logged in”开头，未登录退出 1 并输出“Not logged in”。
+  selfCheck: {
+    versionArgv: ['codex', '--version'],
+    statusArgv: ['codex', 'login', 'status'],
+    parseStatus(exitCode, stdout) {
+      const text = stdout.trim();
+      if (exitCode === 0 && text.startsWith('Logged in')) return 'logged_in';
+      if (exitCode === 1 && text.startsWith('Not logged in')) return 'logged_out';
+      return 'undetermined';
+    },
+  },
   descriptor(version: string | null): HarnessDescriptor {
     return {
       harnessId: 'codex',

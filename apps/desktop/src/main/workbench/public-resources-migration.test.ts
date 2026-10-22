@@ -1,3 +1,4 @@
+import { codexHarnessRuntime } from './harness-test-fixture';
 import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -27,6 +28,7 @@ async function setup() {
   const file = path.join(root, 'workbench.json');
   const page = { ...snapshot().page };
   const runtime = {
+    ...codexHarnessRuntime,
     environmentsList: vi.fn(async () => []),
     captureResource: vi.fn(async () => snapshot()),
     ensureBrowser: vi.fn(),

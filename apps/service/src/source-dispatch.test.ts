@@ -40,7 +40,7 @@ vi.mock('./environment-resources', () => ({
 
 const initialArgv = process.argv;
 const initialPort = Object.getOwnPropertyDescriptor(process, 'parentPort');
-const status: ChatStatus = { available: true, reason: null, sandbox: 'fixture', version: 'fixture', cwd: '/fixture' };
+const status: ChatStatus = { available: true, reason: null, sandbox: 'fixture', version: 'fixture', cwd: '/fixture', harnesses: [] };
 const target = { workspaceId: 'space-source', projectId: 'a33d7ef0-ea73-4fd6-b4a0-e41bd68f1090' };
 let signalListeners: NodeJS.SignalsListener[] = [];
 function deferred<T>() {

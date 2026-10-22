@@ -1,3 +1,4 @@
+import { codexHarnessRuntime } from './harness-test-fixture';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
@@ -27,6 +28,7 @@ async function setup(allowedScopes: string[]) {
   let instance: ManagedApp | null = null;
   let starts = 0;
   const runtime = {
+    ...codexHarnessRuntime,
     environmentsList: vi.fn().mockResolvedValue([]),
     registerResource: vi.fn(),
     releaseResource: vi.fn(),

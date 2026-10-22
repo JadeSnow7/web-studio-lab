@@ -36,7 +36,9 @@ rl.on('line', (line) => {
     mode = value.mode;
     if (value.mcp === 'acp-stdio')
       frame({ type: 'mcp-server', name: 'wsl_space', command: '/usr/bin/python3', args: ['-I', '-u', '-c', 'pass'] });
-    relayChild = spawn(value.argv[0], value.argv.slice(1), { stdio: ['pipe', 'pipe', 'pipe'] });
+    // 与 guest helper 一致：Profile 配置目录只映射到声明的那一个环境变量（W4）。
+    const env = value.profileDir ? { ...process.env, [value.profileDir.env]: value.profileDir.path } : process.env;
+    relayChild = spawn(value.argv[0], value.argv.slice(1), { stdio: ['pipe', 'pipe', 'pipe'], env });
     relayChild.on('error', (error) => {
       frame({ type: 'error', error: error.message });
       finish(127);
@@ -68,6 +70,12 @@ rl.on('line', (line) => {
     if (value.argv[1] === 'login') {
       output('Logged in fixture\n');
       finish();
+    }
+    // Claude Code `auth status --json`（W4 自检）：Profile 目录名以 00000000- 开头时视为未登录，其余为已登录。
+    if (value.argv.includes('auth') && value.argv.includes('status')) {
+      const loggedIn = !value.profileDir?.path.split('/').at(-1).startsWith('00000000-');
+      output(`${JSON.stringify({ loggedIn, authMethod: loggedIn ? 'claude.ai' : 'none', email: 'fixture@example.invalid' })}\n`);
+      return void finish(loggedIn ? 0 : 1);
     }
     if (value.argv.includes('--ignore-user-config') || value.argv.includes('shell_tool')) finish(8);
     const prompt = value.prompt;

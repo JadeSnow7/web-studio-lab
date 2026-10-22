@@ -40,6 +40,7 @@ describe('UI 所需 sbx 与终端跨进程契约', () => {
       version: 'codex-cli fixture',
       sandbox: 'fixture-sandbox',
       cwd: '/home/agent/workspace',
+      harnesses: [],
     });
     expect(status).toMatchObject({ sandbox: 'fixture-sandbox', cwd: '/home/agent/workspace' });
   });

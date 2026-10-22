@@ -23,15 +23,15 @@ import { TerminalOpenSchema, TerminalWriteSchema, TerminalResizeSchema, Terminal
 import { ChatSlotSchema } from './chat-slot';
 export { ChatSlotSchema } from './chat-slot';
 import { CatalogReferenceSnapshotSchema } from './resource-catalog';
-import { HarnessDescriptorSchema } from './harness';
+import { HarnessAvailabilitySchema, ProfileCheckResultSchema, ProfileDirSchema, HarnessIdSchema, TurnHarnessSchema } from './harness';
 export const ChatStatusSchema = z.object({
   available: z.boolean(),
   reason: z.string().nullable(),
   version: z.string().nullable(),
   sandbox: z.string().nullable(),
   cwd: z.string().nullable(),
-  /** 本对话服务使用的 Harness；旧版本服务不报告时缺省。 */
-  harness: HarnessDescriptorSchema.optional(),
+  /** 本服务已注册的全部 Harness 及其可用性（W4）；按执行选择其一。 */
+  harnesses: z.array(HarnessAvailabilitySchema).max(16),
 });
 export const ChatMessageSchema = z.object({ id: z.string(), role: z.enum(['user', 'assistant']), text: z.string() });
 export const ChatConversationSchema = z.object({
@@ -65,8 +65,12 @@ export const ChatSendSchema = z
     text: z.string().trim().min(1).max(32000),
     observationScope: ObservationTurnScopeSchema.optional(),
     references: CatalogReferenceSnapshotSchema,
+    /** 本轮使用的 Harness 与 Profile，由 Main 解析后传入（W4）。 */
+    harness: TurnHarnessSchema,
   })
   .strict();
+/** 无模型自检一个 Profile：在运行环境内以其配置目录运行版本与登录状态命令。 */
+export const ProfileCheckRequestSchema = z.object({ harnessId: HarnessIdSchema, profileDir: ProfileDirSchema.nullable() }).strict();
 export const ChatTargetSchema = z.object({ conversationId: ChatSlotSchema });
 export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
   z
@@ -124,6 +128,7 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
     })
     .strict(),
   z.object({ id: z.string(), method: z.literal('status') }),
+  z.object({ id: z.string(), method: z.literal('profile.check'), payload: ProfileCheckRequestSchema }).strict(),
   z.object({ id: z.string(), method: z.literal('environments.list') }).strict(),
   z.object({ id: z.string(), method: z.literal('resource.register'), payload: RuntimeResourceIdentitySchema }).strict(),
   z.object({ id: z.string(), method: z.literal('resource.release'), payload: RuntimeResourceIdentitySchema }).strict(),
@@ -194,6 +199,7 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
       ManagedAppSchema,
       AppSourceSchema,
       ChatStatusSchema,
+      ProfileCheckResultSchema,
       ChatConversationSchema,
       TerminalSnapshotSchema,
       EnvironmentListSchema,
@@ -205,6 +211,8 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
 ]);
 export type ChatSlot = z.infer<typeof ChatSlotSchema>;
 export type ChatStatus = z.infer<typeof ChatStatusSchema>;
+/** 运行环境连接本身的状态（sandbox、CLI 版本、工作目录），不含 Harness 可用性；由执行核心补全为 ChatStatus。 */
+export type SandboxStatus = Omit<ChatStatus, 'harnesses'>;
 export type ChatConversation = z.infer<typeof ChatConversationSchema>;
 export type ChatServiceRequest = z.infer<typeof ChatServiceRequestSchema>;
 export type ChatServiceMessage = z.infer<typeof ChatServiceMessageSchema>;

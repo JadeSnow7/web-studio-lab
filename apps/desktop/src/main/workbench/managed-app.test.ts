@@ -1,3 +1,4 @@
+import { codexHarnessRuntime } from './harness-test-fixture';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,6 +9,7 @@ import type { WorkbenchRuntime } from './ports';
 async function setup() {
   let instance: ManagedApp | null = null;
   const runtime = {
+    ...codexHarnessRuntime,
     appCreate: vi.fn(
       async (target) =>
         (instance = {

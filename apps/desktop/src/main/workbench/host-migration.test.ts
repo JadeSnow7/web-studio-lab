@@ -1,3 +1,4 @@
+import type { HarnessProfileService } from '../harness-profiles';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { BrowserWindow } from 'electron';
@@ -63,7 +64,12 @@ beforeEach(() => {
 });
 describe('R3/R5 native host migration baseline', () => {
   it('resolves menu reload/devtools from active pane instead of the last layout', async () => {
-    const host = new WorkbenchHost({} as BrowserWindow, { setAppListener: vi.fn() } as unknown as ChatService, '/fixture');
+    const host = new WorkbenchHost(
+      {} as BrowserWindow,
+      { setAppListener: vi.fn() } as unknown as ChatService,
+      '/fixture',
+      {} as unknown as HarnessProfileService,
+    );
     const activeBrowserResourceId = vi.fn((): string | null => 'a');
     host.application = {
       activeBrowserResourceId,
@@ -87,7 +93,12 @@ describe('R3/R5 native host migration baseline', () => {
     expect(mocks.controllers[1]!.reload).not.toHaveBeenCalled();
   });
   it('forwards focus with immutable workspace/resource/instance/generation ownership', () => {
-    const host = new WorkbenchHost({} as BrowserWindow, { setAppListener: vi.fn() } as unknown as ChatService, '/fixture');
+    const host = new WorkbenchHost(
+      {} as BrowserWindow,
+      { setAppListener: vi.fn() } as unknown as ChatService,
+      '/fixture',
+      {} as unknown as HarnessProfileService,
+    );
     const onBrowserFocus = vi.fn();
     host.application = { onBrowserFocus } as unknown as WorkbenchApplication;
     const r = resource('a');
@@ -100,7 +111,12 @@ describe('R3/R5 native host migration baseline', () => {
     expect(onBrowserFocus).toHaveBeenCalledWith('w', 'a', 'a-instance', 1);
   });
   it('disposes and removes a controller if initial loading throws, then permits retry', () => {
-    const host = new WorkbenchHost({} as BrowserWindow, { setAppListener: vi.fn() } as unknown as ChatService, '/fixture');
+    const host = new WorkbenchHost(
+      {} as BrowserWindow,
+      { setAppListener: vi.fn() } as unknown as ChatService,
+      '/fixture',
+      {} as unknown as HarnessProfileService,
+    );
     mocks.load.mockImplementationOnce(() => {
       throw new Error('load failed');
     });
@@ -114,7 +130,12 @@ describe('R3/R5 native host migration baseline', () => {
 describe('public resource Host page identity', () => {
   it('binds capture to the native page at operation start and saves only that returned snapshot', async () => {
     const resourcesSave = vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 1, resources: [] });
-    const host = new WorkbenchHost({} as BrowserWindow, { resourcesSave, setAppListener: vi.fn() } as unknown as ChatService, '/fixture');
+    const host = new WorkbenchHost(
+      {} as BrowserWindow,
+      { resourcesSave, setAppListener: vi.fn() } as unknown as ChatService,
+      '/fixture',
+      {} as unknown as HarnessProfileService,
+    );
     host.ensureBrowser('taskflow-demo', resource('a'));
     const controller = mocks.controllers[0]!;
     const page = { ...mocks.page };
@@ -136,7 +157,12 @@ describe('public resource Host page identity', () => {
   });
   it('does not save when the native controller rejects the page identity after navigation', async () => {
     const resourcesSave = vi.fn();
-    const host = new WorkbenchHost({} as BrowserWindow, { resourcesSave, setAppListener: vi.fn() } as unknown as ChatService, '/fixture');
+    const host = new WorkbenchHost(
+      {} as BrowserWindow,
+      { resourcesSave, setAppListener: vi.fn() } as unknown as ChatService,
+      '/fixture',
+      {} as unknown as HarnessProfileService,
+    );
     host.ensureBrowser('taskflow-demo', resource('a'));
     mocks.controllers[0]!.captureResource.mockRejectedValue(new Error('页面已经变化，请重新采集'));
     await expect(host.captureResource('a')).rejects.toThrow('页面已经变化');
@@ -162,7 +188,7 @@ describe('managed application Browser origin leases', () => {
       appStart: vi.fn(async () => running),
       appStop: vi.fn(async () => ({ ...running, state: 'stopped', url: null, cleanupConfirmed: true })),
     };
-    const host = new WorkbenchHost({} as BrowserWindow, chat as unknown as ChatService, '/fixture');
+    const host = new WorkbenchHost({} as BrowserWindow, chat as unknown as ChatService, '/fixture', {} as unknown as HarnessProfileService);
     const managed = { ...resource('managed'), environmentId: 'sandbox' as const, appProjectId: target.projectId, url: running.url };
     expect(() => host.ensureBrowser(target.workspaceId, managed)).toThrow('应用实例已停止');
     await host.appStart(target);

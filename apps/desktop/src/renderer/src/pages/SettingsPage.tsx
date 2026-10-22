@@ -1,8 +1,8 @@
 import { SetupSettings } from './SetupSettings';
 import { Notice } from '../components/Badges';
 import { useStore } from '../lib/store';
-import { chatStore } from '../state/chat';
-import { harnessDisplayName } from '@wsl/protocol';
+import { chatStore, selectedHarnessName } from '../state/chat';
+import { HarnessProfiles } from './HarnessProfiles';
 import { environmentStore } from '../state/execution';
 import { workspaceStore, command } from '../state/workspace';
 
@@ -13,6 +13,7 @@ export function SettingsPage() {
   const state = useStore(workspaceStore, (s) => s);
   const workspace = state.snapshot?.workspaces.find((w) => w.workspaceId === state.selectedId);
   const chat = useStore(chatStore, (state) => state.status);
+  const defaultHarness = useStore(chatStore, (state) => selectedHarnessName(state));
 
   return (
     <div className="page-columns">
@@ -52,18 +53,18 @@ export function SettingsPage() {
         <h2 id="settings-harness">连接与 Harness</h2>
         <Notice tone="warn">{env.execution?.reason ?? '正在读取执行服务状态…'}</Notice>
         <dl className="kv">
-          <dt>主 Harness</dt>
-          <dd>{chat ? `${harnessDisplayName(chat)} · ${chat.available ? '对话已连接' : '对话不可用'}` : '读取中…'}</dd>
+          <dt>默认 Harness</dt>
+          <dd>{chat ? `${defaultHarness} · ${chat.available ? '对话已连接' : '对话不可用'}` : '读取中…'}</dd>
           <dt>沙箱</dt>
           <dd>{chat?.sandbox ?? '未选择'}</dd>
           <dt>工作目录</dt>
           <dd>
             <code className="wrap">{chat?.cwd ?? '未读取'}</code>
           </dd>
-          <dt>CLI 版本</dt>
+          <dt>连接检查（Codex CLI 版本）</dt>
           <dd>{chat?.version ?? '未读取'}</dd>
           <dt>模型</dt>
-          <dd>由 Codex CLI 默认配置决定；连接检查不代表模型回复已验证</dd>
+          <dd>由所选 Harness 的默认配置决定；连接检查不代表模型回复已验证</dd>
         </dl>
         <Notice>{chat?.reason ?? '对话已连接；任务与检查状态请在具体会话中查看。'}</Notice>
         <table className="table">
@@ -86,6 +87,7 @@ export function SettingsPage() {
             ))}
           </tbody>
         </table>
+        <HarnessProfiles />
         <p className="muted small">对话与终端使用所选 sbx 中的环境；OAuth 由 Docker Sandboxes 宿主凭据存储管理。</p>
 
         <h2 id="settings-about">关于</h2>
