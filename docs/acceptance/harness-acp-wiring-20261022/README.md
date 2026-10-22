@@ -23,6 +23,28 @@
 | R4–R6 | `apps/service/src/codex-chat.test.ts`“ACP Harness 经执行核心（W3b…）” |
 | R7    | 全量测试                                                              |
 
+## 实际运行（2026-10-22，macOS）
+
+环境：macOS 26.6.2（25G83）arm64，Node v26.5.0（产品期望 Node 24，本机实际版本如实记录），pnpm 10.34.6，Python 3.15.0，Electron 44.5.1。基线 `origin/main` `ebf4391`（PR #17），被测提交 `03fea41`；之后的变基只在其下方加入 W0、W2、W3a 的执行记录、在其上方加入本记录，均为文档提交，代码未变。命令按交接清单逐项独立执行，单项失败不中断后续项。
+
+| 命令                                                                                     | 结果                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm install --frozen-lockfile`                                                         | 通过                                                                                                                                                                                                                                                                           |
+| `pnpm typecheck`                                                                         | 通过                                                                                                                                                                                                                                                                           |
+| `pnpm exec eslint apps packages e2e scripts templates/standard-app`                      | 通过                                                                                                                                                                                                                                                                           |
+| `pnpm exec prettier --check apps packages e2e scripts templates/standard-app`            | 通过                                                                                                                                                                                                                                                                           |
+| `pnpm exec vitest run`                                                                   | 1325 通过、22 跳过、1 失败：`setup-adapter.test.ts` 的 “accepts actual sanitized sbx inspect shape, rejects mounts and daemon drift” 在全量并行下超过 5 秒超时；未改动的 `origin/main` `ebf4391` 上同样超时，与本包无关。`setup-adapter-failure.test.ts` 在 macOS 上运行并通过 |
+| `pnpm test:packaging` / `test:external-builds` / `test:edu-source` / `baseline:selftest` | 40 / 6 / 57 / 12 项全部通过                                                                                                                                                                                                                                                    |
+| `node scripts/check-docs.mjs`                                                            | 通过                                                                                                                                                                                                                                                                           |
+| `pnpm build`                                                                             | 通过                                                                                                                                                                                                                                                                           |
+| `env -u ELECTRON_RUN_AS_NODE pnpm exec playwright test`                                  | 第一次：135 通过、36 失败、16 跳过（12.3 分钟）；独立复跑：171 通过、16 跳过（7.0 分钟）。见下                                                                                                                                                                                 |
+| `git diff --check origin/main...HEAD`                                                    | 通过                                                                                                                                                                                                                                                                           |
+
+- E2E 第一次运行的 36 个失败（编号 9–51 连续一段，含 branding、chat、debug-status、installer、p0-run-diff、public-document、resources、review-regressions）全部在 `e2e/helpers.ts:118` 的 `ensureForeground` 处失败：“The owned E2E workbench window must be visible and natively focused”，10 秒内窗口未取得原生前台焦点，测试主体尚未开始；这段时间本机桌面上有其他应用取得焦点。同一构建、同一提交在不切换前台的情况下独立复跑，171 项全部通过。两次的日志与第一次的 `test-results` 只保存在本机，未入库。
+- 本分支提交在变基时没有冲突。
+
+以下容器结果保留为历史。
+
 ## 实际运行（2026-10-22，Linux x86_64 容器，Node 24.22.0，pnpm 10.34.6，Python 3）
 
 | 命令                                                                                     | 结果                                                                                                             |
@@ -52,5 +74,5 @@
 ## 未运行与未实现
 
 - R8 未运行。
-- Electron E2E：交给 macOS PR 门禁。
+- Electron E2E：容器中未运行；2026-10-22 已在 macOS 上运行，结果见上。打包后的 E2E 未运行。
 - 打包安装器的 guest 载荷、W4 的 Profile 与选择器、逐项审批界面。
