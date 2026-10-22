@@ -236,6 +236,46 @@ describe('workbench authoritative commands', () => {
     );
     expect((await app.getSnapshot()).activeWorkspaceId).toBe('other');
   });
+  it('rejects startRun before creating a run while another session holds the sandbox write lease (W0 L7)', async () => {
+    const { app, runtime } = await make();
+    const s = (await app.getSnapshot()).workspaces[0]?.sessions[0];
+    if (!s) throw new Error('fixture');
+    runtime.writeHolder = vi.fn(() => 'conv-personal-default');
+    await app.command({
+      type: 'confirmTask',
+      workspaceId: 'taskflow-demo',
+      commandId: 'confirm-lease',
+      sessionId: s.sessionId,
+      goal: 'goal',
+      targetRef: null,
+    });
+    const v = (await app.getSnapshot()).workspaces[0]?.sessions[0]?.taskVersions[0];
+    if (!v) throw new Error('fixture');
+    const result = await app.command({
+      type: 'startRun',
+      workspaceId: 'taskflow-demo',
+      commandId: 'start-lease',
+      sessionId: s.sessionId,
+      taskVersionId: v.taskVersionId,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('conflict');
+      expect(result.error.message).toContain('「个人对话」（conv-personal-default）');
+    }
+    expect((await app.getSnapshot()).workspaces[0]?.runs).toEqual([]);
+    expect(runtime.send).not.toHaveBeenCalled();
+    vi.mocked(runtime.writeHolder!).mockReturnValue(s.sessionId);
+    vi.mocked(runtime.send).mockResolvedValue(conversation(s.sessionId, 'lease', 5));
+    const own = await app.command({
+      type: 'startRun',
+      workspaceId: 'taskflow-demo',
+      commandId: 'start-own',
+      sessionId: s.sessionId,
+      taskVersionId: v.taskVersionId,
+    });
+    expect(own.ok).toBe(true);
+  });
   it('keeps verifier unavailable and rejects review of a failed run', async () => {
     const { app, runtime } = await make();
     const s = (await app.getSnapshot()).workspaces[0]?.sessions[0];
