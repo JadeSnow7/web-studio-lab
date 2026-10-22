@@ -65,7 +65,7 @@
 
 1. 第一次全量 E2E 在约 60 项后手动停止：设置页组件的选择器每次返回新的空数组，订阅无限重渲染（React #185），设置页常驻挂载，几乎所有用例的渲染进程崩溃；关闭流程用例因此停在真实的退出确认框上。修正为选择器返回原引用、默认值放在订阅之外。单元测试未覆盖组件渲染，没有发现这个问题。
 2. 第二次全量 E2E：168 通过、5 失败。其中 4 项因为初稿在 Harness 不可用时直接拒绝 `startRun`、不创建执行，违反既有约定“执行器不可用时保留草稿并记录失败运行”；已按 SPEC §7 第 7 条的修正改为在启动路径上失败。另 1 项 `status-surface.spec.ts:2000` 的焦点断言为 `inactive`，第三次全量中通过，判断为窗口焦点的偶发问题。
-3. 单元测试中 `harness-profiles.test.ts`“执行服务第一次可用时…”在一次全量运行中失败（耗时 1ms），错误文本未保存；随后 7 次全量运行均通过，原因**未定位**。
+3. 单元测试中 `harness-profiles.test.ts`“执行服务第一次可用时…”在一次全量运行中失败（耗时 1ms），错误文本未保存；随后 7 次全量运行均通过，当时原因未定位。2026-10-22 W4b 期间再次出现并保存了错误：`ENOTEMPTY: directory not empty, rmdir …/wsl-profiles-*`。原因在测试本身：`onStatus` 在后台启动的自检完成后会写入文件，用例只等到 `checkProfile` 被调用两次就结束，`afterEach` 删除临时目录时偶尔与写入竞争。产品行为不受影响；修正为等待两个自检结果都已写入后再结束（随 W4b 提交），之后 Main 单元测试连续 3 次通过。
 4. 其他运行中出现过的 `setup-adapter.test.ts` sbx inspect 5 秒超时，`origin/main` 上同样出现，与本包无关；最终一次全量未出现。
 
 ## 未运行与已知限制
@@ -78,3 +78,45 @@
 - 个人对话的消息作者按当前全局默认显示；默认在对话中途改变时，旧消息的显示名随之改变。
 - 打包安装器的 guest 载荷仍只有 Codex，打包版中 Claude Code 会显示为不可用（交接已知缺口）。
 - W4b（逐项审批）未开始。
+
+## W4b 执行记录 · 逐项审批
+
+设计见 [SPEC](SPEC.md) §8。分支 `agent/harness-approvals`，基于 `agent/harness-profiles` `c1aee7d`（W4a，PR #25）。改动尚未提交。
+
+### 改动
+
+| 路径                                                                                                                                          | 变化                                                                                                                                                                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `packages/protocol/src/chat.ts`、`ipc.ts`、`bridge.ts`、`workspace.ts`                                                                        | 会话快照增加可选的 `permissionRequests`（请求身份、所属轮次、工具标题与类型、一次性选项、截止时间）；service 方法 `permission.reply`；个人对话 IPC `chat:permission-reply` 与 `chat.answerPermission`；工作台命令 `answerPermission` |
+| `apps/service/src/harness/acp/policy.ts`                                                                                                      | `workspaceWritePolicy` 改为 `approvalPolicy`：允许类型照旧自动放行一次；`fetch`、`switch_mode` 与未知类型交给用户，只保留一次性选项；没有一次性允许选项时照旧拒绝                                                                    |
+| `apps/service/src/harness/acp/turn.ts`                                                                                                        | 权限请求只带 `toolCallId` 时，用本轮已知的工具标题与类型补齐                                                                                                                                                                         |
+| `apps/service/src/codex-chat.ts`、`index.ts`                                                                                                  | 待决请求写入快照并等待回复；10 分钟超时按拒绝处理；轮次失败、取消、结束时以 cancelled 收尾；回复只接受当前轮次仍待决的请求与其一次性选项；每个决定记入会话警告                                                                       |
+| `apps/desktop/src/main/workbench/application.ts`、`ports.ts`、`host.ts`、`chat-service.ts`、`ipc.ts`、`preload/index.ts`                      | Main 核对会话、当前执行与请求仍待决后转发；不改写本地状态，决定由执行服务的新快照发布                                                                                                                                                |
+| `apps/desktop/src/renderer/src/components/PermissionRequests.tsx`（新增）、`workspace/Session.tsx`、`shell/ChatMessages.tsx`、`state/chat.ts` | 空间会话与个人对话中的审批卡片，只在对应轮次运行时显示                                                                                                                                                                               |
+| `apps/service/src/fixtures/fake-acp-agent.mjs`、`e2e/fixtures/sbx.mjs`、`e2e/helpers.ts`                                                      | 假 ACP Agent 的 `ask` 场景（fetch 权限，含“始终允许”选项）；fixture sbx 只在 `WSL_FIXTURE_ACP_SCENARIO` 存在时把 `claude-agent-acp` 换成假 Agent                                                                                     |
+| `apps/desktop/src/main/harness-profiles.test.ts`                                                                                              | 修正 W4a 中“执行服务第一次可用时…”的临时目录竞争（见上文“过程中的失败”第 3 条）                                                                                                                                                      |
+
+行为变化：Claude Code 的 `fetch`、`switch_mode` 与未知类型权限请求不再直接拒绝，而是等待用户决定；Codex native 不变。
+
+### 验收对应（P8）
+
+| 路径       | 依据                                                                                                                                                                                                                                               |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 允许       | `codex-chat.test.ts` W4b“原先拒绝的 fetch 交给用户…”；E2E 两项（个人对话、空间会话）                                                                                                                                                               |
+| 拒绝       | `codex-chat.test.ts`“用户拒绝”；E2E 个人对话                                                                                                                                                                                                       |
+| 超时       | `codex-chat.test.ts`“截止时间前无人回复时按拒绝处理”（时限缩短到 200ms）                                                                                                                                                                           |
+| 执行取消   | `codex-chat.test.ts`“等待审批时取消执行…迟到的回复不产生决定”                                                                                                                                                                                      |
+| 伪造或过期 | `codex-chat.test.ts`“伪造的请求身份不能产生决定”、允许后重复回复被拒绝、“始终允许”的选项身份被拒绝；`application.test.ts`“forwards a permission reply only for a pending request…”（未知请求、非本请求选项不转发，service 报错时以 conflict 返回） |
+
+### 实际运行（2026-10-22，macOS，环境同上）
+
+| 命令                                                        | 结果                                                                                                                                          |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm typecheck`、维护目录 ESLint 与 Prettier、`check-docs` | 通过                                                                                                                                          |
+| `pnpm exec vitest run`                                      | 第一次 1354 通过、1 失败、26 跳过（上述临时目录竞争）；修正后 `apps/desktop/src/main` 连续 3 次 595 通过，完整复跑 1355 通过、26 跳过、0 失败 |
+| `pnpm build`                                                | 通过                                                                                                                                          |
+| `env -u ELECTRON_RUN_AS_NODE pnpm exec playwright test`     | 175 通过、16 跳过、0 失败（4.7 分钟），含新增 `e2e/harness-approvals.spec.ts` 2 项                                                            |
+
+### 未运行
+
+- 真实 Claude Code 触发 `fetch` 审批的运行：需要用户在场。

@@ -17,6 +17,7 @@ import {
   type ProfileCheckResult,
   type ProfileDir,
   type TurnHarness,
+  type PermissionRequest,
   profileDirOf,
 } from '@wsl/protocol';
 import { SbxConnection, GUEST_CWD, type GuestProcess, type GuestOutcome } from './sbx';
@@ -26,7 +27,8 @@ import { acpDescriptor, type AcpAgentSpec } from './harness/acp/agents';
 import { AcpClient, AcpMethodNotFound, AcpProtocolError } from './harness/acp/client';
 import { ACP_PROTOCOL_VERSION, InitializeResultSchema, type AcpStdioMcpServer, type InitializeResult } from './harness/acp/protocol';
 import { AcpTurn, acpInitializeParams } from './harness/acp/turn';
-import { workspaceWritePolicy } from './harness/acp/policy';
+import { approvalPolicy } from './harness/acp/policy';
+import type { PermissionOption, PermissionOutcome, RequestPermissionParams } from './harness/acp/protocol';
 import { harnessIdOf } from './harness/registry';
 
 export { parseCodexLine } from './harness/codex/adapter';
@@ -50,6 +52,11 @@ interface Turn {
   completion: Promise<void> | null;
   observation: AbortController;
   calls: Map<string, AbortController>;
+  /** 本轮待用户决定的权限请求（W4b）；settle 答复 Agent、移除快照中的请求并按需发布。 */
+  approvals: Map<
+    string,
+    { request: PermissionRequest; settle: (outcome: PermissionOutcome, note: string | null, publish?: boolean) => void }
+  >;
 }
 interface Slot {
   conversation: ChatConversation;
@@ -98,6 +105,8 @@ export class CodexChat {
     connection = new SbxConnection(),
     /** 本执行核心可用的全部 Harness；每轮由调用方按 harnessId 选择其一（W4）。 */
     harnesses: readonly ChatHarness[] = [CODEX_HARNESS],
+    /** 权限请求无人回复时按拒绝处理的时限（W4-10 A：10 分钟）；测试可缩短。 */
+    private readonly approvalTimeoutMs = 600000,
   ) {
     this.connection = connection;
     for (const harness of harnesses) {
@@ -230,6 +239,94 @@ export class CodexChat {
     if (!env || env !== profileDir.env || !expected || expected.path !== profileDir.path || expected.env !== profileDir.env)
       throw new Error('Profile 配置目录与 Harness 声明不符');
   }
+  private warn(slot: Slot, text: string) {
+    const warning = text.slice(0, 2000);
+    if (!slot.conversation.warnings.includes(warning)) slot.conversation.warnings.push(warning);
+    slot.conversation.warnings = slot.conversation.warnings.slice(-20);
+  }
+  /**
+   * 把一个权限请求交给用户（W4b）：写入会话快照并等待回复；截止时间到后按拒绝处理。
+   * 轮次结束、取消或失败时由 settleApprovals 以 cancelled 收尾。
+   */
+  private ask(slot: Slot, turn: Turn, params: RequestPermissionParams, options: PermissionOption[]): Promise<PermissionOutcome> {
+    const cancelled: PermissionOutcome = { outcome: { outcome: 'cancelled' } };
+    const title = (params.toolCall.title ?? params.toolCall.toolCallId).slice(0, 200);
+    const once = options
+      .filter((option) => option.optionId.length <= 200)
+      .slice(0, 4)
+      .map((option) => ({ optionId: option.optionId, name: option.name.slice(0, 200), kind: option.kind as 'allow_once' | 'reject_once' }));
+    const rejection = (): PermissionOutcome => {
+      const reject = once.find((option) => option.kind === 'reject_once');
+      return reject ? { outcome: { outcome: 'selected', optionId: reject.optionId } } : cancelled;
+    };
+    if (slot.active !== turn || turn.cancel || turn.failure || !slot.conversation.turnId) return Promise.resolve(cancelled);
+    if (!once.some((option) => option.kind === 'allow_once')) {
+      this.warn(slot, `已拒绝 ${title} 的权限请求：没有可用的一次性允许选项`);
+      return Promise.resolve(rejection());
+    }
+    if (turn.approvals.size >= 4) {
+      this.warn(slot, `已拒绝 ${title} 的权限请求：待决请求过多`);
+      return Promise.resolve(rejection());
+    }
+    const now = Date.now();
+    const request: PermissionRequest = {
+      requestId: randomUUID(),
+      turnId: slot.conversation.turnId,
+      toolCallId: params.toolCall.toolCallId.slice(0, 200),
+      title,
+      kind: (params.toolCall.kind ?? 'unknown').slice(0, 40),
+      options: once,
+      requestedAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + this.approvalTimeoutMs).toISOString(),
+    };
+    return new Promise<PermissionOutcome>((resolve) => {
+      const settle = (outcome: PermissionOutcome, note: string | null, publish = true) => {
+        if (!turn.approvals.delete(request.requestId)) return;
+        clearTimeout(timer);
+        slot.conversation.permissionRequests = (slot.conversation.permissionRequests ?? []).filter(
+          (item) => item.requestId !== request.requestId,
+        );
+        if (note) this.warn(slot, note);
+        if (publish && slot.active === turn) {
+          try {
+            this.publish(slot);
+          } catch (error) {
+            this.completionFailed(slot, turn, error);
+          }
+        }
+        resolve(outcome);
+      };
+      const timer = setTimeout(() => settle(rejection(), `${title} 的权限请求在截止时间前未回复，已按拒绝处理`), this.approvalTimeoutMs);
+      turn.approvals.set(request.requestId, { request, settle });
+      slot.conversation.permissionRequests = [...(slot.conversation.permissionRequests ?? []), request];
+      this.publish(slot);
+    });
+  }
+  /** 轮次结束、取消或失败：待决请求一律以 cancelled 答复并移除，不单独发布（调用方随后发布终态）。 */
+  private settleApprovals(turn: Turn) {
+    for (const { settle } of [...turn.approvals.values()]) settle({ outcome: { outcome: 'cancelled' } }, null, false);
+  }
+  /**
+   * 用户对权限请求的回复（W4b）。只接受当前轮次仍待决的请求与其一次性选项；optionId 为 null 表示拒绝。
+   * 已结束、已超时或重复的回复报错，不产生决定。
+   */
+  answerPermission(id: ChatSlot, requestId: string, optionId: string | null): ChatConversation {
+    const turn = this.slots.get(id)?.active;
+    const entry = turn?.approvals.get(requestId);
+    if (!turn || !entry || turn.cancel || turn.failure || turn.finishing) throw new Error('权限请求已结束或不存在');
+    const { request } = entry;
+    const option =
+      optionId === null
+        ? request.options.find((item) => item.kind === 'reject_once')
+        : request.options.find((item) => item.optionId === optionId);
+    if (optionId !== null && !option) throw new Error('选项不属于该权限请求');
+    const allowed = option?.kind === 'allow_once';
+    entry.settle(
+      option ? { outcome: { outcome: 'selected', optionId: option.optionId } } : { outcome: { outcome: 'cancelled' } },
+      allowed ? `已允许 ${request.title}（用户，一次）` : `已拒绝 ${request.title} 的权限请求（用户）`,
+    );
+    return this.get(id);
+  }
   private slot(id: ChatSlot): Slot {
     let slot = this.slots.get(id);
     if (!slot) {
@@ -244,6 +341,7 @@ export class CodexChat {
           messages: [],
           toolExecutions: [],
           warnings: [],
+          permissionRequests: [],
           cleanupPending: false,
           error: null,
         },
@@ -274,6 +372,7 @@ export class CodexChat {
     if (slot.active !== turn) return;
     const reason = error instanceof Error ? error.message : String(error);
     turn.failure ??= reason;
+    this.settleApprovals(turn);
     turn.observation.abort();
     if (!turn.cleanupConfirmed) turn.cleanupError ??= reason;
     slot.conversation.state = 'failed';
@@ -356,6 +455,7 @@ export class CodexChat {
     const fail = (reason: string) => {
       if (slot.active !== turn || turn.failure) return;
       turn.failure = reason;
+      this.settleApprovals(turn);
       turn.observation.abort();
       slot.conversation.state = 'failed';
       slot.conversation.error = reason;
@@ -460,10 +560,10 @@ export class CodexChat {
           sessionRef: slot.conversation.threadId,
           prompt: text,
           signal: turnRef.observation.signal,
-          decidePermission: workspaceWritePolicy((params, reason) => {
-            const warning = `已拒绝 ${params.toolCall.title ?? params.toolCall.toolCallId} 的权限请求：${reason}`.slice(0, 2000);
-            if (!slot.conversation.warnings.includes(warning)) slot.conversation.warnings.push(warning);
-            slot.conversation.warnings = slot.conversation.warnings.slice(-20);
+          decidePermission: approvalPolicy({
+            onDeny: (params, reason) =>
+              this.warn(slot, `已拒绝 ${params.toolCall.title ?? params.toolCall.toolCallId} 的权限请求：${reason}`),
+            ask: (params, options) => this.ask(slot, turnRef, params, options),
           }),
         },
       );
@@ -595,12 +695,14 @@ export class CodexChat {
       completion: null,
       observation: new AbortController(),
       calls: new Map(),
+      approvals: new Map(),
     };
     slot.active = turn;
     turn.completion = process.done
       .then((outcome) => {
         if (slot.active !== turn) return;
         turn.finishing = true;
+        this.settleApprovals(turn);
         turn.observation.abort();
         // The final JSON event need not end with a newline. Only new frames are
         // blocked while finishing; this already-received tail is still consumed.
@@ -650,6 +752,7 @@ export class CodexChat {
     if (turn.cleanupError) throw new Error(turn.cleanupError);
     if (!turn.failure) {
       turn.cancel = true;
+      this.settleApprovals(turn);
       turn.observation.abort();
       slot.conversation.state = 'cancelling';
       try {

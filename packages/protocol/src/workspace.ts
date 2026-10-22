@@ -219,6 +219,7 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
   }),
   command('saveDraft', { sessionId: Id, draft: z.string().max(32000) }),
   command('setSessionHarness', { sessionId: Id, selection: HarnessSelectionSchema.nullable() }),
+  command('answerPermission', { sessionId: Id, requestId: z.string().uuid(), optionId: z.string().min(1).max(200).nullable() }),
   command('saveTaskCriteria', {
     sessionId: Id,
     acceptance: WorkbenchSessionSchema.shape.taskAcceptance.removeDefault(),

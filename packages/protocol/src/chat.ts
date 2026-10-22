@@ -34,6 +34,28 @@ export const ChatStatusSchema = z.object({
   harnesses: z.array(HarnessAvailabilitySchema).max(16),
 });
 export const ChatMessageSchema = z.object({ id: z.string(), role: z.enum(['user', 'assistant']), text: z.string() });
+/**
+ * 等待用户决定的 Agent 权限请求（W4b）。内容来自 Agent，按不可信数据展示；只含一次性选项，
+ * 截止时间到后由执行核心按拒绝处理。
+ */
+export const PermissionRequestSchema = z
+  .object({
+    requestId: z.string().uuid(),
+    turnId: z.string(),
+    toolCallId: z.string().max(200),
+    title: z.string().max(200),
+    kind: z.string().max(40),
+    options: z
+      .array(z.object({ optionId: z.string().min(1).max(200), name: z.string().max(200), kind: z.enum(['allow_once', 'reject_once']) }).strict())
+      .min(1)
+      .max(4),
+    requestedAt: z.string().datetime(),
+    expiresAt: z.string().datetime(),
+  })
+  .strict();
+export const PermissionReplySchema = z
+  .object({ conversationId: ChatSlotSchema, requestId: z.string().uuid(), optionId: z.string().min(1).max(200).nullable() })
+  .strict();
 export const ChatConversationSchema = z.object({
   conversationId: ChatSlotSchema,
   generation: z.string(),
@@ -56,6 +78,8 @@ export const ChatConversationSchema = z.object({
     .max(100)
     .refine((tools) => tools.reduce((sum, tool) => sum + tool.output.length, 0) <= 131072, '工具输出超过总长度限制'),
   warnings: z.array(z.string().max(2000)).max(20),
+  /** 待用户决定的权限请求（W4b）；执行服务总是写入，旧快照没有该字段时视为空。 */
+  permissionRequests: z.array(PermissionRequestSchema).max(4).optional(),
   cleanupPending: z.boolean(),
   error: z.string().nullable(),
 });
@@ -129,6 +153,7 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
     .strict(),
   z.object({ id: z.string(), method: z.literal('status') }),
   z.object({ id: z.string(), method: z.literal('profile.check'), payload: ProfileCheckRequestSchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('permission.reply'), payload: PermissionReplySchema }).strict(),
   z.object({ id: z.string(), method: z.literal('environments.list') }).strict(),
   z.object({ id: z.string(), method: z.literal('resource.register'), payload: RuntimeResourceIdentitySchema }).strict(),
   z.object({ id: z.string(), method: z.literal('resource.release'), payload: RuntimeResourceIdentitySchema }).strict(),
@@ -214,5 +239,7 @@ export type ChatStatus = z.infer<typeof ChatStatusSchema>;
 /** 运行环境连接本身的状态（sandbox、CLI 版本、工作目录），不含 Harness 可用性；由执行核心补全为 ChatStatus。 */
 export type SandboxStatus = Omit<ChatStatus, 'harnesses'>;
 export type ChatConversation = z.infer<typeof ChatConversationSchema>;
+export type PermissionRequest = z.infer<typeof PermissionRequestSchema>;
+export type PermissionReply = z.infer<typeof PermissionReplySchema>;
 export type ChatServiceRequest = z.infer<typeof ChatServiceRequestSchema>;
 export type ChatServiceMessage = z.infer<typeof ChatServiceMessageSchema>;

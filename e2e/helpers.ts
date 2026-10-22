@@ -165,6 +165,8 @@ export async function launchApp(
     debugStatus?: boolean;
     /** 写入 WSL_STATUS_LOG=<path>（需同时启用诊断通道才有效）。 */
     statusLog?: string;
+    /** 测试专用（W4b）：fixture sbx 把 `claude-agent-acp` 映射到确定性的假 ACP Agent 并运行该场景；不调用模型。 */
+    fixtureAcpScenario?: string;
   } = {},
 ): Promise<{ app: ElectronApplication; page: Page; rendererErrors: string[] }> {
   // 默认回归不得消耗模型；真实模型仅在显式 live 模式使用已选 sbx。
@@ -186,6 +188,7 @@ export async function launchApp(
       ? (process.env['WSL_SBX_BIN'] ?? '/opt/homebrew/bin/sbx')
       : (options.sbxBin ?? (options.codexBin ? path.join(root, 'e2e/fixtures/sbx.mjs') : '/missing/wsl-e2e-sbx')),
     WSL_CODEX_BIN: '/missing/host-codex-must-not-run',
+    ...(options.fixtureAcpScenario ? { WSL_FIXTURE_ACP_SCENARIO: options.fixtureAcpScenario } : {}),
   };
   // Each run owns a fresh profile; retain it in tmp for failure evidence.
   const userData = options.userData ?? (await mkdtemp(path.join(tmpdir(), 'wsl-e2e-')));

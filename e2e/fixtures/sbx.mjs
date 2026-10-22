@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 const args = process.argv.slice(2);
 if (args[0] === 'version') {
   console.log('sbx version: fixture');
@@ -38,7 +39,13 @@ rl.on('line', (line) => {
       frame({ type: 'mcp-server', name: 'wsl_space', command: '/usr/bin/python3', args: ['-I', '-u', '-c', 'pass'] });
     // 与 guest helper 一致：Profile 配置目录只映射到声明的那一个环境变量（W4）。
     const env = value.profileDir ? { ...process.env, [value.profileDir.env]: value.profileDir.path } : process.env;
-    relayChild = spawn(value.argv[0], value.argv.slice(1), { stdio: ['pipe', 'pipe', 'pipe'], env });
+    // W4b E2E：只在测试环境变量存在时把 Claude Code 的 ACP 包装器换成确定性的假 ACP Agent。
+    const scenario = process.env.WSL_FIXTURE_ACP_SCENARIO;
+    const [command, ...rest] =
+      scenario && value.argv[0] === 'claude-agent-acp'
+        ? [process.execPath, fileURLToPath(new URL('../../apps/service/src/fixtures/fake-acp-agent.mjs', import.meta.url)), scenario]
+        : value.argv;
+    relayChild = spawn(command, rest, { stdio: ['pipe', 'pipe', 'pipe'], env });
     relayChild.on('error', (error) => {
       frame({ type: 'error', error: error.message });
       finish(127);

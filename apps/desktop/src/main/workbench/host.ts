@@ -322,6 +322,9 @@ export class WorkbenchHost implements WorkbenchRuntime {
   cancel(sessionId: string) {
     return this.chat.cancel(sessionId);
   }
+  answerPermission(sessionId: string, requestId: string, optionId: string | null) {
+    return this.chat.answerPermission(sessionId, requestId, optionId);
+  }
   writeHolder() {
     return this.chat.writeHolder();
   }

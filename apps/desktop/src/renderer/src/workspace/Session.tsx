@@ -5,6 +5,7 @@ import { useStore } from '../lib/store';
 import { locationStore } from '../state/location';
 import { chatStore, selectedHarnessName } from '../state/chat';
 import { HarnessSelectField } from './HarnessSelect';
+import { PermissionRequests } from '../components/PermissionRequests';
 import { cancelContextCapture, captureContext } from '../state/capture';
 import { occlusion } from '../state/occlusion';
 import { reportError } from '../state/errors';
@@ -427,6 +428,12 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
                 </p>
               )}
             </div>
+            <PermissionRequests
+              conversation={conversation}
+              onAnswer={(requestId, optionId) =>
+                workspaceCommand(workspace.workspaceId, { type: 'answerPermission', sessionId: session.sessionId, requestId, optionId })
+              }
+            />
             {conversation?.toolExecutions.length ? (
               <details>
                 <summary>工具执行 · {conversation.toolExecutions.length} 条</summary>

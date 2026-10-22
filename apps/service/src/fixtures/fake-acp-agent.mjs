@@ -8,6 +8,7 @@ const scenario = process.argv[2] ?? 'reply';
 let nextId = 1000;
 const waiting = new Map();
 let cancelled = null;
+let cancelRequested = false;
 const send = (message) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', ...message }) + '\n');
 const update = (sessionId, body) => send({ method: 'session/update', params: { sessionId, update: body } });
 const ask = (method, params) =>
@@ -59,6 +60,24 @@ async function prompt(id, { sessionId }) {
     update(sessionId, { sessionUpdate: 'tool_call_update', toolCallId: 't2', status: chosen === 'yes' ? 'completed' : 'failed' });
     chunk(sessionId, `决定：${chosen}`);
     return send({ id, result: { stopReason: 'end_turn' } });
+  }
+  // W4b：原先直接拒绝的 fetch 类型交给用户；请求只带 toolCallId，标题与类型来自先前的 tool_call。
+  if (scenario === 'ask') {
+    update(sessionId, { sessionUpdate: 'tool_call', toolCallId: 't4', title: '获取 https://example.invalid/data', kind: 'fetch', status: 'pending' });
+    const answer = await ask('session/request_permission', {
+      sessionId,
+      toolCall: { toolCallId: 't4' },
+      options: [
+        { optionId: 'yes', name: 'Allow once', kind: 'allow_once' },
+        { optionId: 'always', name: 'Always allow', kind: 'allow_always' },
+        { optionId: 'no', name: 'Reject', kind: 'reject_once' },
+      ],
+    });
+    const outcome = answer.result?.outcome;
+    const chosen = outcome?.outcome === 'selected' ? outcome.optionId : 'cancelled';
+    update(sessionId, { sessionUpdate: 'tool_call_update', toolCallId: 't4', status: chosen === 'yes' ? 'completed' : 'failed' });
+    chunk(sessionId, `决定：${chosen}`);
+    return send({ id, result: { stopReason: cancelRequested ? 'cancelled' : 'end_turn' } });
   }
   if (scenario === 'cancel') {
     chunk(sessionId, '开始');
@@ -125,6 +144,9 @@ createInterface({ input: process.stdin }).on('line', (line) => {
     return send({ id, result: {} });
   }
   if (method === 'session/prompt') return void prompt(id, params);
-  if (method === 'session/cancel') return cancelled?.();
+  if (method === 'session/cancel') {
+    cancelRequested = true;
+    return cancelled?.();
+  }
   return send({ id, error: { code: -32601, message: `Method not found: ${method}` } });
 });
