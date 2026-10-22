@@ -245,4 +245,25 @@ describe('ACP 轮次驱动的同步边界', () => {
     await running;
     expect(events.filter((event) => event.type === 'message')).toEqual([{ type: 'message', id: 'anon-0', text: '正常' }]);
   });
+
+  it('prompt 响应与未知身份的迟到响应在同一批输入中到达时，不判为协议违约', async () => {
+    const written: { id?: number; method?: string }[] = [];
+    const turn = new AcpTurn(
+      (line) => written.push(JSON.parse(line)),
+      () => undefined,
+      { cwd: '/w', mcpServers: [], sessionRef: null, prompt: 'x', signal: new AbortController().signal },
+    );
+    const running = turn.run();
+    const reply = async (method: string, result: unknown) => {
+      await expect.poll(() => written.find((message) => message.method === method)).toBeDefined();
+      const id = written.find((message) => message.method === method)!.id!;
+      return JSON.stringify({ jsonrpc: '2.0', id, result });
+    };
+    turn.receive(await reply('initialize', { protocolVersion: 1, agentCapabilities: {} }));
+    turn.receive(await reply('session/new', { sessionId: 's' }));
+    const promptReply = await reply('session/prompt', { stopReason: 'end_turn' });
+    turn.receive(promptReply);
+    expect(() => turn.receive(JSON.stringify({ jsonrpc: '2.0', id: 4242, result: {} }))).not.toThrow();
+    await expect(running).resolves.toMatchObject({ stopReason: 'end_turn' });
+  });
 });

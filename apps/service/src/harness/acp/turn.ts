@@ -97,6 +97,9 @@ export class AcpTurn {
 
   /** 交给调用方的输入入口；协议违约抛出 AcpProtocolError。 */
   receive(line: string) {
+    // prompt 响应之后的行（迟到的更新、请求或未知响应）都在本轮之外：run() 在下一个微任务才关闭客户端，
+    // 同一批输入里紧随其后的行在此同步隔离，不判为协议违约。
+    if (this.phase === 'finishing' || this.phase === 'done') return;
     this.client.receive(line);
   }
 
