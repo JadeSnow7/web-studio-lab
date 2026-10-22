@@ -88,6 +88,8 @@ main process 对每个 IPC 请求做两项检查：
 
 每次进程调用通过 `sbx exec -i` 启动内置 Python 标准库 helper。helper 在 guest 内管理所属进程、PTY 与清理；stdin 控制帧和模型 prompt 分开，stdout 使用明确帧封装。终端使用 xterm.js 与 fit addon 展示 guest PTY，不依赖 Electron native node-pty ABI。输入、尺寸和会话身份在 IPC 边界校验；隐藏终端保留同一 shell，关闭时等待远端清理确认。
 
+执行核心经 service 侧 Harness 适配器启动 CLI 并读取输出（ADR-0003，[W2 合同](../acceptance/harness-port-codex-20261022/SPEC.md)）：当前只有 Codex native 适配器（`apps/service/src/harness/codex/adapter.ts`），对话状态附带 Harness 描述符，`startRun` 把 Harness 出处冻结进执行记录；start 帧以 `mcp: 'codex-config'` 显式声明 MCP 挂载方式，guest helper 不再按 argv 识别 Harness。
+
 Codex 首轮使用 `exec --json`，续轮显式 `exec resume <threadId>`，采用 `workspace-write` 并启用 guest 工具。消息历史按应用会话隔离，但各会话和终端共享 guest 文件系统；开始新对话不删除文件。服务拥有 generation、threadId、turnId 与序号，保留有界工具结果和非致命警告，截断结果明确标示。成功要求助手文本、会话身份、完成事件、正常退出和远端清理确认。
 
 每会话最多一个活动回复。个人与空间会话均在共享清理状态未知时拒绝新发送和重置。service 层各会话槽互不阻塞；Main `ChatService` 另持有 sandbox guest 工作区写入许可：所有会话共享同一 guest 工作目录，同一时刻只允许一个会话的轮次写入，其他会话发送以 `conflict` 拒绝，持有者停止并确认清理后释放；`startRun` 在创建执行前检查（[W0 合同](../acceptance/project-write-lease-20261021/SPEC.md)）。Lane 隔离落地前会话之间不并行写入。取消等待所属传输的完成回执及同步终态发布；单独cleanup帧不提前确认清理，完成或发布异常保留原失败原因与尚未确认的占用。取消、重置、终端关闭和窗口退出均等待已登记guest进程清理；宿主sbx进程退出不等于远端清理成功。缺少回执时显示失败并保留占用。空间消息历史、草稿和运行事实持久化；恢复历史不等于恢复模型上下文。重启后终端需显式重连，活跃运行记为中断，不自动重放。CLI自身会话和guest文件仍由CLI/sandbox管理。

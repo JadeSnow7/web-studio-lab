@@ -34,6 +34,7 @@ import {
   AppLogsSchema,
   type AppAgentOperation,
   type AppControlResult,
+  type HarnessDescriptor,
 } from '@wsl/protocol';
 import { GuestWriteLease } from './workbench/guest-write-lease';
 
@@ -466,6 +467,10 @@ export class ChatService {
   }
   async get(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'get', payload: { conversationId: id } }));
+  }
+  /** 对话服务最近一次报告的 Harness；服务未初始化或旧版本未报告时为 null。 */
+  harness(): HarnessDescriptor | null {
+    return this.lastStatus?.harness ?? null;
   }
   /** 当前持有 guest 工作区写入许可的会话槽；无人持有时为 null。 */
   writeHolder(): ChatSlot | null {

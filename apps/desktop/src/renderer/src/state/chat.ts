@@ -1,4 +1,4 @@
-import { ChatSlotSchema, type ChatConversation, type ChatStatus } from '@wsl/protocol';
+import { ChatSlotSchema, harnessDisplayName, type ChatConversation, type ChatStatus } from '@wsl/protocol';
 import { personalReferencesStore } from './references';
 import { createStore } from '../lib/store';
 import { draftActions, draftsStore, CONVERSATIONS } from './drafts';
@@ -22,7 +22,7 @@ export function receiveConversation(snapshot: ChatConversation) {
 }
 export function chatBlockedReason(id: string): string | null {
   const state = chatStore.get();
-  if (!state.status?.available) return state.status?.reason ?? '正在检查 Codex CLI…';
+  if (!state.status?.available) return state.status?.reason ?? `正在检查 ${harnessDisplayName(state.status)}…`;
   const conversation = state.conversations[id];
   return state.pending[id] || conversation?.state === 'running' || conversation?.state === 'cancelling' ? '正在等待当前回复结束' : null;
 }

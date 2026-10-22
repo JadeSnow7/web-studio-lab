@@ -19,6 +19,7 @@ describe.skipIf(!live)('真实 sandbox 的资源 helper（不调模型）', () =
           type: 'start',
           mode: 'codex',
           argv: ['codex', 'exec', '--help'],
+          mcp: 'codex-config',
           resourceBundle: {
             conversationId,
             generation: 'probe',

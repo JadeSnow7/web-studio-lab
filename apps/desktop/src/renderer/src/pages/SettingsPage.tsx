@@ -2,6 +2,7 @@ import { SetupSettings } from './SetupSettings';
 import { Notice } from '../components/Badges';
 import { useStore } from '../lib/store';
 import { chatStore } from '../state/chat';
+import { harnessDisplayName } from '@wsl/protocol';
 import { environmentStore } from '../state/execution';
 import { workspaceStore, command } from '../state/workspace';
 
@@ -52,7 +53,7 @@ export function SettingsPage() {
         <Notice tone="warn">{env.execution?.reason ?? '正在读取执行服务状态…'}</Notice>
         <dl className="kv">
           <dt>主 Harness</dt>
-          <dd>{chat ? `Codex CLI · ${chat.available ? '对话已连接' : '对话不可用'}` : '读取中…'}</dd>
+          <dd>{chat ? `${harnessDisplayName(chat)} · ${chat.available ? '对话已连接' : '对话不可用'}` : '读取中…'}</dd>
           <dt>沙箱</dt>
           <dd>{chat?.sandbox ?? '未选择'}</dd>
           <dt>工作目录</dt>
