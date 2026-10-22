@@ -13,11 +13,20 @@ import {
   type ChatStatus,
   type CatalogReferenceSnapshot,
 } from '@wsl/protocol';
-import { SbxConnection, type GuestProcess, type GuestOutcome } from './sbx';
+import { SbxConnection, GUEST_CWD, type GuestProcess, type GuestOutcome } from './sbx';
 import { codexAdapter } from './harness/codex/adapter';
-import type { NativeHarnessAdapter } from './harness/types';
+import type { HarnessEvent, NativeHarnessAdapter } from './harness/types';
+import { acpDescriptor, type AcpAgentSpec } from './harness/acp/agents';
+import { AcpClient, AcpMethodNotFound, AcpProtocolError } from './harness/acp/client';
+import { ACP_PROTOCOL_VERSION, InitializeResultSchema, type AcpStdioMcpServer, type InitializeResult } from './harness/acp/protocol';
+import { AcpTurn, acpInitializeParams } from './harness/acp/turn';
+import { workspaceWritePolicy } from './harness/acp/policy';
 
 export { parseCodexLine } from './harness/codex/adapter';
+
+/** 执行核心使用的 Harness：native 逐行解析一次性进程的输出；acp 经 stdin relay 与长连接 Agent 往返。 */
+export type ChatHarness = { kind: 'native'; adapter: NativeHarnessAdapter } | { kind: 'acp'; spec: AcpAgentSpec };
+export const CODEX_HARNESS: ChatHarness = { kind: 'native', adapter: codexAdapter };
 
 interface Turn {
   process: GuestProcess;
@@ -71,19 +80,85 @@ export class CodexChat {
     _root: string,
     private readonly emit: (conversation: ChatConversation) => void,
     connection = new SbxConnection(),
-    /** 本执行核心使用的 Harness 适配器；W2 只有 Codex native。 */
-    private readonly harness: NativeHarnessAdapter = codexAdapter,
+    /** 本执行核心使用的 Harness；默认 Codex native。 */
+    private readonly harness: ChatHarness = CODEX_HARNESS,
   ) {
     this.connection = connection;
   }
+  private acpInit: InitializeResult | null = null;
+  private acpFailure: string | null = null;
+  private get label() {
+    return this.harness.kind === 'native' ? this.harness.adapter.label : this.harness.spec.label;
+  }
   async initialize(): Promise<ChatStatus> {
-    return this.withHarness(await this.connection.initialize());
+    const status = await this.connection.initialize();
+    if (this.harness.kind === 'acp' && status.available) await this.probeAcp(this.harness.spec);
+    return this.withHarness(status);
   }
   getStatus(): ChatStatus {
     return this.withHarness(this.connection.getStatus());
   }
   private withHarness(status: ChatStatus): ChatStatus {
-    return { ...status, harness: this.harness.descriptor(status.available ? status.version : null) };
+    if (this.harness.kind === 'native')
+      return { ...status, harness: this.harness.adapter.descriptor(status.available ? status.version : null) };
+    const harness = acpDescriptor(this.harness.spec, this.acpInit);
+    if (!status.available) return { ...status, harness };
+    if (!this.acpInit)
+      return { ...status, available: false, reason: `${this.label} 不可用：${this.acpFailure ?? '尚未完成检查'}`, version: null, harness };
+    return { ...status, version: harness.version, harness };
+  }
+  /**
+   * 可用性探测：在 guest 内启动 ACP Agent，只发 initialize（不调用模型），据回复声明能力，然后关闭 stdin 并确认清理。
+   * 清理未确认时判为不可用，避免留下未知进程。
+   */
+  private async probeAcp(spec: AcpAgentSpec) {
+    this.acpInit = null;
+    this.acpFailure = null;
+    let buffer = '';
+    const probe = this.connection.start({ type: 'start', mode: 'codex', argv: spec.command, stdin: 'relay' }, (frame) => {
+      if (frame.type !== 'output' || frame.stream !== 'stdout') return;
+      buffer += frame.data;
+      while (buffer.includes('\n')) {
+        const index = buffer.indexOf('\n');
+        const line = buffer.slice(0, index);
+        buffer = buffer.slice(index + 1);
+        try {
+          client.receive(line);
+        } catch (error) {
+          client.close((error as Error).message);
+        }
+      }
+    });
+    const client = new AcpClient((line) => probe.writeInput(line), {
+      onNotification: () => undefined,
+      onRequest: async (method) => {
+        throw new AcpMethodNotFound(method);
+      },
+    });
+    const exited = probe.done.then(() => client.close('Agent 进程在初始化前退出'));
+    const timer = setTimeout(() => client.close('Agent 初始化超时'), 30000);
+    try {
+      const init = InitializeResultSchema.parse(await client.request('initialize', acpInitializeParams()));
+      if (init.protocolVersion !== ACP_PROTOCOL_VERSION) throw new AcpProtocolError(`ACP 协议版本不兼容：${init.protocolVersion}`);
+      this.acpInit = init;
+    } catch (error) {
+      this.acpFailure = (error as Error).message;
+    } finally {
+      clearTimeout(timer);
+      client.close('探测结束');
+      try {
+        probe.endInput();
+      } catch {
+        // 传输已关闭：退出结果由 done 报告。
+      }
+    }
+    const outcome = await Promise.race([probe.done, new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))]);
+    const settled = outcome ?? (await probe.close());
+    await exited;
+    if (!settled.confirmed) {
+      this.acpInit = null;
+      this.acpFailure = settled.error ?? '探测进程清理未确认';
+    }
   }
   private slot(id: ChatSlot): Slot {
     let slot = this.slots.get(id);
@@ -183,7 +258,12 @@ export class CodexChat {
     slot.conversation.messages.push({ id: turnId, role: 'user', text });
     this.publish(slot);
     const harness = this.harness;
-    const argv = harness.argv(slot.conversation.threadId);
+    const label = this.label;
+    const native = harness.kind === 'native' ? harness.adapter : null;
+    const argv = native ? native.argv(slot.conversation.threadId) : (harness as Extract<ChatHarness, { kind: 'acp' }>).spec.command;
+    const maxLineChars = native ? native.maxLineChars : 1048576;
+    const mcpServers: AcpStdioMcpServer[] = [];
+    let acpTurn: AcpTurn | null = null;
     let buffer = '';
     let stderr = '';
     const fail = (reason: string) => {
@@ -200,68 +280,116 @@ export class CodexChat {
         this.completionFailed(slot, turn, error);
       }
     };
+    const apply = (events: HarnessEvent[]) => {
+      for (const event of events) {
+        if (event.type === 'session') {
+          if (!event.fresh && slot.conversation.threadId && slot.conversation.threadId !== event.ref)
+            throw new Error(`${label} 返回了不同的会话身份`);
+          slot.conversation.threadId = event.ref;
+        }
+        if (event.type === 'message') {
+          turn.replied = true;
+          const messageId = `${turnId}:${event.id}`;
+          if (!slot.conversation.messages.some((message) => message.id === messageId))
+            slot.conversation.messages.push({ id: messageId, role: 'assistant', text: event.text });
+        }
+        if (event.type === 'warning') {
+          if (!slot.conversation.warnings.includes(event.text)) slot.conversation.warnings.push(event.text);
+          slot.conversation.warnings = slot.conversation.warnings.slice(-20);
+        }
+        if (event.type === 'tool') {
+          const command = event.command;
+          const tools = slot.conversation.toolExecutions;
+          const record = {
+            id: event.id,
+            turnId,
+            command: command.slice(-4000),
+            output: event.output,
+            exitCode: event.exitCode,
+            truncated: event.truncated || command.length > 4000,
+          };
+          const index = tools.findIndex((tool) => tool.id === event.id && tool.turnId === turnId);
+          if (index < 0) tools.push(record);
+          else tools[index] = record;
+          while (tools.length > 100) tools.shift();
+          let excess = tools.reduce((sum, tool) => sum + tool.output.length, 0) - 131072;
+          for (const tool of tools) {
+            if (excess <= 0) break;
+            if (tool.command.startsWith('mcp:')) {
+              const priorLength = tool.output.length;
+              tool.output = JSON.stringify({
+                truncated: true,
+                receiptOmitted: 'Conversation output limit reached; tool arguments remain in command',
+              });
+              tool.truncated = true;
+              excess -= priorLength - tool.output.length;
+            } else {
+              const removed = Math.min(tool.output.length, excess);
+              tool.output = tool.output.slice(removed);
+              tool.truncated = true;
+              excess -= removed;
+            }
+          }
+        }
+        if (event.type === 'turn_completed') turn.completed = true;
+        if (event.type === 'turn_failed') fail(event.message);
+      }
+    };
     const consume = (line: string) => {
       if (turn.cancel || turn.failure || slot.active !== turn || !line.trim()) return;
       try {
-        const events = harness.parseLine(line);
-        if (!events) return;
-        for (const event of events) {
-          if (event.type === 'session') {
-            if (slot.conversation.threadId && slot.conversation.threadId !== event.ref)
-              throw new Error(`${harness.label} 返回了不同的会话身份`);
-            slot.conversation.threadId = event.ref;
-          }
-          if (event.type === 'message') {
-            turn.replied = true;
-            const messageId = `${turnId}:${event.id}`;
-            if (!slot.conversation.messages.some((message) => message.id === messageId))
-              slot.conversation.messages.push({ id: messageId, role: 'assistant', text: event.text });
-          }
-          if (event.type === 'warning') {
-            if (!slot.conversation.warnings.includes(event.text)) slot.conversation.warnings.push(event.text);
-            slot.conversation.warnings = slot.conversation.warnings.slice(-20);
-          }
-          if (event.type === 'tool') {
-            const command = event.command;
-            const tools = slot.conversation.toolExecutions;
-            const record = {
-              id: event.id,
-              turnId,
-              command: command.slice(-4000),
-              output: event.output,
-              exitCode: event.exitCode,
-              truncated: event.truncated || command.length > 4000,
-            };
-            const index = tools.findIndex((tool) => tool.id === event.id && tool.turnId === turnId);
-            if (index < 0) tools.push(record);
-            else tools[index] = record;
-            while (tools.length > 100) tools.shift();
-            let excess = tools.reduce((sum, tool) => sum + tool.output.length, 0) - 131072;
-            for (const tool of tools) {
-              if (excess <= 0) break;
-              if (tool.command.startsWith('mcp:')) {
-                const priorLength = tool.output.length;
-                tool.output = JSON.stringify({
-                  truncated: true,
-                  receiptOmitted: 'Conversation output limit reached; tool arguments remain in command',
-                });
-                tool.truncated = true;
-                excess -= priorLength - tool.output.length;
-              } else {
-                const removed = Math.min(tool.output.length, excess);
-                tool.output = tool.output.slice(removed);
-                tool.truncated = true;
-                excess -= removed;
-              }
-            }
-          }
-          if (event.type === 'turn_completed') turn.completed = true;
-          if (event.type === 'turn_failed') fail(event.message);
-        }
-        this.publish(slot);
+        if (native) {
+          const events = native.parseLine(line);
+          if (!events) return;
+          apply(events);
+          this.publish(slot);
+        } else acpTurn?.receive(line);
       } catch (error) {
-        fail(`${harness.label} 协议错误：${(error as Error).message}`);
+        fail(`${label} 协议错误：${(error as Error).message}`);
       }
+    };
+    const startAcp = () => {
+      const turnRef = turn;
+      acpTurn = new AcpTurn(
+        (line) => {
+          try {
+            process.writeInput(line);
+          } catch {
+            // 传输已关闭：结果由进程完成回执决定。
+          }
+        },
+        (event) => {
+          if (turnRef.cancel || turnRef.failure || slot.active !== turnRef) return;
+          try {
+            apply([event]);
+            this.publish(slot);
+          } catch (error) {
+            fail(`${label} 协议错误：${(error as Error).message}`);
+          }
+        },
+        {
+          cwd: GUEST_CWD,
+          mcpServers,
+          sessionRef: slot.conversation.threadId,
+          prompt: text,
+          signal: turnRef.observation.signal,
+          decidePermission: workspaceWritePolicy((params, reason) => {
+            const warning = `已拒绝 ${params.toolCall.title ?? params.toolCall.toolCallId} 的权限请求：${reason}`.slice(0, 2000);
+            if (!slot.conversation.warnings.includes(warning)) slot.conversation.warnings.push(warning);
+            slot.conversation.warnings = slot.conversation.warnings.slice(-20);
+          }),
+        },
+      );
+      void acpTurn.run().then(
+        () => {
+          try {
+            process.endInput();
+          } catch {
+            // 传输已关闭。
+          }
+        },
+        (error: Error) => fail(`${label} 协议错误：${error.message}`),
+      );
     };
     let callCount = 0;
     const process = this.connection.start(
@@ -269,8 +397,7 @@ export class CodexChat {
         type: 'start',
         mode: 'codex',
         argv,
-        mcp: harness.mcpInjection,
-        prompt: text,
+        ...(native ? { mcp: native.mcpInjection, prompt: text } : { mcp: 'acp-stdio' as const, stdin: 'relay' as const }),
         resourceBundle,
         observation: Boolean(observationScope && this.observationReader),
         observationImages: false,
@@ -337,6 +464,14 @@ export class CodexChat {
           );
           return;
         }
+        if (frame.type === 'mcp-server') {
+          if (!native) mcpServers.push({ name: frame.name, command: frame.command, args: frame.args, env: [] });
+          return;
+        }
+        if (frame.type === 'ready') {
+          if (!native && !acpTurn) startAcp();
+          return;
+        }
         if (frame.type === 'cleanup') {
           // A frame is not the transport's settled cleanup receipt.
           if (!frame.ok) turn.cleanupError ??= frame.error ?? 'guest 清理未确认';
@@ -347,8 +482,8 @@ export class CodexChat {
           return;
         }
         buffer += frame.data;
-        if (buffer.length > harness.maxLineChars) {
-          fail(`${harness.label} 协议行超过限制`);
+        if (buffer.length > maxLineChars) {
+          fail(`${label} 协议行超过限制`);
           return;
         }
         while (buffer.includes('\n')) {
@@ -382,6 +517,8 @@ export class CodexChat {
         // The final JSON event need not end with a newline. Only new frames are
         // blocked while finishing; this already-received tail is still consumed.
         if (buffer.trim()) consume(buffer);
+        // 进程已退出：未完成的 ACP 请求不再等待，之后到达的内容被隔离。
+        (acpTurn as AcpTurn | null)?.close('Agent 进程已退出');
         turn.cleanupConfirmed = outcome.confirmed;
         turn.cleanupError = !outcome.confirmed ? (outcome.error ?? 'guest 清理未确认') : null;
         slot.conversation.cleanupPending = !outcome.confirmed;
@@ -389,13 +526,13 @@ export class CodexChat {
           [...new Set([turn.failure, turn.cleanupError, outcome.error].filter(Boolean))].join('; ') ||
           (!turn.cancel
             ? outcome.exitCode !== 0
-              ? `${harness.label} 退出失败（${outcome.exitCode}）${stderr ? `：${stderr}` : ''}`
+              ? `${label} 退出失败（${outcome.exitCode}）${stderr ? `：${stderr}` : ''}`
               : !turn.completed
-                ? `${harness.label} 未返回对话完成事件`
-                : harness.requiresSessionRef && !slot.conversation.threadId
-                  ? `${harness.label} 未返回会话身份`
+                ? `${label} 未返回对话完成事件`
+                : (native ? native.requiresSessionRef : true) && !slot.conversation.threadId
+                  ? `${label} 未返回会话身份`
                   : !turn.replied
-                    ? `${harness.label} 未返回助手回复`
+                    ? `${label} 未返回助手回复`
                     : null
             : null);
         slot.conversation.state = failure ? 'failed' : turn.cancel ? 'cancelled' : 'idle';

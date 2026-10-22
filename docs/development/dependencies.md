@@ -128,7 +128,7 @@ sbx policy allow network --sandbox "$sbx_smoke_name" nodejs.org:443
 
 本轮模板已包含 Codex 0.149.1、Node 22.22.1、npm 9.2.0、Git 2.53.0、Python 3.14.4；未包含 pnpm 和 xz。模板 digest 为 `sha256:8b4cd0a46c8b600bc6b6a64af23c03d4c2807fbfc61f47568092a93fb9dc88b0`。模板已自带 Codex，无需为了运行模型重复安装；本次升级是为对齐已测的 CLI 与项目工具版本。
 
-[guest 准备脚本](../../scripts/sbx-prepare-guest.sh) 只安装工具，不调用模型、不读取认证、不修改网络策略。它下载官方 Node 24.21.0 Linux arm64 `.tar.gz`，校验固定 SHA256 `724282c3b43aec998aa9527380465b45d229e021b58035f5f4f63095eabfe5d5` 后解包到 `/usr/local`；npm 全局前缀保持 `/usr/local/share/npm-global`，安装 Codex 0.160.0 与 pnpm 10.34.6。脚本使用非交互 sudo，任何权限、下载、指纹或版本检查失败都会退出。
+[guest 准备脚本](../../scripts/sbx-prepare-guest.sh) 只安装工具，不调用模型、不读取认证、不修改网络策略。它下载官方 Node 24.21.0 Linux arm64 `.tar.gz`，校验固定 SHA256 `724282c3b43aec998aa9527380465b45d229e021b58035f5f4f63095eabfe5d5` 后解包到 `/usr/local`；npm 全局前缀保持 `/usr/local/share/npm-global`，安装 Codex 0.160.0、pnpm 10.34.6 与 Claude Code 的 ACP 包装器 `@agentclientprotocol/claude-agent-acp` 0.94.0（命令 `claude-agent-acp`，用于 `WSL_HARNESS=claude-code`，见 [W3b 记录](../acceptance/harness-acp-wiring-20261022/README.md)）。脚本使用非交互 sudo，任何权限、下载、指纹或版本检查失败都会退出。
 
 ```bash
 env -u SSH_AUTH_SOCK sbx exec -i "$sbx_smoke_name" bash < scripts/sbx-prepare-guest.sh
