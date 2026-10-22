@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AppImportOutcome, AppTarget, EduImport, ManagedApp, WorkbenchCommand, WorkbenchSnapshot } from '@wsl/protocol';
 import { WorkbenchApplication } from './application';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
+import { projectFacts } from '../../shared/status';
 import type { AppImportSelection, WorkbenchRuntime } from './ports';
 
 const source: Pick<EduImport, 'source' | 'files'> = {
@@ -202,7 +203,16 @@ describe('two phase source import ownership', () => {
     });
     expect((await f.send('confirmAppImport')).ok).toBe(false);
     expect(f.runtime.appStart).not.toHaveBeenCalled();
-    const project = (await f.workspace()).managedApp!.projectId;
+    const failed = await f.workspace();
+    const project = failed.managedApp!.projectId;
+    expect(failed.pendingAppImport).toEqual({ previewId: view.previewId, projectId: project });
+    expect(failed.managedApp).toMatchObject({ appInstanceId: null, cleanupConfirmed: false, state: 'starting' });
+    const facts = projectFacts({ snapshot: await f.app.getSnapshot(), chat: null, setup: null, execution: null });
+    expect(facts.find((fact) => fact.key === 'app:taskflow-demo:state')).toMatchObject({
+      kind: 'unresolved',
+      label: '工程导入未完成，身份已保留',
+    });
+    expect(facts.some((fact) => fact.label === '正在启动应用…')).toBe(false);
     expect((await f.send('retryAppImport')).ok).toBe(true);
     expect(f.runtime.appImportSource.mock.calls.map((call) => call[0].projectId)).toEqual([project, project]);
     expect(f.runtime.appImportSource.mock.calls.map((call) => call[2])).toEqual([view.previewId, view.previewId]);
