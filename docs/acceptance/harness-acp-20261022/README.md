@@ -19,6 +19,27 @@
 
 `turn.test.ts`：A1–A8（含 Codex 与 ACP 共用的契约断言）；`client.test.ts`：JSON-RPC 配对、错误、边界与关闭；A9 见下方全量测试。
 
+## 实际运行（2026-10-22，macOS）
+
+环境：macOS 26.6.2（25G83）arm64，Node v26.5.0（产品期望 Node 24，本机实际版本如实记录），pnpm 10.34.6，Python 3.15.0，Electron 44.5.1。基线 `origin/main` `ebf4391`（PR #17），被测提交 `3cd3f96`；之后的变基只在其下方加入 W0、W2 的执行记录、在其上方加入本记录，均为文档提交，代码未变。命令按交接清单逐项独立执行，单项失败不中断后续项。
+
+| 命令                                                                                     | 结果                                                             |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                                                         | 通过                                                             |
+| `pnpm typecheck`                                                                         | 通过                                                             |
+| `pnpm exec eslint apps packages e2e scripts templates/standard-app`                      | 通过                                                             |
+| `pnpm exec prettier --check apps packages e2e scripts templates/standard-app`            | 通过                                                             |
+| `pnpm exec vitest run`                                                                   | 1318 通过、17 跳过、0 失败（含 `setup-adapter-failure.test.ts`） |
+| `pnpm test:packaging` / `test:external-builds` / `test:edu-source` / `baseline:selftest` | 40 / 6 / 57 / 12 项全部通过                                      |
+| `node scripts/check-docs.mjs`                                                            | 通过                                                             |
+| `pnpm build`                                                                             | 通过                                                             |
+| `env -u ELECTRON_RUN_AS_NODE pnpm exec playwright test`                                  | 171 通过、16 跳过（7.1 分钟）                                    |
+| `git diff --check origin/main...HEAD`                                                    | 通过                                                             |
+
+- 本分支的两个提交在变基时没有冲突。变基后先在原有两个提交上复跑：`prompt 返回后到达的消息被隔离，不进入本轮也不报错` 间歇失败，变基前的原分支在本机 3 次中也失败 2 次，确认不是变基造成的；原因与修复见下文“第二次修复”（新增提交 `fix(harness): isolate every ACP line that follows the prompt response`）。上表是修复之后的结果。
+
+以下容器结果保留为历史。
+
 ## 实际运行（2026-10-22，Linux x86_64 容器，Node 24.22.0，pnpm 10.34.6）
 
 | 命令                                                                                       | 结果                                                                                                             |
