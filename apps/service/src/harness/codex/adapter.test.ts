@@ -96,3 +96,19 @@ describe('Codex native 适配器（W2）', () => {
     expect(() => codexAdapter.parseLine('{broken')).toThrow();
   });
 });
+
+describe('Codex 自检的登录状态解析（W4a 修正）', () => {
+  const parse = codexAdapter.selfCheck.parseStatus;
+  it('真实 CLI 把结果写在 stderr：已登录与未登录都能判断', () => {
+    expect(parse(0, '', 'Logged in using an API key - ***\n')).toBe('logged_in');
+    expect(parse(1, '', 'Not logged in\n')).toBe('logged_out');
+  });
+  it('写在 stdout 时同样判断', () => {
+    expect(parse(0, 'Logged in using ChatGPT\n', '')).toBe('logged_in');
+  });
+  it('两种结论同时出现、退出码不符或没有可识别输出时无法判断', () => {
+    expect(parse(0, 'Logged in using ChatGPT\n', 'Not logged in\n')).toBe('undetermined');
+    expect(parse(1, '', 'Logged in using ChatGPT\n')).toBe('undetermined');
+    expect(parse(0, '', '')).toBe('undetermined');
+  });
+});

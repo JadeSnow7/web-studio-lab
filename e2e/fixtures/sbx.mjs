@@ -75,7 +75,8 @@ rl.on('line', (line) => {
       finish();
     }
     if (value.argv[1] === 'login') {
-      output('Logged in fixture\n');
+      // 与真实 CLI 一致：`codex login status` 的结果写在 stderr（2026-10-22 实测）。
+      frame({ type: 'output', stream: 'stderr', data: 'Logged in fixture\n' });
       finish();
     }
     // Claude Code `auth status --json`（W4 自检）：Profile 目录名以 00000000- 开头时视为未登录，其余为已登录。

@@ -207,12 +207,15 @@ export class CodexChat {
       return { cliVersion: null, login: 'undetermined', reason: this.connection.getStatus().reason };
     const run = async (argv: string[]) => {
       let stdout = '';
+      let stderr = '';
       const process = this.connection.start({ type: 'start', mode: 'codex', argv, ...(profileDir ? { profileDir } : {}) }, (frame) => {
-        if (frame.type === 'output' && frame.stream === 'stdout' && stdout.length < 65536) stdout += frame.data;
+        if (frame.type !== 'output') return;
+        if (frame.stream === 'stdout' && stdout.length < 65536) stdout += frame.data;
+        if (frame.stream === 'stderr' && stderr.length < 65536) stderr += frame.data;
       });
       const outcome = await Promise.race([process.done, new Promise<null>((resolve) => setTimeout(() => resolve(null), 30000))]);
       const settled = outcome ?? (await process.close());
-      return { stdout, settled };
+      return { stdout, stderr, settled };
     };
     const version = await run(check.versionArgv);
     if (!version.settled.confirmed)
@@ -220,7 +223,7 @@ export class CodexChat {
     const cliVersion = version.settled.exitCode === 0 ? version.stdout.trim().split('\n')[0]?.slice(0, 200) || null : null;
     const status = await run(check.statusArgv);
     if (!status.settled.confirmed) return { cliVersion, login: 'undetermined', reason: status.settled.error ?? '自检进程清理未确认' };
-    const login = check.parseStatus(status.settled.exitCode, status.stdout);
+    const login = check.parseStatus(status.settled.exitCode, status.stdout, status.stderr);
     return {
       cliVersion,
       login,

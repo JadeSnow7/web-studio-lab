@@ -36,7 +36,8 @@ export type GuestMcpInjection = 'codex-config';
 export interface ProfileSelfCheck {
   readonly versionArgv: string[];
   readonly statusArgv: string[];
-  parseStatus(exitCode: number | null, stdout: string): 'logged_in' | 'logged_out' | 'undetermined';
+  /** stdout 与 stderr 分开传入：各 CLI 输出状态的流不同（Codex 写在 stderr，Claude Code 的 JSON 在 stdout）。 */
+  parseStatus(exitCode: number | null, stdout: string, stderr: string): 'logged_in' | 'logged_out' | 'undetermined';
 }
 
 export interface NativeHarnessAdapter {
