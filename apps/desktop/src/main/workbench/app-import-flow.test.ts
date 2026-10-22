@@ -21,7 +21,7 @@ function deferred<T>() {
   });
   return { promise, resolve };
 }
-async function fixture(saved: WorkbenchSnapshot | null = null) {
+async function fixture(saved: WorkbenchSnapshot | null = null, onSave?: (snapshot: WorkbenchSnapshot) => void) {
   let instance: ManagedApp | null = saved?.workspaces[0]?.managedApp ?? null;
   let durable: WorkbenchSnapshot | null = saved;
   const selected: AppImportSelection = {
@@ -80,6 +80,7 @@ async function fixture(saved: WorkbenchSnapshot | null = null) {
     validateBrowserUrl: vi.fn(),
   };
   const save = vi.fn(async (snapshot: WorkbenchSnapshot) => {
+    onSave?.(snapshot);
     durable = structuredClone(snapshot);
   });
   const app = new WorkbenchApplication(
@@ -362,6 +363,62 @@ describe('two phase source import ownership', () => {
     expect((await f.send('retryAppImport')).ok).toBe(false);
     expect((await f.send('cancelAppImport')).ok).toBe(true);
     expect((await f.workspace()).appImport?.phase).toBe('cancelled');
+  });
+  it('omits the ephemeral import view without deleting caller state or durable pending ownership', async () => {
+    const f = await fixture();
+    await f.preview();
+    f.runtime.appImportSource.mockResolvedValueOnce({
+      app: null,
+      outcome: 'failed',
+      retryable: false,
+      errorCode: 'import_cleanup_unknown',
+    });
+    expect((await f.send('confirmAppImport')).ok).toBe(false);
+    const saved = await f.app.getSnapshot();
+    const workspace = saved.workspaces[0]!;
+    const view = workspace.appImport;
+    const pending = structuredClone(workspace.pendingAppImport);
+    expect(view).toBeTruthy();
+    expect(pending).toBeTruthy();
+    // Recovery saves terminal observation facts through the real Main save path.
+    workspace.observations.push({
+      request: {
+        requestId: randomUUID(),
+        workspaceId: workspace.workspaceId,
+        sessionId: null,
+        runId: null,
+        target: {
+          workspaceId: workspace.workspaceId,
+          environmentId: 'local',
+          resourceId: randomUUID(),
+          kind: 'file',
+          instanceId: randomUUID(),
+          instanceGeneration: 0,
+        },
+        tool: 'files.read',
+        args: { path: 'note.txt' },
+      },
+      state: 'pending',
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+      result: null,
+      evidenceRef: null,
+    });
+    const savedAtCall: { snapshot: WorkbenchSnapshot; callerView: typeof view }[] = [];
+    const onSave = vi.fn((snapshot: WorkbenchSnapshot) => {
+      savedAtCall.push({ snapshot, callerView: workspace.appImport });
+    });
+    const restarted = await fixture(saved, onSave);
+    expect(onSave).toHaveBeenCalledOnce();
+    expect(savedAtCall[0]!.snapshot.workspaces[0]).not.toBe(workspace);
+    expect(savedAtCall[0]!.snapshot.workspaces[0]!.appImport).toBeUndefined();
+    expect(savedAtCall[0]!.snapshot.workspaces[0]!.pendingAppImport).toEqual(pending);
+    expect(savedAtCall[0]!.callerView).toBe(view);
+    expect(workspace.pendingAppImport).toEqual(pending);
+    expect(restarted.durable()!.workspaces[0]!.appImport).toBeUndefined();
+    expect(restarted.durable()!.workspaces[0]!.pendingAppImport).toEqual(pending);
+    expect(restarted.durable()!.workspaces[0]!.observations[0]!.state).toBe('cancelled');
+    expect(restarted.runtime.appStart).not.toHaveBeenCalled();
   });
   it('recovers an uncertain copy after desktop restart without allowing a normal start to bypass it', async () => {
     const f = await fixture();

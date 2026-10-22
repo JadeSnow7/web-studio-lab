@@ -6,6 +6,11 @@ import { describe, expect, it } from 'vitest';
 import { AppProfileSchema, EDU_REQUIRED_FILES, type AppSource } from '@wsl/protocol';
 import { exportAppSource } from './source-export';
 
+function expectBytesEqual(actual: Buffer, expected: Buffer) {
+  expect(actual.byteLength).toBe(expected.byteLength);
+  expect(actual.equals(expected)).toBe(true);
+}
+
 const hash = (content: string | Buffer) => createHash('sha256').update(content).digest('hex');
 const target = { workspaceId: 'export-test', projectId: randomUUID() };
 function source(): AppSource {
@@ -166,7 +171,22 @@ describe('R5 Main export contract before publication', () => {
         expect(input.files).toHaveLength(256);
         expect(input.files.reduce((sum, file) => sum + Buffer.from(file.base64, 'base64').length, 0)).toBe(524288);
         for (const file of input.files)
-          expect(await readFile(path.join(result.path, file.path))).toEqual(Buffer.from(file.base64, 'base64'));
+          expectBytesEqual(await readFile(path.join(result.path, file.path)), Buffer.from(file.base64, 'base64'));
+        const nonempty = input.files.find((file) => Buffer.from(file.base64, 'base64').length > 10)!;
+        const actual = await readFile(path.join(result.path, nonempty.path));
+        const expected = Buffer.from(nonempty.base64, 'base64');
+        const padded = Buffer.concat([Buffer.from([1]), actual, Buffer.from([2])]);
+        expectBytesEqual(padded.subarray(1, -1), expected);
+        for (const index of [0, Math.floor(actual.length / 2), actual.length - 1]) {
+          const changed = Buffer.from(actual);
+          changed[index] = changed[index]! ^ 1;
+          expect(() => expectBytesEqual(changed, expected)).toThrow();
+        }
+        expect(() => expectBytesEqual(Buffer.from(actual.subarray(0, -1)), expected)).toThrow();
+        expect(() => expectBytesEqual(Buffer.concat([actual, Buffer.from([0])]), expected)).toThrow();
+        const empty = input.files.find((file) => file.base64 === '')!;
+        expectBytesEqual(await readFile(path.join(result.path, empty.path)), Buffer.alloc(0));
+        expectBytesEqual(actual, expected);
         if (input.profile?.projectKind === 'edu-web') {
           expect(path.basename(result.path)).toBe('source');
           expect(manifest.workbench.importBase).toEqual(input.profile.source);

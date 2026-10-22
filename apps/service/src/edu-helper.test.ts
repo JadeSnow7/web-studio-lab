@@ -8,6 +8,11 @@ import { EDU_REQUIRED_FILES } from '@wsl/protocol';
 import { z } from 'zod';
 import helper from './app-helper.py?raw';
 
+function expectBytesEqual(actual: Buffer, expected: Buffer) {
+  expect(actual.byteLength).toBe(expected.byteLength);
+  expect(actual.equals(expected)).toBe(true);
+}
+
 const files = [...EDU_REQUIRED_FILES, 'admin/src/App.tsx'].sort().map((path) => ({ path, base64: Buffer.from(path).toString('base64') }));
 const metadata = files.map((file) => ({
   path: file.path,
@@ -169,7 +174,7 @@ describe('R5 actual local helper export contract', () => {
       expect((await stat(path.join(test.project, 'package.json'))).size).toBe(524289);
       // Old helper returns a complete successful receipt here (below its shared 8 MiB limit).
       refused(test.observe());
-      expect(await readFile(path.join(test.project, 'package.json'))).toEqual(content);
+      expectBytesEqual(await readFile(path.join(test.project, 'package.json')), content);
     } finally {
       await rm(test.root, { recursive: true, force: true });
     }
@@ -221,9 +226,10 @@ describe('R5 actual local helper export contract', () => {
             expect(result.exported).toHaveLength(1);
             const exported = result.exported[0]!.files;
             expect(exported.reduce((sum, file) => sum + Buffer.from(file.base64, 'base64').length, 0)).toBe(total);
-            expect(Buffer.from(exported.find((file) => file.path === mutable)!.base64, 'base64')).toEqual(content.subarray(0, split));
+            expectBytesEqual(Buffer.from(exported.find((file) => file.path === mutable)!.base64, 'base64'), content.subarray(0, split));
             if (aggregate)
-              expect(Buffer.from(exported.find((file) => file.path === 'admin/src/中文🙂.ts')!.base64, 'base64')).toEqual(
+              expectBytesEqual(
+                Buffer.from(exported.find((file) => file.path === 'admin/src/中文🙂.ts')!.base64, 'base64'),
                 content.subarray(split),
               );
           }
@@ -337,4 +343,33 @@ print('bounded-enumeration-confirmed')
   expect(
     execFileSync('python3', ['-I', '-c', script, helper], { encoding: 'utf8', timeout: 3000, stdio: ['ignore', 'pipe', 'pipe'] }),
   ).toContain('bounded-enumeration-confirmed');
+});
+
+it('compares actual helper export bytes exactly, including offset views and empty files', async () => {
+  const test = await fixture(true, 'standard-app');
+  try {
+    const expected = Buffer.from('real helper output: 中文🙂');
+    await writeFile(path.join(test.project, 'package.json'), expected);
+    await mkdir(path.join(test.project, 'admin/src'), { recursive: true });
+    await writeFile(path.join(test.project, 'admin/src/empty.ts'), '');
+    const result = test.observe();
+    expect(result.status).toBe(0);
+    expect(result.exported).toHaveLength(1);
+    const actual = Buffer.from(result.exported[0]!.files.find((file) => file.path === 'package.json')!.base64, 'base64');
+    expectBytesEqual(actual, expected);
+    const padded = Buffer.concat([Buffer.from([1]), actual, Buffer.from([2])]);
+    expectBytesEqual(padded.subarray(1, -1), expected);
+    for (const index of [0, Math.floor(actual.length / 2), actual.length - 1]) {
+      const changed = Buffer.from(actual);
+      changed[index] = changed[index]! ^ 1;
+      expect(() => expectBytesEqual(changed, expected)).toThrow();
+    }
+    expect(() => expectBytesEqual(Buffer.from(actual.subarray(0, -1)), expected)).toThrow();
+    expect(() => expectBytesEqual(Buffer.concat([actual, Buffer.from([0])]), expected)).toThrow();
+    const empty = result.exported[0]!.files.find((file) => file.path === 'admin/src/empty.ts')!;
+    expectBytesEqual(Buffer.from(empty.base64, 'base64'), Buffer.alloc(0));
+    expectBytesEqual(actual, expected);
+  } finally {
+    await rm(test.root, { recursive: true, force: true });
+  }
 });

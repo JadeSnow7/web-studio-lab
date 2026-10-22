@@ -1776,8 +1776,13 @@ export class WorkbenchApplication {
   }
   private async saveState(snapshot: WorkbenchSnapshot): Promise<void> {
     this.syncCatalogBindings(snapshot);
-    const durable = structuredClone(snapshot);
-    for (const w of durable.workspaces) delete w.appImport;
+    const durable = {
+      ...snapshot,
+      workspaces: snapshot.workspaces.map((workspace) => {
+        const { appImport: _appImport, ...stored } = workspace;
+        return stored;
+      }),
+    };
     await this.repository.save(durable, this.catalog);
   }
   private catalogContext() {
