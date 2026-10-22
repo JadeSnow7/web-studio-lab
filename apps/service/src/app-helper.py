@@ -24,6 +24,7 @@ LIMIT = 8 * 1024 * 1024
 EXCLUDED = {'node_modules', 'dist', '.data', 'data', '.git', '.vite', '.wsl-identity.json', '.wsl-profile.json', '.wsl-prepared', '.wsl-deps.tar.gz', '.wsl-dependency-lock'}
 
 EDU_LIMIT = 524288
+REQUEST_BYTES = 3 * 1024 * 1024  # APP_SOURCE_TRANSPORT.requestBytes; source/metadata budgets are independent.
 EDU_ROOT_FILES = {'README.md', 'SPEC.md', 'API.md', 'DESIGN.md', 'UX-CONTRACT.md', 'AGENTS.md'}
 EDU_REQUIRED = {'admin/package.json', 'admin/package-lock.json', 'server/app.py', 'server/requirements.lock', 'server/requirements-test.lock', 'server/wsl_runtime.py'}
 EDU_EXCLUDED = EXCLUDED | {'.venv', 'venv', '__pycache__', '.pytest_cache', '.ruff_cache', '.mypy_cache', '.runtime', 'coverage'}
@@ -904,8 +905,8 @@ def agent(root, identity, request):
 
 
 if __name__ == '__main__':
-    initial = sys.argv[1].encode() if len(sys.argv) > 1 else sys.stdin.buffer.readline(1048577)
-    if len(initial) > 1048576:
+    initial = sys.argv[1].encode() if len(sys.argv) > 1 else sys.stdin.buffer.readline(REQUEST_BYTES + 1)
+    if len(initial) > REQUEST_BYTES:
         raise ValueError('app request exceeds budget')
     request = json.loads(initial)
     if request.get('operation') == 'dependencies':

@@ -212,19 +212,23 @@ def resize(fd, cols, rows):
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
 
 
+START_FRAME_BYTES = 3 * 1024 * 1024  # APP_SOURCE_TRANSPORT.startFrameBytes; checked by the shared contract test.
+
+
 def read_start():
     if sys.platform != "linux":
         raise RuntimeError("guest helper requires Linux")
     libc = ctypes.CDLL(None, use_errno=True)
     if libc.prctl(36, 1, 0, 0, 0) != 0:
         raise OSError(ctypes.get_errno(), "PR_SET_CHILD_SUBREAPER")
-    first = b""
+    # Amortized linear append; read exactly through LF so later control bytes stay on this fd.
+    first = bytearray()
     while not first.endswith(b"\n"):
         byte = os.read(sys.stdin.fileno(), 1)
         if not byte:
             break
-        first += byte
-        if len(first) > 1048576:
+        first.extend(byte)
+        if len(first) > START_FRAME_BYTES:
             raise ValueError("start frame too large")
     if not first:
         raise RuntimeError("missing start frame")

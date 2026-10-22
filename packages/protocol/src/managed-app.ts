@@ -1,5 +1,16 @@
 import { z } from 'zod';
 export const EDU_SOURCE_BYTES = 524288;
+// Encoding overhead is separate from the decoded 256-file / 512 KiB source budget.
+// For 500 UTF-16 units/path: JSON needs <=6 bytes/unit, nested JSON <=7.
+// Sum(base64 lengths) <= 4*floor((524288+2*256)/3) = 699732.
+// With fixed fields and a <=128 KiB JSON-encoded trusted helper: request <=2276436,
+// start+LF <=2703700, ASCII-escaped import receipt <=802560 bytes.
+export const APP_SOURCE_TRANSPORT = Object.freeze({
+  startFrameBytes: 3 * 1024 * 1024,
+  requestBytes: 3 * 1024 * 1024,
+  importResultBytes: 1024 * 1024,
+  helperJsonBytes: 128 * 1024,
+});
 export const EDU_ROOT_FILES = ['README.md', 'SPEC.md', 'API.md', 'DESIGN.md', 'UX-CONTRACT.md', 'AGENTS.md'];
 export const EDU_REQUIRED_FILES = [
   'admin/package.json',

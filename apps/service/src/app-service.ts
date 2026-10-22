@@ -7,6 +7,7 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { z } from 'zod';
 import {
+  APP_SOURCE_TRANSPORT,
   AgentCliEnvelopeSchema,
   AppSourceSchema,
   AppProfileSchema,
@@ -34,6 +35,8 @@ import rawHelper from './app-helper.py?raw';
 import ownedProcess from './edu-owned-process.py?raw';
 import { AppImports } from './app-imports';
 const helper = rawHelper.replace('OWNED_PROCESS_BASE64 = ""', `OWNED_PROCESS_BASE64 = "${Buffer.from(ownedProcess).toString('base64')}"`);
+if (Buffer.byteLength(JSON.stringify(helper), 'utf8') > APP_SOURCE_TRANSPORT.helperJsonBytes)
+  throw new Error('application helper exceeds encoded transport budget');
 import { SourceSnapshotReader } from './source-snapshot';
 
 const exec = promisify(execFile);
@@ -122,7 +125,7 @@ export function validateAppSources(files: AppSourceFile[]): void {
     if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(file.base64)) throw new Error('无效源码编码');
     total += Buffer.from(file.base64, 'base64').length;
   }
-  // GuestStart is bounded to 1 MiB, including JSON/base64 overhead.
+  // Decoded source is separately bounded from the encoded 3 MiB start frame.
   if (total > 524288) throw new Error('应用源码超出传输预算');
 }
 

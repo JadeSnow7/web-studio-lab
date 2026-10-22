@@ -3,6 +3,7 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import {
+  APP_SOURCE_TRANSPORT,
   AppProfileSchema,
   EduSourceSchema,
   type AppImportOutcome,
@@ -12,6 +13,7 @@ import {
   type ManagedApp,
 } from '@wsl/protocol';
 import type { GuestProcess, GuestStart, SbxConnection } from './sbx';
+import { encodeGuestStart } from './sbx';
 
 const targetSchema = z
   .object({
@@ -49,6 +51,7 @@ const receiptSchema = z
     retryable: z.boolean(),
     errorCode: z
       .string()
+      .max(100)
       .regex(/^import_[a-z0-9_]+$/)
       .nullable(),
     sourceSha256: z
@@ -225,6 +228,8 @@ export class AppImports {
           ...(operation === 'reconcile-import' ? { cancel: record.cancelRequested } : {}),
         }),
       };
+      // A deterministic encoding refusal has acquired no guest write capability.
+      encodeGuestStart(request);
       record.copying = operation === 'import-source';
       record.close = null;
       // Persist dispatch intent before a child can acquire a guest write capability.
@@ -233,7 +238,7 @@ export class AppImports {
       if (operation === 'import-source' && record.cancelRequested) return { receipt: null, stopped: true };
       const worker = this.connection.start(request, (frame) => {
         if (frame.type !== 'output' || frame.stream !== 'stdout') return;
-        if (Buffer.byteLength(output) + Buffer.byteLength(frame.data) > 262144) {
+        if (Buffer.byteLength(output) + Buffer.byteLength(frame.data) > APP_SOURCE_TRANSPORT.importResultBytes) {
           oversized = true;
           return;
         }

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { z } from 'zod';
 import {
+  APP_SOURCE_TRANSPORT,
   ResourceBundleSchema,
   type AppControlResult,
   type ChatStatus,
@@ -67,6 +68,13 @@ export type GuestStart =
     }
   | { type: 'start'; mode: 'terminal'; cols: number; rows: number };
 
+/** Include nested JSON escaping and LF before acquiring any guest process. */
+export function encodeGuestStart(start: GuestStart): string {
+  const encoded = JSON.stringify(start) + '\n';
+  if (Buffer.byteLength(encoded, 'utf8') > APP_SOURCE_TRANSPORT.startFrameBytes) throw new Error('guest start frame exceeds budget');
+  return encoded;
+}
+
 export async function resolveSbxBinary(override = process.env['WSL_SBX_BIN']): Promise<string> {
   const candidates = override
     ? [override]
@@ -112,6 +120,7 @@ export class GuestProcess {
   ) {
     if (start.mode === 'codex' && start.resourceBundle) ResourceBundleSchema.parse(start.resourceBundle);
     if (start.mode === 'codex' && start.workspace) workspaceSchema.parse(start.workspace);
+    const encodedStart = encodeGuestStart(start);
     this.done = new Promise((resolve) => {
       this.finish = resolve;
     });
@@ -166,7 +175,7 @@ export class GuestProcess {
       if (!this.ready && !this.error) this.error = 'guest 未返回 ready';
       this.finish({ error: this.error, exitCode: this.exitCode, confirmed: this.confirmed });
     });
-    this.write(start);
+    this.child.stdin.write(encodedStart);
   }
   write(
     frame:
