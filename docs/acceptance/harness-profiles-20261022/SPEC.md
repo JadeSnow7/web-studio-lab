@@ -87,10 +87,10 @@
 
 2026-10-22 实测（guest `wsl-sbx-smoke-20261006`，输出中的邮箱与组织标识已遮蔽，未保存原文）：
 
-| 命令                                 | 已登录                                        | 未登录（空目录）          | 备注                                                                                                   |
-| ------------------------------------ | --------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `claude-agent-acp --cli auth status` | 退出 0，JSON `loggedIn: true`                 | 退出 1，`loggedIn: false` | JSON 同时含 `email`、`orgId`、`orgName`；`CLAUDE_CONFIG_DIR` 生效；该命令会在目录内写入 `.claude.json` |
-| `codex login status`                 | 退出 0，“Logged in using an API key - \*\*\*” | 退出 1，“Not logged in”   | `CODEX_HOME` 生效；sbx 中的 API key 推测为代理注入的占位，未验证                                       |
+| 命令                                 | 已登录                                        | 未登录（空目录）          | 备注                                                                                                                                                    |
+| ------------------------------------ | --------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `claude-agent-acp --cli auth status` | 退出 0，JSON `loggedIn: true`                 | 退出 1，`loggedIn: false` | JSON 同时含 `email`、`orgId`、`orgName`；`CLAUDE_CONFIG_DIR` 生效；该命令会在目录内写入 `.claude.json`                                                  |
+| `codex login status`                 | 退出 0，“Logged in using an API key - \*\*\*” | 退出 1，“Not logged in”   | 结果写在 **stderr**、stdout 为空（2026-10-22 复测更正：初次测量用 `2>&1` 合并了输出）；`CODEX_HOME` 生效；sbx 中的 API key 推测为代理注入的占位，未验证 |
 
 据此：
 
