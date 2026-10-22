@@ -46,7 +46,9 @@ export const PermissionRequestSchema = z
     title: z.string().max(200),
     kind: z.string().max(40),
     options: z
-      .array(z.object({ optionId: z.string().min(1).max(200), name: z.string().max(200), kind: z.enum(['allow_once', 'reject_once']) }).strict())
+      .array(
+        z.object({ optionId: z.string().min(1).max(200), name: z.string().max(200), kind: z.enum(['allow_once', 'reject_once']) }).strict(),
+      )
       .min(1)
       .max(4),
     requestedAt: z.string().datetime(),

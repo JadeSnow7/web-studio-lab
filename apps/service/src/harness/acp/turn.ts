@@ -260,7 +260,11 @@ export class AcpTurn {
     const known = this.tools.get(parsed.data.toolCall.toolCallId);
     const request = {
       ...parsed.data,
-      toolCall: { ...parsed.data.toolCall, title: parsed.data.toolCall.title ?? known?.title ?? null, kind: parsed.data.toolCall.kind ?? known?.kind ?? null },
+      toolCall: {
+        ...parsed.data.toolCall,
+        title: parsed.data.toolCall.title ?? known?.title ?? null,
+        kind: parsed.data.toolCall.kind ?? known?.kind ?? null,
+      },
     };
     return new Promise<PermissionOutcome>((resolve) => {
       this.pendingPermissions.add(resolve);

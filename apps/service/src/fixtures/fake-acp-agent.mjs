@@ -63,7 +63,13 @@ async function prompt(id, { sessionId }) {
   }
   // W4b：原先直接拒绝的 fetch 类型交给用户；请求只带 toolCallId，标题与类型来自先前的 tool_call。
   if (scenario === 'ask') {
-    update(sessionId, { sessionUpdate: 'tool_call', toolCallId: 't4', title: '获取 https://example.invalid/data', kind: 'fetch', status: 'pending' });
+    update(sessionId, {
+      sessionUpdate: 'tool_call',
+      toolCallId: 't4',
+      title: '获取 https://example.invalid/data',
+      kind: 'fetch',
+      status: 'pending',
+    });
     const answer = await ask('session/request_permission', {
       sessionId,
       toolCall: { toolCallId: 't4' },
