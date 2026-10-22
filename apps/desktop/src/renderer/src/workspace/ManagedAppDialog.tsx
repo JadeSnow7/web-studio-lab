@@ -63,8 +63,15 @@ export function ManagedAppDialog({ workspaceId }: { workspaceId: string | null }
     setErrors((s) => ({ ...s, [targetId]: null }));
     try {
       const result = await workspaceCommand(targetId, payload);
-      if (!result?.ok)
-        setErrors((s) => ({ ...s, [targetId]: result ? result.error.message : (workspaceStore.get().error ?? '操作失败，请重试。') }));
+      if (!result?.ok) {
+        const message = result ? result.error.message : (workspaceStore.get().error ?? '操作失败，请重试。');
+        const importView = ['previewAppImport', 'confirmAppImport', 'cancelAppImport', 'retryAppImport'].includes(type)
+          ? result?.snapshot.workspaces.find((item) => item.workspaceId === targetId)?.appImport
+          : null;
+        // The import panel owns this persistent failure; keep the fallback for transport and unrelated operation errors.
+        if (!importView || importView.phase === 'completed' || importView.error?.message !== message)
+          setErrors((s) => ({ ...s, [targetId]: message }));
+      }
     } finally {
       busy.current.delete(key);
       setOperations((s) => ({ ...s, [targetId]: (s[targetId] ?? []).filter((item) => item !== type) }));

@@ -154,20 +154,30 @@ test('unsupported source and source changes explain recovery; failed import retr
     await chooseImportSource(app, unsupported);
     await importButton(page).click();
     await expect.poll(async () => (await owner(page)).appImport?.phase).toBe('failed');
+    await mkdir(screensDir, { recursive: true });
+    await page.screenshot({ path: path.join(screensDir, 'edu-import-unsupported-error.png') });
+    await expect(dialog(page).getByRole('alert')).toHaveCount(1);
     await expect(dialog(page).getByRole('alert')).toBeVisible();
+    await dialog(page).getByRole('button', { name: '关闭', exact: true }).click();
+    await page.getByRole('button', { name: '新建 App', exact: true }).click();
+    await expect(dialog(page).getByRole('alert')).toHaveCount(1);
+    await expect(dialog(page).getByRole('region', { name: '导入已有工程', exact: true }).getByRole('alert')).toBeVisible();
     await expect(dialog(page).getByRole('button', { name: '确认导入并启动', exact: true })).toHaveCount(0);
     expect((await owner(page)).managedApp).toBeFalsy();
     await chooseImportSource(app, root);
     await dialog(page).getByRole('button', { name: '重新选择工程', exact: true }).click();
     await previewReady(page);
+    await expect(dialog(page).getByRole('alert')).toHaveCount(0);
     await writeFile(path.join(root, 'admin/src/App.tsx'), 'export const App = () => <main>Changed after preview</main>;\n');
     await dialog(page).getByRole('button', { name: '确认导入并启动', exact: true }).click();
     await expect.poll(async () => (await owner(page)).appImport?.phase).toBe('failed');
+    await expect(dialog(page).getByRole('alert')).toHaveCount(1);
     await expect(dialog(page).getByRole('alert')).toContainText(/变化|重新/);
     expect((await owner(page)).managedApp).toBeFalsy();
     await chooseImportSource(app, root);
     await dialog(page).getByRole('button', { name: '重新选择工程', exact: true }).click();
     await previewReady(page);
+    await expect(dialog(page).getByRole('alert')).toHaveCount(0);
     const selectedDigest = await sourceTreeDigest(root);
     await dialog(page)
       .getByRole('button', { name: '确认导入并启动', exact: true })
@@ -176,12 +186,14 @@ test('unsupported source and source changes explain recovery; failed import retr
         (node as HTMLButtonElement).click();
       });
     await expect.poll(async () => (await owner(page)).appImport?.phase, { timeout: 20000 }).toBe('failed');
+    await expect(dialog(page).getByRole('alert')).toHaveCount(1);
     await expect(dialog(page).getByRole('alert')).toBeVisible();
     expect((await importCommands(app)).filter((type) => type === 'confirmAppImport')).toHaveLength(2);
     const retry = dialog(page).getByRole('button', { name: '重试导入', exact: true });
     await expect(retry).toBeEnabled();
     await retry.click();
     await expect.poll(async () => (await owner(page)).appImport?.phase, { timeout: 20000 }).toBe('failed');
+    await expect(dialog(page).getByRole('alert')).toHaveCount(1);
     expect((await importCommands(app)).filter((type) => type === 'retryAppImport')).toHaveLength(1);
     expect(await sourceTreeDigest(root)).toBe(selectedDigest);
     await mkdir(screensDir, { recursive: true });
