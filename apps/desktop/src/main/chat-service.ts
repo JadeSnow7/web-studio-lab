@@ -34,7 +34,11 @@ import {
   AppLogsSchema,
   type AppAgentOperation,
   type AppControlResult,
-  type HarnessDescriptor,
+  type HarnessAvailability,
+  type ProfileCheckResult,
+  type ProfileDir,
+  type TurnHarness,
+  ProfileCheckResultSchema,
 } from '@wsl/protocol';
 import { GuestWriteLease } from './workbench/guest-write-lease';
 
@@ -299,6 +303,7 @@ export class ChatService {
       version: null,
       sandbox: this.lastStatus?.sandbox ?? null,
       cwd: this.lastStatus?.cwd ?? null,
+      harnesses: this.unavailableHarnesses(this.failure),
     });
     for (const [resourceId, terminal] of this.terminals) {
       const binding = this.resourceBindings.get(resourceId);
@@ -458,6 +463,7 @@ export class ChatService {
         version: null,
         sandbox: this.lastStatus?.sandbox ?? null,
         cwd: this.lastStatus?.cwd ?? null,
+        harnesses: this.unavailableHarnesses(this.failure),
       };
     this.lastStatus = ChatStatusSchema.parse(await this.request({ method: 'status' }));
     return this.lastStatus;
@@ -468,21 +474,36 @@ export class ChatService {
   async get(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'get', payload: { conversationId: id } }));
   }
-  /** 对话服务最近一次报告的 Harness；服务未初始化或旧版本未报告时为 null。 */
-  harness(): HarnessDescriptor | null {
-    return this.lastStatus?.harness ?? null;
+  /** 对话服务最近一次报告的全部 Harness 及可用性；服务未初始化时为空（W4a）。 */
+  harnesses(): HarnessAvailability[] {
+    if (this.failure) return this.unavailableHarnesses(this.failure);
+    return this.lastStatus?.harnesses ?? [];
+  }
+  /** 服务失败时，已知的 Harness 都不可用，原因与服务失败相同。 */
+  private unavailableHarnesses(reason: string): HarnessAvailability[] {
+    return (this.lastStatus?.harnesses ?? []).map((item) => ({ ...item, available: false, reason }));
+  }
+  /** 无模型自检一个 Profile（W4a）；结果只含版本与登录状态。 */
+  async checkProfile(harnessId: string, profileDir: ProfileDir | null): Promise<ProfileCheckResult> {
+    return ProfileCheckResultSchema.parse(await this.request({ method: 'profile.check', payload: { harnessId, profileDir } }));
   }
   /** 当前持有 guest 工作区写入许可的会话槽；无人持有时为 null。 */
   writeHolder(): ChatSlot | null {
     return this.writeLease.current();
   }
-  async send(id: ChatSlot, text: string, observationScope: ObservationTurnScope | undefined, references: CatalogReferenceSnapshot) {
+  async send(
+    id: ChatSlot,
+    text: string,
+    observationScope: ObservationTurnScope | undefined,
+    references: CatalogReferenceSnapshot,
+    harness: TurnHarness,
+  ) {
     // 服务已失败或正在关闭时不取得许可，让请求按原有原因拒绝，避免用写入冲突掩盖真实故障。
     if (this.stopped || this.failure) throw new RunDispatchFailure(this.failure ?? '对话服务正在关闭', false, true);
     this.writeLease.acquire(id, this.conversations.get(id)?.seq ?? -1);
     try {
       const result = ChatConversationSchema.parse(
-        await this.request({ method: 'send', payload: { conversationId: id, text, observationScope, references } }),
+        await this.request({ method: 'send', payload: { conversationId: id, text, observationScope, references, harness } }),
       );
       if (result.conversationId !== id) throw new Error('对话启动回执归属不匹配');
       return result;
@@ -541,6 +562,7 @@ export class ChatService {
             available: false,
             reason: `guest 清理失败：${(error as Error).message}`,
             version: null,
+            harnesses: this.unavailableHarnesses(`guest 清理失败：${(error as Error).message}`),
             sandbox: this.lastStatus?.sandbox ?? null,
             cwd: this.lastStatus?.cwd ?? null,
           });

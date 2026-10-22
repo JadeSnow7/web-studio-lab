@@ -1,3 +1,4 @@
+import { codexHarnessRuntime } from './harness-test-fixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -107,6 +108,7 @@ async function fixture() {
     return result;
   });
   const runtime: WorkbenchRuntime = {
+    ...codexHarnessRuntime,
     appSourceSnapshot: snapshots,
     appCreate: async (target) => {
       const app: ManagedApp = {

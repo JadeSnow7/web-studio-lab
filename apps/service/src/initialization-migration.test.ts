@@ -10,11 +10,11 @@ vi.mock('./codex-chat', () => ({
     setAppControlReader = vi.fn();
     connection = {
       getCleanupPending: () => false,
-      getStatus: () => ({ available: false, reason: 'initializing', sandbox: null, version: null, cwd: null }),
+      getStatus: () => ({ available: false, reason: 'initializing', sandbox: null, version: null, cwd: null, harnesses: [] }),
     };
     initialize = fixture.initialize;
     register = vi.fn();
-    getStatus = () => ({ available: false, reason: 'initializing', version: null, sandbox: null, cwd: null });
+    getStatus = () => ({ available: false, reason: 'initializing', version: null, sandbox: null, cwd: null, harnesses: [] });
     get = (conversationId: string) => ({
       conversationId,
       generation: 'g',

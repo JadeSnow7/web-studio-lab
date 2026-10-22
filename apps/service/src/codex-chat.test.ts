@@ -4,10 +4,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CodexChat, parseCodexLine, type ChatHarness } from './codex-chat';
+import { claudeCodeAcp } from './harness/acp/agents';
+import { REGISTERED_HARNESSES } from './harness/registry';
 import { resolveSbxBinary } from './sbx';
-import type { ChatConversation, ChatSlot } from '@wsl/protocol';
+import { profileDirOf, type ChatConversation, type ChatSlot, type TurnHarness } from '@wsl/protocol';
 
 const personal = 'conv-personal-default';
+const CLAUDE_TURN: TurnHarness = { harnessId: 'claude-code', profileId: 'claude-code:default', profileDir: null };
 const space = 'conv-space-taskflow-demo-impl';
 let root: string;
 let chat: CodexChat;
@@ -126,7 +129,12 @@ describe('Harness 端口（W2）', () => {
   it('状态报告 Codex 描述符，版本与连接检查一致', () => {
     const status = chat.getStatus();
     expect(status.available).toBe(true);
-    expect(status.harness).toMatchObject({ harnessId: 'codex', displayName: 'Codex CLI', adapter: 'native', version: status.version });
+    expect(status.harnesses).toEqual([
+      expect.objectContaining({
+        available: true,
+        descriptor: expect.objectContaining({ harnessId: 'codex', displayName: 'Codex CLI', adapter: 'native', version: status.version }),
+      }),
+    ]);
   });
   it('start 帧显式声明 MCP 挂载方式，参数由适配器构造', async () => {
     const start = vi.spyOn(chat.connection, 'start');
@@ -153,12 +161,13 @@ describe('ACP Harness 经执行核心（W3b，fixture sbx + 假 ACP Agent）', (
       label: 'Claude Code',
       command: [process.execPath, fakeAgent, scenario],
       install: { npm: 'fixture', version: '0' },
-      configDirEnv: null,
+      configDirEnv: 'CLAUDE_CONFIG_DIR',
+      selfCheck: claudeCodeAcp.selfCheck,
     },
   });
   async function acpChat(scenario: string) {
     const acpEvents: ChatConversation[] = [];
-    const instance = new CodexChat(root, (event) => acpEvents.push(event), undefined, acp(scenario));
+    const instance = new CodexChat(root, (event) => acpEvents.push(event), undefined, [acp(scenario)]);
     await instance.initialize();
     return { instance, acpEvents };
   }
@@ -172,13 +181,19 @@ describe('ACP Harness 经执行核心（W3b，fixture sbx + 假 ACP Agent）', (
     try {
       const status = instance.getStatus();
       expect(status.available).toBe(true);
-      expect(status.version).toBe('1.2.3');
-      expect(status.harness).toMatchObject({
-        harnessId: 'claude-code',
-        adapter: 'acp',
-        capabilitySource: 'probed',
-        capabilities: { resume: true },
-      });
+      expect(status.harnesses).toEqual([
+        {
+          available: true,
+          reason: null,
+          descriptor: expect.objectContaining({
+            harnessId: 'claude-code',
+            adapter: 'acp',
+            version: '1.2.3',
+            capabilitySource: 'probed',
+            capabilities: expect.objectContaining({ resume: true }),
+          }),
+        },
+      ]);
     } finally {
       await instance.shutdown();
     }
@@ -188,7 +203,7 @@ describe('ACP Harness 经执行核心（W3b，fixture sbx + 假 ACP Agent）', (
     const { instance } = await acpChat('reply');
     const start = vi.spyOn(instance.connection, 'start');
     try {
-      await instance.send(personal, '你好', undefined, emptyReferences(personal));
+      await instance.send(personal, '你好', undefined, emptyReferences(personal), CLAUDE_TURN);
       const done = await settle(instance);
       expect(done).toMatchObject({ state: 'idle', error: null, cleanupPending: false, threadId: 'sess-reply' });
       expect(done.messages.map((message) => message.text)).toEqual(['你好', '你好，世界', '完成']);
@@ -211,7 +226,7 @@ describe('ACP Harness 经执行核心（W3b，fixture sbx + 假 ACP Agent）', (
   it('工作区写入策略：编辑类权限自动放行一次', async () => {
     const { instance } = await acpChat('permission');
     try {
-      await instance.send(personal, '改文件', undefined, emptyReferences(personal));
+      await instance.send(personal, '改文件', undefined, emptyReferences(personal), CLAUDE_TURN);
       const done = await settle(instance);
       expect(done.messages.at(-1)?.text).toBe('决定：yes');
       expect(done.state).toBe('idle');
@@ -223,9 +238,9 @@ describe('ACP Harness 经执行核心（W3b，fixture sbx + 假 ACP Agent）', (
   it('不支持 loadSession 时第二轮换用新会话，不判为会话冲突', async () => {
     const { instance } = await acpChat('noload');
     try {
-      await instance.send(personal, '一', undefined, emptyReferences(personal));
+      await instance.send(personal, '一', undefined, emptyReferences(personal), CLAUDE_TURN);
       expect((await settle(instance)).state).toBe('idle');
-      await instance.send(personal, '二', undefined, emptyReferences(personal));
+      await instance.send(personal, '二', undefined, emptyReferences(personal), CLAUDE_TURN);
       const second = await settle(instance);
       expect(second.state).toBe('idle');
       expect(second.warnings).toContain('Agent 未声明 loadSession，已开始新会话；之前的上下文不会带入');
@@ -237,7 +252,7 @@ describe('ACP Harness 经执行核心（W3b，fixture sbx + 假 ACP Agent）', (
   it('取消：发出 session/cancel 后关闭进程，记为已取消且清理确认', async () => {
     const { instance } = await acpChat('cancel');
     try {
-      await instance.send(personal, '慢任务', undefined, emptyReferences(personal));
+      await instance.send(personal, '慢任务', undefined, emptyReferences(personal), CLAUDE_TURN);
       await expect.poll(() => instance.get(personal).messages.some((message) => message.text === '开始'), { timeout: 8000 }).toBe(true);
       const cancelled = await instance.cancel(personal);
       expect(cancelled).toMatchObject({ state: 'cancelled', cleanupPending: false });
@@ -252,7 +267,7 @@ describe('ACP Harness 经执行核心（W3b，fixture sbx + 假 ACP Agent）', (
   ])('%s 记为失败并带原因', async (scenario, message) => {
     const { instance } = await acpChat(scenario);
     try {
-      await instance.send(personal, 'x', undefined, emptyReferences(personal));
+      await instance.send(personal, 'x', undefined, emptyReferences(personal), CLAUDE_TURN);
       const done = await settle(instance);
       expect(done.state).toBe('failed');
       expect(done.error).toContain(message);
@@ -262,16 +277,125 @@ describe('ACP Harness 经执行核心（W3b，fixture sbx + 假 ACP Agent）', (
   });
 
   it('Agent 不可启动时状态不可用并说明原因', async () => {
-    const instance = new CodexChat(root, () => undefined, undefined, {
-      kind: 'acp',
-      spec: { ...acp('reply').spec, command: ['/definitely/missing-acp-agent'] },
-    });
+    const instance = new CodexChat(root, () => undefined, undefined, [
+      { kind: 'acp', spec: { ...acp('reply').spec, command: ['/definitely/missing-acp-agent'] } },
+    ]);
     try {
       await instance.initialize();
       const status = instance.getStatus();
-      expect(status.available).toBe(false);
-      expect(status.reason).toMatch(/^Claude Code 不可用：/);
-      await expect(instance.send(personal, 'x', undefined, emptyReferences(personal))).rejects.toThrow('Claude Code 不可用');
+      // 运行环境本身可用；不可用的是这个 Harness（W4 起按 Harness 分别报告）。
+      expect(status.available).toBe(true);
+      expect(status.harnesses[0]).toMatchObject({ available: false, reason: expect.stringMatching(/^Claude Code 不可用：/) });
+      await expect(instance.send(personal, 'x', undefined, emptyReferences(personal), CLAUDE_TURN)).rejects.toThrow('Claude Code 不可用');
+    } finally {
+      await instance.shutdown();
+    }
+  });
+});
+
+describe('Harness 选择与 Profile（W4a）', () => {
+  const fakeAgent = path.resolve('apps/service/src/fixtures/fake-acp-agent.mjs');
+  const claude: Extract<ChatHarness, { kind: 'acp' }> = {
+    kind: 'acp',
+    spec: { ...claudeCodeAcp, command: [process.execPath, fakeAgent, 'reply'] },
+  };
+  const profileA = 'a1b2c3d4-0000-4000-8000-00000000000a';
+  const loggedOut = '00000000-0000-4000-8000-00000000000b';
+  async function both() {
+    const instance = new CodexChat(root, () => undefined, undefined, [REGISTERED_HARNESSES[0]!, claude]);
+    await instance.initialize();
+    return instance;
+  }
+
+  it('状态按 Harness 分别报告可用性；不可启动的 Harness 留在列表中并说明原因', async () => {
+    const missing: ChatHarness = { kind: 'acp', spec: { ...claudeCodeAcp, command: ['/definitely/missing-acp-agent'] } };
+    const instance = new CodexChat(root, () => undefined, undefined, [REGISTERED_HARNESSES[0]!, missing]);
+    try {
+      await instance.initialize();
+      const status = instance.getStatus();
+      expect(status.harnesses.map((item) => [item.descriptor.harnessId, item.available])).toEqual([
+        ['codex', true],
+        ['claude-code', false],
+      ]);
+      expect(status.harnesses[1]!.reason).toMatch(/^Claude Code 不可用：/);
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('自检只返回版本与登录状态，不保留原始输出中的账号信息', async () => {
+    const instance = await both();
+    const start = vi.spyOn(instance.connection, 'start');
+    try {
+      await expect(instance.checkProfile('codex', null)).resolves.toEqual({
+        cliVersion: 'codex-cli fixture',
+        login: 'logged_in',
+        reason: null,
+      });
+      const inResult = await instance.checkProfile('claude-code', profileDirOf('claude-code', profileA));
+      const outResult = await instance.checkProfile('claude-code', profileDirOf('claude-code', loggedOut));
+      expect(inResult).toMatchObject({ login: 'logged_in', reason: null });
+      expect(outResult).toMatchObject({ login: 'logged_out', reason: null });
+      expect(JSON.stringify([inResult, outResult])).not.toContain('fixture@example.invalid');
+      expect(start.mock.calls.slice(2).map(([frame]) => frame)).toEqual([
+        expect.objectContaining({ argv: ['claude-agent-acp', '--version'], profileDir: profileDirOf('claude-code', profileA) }),
+        expect.objectContaining({ argv: claudeCodeAcp.selfCheck.statusArgv, profileDir: profileDirOf('claude-code', profileA) }),
+        expect.objectContaining({ profileDir: profileDirOf('claude-code', loggedOut) }),
+        expect.objectContaining({ profileDir: profileDirOf('claude-code', loggedOut) }),
+      ]);
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it.each([
+    ['未声明配置目录变量的组合', 'claude-code', { env: 'CODEX_HOME' as const, path: profileDirOf('claude-code', profileA)!.path }],
+    ['其他 Harness 的目录', 'claude-code', profileDirOf('codex', profileA)],
+    ['未注册的 Harness', 'gemini', null],
+  ])('拒绝%s，且不启动 guest 进程', async (_label, harnessId, profileDir) => {
+    const instance = await both();
+    const start = vi.spyOn(instance.connection, 'start');
+    try {
+      await expect(instance.checkProfile(harnessId, profileDir)).rejects.toThrow();
+      expect(start).not.toHaveBeenCalled();
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('非内置 Profile 缺少配置目录时拒绝发送，不改变会话', async () => {
+    const instance = await both();
+    try {
+      await expect(
+        instance.send(personal, 'x', undefined, emptyReferences(personal), {
+          harnessId: 'claude-code',
+          profileId: profileA,
+          profileDir: null,
+        }),
+      ).rejects.toThrow('非内置 Profile 缺少配置目录');
+      expect(instance.get(personal)).toMatchObject({ state: 'idle', messages: [] });
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('同一会话换用其他 Harness 或 Profile 时不复用旧会话身份，并记一条警告', async () => {
+    const instance = await both();
+    const start = vi.spyOn(instance.connection, 'start');
+    const settled = async () => {
+      await expect.poll(() => instance.get(personal).state, { timeout: 8000 }).not.toBe('running');
+      return instance.get(personal);
+    };
+    try {
+      await instance.send(personal, '一', undefined, emptyReferences(personal));
+      const first = await settled();
+      expect(first.threadId).toMatch(/^fixture-/);
+      const turn: TurnHarness = { harnessId: 'claude-code', profileId: profileA, profileDir: profileDirOf('claude-code', profileA) };
+      await instance.send(personal, '二', undefined, emptyReferences(personal), turn);
+      const second = await settled();
+      expect(second).toMatchObject({ state: 'idle', threadId: 'sess-reply' });
+      expect(second.warnings).toContain(`本轮改用 Claude Code（${profileA}），已开始新的 Agent 会话；之前的上下文不会带入`);
+      expect(start.mock.calls.at(-1)![0]).toMatchObject({ stdin: 'relay', profileDir: profileDirOf('claude-code', profileA) });
     } finally {
       await instance.shutdown();
     }

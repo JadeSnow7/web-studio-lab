@@ -14,7 +14,7 @@ import {
 } from '@wsl/protocol';
 import { SbxConnection } from './sbx';
 import { CodexChat } from './codex-chat';
-import { selectHarness } from './harness/registry';
+import { REGISTERED_HARNESSES } from './harness/registry';
 import { EnvironmentResources } from './environment-resources';
 
 // utilityProcess 的消息接口由宿主提供，核心模块不依赖 Electron。
@@ -28,12 +28,7 @@ const root = process.argv[2];
 if (!root) throw new Error('缺少对话运行目录');
 const send = (message: ChatServiceMessage) => parent.postMessage(ChatServiceMessageSchema.parse(message));
 const runtime = process.argv[3] ? ServiceRuntimeConfigSchema.parse(JSON.parse(process.argv[3])) : undefined;
-const chat = new CodexChat(
-  root,
-  (conversation) => send({ type: 'event', conversation }),
-  new SbxConnection(runtime),
-  selectHarness(process.env['WSL_HARNESS']),
-);
+const chat = new CodexChat(root, (conversation) => send({ type: 'event', conversation }), new SbxConnection(runtime), REGISTERED_HARNESSES);
 const apps = new AppService(chat.connection, {
   registryPath: path.join(root, 'app-registry.json'),
   dependencyArchivePath: runtime ? runtime.templateDependencies?.archivePath : process.env['WSL_APP_DEPENDENCY_ARCHIVE'],
@@ -233,6 +228,9 @@ parent.on('message', ({ data }) => {
         case 'status':
           result = chat.getStatus();
           break;
+        case 'profile.check':
+          result = await chat.checkProfile(request.payload.harnessId, request.payload.profileDir);
+          break;
         case 'get':
           result = chat.get(request.payload.conversationId);
           break;
@@ -244,6 +242,7 @@ parent.on('message', ({ data }) => {
                 request.payload.text,
                 request.payload.observationScope,
                 request.payload.references,
+                request.payload.harness,
               );
           break;
         case 'cancel':

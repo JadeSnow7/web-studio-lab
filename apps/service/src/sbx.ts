@@ -7,7 +7,8 @@ import { z } from 'zod';
 import {
   ResourceBundleSchema,
   type AppControlResult,
-  type ChatStatus,
+  type SandboxStatus,
+  type ProfileDir,
   type ResourceBundle,
   type WorkspaceObservationResult,
 } from '@wsl/protocol';
@@ -70,6 +71,8 @@ export type GuestStart =
       observation?: boolean;
       observationImages?: boolean;
       workspace?: GuestWorkspace;
+      /** 本轮 Profile 的配置目录（W4）；helper 再次校验后只设置这一个环境变量。 */
+      profileDir?: ProfileDir;
     }
   | { type: 'start'; mode: 'terminal'; cols: number; rows: number };
 
@@ -230,9 +233,9 @@ export class SbxConnection {
   private closing = false;
   private cleanupUnknown = false;
   private binary: string | null = null;
-  private status: ChatStatus = { available: false, reason: '正在检查 sbx…', version: null, sandbox: null, cwd: null };
+  private status: SandboxStatus = { available: false, reason: '正在检查 sbx…', version: null, sandbox: null, cwd: null };
   constructor(private readonly config?: { sbxBinary: string | null; sandbox: string | null }) {}
-  async initialize(onTransportOutput?: (stream: 'stdout' | 'stderr', text: string) => void): Promise<ChatStatus> {
+  async initialize(onTransportOutput?: (stream: 'stdout' | 'stderr', text: string) => void): Promise<SandboxStatus> {
     const sandbox = this.config ? this.config.sandbox : process.env['WSL_SBX_NAME']?.trim();
     this.status.sandbox = sandbox || null;
     this.status.cwd = sandbox ? GUEST_CWD : null;
@@ -280,7 +283,7 @@ export class SbxConnection {
     if (this.closing || !this.status.available || !this.binary || !this.status.sandbox) throw new Error(this.status.reason ?? 'sbx 不可用');
     return { binary: this.binary, sandbox: this.status.sandbox };
   }
-  getStatus(): ChatStatus {
+  getStatus(): SandboxStatus {
     return { ...this.status };
   }
   getCleanupPending(): boolean {

@@ -1,3 +1,5 @@
+import type { HarnessProfileService } from '../harness-profiles';
+import { codexHarnessRuntime } from './harness-test-fixture';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { describe, expect, it, vi } from 'vitest';
 import type { PreviewState, WorkbenchCommand, WorkbenchSnapshot } from '@wsl/protocol';
@@ -42,6 +44,7 @@ const state: PreviewState = {
 async function setup() {
   let saved: WorkbenchSnapshot | null = null;
   const runtime = {
+    ...codexHarnessRuntime,
     environmentsList: vi.fn().mockResolvedValue([
       {
         environmentId: 'local',
@@ -114,6 +117,7 @@ describe('migration review followup baseline', () => {
         resourcesList: async () => ({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
       } as unknown as ChatService,
       '/fixture',
+      {} as unknown as HarnessProfileService,
     );
     const app = new WorkbenchApplication(
       {

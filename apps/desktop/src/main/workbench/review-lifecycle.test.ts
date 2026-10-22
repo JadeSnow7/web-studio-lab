@@ -1,3 +1,4 @@
+import { codexHarnessRuntime } from './harness-test-fixture';
 import { emptyReferences } from '../../../../service/src/reference-test-fixture';
 import '../../../../service/src/raw.d.ts';
 import { mkdtemp } from 'node:fs/promises';
@@ -21,6 +22,7 @@ function gate<T>() {
 async function setup() {
   const repository = new FileWorkbenchRepository(path.join(await mkdtemp(path.join(os.tmpdir(), 'wsl-review-lifecycle-')), 'state.json'));
   const runtime = {
+    ...codexHarnessRuntime,
     validateBrowserUrl: vi.fn(),
     environmentsList: vi.fn().mockResolvedValue([
       {

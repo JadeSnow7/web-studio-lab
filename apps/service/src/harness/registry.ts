@@ -3,19 +3,14 @@ import { codexAdapter } from './codex/adapter';
 import { claudeCodeAcp } from './acp/agents';
 
 /**
- * 服务启动时选择执行核心使用的 Harness（W3b）。
- *
- * 在 W4 的 Profile 与 Harness 选择器之前，用开发期环境变量 WSL_HARNESS 切换：缺省为 codex；claude-code 走 ACP。
- * 未知取值直接报错，不静默回退。
+ * 执行核心可用的 Harness（W4）。每次执行由 Main 按会话或全局默认的选择指定其一；
+ * 启动时逐个探测，不可用的 Harness 保留在列表中并报告原因，不静默移除。
  */
-export const HARNESSES: Record<string, ChatHarness> = {
-  codex: { kind: 'native', adapter: codexAdapter },
-  'claude-code': { kind: 'acp', spec: claudeCodeAcp },
-};
+export const REGISTERED_HARNESSES: readonly ChatHarness[] = [
+  { kind: 'native', adapter: codexAdapter },
+  { kind: 'acp', spec: claudeCodeAcp },
+];
 
-export function selectHarness(id: string | undefined): ChatHarness {
-  const key = id?.trim() || 'codex';
-  const harness = HARNESSES[key];
-  if (!harness) throw new Error(`未知的 WSL_HARNESS：${key}（可选：${Object.keys(HARNESSES).join('、')}）`);
-  return harness;
+export function harnessIdOf(harness: ChatHarness): string {
+  return harness.kind === 'native' ? harness.adapter.harnessId : harness.spec.harnessId;
 }

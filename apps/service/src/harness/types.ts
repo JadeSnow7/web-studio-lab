@@ -29,6 +29,16 @@ export type HarnessEvent =
 /** guest helper 挂载 wsl_space MCP 的方式；由 service 显式声明，helper 不再按 argv 识别 Harness。 */
 export type GuestMcpInjection = 'codex-config';
 
+/**
+ * Profile 的无模型自检（W4）：在运行环境内以该 Profile 的配置目录运行两条命令。
+ * parseStatus 只从退出码与输出中取出登录状态；其余输出（可能含账号邮箱、组织）由调用方丢弃，不保存、不转发。
+ */
+export interface ProfileSelfCheck {
+  readonly versionArgv: string[];
+  readonly statusArgv: string[];
+  parseStatus(exitCode: number | null, stdout: string): 'logged_in' | 'logged_out' | 'undetermined';
+}
+
 export interface NativeHarnessAdapter {
   /** 出现在错误消息中的简称，例如“Codex 协议错误”。 */
   readonly label: string;
@@ -37,6 +47,10 @@ export interface NativeHarnessAdapter {
   readonly requiresSessionRef: boolean;
   /** 单个协议行的字符上限，超过即判为协议错误。 */
   readonly maxLineChars: number;
+  readonly harnessId: string;
+  /** 该 CLI 选择配置与登录目录的环境变量；Profile 经它切换账号（W4）。 */
+  readonly configDirEnv: 'CODEX_HOME' | null;
+  readonly selfCheck: ProfileSelfCheck;
   descriptor(version: string | null): HarnessDescriptor;
   /** 本轮命令行；sessionRef 为上一轮返回的会话身份，首轮为 null。提示词经 stdin 传入。 */
   argv(sessionRef: string | null): string[];

@@ -47,4 +47,14 @@ describe.skipIf(process.platform !== 'linux')('guest helper 的 MCP 声明（W2�
     expect(frames).toContainEqual(expect.objectContaining({ type: 'error', error: 'invalid MCP injection' }));
     expect(frames.at(-1)).toEqual({ type: 'cleanup', ok: true });
   });
+  it.each([
+    ['未声明的环境变量', { env: 'HOME', path: '/home/agent/.wsl-profiles/claude-code/a1b2c3d4-0000-4000-8000-00000000000a' }],
+    ['根目录之外的路径', { env: 'CLAUDE_CONFIG_DIR', path: '/home/agent/.claude' }],
+    ['路径穿越', { env: 'CLAUDE_CONFIG_DIR', path: '/home/agent/.wsl-profiles/claude-code/../../.ssh' }],
+    ['多余字段', { env: 'CLAUDE_CONFIG_DIR', path: '/home/agent/.wsl-profiles/claude-code/a1b2c3d4-0000-4000-8000-00000000000a', mode: 1 }],
+  ])('Profile 配置目录（W4a）：%s 在预检阶段拒绝', async (_label, profileDir) => {
+    const frames = await run({ type: 'start', mode: 'codex', argv: ['codex', '--version'], profileDir });
+    expect(frames.some((frame) => frame.type === 'ready')).toBe(false);
+    expect(frames).toContainEqual(expect.objectContaining({ type: 'error', error: 'invalid profile directory' }));
+  });
 });

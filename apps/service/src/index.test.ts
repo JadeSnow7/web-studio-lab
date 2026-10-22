@@ -1,3 +1,4 @@
+import { CODEX_DEFAULT_TURN } from './codex-chat';
 import { emptyReferences } from './reference-test-fixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GuestFrame, GuestStart } from './sbx';
@@ -76,6 +77,8 @@ async function host() {
   process.argv = [initialArgv[0] ?? 'node', 'service', '/private/tmp/wsl-service-test'];
   await import('./index');
   await vi.waitFor(() => expect(messages.some((message) => message.type === 'initialized')).toBe(true));
+  // 启动时会探测每个已注册的 ACP Harness（W4a）；以下断言只关心初始化之后由请求启动的 guest 进程。
+  fixture.start.mockClear();
   return { messages, request: (data: ChatServiceRequest) => receive({ data }) };
 }
 const conversationId = 'conv-space-taskflow-demo-impl';
@@ -83,7 +86,11 @@ describe('service request cancellation admission', () => {
   it.each(['cancel', 'shutdown'] as const)('%s bypasses queued sends before guest launch', async (method) => {
     const test = await host();
     test.request({ id: 'register', method: 'register', payload: { conversationId, workspaceId: 'taskflow-demo' } });
-    test.request({ id: 'send', method: 'send', payload: { conversationId, text: 'pending', references: emptyReferences(conversationId) } });
+    test.request({
+      id: 'send',
+      method: 'send',
+      payload: { conversationId, text: 'pending', references: emptyReferences(conversationId), harness: CODEX_DEFAULT_TURN },
+    });
     test.request(method === 'cancel' ? { id: 'stop', method, payload: { conversationId } } : { id: 'stop', method });
     await vi.waitFor(() => expect(test.messages.some((message) => message.type === 'response' && message.id === 'stop')).toBe(true));
     await vi.waitFor(() =>
@@ -107,7 +114,12 @@ describe('service request cancellation admission', () => {
     test.request({
       id: 'send',
       method: 'send',
-      payload: { conversationId: 'conv-personal-default', text: 'pending', references: emptyReferences('conv-personal-default') },
+      payload: {
+        conversationId: 'conv-personal-default',
+        text: 'pending',
+        references: emptyReferences('conv-personal-default'),
+        harness: CODEX_DEFAULT_TURN,
+      },
     });
     test.request({ id: 'shutdown', method: 'shutdown' });
     await vi.waitFor(() => expect(fixture.appShutdown).toHaveBeenCalledOnce());
@@ -126,7 +138,7 @@ describe('service request cancellation admission', () => {
       test.request({
         id: 'history',
         method: 'send',
-        payload: { conversationId, text: 'history', references: emptyReferences(conversationId) },
+        payload: { conversationId, text: 'history', references: emptyReferences(conversationId), harness: CODEX_DEFAULT_TURN },
       });
       await vi.waitFor(() =>
         expect(test.messages.some((message) => message.type === 'event' && message.conversation.state === 'idle')).toBe(true),
@@ -140,7 +152,7 @@ describe('service request cancellation admission', () => {
     test.request({
       id: 'queued',
       method: 'send',
-      payload: { conversationId, text: 'must not start', references: emptyReferences(conversationId) },
+      payload: { conversationId, text: 'must not start', references: emptyReferences(conversationId), harness: CODEX_DEFAULT_TURN },
     });
     test.request({ id: 'cancel', method: 'cancel', payload: { conversationId } });
     await vi.waitFor(() => expect(response('cancel')).toBeDefined());

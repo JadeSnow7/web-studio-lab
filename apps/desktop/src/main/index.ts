@@ -10,6 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { app, dialog, session, type BrowserWindow } from 'electron';
 import { ChatService } from './chat-service';
+import { HarnessProfileService, HarnessProfileStore } from './harness-profiles';
 import { DebugStatus, debugStatusEnabled } from './debug-status';
 import { getExecutionStatus } from './execution';
 import { registerIpc, sendToRenderer } from './ipc';
@@ -28,7 +29,7 @@ function denyAllPermissions(target: Electron.Session): void {
   target.setPermissionCheckHandler(() => false);
 }
 
-function openWorkbench(setup: SetupManager): BrowserWindow {
+function openWorkbench(setup: SetupManager, profileStore: HarnessProfileStore): BrowserWindow {
   const trusted = rendererSource();
   // 诊断通道的启用判定只在这里：开发服务器，或 WSL_DEBUG_STATUS=1；未启用时下面所有诊断装配都不存在。
   const debugEnabled = debugStatusEnabled(trusted, process.env);
@@ -63,6 +64,7 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
     }
   }
   let workbench: WorkbenchApplication | null = null;
+  let profiles: HarnessProfileService | null = null;
   const chat = new ChatService(
     (conversation) => {
       sendToRenderer(window, 'chat:conversation', conversation);
@@ -71,6 +73,7 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
     (status) => {
       debug?.onChat(status);
       sendToRenderer(window, 'chat:status', status);
+      profiles?.onStatus(status);
       void workbench?.onChatStatus().catch((error: unknown) => console.error('工作台执行环境状态更新失败', error));
     },
     (snapshot, resourceId, binding) => {
@@ -85,7 +88,9 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
           ...(templateDependencies ? { templateDependencies } : {}),
         },
   );
-  const host = new WorkbenchHost(window, chat, demoRoot());
+  profiles = new HarnessProfileService(profileStore, chat);
+  profileStore.onChange((snapshot) => sendToRenderer(window, 'chat:profiles', snapshot));
+  const host = new WorkbenchHost(window, chat, demoRoot(), profiles);
   workbench = new WorkbenchApplication(new FileWorkbenchRepository(path.join(app.getPath('userData'), 'workbench.json')), host, (event) => {
     debug?.onWorkbench(event.snapshot);
     sendToRenderer(window, 'workbench:event', event);
@@ -104,7 +109,7 @@ function openWorkbench(setup: SetupManager): BrowserWindow {
   });
   workbench.setAppControl(control);
   chat.setAppControlReader((scope, tool, args, signal) => workbench!.appControlForTurn(scope, tool, args, signal));
-  const unregisterIpc = registerIpc({ window, trusted, chat, workbench, setup, ...(debug ? { debug } : {}) });
+  const unregisterIpc = registerIpc({ window, trusted, chat, profiles, workbench, setup, ...(debug ? { debug } : {}) });
   const unsubscribeSetup = setup.subscribe((snapshot) => {
     debug?.onSetup(snapshot);
     sendToRenderer(window, 'setup:status', snapshot);
@@ -175,7 +180,10 @@ app.whenReady().then(async () => {
       app.getPath('userData'),
     ),
   );
-  openWorkbench(setup);
+  const profileStore = new HarnessProfileStore(path.join(app.getPath('userData'), 'harness-profiles.json'));
+  // 读取失败（内容无效或版本较新）时保留原文件；之后解析选择与设置页都会明确报告该错误。
+  await profileStore.load().catch((error: unknown) => console.error('Harness Profile 读取失败', error));
+  openWorkbench(setup, profileStore);
   app.on('activate', () => {
     // 本版本只有一个工作台窗口：全部关闭后由 window-all-closed 退出应用。
   });
