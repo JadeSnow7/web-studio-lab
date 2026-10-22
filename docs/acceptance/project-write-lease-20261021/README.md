@@ -1,6 +1,6 @@
 # W0 执行记录 · sandbox 工作区写入许可
 
-合同见 [SPEC](SPEC.md)。基线 `origin/main` `38af329`（起草于 `5037363`，PR #16 变基后复验），分支 `agent/project-write-lease`。本记录只说明静态检查和离线测试结果，不代表真实 sandbox 复验或用户接受。
+合同见 [SPEC](SPEC.md)。基线 `origin/main` `38af329`（起草于 `5037363`，PR #16 变基后复验），2026-10-22 变基到 `ebf4391`（PR #17），分支 `agent/project-write-lease`。本记录只说明静态检查和离线测试结果，不代表真实 sandbox 复验或用户接受。
 
 ## 改动
 
@@ -42,6 +42,27 @@ PR #17 新增 `RunDispatchFailure`，区分“service 已接纳但清理未知�
 - 新增 `chat-service.test.ts` W0 组的五个用例，分别覆盖上表的 `knownNotSent` 释放、已接纳未确认保留、已接纳已确认按 observe 释放、回执形状不符与归属不符保留。原 L1–L6 与通信失败用例的断言未改，在新语义下照常通过。
 - PR #17 的 `source dispatch receipt ownership > never lets an A response publish a fake cleanup fact into a concurrent B error|exit` 原本让另一个会话槽 A 在 B 进行中并发 `send`。W0 之后这种并发在离开 Main 前就被 `conflict` 拒绝（语义确实改变），因此改为：断言 A 的 `send` 以 `conflict` 拒绝且不发请求；伪造的 B 回执改由 A 的 `cancel` 回复携带（同样按 `conversationSlot` 校验）。B 仍须以 `cleanupPending: true, knownNotSent: false` 拒绝，该测试原有目的不变。
 
+## 实际运行（2026-10-22，macOS）
+
+环境：macOS 26.6.2（25G83）arm64，Node v26.5.0（产品期望 Node 24，本机实际版本如实记录），pnpm 10.34.6，Python 3.15.0，Electron 44.5.1。基线 `origin/main` `ebf4391`（PR #17），被测提交 `f66c43d`；之后只追加了本记录的文档提交，未改代码。命令按交接清单逐项独立执行，单项失败不中断后续项。
+
+| 命令                                                                                     | 结果                                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm install --frozen-lockfile`                                                         | 通过                                                                                                                                                                                                                                                                                                                     |
+| `pnpm typecheck`                                                                         | 通过                                                                                                                                                                                                                                                                                                                     |
+| `pnpm exec eslint apps packages e2e scripts templates/standard-app`                      | 通过                                                                                                                                                                                                                                                                                                                     |
+| `pnpm exec prettier --check apps packages e2e scripts templates/standard-app`            | 通过                                                                                                                                                                                                                                                                                                                     |
+| `pnpm exec vitest run`                                                                   | 1280 通过、15 跳过、1 失败：`setup-adapter.test.ts` 的 “accepts actual sanitized sbx inspect shape, rejects mounts and daemon drift” 在全量并行下超过 5 秒超时；未改动的 `origin/main` `ebf4391` 上同样超时，本组其他分支的同一命令中有的通过，与本包无关。`setup-adapter-failure.test.ts` 在 macOS 上运行并通过（4 项） |
+| `pnpm test:packaging` / `test:external-builds` / `test:edu-source` / `baseline:selftest` | 40 / 6 / 57 / 12 项全部通过                                                                                                                                                                                                                                                                                              |
+| `node scripts/check-docs.mjs`                                                            | 通过                                                                                                                                                                                                                                                                                                                     |
+| `pnpm build`                                                                             | 通过                                                                                                                                                                                                                                                                                                                     |
+| `env -u ELECTRON_RUN_AS_NODE pnpm exec playwright test`                                  | 171 通过、16 跳过（8.9 分钟）                                                                                                                                                                                                                                                                                            |
+| `git diff --check origin/main...HEAD`                                                    | 通过                                                                                                                                                                                                                                                                                                                     |
+
+- 变基冲突解决后，在该提交上单独运行 `chat-service.test.ts` 与 `apps/desktop/src/main/workbench`：25 个文件 396 项通过。
+
+以下容器结果保留为历史。
+
 ## 实际运行（2026-10-21，Linux x86_64 容器，Node 24.22.0，pnpm 10.34.6）
 
 | 命令                                                                                       | 结果                                                                                                                                                                |
@@ -56,7 +77,7 @@ PR #17 新增 `RunDispatchFailure`，区分“service 已接纳但清理未知�
 
 ## 未运行
 
-- Electron E2E（`playwright test`）：容器未下载 Electron 二进制，且 PR 门禁在 macOS ARM64 上运行。需在 macOS 上执行 `pnpm build && env -u ELECTRON_RUN_AS_NODE pnpm exec playwright test`。
+- Electron E2E：容器中未运行（未下载 Electron 二进制）；2026-10-22 已在 macOS 上运行，结果见上。打包后的 E2E（`pnpm test:e2e:packaged`）未运行。
 - 真实 sandbox 下两个会话并发的复验：需要授权和已配置的 sbx，按 SPEC 不是本包的完成条件。
 - `pnpm check` 全仓 `lint` 与 `format:check`：在未改动的基线上已分别有 217 个 lint 错误和 802 个格式问题（主要在 `tests/vertical-slice`、`fixtures` 等非维护目录），PR 门禁只检查维护目录和变更文件，本包按门禁口径执行。
 
