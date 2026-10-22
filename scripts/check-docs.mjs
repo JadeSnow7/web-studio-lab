@@ -26,6 +26,9 @@ const documents = [
   'docs/acceptance/integration-20261008/integration-disposition.md',
   'docs/architecture/adr/0001-modular-monolith.md',
   'docs/architecture/adr/0002-app-control-plane.md',
+  'docs/architecture/adr/0003-pluggable-harness-and-collaboration.md',
+  'docs/design/2026-10-21-multi-harness-collaboration.md',
+  'docs/plans/2026-10-21-multi-harness-collaboration.md',
   'docs/architecture/task-priority-walkthrough.md',
   'docs/architecture/baseline-2026-10-06.md',
 ];
