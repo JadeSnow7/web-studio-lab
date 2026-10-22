@@ -28,10 +28,9 @@ it('transports a real previewable full-budget source with long UTF-8 paths throu
       const size = Math.floor(remaining / 250) + (index < remaining % 250 ? 1 : 0);
       contents[name] = '//' + 'x'.repeat(size - 3) + '\n';
     }
-    for (const [name, content] of Object.entries(contents)) {
-      await mkdir(path.dirname(path.join(root, name)), { recursive: true });
-      await writeFile(path.join(root, name), content);
-    }
+    const directories = new Set(Object.keys(contents).map((name) => path.dirname(path.join(root, name))));
+    for (const directory of directories) await mkdir(directory, { recursive: true });
+    for (const [name, content] of Object.entries(contents)) await writeFile(path.join(root, name), content);
     const git = (...args: string[]) =>
       execFileSync(
         '/usr/bin/git',

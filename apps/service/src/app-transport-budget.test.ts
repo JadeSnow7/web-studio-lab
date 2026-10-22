@@ -160,26 +160,50 @@ exec(compile(ast.Module(body=[constant,function],type_ignores=[]),'<real-start-r
 app_constant=next(n for n in ast.parse(app).body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='REQUEST_BYTES' for t in n.targets))
 exec(compile(ast.Module(body=[app_constant],type_ignores=[]),'<real-request-limit>','exec'),scope)
 limit=scope['START_FRAME_BYTES']
+assert limit==3*1024*1024
 base=b'{"type":"start","mode":"codex","argv":[],"prompt":""}\\n'
 following=b'{"type":"close"}\\n'
-for delta in (0,1):
-    frame=base[:-3]+b'x'*(limit-len(base)+delta)+base[-3:]
-    stream=io.BytesIO(frame+following)
-    scope['os']=types.SimpleNamespace(read=lambda fd,count:stream.read(count))
-    if delta==0:
-        assert scope['read_start']()['type']=='start'
-        assert stream.read()==following
-    else:
-        try: scope['read_start']()
-        except ValueError as error: assert str(error)=='start frame too large'
-        else: raise AssertionError('oversize accepted')
-        assert stream.tell()==limit+1
-print(json.dumps({'start':limit,'request':scope['REQUEST_BYTES'],'followingPreserved':True}))`;
+frame=base[:-3]+b'x'*(limit-len(base))+base[-3:]
+stream=io.BytesIO(frame+following)
+scope['os']=types.SimpleNamespace(read=lambda fd,count:stream.read(count))
+assert scope['read_start']()['type']=='start'
+assert stream.tell()==limit and stream.read()==following
+# Exercise the same function's rejection/EOF transitions without scanning another 3 MiB.
+try:
+    scope['START_FRAME_BYTES']=256
+    small_limit=scope['START_FRAME_BYTES']
+    for delta in (0,1):
+        frame=base[:-3]+b'x'*(small_limit-len(base)+delta)+base[-3:]
+        stream=io.BytesIO(frame+following)
+        if delta==0:
+            assert scope['read_start']()['type']=='start'
+            assert stream.tell()==small_limit and stream.read()==following
+        else:
+            try: scope['read_start']()
+            except ValueError as error: assert str(error)=='start frame too large'
+            else: raise AssertionError('oversize accepted')
+            assert stream.tell()==small_limit+1 and stream.read()==following
+    stream=io.BytesIO(b'')
+    try: scope['read_start']()
+    except RuntimeError as error: assert str(error)=='missing start frame'
+    else: raise AssertionError('empty input accepted')
+    stream=io.BytesIO(base[:-3])
+    try: scope['read_start']()
+    except json.JSONDecodeError: pass
+    else: raise AssertionError('truncated JSON accepted')
+    stream=io.BytesIO(base[:-1])
+    assert scope['read_start']()['type']=='start'
+    assert stream.tell()==len(base)-1
+finally:
+    scope['START_FRAME_BYTES']=limit
+assert scope['START_FRAME_BYTES']==limit
+print(json.dumps({'start':limit,'request':scope['REQUEST_BYTES'],'followingPreserved':True,'smallBoundaryAndEofChecked':True}))`;
   const result = JSON.parse(execFileSync('python3', ['-I', '-c', script, guestHelper, helper], { encoding: 'utf8', timeout: 3000 }));
   expect(result).toEqual({
     start: APP_SOURCE_TRANSPORT.startFrameBytes,
     request: APP_SOURCE_TRANSPORT.requestBytes,
     followingPreserved: true,
+    smallBoundaryAndEofChecked: true,
   });
 });
 
