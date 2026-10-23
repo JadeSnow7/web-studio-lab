@@ -24,8 +24,7 @@ export function approvalPolicy(handlers: ApprovalHandlers): PermissionDecider {
     const allow = params.options.find((option) => option.kind === 'allow_once');
     const reject = (reason: string): PermissionOutcome => {
       handlers.onDeny(params, reason);
-      const option =
-        params.options.find((item) => item.kind === 'reject_once') ?? params.options.find((item) => item.kind === 'reject_always');
+      const option = params.options.find((item) => item.kind === 'reject_once');
       return option ? { outcome: { outcome: 'selected', optionId: option.optionId } } : { outcome: { outcome: 'cancelled' } };
     };
     if (!allow) return reject('没有一次性允许选项');

@@ -43,6 +43,19 @@ export function PermissionRequests({
                 {OPTION_LABEL[option.kind]}
               </button>
             ))}
+            {!request.options.some((option) => option.kind === 'reject_once') && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={busy !== null}
+                onClick={() => {
+                  setBusy(request.requestId);
+                  void onAnswer(request.requestId, null).finally(() => setBusy(null));
+                }}
+              >
+                拒绝
+              </button>
+            )}
           </div>
         </div>
       ))}

@@ -457,6 +457,22 @@ describe('逐项审批（W4b，fixture sbx + 假 ACP Agent）', () => {
     }
   });
 
+  it('没有一次性拒绝选项时用户拒绝回复 cancelled，不选择始终拒绝', async () => {
+    const instance = await start('ask-no-reject-once');
+    try {
+      const request = await pending(instance);
+      expect(request.options.map((option) => option.kind)).toEqual(['allow_once']);
+      expect(() => instance.answerPermission(personal, request.requestId, 'never')).toThrow('选项不属于该权限请求');
+      instance.answerPermission(personal, request.requestId, null);
+      const done = await settled(instance);
+      expect(done).toMatchObject({ state: 'idle', permissionRequests: [] });
+      expect(done.messages.at(-1)?.text).toBe('决定：cancelled');
+      expect(done.warnings).toContain('已拒绝 获取 https://example.invalid/data 的权限请求（用户）');
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
   it('截止时间前无人回复时按拒绝处理并记警告', async () => {
     const instance = await start('ask', 200);
     try {

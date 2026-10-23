@@ -62,7 +62,7 @@ async function prompt(id, { sessionId }) {
     return send({ id, result: { stopReason: 'end_turn' } });
   }
   // W4b：原先直接拒绝的 fetch 类型交给用户；请求只带 toolCallId，标题与类型来自先前的 tool_call。
-  if (scenario === 'ask') {
+  if (scenario === 'ask' || scenario === 'ask-no-reject-once') {
     update(sessionId, {
       sessionUpdate: 'tool_call',
       toolCallId: 't4',
@@ -76,7 +76,9 @@ async function prompt(id, { sessionId }) {
       options: [
         { optionId: 'yes', name: 'Allow once', kind: 'allow_once' },
         { optionId: 'always', name: 'Always allow', kind: 'allow_always' },
-        { optionId: 'no', name: 'Reject', kind: 'reject_once' },
+        ...(scenario === 'ask-no-reject-once'
+          ? [{ optionId: 'never', name: 'Always reject', kind: 'reject_always' }]
+          : [{ optionId: 'no', name: 'Reject', kind: 'reject_once' }]),
       ],
     });
     const outcome = answer.result?.outcome;

@@ -1,5 +1,7 @@
 # W4a 执行记录 · Harness Profile、选择器与无模型自检
 
+2026-10-23 的审批边界修复、失败基线、针对性复验及旧 head CI 补充见[审查修复记录](review-fixes-20261023.md)。以下按阶段保留历史记录。
+
 合同与决定见 [SPEC](SPEC.md)（§6 决定、§7 实施设计及 2026-10-22 修正）。分支 `agent/harness-profiles`，基于 `agent/harness-acp-wiring` `fa67e2e`（W0–W3b，PR #18–#23 均未合并）。本记录说明静态检查、离线测试与 fixture E2E 的结果，不代表真实 sandbox 中的多 Profile 运行、用户接受或 W4b。改动尚未提交。
 
 ## 改动
