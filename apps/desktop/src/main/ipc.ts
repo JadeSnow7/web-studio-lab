@@ -135,6 +135,10 @@ export function registerIpc({ window, trusted, chat, profiles, workbench, setup,
       await requireProfiles().prepare(turn);
       return chat.send(conversationId, text, undefined, await workbench.personalReferences(references ?? []), turn);
     },
+    'chat:permission-reply': ({ conversationId, requestId, optionId }) => {
+      assertLegacySession(conversationId);
+      return chat.answerPermission(conversationId, requestId, optionId);
+    },
     'chat:profiles-get': () => requireProfiles().store.get(),
     'chat:profiles-create': async ({ label }) => {
       const snapshot = await requireProfiles().store.create(label);

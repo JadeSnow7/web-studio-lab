@@ -401,3 +401,112 @@ describe('Harness 选择与 Profile（W4a）', () => {
     }
   });
 });
+
+describe('逐项审批（W4b，fixture sbx + 假 ACP Agent）', () => {
+  const fakeAgent = path.resolve('apps/service/src/fixtures/fake-acp-agent.mjs');
+  const agent = (scenario: string): ChatHarness => ({
+    kind: 'acp',
+    spec: { ...claudeCodeAcp, command: [process.execPath, fakeAgent, scenario] },
+  });
+  async function start(scenario: string, timeoutMs = 600000) {
+    const instance = new CodexChat(root, () => undefined, undefined, [agent(scenario)], timeoutMs);
+    await instance.initialize();
+    await instance.send(personal, '取数据', undefined, emptyReferences(personal), CLAUDE_TURN);
+    return instance;
+  }
+  const pending = async (instance: CodexChat) => {
+    await expect.poll(() => instance.get(personal).permissionRequests?.length, { timeout: 8000 }).toBe(1);
+    return instance.get(personal).permissionRequests![0]!;
+  };
+  const settled = async (instance: CodexChat) => {
+    await expect.poll(() => instance.get(personal).state, { timeout: 8000 }).not.toBe('running');
+    return instance.get(personal);
+  };
+
+  it('原先拒绝的 fetch 交给用户：请求补齐标题与类型、只含一次性选项；允许后 Agent 收到所选选项', async () => {
+    const instance = await start('ask');
+    try {
+      const request = await pending(instance);
+      expect(request).toMatchObject({ title: '获取 https://example.invalid/data', kind: 'fetch', toolCallId: 't4' });
+      expect(request.options.map((option) => [option.optionId, option.kind])).toEqual([
+        ['yes', 'allow_once'],
+        ['no', 'reject_once'],
+      ]);
+      expect(Date.parse(request.expiresAt) - Date.parse(request.requestedAt)).toBe(600000);
+      expect(() => instance.answerPermission(personal, request.requestId, 'always')).toThrow('选项不属于该权限请求');
+      instance.answerPermission(personal, request.requestId, 'yes');
+      const done = await settled(instance);
+      expect(done).toMatchObject({ state: 'idle', permissionRequests: [] });
+      expect(done.messages.at(-1)?.text).toBe('决定：yes');
+      expect(done.warnings).toContain('已允许 获取 https://example.invalid/data（用户，一次）');
+      expect(() => instance.answerPermission(personal, request.requestId, 'yes')).toThrow('权限请求已结束或不存在');
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('用户拒绝：Agent 收到拒绝选项', async () => {
+    const instance = await start('ask');
+    try {
+      instance.answerPermission(personal, (await pending(instance)).requestId, null);
+      const done = await settled(instance);
+      expect(done.messages.at(-1)?.text).toBe('决定：no');
+      expect(done.warnings).toContain('已拒绝 获取 https://example.invalid/data 的权限请求（用户）');
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('没有一次性拒绝选项时用户拒绝回复 cancelled，不选择始终拒绝', async () => {
+    const instance = await start('ask-no-reject-once');
+    try {
+      const request = await pending(instance);
+      expect(request.options.map((option) => option.kind)).toEqual(['allow_once']);
+      expect(() => instance.answerPermission(personal, request.requestId, 'never')).toThrow('选项不属于该权限请求');
+      instance.answerPermission(personal, request.requestId, null);
+      const done = await settled(instance);
+      expect(done).toMatchObject({ state: 'idle', permissionRequests: [] });
+      expect(done.messages.at(-1)?.text).toBe('决定：cancelled');
+      expect(done.warnings).toContain('已拒绝 获取 https://example.invalid/data 的权限请求（用户）');
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('截止时间前无人回复时按拒绝处理并记警告', async () => {
+    const instance = await start('ask', 200);
+    try {
+      const done = await settled(instance);
+      expect(done).toMatchObject({ state: 'idle', permissionRequests: [] });
+      expect(done.messages.at(-1)?.text).toBe('决定：no');
+      expect(done.warnings).toContain('获取 https://example.invalid/data 的权限请求在截止时间前未回复，已按拒绝处理');
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('等待审批时取消执行：请求以 cancelled 收尾并移除，迟到的回复不产生决定', async () => {
+    const instance = await start('ask');
+    try {
+      const request = await pending(instance);
+      const cancelled = await instance.cancel(personal);
+      expect(cancelled).toMatchObject({ state: 'cancelled', cleanupPending: false, permissionRequests: [] });
+      expect(() => instance.answerPermission(personal, request.requestId, 'yes')).toThrow('权限请求已结束或不存在');
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('伪造的请求身份不能产生决定，请求仍待决', async () => {
+    const instance = await start('ask');
+    try {
+      await pending(instance);
+      expect(() => instance.answerPermission(personal, '00000000-0000-4000-8000-000000000000', 'yes')).toThrow('权限请求已结束或不存在');
+      expect(() => instance.answerPermission('conv-space-taskflow-demo-impl', '00000000-0000-4000-8000-000000000000', 'yes')).toThrow();
+      expect(instance.get(personal).permissionRequests).toHaveLength(1);
+    } finally {
+      await instance.cancel(personal);
+      await instance.shutdown();
+    }
+  });
+});

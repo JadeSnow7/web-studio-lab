@@ -5,7 +5,7 @@ import { WorkbenchCommandSchema, WorkbenchEventSchema, WorkbenchResultSchema, Wo
 import { z } from 'zod';
 import { RunPatchQuerySchema, RunPatchResultSchema } from './source-change';
 import { AppInfoSchema, ShellCommandSchema } from './app';
-import { ChatConversationSchema, ChatStatusSchema, ChatTargetSchema } from './chat';
+import { ChatConversationSchema, ChatStatusSchema, ChatTargetSchema, PermissionReplySchema } from './chat';
 import { ExecutionStatusSchema } from './execution';
 import { HarnessProfileIdSchema, HarnessProfilesSnapshotSchema, HarnessSelectionSchema } from './harness';
 import { DebugStatusSnapshotSchema, StatusTransitionSchema, type DebugStatusSnapshot, type StatusTransition } from './status';
@@ -44,6 +44,7 @@ export const invokeChannels = {
   'workbench:command': { request: WorkbenchCommandSchema, response: WorkbenchResultSchema },
   'app:get-info': { request: NoArgs, response: AppInfoSchema },
   'chat:get-status': { request: NoArgs, response: ChatStatusSchema },
+  'chat:permission-reply': { request: PermissionReplySchema, response: ChatConversationSchema },
   'chat:profiles-get': { request: NoArgs, response: HarnessProfilesSnapshotSchema },
   'chat:profiles-create': {
     request: z.object({ label: z.string().trim().min(1).max(60) }).strict(),

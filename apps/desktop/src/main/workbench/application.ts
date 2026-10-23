@@ -457,6 +457,7 @@ export class WorkbenchApplication {
   }
   command(command: WorkbenchCommand): Promise<WorkbenchResult> {
     if (command.type === 'reconcileRunCleanup') return this.reconcileRunCleanup(command.workspaceId, command.runId);
+    if (command.type === 'answerPermission') return this.answerPermission(command);
     if (command.type === 'createApp' || command.type === 'startApp' || command.type === 'stopApp' || command.type === 'exportApp')
       return this.appCommand(command);
     if (
@@ -2741,6 +2742,31 @@ export class WorkbenchApplication {
       }
       return w;
     });
+  }
+  /**
+   * 权限请求的回复（W4b）：Main 只核对会话、当前执行与请求仍待决，再转给执行服务；不改写本地状态，
+   * 决定由执行服务的新快照发布。请求内容来自 Agent，不授予额外权限。
+   */
+  private async answerPermission(c: Extract<WorkbenchCommand, { type: 'answerPermission' }>): Promise<WorkbenchResult> {
+    await this.getSnapshot();
+    const fail = (code: 'conflict' | 'not_found', message: string): WorkbenchResult => ({
+      ok: false,
+      error: { code, message },
+      snapshot: this.publicSnapshot(),
+    });
+    const w = this.snapshot.workspaces.find((workspace) => workspace.workspaceId === c.workspaceId);
+    if (!w?.sessions.some((session) => session.sessionId === c.sessionId)) return fail('not_found', '会话不存在');
+    const run = w.runs.findLast((r) => r.sessionId === c.sessionId && activeStates.includes(r.state));
+    const request = run?.conversation?.permissionRequests?.find((item) => item.requestId === c.requestId);
+    if (!run || run.state === 'cancelling' || !request) return fail('conflict', '权限请求已结束或不属于该会话的当前执行');
+    if (c.optionId !== null && !request.options.some((option) => option.optionId === c.optionId))
+      return fail('conflict', '选项不属于该权限请求');
+    try {
+      await this.runtime.answerPermission(c.sessionId, c.requestId, c.optionId);
+    } catch (error) {
+      return fail('conflict', error instanceof Error ? error.message : String(error));
+    }
+    return this.result();
   }
   private async reconcileRunCleanup(workspaceId: string, runId: string): Promise<WorkbenchResult> {
     await this.getSnapshot();

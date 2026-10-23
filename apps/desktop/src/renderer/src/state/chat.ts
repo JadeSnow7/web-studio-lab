@@ -78,6 +78,16 @@ export const chatActions = {
   },
   cancel: (id: string) => act(id, () => window.studio.chat.cancel(ChatSlotSchema.parse(id))),
   reset: (id: string) => act(id, () => window.studio.chat.reset(ChatSlotSchema.parse(id))),
+  /** 回复个人对话的权限请求（W4b）；不经 act 的 pending 门，回复不应被“正在等待当前回复”挡住。 */
+  async answerPermission(id: string, requestId: string, optionId: string | null) {
+    try {
+      receiveConversation(await window.studio.chat.answerPermission(ChatSlotSchema.parse(id), requestId, optionId));
+      return true;
+    } catch (error) {
+      chatStore.set((state) => ({ ...state, errors: { ...state.errors, [id]: (error as Error).message } }));
+      return false;
+    }
+  },
 };
 async function profileAct(action: () => Promise<HarnessProfilesSnapshot>): Promise<boolean> {
   try {

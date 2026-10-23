@@ -66,6 +66,7 @@ const make = async () => {
     cancel: vi.fn(),
     resolveHarness: vi.fn(codexHarnessRuntime.resolveHarness),
     prepareHarness: vi.fn(codexHarnessRuntime.prepareHarness),
+    answerPermission: vi.fn(codexHarnessRuntime.answerPermission),
   };
   const app = new WorkbenchApplication(repository, runtime, vi.fn());
   await app.getSnapshot();
@@ -389,6 +390,51 @@ describe('workbench authoritative commands', () => {
     const run = (await app.getSnapshot()).workspaces[0]?.runs[0];
     expect(run).toMatchObject({ cleanupPending: false, error: expect.stringContaining('未登录') });
     expect(runtime.send).not.toHaveBeenCalled();
+  });
+  it("forwards a permission reply only for a pending request of the session's current run (W4b)", async () => {
+    const { app, runtime } = await make();
+    const { s, start } = await confirmed(app, 'perm');
+    const requestId = '11111111-1111-4111-8111-111111111111';
+    const pending = {
+      ...conversation(s.sessionId, 'perm', 5),
+      permissionRequests: [
+        {
+          requestId,
+          turnId: 'turn',
+          toolCallId: 't4',
+          title: '获取 https://example.invalid/data',
+          kind: 'fetch',
+          options: [
+            { optionId: 'yes', name: 'Allow once', kind: 'allow_once' as const },
+            { optionId: 'no', name: 'Reject', kind: 'reject_once' as const },
+          ],
+          requestedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 600000).toISOString(),
+        },
+      ],
+    };
+    vi.mocked(runtime.send).mockResolvedValue(pending);
+    await app.command(start);
+    await vi.waitFor(async () =>
+      expect((await app.getSnapshot()).workspaces[0]?.runs[0]?.conversation?.permissionRequests).toHaveLength(1),
+    );
+    const answer = (requestIdValue: string, optionId: string | null) =>
+      app.command({
+        type: 'answerPermission',
+        workspaceId: 'taskflow-demo',
+        commandId: crypto.randomUUID(),
+        sessionId: s.sessionId,
+        requestId: requestIdValue,
+        optionId,
+      });
+    expect(await answer('22222222-2222-4222-8222-222222222222', 'yes')).toMatchObject({ ok: false, error: { code: 'conflict' } });
+    expect(await answer(requestId, 'always')).toMatchObject({ ok: false, error: { code: 'conflict', message: '选项不属于该权限请求' } });
+    expect(runtime.answerPermission).not.toHaveBeenCalled();
+    vi.mocked(runtime.answerPermission).mockResolvedValueOnce(conversation(s.sessionId, 'perm', 6));
+    expect((await answer(requestId, 'yes')).ok).toBe(true);
+    expect(runtime.answerPermission).toHaveBeenCalledWith(s.sessionId, requestId, 'yes');
+    vi.mocked(runtime.answerPermission).mockRejectedValueOnce(new Error('权限请求已结束或不存在'));
+    expect(await answer(requestId, null)).toMatchObject({ ok: false, error: { code: 'conflict', message: '权限请求已结束或不存在' } });
   });
   it('keeps verifier unavailable and rejects review of a failed run', async () => {
     const { app, runtime } = await make();

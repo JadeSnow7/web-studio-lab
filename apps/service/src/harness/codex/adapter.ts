@@ -154,14 +154,17 @@ export const codexAdapter: NativeHarnessAdapter = {
   maxLineChars: 1048576,
   harnessId: 'codex',
   configDirEnv: 'CODEX_HOME',
-  // 2026-10-22 在 guest 实测：已登录退出 0 并以“Logged in”开头，未登录退出 1 并输出“Not logged in”。
+  // 2026-10-22 在 guest 实测：`codex login status` 把结果写在 stderr，stdout 为空；
+  // 已登录退出 0 并以“Logged in”开头，未登录退出 1 并输出“Not logged in”。两个流都看，两种结论同时出现时无法判断。
   selfCheck: {
     versionArgv: ['codex', '--version'],
     statusArgv: ['codex', 'login', 'status'],
-    parseStatus(exitCode, stdout) {
-      const text = stdout.trim();
-      if (exitCode === 0 && text.startsWith('Logged in')) return 'logged_in';
-      if (exitCode === 1 && text.startsWith('Not logged in')) return 'logged_out';
+    parseStatus(exitCode, stdout, stderr) {
+      const lines = `${stdout}\n${stderr}`.split('\n').map((line) => line.trim());
+      const loggedIn = lines.some((line) => line.startsWith('Logged in'));
+      const loggedOut = lines.some((line) => line.startsWith('Not logged in'));
+      if (exitCode === 0 && loggedIn && !loggedOut) return 'logged_in';
+      if (exitCode === 1 && loggedOut && !loggedIn) return 'logged_out';
       return 'undetermined';
     },
   },

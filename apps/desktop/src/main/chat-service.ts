@@ -349,7 +349,11 @@ export class ChatService {
             ? data.payload.resourceId
             : undefined;
       const conversationSlot =
-        data.method === 'get' || data.method === 'send' || data.method === 'cancel' || data.method === 'reset'
+        data.method === 'get' ||
+        data.method === 'send' ||
+        data.method === 'cancel' ||
+        data.method === 'reset' ||
+        data.method === 'permission.reply'
           ? data.payload.conversationId
           : undefined;
       this.pending.set(data.id, { resolve, reject, start, resourceId, conversationSlot });
@@ -517,6 +521,12 @@ export class ChatService {
       this.unknownCleanup = true;
       throw new RunDispatchFailure(error instanceof Error ? error.message : '对话启动回执无效', true);
     }
+  }
+  /** 回复权限请求（W4b）；service 核对请求仍待决后答复 Agent，返回的新快照已移除该请求。 */
+  async answerPermission(id: ChatSlot, requestId: string, optionId: string | null) {
+    return ChatConversationSchema.parse(
+      await this.request({ method: 'permission.reply', payload: { conversationId: id, requestId, optionId } }),
+    );
   }
   async cancel(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'cancel', payload: { conversationId: id } }));

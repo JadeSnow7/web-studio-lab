@@ -51,6 +51,7 @@ const studio: StudioApi & { debug?: StudioDebugApi } = {
     },
     cancel: (conversationId) => invoke('chat:cancel', { conversationId }),
     reset: (conversationId) => invoke('chat:reset', { conversationId }),
+    answerPermission: (conversationId, requestId, optionId) => invoke('chat:permission-reply', { conversationId, requestId, optionId }),
     onStatus: (listener) => subscribe('chat:status', listener),
     onConversation: (listener) => subscribe('chat:conversation', listener),
     profiles: {

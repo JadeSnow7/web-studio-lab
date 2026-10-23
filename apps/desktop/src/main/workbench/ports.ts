@@ -69,6 +69,8 @@ export interface WorkbenchRuntime {
     harness: TurnHarness,
   ): Promise<ChatConversation>;
   cancel(sessionId: string): Promise<ChatConversation>;
+  /** 把用户对权限请求的回复转给执行服务（W4b）；请求已结束或选项不符时抛出。 */
+  answerPermission(sessionId: string, requestId: string, optionId: string | null): Promise<ChatConversation>;
   /** 当前持有 sandbox guest 工作区写入许可的会话；无人持有时为 null。未实现时视为不检查。 */
   writeHolder?(): string | null;
   /**

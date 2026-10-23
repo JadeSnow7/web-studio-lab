@@ -256,9 +256,19 @@ export class AcpTurn {
     if (!parsed.success) throw new AcpProtocolError('ACP 权限请求缺少字段');
     if (this.cancelRequested || this.phase === 'done') return { outcome: { outcome: 'cancelled' } };
     const decide = this.input.decidePermission ?? denyAllPermissions;
+    // 请求可能只带 toolCallId：用本轮已知的工具标题与类型补齐，策略与界面据此判断和展示（W4b）。
+    const known = this.tools.get(parsed.data.toolCall.toolCallId);
+    const request = {
+      ...parsed.data,
+      toolCall: {
+        ...parsed.data.toolCall,
+        title: parsed.data.toolCall.title ?? known?.title ?? null,
+        kind: parsed.data.toolCall.kind ?? known?.kind ?? null,
+      },
+    };
     return new Promise<PermissionOutcome>((resolve) => {
       this.pendingPermissions.add(resolve);
-      Promise.resolve(decide(parsed.data)).then(
+      Promise.resolve(decide(request)).then(
         (outcome) => {
           if (!this.pendingPermissions.delete(resolve)) return;
           resolve(outcome);

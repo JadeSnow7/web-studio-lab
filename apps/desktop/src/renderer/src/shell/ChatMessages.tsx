@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from '../lib/store';
 import { chatActions, chatStore, selectedHarness, selectedHarnessName } from '../state/chat';
+import { PermissionRequests } from '../components/PermissionRequests';
 
 /** 首页、会话页与右栏展示同一份服务会话；演示消息不进入真实历史。 */
 export function ChatMessages({ conversationId }: { conversationId: string }) {
@@ -49,6 +50,10 @@ export function ChatMessages({ conversationId }: { conversationId: string }) {
         ) : (
           <p className="muted">还没有消息。发送后将在这里显示真实回复。</p>
         )}
+        <PermissionRequests
+          conversation={conversation}
+          onAnswer={(requestId, optionId) => chatActions.answerPermission(conversationId, requestId, optionId)}
+        />
         {conversation?.toolExecutions.length ? (
           <details className="chat-tools">
             <summary>工具执行 · {conversation.toolExecutions.length} 条</summary>
