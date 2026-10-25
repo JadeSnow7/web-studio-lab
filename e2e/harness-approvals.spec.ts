@@ -57,7 +57,7 @@ test('空间会话：执行中的请求显示在会话里，允许后执行完�
     });
   const snapshot = await workspaceSnapshot(page);
   const sessionId = snapshot.workspaces.find((w) => w.workspaceId === 'taskflow-demo')!.sessions[0]!.sessionId;
-  const confirmed = await command({ type: 'confirmTask', sessionId, goal: 'W4b 审批', targetRef: null });
+  const confirmed = await command({ type: 'confirmTask', sessionId, goal: 'W4b 审批', targetRef: null, appId: null, captureId: null });
   expect(confirmed.ok, JSON.stringify(confirmed)).toBe(true);
   const version = confirmed.snapshot.workspaces
     .find((w) => w.workspaceId === 'taskflow-demo')!

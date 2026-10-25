@@ -213,6 +213,8 @@ describe('workbench authoritative commands', () => {
       sessionId: s.sessionId,
       goal: 'goal',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const version = (await app.getSnapshot()).workspaces.find((workspace) => workspace.workspaceId === 'taskflow-demo')?.sessions[0]
       ?.taskVersions[0];
@@ -252,6 +254,8 @@ describe('workbench authoritative commands', () => {
       sessionId: s.sessionId,
       goal: 'goal',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const v = (await app.getSnapshot()).workspaces[0]?.sessions[0]?.taskVersions[0];
     if (!v) throw new Error('fixture');
@@ -291,6 +295,8 @@ describe('workbench authoritative commands', () => {
       sessionId: s.sessionId,
       goal: 'goal',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const v = (await app.getSnapshot()).workspaces[0]?.sessions[0]?.taskVersions.at(-1);
     if (!v) throw new Error('fixture');
@@ -368,6 +374,8 @@ describe('workbench authoritative commands', () => {
       sessionId: second.sessionId,
       goal: 'goal',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const v2 = (await app.getSnapshot()).workspaces[0]?.sessions.at(-1)?.taskVersions[0];
     if (!v2) throw new Error('fixture');
@@ -448,6 +456,8 @@ describe('workbench authoritative commands', () => {
       sessionId: s.sessionId,
       goal: 'goal',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const v = (await app.getSnapshot()).workspaces[0]?.sessions[0]?.taskVersions[0];
     if (!v) throw new Error('fixture');
@@ -507,6 +517,8 @@ describe('workbench authoritative commands', () => {
       sessionId: session.sessionId,
       goal: 'goal',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const version = (await app.getSnapshot()).workspaces[0]?.sessions[0]?.taskVersions[0];
     if (!version) throw new Error('fixture');
@@ -612,6 +624,8 @@ describe('workbench authoritative commands', () => {
       sessionId: s.sessionId,
       goal: 'goal',
       targetRef: { kind: 'web', resourceId: r.resourceId },
+      appId: null,
+      captureId: 'capture',
     });
     expect(rejected.ok).toBe(false);
     const confirmed = await app.command({
@@ -621,6 +635,8 @@ describe('workbench authoritative commands', () => {
       sessionId: s.sessionId,
       goal: 'goal',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     expect(confirmed.snapshot.workspaces[0]?.sessions[0]?.taskVersions[0]?.capture).toBeNull();
   });
@@ -688,6 +704,8 @@ describe('workbench authoritative commands', () => {
       sessionId: session.sessionId,
       goal: 'goal',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const version = (await app.getSnapshot()).workspaces.find((workspace) => workspace.workspaceId === 'taskflow-demo')?.sessions[0]
       ?.taskVersions[0];
@@ -749,6 +767,8 @@ describe('workbench authoritative commands', () => {
       sessionId: session.sessionId,
       goal: 'goal',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const v = (await app.getSnapshot()).workspaces[0]?.sessions[0]?.taskVersions[0];
     if (!v) throw new Error('fixture');
@@ -780,6 +800,8 @@ describe('workbench authoritative commands', () => {
       sessionId: session.sessionId,
       goal: 'goal',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const version = (await app.getSnapshot()).workspaces[0]?.sessions[0]?.taskVersions[0];
     if (!version) throw new Error('fixture');
@@ -880,6 +902,8 @@ describe('workbench authoritative commands', () => {
       sessionId: session.sessionId,
       goal: 'goal',
       targetRef: { kind: 'web', resourceId: r.resourceId },
+      appId: null,
+      captureId: 'old',
     });
     expect(rejected.ok).toBe(false);
     expect(runtime.ensureBrowser).not.toHaveBeenCalled();
@@ -943,6 +967,8 @@ describe('workbench authoritative commands', () => {
       sessionId: session.sessionId,
       goal: '增加优先级',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     await restored.command({
       type: 'saveTaskCriteria',
@@ -1371,4 +1397,52 @@ it('rolls back a terminal reservation when persisting open fails before the runt
   });
   expect((await app.command({ ...open, commandId: 'open-save-retry' })).ok).toBe(true);
   await vi.waitFor(() => expect(runtime.terminalOpen).toHaveBeenCalledOnce());
+});
+
+describe('B5 title mode and creation boundaries', () => {
+  it('persists automatic mode only for new web tabs; rename disables it and save failure preserves the old name', async () => {
+    const { app, repository } = await make();
+    const run = (payload: Record<string, unknown>) =>
+      app.command({ ...payload, workspaceId: 'taskflow-demo', commandId: crypto.randomUUID() } as WorkbenchCommand);
+    const created = await run({ type: 'createTab', kind: 'web', title: '新网页', autoTitle: true });
+    const tab = created.snapshot.workspaces[0]?.tabs.at(-1);
+    if (!tab) throw new Error('missing new web tab');
+    expect(tab.autoTitle).toBe(true);
+    expect(tab.title).toBe('新网页');
+    vi.mocked(repository.save).mockRejectedValueOnce(new Error('injected title save failure'));
+    const failed = await run({ type: 'updateTab', tabId: tab.tabId, title: '手动名称' });
+    expect(failed.ok).toBe(false);
+    expect(failed.snapshot.workspaces[0]?.tabs.find((item) => item.tabId === tab.tabId)).toMatchObject({
+      title: '新网页',
+      autoTitle: true,
+    });
+    const renamed = await run({ type: 'updateTab', tabId: tab.tabId, title: '手动名称' });
+    expect(renamed.ok).toBe(true);
+    expect(renamed.snapshot.workspaces[0]?.tabs.find((item) => item.tabId === tab.tabId)).toMatchObject({
+      title: '手动名称',
+      autoTitle: false,
+    });
+  });
+  it('rejects configured capability on an unavailable environment and never starts a terminal on creation', async () => {
+    const { app, runtime } = await make();
+    const created = await app.command({
+      type: 'createTab',
+      kind: 'terminal',
+      title: '终端 · 本机',
+      environmentId: 'local',
+      workspaceId: 'taskflow-demo',
+      commandId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    expect(runtime.terminalOpen).not.toHaveBeenCalled();
+    const denied = await app.command({
+      type: 'createTab',
+      kind: 'terminal',
+      title: '不可用',
+      environmentId: 'ssh',
+      workspaceId: 'taskflow-demo',
+      commandId: crypto.randomUUID(),
+    });
+    expect(denied.ok).toBe(false);
+  });
 });

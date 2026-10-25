@@ -8,8 +8,18 @@ import {
   fixtureSandbox,
   browserState,
   installStatusShim,
+  chooseNativeMenuItem,
+  dismissNativeMenu,
+  expectMenuAt,
   launchApp,
+  nativeMenuCount,
   openBrowserMenu,
+  openNativeMenu,
+  openNativeMenuWhen,
+  openNewTabForm,
+  paneMenu,
+  previewClick,
+  previewElementCenter,
   previewInfo,
   pushWorkbenchSnapshot,
   screensDir,
@@ -18,6 +28,7 @@ import {
   setWorkspaceTheme,
   shot,
   statusShimBrowserActions,
+  tabMenu,
   target,
   workshopNavigate,
   workspaceSnapshot,
@@ -168,7 +179,7 @@ test('存储横幅与工作区错误 Toast 叠放：同时可见、互不遮挡�
     await expect.poll(async () => (await browserState(page)).loading).toBe(false);
     await expect.poll(async () => (await workspaceSnapshot(page)).storageError).toContain('工作现场保存失败');
     // 分屏命令的持久化失败会回滚布局，并单独产生工作区错误 Toast。
-    await page.getByRole('button', { name: '左右分屏', exact: true }).last().click();
+    await paneMenu(app, page, '左右分屏', 'last');
     const banner = page.getByRole('alert').filter({ hasText: '持久化失败' });
     const toast = page.locator('.toasts .workspace-error');
     await expect(banner).toBeVisible();
@@ -338,8 +349,7 @@ test('侧栏：「后台资源 / 已关闭标签」没有内容时不出现，�
     await expect(background).toHaveCount(0);
 
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '开发终端', exact: true }).click();
-    await page.getByRole('button', { name: '开发终端操作', exact: true }).click();
-    await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）', exact: true }).click();
+    await tabMenu(app, page, '开发终端', '关闭标签（保留后台执行）');
     await showSidebar(page);
     await expect(background).toHaveCount(1);
     // 原文在独立元素里（精确匹配仍命中），计数在另一个元素里，口径与列出的条目一致。
@@ -432,10 +442,10 @@ async function stopTerminalByCommand(page: Page) {
   });
 }
 
-async function createSshTab(page: Page, title: string) {
-  await page.getByRole('button', { name: '新建标签', exact: true }).click();
-  const editor = page.getByRole('dialog', { name: '新建标签' });
-  await editor.getByLabel('标签类型').selectOption('ssh');
+async function createSshTab(app: ElectronApplication, page: Page, title: string) {
+  // 底部「新建标签」是 Main 原生菜单（OPS-1 S5）：选择类型后打开预选该类型的表单。
+  const editor = await openNewTabForm(app, page, 'SSH');
+  await expect(editor.getByLabel('标签类型')).toHaveValue('ssh');
   await editor.getByLabel('名称', { exact: true }).fill(title);
   await editor.getByLabel('资源环境').selectOption('ssh');
   await editor.getByRole('button', { name: '保存', exact: true }).click();
@@ -588,7 +598,7 @@ test('终端连接失败：问题通道显示失败与可见的 detail；工具�
     });
     app = launched.app;
     const page = launched.page;
-    await createSshTab(page, '错误pin');
+    await createSshTab(launched.app, page, '错误pin');
     await connectButton(page).click();
     const item = terminalSlotItems(page).locator('xpath=self::*[@data-status="terminal:failed"]');
     await expect(item).toBeVisible();
@@ -619,7 +629,7 @@ test('SSH 断线后进程未确认：交互后提示仍可见（unresolved 不�
     const launched = await launchApp({ sshEnvironment: fixture.environment, userData: fixture.profile });
     app = launched.app;
     const page = launched.page;
-    await createSshTab(page, '断线SSH');
+    await createSshTab(launched.app, page, '断线SSH');
     await connectButton(page).click();
     await expect(terminalPanel(page)).toContainText('已连接');
     fixture.disconnect();
@@ -713,7 +723,7 @@ test('终端截图：白 / 暗 / 暖 × 1440 / 960，正常（已连接）与异
         await resize(app, page, 1440, 900);
         if (state === 'normal') await connectTerminal(page);
         else {
-          await createSshTab(page, '错误pin');
+          await createSshTab(app, page, '错误pin');
           await connectButton(page).click();
         }
         for (const theme of ['light', 'dark', 'warm'] as const) {
@@ -741,11 +751,10 @@ test('终端截图：白 / 暗 / 暖 × 1440 / 960，正常（已连接）与异
 
 const browserRoot = (page: Page) => page.locator('.workspace-browser:visible');
 const browserSlotItems = (page: Page) => browserRoot(page).locator('.status-slot .status-item');
-const captureTrigger = (page: Page) => page.getByRole('button', { name: '采集到会话', exact: true });
+// 接收者按钮（OPS-1 S1，显示默认接收会话）与「⋯」是 Main 原生菜单（OPS-1 S5）：经 helpers.ts 的原生菜单测试接缝打开与选择。
+const captureTrigger = (page: Page) => page.getByRole('button', { name: /^接收会话：/ });
 const moreTrigger = (page: Page) => page.getByRole('button', { name: '更多网页操作', exact: true });
-const captureDialog = (page: Page) => page.getByRole('dialog', { name: '采集到会话', exact: true });
-const moreMenu = (page: Page) => page.getByRole('menu', { name: '更多网页操作', exact: true });
-const GUIDANCE = '请在此网页的“关联会话”中明确选择会话，再点击“采集到关联会话”。';
+const pickingButton = (page: Page) => page.getByRole('button', { name: '选择中 · Esc 取消', exact: true });
 
 /** 原生网页让位 / 恢复：renderer 的占位标记与 Main 里 WebContentsView 的真实可见性都要对上。 */
 async function expectNativePage(app: ElectronApplication, page: Page, visible: boolean) {
@@ -776,7 +785,7 @@ async function onPreview(app: ElectronApplication, fault: 'detach-cdp' | 'block-
     const wc = (BrowserWindow.getAllWindows()[0]!.contentView.children[0] as Electron.WebContentsView).webContents;
     // 真实的调试器断开 / 真实的 will-navigate 路径（受保护导航由 PreviewController.guardNavigation 拦截）。
     if (kind === 'detach-cdp') wc.debugger.detach();
-    else wc.emit('will-navigate', { url: 'http://blocked.example/path?token=secret', preventDefault() {} } as never);
+    else wc.emit('will-navigate', { url: 'file:///blocked/path?token=secret', preventDefault() {} } as never);
   }, fault);
 }
 
@@ -792,7 +801,7 @@ async function failPageLoad(app: ElectronApplication, page: Page) {
   await expect(browserSlotItems(page).filter({ hasText: '页面加载失败' })).toBeVisible();
 }
 
-test('网页：工具栏收为「选择元素 / 采集到会话 ⌄ / ⋯」，两整行动作区与规则说明不再外露', async () => {
+test('网页：工具栏收为「选择元素 / 接收会话 ⌄ / ⋯」，两整行动作区与规则说明不再外露', async () => {
   const { app, page } = await launchApp();
   try {
     await expect(browserRoot(page)).toBeVisible();
@@ -806,9 +815,9 @@ test('网页：工具栏收为「选择元素 / 采集到会话 ⌄ / ⋯」，�
       moreTrigger(page),
     ])
       await expect(locator).toBeVisible();
-    await expect(captureTrigger(page)).toHaveAttribute('aria-haspopup', 'dialog');
+    await expect(captureTrigger(page)).toHaveAttribute('aria-haspopup', 'menu');
     await expect(moreTrigger(page)).toHaveAttribute('aria-haspopup', 'menu');
-    // 弹出层收起时，里面的控件不在页面上；规则说明与「沙箱应用」行也不存在。
+    // 菜单是原生菜单，页面上没有关联会话选择框与菜单项；规则说明与「沙箱应用」行也不存在。
     await expect(page.getByLabel('关联会话')).toHaveCount(0);
     await expect(page.getByRole('button', { name: '保存正文快照', exact: true })).toHaveCount(0);
     await expect(browserRoot(page)).not.toContainText('收藏地址与正文快照分别保存');
@@ -820,102 +829,64 @@ test('网页：工具栏收为「选择元素 / 采集到会话 ⌄ / ⋯」，�
   }
 });
 
-test('网页「采集到会话 ⌄」：Tab 到触发器、Enter 打开，方向键在控件间移动，Esc 关闭并回到触发器，原生网页让位后恢复', async () => {
+test('网页接收者按钮「接收会话 ⌄」：Tab 到触发器、Enter 打开原生菜单（位于触发器下方），Esc 取消后焦点留在触发器；原生网页始终可见', async () => {
   const { app, page } = await launchApp();
   try {
     await expectNativePage(app, page, true);
+    // 采集项的可用状态在打开菜单时由 Main 判定：先等网页加载完成。
+    await expect.poll(async () => (await browserState(page)).loading).toBe(false);
     await page.getByRole('button', { name: '选择元素', exact: true }).focus();
     await page.keyboard.press('Tab');
     await expect(captureTrigger(page)).toBeFocused();
     await expect(captureTrigger(page)).toHaveAttribute('aria-expanded', 'false');
-    await page.keyboard.press('Enter');
-    const dialog = captureDialog(page);
-    await expect(dialog).toBeVisible();
+    const box = (await captureTrigger(page).boundingBox())!;
+    const menu = await openNativeMenu(app, () => page.keyboard.press('Enter'));
     await expect(captureTrigger(page)).toHaveAttribute('aria-expanded', 'true');
-    await expectNativePage(app, page, false);
-    // 没有选会话时，「采集到关联会话」「打开关联会话」禁用；选择后可用。
-    await expect(dialog.getByRole('button', { name: '采集到关联会话', exact: true })).toBeDisabled();
-    await expect(dialog.getByRole('button', { name: '打开关联会话', exact: true })).toBeDisabled();
-    await expect(dialog.getByRole('button', { name: '新建关联会话', exact: true })).toBeEnabled();
-    const select = dialog.getByLabel('关联会话');
-    await expect(select).toBeFocused();
-    await select.selectOption({ label: 'Agent 会话' });
-    await expect(dialog.getByRole('button', { name: '采集到关联会话', exact: true })).toBeEnabled();
-    // select 自己使用方向键；Tab 进入按钮后，方向键在按钮间移动并循环。
-    await select.focus();
-    await page.keyboard.press('Tab');
-    await expect(dialog.getByRole('button', { name: '新建关联会话', exact: true })).toBeFocused();
-    await page.keyboard.press('ArrowDown');
-    await expect(dialog.getByRole('button', { name: '采集到关联会话', exact: true })).toBeFocused();
-    await page.keyboard.press('End');
-    await expect(dialog.getByRole('button', { name: '打开关联会话', exact: true })).toBeFocused();
-    await page.keyboard.press('ArrowDown');
-    await expect(select).toBeFocused();
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('ArrowUp');
-    await expect(select).toBeFocused();
-    await page.keyboard.press('Escape');
-    await expect(dialog).toHaveCount(0);
+    // 键盘打开：菜单位于触发器左下角（R3）；默认将自动新建（没有接收会话）时只列出本空间会话（单选，未选中）与「新建会话」。
+    expectMenuAt(menu, box.x, box.y + box.height);
+    expect(menu.items).toEqual([
+      { label: 'Agent 会话', enabled: true, checked: false },
+      { label: '新建会话', enabled: true },
+    ]);
+    // 原生菜单不进入遮挡集合（O08c）。
+    await expectNativePage(app, page, true);
+    await dismissNativeMenu(app);
     await expect(captureTrigger(page)).toBeFocused();
     await expect(captureTrigger(page)).toHaveAttribute('aria-expanded', 'false');
     await expectNativePage(app, page, true);
+    expect((await activeWebResource(page)).resource.preview!.picking).toBe(false);
 
-    // 点击外部同样关闭并恢复原生网页。
-    await captureTrigger(page).click();
-    await expect(dialog).toBeVisible();
-    await expectNativePage(app, page, false);
-    await page.getByLabel('页面地址').click();
-    await expect(dialog).toHaveCount(0);
+    // 鼠标打开：菜单在指针处；点外部（取消）不开始采集。
+    const pointer = await openNativeMenu(app, () => captureTrigger(page).click({ position: { x: 10, y: 8 } }));
+    expectMenuAt(pointer, box.x + 10, box.y + 8);
     await expectNativePage(app, page, true);
-
-    // 再按一次触发器是开关。
-    await captureTrigger(page).click();
-    await expect(dialog).toBeVisible();
-    await captureTrigger(page).click();
-    await expect(dialog).toHaveCount(0);
+    await dismissNativeMenu(app);
     await expectNativePage(app, page, true);
+    expect((await activeWebResource(page)).resource.preview!.picking).toBe(false);
   } finally {
     await app.close();
   }
 });
 
-test('网页「⋯」菜单：Tab 到触发器、Enter 打开，方向键 / Home / End 移动，Esc 关闭并回到触发器；菜单项名称与原按钮一致', async () => {
+test('网页「⋯」菜单：Tab 到触发器、Enter 打开原生菜单，Esc 取消后焦点留在触发器；菜单项名称与原按钮一致，选择后执行原动作', async () => {
   const { app, page } = await launchApp();
   try {
     await expect(page.getByLabel('页面地址')).toHaveValue(/taskflow/);
     await captureTrigger(page).focus();
     await page.keyboard.press('Tab');
     await expect(moreTrigger(page)).toBeFocused();
-    await page.keyboard.press('Enter');
-    const menu = moreMenu(page);
-    await expect(menu).toBeVisible();
-    await expectNativePage(app, page, false);
-    const items = menu.getByRole('menuitem');
-    await expect(items).toHaveText(['收藏到资源', '保存正文快照', '查看空间资源']);
-    await expect(menu.getByRole('menuitem', { name: '保存正文快照', exact: true })).toBeEnabled();
-    await expect(menu.getByRole('menuitem', { name: '收藏到资源', exact: true })).toBeFocused();
-    await page.keyboard.press('ArrowDown');
-    await expect(menu.getByRole('menuitem', { name: '保存正文快照', exact: true })).toBeFocused();
-    await page.keyboard.press('ArrowDown');
-    await expect(menu.getByRole('menuitem', { name: '查看空间资源', exact: true })).toBeFocused();
-    await page.keyboard.press('ArrowDown');
-    await expect(menu.getByRole('menuitem', { name: '收藏到资源', exact: true })).toBeFocused();
-    await page.keyboard.press('ArrowUp');
-    await expect(menu.getByRole('menuitem', { name: '查看空间资源', exact: true })).toBeFocused();
-    await page.keyboard.press('Home');
-    await expect(menu.getByRole('menuitem', { name: '收藏到资源', exact: true })).toBeFocused();
-    await page.keyboard.press('End');
-    await expect(menu.getByRole('menuitem', { name: '查看空间资源', exact: true })).toBeFocused();
-    await page.keyboard.press('Escape');
-    await expect(menu).toHaveCount(0);
+    const menu = await openNativeMenuWhen(app, () => page.keyboard.press('Enter'), '保存正文快照', true);
+    expect(menu.items.map((item) => item.label)).toEqual(['收藏到资源', '保存正文快照', '查看空间资源']);
+    await expect(moreTrigger(page)).toHaveAttribute('aria-expanded', 'true');
+    await expectNativePage(app, page, true);
+    await dismissNativeMenu(app);
     await expect(moreTrigger(page)).toBeFocused();
+    await expect(moreTrigger(page)).toHaveAttribute('aria-expanded', 'false');
     await expectNativePage(app, page, true);
 
-    // 执行菜单项后菜单关闭；ArrowDown 也能从触发器打开菜单。
-    await page.keyboard.press('ArrowDown');
-    await expect(menu).toBeVisible();
-    await menu.getByRole('menuitem', { name: '查看空间资源', exact: true }).press('Enter');
-    await expect(menu).toHaveCount(0);
+    // 执行菜单项：与原按钮相同的动作。
+    await openNativeMenu(app, () => page.keyboard.press('Enter'));
+    await chooseNativeMenuItem(app, '查看空间资源');
     await expect(page.locator('#space-resources-summary')).toBeFocused();
     await expectNativePage(app, page, true);
   } finally {
@@ -931,19 +902,18 @@ test('网页：「收藏到资源」结果是提示通道的 hint，点「知道
     await address.fill('https://example.com/');
     await address.press('Enter');
     await expect.poll(async () => (await previewInfo(app)).url).toBe('https://example.com/');
-    await openBrowserMenu(page, '更多网页操作');
-    await expect(page.getByRole('menuitem', { name: '保存正文快照', exact: true })).toBeEnabled();
-    await page.getByRole('menuitem', { name: '收藏到资源', exact: true }).click();
+    await openNativeMenuWhen(app, () => moreTrigger(page).click(), '保存正文快照', true);
+    await chooseNativeMenuItem(app, '收藏到资源');
     const bookmarked = browserSlotItems(page).filter({ hasText: '已收藏到我的资源。' });
     await expect(bookmarked).toBeVisible();
     await expect(bookmarked).toHaveAttribute('data-status-channel', 'notice');
     await expect(bookmarked.getByRole('status')).toBeVisible();
-    await expect(moreMenu(page)).toHaveCount(0);
+    await expect(page.getByRole('menu')).toHaveCount(0);
     await bookmarked.getByRole('button', { name: '知道了', exact: true }).click();
     await expect(bookmarked).toHaveCount(0);
 
-    await openBrowserMenu(page, '更多网页操作');
-    await page.getByRole('menuitem', { name: '保存正文快照', exact: true }).click();
+    await openNativeMenuWhen(app, () => moreTrigger(page).click(), '保存正文快照', true);
+    await chooseNativeMenuItem(app, '保存正文快照');
     const snapshot = browserSlotItems(page).filter({ hasText: '正文快照已保存' });
     await expect(snapshot).toBeVisible();
     await expect(snapshot).toContainText('请在空间资源中明确选择参考版本');
@@ -955,30 +925,31 @@ test('网页：「收藏到资源」结果是提示通道的 hint，点「知道
   }
 });
 
-test('网页：采集指引是 hint（role=status，文案不变）；点「知道了」或与窗格交互后消失', async () => {
+test('网页：「选择元素」直接进入点选、不再显示采集指引；「已采集到 {会话} · 打开」是 hint（role=status）：点「知道了」或与窗格交互后消失', async () => {
   const { app, page } = await launchApp();
   try {
-    const guidance = browserSlotItems(page).filter({ hasText: GUIDANCE });
-    await expect(guidance).toHaveCount(0);
-    await page.getByRole('button', { name: '选择元素', exact: true }).click();
-    await expect(guidance).toBeVisible();
-    await expect(guidance).toHaveAttribute('data-status-channel', 'notice');
-    // 页面上只有这一个 role=status（workbench.spec 按此严格定位）。
-    await expect(page.getByRole('status')).toHaveCount(1);
-    await expect(page.getByRole('status')).toContainText('关联会话');
-    await guidance.getByRole('button', { name: '知道了', exact: true }).click();
-    await expect(guidance).toHaveCount(0);
-    // 再次出现；打开「采集到会话」（与窗格交互）后消失。
-    await page.getByRole('button', { name: '选择元素', exact: true }).click();
-    await expect(guidance).toBeVisible();
-    await captureTrigger(page).click();
-    await expect(guidance).toHaveCount(0);
-    await page.keyboard.press('Escape');
+    // 窄窗：采集完成后不展开，只在网页状态槽提示（OPS-1 S1 / O04a）。
+    await resize(app, page, 1000, 760);
+    await expect.poll(async () => (await browserState(page)).loading).toBe(false);
+    const captured = browserSlotItems(page).filter({ hasText: '已采集到 TaskFlow 预览 · 会话' });
+    const capture = async () => {
+      await page.getByRole('button', { name: '选择元素', exact: true }).click();
+      await expect(pickingButton(page)).toBeVisible();
+      // 不再先给“请在菜单中选择会话”的指引：没有可见的提示条目。
+      await expect(browserSlotItems(page).filter({ hasText: '关联会话' })).toHaveCount(0);
+      await previewClick(app, await previewElementCenter(app, '[data-testid="new-task"]'));
+      await expect(captured).toBeVisible();
+    };
+    await capture();
+    await expect(captured).toHaveAttribute('data-status-channel', 'notice');
+    await expect(captured.getByRole('status')).toContainText('已采集到 TaskFlow 预览 · 会话');
+    await expect(captured.getByRole('button', { name: '打开', exact: true })).toBeVisible();
+    await captured.getByRole('button', { name: '知道了', exact: true }).click();
+    await expect(captured).toHaveCount(0);
     // 键盘路径：再次出现后，窗格内任意按键都视为交互。
-    await page.getByRole('button', { name: '选择元素', exact: true }).click();
-    await expect(guidance).toBeVisible();
+    await capture();
     await page.keyboard.press('Shift');
-    await expect(guidance).toHaveCount(0);
+    await expect(captured).toHaveCount(0);
   } finally {
     await app.close();
   }
@@ -1003,7 +974,7 @@ test('网页：加载失败 + 已拦截导航——加载失败在问题通道�
     await page.keyboard.press('Enter');
     const menu = page.getByRole('menu', { name: '其他问题', exact: true });
     await expect(menu).toBeVisible();
-    await expect(menu.getByRole('menuitem')).toContainText('已拦截导航：http://blocked.example/path');
+    await expect(menu.getByRole('menuitem')).toContainText('已拦截导航：/blocked/path');
     await expectNativePage(app, page, false);
     await page.keyboard.press('Escape');
     await expect(menu).toHaveCount(0);
@@ -1053,26 +1024,25 @@ test('网页：页面控制断开——「重新附着」可见，Tab 可达，E
   }
 });
 
-test('网页：选择中两个弹出层触发器禁用（不会因让位而取消点选）；取消选择后恢复可用', async () => {
+test('网页：选择中「⋯」禁用；接收者按钮仍可用（只改之后的采集），打开它不取消点选；再点「选择中 · Esc 取消」取消后恢复', async () => {
   const { app, page } = await launchApp();
   try {
-    await openBrowserMenu(page, '采集到会话');
-    await captureDialog(page).getByLabel('关联会话').selectOption({ label: 'Agent 会话' });
-    await captureDialog(page).getByRole('button', { name: '采集到关联会话', exact: true }).click();
-    const picking = page.getByRole('button', { name: '选择中 · Esc 取消', exact: true });
+    await expect.poll(async () => (await browserState(page)).loading).toBe(false);
+    await page.getByRole('button', { name: '选择元素', exact: true }).click();
+    const picking = pickingButton(page);
     await expect(picking).toBeVisible();
-    await expect(captureDialog(page)).toHaveCount(0);
     const item = browserSlotItems(page).filter({ hasText: '选择中 · Esc 取消' });
     await expect(item).toBeVisible();
     await expect(item).toHaveAttribute('data-status-channel', 'persistent');
-    for (const trigger of [captureTrigger(page), moreTrigger(page)]) {
-      await expect(trigger).toBeDisabled();
-      await expect(trigger).toHaveAttribute('title', '选择中，先取消选择');
-      await trigger.click({ force: true });
-    }
-    await expect(captureDialog(page)).toHaveCount(0);
-    await expect(moreMenu(page)).toHaveCount(0);
-    // 点选没有被取消：仍在选择中，原生网页仍可见。
+    const menus = await nativeMenuCount(app);
+    await expect(moreTrigger(page)).toBeDisabled();
+    await expect(moreTrigger(page)).toHaveAttribute('title', '选择中，先取消选择');
+    await moreTrigger(page).click({ force: true });
+    expect(await nativeMenuCount(app)).toBe(menus);
+    // OPS-1 S1（O03）：采集途中可以改接收者，只影响之后的采集；打开接收者菜单不取消点选，原生网页仍可见。
+    await expect(captureTrigger(page)).toBeEnabled();
+    await openNativeMenu(app, () => captureTrigger(page).click());
+    await dismissNativeMenu(app);
     await expect(item).toBeVisible();
     expect((await activeWebResource(page)).resource.preview!.picking).toBe(true);
     await expectNativePage(app, page, true);
@@ -1088,25 +1058,28 @@ test('网页：选择中两个弹出层触发器禁用（不会因让位而取�
   }
 });
 
-test('网页：「新建关联会话」不关闭弹出层，完成后 select 指向新会话且焦点留在弹出层内', async () => {
+test('网页：接收者菜单「新建会话」新建会话并设为接收者（不开始采集、不占用窗格）；之后菜单列出新会话并提供「打开接收会话」', async () => {
   const { app, page } = await launchApp();
   try {
-    await openBrowserMenu(page, '采集到会话');
-    const dialog = captureDialog(page);
-    const select = dialog.getByLabel('关联会话');
-    const before = await select.locator('option').count();
-    await dialog.getByRole('button', { name: '新建关联会话', exact: true }).click();
-    await expect(select.locator('option')).toHaveCount(before + 1);
-    await expect(dialog).toBeVisible();
-    await expect(select).not.toHaveValue('');
-    await expect(select).toBeFocused();
-    await expect(dialog.getByRole('button', { name: '采集到关联会话', exact: true })).toBeEnabled();
+    const before = (await workspaceSnapshot(page)).workspaces[0]!.sessions.length;
+    await openBrowserMenu(app, page, '接收会话', '新建会话');
+    await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.sessions.length).toBe(before + 1);
+    const created = (await workspaceSnapshot(page)).workspaces[0]!.sessions.at(-1)!;
+    expect(created.title).toBe('TaskFlow 预览 · 会话');
+    expect(created.captureRequest).toBeNull();
+    await expect(pickingButton(page)).toHaveCount(0);
+    await expect(captureTrigger(page)).toHaveAccessibleName('接收会话：TaskFlow 预览 · 会话');
+    const layout = (await workspaceSnapshot(page)).workspaces[0]!.layout;
+    expect(layout).toMatchObject({ kind: 'pane' });
+    const menu = await openNativeMenu(app, () => captureTrigger(page).click());
+    expect(menu.items.map((entry) => entry.label)).toEqual(['Agent 会话', 'TaskFlow 预览 · 会话', '新建会话', '打开接收会话']);
+    await dismissNativeMenu(app);
   } finally {
     await app.close();
   }
 });
 
-test('网页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（加载失败 + 已拦截导航）；两个弹出层展开态', async () => {
+test('网页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（加载失败 + 已拦截导航）；两个原生菜单打开期间网页不让位', async () => {
   test.setTimeout(240000);
   const dir = path.join(screensDir, 'status-surface');
   await mkdir(dir, { recursive: true });
@@ -1130,15 +1103,11 @@ test('网页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（加载失
           else await expect(browserSlotItems(page)).toHaveCount(0);
           await shot(page, `status-surface/browser-${state}-${theme}-${width}`);
           if (state === 'normal' && theme === 'light') {
-            for (const [name, trigger, popup] of [
-              ['capture', '采集到会话', captureDialog(page)],
-              ['more', '更多网页操作', moreMenu(page)],
-            ] as const) {
-              await openBrowserMenu(page, trigger);
-              await expect(popup).toBeVisible();
-              await shot(page, `status-surface/browser-popup-${name}-${theme}-${width}`);
-              await page.keyboard.press('Escape');
-              await expect(popup).toHaveCount(0);
+            // 两个菜单是 Main 原生菜单：renderer 截图里没有菜单本身（系统菜单由真实窗口截图核对），这里核对打开期间网页不让位。
+            for (const trigger of [captureTrigger(page), moreTrigger(page)]) {
+              await openNativeMenu(app, () => trigger.click());
+              await expect(page.locator('.preview-host:visible')).toHaveAttribute('data-native', 'visible');
+              await dismissNativeMenu(app);
             }
           }
         }
@@ -1177,7 +1146,7 @@ test('修复复验：AI 操控中 + 页面加载失败 + 已拦截导航同时�
     await page.keyboard.press('Enter');
     const menu = page.getByRole('menu', { name: '其他问题', exact: true });
     await expect(menu).toBeVisible();
-    await expect(menu.getByRole('menuitem')).toContainText('已拦截导航：http://blocked.example/path');
+    await expect(menu.getByRole('menuitem')).toContainText('已拦截导航：/blocked/path');
     await shot(page, 'status-surface/combo-ai-loaderror-blockednav-1440');
     await page.keyboard.press('Escape');
     await expect(menu).toHaveCount(0);
@@ -1271,7 +1240,7 @@ test('修复复验：问题通道另有 2 项——真实键盘展开菜单、�
     const items = menu.getByRole('menuitem');
     await expect(items).toHaveCount(2);
     await expect(items.nth(0)).toContainText('页面控制已断开');
-    await expect(items.nth(1)).toContainText('已拦截导航：http://blocked.example/path');
+    await expect(items.nth(1)).toContainText('已拦截导航：/blocked/path');
     await expect(items.nth(0)).toBeFocused();
     await expectNativePage(app, page, false);
     await page.keyboard.press('ArrowDown');
@@ -1297,7 +1266,6 @@ test('修复复验：问题通道另有 2 项——真实键盘展开菜单、�
 const sessionRegion = (page: Page) => page.getByRole('region', { name: 'Agent 会话内容', exact: true });
 const sessionViews = (page: Page) => sessionRegion(page).getByRole('navigation', { name: '会话视图', exact: true });
 const runRecordTrigger = (page: Page) => sessionViews(page).getByRole('button', { name: '运行记录', exact: true });
-const runRecordMenu = (page: Page) => sessionRegion(page).getByRole('menu', { name: '运行记录', exact: true });
 const sessionSlotItems = (page: Page) => sessionRegion(page).locator('.status-slot .status-item');
 const sessionMessageBox = (page: Page) => sessionRegion(page).getByRole('textbox', { name: '会话消息', exact: true });
 const RESTORED = '历史已恢复；新执行不会自动延续旧模型上下文。';
@@ -1312,6 +1280,19 @@ async function completeSessionRun(page: Page, text: string) {
   await sessionMessageBox(page).fill(text);
   await sessionRegion(page).getByRole('button', { name: '发送', exact: true }).click();
   await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('completed');
+}
+
+/**
+ * 检查器未接入时界面不提供「运行检查」（OPS-1 S3）。真实问题的呈现仍要覆盖：经既有 IPC 命令 runValidation
+ * 产生一条只有原因文字的 blocked 记录（Main 行为未变），等同于历史遗留或其他原因的 blocked。
+ */
+async function recordBlockedValidation(page: Page) {
+  const latest = (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)!;
+  const result = await page.evaluate(
+    (command) => window.studio.workbench.command({ ...command, commandId: crypto.randomUUID() } as never),
+    { type: 'runValidation', workspaceId: latest.workspaceId, runId: latest.runId },
+  );
+  expect(result.ok).toBe(true);
 }
 
 /**
@@ -1380,12 +1361,12 @@ const setCleanupShim = (app: ElectronApplication, state: { active?: boolean; rec
     Object.assign(host.cleanupShim, next);
   }, state);
 
-test('会话「运行记录 ⌄」：视图收为五项，Tab 到触发器、Enter 打开，方向键 / Home / End 移动，Esc 回到触发器；原生网页让位后恢复', async () => {
+test('会话「运行记录 ⌄」：视图收为五项，Tab 到触发器、Enter 打开原生菜单（位于触发器下方），Esc 取消回到触发器；分屏旁的原生网页始终可见', async () => {
   const { app, page } = await launchApp({ sbxBin });
   try {
     await resize(app, page, 1440, 900);
-    // 分屏后网页窗格留在旁边：菜单展开期间原生网页必须让位。
-    await page.getByRole('button', { name: '左右分屏', exact: true }).click();
+    // 分屏后网页窗格留在旁边：原生菜单打开期间原生网页保持可见（OPS-1 S5，不进入遮挡集合）。
+    await paneMenu(app, page, '左右分屏');
     await completeSessionRun(page, '运行记录菜单用例');
     await expectNativePage(app, page, true);
 
@@ -1398,40 +1379,22 @@ test('会话「运行记录 ⌄」：视图收为五项，Tab 到触发器、Ent
     await expect(trigger).toBeFocused();
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
     await expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
-    await page.keyboard.press('Enter');
-    const menu = runRecordMenu(page);
-    await expect(menu).toBeVisible();
+    const box = (await trigger.boundingBox())!;
+    const menu = await openNativeMenu(app, () => page.keyboard.press('Enter'));
     await expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    await expect(menu.getByRole('menuitem')).toHaveText(['日志', 'diff', '报告']);
-    await expectNativePage(app, page, false);
-
-    const item = (name: string) => menu.getByRole('menuitem', { name, exact: true });
-    await expect(item('日志')).toBeFocused();
-    await page.keyboard.press('ArrowDown');
-    await expect(item('diff')).toBeFocused();
-    await page.keyboard.press('End');
-    await expect(item('报告')).toBeFocused();
-    await page.keyboard.press('ArrowDown');
-    await expect(item('日志')).toBeFocused();
-    await page.keyboard.press('ArrowUp');
-    await expect(item('报告')).toBeFocused();
-    await page.keyboard.press('Home');
-    await expect(item('日志')).toBeFocused();
+    expect(menu.items.map((item) => item.label)).toEqual(['日志', 'diff', '报告']);
+    expectMenuAt(menu, box.x, box.y + box.height);
+    await expectNativePage(app, page, true);
     await shot(page, 'status-surface/session-menu-open');
 
-    await page.keyboard.press('Escape');
-    await expect(menu).toHaveCount(0);
+    await dismissNativeMenu(app);
     await expect(trigger).toBeFocused();
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
     await expectNativePage(app, page, true);
 
-    // 触发器上按 ArrowDown 同样展开；选择菜单项后菜单关闭、焦点回到触发器、所选视图显示。
-    await page.keyboard.press('ArrowDown');
-    await expect(menu).toBeVisible();
-    await page.keyboard.press('ArrowDown');
-    await expect(item('diff')).toBeFocused();
-    await page.keyboard.press('Enter');
-    await expect(menu).toHaveCount(0);
+    // 选择菜单项（关闭回调早于 click，R3）：焦点留在触发器、所选视图显示。
+    await openNativeMenu(app, () => page.keyboard.press('Enter'));
+    await chooseNativeMenuItem(app, 'diff', { closeFirst: true });
     await expect(trigger).toBeFocused();
     const run = (await workspaceSnapshot(page)).workspaces[0]?.runs.at(-1);
     const unavailableReason = '任务未绑定受管 App 工程，无法采集源码差异';
@@ -1442,22 +1405,14 @@ test('会话「运行记录 ⌄」：视图收为五项，Tab 到触发器、Ent
     await expect(runDetails).toContainText('源码差异不可用');
     await expect(runDetails).toContainText(unavailableReason);
     await expect(runDetails.getByLabel('源码 diff', { exact: true })).toHaveCount(0);
-    await expectNativePage(app, page, true);
-    // 再次展开时从当前项开始，并标出当前项。
-    await page.keyboard.press('Enter');
-    await expect(menu).toBeVisible();
-    await expect(item('diff')).toBeFocused();
-    await expect(item('diff')).toHaveAttribute('aria-current', 'true');
-    // 点击外部同样关闭并让原生网页恢复。
-    await sessionViews(page).getByRole('button', { name: '对话', exact: true }).click();
-    await expect(menu).toHaveCount(0);
+    await expect(trigger).toHaveClass(/btn-active/);
     await expectNativePage(app, page, true);
   } finally {
     await app.close();
   }
 });
 
-test('会话检查页：执行 / 检查 / 审阅是中文 label + StatusDot，「检查无法执行」在问题通道可见，没有英文原始枚举', async () => {
+test('会话检查页：执行 / 检查 / 审阅是中文 label + StatusDot；检查器未接入为中性稳态，「检查无法执行」仍在问题通道可见，没有英文原始枚举', async () => {
   const { app, page } = await launchApp({ sbxBin });
   try {
     await resize(app, page, 1440, 900);
@@ -1468,14 +1423,17 @@ test('会话检查页：执行 / 检查 / 审阅是中文 label + StatusDot，�
     await expect(runState).toBeVisible();
     await expect(runState).toHaveText('执行完成');
     await expect(runState.locator('.shape-dot')).toBeVisible();
+    // OPS-1 S3：检查器未接入时尚未检查的运行显示中性的「检查器未接入」，不提供「运行检查」。
     const notChecked = region.locator('[data-status="validation:idle"]');
     await expect(notChecked).toBeVisible();
-    await expect(notChecked).toHaveText('尚未检查');
+    await expect(notChecked).toHaveText('检查器未接入');
+    await expect(region.getByRole('button', { name: '运行检查', exact: true })).toHaveCount(0);
+    await expect(region.getByText('产品检查器尚未接入，无法在此运行检查。', { exact: true })).toBeVisible();
     await expect(region.locator('[data-status="review:idle"]')).toHaveText('尚未审阅');
     // 无问题时状态槽高度为 0。
     await expect(sessionSlotItems(page)).toHaveCount(0);
 
-    await region.getByRole('button', { name: '运行检查', exact: true }).click();
+    await recordBlockedValidation(page);
     const problem = sessionSlotItems(page).filter({ hasText: '检查无法执行' });
     await expect(problem).toBeVisible();
     await expect(problem).toHaveAttribute('data-status-channel', 'problem');
@@ -1587,10 +1545,12 @@ test('会话状态条：取消中与「App 数据操作仍待确认」同时可�
     await expect(sessionRegion(page).getByRole('button', { name: '取消回复', exact: true })).toHaveCount(0);
     await shot(page, 'status-surface/session-cancelling-pending');
 
-    // 状态槽在输入区之前：Shift+Tab 从输入框回到「重新核对」。
+    // B3 的折叠任务设置位于状态槽与输入框之间：依次逆向 Tab 仍能到达「重新核对」。
     const retry = sessionRegion(page).getByRole('button', { name: '重新核对', exact: true });
     await expect(retry).toBeVisible();
     await expect(retry).toBeEnabled();
+    await page.keyboard.press('Shift+Tab');
+    await expect(sessionRegion(page).getByRole('button', { name: /^任务设置/ })).toBeFocused();
     await page.keyboard.press('Shift+Tab');
     await expect(retry).toBeFocused();
     await page.keyboard.press('Enter');
@@ -1626,7 +1586,7 @@ test('会话截图：白 / 暗 / 暖 × 1440 / 960，正常（执行完成）与
       await completeSessionRun(page, '截图用例');
       await sessionRegion(page).getByRole('button', { name: '检查', exact: true }).click();
       if (state === 'abnormal') {
-        await sessionRegion(page).getByRole('button', { name: '运行检查', exact: true }).click();
+        await recordBlockedValidation(page);
         await expect(sessionSlotItems(page).filter({ hasText: '检查无法执行' })).toBeVisible();
       }
       for (const theme of ['light', 'dark', 'warm'] as const) {
@@ -1670,12 +1630,11 @@ test('会话状态槽「取消采集」：采集进行中可见，点击后采�
   const { app, page } = await launchApp();
   try {
     await resize(app, page, 1440, 900);
-    await page.getByRole('button', { name: '左右分屏', exact: true }).click();
+    await paneMenu(app, page, '左右分屏');
     await openSessionTab(page);
-    const region = sessionRegion(page);
-    await region.getByRole('button', { name: '任务', exact: true }).click();
-    await region.getByLabel('附加目标（明确选择）').selectOption({ label: 'TaskFlow 预览' });
-    await region.getByRole('button', { name: '采集目标元素', exact: true }).click();
+    // OPS-1 S1：「选择元素」一步发起，接收者为同屏的 Agent 会话。
+    await expect.poll(async () => (await browserState(page)).loading).toBe(false);
+    await page.getByRole('button', { name: '选择元素', exact: true }).click();
     const item = sessionSlotItems(page).filter({ hasText: '正在采集…' });
     await expect(item).toBeVisible();
     const cancel = item.getByRole('button', { name: '取消采集', exact: true });
@@ -1794,7 +1753,8 @@ test('首页输入区：可访问名称不变；两条说明与快捷键说明�
 });
 
 test('首页输入区：发送被阻止时原因显式可见，按钮 title 为阻止原因；改动草稿后提示消失', async () => {
-  const { app, page } = await launchApp({ codexBin });
+  // 首页的阻止发送只出现在未接入的「搜索」「打开」模式，这两个模式只在诊断启用时可见（OPS-1 S4）。
+  const { app, page } = await launchApp({ codexBin, debugStatus: true });
   try {
     await workshopNavigate(page, '首页');
     const region = homeRegion(page);
@@ -1852,16 +1812,17 @@ test('通知与任务历史：检查 / 审阅用中文 label，运行按钮不�
   const { app, page } = await launchApp({ sbxBin });
   try {
     await completeSessionRun(page, '通知中文状态用例');
-    // 检查无法执行（夹具没有独立检查适配器）。
     await sessionRegion(page).getByRole('button', { name: '检查', exact: true }).click();
-    await sessionRegion(page).getByRole('button', { name: '运行检查', exact: true }).click();
-    await expect(sessionSlotItems(page).filter({ hasText: '检查无法执行' })).toBeVisible();
     const runId = (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)!.runId;
 
     await page.getByRole('button', { name: /^通知 · / }).click();
     const item = page.getByRole('region', { name: '通知' }).locator(`[data-run-id="${runId}"]`);
     await expect(item).toBeVisible();
     await expect(item).toContainText('未读');
+    // 检查器未接入（OPS-1 S3）：尚未检查的运行是中性的「检查器未接入」。
+    await expect(item).toContainText('检查器未接入 · 尚未审阅');
+    // 只有原因文字的 blocked 记录（经既有 IPC 命令产生）仍显示「检查无法执行」。
+    await recordBlockedValidation(page);
     await expect(item).toContainText('检查无法执行 · 尚未审阅');
     await expect(item).not.toContainText(/\b(not_run|passed|blocked|running|failed|completed|accepted|changes_requested)\b/);
 
@@ -1883,7 +1844,8 @@ test('首页截图：白 / 暗 / 暖 × 1440 / 960，正常与异常（发送被
   const dir = path.join(screensDir, 'status-surface');
   await mkdir(dir, { recursive: true });
   for (const state of ['normal', 'abnormal'] as const) {
-    const { app, page } = await launchApp({ codexBin });
+    // 异常态（发送被阻止）依赖只在诊断启用时出现的「搜索」模式（OPS-1 S4）；正常态保持正式构建。
+    const { app, page } = await launchApp({ codexBin, debugStatus: state === 'abnormal' });
     try {
       await resize(app, page, 1440, 900);
       for (const theme of ['light', 'dark', 'warm'] as const) {
@@ -1929,10 +1891,9 @@ async function fileRoot() {
   return root;
 }
 
-async function createFileTab(page: Page, title: string) {
-  await page.getByRole('button', { name: '新建标签', exact: true }).click();
-  const editor = page.getByRole('dialog', { name: '新建标签' });
-  await editor.getByLabel('标签类型').selectOption('file');
+async function createFileTab(app: ElectronApplication, page: Page, title: string) {
+  const editor = await openNewTabForm(app, page, '文件');
+  await expect(editor.getByLabel('标签类型')).toHaveValue('file');
   await editor.getByLabel('名称', { exact: true }).fill(title);
   await editor.getByLabel('资源环境').selectOption('local');
   await editor.getByRole('button', { name: '保存', exact: true }).click();
@@ -1956,7 +1917,7 @@ test('文件：首次打开说明是提示通道的 hint，「知道了」（键
   const { app, page } = await launchApp({ observationRoot: root });
   try {
     await resize(app, page, 1440, 900);
-    await createFileTab(page, '首次说明文件');
+    await createFileTab(app, page, '首次说明文件');
     const panel = filesPanel(page);
     const hint = filesSlotItems(page).filter({ hasText: FIRST_USE });
     await expect(hint).toBeVisible();
@@ -1975,8 +1936,7 @@ test('文件：首次打开说明是提示通道的 hint，「知道了」（键
     await expectNotesOnlyDescribed(page);
     // 关闭标签（保留后台执行）后重新打开同一标签：说明不再出现。
     const resourceId = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((item) => item.title === '首次说明文件')!.resourceId;
-    await page.getByRole('button', { name: '首次说明文件操作', exact: true }).click();
-    await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）' }).click();
+    await tabMenu(app, page, '首次说明文件', '关闭标签（保留后台执行）');
     await page.getByText('后台资源 / 已关闭标签', { exact: true }).click();
     await page.getByRole('button', { name: '首次说明文件 · 重新打开', exact: true }).click();
     await expect(panel).toBeVisible();
@@ -1985,7 +1945,7 @@ test('文件：首次打开说明是提示通道的 hint，「知道了」（键
     await expectNotesOnlyDescribed(page);
 
     // 另一个标签：不点「知道了」，与窗格交互（点击「列出目录」）后同样消失。
-    await createFileTab(page, '交互消除文件');
+    await createFileTab(app, page, '交互消除文件');
     const second = filesSlotItems(page).filter({ hasText: FIRST_USE });
     await expect(second).toBeVisible();
     await filesPanel(page).getByRole('button', { name: '列出目录', exact: true }).click();
@@ -2002,7 +1962,7 @@ test('文件：从窗格外真实 Tab 进入，首次说明仍在且「知道了
   const { app, page } = await launchApp({ observationRoot: root });
   try {
     await resize(app, page, 1440, 900);
-    await createFileTab(page, '键盘确认文件');
+    await createFileTab(app, page, '键盘确认文件');
     const hint = filesSlotItems(page).filter({ hasText: FIRST_USE });
     await expect(hint).toBeVisible();
     // 从窗格外（窗格标题栏的最后一个控件）按 Tab 进入：槽内的焦点不算与窗格交互，说明必须仍在。
@@ -2034,7 +1994,7 @@ test('文件观察结果：来源折叠区默认收起，Enter / 空格可展开
   const { app, page } = await launchApp({ observationRoot: root });
   try {
     await resize(app, page, 1440, 900);
-    await createFileTab(page, '来源折叠文件');
+    await createFileTab(app, page, '来源折叠文件');
     await filesPanel(page).getByRole('button', { name: '列出目录', exact: true }).click();
     await filesPanel(page).getByRole('button', { name: 'small.txt · file', exact: true }).click();
     const current = filesResult(page);
@@ -2079,7 +2039,7 @@ test('文件观察结果：覆盖不完整在问题通道可见（含 reasons de
   const { app, page } = await launchApp({ observationRoot: root });
   try {
     await resize(app, page, 1440, 900);
-    await createFileTab(page, '覆盖不完整文件');
+    await createFileTab(app, page, '覆盖不完整文件');
     await readFile(page, 'big.txt');
     const current = filesResult(page);
     await expect(current).toContainText('FILE_STATUS_NONCE_901');
@@ -2107,7 +2067,7 @@ test('文件观察：读取失败在问题通道 alert 可见（错误标签 + m
   const { app, page } = await launchApp({ observationRoot: root });
   try {
     await resize(app, page, 1440, 900);
-    await createFileTab(page, '读取失败文件');
+    await createFileTab(app, page, '读取失败文件');
     await readFile(page, '../outside.txt');
     const failure = filesSlot(page).locator('.status-item[data-status="observation:failed"]');
     await expect(failure).toBeVisible();
@@ -2137,7 +2097,7 @@ test('文件可能变化：观察过的目录里出现变化后，问题通道�
   const { app, page } = await launchApp({ observationRoot: root });
   try {
     await resize(app, page, 1440, 900);
-    await createFileTab(page, '文件变化提示');
+    await createFileTab(app, page, '文件变化提示');
     await filesPanel(page).getByRole('button', { name: '列出目录', exact: true }).click();
     await expect(filesResult(page)).toContainText('small.txt');
     // 变化提示来自真实的目录监视（只覆盖已观察目录）：在已列出的目录里新增文件。
@@ -2181,7 +2141,7 @@ test('会话观察：进行中在会话状态槽常驻通道可见，「取消�
     });
   try {
     await resize(app, page, 1440, 900);
-    await createFileTab(page, '会话观察文件');
+    await createFileTab(app, page, '会话观察文件');
     const resourceId = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((item) => item.title === '会话观察文件')!.resourceId;
     await openSessionTab(page);
     await sessionViews(page).getByRole('button', { name: '上下文', exact: true }).click();
@@ -2230,7 +2190,7 @@ test('会话观察：读取失败与覆盖不完整进入会话状态槽的问�
   const { app, page } = await launchApp({ observationRoot: root });
   try {
     await resize(app, page, 1440, 900);
-    await createFileTab(page, '会话问题文件');
+    await createFileTab(app, page, '会话问题文件');
     const resourceId = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((item) => item.title === '会话问题文件')!.resourceId;
     await openSessionTab(page);
     await sessionViews(page).getByRole('button', { name: '上下文', exact: true }).click();
@@ -2272,7 +2232,7 @@ test('文件：进行中在资源槽常驻通道可见，「取消读取」真�
     }, armed);
   try {
     await resize(app, page, 1440, 900);
-    await createFileTab(page, '文件取消读取');
+    await createFileTab(app, page, '文件取消读取');
     // 先确认首次说明，避免它影响 Tab 顺序。
     await filesSlotItems(page).getByRole('button', { name: '知道了', exact: true }).click();
     await gate(true);
@@ -2309,7 +2269,7 @@ test('会话最新执行失败时读取越权路径：执行失败仍可见，�
   const { app, page } = await launchApp({ observationRoot: root });
   try {
     await resize(app, page, 1440, 900);
-    await createFileTab(page, '失败叠加文件');
+    await createFileTab(app, page, '失败叠加文件');
     const resourceId = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((item) => item.title === '失败叠加文件')!.resourceId;
     await failSessionRun(page);
     await sessionViews(page).getByRole('button', { name: '上下文', exact: true }).click();
@@ -2344,7 +2304,7 @@ test('文件截图：白 / 暗 / 暖 × 1440 / 960，正常（小文件读取完
     const { app, page } = await launchApp({ observationRoot: root });
     try {
       await resize(app, page, 1440, 900);
-      await createFileTab(page, '截图文件');
+      await createFileTab(app, page, '截图文件');
       for (const theme of ['light', 'dark', 'warm'] as const) {
         await resize(app, page, 1440, 900);
         await expect(page.getByRole('navigation', { name: 'Workshop 导航' })).toBeVisible();
@@ -2383,7 +2343,7 @@ test('修复复验：文件资源不可用进唯一状态槽——缺环境与�
   try {
     await mkdir(path.join(screensDir, 'status-surface'), { recursive: true });
     await resize(app, page, 1440, 900);
-    await createFileTab(page, '不可用文件');
+    await createFileTab(app, page, '不可用文件');
     await filesSlotItems(page).getByRole('button', { name: '知道了', exact: true }).click();
     const resourceId = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((item) => item.title === '不可用文件')!.resourceId;
     const unavailable = () => filesSlot(page).locator(`.status-item[data-status-key="file:${resourceId}:unavailable"]`);
@@ -2427,7 +2387,7 @@ test('修复复验：观察历史错误与当前结果分离——旧失败不�
   try {
     await mkdir(path.join(screensDir, 'status-surface'), { recursive: true });
     await resize(app, page, 1440, 900);
-    await createFileTab(page, '历史分离文件');
+    await createFileTab(app, page, '历史分离文件');
     await filesSlotItems(page).getByRole('button', { name: '知道了', exact: true }).click();
     await readFile(page, '../outside.txt');
     await expect(filesSlot(page).locator('.status-item[data-status="observation:failed"]')).toBeVisible();

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { launchApp, workspaceSnapshot, previewInfo, setWindowSize, setWorkspaceTheme } from './helpers';
+import { launchApp, workspaceSnapshot, previewInfo, setWindowSize, setWorkspaceTheme, openNewTabForm } from './helpers';
 
 test('Workshop typed creation persists resources and restores modal focus', async () => {
   const { app, page } = await launchApp({ sbxBin: new URL('./fixtures/sbx.mjs', import.meta.url).pathname });
@@ -10,28 +10,30 @@ test('Workshop typed creation persists resources and restores modal focus', asyn
     await setWorkspaceTheme(page, 'dark');
     await page.screenshot({ path: 'test-results/screens/workshop-actions-dark.png' });
     await expect(page.getByRole('region', { name: '标准应用服务' })).toHaveCount(0);
-    for (const [label, kind, title] of [
-      ['新建网页', 'web', '文档页'],
-      ['新建终端', 'terminal', '实验终端'],
-      ['新建会话', 'session', '实验会话'],
+    for (const [kind, title] of [
+      ['web', '文档页'],
+      ['terminal', '实验终端'],
+      ['session', '实验会话'],
     ] as const) {
-      const trigger = page.getByRole('button', { name: label, exact: true });
-      await trigger.click();
-      const dialog = page.getByRole('dialog', { name: '新建标签' });
+      const trigger = page.getByRole('button', { name: '新建标签', exact: true });
+      const menuKind = ({ web: '网页', terminal: '终端', session: 'Agent 会话' } as const)[kind];
+      const dialog = await openNewTabForm(app, page, menuKind);
       await expect(dialog.getByLabel('标签类型')).toHaveValue(kind);
       await expect.poll(async () => (await previewInfo(app)).visible).toBe(false);
       await page.keyboard.press('Escape');
       await expect(trigger).toBeFocused();
-      await trigger.click();
+      await openNewTabForm(app, page, menuKind);
       await dialog.getByLabel('名称', { exact: true }).fill(title);
       if (kind === 'web') {
-        await dialog.getByLabel('网页地址', { exact: true }).fill('http://unsafe.invalid');
+        await dialog.getByLabel('网页地址', { exact: true }).fill('file:///unsafe/path');
         await dialog.getByRole('button', { name: '保存', exact: true }).click();
         await expect(dialog.getByRole('alert')).toBeVisible();
         await expect(dialog.getByLabel('名称', { exact: true })).toHaveValue(title);
         await dialog.getByLabel('网页地址', { exact: true }).fill('wsl-demo://taskflow/index.html');
       }
       if (kind === 'terminal') {
+        await expect(dialog.getByLabel('资源环境', { exact: true })).toHaveValue('sandbox');
+        await dialog.getByLabel('资源环境', { exact: true }).selectOption('');
         await expect(dialog.getByRole('button', { name: '保存', exact: true })).toBeDisabled();
         await dialog.getByLabel('资源环境', { exact: true }).selectOption('sandbox');
       }

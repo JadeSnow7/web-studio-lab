@@ -198,6 +198,8 @@ describe('managed application Browser origin leases', () => {
     expect(mocks.controllers.at(-1)?.options.allowedOrigins).toEqual(['http://127.0.0.1:49152']);
     await host.appStop(target);
     expect(() => host.ensureBrowser(target.workspaceId, managed)).toThrow('应用实例已停止');
-    expect(() => host.validateBrowserUrl(running.url)).toThrow();
+    // Ordinary HTTP access does not grant the stopped managed resource an App lease.
+    expect(() => host.validateBrowserUrl(running.url)).not.toThrow();
+    expect(() => host.ensureBrowser(target.workspaceId, managed)).toThrow();
   });
 });

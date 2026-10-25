@@ -4,8 +4,9 @@ import type { EnvironmentDescription, WorkbenchObservationInput, WorkspaceObserv
 import type { WorkbenchCommand, WorkbenchEvent, WorkbenchResult, WorkbenchSnapshot } from './workspace';
 import type { ChatConversation, ChatSlot, ChatStatus } from './chat';
 import type { HarnessProfileId, HarnessProfilesSnapshot, HarnessSelection } from './harness';
-import type { AppInfo, ShellCommand } from './app';
+import type { AppInfo, ShellCommandEvent, NativeBrowserFocus } from './app';
 import type { ExecutionStatus } from './execution';
+import type { NativeMenuChoice, NativeMenuContext, NativeMenuId } from './native-menu';
 
 import type { CatalogAction, ResourceRevision, CatalogReferenceSnapshot } from './resource-catalog';
 export type Unsubscribe = () => void;
@@ -65,6 +66,18 @@ export interface StudioApi {
     getStatus(): Promise<ExecutionStatus>;
   };
   shell: {
-    onCommand(listener: (command: ShellCommand) => void): Unsubscribe;
+    onCommand(listener: (command: ShellCommandEvent) => void): Unsubscribe;
+    /**
+     * 弹出 Main 原生菜单（OPS-1 S5）。只提交菜单类型与身份上下文；菜单内容由 Main 按快照构建。
+     * 返回所选菜单项与 Main 冻结的目标，取消（Esc、点击外部）为 null；非法或过时的上下文被拒绝。
+     */
+    showMenu<M extends NativeMenuId>(menuId: M, context: NativeMenuContext<M>): Promise<NativeMenuChoice | null>;
+    /**
+     * 请 Main 把键盘焦点交回工作台页面（OPS-1 R9）：采集完成并展开接收会话后调用，随后 renderer 再聚焦会话输入框。
+     * 窗口不在前台时不抢焦点，返回 false。
+     */
+    focusWorkbench(): Promise<boolean>;
+    nativeFocus(): Promise<NativeBrowserFocus | null>;
+    restoreBrowserFocus(focus: NativeBrowserFocus): Promise<boolean>;
   };
 }

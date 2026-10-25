@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto';
-import { WebContentsView, BrowserWindow } from 'electron';
+import { createHash, randomUUID } from 'node:crypto';
+import { WebContentsView, BrowserWindow, type WebContents } from 'electron';
 import type {
   CdpState,
   PageCapture,
@@ -13,9 +13,9 @@ import type {
 import { AgentControlLatch } from './app-ui';
 import { readElementSummary } from './element-summary';
 import { clampToViewport } from './geometry';
-import { isAllowedPreviewUrl } from './navigation-policy';
-import { parsePublicUrl, type PublicDocument } from './public-document';
-import { PublicDocumentProtocol } from './public-protocol';
+import { isAllowedPreviewUrl, isBrowserUrl } from './navigation-policy';
+import { acquireBrowserSession } from './browser-session';
+import { MAX_RESOURCE_TEXT_BYTES as MAX_TEXT_BYTES } from '@wsl/protocol';
 
 const CONSOLE_ISSUE_LIMIT = 20;
 const CDP_PROTOCOL_VERSION = '1.3';
@@ -66,9 +66,10 @@ export class PreviewController {
   private navigationEpoch = 0;
   private loadRequestId = 0;
   private nativeNavigation: { done: Promise<void>; superseded: boolean; release: () => void } | null = null;
-  private brokerFailureEpoch: number | null = null;
-  private publicDocument: { document: PublicDocument; epoch: number } | null = null;
-  private readonly publicProtocol: PublicDocumentProtocol;
+  private documentReady = false;
+  private committedUrl: string | null = null;
+  private readonly releaseSession: () => void;
+  private readonly popups = new Set<BrowserWindow>();
   /** 控制面“AI 正在操控/已暂停”展示态；用户输入由本页面的 input-event 判定。 */
   readonly agentControl = new AgentControlLatch(() => this.emitState());
 
@@ -84,33 +85,26 @@ export class PreviewController {
         nodeIntegration: false,
         webSecurity: true,
         spellcheck: false,
+        webviewTag: false,
+        nodeIntegrationInWorker: false,
+        allowRunningInsecureContent: false,
       },
     });
-    let protocol: PublicDocumentProtocol | null = null;
+    let releaseSession: (() => void) | undefined;
     try {
       this.view.setVisible(false);
       this.view.setBackgroundColor('#FFFFFF');
       window.contentView.addChildView(this.view);
-      protocol = new PublicDocumentProtocol(this.webContents.session, {
+      releaseSession = acquireBrowserSession(this.webContents.session, this.webContents.id, {
         allowedOrigins: options.allowedOrigins,
         managedAppOrigin: options.managedAppOrigin,
-        webContentsId: this.webContents.id,
         devToolsWebContentsId: () => (this.devTools?.closing ? undefined : this.devTools?.webContentsId),
-        epoch: () => this.navigationEpoch,
-        onDocument: (document, epoch) => {
-          this.publicDocument = { document, epoch };
-        },
-        onError: (error, url) => {
-          this.brokerFailureEpoch = this.navigationEpoch;
-          this.loadError = { code: -1, description: error.message, url };
-          this.emitState();
-        },
       });
-      this.publicProtocol = protocol;
+      this.releaseSession = releaseSession;
       this.attachListeners();
     } catch (error) {
       try {
-        protocol?.dispose();
+        releaseSession?.();
       } finally {
         try {
           window.contentView.removeChildView(this.view);
@@ -131,9 +125,9 @@ export class PreviewController {
     wc.on('focus', () => {
       if (!this.disposed && this.visible) this.options.onFocused?.();
     });
-    wc.setWindowOpenHandler(() => ({ action: 'deny' }));
+    this.attachWindowPolicy(wc);
     wc.on('will-frame-navigate', (event) => {
-      if (!event.isMainFrame) event.preventDefault();
+      if (!event.isMainFrame && !this.isAllowedFrame(event.url)) event.preventDefault();
     });
     wc.on('did-start-navigation', (event) => {
       if (event.isMainFrame && !event.isSameDocument) this.beginNavigation();
@@ -150,11 +144,9 @@ export class PreviewController {
     wc.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
       // -3（ERR_ABORTED）是被拦截或被新导航取代，单独由 blockedNavigation 说明。
       if (!isMainFrame || code === -3) return;
-      // Chromium 将协议失败归为 ERR_FAILED；保留同次、同地址 broker 给出的具体原因。
-      if (this.brokerFailureEpoch !== this.navigationEpoch || this.loadError?.url !== url) {
-        this.brokerFailureEpoch = null;
-        this.loadError = { code, description, url };
-      }
+      this.documentReady = false;
+      this.committedUrl = null;
+      this.loadError = { code, description, url };
       this.emitState();
     });
     wc.on('render-process-gone', (_event, details) => {
@@ -192,25 +184,86 @@ export class PreviewController {
     if (this.isAllowedNavigation(url)) return;
     prevent();
     this.blockedNavigation = url;
+    // A rejected navigation leaves the existing committed document displayed.
+    this.documentReady = this.committedUrl !== null && this.webContents.getURL() === this.committedUrl;
     this.emitState();
   }
 
   private isAllowedNavigation(url: string): boolean {
-    if (isAllowedPreviewUrl(url, this.options.allowedOrigins)) return true;
-    try {
-      parsePublicUrl(url);
-      return true;
-    } catch {
-      return false;
+    if (this.options.managedAppOrigin) {
+      const origin = this.options.managedAppOrigin();
+      return !!origin && isAllowedPreviewUrl(url, [origin]) && isAllowedPreviewUrl(url, this.options.allowedOrigins);
     }
+    return isBrowserUrl(url) || isAllowedPreviewUrl(url, this.options.allowedOrigins);
+  }
+
+  private isAllowedFrame(url: string): boolean {
+    return (
+      this.isAllowedNavigation(url) ||
+      (!this.options.managedAppOrigin && (['about:blank', 'about:srcdoc'].includes(url) || /^(?:blob|data):/u.test(url)))
+    );
+  }
+
+  private attachWindowPolicy(wc: WebContents): void {
+    wc.on('will-attach-webview', (event) => event.preventDefault());
+    wc.setWindowOpenHandler(({ url }) => {
+      if (this.options.managedAppOrigin || (url !== 'about:blank' && !isBrowserUrl(url))) return { action: 'deny' };
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          parent: this.window,
+          frame: true,
+          titleBarStyle: 'default',
+          autoHideMenuBar: true,
+          webPreferences: {
+            partition: this.options.partition,
+            preload: undefined,
+            sandbox: true,
+            contextIsolation: true,
+            nodeIntegration: false,
+            webSecurity: true,
+            webviewTag: false,
+            nodeIntegrationInWorker: false,
+            allowRunningInsecureContent: false,
+          },
+        },
+      };
+    });
+    wc.on('did-create-window', (popup) => {
+      this.popups.add(popup);
+      const child = popup.webContents;
+      const release = acquireBrowserSession(child.session, child.id, {
+        allowedOrigins: [],
+        devToolsWebContentsId: () => undefined,
+      });
+      const guard = (event: { url: string; preventDefault(): void }) => {
+        if (event.url !== 'about:blank' && !isBrowserUrl(event.url)) event.preventDefault();
+      };
+      child.on('will-navigate', guard);
+      child.on('will-redirect', guard);
+      child.on('will-frame-navigate', (event) => {
+        if (!this.isAllowedFrame(event.url)) event.preventDefault();
+      });
+      const title = () => popup.setTitle(child.getURL() || 'about:blank');
+      child.on('page-title-updated', (event) => {
+        event.preventDefault();
+        title();
+      });
+      child.on('did-navigate', title);
+      child.on('did-navigate-in-page', title);
+      this.attachWindowPolicy(child);
+      popup.once('closed', () => {
+        this.popups.delete(popup);
+        release();
+      });
+      title();
+    });
   }
 
   private beginNavigation(): void {
     this.invalidatePick('页面已导航，点选已取消，请重新开始选择');
     this.navigationEpoch += 1;
-    this.brokerFailureEpoch = null;
-    this.publicDocument = null;
-    this.publicProtocol.invalidate();
+    this.documentReady = false;
     this.loadError = null;
   }
 
@@ -219,7 +272,8 @@ export class PreviewController {
     this.invalidatePick('页面已导航，点选已取消，请重新开始选择');
     this.documentGeneration += 1;
     this.consoleIssues = [];
-    this.brokerFailureEpoch = null;
+    this.documentReady = true;
+    this.committedUrl = this.webContents.getURL();
     this.loadError = null;
     this.blockedNavigation = null;
     if (this.picking) {
@@ -233,7 +287,7 @@ export class PreviewController {
 
   load(): void {
     if (!this.isAllowedNavigation(this.options.homeUrl)) {
-      this.loadError = { code: -1, description: '仅允许演示页面和无凭据的公网 HTTPS 443 文档', url: this.options.homeUrl };
+      this.loadError = { code: -1, description: '仅允许 HTTP、HTTPS 网页或演示页面', url: this.options.homeUrl };
       this.emitState();
       return;
     }
@@ -299,9 +353,9 @@ export class PreviewController {
 
   async navigate(url: string): Promise<void> {
     if (!this.isAllowedNavigation(url)) {
-      throw new Error('仅允许演示页面和无凭据的公网 HTTPS 443 文档');
+      throw new Error('仅允许 HTTP、HTTPS 网页或演示页面');
     }
-    const target = isAllowedPreviewUrl(url, this.options.allowedOrigins) ? url : parsePublicUrl(url).href;
+    const target = url;
     await this.coordinateNavigation(() => this.webContents.loadURL(target));
   }
 
@@ -371,23 +425,86 @@ export class PreviewController {
   async captureResource(expectedPage: PageIdentity): Promise<PageResourceSnapshot> {
     const epoch = this.navigationEpoch;
     const page = this.pageIdentity();
-    const current = this.publicDocument;
-    if (this.disposed || this.webContents.isLoading() || this.loadError || !current || current.epoch !== epoch) {
-      throw new Error('请等待公开文档成功加载后再加入空间；历史页面请先重新加载');
+    if (this.disposed || !this.documentReady || this.webContents.isLoading() || this.loadError || !isBrowserUrl(page.url)) {
+      throw new Error('请等待网页成功加载后再保存正文快照');
     }
+    const matches = (value: PageIdentity) =>
+      expectedPage.webContentsId === value.webContentsId &&
+      expectedPage.documentGeneration === value.documentGeneration &&
+      expectedPage.url === value.url &&
+      expectedPage.title === value.title &&
+      expectedPage.partition === value.partition;
+    if (!matches(page)) throw new Error('页面已经变化，请确认当前文档后重试');
+    // Read visible rendered text only. Form values, password fields and cookies are never serialized.
+    const document = (await this.webContents.executeJavaScriptInIsolatedWorld(999, [
+      {
+        code: `(() => {
+      const parts = [];
+      let remaining = 65540;
+      let truncated = false;
+      const append = (value) => { if (value.length > remaining) truncated = true; const part = value.slice(0, remaining); remaining -= part.length; parts.push(part); };
+      const walk = (node) => {
+        if (remaining === 0) { truncated = true; return; }
+        if (node.nodeType === Node.TEXT_NODE) { append(node.textContent || ''); return; }
+        if (!(node instanceof Element)) return;
+        const style = getComputedStyle(node);
+        if (node.matches('input,textarea,select,script,style,noscript,[contenteditable]:not([contenteditable="false"])') || style.display === 'none' || style.visibility === 'hidden') return;
+        const block = ['block', 'flex', 'grid', 'list-item', 'table-row'].includes(style.display) || node.tagName === 'BR';
+        if (block) append('\\n');
+        node.childNodes.forEach(walk);
+        if (block) append('\\n');
+      };
+      if (document.body) walk(document.body);
+      const text = parts.join('').replace(/[ \t]+/g, ' ').replace(/ *\\n */g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();
+      return {title: document.title, text, truncated};
+    })()`,
+      },
+    ])) as { title: string; text: string; truncated: boolean };
     if (
-      expectedPage.webContentsId !== page.webContentsId ||
-      expectedPage.documentGeneration !== page.documentGeneration ||
-      expectedPage.url !== page.url ||
-      expectedPage.title !== page.title ||
-      expectedPage.partition !== page.partition ||
-      current.document.url !== page.url ||
-      current.document.title !== page.title
-    ) {
+      !document ||
+      typeof document.title !== 'string' ||
+      typeof document.text !== 'string' ||
+      typeof document.truncated !== 'boolean' ||
+      document.text.length > 65540
+    )
+      throw new Error('网页正文采集结果无效');
+    if (
+      this.disposed ||
+      epoch !== this.navigationEpoch ||
+      this.webContents.isLoading() ||
+      !this.documentReady ||
+      !matches(this.pageIdentity()) ||
+      document.title !== page.title
+    )
       throw new Error('页面已经变化，请确认当前文档后重试');
+    const bytes = Buffer.from(document.text);
+    let text = document.text;
+    if (bytes.length > MAX_TEXT_BYTES) {
+      let end = MAX_TEXT_BYTES;
+      while ((bytes[end]! & 0xc0) === 0x80) end--;
+      text = bytes.subarray(0, end).toString('utf8');
     }
-    // 固定模板不运行网页脚本；快照来自实际显示的同一份已校验响应。
-    return { page, ...current.document };
+    return {
+      page,
+      requestedUrl: page.url,
+      url: page.url,
+      title: page.title,
+      text,
+      capturedAt: new Date().toISOString(),
+      sourceSha256: createHash('sha256').update(JSON.stringify(document)).digest('hex'),
+      contentSha256: createHash('sha256').update(text).digest('hex'),
+      extractionVersion: 'host-rendered-dom-text-v1',
+      sourceKind: 'rendered-visible-text',
+      truncated: document.truncated || bytes.length > MAX_TEXT_BYTES,
+    };
+  }
+
+  focusIdentity(): number | null {
+    return !this.disposed && this.visible ? this.webContents.id : null;
+  }
+
+  focused(): boolean {
+    return this.focusIdentity() !== null && this.webContents.isFocused();
   }
 
   focus(): void {
@@ -607,7 +724,8 @@ export class PreviewController {
         tools.release();
       }
     }
-    this.publicProtocol.dispose();
+    for (const popup of this.popups) if (!popup.isDestroyed()) popup.destroy();
+    this.releaseSession();
     if (this.webContents.debugger.isAttached()) this.webContents.debugger.detach();
     this.window.contentView.removeChildView(this.view);
     this.webContents.close();

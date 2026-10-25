@@ -16,6 +16,11 @@ export default tseslint.config(
       'test-results/**',
       'demo/**',
       'docs/design/**',
+      // 原字节验收证据、源码快照与离线基线生成的工作树不属于活跃源码。
+      'docs/acceptance/**/evidence/**',
+      'docs/verification/**/evidence/**',
+      'docs/acceptance/integration-20261008/sources/**',
+      'records/**',
     ],
   },
   js.configs.recommended,

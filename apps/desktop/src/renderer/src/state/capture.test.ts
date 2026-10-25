@@ -2,6 +2,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { WorkbenchSnapshotSchema, type WorkbenchCommand, type PageCapture } from '@wsl/protocol';
 import { captureContext, cancelContextCapture } from './capture';
 import { workspaceStore, projectSnapshot } from './workspace';
+import { statusPresentationStore } from './status-view';
 const page = { webContentsId: 7, documentGeneration: 1, url: 'wsl-demo://taskflow/index.html', title: '网页', partition: 'test' };
 const makeSnapshot = () =>
   WorkbenchSnapshotSchema.parse({
@@ -82,6 +83,7 @@ const capture: PageCapture = {
 let calls: WorkbenchCommand[];
 beforeEach(() => {
   calls = [];
+  statusPresentationStore.set((s) => ({ ...s, hints: [] }));
   workspaceStore.set(() => ({ snapshot: makeSnapshot(), selectedId: 'space', error: null }));
   vi.stubGlobal('requestAnimationFrame', (fn: FrameRequestCallback) => {
     queueMicrotask(() => fn(0));
@@ -109,7 +111,7 @@ beforeEach(() => {
     },
   });
 });
-it('opens the target before capture, and after screenshot completion locates the frozen owner', async () => {
+it('opens the target before capture, and after screenshot completion reports to the frozen owner without jumping to its context view', async () => {
   await captureContext('space', 'owner', 'web');
   expect(calls.map((c) => c.type)).toEqual(['openTab', 'captureContext']);
   const capturing = structuredClone(workspaceStore.get().snapshot!);
@@ -124,7 +126,13 @@ it('opens the target before capture, and after screenshot completion locates the
   completed.workspaces[0]!.sessions[0]!.context = capture;
   completed.workspaces[0]!.sessions[0]!.contextTarget = { kind: 'web', resourceId: 'web' };
   projectSnapshot(completed);
-  await vi.waitFor(() => expect(calls.at(-1)).toMatchObject({ type: 'locateSession', workspaceId: 'space', sessionId: 'owner' }));
+  // OPS-1 S1：完成后不再 locateSession 到「上下文」（F3）。此快照里接收会话没有打开的标签，只在网页状态槽提示（O03b）。
+  await vi.waitFor(() =>
+    expect(statusPresentationStore.get().hints).toMatchObject([
+      { key: 'ui:web:captured', label: '已采集到 owner', locate: { workspaceId: 'space', sessionId: 'owner' } },
+    ]),
+  );
+  expect(calls.map((c) => c.type)).toEqual(['openTab', 'captureContext']);
 });
 it('replacement creates a new request ID and cancellation identifies only that request', async () => {
   await captureContext('space', 'owner', 'web');

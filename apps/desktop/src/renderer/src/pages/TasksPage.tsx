@@ -8,6 +8,7 @@ import { LogView, DiffView, ReportView } from '../workbench/RunViews';
 import { RunDetails, type RunView } from '../workspace/RunDetails';
 import { StatusDot } from '../components/Status';
 import { useStatusViewByKey } from '../state/status-view';
+import { demoEntriesVisible, environmentStore } from '../state/execution';
 
 /** 运行记录行：状态是展示层的形状（中文 label 视觉隐藏），runId 只在悬停里。 */
 function RunRow({ run, goal, onSelect }: { run: WorkbenchRun; goal: string; onSelect: () => void }) {
@@ -27,7 +28,9 @@ export function TasksPage() {
   const [view, setView] = useState<RunView>('log');
   const owner = snapshot?.workspaces.find((w) => w.workspaceId === selection?.workspaceId);
   const run = owner?.runs.find((r) => r.runId === selection?.runId);
-  const demo = DEMO_RUNS.find((r) => r.runId === demoId);
+  // 演示记录与真实历史分开，只在开发服务器或 WSL_DEBUG_STATUS=1 时显示（OPS-1 S4）；真实任务历史不受影响。
+  const showDemo = useStore(environmentStore, demoEntriesVisible);
+  const demo = showDemo ? DEMO_RUNS.find((r) => r.runId === demoId) : undefined;
   return (
     <div className="page-columns">
       <nav className="page-sidebar page-sidebar-wide" aria-label="任务与运行记录">
@@ -71,22 +74,24 @@ export function TasksPage() {
             {!w.sessions.some((s) => s.taskVersions.length) ? <p className="muted">尚无确认的任务。</p> : null}
           </section>
         ))}
-        <details>
-          <summary>演示记录（独立，只读）</summary>
-          {DEMO_RUNS.map((r) => (
-            <button
-              className="conv-row"
-              type="button"
-              key={r.runId}
-              onClick={() => {
-                setDemoId(r.runId);
-                setSelection(null);
-              }}
-            >
-              {r.runId} · 演示记录
-            </button>
-          ))}
-        </details>
+        {showDemo ? (
+          <details>
+            <summary>演示记录（独立，只读）</summary>
+            {DEMO_RUNS.map((r) => (
+              <button
+                className="conv-row"
+                type="button"
+                key={r.runId}
+                onClick={() => {
+                  setDemoId(r.runId);
+                  setSelection(null);
+                }}
+              >
+                {r.runId} · 演示记录
+              </button>
+            ))}
+          </details>
+        ) : null}
       </nav>
       <section className="page-main" aria-label="任务详情">
         {run || demo ? (

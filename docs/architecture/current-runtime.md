@@ -1,5 +1,6 @@
 # 当前运行时与目标架构的边界
 
+本次整合中的 OPS / Browser / Harness 说明描述候选源码接线；链接内既有检查、窗口和 live 记录均为对应日期与来源版本的历史证据，不是本候选的重新验证。当前类型、测试、构建、窗口及验收结果须以本次独立记录为准；虚拟补丁准备不构成运行通过。
 本记录以2026-10-13候选树为基础，后续切片在对应段落更新实际接线；本轮范围、审查修复、验证与未运行项见[当前 PR 说明](../acceptance/consolidation-20261011/PR.md)。[2026-10-11 整合记录](../acceptance/consolidation-20261011/README.md)保留当时的来源去向与验证边界。2026-10-08[INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)和[SR-1](../acceptance/space-remake/SPEC.md)保留各自源码基线与历史窗口证据，历史通过不能替代当前版本复验。
 
 ## 已有能力和缺口
@@ -10,7 +11,7 @@
 - `apps/service` 提供 sbx 会话、guest PTY、捕获适配与只读 MCP；账户资源目录由 Main 单点写入；`guest-browser-bridge.ts` 与 `guest-browser.cjs` 是隔离浏览器采集切片，尚未完成生产 UI 挂载验证。
 - `packages/protocol` 是跨进程schema来源；空间操作经workbench命令，旧空间/预览/运行/资源/终端renderer控制器随消费者迁移退役。个人会话仍使用窄chat接口。
 - `tests/vertical-slice`、`fixtures/vertical-slice/page` 与 [VS001](../acceptance/README.md) 保留 main 的固定验收与负例。`src/vertical-slice/adapter.ts` 已复用 sbx/Codex、Vite 和产品 Browser 接入冻结契约；[本轮记录](../acceptance/integrated-app-installer-public-20261009/README.md)区分最终整合验证与历史离线验证。
-- 空间元数据、草稿、任务版本、历史运行与阅读回执可以恢复；重启不重放任务和PTY。空间运行、取消、检查与审阅为独立事实；独立检查器尚未接入时明确blocked，不能接受结果。
+- 空间元数据、草稿、任务版本、历史运行与阅读回执可以恢复；重启不重放任务和PTY。空间运行、取消、检查与审阅为独立事实；独立检查器尚未接入，不能接受结果。OPS-1 S3（B4 已实施，见文末）起由 Main 发布检查器能力与结构化未接入原因：未检查的运行显示中性的“检查器未接入”，界面不提供“运行检查”；`runValidation` 命令本身未变，仍记录 blocked。接受门槛不变。
 - 固定母模板与受管App第一工作包已接入，见下文；priority业务API、C1–C3完整固定验收及独立报告产物仍有缺口；标准 App 的任务源码证据与真实 diff 读取已接线，见[源码证据合同](../plans/2026-10-15-p0-run-diff.md)，当前测试与产品验收仍须分别确认；VS001 adapter 的代码接入不能替代真实五项复验。独立文件、终端观察和SSH/SFTP Provider、Main/MCP及空间界面已接入，验收仍按本轮阶段记录判断；Provider单元测试不证明可见功能或生产远端验收。演示页面和历史记录不能当作真实闭环证据。
 
 ## 现有契约与目标约束的协调
@@ -29,21 +30,21 @@
 
 ## 4. Electron 安全基线
 
-当前 Browser 区承载演示页面、受控公开 HTTPS 只读文档和当前空间受管沙箱应用，统一按不可信内容处理。应用运行地址须经服务身份健康检查和 Main 实例租约授权，以下隔离边界保持不变。
+当前 Browser 区承载演示页面、原生 HTTP/HTTPS 网站和当前空间受管沙箱应用，统一按不可信内容处理。[BROWSER-1](../acceptance/full-browser-20261023/SPEC.md) 按用户授权替代普通网页的只读文档模式；受管 App 控制面仍须服务身份健康检查和 Main 实例租约授权。本轮验证范围见[记录](../acceptance/full-browser-20261023/README.md)。
 
 ### 4.1 窗口与视图配置
 
-| 配置                   | 工作台 renderer  | Browser 区视图                                                                                                                           |
-| ---------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `contextIsolation`     | `true`           | `true`                                                                                                                                   |
-| `sandbox`              | `true`           | `true`                                                                                                                                   |
-| `nodeIntegration`      | `false`          | `false`                                                                                                                                  |
-| `webSecurity`          | `true`           | `true`                                                                                                                                   |
-| preload                | 仅工作台 preload | **无**                                                                                                                                   |
-| session                | 默认 session     | 独立内存分区 `preview-<workspaceId>-<instanceId>`，与工作台隔离                                                                          |
-| 权限请求               | 默认拒绝         | 默认全部拒绝                                                                                                                             |
-| `window.open` / 新窗口 | 拒绝             | 拒绝                                                                                                                                     |
-| 导航                   | 只允许本应用页面 | 当前允许 `wsl-demo://taskflow`；用户授权的公开 HTTPS 采用下述只读文档代理路径。受管沙箱应用仅注册本次实例的精确回环 origin，停止立即撤销 |
+| 配置                   | 工作台 renderer  | Browser 区视图                                                                                                 |
+| ---------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| `contextIsolation`     | `true`           | `true`                                                                                                         |
+| `sandbox`              | `true`           | `true`                                                                                                         |
+| `nodeIntegration`      | `false`          | `false`                                                                                                        |
+| `webSecurity`          | `true`           | `true`                                                                                                         |
+| preload                | 仅工作台 preload | **无**                                                                                                         |
+| session                | 默认 session     | 普通网页按空间共享独立持久分区，弹窗沿用该分区；受管 App 使用实例独立临时分区，与工作台隔离                    |
+| 权限请求               | 默认拒绝         | 默认全部拒绝                                                                                                   |
+| `window.open` / 新窗口 | 拒绝             | 普通网页允许应用内受控子窗口，保留 opener；子窗口无 preload，显示真实来源并继承隔离策略；受管 App 仍拒绝新窗口 |
+| 导航                   | 只允许本应用页面 | 普通网页允许 HTTP/HTTPS，保留 hash；拒绝文件与外部程序协议。受管 App 仅允许当前实例的精确 origin，停止立即撤销 |
 
 其他要求：
 
@@ -59,7 +60,7 @@ preload 只暴露以下几类能力，请求一律使用 `ipcRenderer.invoke`，
 - workbench：读取/重载快照、列出环境、请求观察、提交具名命令、订阅事件；空间网页、PTY、资源和任务均经此入口。
 - 应用信息与执行服务状态（只读）。
 - 个人对话：查询CLI状态、读取/发送/取消/重置个人会话，订阅会话快照与不可用状态；空间会话由Main工作台管理。
-- 菜单命令事件（例如 ⌘B 切换整组左栏）。
+- 菜单命令事件（例如 ⌘B 切换整组左栏），位于 `window.studio.shell.onCommand`；原生菜单请求位于同一 `shell` 下的 `showMenu`（OPS-1 B2 已实施，通道 `shell:show-menu`），采集展开后的焦点交回位于 `shell.focusWorkbench`（OPS-1 B3 已实施，通道 `shell:focus-workbench`），顶层仍为 `setup`、`workbench`、`chat`、`app`、`execution`、`shell` 六个键，见文末。
 - 不暴露旧的单预览/单终端/公开资源renderer写接口，也不暴露任意IPC通道或宿主文件路径执行器。
 
 main process 对每个 IPC 请求做两项检查：
@@ -102,9 +103,11 @@ Codex 首轮使用 `exec --json`，续轮显式 `exec resume <threadId>`，采�
 
 Main 的 `resource-catalog` 管理本地账户拥有的资源、主动收藏、空间连接和不可变内容版本。账户身份在首次初始化时创建并持久化，renderer 不能指定所有者。`WorkbenchResource.resourceId` 继续标识原空间运行绑定，`catalogResourceId` 指向账户资源；标签和运行实例保留独立生命周期。文档分类目前提供已有授权环境的文件入口收藏与重开；浏览目录是展示状态，不自动写账户描述，本轮不含将任意当前文件另存为收藏、文件导入或正文归档。页面实现及本轮验证边界见[资源归属验证记录](../acceptance/resource-ownership-20261010/README.md)。
 
-`workbench.json` schema 4 同时保存工作台、空间 App 描述和账户目录，完整格式、摘要和关系校验通过后原子替换。schema 1/2/3 及旧 `chat/space-resources.json` 仅作迁移来源：旧工作台另存不可覆盖的备份，旧资源文件原样保留；带 catalog 的 schema 3 保持原账户、收藏、连接及版本；空间 App 分支的无 catalog schema 3 以每个空间显式合法的 app 字段识别，保全 App 元数据与 publicResources 后按既有规则迁移目录。缺少这组来源标记的损坏文件拒绝迁移。App 元数据迁移不启动实例；损坏或未来格式拒绝覆盖。正常 schema 4 重启不因读取而额外保存。
+`workbench.json` schema 5 同时保存工作台、空间 App 描述和账户目录，完整格式、摘要和关系校验通过后原子替换。schema 1/2/3/4 及旧 `chat/space-resources.json` 仅作迁移来源：旧工作台另存不可覆盖的备份，旧资源文件原样保留；带 catalog 的 schema 3 保持原账户、收藏、连接及版本；空间 App 分支的无 catalog schema 3 以每个空间显式合法的 app 字段识别，保全 App 元数据与 publicResources 后按既有规则迁移目录。缺少这组来源标记的损坏文件拒绝迁移。App 元数据迁移不启动实例；损坏或未来格式拒绝覆盖。正常 schema 5 重启不因读取而额外保存。schema 5 由 OPS-1 B1 引入，字段与迁移见文末“简化操作”的持久化条目。
 
-公开页面仍使用受控 HTTPS 获取与只读文档路径：Main 校验 DNS 地址与每次跳转的公网范围，固定已验证 IP 并校验证书，只把转义标题和正文放入固定模板。原站脚本、属性、样式、Cookie 和子资源不进入 Browser。收藏 HTTP/HTTPS 链接只保存描述，不访问网络；实际打开和正文捕获继续服从现有能力限制。
+普通网页使用 Chromium 原生网络与渲染，支持网站脚本、样式、图片、frame、表单、fetch、WebSocket 和 Cookie；不经过旧 Node HTTPS 文档代理，不再承诺仅公网 443、DNS 固定 IP 或只读请求。原生证书、同源和混合内容约束保持启用，网页不继承宿主 API；权限默认拒绝，下载不开放。同空间普通网页共享持久 session，跨空间与受管 App 隔离。收藏 HTTP/HTTPS 链接仍只保存描述，不访问网络。
+
+“保存正文快照”在用户明确操作时读取实际页面的可见正文与标题，检查加载状态、页面身份和导航代次，拒绝失效结果；不读取 Cookie、密码框或其他表单输入值。正文保持 64 KiB 预算及截断标记。新的宿主 DOM 来源与历史 `html-text-v1` 网络响应来源分别标记，不把 DOM 文本散列写成 HTTP 响应字节散列。Guest 捕获的独立来源与原有权限合同不变。
 
 账户命令使用独立目录 revision 与幂等 commandId。收藏、连接、打开、捕获正文、选择参考、关闭标签、停止实例和解除连接分别执行。捕获由 Main 核对真实页面身份并追加版本；浏览器从 A 导航到 B 后保存的内容不会覆盖 A。列表事件只含摘要，正文和历史运行的固定引用按需查询。旧 service `ResourceStore` 及空间集合写入接口退役，不保留第二个写入者。
 
@@ -138,7 +141,7 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 
 `templates/standard-app` 是唯一工程母模板，React/TS/Vite、Node/Hono、Drizzle/PGlite、Zod 与 Tailwind 使用独立 npm 锁与版本内容哈希。空白起点只包含健康检查、数据库迁移、开发 A/B 会话与隔离的存储探针，不包含 TaskFlow 业务。正式服务由 Hono 单端口提供构建后的页面和 API，开发命令仍保留 Vite。
 
-空间侧栏顶部的 App 图标打开创建与管理对话框，通过现有 workbench 命令提交 createApp/updateApp/startApp/stopApp/exportApp；原侧栏底部“标准应用”区域移除。Main 唯一拥有 workspace/project/App 快照。空间 App 描述持久保存稳定 appId、projectId、名称、说明和 revision；编辑带版本条件且不调用运行时。任务版本固定 App/project/guestCwd 及完整非截图页面/元素上下文，执行前校验身份及组合 prompt 的 32000 字符预算；旧任务缺少绑定时不猜测当前焦点。独立 Node 服务中的 AppService 复用 SbxConnection/GuestProcess 管理持久 guest cwd，应用进程不归单轮 Codex 清理。实际 guest PORT=0 分配端口，服务验证同一 child 的 ready 身份、端口回执与健康身份后，Main 仅给对应 Browser 资源授予当前 origin 的写请求能力。公开文档仍只读，其他 webContents 不能复用授权。
+空间侧栏顶部的 App 图标打开创建与管理对话框，通过现有 workbench 命令提交 createApp/updateApp/startApp/stopApp/exportApp；原侧栏底部“标准应用”区域移除。Main 唯一拥有 workspace/project/App 快照。空间 App 描述持久保存稳定 appId、projectId、名称、说明和 revision；编辑带版本条件且不调用运行时。任务版本固定 App/project/guestCwd 及完整非截图页面/元素上下文，执行前校验身份及组合 prompt 的 32000 字符预算；旧任务缺少绑定时不猜测当前焦点。独立 Node 服务中的 AppService 复用 SbxConnection/GuestProcess 管理持久 guest cwd，应用进程不归单轮 Codex 清理。实际 guest PORT=0 分配端口，服务验证同一 child 的 ready 身份、端口回执与健康身份后，Main 仅给对应 Browser 资源授予当前 origin 的写请求能力。该租约只授权受管实例与 Agent 控制面，普通网页使用独立的原生浏览 session，不能复用 App 控制面身份。
 
 停止先在 guest child 仍存活时核验并删除自己的 loopback 映射，再关闭进程并等清理回执；VM重启导致映射变化或回执缺失时保留未知状态，禁止猜测清理其他映射。注册表绑定真实 sandbox 名称，只恢复项目描述，不自动重放服务。AppService 对所属 child 的正常完成与拒绝分别处理：拒绝不视为退出或远端清理确认，启动的端口与健康等待后重新核对进程连续性；停止在端口查询返回后再次核对，未知时不删除可能重绑定的映射。异常退出的清理、持久化和同步/异步快照发布组成同一收尾，停止等待其结束，收尾期间拒绝新启动、导出和控制面派发；迟到旧 child 结果不能修改新实例。收尾失败保持可查询的失败状态；持久化或通知失败不改写已确认的实际清理结果，未知清理仍阻止新派发。上述生命周期收尾、清理及异步通知失败的累计诊断，对每个新原因保留前 1000 个 UTF-16 code unit、累计保留最新 4000 个（沿用启动诊断预算）；该限制不覆盖创建失败和 CLI 结果等其他错误写入路径，也不是协议的统一长度限制。诊断截断不改变清理事实或占用。有限 helper 的关闭拒绝可显式重试停止，不将状态卡在 stopping。创建/启动和依赖导入的非等待通知只接收所属快照的异步发布失败，不延迟原派发，也不因通知失败改写进程或清理事实；同步发布抛错仍沿原调用链处理。首次准备执行 seed，普通重启只迁移、检查和构建，磁盘 dataDir 保持。源码导出需停服确认，输出实际完整源码目录和同级 manifest，不混入运行数据或 node_modules。标准 App 导出在协议、service 与 helper 间固定为最多 256 个文件、524288 字节解码内容，不接受 profile 或预算覆盖；helper 按剩余预算加一有界读取。Desktop 在创建目录前核验全部输入、编码、哈希、预算及路径冲突（含大小写、NFC 与父目录别名），在已验证的 macOS 上按最近存在祖先解析的实际完整路径（含 manifest 后缀与 NUL）核验 1024 字节系统上界，拒绝导出根符号链接，保留原路径、0700 目录及 0600 文件；这些输入检查不保证磁盘 I/O 失败的事务性，也不承诺对抗并发目录替换或完整模拟 APFS 排序规则。
 
@@ -148,7 +151,7 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 
 安装器配置与应用服务共用一个 `SbxConnection`；`runtimeTarget()` 只返回已初始化的 binary/sandbox，App 导入和端口操作不另行搜索 PATH。显式空配置保持不可用，不回退环境变量。Main 从包内 `runtime/dependencies.json` 派生只读模板依赖配置，校验模板源码、独立锁与归档后传给执行服务。损坏载荷在原设置页显示错误并禁止 sandbox 连接。模板存于包内 `templates/standard-app`，Linux ARM64/glibc 依赖包存于 runtime；归档准备审计实际 ELF、外来平台、必需 native 模块和执行位，并收集依赖许可。
 
-窗口退出分别尝试安装操作与工作台服务清理；服务内部先逐项尝试受管应用清理，再尝试对话与环境资源清理，单一失败不会跳过其他所有者。成功后等待 Main 持久化队列回执再关闭。清理失败或等待超过 30 秒时，原生对话框显示具体原因，提供“重试清理”“取消退出”“仍然退出”，默认取消；取消保留窗口，但服务已进入关闭状态，不能继续新操作。超时不代表清理停止，重试等待在途尝试；实际失败后可重新尝试。只有明确选择“仍然退出”才允许未确认时退出本地应用，提示未确认进程可能继续运行，不把清理状态改成成功。异常注册表保留原文件并报错，不自动迁移或丢弃历史资源；持久化使用已验证的非空 sandbox 身份。实现与回归证据见[退出问题验证](../verification/2026-10-10-shutdown.md)。公开只读 origin 和受管 App 可写 origin 仍分别按精确实例 lease 校验。
+窗口退出分别尝试安装操作与工作台服务清理；服务内部先逐项尝试受管应用清理，再尝试对话与环境资源清理，单一失败不会跳过其他所有者。成功后等待 Main 持久化队列回执再关闭。清理失败或等待超过 30 秒时，原生对话框显示具体原因，提供“重试清理”“取消退出”“仍然退出”，默认取消；取消保留窗口，但服务已进入关闭状态，不能继续新操作。超时不代表清理停止，重试等待在途尝试；实际失败后可重新尝试。只有明确选择“仍然退出”才允许未确认时退出本地应用，提示未确认进程可能继续运行，不把清理状态改成成功。异常注册表保留原文件并报错，不自动迁移或丢弃历史资源；持久化使用已验证的非空 sandbox 身份。实现与回归证据见[退出问题验证](../verification/2026-10-10-shutdown.md)。受管 App 的网络与控制面继续按精确实例 lease 校验；普通网页不使用该租约，其会话与权限边界见 BROWSER-1。
 
 ## 受管 App 控制面（2026-10-11 阶段 A）
 
@@ -178,3 +181,16 @@ Main 持久化未决操作，service journal 与 guest staging / 原子发布 / 
 R5 edu 导出保留 main 已合入的线性有界编码检查、NFC/大小写路径别名、文件/目录冲突和 UTF-8 完整路径预检。输出实际源码字节、实际文件清单和不可变 importBase；标准 App 的原输出布局不变。只有 `admin/src/` 差异允许，其他来源文件增删改必须重新导入。
 
 本片不接 edu 模型候选、任务写回或发音验证；Main、service 和 UI 明确拒绝相应任务入口。Mota/R6 权限、保存、撤权和攻击防护仍须作为后续完整切片；research 与纯模块化整理未迁移。离线 fixture 覆盖不代表真实 guest、真实模型、已安装应用或用户产品验收；实际执行结果随候选提交单独记录。
+
+## 简化操作（OPS-1 合同，实施中）
+
+以下是 [OPS-1](../acceptance/simplify-ops-20261022/SPEC.md) 定稿的接口约定（基线 `fe3684f`）。标“已实施”的条目已在代码中落地并按实际接线描述，检查命令与 E2E 结果见执行记录，原生窗口核验见执行记录；未标注的条目尚未实现，不能据此报告已实现。
+
+- 原生菜单（B2 已实施）：`window.studio.shell` 增加具名窄接口 `showMenu(menuId, context)`，顶层键不变；协议在 `packages/protocol/src/native-menu.ts`，invoke 通道 `shell:show-menu`。`menuId` 为固定枚举（`tab`、`pane`、`run-records`、`web-more`、`capture-receiver`、`new-tab`），上下文是按菜单区分的严格 schema，只含身份（空间、标签 / 窗格 / 会话 / 网页资源，采集菜单另有当前接收会话或 `null`）与可选锚点矩形；preload 先按协议收窄，Main 在边界按第 4.2 节核对来源并重新解析。`main/native-menu.ts` 的 `NativeMenuService` 读取 Main 快照，核对空间存在且为活动空间、身份属于该空间（他空间为 `denied`，未知为 `not_found`，均不显示菜单），菜单文字、条目与禁用状态（首末标签不能上 / 下移、无分组不能移出、已显示标签不能再在旁边打开、四窗格时不能分屏、单窗格不能平均分割或关闭、网页无实例或加载中不能保存正文快照；采集接收者菜单只列标签仍打开的会话并以单选标出当前接收者，B3 起选择不开始采集，条目不随网页状态禁用）都来自快照；生产宿主 `main/menu.ts` 的 `nativeMenuHost` 以 `Menu.popup({ window, x, y, callback })` 展示。菜单按 Main 的当前快照构建，不等待命令队列（renderer 请求前已等完自己对该空间的待决命令，冻结版本随后若变化，执行时仍以版本冲突拒绝）；每个窗口同时至多一个菜单，未决时的再次请求以 `conflict` 拒绝；窗口关闭、工作台页面重新加载或导航、renderer 进程退出时关闭仍打开的菜单并以 `null` 结束请求。运行记录菜单可带当前视图提示 `current`，只用于以单选项标出当前项。结果为协议固定的 `itemId` 与 Main 冻结的目标（排序与布局类菜单另带构建时的空间版本），取消为 `null`：结果由菜单项 `click` 决定，关闭回调经 `setTimeout(0)` 延后一个 tick 才判定取消，结果只决定一次，禁用项的 `click` 不产生选择；位置为锚点左下角并限制在窗口内容区内（键盘打开时锚点是焦点元素矩形，鼠标与右键为指针位置）。菜单不执行业务：renderer（`state/native-menu.ts`）把选择变成既有 workbench / 资源命令，使用冻结目标中的空间而不是当前活动空间，排序与布局动作带冻结版本以触发版本冲突，只影响展示的动作（打开表单、切换视图、设定接收者、打开会话）在空间已切换或切换进行中时丢弃，迟到的业务动作不打断进行中的空间切换；同一时刻只等待一个菜单；⋯ 的保存或接收者菜单的新建会话进行中，对应触发器禁用。迁移的菜单不进入原生网页遮挡集合，其触发器不算临时侧栏的外部点击。E2E 经 `electronApp.evaluate` 替换 Main 的 `Menu.prototype.popup` 记录菜单并触发菜单项（`e2e/helpers.ts`），产品代码没有对应路径或环境变量；系统菜单外观与打开期间的真实窗口截图另行核对。
+- 点选与发送（B3 已实施，S1 / S2 的界面部分）：网页工具栏「选择元素」经 `state/capture.ts` 的 `toggleCapture` 一步发起 `captureContext`，进行中再次触发、工具栏内 Esc 或状态槽「取消采集」经 `cancelCapture` 取消（本工作台没有对应请求而 Main 仍在选择时发 `browserAction cancelPick`）；同一网页发起尚未得到回执时的重复触发被忽略。默认接收者由 `state/capture-receiver.ts` 的纯函数决定：显式选择（仅本次运行）> 进行中请求冻结的接收者 > 同屏（当前布局某窗格）最近活动、都无活动时按窗格顺序 > 本空间最近活动 > 发起时自动新建；只有标签仍打开的会话是候选。最近活动是本设备展示偏好（`localStorage` 键 `wsl-session-activity-v1`，每空间至多 50 个会话，读写失败登记界面错误），不进入 Main 持久化。自动新建与接收者菜单「新建会话」都用 `createTab { kind: 'session', title: '{网页标签标题} · 会话', activate: false }`：`activate` 是 `createTab` 新增的可选布尔（缺省 true，严格 schema 校验），为 false 时 Main 只新建标签、不改布局与活动窗格。R8：自动新建的标记只在该次请求的 renderer 状态里，采集取消 / 失败且会话仍未使用（无消息、草稿、任务版本、运行、证据）时 `closeTab`（不算用户导航）；没有移除会话的命令，会话留在后台资源。Main 在 `onCapture` 写入结果的同一次更新中把 `taskTargetRef` 设为该网页（修正 F3a）；之后 `saveTaskTarget` 改选文件 / 终端 / SSH 或移除引用（`null`）替换它，采集证据与工程开关不变。完成且导航令牌仍有效、空间与空间页未变、非窄窗（<1080px）且非专注模式时按 `decideExpansion` 展开：可见 → `focusPane`；空窗格 → `focusPane` + `activateTab`；未满四窗格 → 在源网页窗格旁 `splitPane(horizontal, tabId)`；命令都带决定时的空间版本且 `navigate: false`，被拒绝时改为提示。否则只在网页状态槽提示通道登记 hint「已采集到 {会话}」及动作 `session.open`（`StatusActionId` 新增，展示层用；「打开」= `locateSession` 到对话视图）。展开成功后 renderer 调用 `window.studio.shell.focusWorkbench()`（invoke 通道 `shell:focus-workbench`，无参数，`NoArgs` 校验，来源照常核对；Main 在窗口未销毁且 `isFocused()` 时 `webContents.focus()` 并返回 true，否则不抢焦点返回 false），返回 true 且仍未导航才聚焦接收会话输入框（R9）；`window.studio` 顶层仍为六个键，`shell` 为 `onCommand`、`showMenu`、`focusWorkbench`、`nativeFocus`、`restoreBrowserFocus`。会话的「任务」视图删除“修改目标”、附加目标下拉、「采集目标元素」与「确认任务」，版本卡按钮为「重新运行」（`startRun` 原版本）；输入框上方为默认折叠的「任务设置」（范围、验收经 `saveTaskCriteria`，文件 / 终端 / SSH 目标经 `saveTaskTarget`，W4 执行 Agent 经 `setSessionHarness`）与引用标签、工程开关；「发送」是唯一的 `confirmTask` + `startRun` 入口，先等待草稿、目标与工程开关的待决保存。
+- 快捷键：`ShellCommand` 在现有 5 项之外增加新建网页、关闭标签、关闭窗口、按序激活标签、命令面板、选择元素、左右分屏与取消运行；加速键先确认 `BrowserWindow.getFocusedWindow()` 是本窗口，⇧⌘W 显式覆盖默认的关闭窗口项。⌘Enter 与 Esc 只在 renderer 处理。
+- 持久化（B1 已实施）：`workbench.json` schema 4 → 5（`main/workbench/repository.ts`）。schema 5 显式写出 W4 的会话 `harnessSelection`、会话工程选择 `taskProject: { appId, projectId } | null`、工程开关是否已有决定 `taskProjectDecided: boolean` 与标签 `autoTitle: boolean`；缺任一字段或会话带未知字段的 schema 5 文件视为损坏，不以默认值补齐或丢弃；schema 4 文件携带标签 `autoTitle` 或会话 `taskProject` / `taskProjectDecided` 同样拒绝。schema 1–4 迁移时旧会话 `taskProject` 为 `null`、`taskProjectDecided` 为 `false`（未决定），旧标签 `autoTitle` 为 `false`（手动标题）；`harnessSelection` 与历史任务版本（含已冻结的 `appTarget`）原样保留，不从页面、App 或任务文字推断、回填。旧版本原始字节先写入不可覆盖的只读备份（`workbench.json.legacy-schema-4.json` 等，`wx` + 0400 + fsync），再写 `.pending`、fsync 后原子替换；已有备份与来源字节不一致时拒绝迁移（`conflict`，提示原文件未改动、需移走或核对该备份），原文件与已有备份都不改动。未知较新版本（6 及以上）拒绝加载，保存也不会覆盖。恢复校验另要求：`taskProject` 非空时 `taskProjectDecided` 为 true；只有网页标签可以 `autoTitle: true`。显式命名标签为 `autoTitle: false`；快捷新网页启用 `autoTitle: true`，显示标题跟随页面标题，手动重命名后关闭。
+- 工程开关（B1 已实施）：会话草稿的工程选择与页面引用（`context` / `taskTargetRef`）分开保存。`saveTaskProject { sessionId, appId: uuid | null }`：Main 核对 `appId === w.app.appId`（会话须属于命令所在空间，否则 `denied`；他空间或不存在的 appId 为 `conflict`），保存 `{ appId, projectId }` 并记为已决定；renderer 不能提交路径或 App 对象（严格 schema 在 IPC 边界拒绝多余字段）。首次成功采集本空间受管 App 页面时，若会话尚未决定，Main 在写入采集结果的同一次更新中开启工程并记为已决定；用户显式开启或关闭后（包括重启后）再次采集不改变开关。普通网页采集与 `saveTaskTarget(null)`（移除引用）不改变工程。会话输入框上方显示「工程：{App 名}」与移除按钮，关闭后显示“未选择工程”与「开启工程：{App 名}」，空间没有 App 时只显示“未选择工程”；发送前 renderer 先等待尚未返回的开关切换，并按最新投影提交。
+- 任务确认（B1 已实施）：`confirmTask` 必填 `appId: uuid | null` 与 `captureId | null`，`startRun` 仍只接收任务版本身份。`captureId` 必须等于本会话当前采集（属于他会话为 `denied`，过期或未知为 `conflict`），且目标必须是该采集的网页（否则 `invalid_input`）；网页目标必须带当前有效的 `captureId`，不能静默沿用会话采集（`conflict`）。`appId` 不等于本空间 App 时 `conflict`；`appId` 与会话保存的工程开关不一致时 `conflict`“工程开关已变化”；引用受管 App 页面却未开启工程时 `conflict`“引用的是 App 页面，需要开启工程或移除引用”；App 存在但 `managedApp.guestCwd` 为空时 `conflict`“App 尚未启动”；`guestCwd` 不是该工程在受管工作区中的目录（`/home/agent/workspace/.wsl-apps/{projectId}`）时 `denied`。被拒绝的确认不产生任务版本、写入登记或持久化变化，草稿不变。通过后冻结 `appTarget`（App 描述 + `guestCwd`）与页面证据；工程只来自 `appId`。有工程、无页面（或工程 + 普通网页 / 终端 / 文件目标）的版本与带 App 页面的版本一样在 `startRun` 登记项目写入（同项目执行互斥）、采集源码 baseline 并在结束后生成 diff。`startRun` 在任何副作用前拒绝（`conflict`）：冻结工程的 appId / projectId / guestCwd 与当前不一致（“任务 App 工程身份已失效”）；App 启动或停止进行中；重启时 App 恢复未经服务确认（持久化的 guestCwd 不作为依据，直到服务再次报告该 App）；引用受管 App 页面却没有冻结工程的历史版本（不从页面补推工程）。Profile 忙在创建执行前拒绝，不留下项目写入登记；未登录在启动准备时记录失败，不切换 Profile。恢复校验允许“有工程、无页面”及工程 + 其他目标；若目标是受管 App 页面须属于同一工程；冻结的 `guestCwd` 必须是该工程的受管目录；会话 `taskProject` 须属于本空间 App。重新运行已确认版本使用其冻结的工程，不随草稿开关变化。
+- 检查器能力（B4 已实施）：Main 经 `execution:get-status` 的 `ExecutionStatus.checker` 发布（不持久化，不进入 `workbench.json`）：`{ connected: true }` 或 `{ connected: false, reason: 'not_integrated' }`，当前恒为后者；它与 `runValidation` 写入的记录同源（`main/workbench/checker.ts`）。共享事实层只把“未接入 + `not_run`”映射为中性稳态“检查器未接入”，且不再产出“检查适用性未知”；运行中照旧为进行中，实际失败、失效与其他 `blocked`（含只有原因文字的历史记录）照旧，仍为问题。能力尚未读取时按原映射呈现，界面也不提供“运行检查”。`recordReview(accepted)` 仍要求 `passed` 且 `current`，没有 `accepted_unchecked`。
+- 未接入入口（B4 已实施）：`app:get-info` 的 `AppInfo.diagnostics` 与诊断通道同一判定（开发服务器或 `WSL_DEBUG_STATUS=1`，只在 Main）。为 false 时首页只有对话与近期空间，会话页没有“联系人与群聊”，任务页没有“演示记录”，通知栏没有“历史演示动态”；真实历史、观察结果与 W4 Harness / Profile 设置不受影响。renderer 不读环境变量，也不从 `studio.debug` 推断。

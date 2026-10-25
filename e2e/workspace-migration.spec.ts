@@ -1,5 +1,16 @@
 import { expect, test, type ElectronApplication } from '@playwright/test';
-import { ensureForeground, launchApp, openBrowserMenu, setWindowSize, workspaceSnapshot, workshopNavigate, target } from './helpers';
+import {
+  ensureForeground,
+  launchApp,
+  openBrowserMenu,
+  openNewTabForm,
+  paneMenu,
+  setWindowSize,
+  tabMenu,
+  workspaceSnapshot,
+  workshopNavigate,
+  target,
+} from './helpers';
 
 const fixture = new URL('./fixtures/sbx.mjs', import.meta.url).pathname;
 
@@ -47,7 +58,7 @@ test('R1 可见导航进入真实任务历史，查看日志/diff/报告不执�
 test('R2 通信栏菜单控制通知，独立专注入口控制布局', async () => {
   const { app, page } = await launchApp();
   try {
-    await page.getByRole('button', { name: '左右分屏', exact: true }).click();
+    await paneMenu(app, page, '左右分屏');
     expect(await menu(app, '显示或隐藏通知')).toBe('CmdOrCtrl+Alt+B');
     await expect(page.getByRole('region', { name: '通知' })).toBeVisible();
     await expect(page.locator('[data-pane-id]:visible')).toHaveCount(2);
@@ -71,8 +82,7 @@ test('R1 通知定位后台同一运行，打开与已读分离且重启保持�
     await session.getByRole('textbox', { name: '会话消息', exact: true }).fill('[delayed-complete] notification-owner-742');
     await session.getByRole('button', { name: '发送', exact: true }).click();
     await expect(session.getByRole('button', { name: '取消回复' })).toBeVisible();
-    await page.getByRole('button', { name: 'Agent 会话操作' }).click();
-    await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）' }).click();
+    await tabMenu(app, page, 'Agent 会话', '关闭标签（保留后台执行）');
     await workshopNavigate(page, '首页');
     await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('completed');
     const before = (await workspaceSnapshot(page)).workspaces[0]!.runs;
@@ -128,9 +138,9 @@ test('R4 单窗格窄窗从网页关联会话并采集', async () => {
   try {
     await setWindowSize(app, 900, 700);
     await expect(page.locator('[data-pane-id]:visible')).toHaveCount(1);
-    await openBrowserMenu(page, '采集到会话');
-    await page.getByLabel('关联会话').selectOption({ label: 'Agent 会话' });
-    await page.getByRole('button', { name: '采集到关联会话', exact: true }).click();
+    // 接收者原生菜单（OPS-1 S1）选定 Agent 会话；「选择元素」一步发起采集。
+    await openBrowserMenu(app, page, '接收会话', 'Agent 会话');
+    await page.getByRole('button', { name: '选择元素', exact: true }).click();
     await expect(page.getByRole('button', { name: '选择中 · Esc 取消' })).toBeVisible();
     // Native contents receive input, rather than clicking the renderer placeholder.
     const web = (await workspaceSnapshot(page)).workspaces[0]!.resources.find((r) => r.kind === 'web')!;
@@ -145,6 +155,9 @@ test('R4 单窗格窄窗从网页关联会话并采集', async () => {
       contents.sendInputEvent({ type: 'mouseUp', ...point, button: 'left', clickCount: 1 });
     }, web.preview!.page.webContentsId);
     await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.context).not.toBeNull();
+    // 窄窗：不改布局，只在网页状态槽提示（OPS-1 S1 / O04a）。
+    await expect(page.locator('.workspace-browser:visible .status-slot').getByText('已采集到 Agent 会话')).toBeVisible();
+    await expect(page.locator('[data-pane-id]:visible')).toHaveCount(1);
   } finally {
     await app.close();
   }
@@ -158,9 +171,8 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
   let lastFrontend: unknown = null;
   let reopenMode: 'after-destroyed' | 'on-window-closed' | null = null;
   try {
-    await page.getByRole('button', { name: '左右分屏', exact: true }).click();
-    await page.getByRole('button', { name: '新建标签', exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: '新建标签' });
+    await paneMenu(app, page, '左右分屏');
+    const dialog = await openNewTabForm(app, page, '网页');
     await dialog.getByLabel('名称').fill('第二网页742');
     await dialog.getByRole('button', { name: '保存', exact: true }).click();
     await expect(dialog).not.toBeVisible();
@@ -236,8 +248,17 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
     for (const mode of ['after-destroyed', 'on-window-closed'] as const) {
       reopenMode = mode;
       const oldDevToolsId = (await ownedFrontend())!.id;
+      // This exercises a workbench menu request racing the old frontend's close.
+      // A DevTools-owned focused window must not dispatch workbench accelerators (OPS-1 R4).
+      await ensureForeground(app, page);
+      await expect
+        .poll(() => app.evaluate(({ BrowserWindow }, url) => BrowserWindow.getFocusedWindow()?.webContents.getURL() === url, page.url()))
+        .toBe(true);
       await app.evaluate(
-        ({ BrowserWindow, Menu, webContents }, { oldDevToolsId, mode }) => {
+        ({ BrowserWindow, Menu, webContents }, { oldDevToolsId, mode, workbenchUrl }) => {
+          const workbench = BrowserWindow.getAllWindows().find((candidate) => candidate.webContents.getURL() === workbenchUrl);
+          if (!workbench || BrowserWindow.getFocusedWindow() !== workbench)
+            throw new Error('DevTools close prerequisite: workbench is not focused');
           const window = BrowserWindow.fromWebContents(webContents.fromId(oldDevToolsId)!)!;
           if (mode === 'on-window-closed') {
             const find = (items: Electron.MenuItem[]): Electron.MenuItem | undefined => {
@@ -250,16 +271,27 @@ test('R3 双网页原生focus事件决定地址与刷新目标，布局更新保
             };
             const item = find(Menu.getApplicationMenu()?.items ?? []);
             if (!item) throw new Error('Missing DevTools menu');
-            window.once('closed', () => item.click(undefined, BrowserWindow.getAllWindows()[0], undefined as never));
+            window.once('closed', () => {
+              (globalThis as typeof globalThis & { __wslR3CloseMenuFocused?: boolean }).__wslR3CloseMenuFocused =
+                BrowserWindow.getFocusedWindow() === workbench;
+              item.click(undefined, workbench, undefined as never);
+            });
           }
           window.close();
         },
-        { oldDevToolsId, mode },
+        { oldDevToolsId, mode, workbenchUrl: page.url() },
       );
       await expect
         .poll(() => app.evaluate(({ webContents }, id) => webContents.fromId(id)?.isDestroyed() ?? true, oldDevToolsId))
         .toBe(true);
-      if (mode === 'after-destroyed') await menu(app, '打开 Browser 区页面 DevTools');
+      if (mode === 'after-destroyed') {
+        await ensureForeground(app, page);
+        await menu(app, '打开 Browser 区页面 DevTools');
+      } else {
+        expect(
+          await app.evaluate(() => (globalThis as typeof globalThis & { __wslR3CloseMenuFocused?: boolean }).__wslR3CloseMenuFocused),
+        ).toBe(true);
+      }
       await expect
         .poll(async () => {
           const f = await ownedFrontend();

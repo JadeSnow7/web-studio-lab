@@ -99,6 +99,8 @@ async function setup() {
     expect((await command({ type: 'captureContext', sessionId, resourceId: resource.resourceId, requestId: randomUUID() })).ok).toBe(true);
     await browser.getByTestId('source-button').click();
     await expect.poll(async () => required((await owner()).sessions[0]).captureRequest?.state).toBe('completed');
+    // OPS-1 B1：工程与页面引用分别提交（appId、captureId），不再从受管 App 页面推断工程。
+    const captured = required((await owner()).sessions[0]);
     expect(
       (
         await command({
@@ -106,6 +108,8 @@ async function setup() {
           sessionId,
           goal: 'D source fixture task',
           targetRef: { kind: 'web', resourceId: resource.resourceId },
+          appId: required(space.app).appId,
+          captureId: required(captured.context).captureId,
         })
       ).ok,
     ).toBe(true);
@@ -200,12 +204,11 @@ test('D: real host baseline/diff, collecting, cleanup gating, no changes and una
     await expect(details(f.page)).toContainText('unsupported source symlink');
     expect(await f.app.evaluate(() => __wslSourceFixture.patchRequests.length)).toBe(queries);
     await f.page.screenshot({ path: testInfo.outputPath('unavailable-diff.png') });
-    await f.page.getByRole('navigation', { name: '任务与运行记录' }).getByText('演示记录（独立，只读）', { exact: true }).click();
-    await f.page
-      .getByRole('button', { name: / · 演示记录$/ })
-      .first()
-      .click();
-    await expect(f.page.getByText(/演示记录 · .* · 不是真实运行结果/)).toBeVisible();
+    // 正式构建（未启用诊断）不显示演示记录（OPS-1 S4），真实运行历史保留；诊断启用时的演示记录见 unconnected-capabilities.spec.ts。
+    const history = f.page.getByRole('navigation', { name: '任务与运行记录' });
+    await expect(history.getByRole('button', { name: /^运行 · / }).first()).toBeVisible();
+    await expect(history.getByText('演示记录（独立，只读）', { exact: true })).toHaveCount(0);
+    await expect(f.page.getByRole('button', { name: / · 演示记录$/ })).toHaveCount(0);
     expect(f.rendererErrors).toEqual([]);
   } finally {
     await f.close();

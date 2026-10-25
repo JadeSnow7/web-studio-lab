@@ -180,7 +180,7 @@ describe('RESOURCE-OWNERSHIP-1 migration/persistence R09', () => {
     const state = await repository.loadCatalog(workbench());
     await repository.save(workbench(), state);
     expect(await readFile(file + '.legacy-schema-2.json', 'utf8')).toBe(bytes);
-    expect(JSON.parse(await readFile(file, 'utf8')).schemaVersion).toBe(4);
+    expect(JSON.parse(await readFile(file, 'utf8')).schemaVersion).toBe(5);
   });
   it('preserves corrupt/future destination bytes and legacy bytes on initialization/save failure', async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'catalog-fail-'));
@@ -215,6 +215,7 @@ describe('RESOURCE-OWNERSHIP-1 migration/persistence R09', () => {
       pinned: false,
       group: null,
       targetRef: { kind: 'web', resourceId: 'runtime-web' },
+      autoTitle: false,
     });
     await expect(repository.save(candidate, state)).rejects.toThrow();
     expect(await readFile(file, 'utf8')).toBe(bytes);

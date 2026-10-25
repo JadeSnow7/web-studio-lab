@@ -54,7 +54,7 @@ test('会话选择：所选 Harness 不可用时执行照常创建并以其原�
   const space = snapshot.workspaces.find((workspace) => workspace.workspaceId === 'taskflow-demo')!;
   const sessionId = space.sessions[0]!.sessionId;
   const confirm = async (goal: string) => {
-    const result = await command({ type: 'confirmTask', sessionId, goal, targetRef: null });
+    const result = await command({ type: 'confirmTask', sessionId, goal, targetRef: null, appId: null, captureId: null });
     expect(result.ok, JSON.stringify(result)).toBe(true);
     return result.snapshot.workspaces
       .find((w) => w.workspaceId === 'taskflow-demo')!

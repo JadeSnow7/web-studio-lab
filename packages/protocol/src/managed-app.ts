@@ -139,6 +139,9 @@ export const ManagedAppSchema = AppTargetSchema.extend({
   cleanupConfirmed: z.boolean(),
 });
 export type ManagedApp = z.infer<typeof ManagedAppSchema>;
+/** 受管 App 工程在 sandbox guest 中的唯一工作目录（AppService 创建与恢复时使用同一规则）。 */
+export const GUEST_APPS_ROOT = '/home/agent/workspace/.wsl-apps';
+export const guestAppCwd = (projectId: string): string => `${GUEST_APPS_ROOT}/${projectId}`;
 export type AppTarget = z.infer<typeof AppTargetSchema>;
 export type AppSource = z.infer<typeof AppSourceSchema>;
 

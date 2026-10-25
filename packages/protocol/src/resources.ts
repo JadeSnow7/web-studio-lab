@@ -25,6 +25,10 @@ const PublicUrlSchema = z
   .url({ protocol: /^https$/ })
   .max(2048)
   .refine((url) => !/^https:\/\/[^/?#]*@/i.test(url), '不允许 URL 凭据');
+const BrowserUrlSchema = z
+  .url({ protocol: /^https?$/ })
+  .max(2048)
+  .refine((value) => !/^https?:\/\/[^/?#]*@/i.test(value), '不允许 URL 凭据');
 const ResourcePageSchema = PageIdentitySchema.extend({
   url: PublicUrlSchema,
   title: z.string().max(4096),
@@ -66,6 +70,16 @@ const SnapshotFields = {
   truncated: z.boolean(),
 };
 const HostSnapshotObject = z.object({ ...SnapshotFields, page: ResourcePageSchema, extractionVersion: z.literal('html-text-v1') }).strict();
+const RenderedHostSnapshotObject = z
+  .object({
+    ...SnapshotFields,
+    requestedUrl: BrowserUrlSchema,
+    url: BrowserUrlSchema,
+    page: ResourcePageSchema.extend({ url: BrowserUrlSchema }),
+    extractionVersion: z.literal('host-rendered-dom-text-v1'),
+    sourceKind: z.literal('rendered-visible-text'),
+  })
+  .strict();
 const GuestSnapshotObject = z
   .object({
     ...SnapshotFields,
@@ -83,7 +97,7 @@ const pageMatchesSnapshot = (snapshot: { page: { url: string; title: string }; u
   snapshot.page.url === snapshot.url && snapshot.page.title === snapshot.title;
 export const GuestPageResourceSnapshotSchema = GuestSnapshotObject.refine(pageMatchesSnapshot, '页面身份与快照不一致');
 export const PageResourceSnapshotSchema = z
-  .discriminatedUnion('extractionVersion', [HostSnapshotObject, GuestSnapshotObject])
+  .discriminatedUnion('extractionVersion', [HostSnapshotObject, RenderedHostSnapshotObject, GuestSnapshotObject])
   .refine(pageMatchesSnapshot, '页面身份与快照不一致');
 export type GuestResourcePage = z.infer<typeof GuestResourcePageSchema>;
 export type GuestPageResourceSnapshot = z.infer<typeof GuestPageResourceSnapshotSchema>;

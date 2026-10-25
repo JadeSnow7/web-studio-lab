@@ -1,3 +1,4 @@
+import { createTab } from '../state/new-tab';
 import { useEffect, type ReactNode } from 'react';
 import { occlusion } from '../state/occlusion';
 import { Icon } from '../components/Icon';
@@ -6,6 +7,7 @@ import { shellActions, shellStore, type WorkshopMode } from '../state/shell';
 import { Sidebar } from '../workspace/Sidebar';
 import { workspaceStore } from '../state/workspace';
 import { spaceActions } from '../state/space-ui';
+import { showNewTabMenu, showTabMenu } from '../workspace/native-menus';
 import { ROUTES } from './routes';
 
 function Rail() {
@@ -62,10 +64,11 @@ function WorkshopContent() {
           key={workspace?.workspaceId}
           workspace={workspace}
           peek={panel.peek}
-          onCreateTab={(tabKind) => void spaceActions.openEditor({ kind: 'tab', tabKind })}
+          onCreateTab={(tabKind) => void createTab(tabKind)}
+          onNewTabMenu={(anchor) => workspace && void showNewTabMenu(workspace.workspaceId, anchor)}
           onApp={() => workspace && void spaceActions.openApp(workspace.workspaceId)}
           onSwitcher={() => void spaceActions.openSwitcher()}
-          onTabMenu={(tabId) => void spaceActions.openTabMenu(tabId)}
+          onTabMenu={(tabId, anchor) => workspace && void showTabMenu(workspace.workspaceId, tabId, anchor)}
           onClosePeek={() => shellActions.closePanel('left')}
         />
       ) : null}

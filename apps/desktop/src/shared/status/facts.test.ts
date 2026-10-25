@@ -7,6 +7,7 @@ import {
   StatusRawSchemas,
   WorkbenchSnapshotSchema,
   type ChatStatus,
+  type CheckerCapability,
   type ExecutionStatus,
   type ObservationRecord,
   type StatusFact,
@@ -222,6 +223,7 @@ const execution = (overrides: Partial<ExecutionStatus> = {}): ExecutionStatus =>
   available: false,
   reason: '固定比赛执行与验收服务（T04）尚未接入。',
   harness: { name: 'Codex CLI', state: 'integrated', version: null, model: null },
+  checker: { connected: false, reason: 'not_integrated' },
   ...overrides,
 });
 
@@ -932,6 +934,95 @@ describe('projectFacts: 检查与审阅', () => {
   it('validation 两个 facet 同时成立时 key 不同', () => {
     const facts = validation('failed', 'stale', '错误');
     expect(keys(facts).filter((key) => key.startsWith('validation:'))).toEqual(['validation:r1:state', 'validation:r1:applicability']);
+  });
+});
+
+/* ---------- OPS-1 S3：检查器能力 ---------- */
+
+describe('projectFacts: 检查器能力（OPS-1 S3）', () => {
+  const NOT_INTEGRATED: CheckerCapability = { connected: false, reason: 'not_integrated' };
+  const CONNECTED: CheckerCapability = { connected: true };
+  const BLOCKED_REASON = '独立检查适配器尚未接入；Agent 文本不能作为检查结果';
+  const runSnapshot = (validation: Record<string, unknown>) => snapshot({ runs: [run('r1', { state: 'completed', validation })] });
+  const withChecker = (checker: CheckerCapability, validation: Record<string, unknown>) =>
+    projectFacts(input({ snapshot: runSnapshot(validation), execution: execution({ checker }) }));
+  const problems = (facts: StatusFact[]) => facts.filter((fact) => fact.kind === 'problem').map((fact) => fact.key);
+  const NOT_RUN = { state: 'not_run', applicability: 'unknown', reason: null };
+
+  it('未接入且尚未检查：中性稳态「检查器未接入」，不进入问题，也没有动作', () => {
+    const facts = withChecker(NOT_INTEGRATED, NOT_RUN);
+    const state = find(facts, 'validation:r1:state')!;
+    expect(state).toMatchObject({ domain: 'validation', phase: 'idle', kind: 'steady', label: '检查器未接入' });
+    expect(state.detail).toBeUndefined();
+    expect(state.action).toBeUndefined();
+    expect(StatusFactSchema.parse(state)).toEqual(state);
+    expect(problems(facts)).toEqual([]);
+    // 从未检查过：不在中性稳态旁挂警告色的「检查适用性未知」。
+    expect(find(facts, 'validation:r1:applicability')).toBeUndefined();
+    expect(keys(facts).filter((key) => key.startsWith('validation:'))).toEqual(['validation:r1:state']);
+  });
+
+  it('适用性事实只在“未接入 + not_run”时省略，其余情形照旧产出', () => {
+    const applicabilityOf = (facts: StatusFact[]) => find(facts, 'validation:r1:applicability');
+    const unknownApplicability = { phase: 'unknown', kind: 'steady', label: '检查适用性未知' };
+    // 接入（模拟）或能力尚未读取时，not_run + unknown 仍有「检查适用性未知」。
+    expect(applicabilityOf(withChecker(CONNECTED, NOT_RUN))).toMatchObject(unknownApplicability);
+    expect(applicabilityOf(projectFacts(input({ snapshot: runSnapshot(NOT_RUN), execution: null })))).toMatchObject(unknownApplicability);
+    // 未接入但已有检查记录：适用性照旧。
+    for (const state of ['running', 'passed', 'failed', 'blocked'])
+      expect(applicabilityOf(withChecker(NOT_INTEGRATED, { state, applicability: 'unknown', reason: 'r' })), state).toMatchObject(
+        unknownApplicability,
+      );
+    expect(applicabilityOf(withChecker(NOT_INTEGRATED, { state: 'passed', applicability: 'stale', reason: null }))).toMatchObject({
+      kind: 'problem',
+      label: '检查已不适用于当前版本',
+    });
+    expect(applicabilityOf(withChecker(NOT_INTEGRATED, { state: 'passed', applicability: 'current', reason: null }))).toBeUndefined();
+  });
+
+  it('未接入不把记录降级：仅有原因文字的 blocked、failed、stale 仍是问题，原因照常可见', () => {
+    const blocked = withChecker(NOT_INTEGRATED, { state: 'blocked', applicability: 'unknown', reason: BLOCKED_REASON });
+    expect(find(blocked, 'validation:r1:state')).toMatchObject({
+      phase: 'degraded',
+      kind: 'problem',
+      label: '检查无法执行',
+      detail: BLOCKED_REASON,
+    });
+    expect(problems(blocked)).toEqual(['validation:r1:state']);
+    const failed = withChecker(NOT_INTEGRATED, { state: 'failed', applicability: 'current', reason: '断言失败' });
+    expect(find(failed, 'validation:r1:state')).toMatchObject({
+      phase: 'failed',
+      kind: 'problem',
+      label: '检查未通过',
+      detail: '断言失败',
+    });
+    const stale = withChecker(NOT_INTEGRATED, { state: 'passed', applicability: 'stale', reason: null });
+    expect(find(stale, 'validation:r1:state')).toMatchObject({ phase: 'ok', kind: 'steady', label: '检查通过' });
+    expect(find(stale, 'validation:r1:applicability')).toMatchObject({
+      phase: 'degraded',
+      kind: 'problem',
+      label: '检查已不适用于当前版本',
+    });
+    const running = withChecker(NOT_INTEGRATED, { state: 'running', applicability: 'unknown', reason: null });
+    expect(find(running, 'validation:r1:state')).toMatchObject({ phase: 'active', kind: 'progress', label: '正在检查…' });
+  });
+
+  it('接入（模拟）或能力尚未读取时，尚未检查保持原映射「尚未检查」', () => {
+    const connected = withChecker(CONNECTED, NOT_RUN);
+    const unknown = projectFacts(input({ snapshot: runSnapshot(NOT_RUN), execution: null }));
+    for (const facts of [connected, unknown])
+      expect(find(facts, 'validation:r1:state')).toMatchObject({ phase: 'idle', kind: 'steady', label: '尚未检查' });
+    // 接入时 blocked 同样是问题：区分只取决于 not_run + 未接入，不取决于 blocked 的原因文字。
+    expect(find(withChecker(CONNECTED, { state: 'blocked', applicability: 'unknown', reason: 'x' }), 'validation:r1:state')).toMatchObject({
+      kind: 'problem',
+      label: '检查无法执行',
+    });
+  });
+
+  it('检查器能力不产出额外事实：execution 仍只有一条 capability，审阅映射不变', () => {
+    const facts = withChecker(NOT_INTEGRATED, NOT_RUN);
+    expect(facts.filter((fact) => fact.domain === 'execution').map((fact) => fact.key)).toEqual(['execution:global:state']);
+    expect(find(facts, 'review:r1:state')).toMatchObject({ kind: 'steady', label: '尚未审阅' });
   });
 });
 

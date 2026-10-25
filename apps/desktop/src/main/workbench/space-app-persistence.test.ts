@@ -11,7 +11,7 @@ import { FileWorkbenchRepository } from './repository';
 import type { WorkbenchRuntime } from './ports';
 
 it.each([1, 2, 3])(
-  'migrates v%s with stable App and catalog identities, backs up bytes, then restores v4 metadata',
+  'migrates v%s with stable App and catalog identities, backs up bytes, then restores v5 metadata',
   async (schemaVersion) => {
     const file = path.join(await mkdtemp(path.join(tmpdir(), 'space-app-')), 'workbench.json');
     const repo = new FileWorkbenchRepository(file);
@@ -45,6 +45,9 @@ it.each([1, 2, 3])(
       cleanupConfirmed: true,
     };
     w.resources[0]!.appProjectId = projectId;
+    // 旧版本文件不可能有这两个 schema 5 字段；即使出现，迁移也必须显式落为手动标题与空工程选择（OPS-1 R1），而不是沿用。
+    w.tabs[0]!.autoTitle = true;
+    w.sessions[0]!.taskProject = { appId: projectId, projectId };
     const sourceCatalog = await catalogForTestSnapshot(snapshot);
     const bytes = JSON.stringify({ schemaVersion, snapshot, ...(schemaVersion === 3 ? { catalog: sourceCatalog } : {}) });
     await writeFile(file, bytes);
@@ -54,6 +57,8 @@ it.each([1, 2, 3])(
       w.resources.map(({ catalogResourceId: _catalogResourceId, ...resource }) => resource),
     );
     expect(migrated.workspaces[0]!.app).toMatchObject({ workspaceId: w.workspaceId, projectId, name: w.resources[0]!.title });
+    expect(migrated.workspaces[0]!.tabs.map((tab) => tab.autoTitle)).toEqual(w.tabs.map(() => false));
+    expect(migrated.workspaces[0]!.sessions.map((session) => session.taskProject)).toEqual(w.sessions.map(() => null));
     migrated.workspaces[0]!.app!.description = '保存后说明';
     const catalog = await repo.loadCatalog(migrated);
     for (const binding of catalog.migration?.runtimeBindings ?? []) {
@@ -63,7 +68,7 @@ it.each([1, 2, 3])(
       if (resource) resource.catalogResourceId = binding.catalogResourceId;
     }
     await repo.save(migrated, catalog);
-    expect(JSON.parse(await readFile(file, 'utf8')).schemaVersion).toBe(4);
+    expect(JSON.parse(await readFile(file, 'utf8')).schemaVersion).toBe(5);
     expect(await readFile(file + '.legacy-schema-' + schemaVersion + '.json', 'utf8')).toBe(bytes);
     if (schemaVersion === 3) expect(await repo.loadCatalog(migrated)).toEqual(sourceCatalog);
     expect((await repo.load())!.workspaces[0]!.app).toEqual(migrated.workspaces[0]!.app);
@@ -215,7 +220,7 @@ it.each([false, true])('migrates the actual catalog-free space-app schema3 shape
   }
   await repo.save(migrated, catalog);
   expect(await readFile(file + '.legacy-schema-3.json', 'utf8')).toBe(bytes);
-  expect(JSON.parse(await readFile(file, 'utf8')).schemaVersion).toBe(4);
+  expect(JSON.parse(await readFile(file, 'utf8')).schemaVersion).toBe(5);
   expect((await new FileWorkbenchRepository(file).load())!.workspaces[0]!.app).toEqual(workspace.app);
 
   const withoutAppMarkers = { ...snapshot, workspaces: snapshot.workspaces.map(({ app: _app, ...rest }) => rest) };

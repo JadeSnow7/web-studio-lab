@@ -2,7 +2,7 @@ import { setWorkspaceTheme } from './helpers';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { launchApp, setWindowSize, workspaceSnapshot, screensDir } from './helpers';
+import { launchApp, paneMenu, setWindowSize, workspaceSnapshot, screensDir } from './helpers';
 async function capture(app: ElectronApplication, page: Page, name: string) {
   await page.screenshot({ path: path.join(screensDir, `${name}.renderer.png`) });
   const png = await app.evaluate(async ({ BrowserWindow }) =>
@@ -15,7 +15,7 @@ test('A12 三窗格、切换器、暗暖主题与窄窗真实窗口截图', asyn
   try {
     await mkdir(screensDir, { recursive: true });
     await setWindowSize(app, 1440, 900);
-    await page.getByRole('button', { name: '左右分屏', exact: true }).click();
+    await paneMenu(app, page, '左右分屏');
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
     let snapshot = await workspaceSnapshot(page);
     let w = snapshot.workspaces[0]!;
@@ -26,7 +26,7 @@ test('A12 三窗格、切换器、暗暖主题与窄窗真实窗口截图', asyn
       { workspaceId: w.workspaceId, paneId: first },
     );
     await page.getByRole('button', { name: '聚焦窗格 · TaskFlow 预览' }).click();
-    await page.getByRole('button', { name: '上下分屏', exact: true }).first().click();
+    await paneMenu(app, page, '上下分屏', 0);
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '开发终端', exact: true }).click();
     snapshot = await workspaceSnapshot(page);
     w = snapshot.workspaces[0]!;

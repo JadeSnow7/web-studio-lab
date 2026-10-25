@@ -213,6 +213,8 @@ test('real CLI cancellation stops owned processes and isolates a delayed reply f
       sessionId,
       goal,
       targetRef: null,
+      appId: null,
+      captureId: null,
       allowedScopes: [retained, forbidden, 'agent/**'],
       acceptance: ['本轮真实 CLI 取消与隔离验证'],
     });

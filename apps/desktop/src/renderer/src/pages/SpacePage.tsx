@@ -1,3 +1,4 @@
+import { defaultEnvironment, readEnvironmentPreference, rememberEnvironment, supportsEnvironment } from '../state/default-environment';
 import { AppEditor } from '../workspace/AppEditor';
 import type { EnvironmentDescription } from '@wsl/protocol';
 import { useImeForm } from '../lib/ime';
@@ -5,18 +6,12 @@ import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../lib/store';
 import { useViewportWidth } from '../lib/viewport';
-import { command, initializeWorkspace, switchWorkspace, workspaceCommand, workspaceStore } from '../state/workspace';
+import { initializeWorkspace, switchWorkspace, workspaceCommand, workspaceStore } from '../state/workspace';
 import { spaceActions, spaceUiStore, type Editor } from '../state/space-ui';
 import { shellActions, shellStore } from '../state/shell';
-import { occlusion } from '../state/occlusion';
 import { WorkspaceContent } from '../workspace/Panes';
 import { ManagedAppDialog } from '../workspace/ManagedAppDialog';
 import { SpaceSwitcher } from '../workspace/SpaceSwitcher';
-const paneOverlay = async (open: boolean) => {
-  if (open) return occlusion.open('pane-menu');
-  occlusion.close('pane-menu');
-  return true;
-};
 export function SpacePage({ active, occluded }: { active: boolean; occluded: boolean }) {
   const state = useStore(workspaceStore, (s) => s);
   const ui = useStore(spaceUiStore, (s) => s);
@@ -32,27 +27,13 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
   const { environments, environmentId, environmentError, loadingEnvironments } = ui;
   const setEnvironmentId = (environmentId: string) => spaceUiStore.set((s) => ({ ...s, environmentId }));
   const requiresEnvironment = ['file', 'terminal', 'ssh'].includes(ui.kind);
-  const supports = (environment: EnvironmentDescription) =>
-    environment.state === 'configured' &&
-    environment.capabilities[ui.kind === 'file' ? 'files' : 'terminal'] &&
-    (ui.kind !== 'ssh' || environment.environmentId === 'ssh');
+  const supports = (environment: EnvironmentDescription) => supportsEnvironment(environment, ui.kind);
   const selectedEnvironment = environments.find((environment) => environment.environmentId === environmentId);
   const canCreate = !requiresEnvironment || (!!selectedEnvironment && !loadingEnvironments && supports(selectedEnvironment));
   useEffect(() => {
     if (ui.editor) dialog.current?.showModal();
     else dialog.current?.close();
   }, [ui.editor]);
-  useEffect(() => {
-    if (!ui.tabMenu) return;
-    const escape = (event: KeyboardEvent) => {
-      if (!event.defaultPrevented && event.key === 'Escape' && occlusion.top() === 'tab-menu') {
-        event.preventDefault();
-        spaceActions.closeTabMenu();
-      }
-    };
-    window.addEventListener('keydown', escape);
-    return () => window.removeEventListener('keydown', escape);
-  }, [ui.tabMenu]);
   const submit = async () => {
     if (!workspace || !ui.editor || !ui.name.trim() || submitting.current || ime.composing.current) return;
     submitting.current = true;
@@ -78,10 +59,10 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
           ...(ui.kind === 'web' && ui.url.trim() ? { url: ui.url.trim() } : {}),
           ...(requiresEnvironment ? { environmentId: environmentId as EnvironmentDescription['environmentId'] } : {}),
         });
-      } else if (editor.kind === 'rename-tab' && editor.tabId)
-        result = await workspaceCommand(targetId, { type: 'updateTab', tabId: editor.tabId, title: ui.name.trim() });
-      else if (editor.tabId) result = await workspaceCommand(targetId, { type: 'updateTab', tabId: editor.tabId, group: ui.name.trim() });
+      } else if (editor.tabId) result = await workspaceCommand(targetId, { type: 'updateTab', tabId: editor.tabId, group: ui.name.trim() });
       if (result?.ok) {
+        if (editor.kind === 'tab' && requiresEnvironment) rememberEnvironment(localStorage, targetId, ui.kind, environmentId);
+        if (spaceUiStore.get().editor !== editor) return;
         spaceActions.closeEditor();
         shellActions.navigate('space');
       } else
@@ -93,16 +74,6 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
       setPending(false);
     }
   };
-  const reorder = (tabId: string, delta: number) => {
-    if (!workspace) return;
-    const ids = workspace.tabs.map((t) => t.tabId),
-      i = ids.indexOf(tabId),
-      j = i + delta;
-    if (j < 0 || j >= ids.length) return;
-    [ids[i], ids[j]] = [ids[j]!, ids[i]!];
-    void command({ type: 'reorderTabs', tabIds: ids });
-  };
-  const tab = workspace?.tabs.find((t) => t.tabId === ui.tabMenu);
   return (
     <div className="space-page">
       {!state.snapshot && state.error ? (
@@ -119,7 +90,6 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
           focus={focus}
           narrow={width < 1080}
           onFocus={shellActions.toggleFocus}
-          onOverlay={paneOverlay}
         />
       ))}
       {!state.snapshot ? (
@@ -182,8 +152,17 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
                     value={ui.kind}
                     disabled={pending}
                     onChange={(event) => {
-                      setEnvironmentId('');
-                      spaceUiStore.set((s) => ({ ...s, kind: event.target.value as typeof ui.kind }));
+                      const kind = event.target.value as typeof ui.kind;
+                      spaceUiStore.set((s) => ({
+                        ...s,
+                        kind,
+                        environmentId:
+                          defaultEnvironment(
+                            s.environments,
+                            kind,
+                            readEnvironmentPreference(localStorage, s.editor?.workspaceId ?? '', kind),
+                          )?.environmentId ?? '',
+                      }));
                     }}
                   >
                     {['web', 'terminal', 'session', 'file', 'ssh'].map((kind) => (
@@ -263,83 +242,6 @@ export function SpacePage({ active, occluded }: { active: boolean; occluded: boo
               </div>
             </form>
           </dialog>
-          {tab && workspace ? (
-            <div className="tab-menu" role="menu" aria-label={`${tab.title}操作`}>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  void command({ type: 'updateTab', tabId: tab.tabId, pinned: !tab.pinned });
-                  spaceActions.closeTabMenu();
-                }}
-              >
-                {tab.pinned ? '取消置顶' : '置顶标签'}
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => void spaceActions.openEditor({ kind: 'rename-tab', tabId: tab.tabId }, tab.title)}
-              >
-                重命名
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => void spaceActions.openEditor({ kind: 'group', tabId: tab.tabId }, tab.group ?? '')}
-              >
-                设置分组
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  void command({ type: 'updateTab', tabId: tab.tabId, group: null });
-                  spaceActions.closeTabMenu();
-                }}
-              >
-                移出分组
-              </button>
-              {[-1, 1].map((delta) => (
-                <button
-                  key={delta}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    reorder(tab.tabId, delta);
-                    spaceActions.closeTabMenu();
-                  }}
-                >
-                  {delta < 0 ? '向上移动' : '向下移动'}
-                </button>
-              ))}
-              {(['horizontal', 'vertical'] as const).map((direction) => (
-                <button
-                  key={direction}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    void command({ type: 'splitPane', paneId: workspace.activePaneId, direction, tabId: tab.tabId });
-                    spaceActions.closeTabMenu();
-                  }}
-                >
-                  在{direction === 'horizontal' ? '右侧' : '下方'}打开
-                </button>
-              ))}
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  void command({ type: 'closeTab', tabId: tab.tabId });
-                  spaceActions.closeTabMenu();
-                }}
-              >
-                关闭标签（保留后台执行）
-              </button>
-              <button type="button" role="menuitem" onClick={spaceActions.closeTabMenu}>
-                关闭菜单
-              </button>
-            </div>
-          ) : null}
         </>,
         document.body,
       )}

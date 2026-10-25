@@ -14,7 +14,9 @@ export function registerDemoScheme(): void {
   protocol.registerSchemesAsPrivileged([{ scheme: DEMO_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 }
 
+const installed = new WeakSet<Session>();
 export function installDemoProtocol(session: Session, root: string): void {
+  if (installed.has(session)) return;
   session.protocol.handle(DEMO_SCHEME, async (request) => {
     const file = resolveDemoFile(root, request.url);
     if (file === null) return new Response('Not found', { status: 404 });
@@ -22,4 +24,5 @@ export function installDemoProtocol(session: Session, root: string): void {
     if (info === null || !info.isFile()) return new Response('Not found', { status: 404 });
     return net.fetch(pathToFileURL(file).toString());
   });
+  installed.add(session);
 }

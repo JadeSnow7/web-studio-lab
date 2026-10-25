@@ -2,7 +2,7 @@ import { codexHarnessRuntime } from './harness-test-fixture';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import type { ManagedApp, WorkbenchCommand } from '@wsl/protocol';
+import { guestAppCwd, type ManagedApp, type WorkbenchCommand } from '@wsl/protocol';
 import { WorkbenchApplication, validateSnapshot } from './application';
 import type { WorkbenchRuntime } from './ports';
 
@@ -18,7 +18,7 @@ async function setup() {
           appInstanceId: null,
           state: 'created',
           url: null,
-          guestCwd: '/guest/project',
+          guestCwd: guestAppCwd(target.projectId),
           error: null,
           cleanupConfirmed: true,
         }),
@@ -344,11 +344,17 @@ it('freezes the App project and native page element, omits large screenshots fro
     workspaceId: owner.workspaceId,
     sessionId: session.sessionId,
     targetRef,
+    appId: owner.app?.appId ?? null,
+    captureId: capture.captureId,
     goal: '将添加按钮改为新建任务',
   });
   expect(confirmed.ok).toBe(true);
   const version = confirmed.snapshot.workspaces[0]!.sessions[0]!.taskVersions.at(-1)!;
-  expect(version.appTarget).toMatchObject({ appId: owner.app!.appId, projectId: owner.app!.projectId, guestCwd: '/guest/project' });
+  expect(version.appTarget).toMatchObject({
+    appId: owner.app!.appId,
+    projectId: owner.app!.projectId,
+    guestCwd: guestAppCwd(owner.app!.projectId),
+  });
   const forged = structuredClone(confirmed.snapshot);
   forged.workspaces[0]!.sessions[0]!.taskVersions.at(-1)!.appTarget!.workspaceId = 'another-space';
   expect(() => validateSnapshot(forged)).toThrow('任务 App 工程');
@@ -366,7 +372,7 @@ it('freezes the App project and native page element, omits large screenshots fro
   const prompt = vi.mocked(runtime.send).mock.calls[0]![1];
   expect(prompt).toContain('#app > button#add');
   expect(prompt).toContain('add-task');
-  expect(prompt).toContain('/guest/project');
+  expect(prompt).toContain(guestAppCwd(owner.app!.projectId));
   expect(prompt).toContain('不授予权限');
   expect(prompt).not.toContain('data:image');
   expect(prompt.length).toBeLessThan(32000);
@@ -398,6 +404,8 @@ it('rejects an oversized combined task before recording a run or invoking the ru
     workspaceId: owner.workspaceId,
     sessionId,
     targetRef: null,
+    appId: null,
+    captureId: null,
     goal: '目'.repeat(32000),
   });
   expect(confirmed.ok).toBe(true);

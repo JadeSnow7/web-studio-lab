@@ -3,7 +3,19 @@ import { mkdtemp, readFile, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { launchApp, openBrowserMenu, workshopNavigate, workspaceSnapshot, setWindowSize, windowShots } from './helpers';
+import {
+  chooseNativeMenuItem,
+  dismissNativeMenu,
+  launchApp,
+  openBrowserMenu,
+  openNativeMenuWhen,
+  openNewTabForm,
+  tabMenu,
+  workshopNavigate,
+  workspaceSnapshot,
+  setWindowSize,
+  windowShots,
+} from './helpers';
 import { controlledResourceNetwork } from './resource-network-fixture';
 let app: ElectronApplication, page: Page;
 test.afterEach(async () => {
@@ -15,6 +27,9 @@ async function favorite(title: string, url = 'https://example.com') {
   await page.getByRole('button', { name: '收藏链接', exact: true }).click();
   await expect(page.getByLabel('资源名称', { exact: true })).toHaveValue('');
 }
+
+/** 网页工具栏「⋯ 更多网页操作」（Main 原生菜单，OPS-1 S5）。 */
+const moreWebActions = () => page.getByRole('button', { name: '更多网页操作', exact: true }).click();
 
 async function resourceSection() {
   const section = page.locator('.space-resource-section');
@@ -49,20 +64,23 @@ test('account favorite→A/B connections→explicit frozen personal reference→
   expect(state.catalog!.links.find((link) => link.resourceId === id)!.referenceVersion).toBeNull();
   await page.getByRole('button', { name: '在空间打开', exact: true }).click();
   await expect(page.getByLabel('页面地址').filter({ visible: true })).toHaveValue('https://example.com/');
-  await openBrowserMenu(page, '更多网页操作');
-  await expect(page.getByRole('menuitem', { name: '保存正文快照', exact: true })).toBeEnabled();
-  await page.getByRole('menuitem', { name: '保存正文快照', exact: true }).click();
+  await openNativeMenuWhen(app, moreWebActions, '保存正文快照', true);
+  await chooseNativeMenuItem(app, '保存正文快照');
   await expect
     .poll(async () => (await workspaceSnapshot(page)).catalog!.resources.find((item) => item.resourceId === id)!.versions)
     .toEqual([1]);
   expect(
     await app.evaluate(async ({ BrowserWindow }) => {
-      const wc = (BrowserWindow.getAllWindows()[0]!.contentView.children[0] as Electron.WebContentsView).webContents;
-      return wc.executeJavaScript('typeof window.untrustedExecuted');
+      const view = (BrowserWindow.getAllWindows()[0]!.contentView.children as Electron.WebContentsView[]).find(
+        (candidate) => candidate.getVisible() && candidate.webContents.getURL() === 'https://example.com/',
+      );
+      if (!view) throw new Error('controlled resource page is not visible');
+      return view.webContents.executeJavaScript(
+        '({ executed: window.untrustedExecuted, require: typeof require, process: typeof process, studio: typeof window.studio })',
+      );
     }),
-  ).toBe('undefined');
-  await openBrowserMenu(page, '更多网页操作');
-  await page.getByRole('menuitem', { name: '查看空间资源', exact: true }).click();
+  ).toEqual({ executed: true, require: 'undefined', process: 'undefined', studio: 'undefined' });
+  await openBrowserMenu(app, page, '更多网页操作', '查看空间资源');
   const section = await resourceSection();
   await expect(section).toHaveAttribute('open', '');
   await section.getByLabel('跨空间资料会话参考').selectOption('1');
@@ -76,8 +94,8 @@ test('account favorite→A/B connections→explicit frozen personal reference→
   await page.getByLabel('目标空间').selectOption(b.workspaceId);
   await page.getByRole('button', { name: '连接到空间', exact: true }).click();
   await page.getByRole('button', { name: '在空间打开', exact: true }).click();
-  await openBrowserMenu(page, '更多网页操作');
-  await expect(page.getByRole('menuitem', { name: '保存正文快照', exact: true })).toBeEnabled();
+  await openNativeMenuWhen(app, moreWebActions, '保存正文快照', true);
+  await dismissNativeMenu(app);
   state = await workspaceSnapshot(page);
   const bindingB = state.workspaces
     .find((workspace) => workspace.workspaceId === b.workspaceId)!
@@ -96,9 +114,8 @@ test('account favorite→A/B connections→explicit frozen personal reference→
     (globalThis as typeof globalThis & { resourceNetwork: { body: string } }).resourceNetwork.body = 'RESOURCE BODY V2';
   });
   await page.getByRole('button', { name: '刷新页面', exact: true }).click();
-  await openBrowserMenu(page, '更多网页操作');
-  await expect(page.getByRole('menuitem', { name: '保存正文快照', exact: true })).toBeEnabled();
-  await page.getByRole('menuitem', { name: '保存正文快照', exact: true }).click();
+  await openNativeMenuWhen(app, moreWebActions, '保存正文快照', true);
+  await chooseNativeMenuItem(app, '保存正文快照');
   await expect
     .poll(async () => (await workspaceSnapshot(page)).catalog!.resources.find((item) => item.resourceId === id)!.versions)
     .toEqual([1, 2]);
@@ -136,8 +153,7 @@ test('account favorite→A/B connections→explicit frozen personal reference→
   expect(state.catalog!.library).toHaveLength(0);
   expect(state.catalog!.links.filter((link) => link.resourceId === id)).toHaveLength(2);
   await workshopNavigate(page, '空间');
-  await page.getByRole('button', { name: '跨空间资料操作', exact: true }).click();
-  await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）', exact: true }).click();
+  await tabMenu(app, page, '跨空间资料', '关闭标签（保留后台执行）');
   const oldHandles = state.workspaces
     .flatMap((workspace) => workspace.resources)
     .flatMap((item) => (item.instanceId ? [item.instanceId] : []));
@@ -165,8 +181,8 @@ test('account favorite→A/B connections→explicit frozen personal reference→
   const row = reopened.locator('article').filter({ hasText: '跨空间资料' });
   await controlledResourceNetwork(app);
   await row.getByRole('button', { name: '打开', exact: true }).click();
-  await openBrowserMenu(page, '更多网页操作');
-  await expect(page.getByRole('menuitem', { name: '保存正文快照', exact: true })).toBeEnabled();
+  await openNativeMenuWhen(app, moreWebActions, '保存正文快照', true);
+  await dismissNativeMenu(app);
   const restored = (await workspaceSnapshot(page)).workspaces
     .find((workspace) => workspace.workspaceId === b.workspaceId)!
     .resources.find((resource) => resource.catalogResourceId === id)!;
@@ -174,8 +190,7 @@ test('account favorite→A/B connections→explicit frozen personal reference→
   expect(restored.generation).toBeGreaterThan(bindingB.generation);
   await row.getByRole('button', { name: '解除连接', exact: true }).click();
   await expect(reopened.getByRole('alert')).toBeVisible();
-  await page.getByRole('button', { name: '跨空间资料操作', exact: true }).click();
-  await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）', exact: true }).click();
+  await tabMenu(app, page, '跨空间资料', '关闭标签（保留后台执行）');
   await page.getByText('后台资源 / 已关闭标签', { exact: true }).click();
   const background = page.locator('.background-resources .stack-8').filter({ hasText: '跨空间资料' });
   await background.getByRole('button', { name: '关闭网页实例', exact: true }).click();
@@ -244,9 +259,8 @@ test('file and development entries can be explicitly favorited, classified and r
     ['file', '我的文件入口', 'local'],
     ['terminal', '我的开发入口', 'local'],
   ] as const) {
-    await page.getByRole('button', { name: '新建标签', exact: true }).click();
-    const editor = page.getByRole('dialog', { name: '新建标签', exact: true });
-    await editor.getByLabel('标签类型').selectOption(kind);
+    const editor = await openNewTabForm(app, page, kind === 'file' ? '文件' : '终端');
+    await expect(editor.getByLabel('标签类型')).toHaveValue(kind);
     await editor.getByLabel('名称', { exact: true }).fill(title);
     await editor.getByLabel('资源环境').selectOption(environment);
     await editor.getByRole('button', { name: '保存', exact: true }).click();
@@ -256,8 +270,7 @@ test('file and development entries can be explicitly favorited, classified and r
   await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '我的文件入口', exact: true }).click();
   await page.getByRole('button', { name: '列出目录', exact: true }).click();
   await expect(page.getByRole('region', { name: '当前文件结果' })).toContainText('版本 / 散列');
-  await page.getByRole('button', { name: '我的文件入口操作', exact: true }).click();
-  await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）', exact: true }).click();
+  await tabMenu(app, page, '我的文件入口', '关闭标签（保留后台执行）');
   await page.getByText('后台资源 / 已关闭标签', { exact: true }).click();
   const stoppedFile = page.locator('.background-resources .stack-8').filter({ hasText: '我的文件入口' });
   await stoppedFile.getByRole('button', { name: '关闭文件观察', exact: true }).click();

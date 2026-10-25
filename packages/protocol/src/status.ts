@@ -61,6 +61,8 @@ export const StatusActionIdSchema = z.enum([
   'run.cancel',
   'run.reconcileCleanup',
   'context.recapture',
+  /** 展示层提示「已采集到 {会话} · 打开」（OPS-1 S1）：定位接收会话。 */
+  'session.open',
   'observation.cancel',
   'app.start',
   'app.manage',

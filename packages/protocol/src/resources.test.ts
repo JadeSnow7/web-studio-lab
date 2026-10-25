@@ -176,3 +176,21 @@ describe('UTF-8 byte budget', () => {
     expect(utf8ByteLength('正文😀x'.repeat(20000))).toBe(11 * 20000);
   });
 });
+
+describe('rendered host browser resource', () => {
+  it('permits HTTP identity with an explicit visible-text source and preserves legacy/guest contracts', () => {
+    const value = {
+      ...host(),
+      requestedUrl: 'http://localhost:3210/#hash',
+      url: 'http://localhost:3210/#hash',
+      page: { ...host().page, url: 'http://localhost:3210/#hash' },
+      extractionVersion: 'host-rendered-dom-text-v1',
+      sourceKind: 'rendered-visible-text',
+    };
+    expect(PageResourceSnapshotSchema.safeParse(value).success).toBe(true);
+    expect(PageResourceSnapshotSchema.safeParse({ ...value, sourceKind: 'decoded-main-response' }).success).toBe(false);
+    expect(PageResourceSnapshotSchema.safeParse({ ...value, url: 'http://user:password@localhost/' }).success).toBe(false);
+    expect(PageResourceSnapshotSchema.safeParse(host()).success).toBe(true);
+    expect(GuestPageResourceSnapshotSchema.safeParse({ ...guest(), url: 'http://localhost:3210/' }).success).toBe(false);
+  });
+});

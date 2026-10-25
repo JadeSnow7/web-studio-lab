@@ -2,7 +2,7 @@ import { expect, test, type ElectronApplication, type Page } from '@playwright/t
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
-import { launchApp, workspaceSnapshot, target, setWindowSize, workshopNavigate } from './helpers';
+import { launchApp, openNewTabForm, tabMenu, workspaceSnapshot, target, setWindowSize, workshopNavigate } from './helpers';
 
 const fixture = new URL('./fixtures/sbx.mjs', import.meta.url).pathname;
 
@@ -52,10 +52,11 @@ test('本地文件明确绑定、只读读取、续读、后台重开及会话�
   try {
     await useNarrowWindow(app, page);
     await showSpaceNavigation(page);
-    await page.getByRole('button', { name: '新建标签', exact: true }).click();
-    const editor = page.getByRole('dialog', { name: '新建标签' });
-    await editor.getByLabel('标签类型').selectOption('file');
+    const editor = await openNewTabForm(app, page, '文件');
+    await expect(editor.getByLabel('标签类型')).toHaveValue('file');
     await editor.getByLabel('名称', { exact: true }).fill('本地文件742');
+    await expect(editor.getByLabel('资源环境')).toHaveValue('local');
+    await editor.getByLabel('资源环境').selectOption('');
     await expect(editor.getByRole('button', { name: '保存', exact: true })).toBeDisabled();
     await editor.getByLabel('资源环境').selectOption('local');
     await editor.getByRole('button', { name: '保存', exact: true }).click();
@@ -88,8 +89,7 @@ test('本地文件明确绑定、只读读取、续读、后台重开及会话�
     expect(resource.environmentId).toBe('local');
     expect(workspace.observations.every((record) => record.request.sessionId === null && record.request.runId === null)).toBe(true);
     await showSpaceNavigation(page);
-    await page.getByRole('button', { name: '本地文件742操作', exact: true }).click();
-    await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）' }).click();
+    await tabMenu(app, page, '本地文件742', '关闭标签（保留后台执行）');
     await showSpaceNavigation(page);
     await page.getByText('后台资源 / 已关闭标签', { exact: true }).click();
     await page.getByRole('button', { name: '本地文件742 · 重新打开', exact: true }).click();
@@ -129,9 +129,8 @@ test('未配置环境明确禁用能力，不创建未授权文件标签', async
     await workshopNavigate(page, '设置');
     await expect(page.getByRole('region', { name: '应用设置', exact: true })).toBeVisible();
     await showSpaceNavigation(page);
-    await page.getByRole('button', { name: '新建标签', exact: true }).click();
-    const editor = page.getByRole('dialog', { name: '新建标签' });
-    await editor.getByLabel('标签类型').selectOption('file');
+    const editor = await openNewTabForm(app, page, '文件');
+    await expect(editor.getByLabel('标签类型')).toHaveValue('file');
     await editor.getByLabel('名称', { exact: true }).fill('不可用文件');
     await expect(editor).toContainText('未授权本地目录');
     await expect(editor.getByLabel('资源环境').locator('option[value="local"]')).toHaveAttribute('disabled', '');
@@ -165,9 +164,23 @@ test('历史版本与运行选择联动，对话内容来自同一执行', async
     await expect(session.getByRole('log', { name: 'Codex 对话消息' })).toContainText('NEW_HISTORY_742');
     await expect(session.getByRole('log', { name: 'Codex 对话消息' })).not.toContainText('OLD_HISTORY_742');
     await session.getByRole('button', { name: '任务', exact: true }).click();
-    await session.getByLabel('修改目标').fill('UNRUN_HISTORY_742');
-    await session.getByRole('button', { name: '确认任务（生成新版本）', exact: true }).click();
+    // OPS-1 S2：界面只有「发送」（确认并开始运行）；“已确认但尚未运行”的版本经既有工作台命令 confirmTask 产生。
+    const owner = (await workspaceSnapshot(page)).workspaces[0]!;
+    const confirmed = await page.evaluate(
+      (command) => window.studio.workbench.command({ ...command, commandId: crypto.randomUUID() } as never),
+      {
+        type: 'confirmTask',
+        workspaceId: owner.workspaceId,
+        sessionId: owner.sessions[0]!.sessionId,
+        goal: 'UNRUN_HISTORY_742',
+        targetRef: null,
+        appId: null,
+        captureId: null,
+      },
+    );
+    expect(confirmed.ok).toBe(true);
     const unrun = (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions.at(-1)!;
+    expect(unrun.goal).toBe('UNRUN_HISTORY_742');
     await session.getByLabel('任务版本').selectOption(unrun.taskVersionId);
     await session.getByRole('button', { name: '对话', exact: true }).click();
     await expect(session.getByRole('log', { name: 'Codex 对话消息' })).toContainText('此版本尚未运行');
@@ -194,8 +207,7 @@ test('环境目录失败保留新建表单和显式错误，不使用默认环�
       });
     });
     await showSpaceNavigation(page);
-    await page.getByRole('button', { name: '新建标签', exact: true }).click();
-    const editor = page.getByRole('dialog', { name: '新建标签' });
+    const editor = await openNewTabForm(app, page, '网页');
     await editor.getByLabel('名称', { exact: true }).fill('保留环境失败表单742');
     await editor.getByLabel('标签类型').selectOption('file');
     await expect(editor.getByRole('alert')).toContainText('ENV_DIRECTORY_FAILED_742');
@@ -236,9 +248,8 @@ test('本地同一PTY重复输出与保留窗口滚动仍更新终端显示', as
   try {
     await useNarrowWindow(app, page);
     await showSpaceNavigation(page);
-    await page.getByRole('button', { name: '新建标签', exact: true }).click();
-    const editor = page.getByRole('dialog', { name: '新建标签' });
-    await editor.getByLabel('标签类型').selectOption('terminal');
+    const editor = await openNewTabForm(app, page, '终端');
+    await expect(editor.getByLabel('标签类型')).toHaveValue('terminal');
     await editor.getByLabel('资源环境').selectOption('local');
     await editor.getByLabel('名称', { exact: true }).fill('本地增量终端742');
     await editor.getByRole('button', { name: '保存', exact: true }).click();
@@ -300,9 +311,8 @@ test('受控环境延迟：UI取消不启动Provider，换空间后的迟到观�
     });
   try {
     await showSpaceNavigation(page);
-    await page.getByRole('button', { name: '新建标签', exact: true }).click();
-    const editor = page.getByRole('dialog', { name: '新建标签' });
-    await editor.getByLabel('标签类型').selectOption('file');
+    const editor = await openNewTabForm(app, page, '文件');
+    await expect(editor.getByLabel('标签类型')).toHaveValue('file');
     await editor.getByLabel('资源环境').selectOption('local');
     await editor.getByLabel('名称', { exact: true }).fill('归属文件742');
     await editor.getByRole('button', { name: '保存', exact: true }).click();
@@ -369,8 +379,7 @@ test('程序IME确认不提交名称、文件路径或观察表单', async () =>
   const { app, page } = await launchApp({ observationRoot: root });
   try {
     await showSpaceNavigation(page);
-    await page.getByRole('button', { name: '新建标签', exact: true }).click();
-    const editor = page.getByRole('dialog', { name: '新建标签' });
+    const editor = await openNewTabForm(app, page, '网页');
     const name = editor.getByLabel('名称', { exact: true });
     await name.fill('中文文件742');
     await name.dispatchEvent('compositionstart');

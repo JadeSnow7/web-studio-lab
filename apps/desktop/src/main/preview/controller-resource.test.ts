@@ -1,14 +1,8 @@
 import { EventEmitter } from 'node:events';
 import type { BrowserWindow } from 'electron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { extractPublicDocument } from './public-document';
-import type * as PublicDocumentModule from './public-document';
 
 const mocks = vi.hoisted(() => ({ fetch: vi.fn(), views: [] as unknown[] }));
-vi.mock('./public-document', async (original) => ({
-  ...(await original<typeof PublicDocumentModule>()),
-  fetchPublicDocument: mocks.fetch,
-}));
 vi.mock('electron', () => ({
   WebContentsView: class {
     webContents = Object.assign(new EventEmitter(), {
@@ -32,6 +26,7 @@ vi.mock('electron', () => ({
       isLoading() {
         return this.loading;
       },
+      executeJavaScriptInIsolatedWorld: mocks.fetch,
       setWindowOpenHandler: vi.fn(),
       loadURL: vi.fn(async () => undefined),
       navigationHistory: { canGoBack: () => false, canGoForward: () => false },
@@ -71,18 +66,15 @@ function setup() {
     },
   );
   const view = mocks.views.at(-1) as TestView;
-  const handler = view.webContents.session.protocol.handle.mock.calls[0]![1] as (request: Request) => Promise<Response>;
   async function commit(url: string, title: string, text: string) {
     view.webContents.emit('did-start-navigation', { isMainFrame: true, isSameDocument: false });
-    mocks.fetch.mockResolvedValueOnce(extractPublicDocument(Buffer.from(`<title>${title}</title><body>${text}</body>`), url, url));
-    const response = await handler(new Request(url));
-    expect(response.status).toBe(200);
+    mocks.fetch.mockResolvedValue({ title, text, truncated: false });
     view.webContents.url = url;
     view.webContents.title = title;
     view.webContents.loading = false;
     view.webContents.emit('did-navigate');
   }
-  return { controller, view, handler, commit };
+  return { controller, view, commit };
 }
 
 beforeEach(() => {
@@ -100,20 +92,16 @@ describe('当前公开文档身份绑定', () => {
     });
     expect(view.settings.webPreferences).not.toHaveProperty('preload');
     const preventDefault = vi.fn();
-    view.webContents.emit('will-frame-navigate', { isMainFrame: false, preventDefault });
+    view.webContents.emit('will-frame-navigate', { url: 'https://example.com/', isMainFrame: false, preventDefault });
+    expect(preventDefault).not.toHaveBeenCalled();
+    view.webContents.emit('will-frame-navigate', { url: 'file:///etc/passwd', isMainFrame: false, preventDefault });
     expect(preventDefault).toHaveBeenCalledOnce();
   });
-  it('公开地址栏 fragment 规范化后再导航，标题空白与浏览器一致', async () => {
-    const { controller, view, handler } = setup();
-    await controller.navigate('https://example.com/#section');
-    expect(view.webContents.loadURL).toHaveBeenCalledWith('https://example.com/');
-    mocks.fetch.mockResolvedValueOnce(
-      extractPublicDocument(Buffer.from('<title>A\n B</title><body>text</body>'), 'https://example.com/', 'https://example.com/'),
-    );
-    await handler(new Request('https://example.com/'));
-    view.webContents.url = 'https://example.com/';
-    view.webContents.title = 'A B';
-    view.webContents.emit('did-navigate');
+  it('HTTP addresses retain hash and rendered title', async () => {
+    const { controller, view, commit } = setup();
+    await controller.navigate('http://localhost:3210/#section');
+    expect(view.webContents.loadURL).toHaveBeenCalledWith('http://localhost:3210/#section');
+    await commit('http://localhost:3210/#section', 'A B', 'text');
     expect((await controller.captureResource(controller.pageIdentity())).title).toBe('A B');
   });
   it('只能捕获当前已成功显示的公开文档；同 URL 新文档也使旧身份失效', async () => {
@@ -134,21 +122,39 @@ describe('当前公开文档身份绑定', () => {
     const identity = controller.pageIdentity();
     view.webContents.emit('did-start-navigation', { isMainFrame: true, isSameDocument: false });
     expect(controller.pageIdentity()).toEqual(identity);
-    await expect(controller.captureResource(identity)).rejects.toThrow('等待公开文档成功加载');
+    await expect(controller.captureResource(identity)).rejects.toThrow('等待网页成功加载');
   });
-  it('保留同次 broker 的失败原因，原生其他地址或新导航失败仍更新', async () => {
-    const { controller, view, handler } = setup();
+  it('rejects a capture completing after navigation begins', async () => {
+    const { controller, view, commit } = setup();
+    await commit('https://example.com/', 'Example', 'old');
+    let resolve!: (value: { title: string; text: string; truncated: boolean }) => void;
+    mocks.fetch.mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    const result = controller.captureResource(controller.pageIdentity());
     view.webContents.emit('did-start-navigation', { isMainFrame: true, isSameDocument: false });
-    mocks.fetch.mockRejectedValueOnce(new Error('DNS 包含私网地址，已阻止连接'));
-    await handler(new Request('https://example.com/'));
-    expect(controller.getState().loadError?.description).toContain('DNS 包含私网');
-    view.webContents.emit('did-fail-load', {}, -2, 'ERR_FAILED', 'https://example.com/', true);
-    expect(controller.getState().loadError?.description).toContain('DNS 包含私网');
-    view.webContents.emit('did-fail-load', {}, -105, 'ERR_NAME_NOT_RESOLVED', 'https://docs.docker.com/', true);
-    expect(controller.getState().loadError?.description).toBe('ERR_NAME_NOT_RESOLVED');
+    resolve({ title: 'Example', text: 'old', truncated: false });
+    await expect(result).rejects.toThrow('页面已经变化');
+  });
+  it('keeps the displayed page capturable after rejecting an OS protocol navigation', async () => {
+    const { controller, view, commit } = setup();
+    await commit('https://example.com/', 'Example', 'body');
     view.webContents.emit('did-start-navigation', { isMainFrame: true, isSameDocument: false });
-    view.webContents.emit('did-fail-load', {}, -2, 'NEW_NATIVE_FAILURE', 'https://example.com/', true);
-    expect(controller.getState().loadError?.description).toBe('NEW_NATIVE_FAILURE');
+    const preventDefault = vi.fn();
+    view.webContents.emit('will-navigate', { url: 'custom://external', preventDefault });
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect((await controller.captureResource(controller.pageIdentity())).text).toBe('body');
+  });
+  it('rejects oversized or malformed isolated-world payloads at the boundary', async () => {
+    const { controller, commit } = setup();
+    await commit('https://example.com/', 'Example', 'body');
+    for (const value of [null, { title: 'Example', text: 'x'.repeat(65541), truncated: true }, { title: 'Example', text: 'body' }]) {
+      mocks.fetch.mockResolvedValueOnce(value);
+      await expect(controller.captureResource(controller.pageIdentity())).rejects.toThrow('采集结果无效');
+    }
   });
   it('加载失败、演示页面、标题不匹配和被销毁文档均不能挂载', async () => {
     const { controller, view, commit } = setup();

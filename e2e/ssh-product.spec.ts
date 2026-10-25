@@ -1,14 +1,14 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { launchApp, workspaceSnapshot, setWindowSize } from './helpers';
+import { expect, test, type ElectronApplication, type Page, type TestInfo } from '@playwright/test';
+import { launchApp, openNewTabForm, tabMenu, workspaceSnapshot, setWindowSize } from './helpers';
 import { writeFile } from 'node:fs/promises';
 import { sshLoopback } from './fixtures/ssh-loopback';
 import type { WorkbenchResource } from '../packages/protocol/src';
 
 test.setTimeout(180000);
-async function create(page: Page, kind: 'file' | 'ssh', title: string) {
-  await page.getByRole('button', { name: '新建标签', exact: true }).click();
-  const editor = page.getByRole('dialog', { name: '新建标签' });
-  await editor.getByLabel('标签类型').selectOption(kind);
+async function create(app: ElectronApplication, page: Page, kind: 'file' | 'ssh', title: string) {
+  // 底部「新建标签」是 Main 原生菜单（OPS-1 S5）：选择类型后打开预选该类型的表单。
+  const editor = await openNewTabForm(app, page, kind === 'file' ? '文件' : 'SSH');
+  await expect(editor.getByLabel('标签类型')).toHaveValue(kind);
   await editor.getByLabel('名称', { exact: true }).fill(title);
   await editor.getByLabel('资源环境').selectOption('ssh');
   await editor.getByRole('button', { name: '保存', exact: true }).click();
@@ -46,7 +46,7 @@ test('产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例�
     const launched = await launchApp({ sshEnvironment: fixture.environment, userData: fixture.profile });
     app = launched.app;
     const page = launched.page;
-    await create(page, 'file', '回环SSH文件');
+    await create(launched.app, page, 'file', '回环SSH文件');
     const files = page.getByRole('region', { name: '只读文件浏览' });
     await files.getByRole('button', { name: '列出目录', exact: true }).click();
     await files.getByRole('button', { name: '中文.txt · file', exact: true }).click();
@@ -83,7 +83,7 @@ test('产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例�
       expect(denied.request.args).toMatchObject({ path });
       expect(denied.result).toMatchObject({ error: 'unauthorized' });
     }
-    await create(page, 'ssh', '回环真PTY');
+    await create(launched.app, page, 'ssh', '回环真PTY');
     const terminal = page.getByRole('region', { name: '资源终端' });
     await terminal.getByRole('button', { name: '连接终端', exact: true }).click();
     await expect(terminal).toContainText('已连接');
@@ -101,8 +101,7 @@ test('产品SSH_AUTH_SOCK认证、SFTP范围/续读/搜索与真实PTY同实例�
     const size = fixture.evidence.resize.at(-1);
     expect(size).toBeDefined();
     expect((await resource(page, '回环真PTY')).terminal!.output).toContain(`${size!.rows} ${size!.cols}`);
-    await page.getByRole('button', { name: '回环真PTY操作', exact: true }).click();
-    await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）' }).click();
+    await tabMenu(launched.app, page, '回环真PTY', '关闭标签（保留后台执行）');
     await page.getByText('后台资源 / 已关闭标签', { exact: true }).click();
     await page.getByRole('button', { name: '回环真PTY · 重新打开', exact: true }).click();
     const reopened = await resource(page, '回环真PTY');
@@ -214,7 +213,7 @@ test('产品错误host pin在认证前拒绝，不启动PTY', async ({ playwrigh
     });
     app = launched.app;
     const page = launched.page;
-    await create(page, 'ssh', '错误pin');
+    await create(launched.app, page, 'ssh', '错误pin');
     const terminal = page.getByRole('region', { name: '资源终端' });
     await terminal.getByRole('button', { name: '连接终端', exact: true }).click();
     await expect.poll(async () => (await resource(page, '错误pin')).terminal?.state).toBe('failed');

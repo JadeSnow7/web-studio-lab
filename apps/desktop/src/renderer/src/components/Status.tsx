@@ -224,6 +224,7 @@ export function StatusSlot({
       {notice ? (
         <div className="status-item" {...statusAttrs(notice)} data-testid={itemTestId?.(notice)}>
           <Live view={notice} role="status" />
+          <ActionButton view={notice} onAction={onAction} omit={omitActions} />
           <button type="button" className="btn btn-small" onClick={() => statusPresentationActions.acknowledge(scope, notice)}>
             知道了
           </button>

@@ -2,7 +2,18 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { launchApp, previewInfo, setWindowSize, workspaceSnapshot, workshopNavigate, windowShots } from './helpers';
+import {
+  dismissNativeMenu,
+  launchApp,
+  openNativeMenu,
+  openNewTabForm,
+  paneMenu,
+  previewInfo,
+  setWindowSize,
+  workspaceSnapshot,
+  workshopNavigate,
+  windowShots,
+} from './helpers';
 let app: ElectronApplication;
 let page: Page;
 test.afterEach(async () => {
@@ -25,7 +36,8 @@ test('SR01/02/07/09：六个入口、空间专属标签、设置主题、草稿�
   const before = await previewInfo(app);
   await tabs().getByRole('button', { name: 'Agent 会话', exact: true }).click();
   await page.getByRole('navigation', { name: '会话视图' }).getByRole('button', { name: '任务', exact: true }).click();
-  await page.getByRole('textbox', { name: '修改目标' }).fill('保留跨页中文草稿742');
+  // OPS-1 S2：「任务」视图不再有重复的目标输入框；草稿在唯一的会话输入框中。
+  await page.getByRole('textbox', { name: '会话消息', exact: true }).fill('保留跨页中文草稿742');
   for (const name of ['首页', '资源', '会话', '任务', '设置']) {
     await workshopNavigate(page, name);
     await expect(tabs()).toHaveCount(0);
@@ -39,7 +51,7 @@ test('SR01/02/07/09：六个入口、空间专属标签、设置主题、草稿�
     if (value !== 'system') await expect(page.locator('html')).toHaveAttribute('data-theme', value);
   }
   await workshopNavigate(page, '空间');
-  await expect(page.getByRole('textbox', { name: '修改目标' })).toHaveValue('保留跨页中文草稿742');
+  await expect(page.getByRole('textbox', { name: '会话消息', exact: true })).toHaveValue('保留跨页中文草稿742');
   await tabs().getByRole('button', { name: 'TaskFlow 预览', exact: true }).click();
   await expect.poll(nativeVisible).toBe(true);
   expect((await previewInfo(app)).id).toBe(before.id);
@@ -80,18 +92,20 @@ test('SR03/04/06/10：标题栏左右入口、原生遮挡集合、通知不自�
 
 test('SR10：通知与窗格菜单共存、switcher交接editor、快速开关resize不复活原生网页', async () => {
   await launch();
-  await page.getByRole('button', { name: '左右分屏', exact: true }).click();
+  await paneMenu(app, page, '左右分屏');
   await notifications().click();
-  await page.getByRole('button', { name: '窗格操作', exact: true }).first().click();
-  await page.getByRole('button', { name: '收起通知栏', exact: true }).click();
+  // 窗格菜单是 Main 原生菜单（OPS-1 S5），不进入遮挡集合：通知栏收起后，即使菜单仍打开，原生网页也恢复。
+  const paneMenuButton = () => page.getByRole('button', { name: '窗格操作', exact: true }).first();
+  await openNativeMenu(app, () => paneMenuButton().click());
   await expect.poll(nativeVisible).toBe(false);
-  await page.getByRole('menuitem', { name: '关闭菜单', exact: true }).click();
+  await page.getByRole('button', { name: '收起通知栏', exact: true }).click();
+  await expect.poll(nativeVisible).toBe(true);
+  await dismissNativeMenu(app);
   await expect.poll(nativeVisible).toBe(true);
   await notifications().click();
-  await page.getByRole('button', { name: '窗格操作', exact: true }).first().click();
-  await expect(page.getByRole('menuitem', { name: '关闭菜单', exact: true })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('menuitem', { name: '关闭菜单', exact: true })).toHaveCount(0);
+  await openNativeMenu(app, () => paneMenuButton().click());
+  // 菜单的 Esc / 点外部只关闭菜单本身，不误关底层通知栏；通知栏仍让原生网页让位。
+  await dismissNativeMenu(app);
   await expect(page.getByRole('complementary', { name: '通知栏' })).toBeVisible();
   await expect.poll(nativeVisible).toBe(false);
   await page.keyboard.press('Escape');
@@ -120,7 +134,7 @@ test('SR05/11：独立固定偏好、窄窗投影不改分割树、重启只恢�
   ({ app, page } = await launchApp({ userData }));
   await setWindowSize(app, 1440, 900);
   await expect(tabs()).toBeVisible();
-  await page.getByRole('button', { name: '左右分屏', exact: true }).click();
+  await paneMenu(app, page, '左右分屏');
   const snapshot = await workspaceSnapshot(page),
     layout = snapshot.workspaces[0]?.layout;
   await notifications().click();
@@ -166,9 +180,9 @@ test('SR01/09：首页新建对话框取消回原入口，主题同步实际终�
   await page.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.getByRole('button', { name: '切换空间', exact: true })).toContainText('首页新空间742');
   await expect(tabs()).toBeVisible();
-  await page.getByRole('button', { name: '新建标签', exact: true }).click();
+  await openNewTabForm(app, page, '终端');
   await page.getByLabel('名称', { exact: true }).fill('主题终端742');
-  await page.getByLabel('标签类型').selectOption('terminal');
+  await expect(page.getByLabel('标签类型')).toHaveValue('terminal');
   await page.getByLabel('资源环境').selectOption('sandbox');
   await page.getByRole('button', { name: '保存', exact: true }).click();
   await tabs().getByRole('button', { name: '主题终端742', exact: true }).click();

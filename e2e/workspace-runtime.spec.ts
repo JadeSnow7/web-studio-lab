@@ -4,7 +4,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { stripVTControlCharacters } from 'node:util';
 import { expect, test, type Page } from '@playwright/test';
-import { launchApp, terminalSnapshot, workspaceSnapshot, screensDir } from './helpers';
+import { launchApp, paneMenu, tabMenu, terminalSnapshot, workspaceSnapshot, screensDir } from './helpers';
 
 async function newSpace(page: Page, name: string) {
   await page.getByRole('button', { name: '切换空间', exact: true }).click();
@@ -40,8 +40,7 @@ test('A06 / A07 fixture执行中关闭标签后重新打开仍是同一运行，
       sessionId = run.sessionId;
     expect(owner.runs).toHaveLength(1);
     expect(owner.sessions.find((s) => s.sessionId === sessionId)?.taskVersions).toHaveLength(1);
-    await page.getByRole('button', { name: 'Agent 会话操作' }).click();
-    await page.getByRole('menuitem', { name: '关闭标签（保留后台执行）' }).click();
+    await tabMenu(app, page, 'Agent 会话', '关闭标签（保留后台执行）');
     await expect(region).toHaveCount(0);
     await page.getByText('后台资源 / 已关闭标签').click();
     await page.getByRole('button', { name: 'Agent 会话 · 重新打开' }).click();
@@ -74,8 +73,8 @@ test('live：真实PTY与单Agent执行跨空间保持归属，检查和审阅�
     await expect
       .poll(async () => stripVTControlCharacters((await terminalSnapshot(page)).output).replace(/\r/g, ''), { timeout: 30000 })
       .toMatch(new RegExp(`^WSL_RUNTIME_NONCE=${marker}$`, 'm'));
-    await page.getByRole('button', { name: '左右分屏', exact: true }).click();
-    await page.getByRole('button', { name: '关闭窗格', exact: true }).first().click();
+    await paneMenu(app, page, '左右分屏');
+    await paneMenu(app, page, '关闭窗格（标签保留）', 0);
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: '开发终端', exact: true }).click();
     expect((await terminalSnapshot(page)).sessionId).toBe(initial.sessionId);
     await newSpace(page, '运行归属验证');
@@ -84,11 +83,13 @@ test('live：真实PTY与单Agent执行跨空间保持归属，检查和审阅�
     expect((await terminalSnapshot(page)).sessionId).toBe(initial.sessionId);
     await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'Agent 会话', exact: true }).click();
     const session = page.getByRole('region', { name: 'Agent 会话内容' });
+    // OPS-1 S2：底部输入框是唯一的目标输入，「发送」= 确认任务 + 开始运行。
+    await session
+      .getByRole('textbox', { name: '会话消息', exact: true })
+      .fill(`请只回复校验词 ${marker}。不要运行工具，不要读取、修改或创建任何文件。`);
+    await session.getByRole('button', { name: '发送', exact: true }).click();
     await session.getByRole('button', { name: '任务', exact: true }).click();
-    await session.getByLabel('修改目标').fill(`请只回复校验词 ${marker}。不要运行工具，不要读取、修改或创建任何文件。`);
-    await session.getByRole('button', { name: '确认任务（生成新版本）' }).click();
     await expect(session).toContainText('任务 v1');
-    await session.getByRole('button', { name: '开始运行' }).click();
     await selectSpace(page, '运行归属验证');
     await expect(page.getByRole('button', { name: '切换空间', exact: true })).toContainText('运行归属验证');
     await expect
@@ -104,8 +105,10 @@ test('live：真实PTY与单Agent执行跨空间保持归属，检查和审阅�
     expect(run.validation.state).toBe('not_run');
     expect(run.review).toBeNull();
     await session.getByRole('button', { name: '检查', exact: true }).click();
-    await session.getByRole('button', { name: '运行检查' }).click();
-    await expect(session.locator('.status-slot [data-status-channel="problem"]').filter({ hasText: '检查无法执行' })).toBeVisible();
+    // 检查器未接入（OPS-1 S3）：尚未检查为中性的「检查器未接入」，不提供「运行检查」，也不显示为通过。
+    await expect(session.locator('[data-status="validation:idle"]')).toHaveText('检查器未接入');
+    await expect(session.getByRole('button', { name: '运行检查' })).toHaveCount(0);
+    await expect(session.locator('.status-slot').getByText('检查无法执行')).toHaveCount(0);
     await expect(session.locator('[data-status="validation:ok"]')).toHaveCount(0);
     await expect(session.getByRole('button', { name: '接受结果' })).toBeDisabled();
     await expect(session).toContainText('审阅：尚未审阅');
@@ -139,7 +142,7 @@ test('A11 重启恢复布局与草稿和历史，运行不重放，明确旧模�
     await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('completed');
     await session.getByRole('textbox', { name: '会话消息', exact: true }).fill('重启保留草稿');
     await setWorkspaceTheme(page, 'warm');
-    await page.getByRole('button', { name: '上下分屏', exact: true }).click();
+    await paneMenu(app, page, '上下分屏');
     await expect(page.locator('[data-pane-id]')).toHaveCount(2);
     const snapshot = await workspaceSnapshot(page);
     ownerId = snapshot.activeWorkspaceId;

@@ -167,6 +167,11 @@ export async function launchApp(
     statusLog?: string;
     /** 测试专用（W4b）：fixture sbx 把 `claude-agent-acp` 映射到确定性的假 ACP Agent 并运行该场景；不调用模型。 */
     fixtureAcpScenario?: string;
+    /**
+     * 不安装原生菜单测试接缝，让 `Menu.popup()` 显示真实的系统菜单（只用于人工 / 系统级截图核对）。
+     * 默认安装：Playwright 无法点击系统菜单，接缝在 Main 里记录菜单并由测试触发菜单项。
+     */
+    realNativeMenus?: boolean;
   } = {},
 ): Promise<{ app: ElectronApplication; page: Page; rendererErrors: string[] }> {
   // 默认回归不得消耗模型；真实模型仅在显式 live 模式使用已选 sbx。
@@ -235,6 +240,8 @@ export async function launchApp(
   if (options.debugStatus && options.statusLog) env['WSL_STATUS_LOG'] = options.statusLog;
   // The build bootstrap installs fixtures before the real entrypoint creates any renderer.
   const bootstrap = path.join(await mkdtemp(path.join(tmpdir(), 'wsl-e2e-bootstrap-')), 'main.cjs');
+  const rendererErrorsFile = path.join(path.dirname(bootstrap), 'renderer-errors.jsonl');
+  await writeFile(rendererErrorsFile, '');
   const addressPreload = path.join(path.dirname(bootstrap), 'address-navigation-observer.cjs');
   if (options.addressNavigationObserver) await writeFile(addressPreload, addressNavigationObserver);
   await writeFile(
@@ -243,6 +250,8 @@ export async function launchApp(
 const { app } = require('electron');
 app.setAppPath(${JSON.stringify(desktopDir)});
 globalThis.__wslRendererErrors = [];
+const rendererErrorFs = require('node:fs');
+const rendererErrorsFile = ${JSON.stringify(rendererErrorsFile)};
 ${
   options.addressNavigationObserver
     ? `app.once('ready', () => {
@@ -289,6 +298,7 @@ app.on('web-contents-created', (_event, contents) => {
   contents.on('console-message', (event) => {
     if (contents.getURL().endsWith('/renderer/index.html') && event.level === 'error') {
       globalThis.__wslRendererErrors.push(event.message);
+      rendererErrorFs.appendFileSync(rendererErrorsFile, JSON.stringify(event.message) + '\\n');
     }
   });
   ${
@@ -335,20 +345,66 @@ require(${JSON.stringify(path.join(desktopDir, 'out/main/index.js'))});
   const ownedProcess = app.process();
   const originalClose = app.close.bind(app);
   let closed = false;
+  let transportClosed = false;
+  app.on('close', () => {
+    transportClosed = true;
+  });
   app.close = async () => {
     if (closed) return;
     closed = true;
-    const running = ownedProcess.exitCode === null && ownedProcess.signalCode === null;
-    const early =
-      target === 'build' && running
-        ? await app.evaluate(() => (globalThis as unknown as { __wslRendererErrors: string[] }).__wslRendererErrors)
-        : [];
-    rendererErrors.push(...early.filter((message) => !rendererErrors.some((error) => error.includes(message))));
-    if (running) await originalClose();
-    await rm(path.dirname(bootstrap), { recursive: true, force: true });
-    assert.deepEqual(rendererErrors, [], 'Workbench renderer exceptions/errors fail every E2E');
+    const failures: unknown[] = [];
+    try {
+      const running = ownedProcess.exitCode === null && ownedProcess.signalCode === null;
+      if (running && !transportClosed) await originalClose();
+    } catch (error) {
+      failures.push(error);
+    }
+    try {
+      if (ownedProcess.exitCode === null && ownedProcess.signalCode === null) {
+        await new Promise<void>((resolve, reject) => {
+          const finished = () => {
+            clearTimeout(timeout);
+            resolve();
+          };
+          const timeout = setTimeout(() => {
+            ownedProcess.removeListener('exit', finished);
+            reject(new Error('Owned Electron process did not exit within 10 seconds after close'));
+          }, 10000);
+          ownedProcess.once('exit', finished);
+        });
+      }
+    } catch (error) {
+      failures.push(error);
+    }
+    const processExited = ownedProcess.exitCode !== null || ownedProcess.signalCode !== null;
+    try {
+      // The Main transport can close before ChildProcess publishes its exit. Read the launch-owned ledger, not that transport.
+      if (processExited && target === 'build') {
+        const lines = (await readFile(rendererErrorsFile, 'utf8')).split('\n').filter(Boolean);
+        for (const line of lines) {
+          const message: unknown = JSON.parse(line);
+          if (typeof message !== 'string') throw new Error('Invalid renderer error ledger record');
+          if (!rendererErrors.some((error) => error.includes(message))) rendererErrors.push(message);
+        }
+      }
+    } catch (error) {
+      failures.push(error);
+    }
+    try {
+      if (processExited) await rm(path.dirname(bootstrap), { recursive: true, force: true });
+    } catch (error) {
+      failures.push(error);
+    }
+    try {
+      assert.deepEqual(rendererErrors, [], 'Workbench renderer exceptions/errors fail every E2E');
+    } catch (error) {
+      failures.push(error);
+    }
+    if (failures.length === 1) throw failures[0];
+    if (failures.length > 1) throw new AggregateError(failures, failures.map(String).join('; '));
   };
   try {
+    if (!options.realNativeMenus) await installNativeMenuSeam(app);
     if (target === 'packaged' && options.addressNavigationObserver) {
       // Packaged launches bypass the bootstrap; reload so the same session preload precedes the real preload.
       await app.evaluate(({ session }, filePath) => {
@@ -589,15 +645,258 @@ export async function terminalSnapshot(page: Page) {
   if (!resource?.terminal) throw new Error('terminal snapshot unavailable');
   return resource.terminal;
 }
+/* ---------- 原生菜单测试接缝（OPS-1 S5） ---------- */
+
+type NativeMenuSeam = {
+  menus: Array<{ menu: Electron.Menu; options: Electron.PopupOptions; closed: boolean; windowMatches: boolean; withinContent: boolean }>;
+  /** 尚未返回给 renderer 的 `shell:show-menu` 请求数。 */
+  pending: number;
+};
+
 /**
- * 打开网页工具栏的弹出层：「采集到会话」（非模态 dialog，内含关联会话与三个按钮）或「更多网页操作」（menu）。
- * 已展开时不重复点击（触发器是开关）。scope 用于多个网页窗格同时存在时限定在某个 .workspace-browser 内。
+ * Playwright 点不到系统菜单。接缝只在测试进程经 `electronApp.evaluate` 安装：替换 Main 里的 `Menu.prototype.popup`，
+ * 记录产品构建好的菜单与弹出选项，不显示系统菜单；测试再调用菜单项自己的 `click` 与关闭回调（可模拟“关闭回调早于 click”）。
+ * 另外包一层既有的 `shell:show-menu` 处理函数（来源与输入校验照旧在原处理函数里），只计数尚未返回的请求，
+ * 让测试在菜单关闭后等到结果已交还 renderer 再继续。产品代码没有为此增加任何路径或环境变量。
  */
-export async function openBrowserMenu(page: Page, name: '采集到会话' | '更多网页操作', scope: Page | Locator = page) {
-  const popup = scope.getByRole(name === '采集到会话' ? 'dialog' : 'menu', { name, exact: true });
-  if (!(await popup.isVisible())) await scope.getByRole('button', { name, exact: true }).click();
-  await popup.waitFor({ state: 'visible' });
-  return popup;
+export async function installNativeMenuSeam(app: ElectronApplication): Promise<void> {
+  await app.evaluate(({ Menu, ipcMain, BrowserWindow }) => {
+    type Seam = {
+      menus: Array<{
+        menu: Electron.Menu;
+        options: Electron.PopupOptions;
+        closed: boolean;
+        windowMatches: boolean;
+        withinContent: boolean;
+      }>;
+      pending: number;
+    };
+    const host = globalThis as unknown as { __wslNativeMenus?: Seam };
+    if (host.__wslNativeMenus) return;
+    const seam: Seam = (host.__wslNativeMenus = { menus: [], pending: 0 });
+    Menu.prototype.popup = function popup(this: Electron.Menu, options?: Electron.PopupOptions) {
+      const value = options ?? {};
+      // 与真实弹出相同的前提：菜单弹在工作台窗口上；坐标（若有）是内容区内的整数。
+      const window = BrowserWindow.getAllWindows()[0];
+      const [width = 0, height = 0] = window?.getContentSize() ?? [];
+      const inside = (coordinate: number | undefined, extent: number) =>
+        coordinate === undefined || (Number.isInteger(coordinate) && coordinate >= 0 && coordinate < extent);
+      seam.menus.push({
+        menu: this,
+        options: value,
+        closed: false,
+        windowMatches: !!window && value.window === window,
+        withinContent: inside(value.x, width) && inside(value.y, height) && (value.x === undefined) === (value.y === undefined),
+      });
+    };
+    type Handler = (event: Electron.IpcMainInvokeEvent, request: unknown) => Promise<unknown>;
+    const handlers = (ipcMain as unknown as { _invokeHandlers: Map<string, Handler> })._invokeHandlers;
+    const original = handlers.get('shell:show-menu');
+    if (!original) throw new Error('shell:show-menu 尚未注册');
+    ipcMain.removeHandler('shell:show-menu');
+    ipcMain.handle('shell:show-menu', async (event, request) => {
+      seam.pending++;
+      try {
+        return await original(event, request);
+      } finally {
+        seam.pending--;
+      }
+    });
+  });
+}
+
+export interface NativeMenuItemInfo {
+  label: string;
+  enabled: boolean;
+  /** 只有单选项（运行记录的当前视图）才有。 */
+  checked?: boolean;
+}
+export interface NativeMenuInfo {
+  /** 本次启动中第几个弹出的菜单（从 0 开始）。 */
+  index: number;
+  items: NativeMenuItemInfo[];
+  /** 传给 `Menu.popup()` 的窗口坐标；未传时为 null（系统放在指针处）。 */
+  x: number | null;
+  y: number | null;
+  closed: boolean;
+  /** Menu.popup 是否传入了工作台窗口。 */
+  windowMatches: boolean;
+  /** 坐标（若有）是否为内容区内的整数。 */
+  withinContent: boolean;
+}
+
+/** 断言原生菜单弹出位置在 (x, y) 处（取整与指针坐标的亚像素差异允许 1px）。 */
+export function expectMenuAt(menu: NativeMenuInfo, x: number, y: number): void {
+  expect(menu.x, '菜单应传入横坐标').not.toBeNull();
+  expect(menu.y, '菜单应传入纵坐标').not.toBeNull();
+  expect(Math.abs(menu.x! - x), `菜单横坐标 ${menu.x} 应接近 ${x}`).toBeLessThanOrEqual(1);
+  expect(Math.abs(menu.y! - y), `菜单纵坐标 ${menu.y} 应接近 ${y}`).toBeLessThanOrEqual(1);
+}
+
+/** 已弹出的原生菜单数量（含已关闭的）。 */
+export function nativeMenuCount(app: ElectronApplication): Promise<number> {
+  return app.evaluate(() => (globalThis as unknown as { __wslNativeMenus: NativeMenuSeam }).__wslNativeMenus.menus.length);
+}
+
+/** 读取第 index 个（缺省为最后一个）弹出的原生菜单：条目文字、是否可用与弹出坐标。分隔线不列出。 */
+export function nativeMenu(app: ElectronApplication, index?: number): Promise<NativeMenuInfo | null> {
+  return app.evaluate((_electron, at) => {
+    const { menus } = (globalThis as unknown as { __wslNativeMenus: NativeMenuSeam }).__wslNativeMenus;
+    const position = at ?? menus.length - 1;
+    const recorded = menus[position];
+    if (!recorded) return null;
+    return {
+      index: position,
+      items: recorded.menu.items
+        .filter((item) => item.type !== 'separator')
+        .map((item) => ({ label: item.label, enabled: item.enabled, ...(item.type === 'radio' ? { checked: item.checked } : {}) })),
+      x: recorded.options.x ?? null,
+      y: recorded.options.y ?? null,
+      closed: recorded.closed,
+      windowMatches: recorded.windowMatches,
+      withinContent: recorded.withinContent,
+    };
+  }, index);
+}
+
+/** 等到每个已关闭菜单的结果都已由 Main 返回给 renderer（只剩仍打开的菜单在等待）。 */
+async function nativeMenusSettled(app: ElectronApplication): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        app.evaluate(() => {
+          const seam = (globalThis as unknown as { __wslNativeMenus: NativeMenuSeam }).__wslNativeMenus;
+          return seam.pending - seam.menus.filter((entry) => !entry.closed).length;
+        }),
+      { message: '原生菜单的结果应已返回 renderer' },
+    )
+    .toBeLessThanOrEqual(0);
+}
+
+/** 执行 open（点击触发器、按键等），等到 Main 弹出一个新的原生菜单并返回它。 */
+export async function openNativeMenu(app: ElectronApplication, open: () => Promise<unknown>): Promise<NativeMenuInfo> {
+  const before = await nativeMenuCount(app);
+  await open();
+  await expect.poll(() => nativeMenuCount(app), { message: '应弹出一个原生菜单' }).toBeGreaterThan(before);
+  const menu = await nativeMenu(app, before);
+  if (!menu) throw new Error('原生菜单未记录');
+  expect(menu.windowMatches, 'Menu.popup 应传入工作台窗口').toBe(true);
+  expect(menu.withinContent, 'Menu.popup 的坐标应为内容区内的整数').toBe(true);
+  return menu;
+}
+
+/**
+ * 打开原生菜单，直到 label 的可用状态等于 enabled（等价于对 HTML 菜单项 toBeEnabled / toBeDisabled 的自动重试）：
+ * 菜单内容在打开时由 Main 快照决定，不符合时关闭后稍等再打开。返回仍打开的菜单。
+ */
+export async function openNativeMenuWhen(
+  app: ElectronApplication,
+  open: () => Promise<unknown>,
+  label: string,
+  enabled: boolean,
+  timeout = 10_000,
+): Promise<NativeMenuInfo> {
+  const deadline = Date.now() + timeout;
+  for (;;) {
+    const menu = await openNativeMenu(app, open);
+    const item = menu.items.find((entry) => entry.label === label);
+    if (item && item.enabled === enabled) return menu;
+    await dismissNativeMenu(app);
+    if (Date.now() > deadline) throw new Error(`原生菜单项「${label}」未变为${enabled ? '可用' : '禁用'}：${JSON.stringify(menu.items)}`);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+}
+
+/**
+ * 在最近一个未关闭的原生菜单里选择 label 对应的菜单项。默认先 click 再触发关闭回调；
+ * `closeFirst` 模拟 macOS 上关闭回调早于 click 到达（R3）。禁用项不可选择（与系统菜单一致），会抛错。
+ * 返回前等到选择已交还 renderer。
+ */
+export async function chooseNativeMenuItem(app: ElectronApplication, label: string, options: { closeFirst?: boolean } = {}): Promise<void> {
+  await app.evaluate(
+    (_electron, { label, closeFirst }) => {
+      const { menus } = (globalThis as unknown as { __wslNativeMenus: NativeMenuSeam }).__wslNativeMenus;
+      const recorded = [...menus].reverse().find((entry) => !entry.closed);
+      if (!recorded) throw new Error('没有打开的原生菜单');
+      const item = recorded.menu.items.find((entry) => entry.type !== 'separator' && entry.label === label);
+      if (!item) throw new Error(`原生菜单中没有「${label}」：${recorded.menu.items.map((entry) => entry.label).join(' / ')}`);
+      if (!item.enabled) throw new Error(`原生菜单项「${label}」已禁用`);
+      recorded.closed = true;
+      const click = () => item.click(undefined as never, undefined as never, undefined as never);
+      if (closeFirst) {
+        recorded.options.callback?.();
+        click();
+      } else {
+        click();
+        recorded.options.callback?.();
+      }
+    },
+    { label, closeFirst: options.closeFirst ?? false },
+  );
+  await nativeMenusSettled(app);
+}
+
+/** 不选择任何项就关闭最近一个未关闭的原生菜单（等同 Esc 或点击菜单外部）；返回前等到取消已交还 renderer。 */
+export async function dismissNativeMenu(app: ElectronApplication): Promise<void> {
+  await app.evaluate(() => {
+    const { menus } = (globalThis as unknown as { __wslNativeMenus: NativeMenuSeam }).__wslNativeMenus;
+    const recorded = [...menus].reverse().find((entry) => !entry.closed);
+    if (!recorded) throw new Error('没有打开的原生菜单');
+    recorded.closed = true;
+    recorded.options.callback?.();
+  });
+  await nativeMenusSettled(app);
+}
+
+/** 点击触发器打开原生菜单并选择一项。 */
+export async function pickNativeMenu(app: ElectronApplication, trigger: Locator, label: string): Promise<NativeMenuInfo> {
+  // 菜单内容在打开时由 Main 快照决定：等到该项可用再选（与 HTML 菜单项点击前的可用等待等价，不绕过禁用）。
+  const menu = await openNativeMenuWhen(app, () => trigger.click(), label, true);
+  await chooseNativeMenuItem(app, label);
+  return menu;
+}
+
+/**
+ * 网页工具栏的原生菜单：「接收会话」（OPS-1 S1 接收者按钮，可访问名称为「接收会话：{会话}」；菜单：本空间会话 / 新建会话 / 打开接收会话，
+ * 选择只设定之后采集的接收者，不开始采集）或「更多网页操作」（⋯）。
+ * scope 用于多个网页窗格同时存在时限定在某个 .workspace-browser 内。选择 item 后返回菜单内容。
+ */
+export async function openBrowserMenu(
+  app: ElectronApplication,
+  page: Page,
+  name: '接收会话' | '更多网页操作',
+  item: string,
+  scope: Page | Locator = page,
+): Promise<NativeMenuInfo> {
+  const trigger =
+    name === '接收会话' ? scope.getByRole('button', { name: /^接收会话：/ }) : scope.getByRole('button', { name, exact: true });
+  return pickNativeMenu(app, trigger, item);
+}
+
+/** 窗格头「窗格操作」（⋯）的触发器。index 为第几个可见窗格或 'last'（缺省为活动窗格）。 */
+export function paneMenuButton(page: Page, index?: number | 'last'): Locator {
+  const visible = page.locator('.workspace-pane:visible');
+  const pane =
+    index === undefined ? page.locator('.workspace-pane.pane-active:visible') : index === 'last' ? visible.last() : visible.nth(index);
+  return pane.getByRole('button', { name: '窗格操作', exact: true });
+}
+
+/** 窗格头「窗格操作」（⋯）原生菜单：左右分屏、上下分屏、平均分割、关闭窗格（标签保留）。 */
+export async function paneMenu(app: ElectronApplication, page: Page, item: string, index?: number | 'last'): Promise<NativeMenuInfo> {
+  return pickNativeMenu(app, paneMenuButton(page, index), item);
+}
+
+/** 垂直标签「{标题}操作」（···）原生菜单。 */
+export async function tabMenu(app: ElectronApplication, page: Page, title: string, item: string): Promise<NativeMenuInfo> {
+  return pickNativeMenu(app, page.getByRole('button', { name: `${title}操作`, exact: true }), item);
+}
+
+/** 底部「新建标签」原生菜单：选择类型后打开预选该类型的创建表单，返回表单。 */
+export async function openNewTabForm(app: ElectronApplication, page: Page, kind: '网页' | '终端' | 'Agent 会话' | '文件' | 'SSH') {
+  await pickNativeMenu(app, page.getByRole('button', { name: '新建标签', exact: true }), kind);
+  const dialog = page.getByRole('dialog', { name: '新建标签' });
+  await dialog.waitFor({ state: 'visible' });
+  return dialog;
 }
 
 export async function workshopNavigate(page: Page, label: string) {

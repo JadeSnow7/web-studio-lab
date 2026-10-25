@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon';
 import { BrandLogo } from '../components/BrandLogo';
 import { useStore } from '../lib/store';
 import { homeTarget } from '../state/drafts';
+import { demoEntriesVisible, environmentStore } from '../state/execution';
 import { shellActions } from '../state/shell';
 import { workspaceStore, switchWorkspace } from '../state/workspace';
 import { useWorkspaceRunStatus } from '../state/status-view';
@@ -60,7 +61,10 @@ function SpaceCard({ workspace }: { workspace: WorkspaceSnapshot }) {
 
 /** 首页：个人作用域的混合输入。它不读取任何空间，也不会向后台空间发送。 */
 export function HomePage({ onCreateWorkspace }: { onCreateWorkspace?: () => void } = {}) {
-  const [mode, setMode] = useState<HomeMode>('chat');
+  const [selectedMode, setMode] = useState<HomeMode>('chat');
+  // 「搜索」「打开」尚未接入：正式构建只保留对话，开发服务器或 WSL_DEBUG_STATUS=1 时才显示（OPS-1 S4）。
+  const showModes = useStore(environmentStore, demoEntriesVisible);
+  const mode: HomeMode = showModes ? selectedMode : 'chat';
   const snapshot = useStore(workspaceStore, (s) => s.snapshot);
   // 首页对话的接收方是个人默认 Agent，不是空间里的 Codex 会话，原因按模式说明。
   const blocked = mode === 'chat' ? null : MODE_BLOCKED[mode];
@@ -73,13 +77,15 @@ export function HomePage({ onCreateWorkspace }: { onCreateWorkspace?: () => void
       </div>
       <section className="home-card" aria-label="混合输入">
         <div className="row gap-8">
-          <div className="segmented" role="radiogroup" aria-label="输入模式">
-            {MODES.map((m) => (
-              <button key={m.mode} type="button" role="radio" aria-checked={mode === m.mode} onClick={() => setMode(m.mode)}>
-                {m.label}
-              </button>
-            ))}
-          </div>
+          {showModes ? (
+            <div className="segmented" role="radiogroup" aria-label="输入模式">
+              {MODES.map((m) => (
+                <button key={m.mode} type="button" role="radio" aria-checked={mode === m.mode} onClick={() => setMode(m.mode)}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <span className="chip" title={NO_OTHER_SPACES}>
             <Icon name="user" size={13} /> 个人 · 默认 Agent
           </span>

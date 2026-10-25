@@ -262,6 +262,8 @@ describe('Main account catalogue ownership seam R01-R10', () => {
       sessionId: session.sessionId,
       goal: 'read frozen',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const version = (await f.app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!;
     expect(
@@ -334,6 +336,8 @@ describe('Main account catalogue ownership seam R01-R10', () => {
       sessionId: session.sessionId,
       goal: 'budget',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const version = (await f.app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!;
     const result = await f.app.command({
@@ -390,6 +394,8 @@ describe('Main account catalogue ownership seam R01-R10', () => {
       sessionId: session.sessionId,
       goal: 'read',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const version = (await f.app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!;
     await f.app.command({
@@ -481,6 +487,8 @@ describe('Main account catalogue ownership seam R01-R10', () => {
       sessionId: session.sessionId,
       goal: 'read',
       targetRef: null,
+      appId: null,
+      captureId: null,
     });
     const version = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!;
     await app.command({
@@ -682,6 +690,8 @@ describe('unlink preserves runtime bindings that durable session and task record
       sessionId,
       goal: 'inspect terminal',
       targetRef: { kind: 'terminal', resourceId: terminal.resourceId },
+      appId: null,
+      captureId: null,
     });
     expect(confirmed.ok).toBe(true);
 

@@ -334,7 +334,9 @@ describe('Main observation ownership and lifecycle', () => {
       cleanupPending: true,
       error: null,
     }));
-    expect((await command(w.workspaceId, { type: 'confirmTask', sessionId, goal: 'review', targetRef: null })).ok).toBe(true);
+    expect(
+      (await command(w.workspaceId, { type: 'confirmTask', sessionId, goal: 'review', targetRef: null, appId: null, captureId: null })).ok,
+    ).toBe(true);
     const version = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!;
     expect((await command(w.workspaceId, { type: 'startRun', sessionId, taskVersionId: version.taskVersionId })).ok).toBe(true);
     const runId = (await app.getSnapshot()).workspaces[0]!.runs[0]!.runId;
@@ -495,6 +497,8 @@ describe('Main observation ownership and lifecycle', () => {
           sessionId: session.sessionId,
           goal: 'change target',
           targetRef: { kind: 'web', resourceId: web.resourceId },
+          appId: null,
+          captureId: 'capture',
         })
       ).ok,
     ).toBe(true);

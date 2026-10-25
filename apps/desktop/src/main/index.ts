@@ -14,7 +14,8 @@ import { HarnessProfileService, HarnessProfileStore } from './harness-profiles';
 import { DebugStatus, debugStatusEnabled } from './debug-status';
 import { getExecutionStatus } from './execution';
 import { registerIpc, sendToRenderer } from './ipc';
-import { installAppMenu } from './menu';
+import { installAppMenu, nativeMenuHost } from './menu';
+import { NativeMenuService } from './native-menu';
 import { registerDemoScheme } from './preview/demo-protocol';
 import { createMainWindow, rendererSource } from './window';
 
@@ -109,7 +110,19 @@ function openWorkbench(setup: SetupManager, profileStore: HarnessProfileStore): 
   });
   workbench.setAppControl(control);
   chat.setAppControlReader((scope, tool, args, signal) => workbench!.appControlForTurn(scope, tool, args, signal));
-  const unregisterIpc = registerIpc({ window, trusted, chat, profiles, workbench, setup, ...(debug ? { debug } : {}) });
+  const menuSource = workbench;
+  const menus = new NativeMenuService({ host: nativeMenuHost(window), snapshot: () => menuSource.currentSnapshot() });
+  const unregisterIpc = registerIpc({
+    window,
+    trusted,
+    chat,
+    profiles,
+    workbench,
+    setup,
+    menus,
+    browserFocus: host,
+    ...(debug ? { debug } : {}),
+  });
   const unsubscribeSetup = setup.subscribe((snapshot) => {
     debug?.onSetup(snapshot);
     sendToRenderer(window, 'setup:status', snapshot);

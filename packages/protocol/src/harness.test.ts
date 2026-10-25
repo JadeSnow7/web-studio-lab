@@ -72,6 +72,8 @@ describe('Harness 协议（W2）', () => {
         available: false,
         reason: null,
         harness: { name: 'Codex CLI', state: 'integrated', version: null, model: null },
+        // ExecutionStatus 是不持久化的 Main 投影，OPS-1 起必须显式发布检查器能力；本用例只关心 harness 的旧形状。
+        checker: { connected: false, reason: 'not_integrated' },
       }).harness.harnessId,
     ).toBeUndefined();
     expect(
@@ -79,6 +81,7 @@ describe('Harness 协议（W2）', () => {
         available: false,
         reason: null,
         harness: { harnessId: 'claude-code', name: 'Claude Code', state: 'integrated', version: null, model: null },
+        checker: { connected: false, reason: 'not_integrated' },
       }).harness.name,
     ).toBe('Claude Code');
     expect(RunRecordSchema.shape.harness.parse({ name: 'Codex CLI', version: null, model: null })).toEqual({

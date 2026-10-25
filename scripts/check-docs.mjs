@@ -28,6 +28,9 @@ const documents = [
   'docs/architecture/adr/0002-app-control-plane.md',
   'docs/architecture/task-priority-walkthrough.md',
   'docs/architecture/baseline-2026-10-06.md',
+  // OPS-1 本轮规范与执行记录：新增未跟踪文件不在 git diff --check 范围内，由此检查链接与尾随空白。
+  'docs/acceptance/simplify-ops-20261022/SPEC.md',
+  'docs/acceptance/simplify-ops-20261022/README.md',
 ];
 
 function withoutCode(source) {

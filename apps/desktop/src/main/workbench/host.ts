@@ -3,7 +3,7 @@ import { describeImport } from './import-source';
 import type { AppImportSelection, AppImportSource, ImportProgress } from './ports';
 import { isAllowedManagedAppUrl } from '../preview/navigation-policy';
 import { isAllowedPreviewUrl } from '../preview/navigation-policy';
-import { parsePublicUrl } from '../preview/public-document';
+import { isBrowserUrl } from '../preview/navigation-policy';
 import { app, dialog, session, type BrowserWindow } from 'electron';
 import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
@@ -158,6 +158,33 @@ export class WorkbenchHost implements WorkbenchRuntime {
   private readonly observers = new Map<string, BrowserObservation>();
   private readonly browserBindings = new Map<string, ResourceInstanceIdentity>();
   application: WorkbenchApplication | null = null;
+  nativeFocus() {
+    for (const [resourceId, browser] of this.browsers)
+      if (browser.focused()) {
+        const webContentsId = browser.focusIdentity();
+        const workspaceId = this.browserBindings.get(resourceId)?.workspaceId;
+        if (webContentsId !== null && workspaceId)
+          return { workspaceId, resourceId, webContentsId, documentGeneration: browser.getState().page.documentGeneration };
+      }
+    return null;
+  }
+  async restoreBrowserFocus(focus: { workspaceId: string; resourceId: string; webContentsId: number; documentGeneration: number }) {
+    if (this.window.isDestroyed() || !this.window.isFocused()) return false;
+    const snapshot = await this.application?.currentSnapshot();
+    if (this.window.isDestroyed() || !this.window.isFocused()) return false;
+    const browser = this.browsers.get(focus.resourceId);
+    const binding = this.browserBindings.get(focus.resourceId);
+    if (
+      !browser ||
+      browser.focusIdentity() !== focus.webContentsId ||
+      browser.getState().page.documentGeneration !== focus.documentGeneration ||
+      binding?.workspaceId !== focus.workspaceId ||
+      focus.workspaceId !== snapshot?.activeWorkspaceId
+    )
+      return false;
+    browser.focus();
+    return true;
+  }
   environmentsList() {
     return this.chat.environmentsList();
   }
@@ -218,11 +245,7 @@ export class WorkbenchHost implements WorkbenchRuntime {
   }
   validateBrowserUrl(url: string) {
     if (isAllowedPreviewUrl(url, [DEMO_ORIGIN])) return;
-    try {
-      parsePublicUrl(url);
-    } catch (error) {
-      throw new Error('invalid_input: ' + (error as Error).message, { cause: error });
-    }
+    if (!isBrowserUrl(url)) throw new Error('invalid_input: 仅允许 HTTP 或 HTTPS 网页地址');
   }
   ensureBrowser(workspaceId: string, resource: WorkbenchResource): void {
     const lease = resource.appProjectId ? this.appLeases.get(resource.appProjectId) : undefined;
@@ -238,7 +261,7 @@ export class WorkbenchHost implements WorkbenchRuntime {
         throw new Error('unavailable: 应用实例已停止或需要重新启动');
     } else this.validateBrowserUrl(resource.url ?? 'wsl-demo://taskflow/index.html');
     if (this.browsers.has(resource.resourceId)) return;
-    const partition = 'preview-' + workspaceId + '-' + resource.instanceId;
+    const partition = resource.appProjectId ? 'preview-' + workspaceId + '-' + resource.instanceId : 'persist:browser-' + workspaceId;
     const browserSession = session.fromPartition(partition);
     browserSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
     browserSession.setPermissionCheckHandler(() => false);

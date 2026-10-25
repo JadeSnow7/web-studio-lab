@@ -4,9 +4,10 @@ import { WorkbenchObservationInputSchema, WorkspaceObservationResultSchema } fro
 import { WorkbenchCommandSchema, WorkbenchEventSchema, WorkbenchResultSchema, WorkbenchSnapshotSchema } from './workspace';
 import { z } from 'zod';
 import { RunPatchQuerySchema, RunPatchResultSchema } from './source-change';
-import { AppInfoSchema, ShellCommandSchema } from './app';
+import { AppInfoSchema, ShellCommandEventSchema, NativeBrowserFocusSchema } from './app';
 import { ChatConversationSchema, ChatStatusSchema, ChatTargetSchema, PermissionReplySchema } from './chat';
 import { ExecutionStatusSchema } from './execution';
+import { ShowMenuRequestSchema, ShowMenuResultSchema } from './native-menu';
 import { HarnessProfileIdSchema, HarnessProfilesSnapshotSchema, HarnessSelectionSchema } from './harness';
 import { DebugStatusSnapshotSchema, StatusTransitionSchema, type DebugStatusSnapshot, type StatusTransition } from './status';
 
@@ -58,6 +59,15 @@ export const invokeChannels = {
   'chat:cancel': { request: ChatTargetSchema, response: ChatConversationSchema },
   'chat:reset': { request: ChatTargetSchema, response: ChatConversationSchema },
   'execution:get-status': { request: NoArgs, response: ExecutionStatusSchema },
+  /** 原生菜单（OPS-1 S5）：Main 按快照构建并弹出菜单，返回选择项与冻结目标，取消为 null。 */
+  'shell:show-menu': { request: ShowMenuRequestSchema, response: ShowMenuResultSchema },
+  /**
+   * 采集完成并展开接收会话后（OPS-1 R9）：Main 把键盘焦点从原生网页交回工作台页面（`webContents.focus()`）。
+   * 没有参数；窗口不在前台或已销毁时不抢焦点，返回 false。
+   */
+  'shell:focus-workbench': { request: NoArgs, response: z.boolean() },
+  'shell:native-focus': { request: NoArgs, response: NativeBrowserFocusSchema.nullable() },
+  'shell:restore-browser-focus': { request: NativeBrowserFocusSchema, response: z.boolean() },
   /** 诊断通道：仅开发服务器或 WSL_DEBUG_STATUS=1 时注册（status-interface.md §8.1）；未启用时 Main 不注册、ipc-guard 拒绝。 */
   'debug:status': { request: NoArgs, response: DebugStatusSnapshotSchema },
 } as const;
@@ -73,7 +83,7 @@ export const eventChannels = {
   'chat:status': ChatStatusSchema,
   'chat:profiles': HarnessProfilesSnapshotSchema,
   'chat:conversation': ChatConversationSchema,
-  'shell:command': ShellCommandSchema,
+  'shell:command': ShellCommandEventSchema,
   /** 诊断事件：每条转换（已脱敏）；仅诊断通道启用时发送。 */
   'debug:status': StatusTransitionSchema,
   'debug:facts-changed': z.literal('changed'),

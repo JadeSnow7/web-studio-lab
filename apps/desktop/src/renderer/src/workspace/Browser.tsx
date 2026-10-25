@@ -1,178 +1,32 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { shortcutModalOpen, webAddressFocusStore, completeNewWebAddressFocus } from '../state/shortcuts';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { StatusScope, WorkbenchResource } from '@wsl/protocol';
 import { workspaceCommand, workspaceStore } from '../state/workspace';
 import { useStore } from '../lib/store';
-import { captureContext, cancelContextCapture } from '../state/capture';
+import { cancelCapture, createReceiverSession, toggleCapture, useCaptureState } from '../state/capture';
+import { receiverActions, resolveDefaultReceiver, useReceiverPreferences } from '../state/capture-receiver';
 import { locateSession } from '../state/location';
 import { Icon } from '../components/Icon';
 import { StatusDot, StatusSlot } from '../components/Status';
 import { spaceActions } from '../state/space-ui';
 import { useCatalogMutation } from '../state/catalog';
-import { occlusion } from '../state/occlusion';
 import { reportError } from '../state/errors';
+import {
+  captureReceiverMenuEffect,
+  menuAnchorFromClick,
+  menuView,
+  nativeMenuKey,
+  openNativeMenu,
+  useNativeMenuExpanded,
+  webMoreMenuEffect,
+} from '../state/native-menu';
 import { ackScope, statusPresentationActions, useStatusViewByKey, type StatusView } from '../state/status-view';
 
+import { browserAddress } from './browser-address';
+
 const PICKING_HINT = '选择中，先取消选择';
-const CAPTURE_GUIDANCE = '请在此网页的“关联会话”中明确选择会话，再点击“采集到关联会话”。没有会话时可新建关联会话；采集结果保存在所选会话。';
-
-/**
- * 工具栏弹出层（「采集到会话 ⌄」与「⋯」）：展开前进入 occlusion 遮挡集合（原生网页让位），关闭时释放。
- * menu：方向键 / Home / End 在菜单项间移动；dialog（内含表单控件，非模态）：方向键只在按钮间移动，不抢 select 的方向键。
- * Esc 关闭并回到触发器；点击外部或焦点移出弹出层关闭；窗格被隐藏时关闭。
- */
-function ToolbarPopup({
-  source,
-  role,
-  label,
-  triggerClassName,
-  triggerLabel,
-  triggerContent,
-  hidden,
-  disabled,
-  title,
-  children,
-}: {
-  source: string;
-  role: 'menu' | 'dialog';
-  /** 弹出层的可访问名称。 */
-  label: string;
-  triggerClassName: string;
-  /** 触发器可访问名称；缺省取按钮内的文字。 */
-  triggerLabel?: string;
-  triggerContent: ReactNode;
-  hidden: boolean;
-  disabled?: boolean;
-  title?: string;
-  children: (close: () => void) => ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const root = useRef<HTMLDivElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
-  const mounted = useRef(true);
-  const popupId = useId();
-  const triggerId = useId();
-  const focusable = role === 'menu' ? '[role="menuitem"]:not(:disabled)' : 'select, button:not(:disabled)';
-
-  const close = (restoreFocus = true) => {
-    setOpen(false);
-    occlusion.close(source);
-    if (restoreFocus) document.getElementById(triggerId)?.focus();
-  };
-  const show = async () => {
-    if (open) return close();
-    try {
-      if (!(await occlusion.open(source))) return;
-    } catch (error) {
-      reportError('打开菜单', error);
-      return;
-    }
-    if (!mounted.current) occlusion.close(source);
-    else setOpen(true);
-  };
-
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-      occlusion.close(source);
-    };
-  }, [source]);
-  useEffect(() => {
-    if (open) panel.current?.querySelector<HTMLElement>(focusable)?.focus();
-    // 只在展开时移动一次焦点。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-  // 选择中禁用触发器时同步收起（渲染期调整 open，遮挡集合在效果里释放）。
-  if (disabled && open) setOpen(false);
-  useEffect(() => {
-    if (disabled) occlusion.close(source);
-  }, [disabled, source]);
-  // 窗格被隐藏（切换标签 / 空间）时收起；新建关联会话会让窗格短暂切走再切回，所以持续隐藏才收起。
-  useEffect(() => {
-    if (!hidden || !open) return;
-    const timer = setTimeout(() => close(false), 400);
-    return () => clearTimeout(timer);
-    // close 只依赖稳定的 source 与 ref。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hidden, open]);
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.target instanceof Node && !root.current?.contains(event.target)) close(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, source]);
-
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.nativeEvent.isComposing) return;
-    if (!open) {
-      if (role === 'menu' && event.key === 'ArrowDown' && event.target === trigger.current) {
-        event.preventDefault();
-        void show();
-      }
-      return;
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      close();
-      return;
-    }
-    // select 自己使用方向键改变选项。
-    if (event.target instanceof HTMLSelectElement) return;
-    const items = Array.from(panel.current?.querySelectorAll<HTMLElement>(focusable) ?? []);
-    if (!items.length) return;
-    const index = items.findIndex((item) => item === document.activeElement);
-    const next =
-      event.key === 'ArrowDown'
-        ? index + 1
-        : event.key === 'ArrowUp'
-          ? index - 1
-          : event.key === 'Home'
-            ? 0
-            : event.key === 'End'
-              ? items.length - 1
-              : null;
-    if (next === null) return;
-    event.preventDefault();
-    items[(next + items.length) % items.length]?.focus();
-  };
-
-  return (
-    <div
-      className="browser-popup-anchor"
-      ref={root}
-      onKeyDown={onKeyDown}
-      onBlur={(event) => {
-        if (open && event.relatedTarget instanceof Node && !root.current?.contains(event.relatedTarget)) close(false);
-      }}
-    >
-      <button
-        type="button"
-        ref={trigger}
-        id={triggerId}
-        className={triggerClassName}
-        aria-label={triggerLabel}
-        title={title}
-        disabled={disabled}
-        aria-haspopup={role}
-        aria-expanded={open}
-        aria-controls={open ? popupId : undefined}
-        onClick={() => void show()}
-      >
-        {triggerContent}
-      </button>
-      {open ? (
-        <div className="browser-popup" ref={panel} role={role} id={popupId} aria-label={label} tabIndex={-1}>
-          {children(() => close())}
-        </div>
-      ) : null}
-    </div>
-  );
-}
+const SAVING_HINT = '正在保存，完成后可再操作';
+const CREATING_SESSION_HINT = '正在新建会话，完成后可再操作';
 
 export function Browser({
   workspaceId,
@@ -194,6 +48,10 @@ export function Browser({
   const draftVersion = useRef(0);
   const navigationRequest = useRef(0);
   const pendingNavigation = useRef<{ version: number; url: string } | null>(null);
+  const nativeLayoutSync = useRef<(() => void) | null>(null);
+  const addressFocusIntent = useStore(webAddressFocusStore, (state) =>
+    state.intent?.workspaceId === workspaceId && state.intent.resourceId === resource.resourceId ? state.intent : null,
+  );
   const p = resource.preview;
   const projectedUrl = p?.page.url ?? resource.url ?? '';
   useLayoutEffect(() => {
@@ -205,25 +63,30 @@ export function Browser({
   }, [visible]);
   const workspace = useStore(workspaceStore, (s) => s.snapshot?.workspaces.find((w) => w.workspaceId === workspaceId));
   const managedAppInstanceId = resource.appProjectId ? workspace?.managedApp?.appInstanceId : null;
-  const [associatedSessionId, setAssociatedSessionId] = useState('');
-  const capture = () => captureContext(workspaceId, associatedSessionId, resource.resourceId);
-  const [creatingSession, setCreatingSession] = useState(false);
+  // 默认接收者（OPS-1 S1）：显式选择 > 进行中请求冻结的接收者 > 同屏最近活动 > 本空间最近活动 > 发起时自动新建；开始采集前就显示在按钮上。
+  const { explicit, activity } = useReceiverPreferences(workspaceId, resource.resourceId);
+  const { starting, pendingSessionId } = useCaptureState(workspaceId, resource.resourceId);
+  const receiver = workspace
+    ? resolveDefaultReceiver({ workspace, resourceId: resource.resourceId, explicitSessionId: explicit, pendingSessionId, activity })
+    : null;
+  const pendingTitle = pendingSessionId ? workspace?.sessions.find((s) => s.sessionId === pendingSessionId)?.title : undefined;
+  const captureExpanded = useNativeMenuExpanded(
+    nativeMenuKey('capture-receiver', { workspaceId, resourceId: resource.resourceId, receiverSessionId: null }),
+  );
+  const moreExpanded = useNativeMenuExpanded(nativeMenuKey('web-more', { workspaceId, resourceId: resource.resourceId }));
   const creating = useRef(false);
-  const selectRef = useRef<HTMLSelectElement>(null);
-  const createAssociatedSession = async () => {
-    if (creating.current || !workspace) return;
+  // 新建会话进行中禁用接收者按钮，第二次选择不会被静默丢弃。
+  const [creatingSession, setCreatingSession] = useState(false);
+  /** 接收者菜单「新建会话」：新建不占用窗格的会话并设为之后采集的接收者，不开始采集。 */
+  const chooseNewSession = async (targetWorkspaceId: string, targetResourceId: string) => {
+    if (creating.current) return;
     creating.current = true;
     setCreatingSession(true);
     try {
-      const result = await workspaceCommand(workspaceId, { type: 'createTab', kind: 'session', title: `${resource.title} · 会话` });
-      if (!result?.ok) return;
-      const session = result.snapshot.workspaces
-        .find((w) => w.workspaceId === workspaceId)!
-        .sessions.find((s) => !workspace.sessions.some((old) => old.sessionId === s.sessionId));
-      if (!session) throw new Error('新建会话成功但未返回会话身份');
-      setAssociatedSessionId(session.sessionId);
-      const tab = workspace.tabs.find((t) => t.targetRef.resourceId === resource.resourceId)!;
-      await workspaceCommand(workspaceId, { type: 'activateTab', tabId: tab.tabId });
+      const sessionId = await createReceiverSession(targetWorkspaceId, targetResourceId);
+      if (sessionId) receiverActions.choose(targetWorkspaceId, targetResourceId, sessionId);
+    } catch (error) {
+      reportError('新建会话', error);
     } finally {
       creating.current = false;
       setCreatingSession(false);
@@ -249,11 +112,11 @@ export function Browser({
     if (await resourceAction.mutate(payload, message))
       statusPresentationActions.hint({ key: `ui:${resourceId}:${source}`, scope, label: message, source, until: 'ack' });
   };
-  const guidanceKey = `ui:${resourceId}:capture-guidance`;
-  // 开始选择后采集指引不再适用。
-  useEffect(() => {
-    if (p?.picking) statusPresentationActions.dismissHint(guidanceKey);
-  }, [p?.picking, guidanceKey]);
+  // 「选择元素」一步发起采集（OPS-1 S1）；进行中再次触发即取消。失败登记为界面错误，不静默吞掉。
+  const toggle = () => toggleCapture(workspaceId, resourceId).catch((error: unknown) => reportError('选择元素', error));
+  const cancelPick = () => cancelCapture(workspaceId, resourceId).catch((error: unknown) => reportError('取消采集', error));
+  const picking = !!p?.picking || starting;
+  const capturable = !!resource.instanceId && !p?.loading;
   const action = (action: 'navigate' | 'reload' | 'back' | 'forward' | 'pick' | 'cancelPick' | 'reattach' | 'resumeAgent', url?: string) =>
     workspaceCommand(workspaceId, {
       type: 'browserAction',
@@ -274,7 +137,7 @@ export function Browser({
     const sync = () => {
       if (pendingApp()) return;
       const rect = element.getBoundingClientRect();
-      void workspaceCommand(workspaceId, {
+      const layout = workspaceCommand(workspaceId, {
         type: 'browserLayout',
         resourceId: resource.resourceId,
         layout: {
@@ -287,12 +150,18 @@ export function Browser({
           },
         },
       });
+      if (visible && !occluded)
+        void layout
+          .then((result) => completeNewWebAddressFocus(workspaceId, resource.resourceId, result?.ok === true))
+          .catch((error: unknown) => reportError('聚焦新网页地址', error));
     };
+    nativeLayoutSync.current = sync;
     sync();
     const observer = new ResizeObserver(sync);
     observer.observe(element);
     window.addEventListener('resize', sync);
     return () => {
+      nativeLayoutSync.current = null;
       observer.disconnect();
       window.removeEventListener('resize', sync);
       if (pendingApp()) return;
@@ -303,13 +172,21 @@ export function Browser({
       });
     };
   }, [workspaceId, resource.resourceId, resource.url, managedAppInstanceId, visible, occluded]);
+  useLayoutEffect(() => {
+    if (addressFocusIntent && visible && !occluded) nativeLayoutSync.current?.();
+  }, [addressFocusIntent, visible, occluded, p?.page.documentGeneration, p?.loading, p?.loadError]);
   const onAction = (view: StatusView) => {
     const id = view.action?.id;
     if (!id || view.action?.disabled) return;
     if (id === 'web.reload') void action('reload');
     else if (id === 'web.reattach') void action('reattach');
     else if (id === 'web.resumeAgent') void action('resumeAgent');
-    else if (id === 'web.cancelPick') void cancelContextCapture(workspaceId, resource.resourceId);
+    else if (id === 'web.cancelPick') void cancelPick();
+    else if (id === 'session.open' && view.locate) {
+      // 「已采集到 {会话} · 打开」：定位登记时冻结的接收会话（打开对话视图，不跳到「上下文」）。
+      statusPresentationActions.dismissHint(view.key);
+      void locateSession({ workspaceId: view.locate.workspaceId, sessionId: view.locate.sessionId, view: 'conversation' });
+    }
   };
   // 受管 App 的合同用例按这两个 testid 定位 AI 操控条目。
   const itemTestId = (view: StatusView) =>
@@ -327,7 +204,21 @@ export function Browser({
     if (event.target.matches(':focus-visible') && !event.target.closest('.status-slot')) acknowledge();
   };
   return (
-    <div className="workspace-browser" onClickCapture={acknowledge} onKeyDownCapture={acknowledgeKey} onFocusCapture={acknowledgeFocus}>
+    <div
+      className="workspace-browser"
+      onClickCapture={(event) => {
+        // 槽内动作必须先执行；提前确认会卸载提示，使点击 / Enter 的动作丢失。
+        if (!(event.target as HTMLElement).closest('.status-slot')) acknowledge();
+      }}
+      onKeyDownCapture={acknowledgeKey}
+      onFocusCapture={acknowledgeFocus}
+      onKeyDown={(event) => {
+        // 焦点在工具栏（而不是原生网页）时，Esc 同样取消点选；地址栏与 IME 组词各自处理 Esc。
+        if (event.key !== 'Escape' || event.defaultPrevented || shortcutModalOpen() || event.nativeEvent.isComposing || !p?.picking) return;
+        event.preventDefault();
+        void cancelPick();
+      }}
+    >
       <div className="browser-toolbar">
         <button type="button" className="icon-btn" aria-label="后退" disabled={!p?.canGoBack} onClick={() => void action('back')}>
           <Icon name="back" />
@@ -349,7 +240,7 @@ export function Browser({
           onSubmit={(e) => {
             e.preventDefault();
             if (composing.current) return;
-            const url = draft ?? projectedUrl;
+            const url = browserAddress(draft ?? projectedUrl);
             const version = draftVersion.current;
             if (pendingNavigation.current?.version === version && pendingNavigation.current.url === url) return;
             dirtyDraft.current = true;
@@ -409,171 +300,102 @@ export function Browser({
               }
             }}
           />
+          {(draft ?? projectedUrl) && (
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="清空地址"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                draftVersion.current++;
+                dirtyDraft.current = true;
+                setDraft('');
+                address.current?.focus();
+              }}
+            >
+              <Icon name="close" />
+            </button>
+          )}
         </form>
+        {/* 不能开始点选时用 aria-disabled（仍可聚焦，悬停与可访问描述说明原因），点击不做任何事。 */}
         <button
           type="button"
           className="btn"
-          aria-pressed={p?.picking ?? false}
-          onClick={() => {
-            if (p?.picking) {
-              void cancelContextCapture(workspaceId, resource.resourceId);
-            } else
-              statusPresentationActions.hint({
-                key: guidanceKey,
-                scope,
-                label: CAPTURE_GUIDANCE,
-                source: 'capture-guidance',
-                until: 'ack',
-              });
+          aria-pressed={picking}
+          aria-busy={starting || undefined}
+          aria-disabled={!picking && !capturable ? true : undefined}
+          title={!picking && !capturable ? (resource.instanceId ? '网页加载中，完成后可选择元素' : '网页未在运行') : undefined}
+          onClick={(event) => {
+            // 双击的第二下不算第二次触发（O03d）：连点只发起一次，不会紧接着取消。
+            if (event.detail > 1 || (!picking && !capturable)) return;
+            void toggle();
           }}
         >
-          {p?.picking ? '选择中 · Esc 取消' : '选择元素'}
+          {starting ? '正在准备点选…' : picking ? '选择中 · Esc 取消' : '选择元素'}
         </button>
-        <ToolbarPopup
-          source={`browser-capture:${resourceId}`}
-          role="dialog"
-          label="采集到会话"
-          triggerClassName="btn"
-          triggerContent={
-            <>
-              采集到会话<span aria-hidden="true"> ⌄</span>
-            </>
+        {/* 接收者按钮（OPS-1 S1）：显示默认接收会话，原生菜单（不进入遮挡集合）可改为本空间其他会话、新建会话或打开接收会话；只影响之后的采集。 */}
+        <button
+          type="button"
+          className="btn browser-receiver"
+          aria-label={
+            receiver ? (receiver.sessionId ? `接收会话：${receiver.title}` : `接收会话：将自动新建「${receiver.title}」`) : '接收会话'
           }
-          hidden={!visible}
-          // 打开弹出层会让出原生网页，Main 会因此取消进行中的点选：选择中先取消选择。
-          disabled={!!p?.picking}
-          title={p?.picking ? PICKING_HINT : undefined}
-        >
-          {(close) => (
-            <div className="browser-popup-form">
-              <label>
-                关联会话{' '}
-                <select
-                  ref={selectRef}
-                  aria-label="关联会话"
-                  value={associatedSessionId}
-                  onChange={(e) => setAssociatedSessionId(e.target.value)}
-                >
-                  <option value="">明确选择会话</option>
-                  {workspace?.sessions.map((s) => (
-                    <option key={s.sessionId} value={s.sessionId}>
-                      {s.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                className="btn"
-                type="button"
-                disabled={creatingSession}
-                onClick={() => {
-                  // 新建会话不需要原生网页可见：弹出层保持打开，完成后 select 已指向新会话，焦点回到 select。
-                  void createAssociatedSession().then(() => selectRef.current?.focus());
-                }}
-              >
-                新建关联会话
-              </button>
-              <button
-                className="btn"
-                type="button"
-                disabled={!associatedSessionId || !resource.instanceId || !!p?.loading}
-                onClick={() => {
-                  // 先关闭让出遮挡：开始选择要求原生网页可见。
-                  close();
-                  void capture();
-                }}
-              >
-                采集到关联会话
-              </button>
-              <button
-                className="btn"
-                type="button"
-                disabled={!associatedSessionId}
-                onClick={() => {
-                  close();
-                  void locateSession({ workspaceId, sessionId: associatedSessionId, view: 'context' });
-                }}
-              >
-                打开关联会话
-              </button>
-            </div>
-          )}
-        </ToolbarPopup>
-        <ToolbarPopup
-          source={`browser-more:${resourceId}`}
-          role="menu"
-          label="更多网页操作"
-          triggerClassName="icon-btn"
-          triggerLabel="更多网页操作"
-          triggerContent={<span aria-hidden="true">⋯</span>}
-          hidden={!visible}
-          disabled={!!p?.picking}
-          title={p?.picking ? PICKING_HINT : '更多网页操作'}
-        >
-          {(close) =>
-            resource.appProjectId ? (
-              <button
-                type="button"
-                role="menuitem"
-                disabled={!workspace}
-                onClick={() => {
-                  // 先回到触发器再打开对话框，对话框关闭后焦点回到这里。
-                  close();
-                  void spaceActions.openApp(workspaceId);
-                }}
-              >
-                管理 App
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  role="menuitem"
-                  disabled={resourceAction.busy}
-                  onClick={() => {
-                    close();
-                    void saveToCatalog(
-                      '收藏到资源',
-                      'bookmark',
-                      { type: 'bookmarkRuntimeResource', workspaceId, runtimeResourceId: resource.resourceId },
-                      '已收藏到我的资源。',
-                    );
-                  }}
-                >
-                  收藏到资源
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  disabled={resourceAction.busy || !resource.instanceId || !!p?.loading || !!p?.loadError}
-                  onClick={() => {
-                    close();
-                    void saveToCatalog(
-                      '保存正文快照',
-                      'snapshot',
-                      { type: 'captureResourceRevision', workspaceId, runtimeResourceId: resource.resourceId },
-                      '正文快照已保存；请在空间资源中明确选择参考版本。',
-                    );
-                  }}
-                >
-                  保存正文快照
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    close();
-                    void spaceActions.showResources(workspaceId);
-                  }}
-                >
-                  查看空间资源
-                </button>
-              </>
-            )
+          aria-haspopup="menu"
+          aria-expanded={captureExpanded}
+          disabled={creatingSession || !receiver}
+          title={
+            creatingSession
+              ? CREATING_SESSION_HINT
+              : pendingTitle && receiver?.sessionId !== pendingSessionId
+                ? `本次采集保存到「${pendingTitle}」；之后的采集保存到「${receiver?.title ?? ''}」`
+                : '选择采集结果保存到哪个会话'
           }
-        </ToolbarPopup>
+          onClick={async (event) => {
+            const choice = await openNativeMenu('capture-receiver', {
+              workspaceId,
+              resourceId,
+              receiverSessionId: receiver?.sessionId ?? null,
+              anchor: menuAnchorFromClick(event, event.currentTarget),
+            });
+            if (choice?.menuId !== 'capture-receiver') return;
+            const effect = captureReceiverMenuEffect(choice, menuView());
+            if (!effect) return;
+            if (effect.kind === 'choose') receiverActions.choose(effect.workspaceId, effect.resourceId, effect.sessionId);
+            else if (effect.kind === 'create') void chooseNewSession(effect.workspaceId, effect.resourceId);
+            else void locateSession({ workspaceId: effect.workspaceId, sessionId: effect.sessionId, view: 'conversation' });
+          }}
+        >
+          <span aria-hidden="true">→ {receiver?.sessionId ? receiver.title : '新建会话'} ⌄</span>
+        </button>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label="更多网页操作"
+          title={p?.picking ? PICKING_HINT : resourceAction.busy ? SAVING_HINT : '更多网页操作'}
+          aria-haspopup="menu"
+          aria-expanded={moreExpanded}
+          // 收藏 / 正文快照保存进行中禁用（与原菜单项的忙态一致），第二次选择不会被静默丢弃。
+          disabled={!!p?.picking || resourceAction.busy}
+          onClick={async (event) => {
+            const choice = await openNativeMenu('web-more', {
+              workspaceId,
+              resourceId,
+              anchor: menuAnchorFromClick(event, event.currentTarget),
+            });
+            if (choice?.menuId !== 'web-more') return;
+            const effect = webMoreMenuEffect(choice, menuView());
+            if (!effect) return;
+            if (effect.kind === 'catalog') {
+              if (effect.action === 'bookmark') void saveToCatalog('收藏到资源', 'bookmark', effect.payload, '已收藏到我的资源。');
+              else void saveToCatalog('保存正文快照', 'snapshot', effect.payload, '正文快照已保存；请在空间资源中明确选择参考版本。');
+            } else if (effect.kind === 'manage-app') void spaceActions.openApp(effect.workspaceId);
+            else void spaceActions.showResources(effect.workspaceId);
+          }}
+        >
+          <span aria-hidden="true">⋯</span>
+        </button>
       </div>
-      {/* 「选择中 · Esc 取消」按钮在工具栏，槽里不重复渲染取消按钮。 */}
+      {/* 「选择中 · Esc 取消」按钮在工具栏，槽里不重复渲染取消按钮；「已采集到 {会话} · 打开」在提示通道。 */}
       <StatusSlot scope={scope} onAction={onAction} omitActions={['web.cancelPick']} itemTestId={itemTestId} />
       <div className="preview-host" ref={host} data-native={visible && !occluded ? 'visible' : 'hidden'}>
         {occluded ? (

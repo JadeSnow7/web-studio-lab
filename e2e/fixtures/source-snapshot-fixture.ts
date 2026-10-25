@@ -6,6 +6,9 @@ const sourceFixture = globalThis.__wslSourceFixture = {
   holdSnapshots: false, holdPatches: false, patchFailure: false, patchIdentityMismatch: false, sourceRequests: [], patchRequests: [], sends: [],
   pendingSnapshots: new Map(), pendingPatches: [], apps: new Map(), turns: new Map(), child: null,
 };
+// Like the real service (apps/service/src/codex-chat.ts slot generation), each fixture process is its own conversation
+// generation; seq restarts per generation, so a relaunched app never reuses the previous process's generation.
+const sourceGeneration = 'source-fixture-' + sourceCrypto.randomUUID();
 const sourceFork = sourceElectron.utilityProcess.fork.bind(sourceElectron.utilityProcess);
 sourceElectron.utilityProcess.fork = (...args) => {
   const child = sourceFork(...args);
@@ -22,7 +25,11 @@ sourceElectron.utilityProcess.fork = (...args) => {
       return respond(message.id, app);
     }
     if (message.method === 'app.get' || message.method === 'app.start' || message.method === 'app.stop') {
-      const before = sourceFixture.apps.get(target.projectId);
+      // A relaunched Electron process starts with an empty map; like AppService, app.get restores a created project as
+      // stopped with its deterministic guest cwd (cleanup confirmed), so restart tests see a service-confirmed App.
+      const before = sourceFixture.apps.get(target.projectId) ?? (message.method === 'app.get' ? { workspaceId: target.workspaceId,
+        projectId: target.projectId, environmentId: 'sandbox', appInstanceId: null, state: 'stopped', url: null,
+        guestCwd: '/home/agent/workspace/.wsl-apps/' + target.projectId, error: null, cleanupConfirmed: true } : undefined);
       if (!before) return fail(message.id, 'fixture project unavailable');
       const app = message.method === 'app.start'
         ? { ...before, state: 'running', appInstanceId: sourceCrypto.randomUUID(), url: sourceFixture.url, cleanupConfirmed: false }
@@ -49,7 +56,7 @@ sourceElectron.utilityProcess.fork = (...args) => {
     if (message.method === 'send') {
       sourceFixture.sends.push(target);
       const prior = sourceFixture.turns.get(target.conversationId);
-      const conversation = { conversationId: target.conversationId, generation: 'source-fixture', turnId: sourceCrypto.randomUUID(),
+      const conversation = { conversationId: target.conversationId, generation: sourceGeneration, turnId: sourceCrypto.randomUUID(),
         seq: (prior?.seq ?? 0) + 1, threadId: null, state: 'running', messages: [], toolExecutions: [], warnings: [], cleanupPending: true, error: null };
       sourceFixture.turns.set(target.conversationId, conversation);
       return respond(message.id, conversation);

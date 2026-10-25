@@ -3,6 +3,8 @@ import type { WorkbenchCommand, WorkbenchResult, WorkbenchSnapshot } from '../pa
 import {
   launchApp,
   openBrowserMenu,
+  openNewTabForm,
+  paneMenu,
   setWindowSize,
   workspaceSnapshot,
   previewClick,
@@ -598,9 +600,8 @@ for (const destination of ['tab', 'space'] as const)
       await create.getByRole('button', { name: '保存', exact: true }).click();
       await expect(create).toBeHidden();
     }
-    await page.getByRole('button', { name: '新建标签', exact: true }).click();
-    const createTab = page.getByRole('dialog', { name: '新建标签' });
-    await createTab.getByLabel('标签类型').selectOption('web');
+    const createTab = await openNewTabForm(app, page, '网页');
+    await expect(createTab.getByLabel('标签类型')).toHaveValue('web');
     await createTab.getByLabel('名称').fill('Address other web');
     const otherUrl = `${homeUrl}?other=1`;
     await createTab.getByLabel('网页地址').fill(otherUrl);
@@ -660,38 +661,41 @@ for (const destination of ['tab', 'space'] as const)
     expect(await navigationUrls()).toEqual([taskUrl]);
   });
 
-for (const action of ['confirm', 'send'] as const)
-  test(`${action} freezes visible criteria despite autosave failure and keeps failed input`, async () => {
-    await openSession();
-    await app.evaluate(() => {
-      const gate = (globalThis as ReviewGlobal).reviewGate;
-      gate.failCriteria = true;
-      gate.failStart = true;
-    });
-    await session().getByLabel('修改目标').fill('保留当前目标');
-    await session().getByLabel('允许修改范围（每行一条）').fill('src/current.ts');
-    await session().getByLabel('验收条件（每行一条）').fill('当前验收一\n当前验收二');
-    if (action === 'confirm') await session().getByRole('button', { name: '确认任务（生成新版本）' }).click();
-    else await session().getByRole('button', { name: '发送', exact: true }).click();
-    await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions.length).toBe(1);
-    const version = (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions[0]!;
-    expect(version.acceptance).toEqual(['当前验收一', '当前验收二']);
-    expect(version.allowedScopes).toEqual(['src/current.ts']);
-    await expect(session().getByLabel('会话消息')).toHaveValue('保留当前目标');
-    await expect(session().getByLabel('验收条件（每行一条）')).toHaveValue('当前验收一\n当前验收二');
-  });
-
-test('failed confirmation does not navigate away from the view chosen during the pending request', async () => {
+// OPS-1 S2：底部输入框是唯一的目标输入，「发送」是唯一的确认入口（「确认任务（生成新版本）」已移除）；范围与验收在「任务设置」中。
+test('send freezes visible criteria despite autosave failure and keeps failed input', async () => {
   await openSession();
-  await session().getByLabel('修改目标').fill('确认失败后保留');
+  await app.evaluate(() => {
+    const gate = (globalThis as ReviewGlobal).reviewGate;
+    gate.failCriteria = true;
+    gate.failStart = true;
+  });
+  await session().getByLabel('会话消息').fill('保留当前目标');
+  await session()
+    .getByRole('button', { name: /^任务设置/ })
+    .click();
+  await session().getByLabel('允许修改范围（每行一条）').fill('src/current.ts');
+  await session().getByLabel('验收条件（每行一条）').fill('当前验收一\n当前验收二');
+  await session().getByRole('button', { name: '发送', exact: true }).click();
+  await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions.length).toBe(1);
+  const version = (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions[0]!;
+  expect(version.acceptance).toEqual(['当前验收一', '当前验收二']);
+  expect(version.allowedScopes).toEqual(['src/current.ts']);
+  await expect(session().getByLabel('会话消息')).toHaveValue('保留当前目标');
+  await expect(session().getByLabel('验收条件（每行一条）')).toHaveValue('当前验收一\n当前验收二');
+});
+
+test('failed send does not navigate away from the view chosen during the pending confirmation', async () => {
+  await openSession();
+  await session().getByRole('button', { name: '对话', exact: true }).click();
+  await session().getByLabel('会话消息').fill('确认失败后保留');
   await app.evaluate(() => {
     (globalThis as ReviewGlobal).reviewGate.holdConfirm = true;
   });
-  await session().getByRole('button', { name: '确认任务（生成新版本）' }).click();
+  await session().getByRole('button', { name: '发送', exact: true }).click();
   await expect.poll(() => app.evaluate(() => (globalThis as ReviewGlobal).reviewGate.releases.length)).toBe(1);
-  await session().getByRole('button', { name: '对话', exact: true }).click();
+  await session().getByRole('button', { name: '任务', exact: true }).click();
   await release();
-  await expect(session().getByRole('button', { name: '对话', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(session().getByRole('button', { name: '任务', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(session().getByLabel('会话消息')).toHaveValue('确认失败后保留');
   expect((await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.taskVersions).toHaveLength(0);
 });
@@ -699,12 +703,10 @@ test('failed confirmation does not navigate away from the view chosen during the
 for (const destination of ['tab', 'route', 'space', 'session-view-keyboard'] as const)
   test(`late screenshot preserves its owner without returning from ${destination}`, async () => {
     if (destination === 'session-view-keyboard') {
-      await page.getByRole('button', { name: '左右分屏', exact: true }).click();
+      await paneMenu(app, page, '左右分屏');
       await page.getByRole('button', { name: 'Agent 会话', exact: true }).click();
     }
     const initial = (await workspaceSnapshot(page)).workspaces[0]!;
-    await openBrowserMenu(page, '采集到会话');
-    await page.getByLabel('关联会话').selectOption(initial.sessions[0]!.sessionId);
     await app.evaluate(({ BrowserWindow }) => {
       const host = globalThis as ReviewGlobal;
       host.screenshotGate = { armed: true, entered: 0, release: null };
@@ -723,8 +725,9 @@ for (const destination of ['tab', 'route', 'space', 'session-view-keyboard'] as 
         return image;
       };
     });
-    await openBrowserMenu(page, '采集到会话');
-    await page.getByRole('button', { name: '采集到关联会话' }).click();
+    // 接收者原生菜单（OPS-1 S1）只设定接收者；「选择元素」一步发起采集。
+    await openBrowserMenu(app, page, '接收会话', initial.sessions[0]!.title);
+    await page.getByRole('button', { name: '选择元素', exact: true }).click();
     await expect(page.getByRole('button', { name: '选择中 · Esc 取消' })).toBeVisible();
     await previewClick(app, await previewElementCenter(app, '[data-testid="due-1"]'));
     await expect.poll(() => app.evaluate(() => (globalThis as ReviewGlobal).screenshotGate.entered)).toBe(1);

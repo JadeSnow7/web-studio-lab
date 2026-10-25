@@ -27,3 +27,33 @@ docs/acceptance/resource-ownership-20261010/SPEC.md
 templates/standard-app/agent
 # 受管 App 控制面验证的原始证据（轨迹、截图索引、命令输出）保持采集原样。
 docs/verification/2026-10-11-app-control-plane/round-*
+
+# 原始验收证据、封存源码副本及生成的基线工作树保持原字节。
+docs/acceptance/**/evidence/**
+docs/verification/**/evidence/**
+docs/acceptance/integration-20261008/sources/**
+records
+# 既有发布与复核回执的原始结果（现行说明文档仍参与格式检查）。
+docs/acceptance/pr-review-20261008/*-artifacts/**
+docs/acceptance/pr-review-20261008/*-screens/**
+docs/acceptance/pr-review-20261008/*.json
+docs/acceptance/space-app-live-20261010/model-*/**
+docs/acceptance/space-app-live-20261010/runtime-*/**
+docs/acceptance/installer-20261009/notarized-release-manifest.json
+docs/verification/2026-10-10-titlebar-panels-evidence/visual-metrics.json
+
+# 这两轮浏览器复验目录封存原始 DOM、输入审计及回执，保持采集字节与验收哈希。
+docs/acceptance/full-browser-20261023/recheck-b6-20261024/**
+docs/acceptance/full-browser-20261023/recheck-cmdt-20261024/**
+# 冻结的整合合同、VS001 回执和架构基线保持原字节；现行说明文档仍参与格式检查。
+docs/acceptance/integration-20261008/SPEC.md
+docs/acceptance/VS001.md
+docs/architecture/baseline-2026-10-06.md
+# 固定基准的原始输入与运行器不得因本轮格式检查而变化。
+fixtures/vertical-slice/page/index.html
+fixtures/vertical-slice/page/package.json
+fixtures/vertical-slice/page/src/App.tsx
+fixtures/vertical-slice/page/src/main.tsx
+tests/vertical-slice/cdp.ts
+tests/vertical-slice/contracts.ts
+tests/vertical-slice/run.ts

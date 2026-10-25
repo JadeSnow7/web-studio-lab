@@ -146,7 +146,7 @@ describe('review: cancellable Main launch I/O', () => {
   it('keeps registration cancelled in memory when cancellation persistence fails, without dispatching send', async () => {
     const { repository, runtime, app, workspace, command } = await setup();
     const sessionId = workspace.sessions[0]!.sessionId;
-    await command({ type: 'confirmTask', sessionId, goal: 'review', targetRef: null });
+    await command({ type: 'confirmTask', sessionId, goal: 'review', targetRef: null, appId: null, captureId: null });
     const taskVersionId = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!.taskVersionId;
     const entered = gate<void>();
     const release = gate<void>();
@@ -169,7 +169,7 @@ describe('review: cancellable Main launch I/O', () => {
   it('does not dispatch send after a cancellation racing with registration completion', async () => {
     const { repository, runtime, app, workspace, command } = await setup();
     const sessionId = workspace.sessions[0]!.sessionId;
-    await command({ type: 'confirmTask', sessionId, goal: 'review', targetRef: null });
+    await command({ type: 'confirmTask', sessionId, goal: 'review', targetRef: null, appId: null, captureId: null });
     const taskVersionId = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!.taskVersionId;
     const entered = gate<void>();
     const release = gate<void>();
@@ -199,7 +199,7 @@ describe('review: cancellable Main launch I/O', () => {
   it.each(['registration', 'send preflight'])('cancels while %s is suspended and ignores its late receipt', async (phase) => {
     const { repository, runtime, app, workspace, command } = await setup();
     const sessionId = workspace.sessions[0]!.sessionId;
-    await command({ type: 'confirmTask', sessionId, goal: 'review', targetRef: null });
+    await command({ type: 'confirmTask', sessionId, goal: 'review', targetRef: null, appId: null, captureId: null });
     const taskVersionId = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!.taskVersionId;
     const entered = gate<void>();
     const release = gate<void>();
@@ -244,7 +244,7 @@ describe('review: cancellable Main launch I/O', () => {
     // Without history the unchanged cancel receipt used to complete the run; with history it left the run cancelling.
     const unchanged = { ...conversation(sessionId, 'idle', 1), turnId: history ? 'earlier-turn' : null };
     if (history) app.onConversation(unchanged);
-    await command({ type: 'confirmTask', sessionId, goal: 'review', targetRef: null });
+    await command({ type: 'confirmTask', sessionId, goal: 'review', targetRef: null, appId: null, captureId: null });
     const taskVersionId = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!.taskVersionId;
     const dispatched = gate<void>();
     const rejection = gate<void>();
@@ -296,7 +296,14 @@ describe('review: real service frozen capability cancellation receipt', () => {
     }
     const before = chat.get(sessionId);
     const starts = vi.spyOn(connection, 'start');
-    await command({ type: 'confirmTask', sessionId, goal: '[slow] frozen input cancellation', targetRef: null });
+    await command({
+      type: 'confirmTask',
+      sessionId,
+      goal: '[slow] frozen input cancellation',
+      targetRef: null,
+      appId: null,
+      captureId: null,
+    });
     const taskVersionId = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!.taskVersionId;
     await command({ type: 'startRun', sessionId, taskVersionId });
     await vi.waitFor(() => expect(starts).toHaveBeenCalledOnce());

@@ -20,6 +20,11 @@ export const WorkbenchTabSchema = z
     pinned: z.boolean(),
     group: z.string().max(100).nullable(),
     targetRef: TargetRefSchema,
+    /**
+     * 标题模式（OPS-1 R7，schema 5）：true 时显示标题由预览页面标题派生，Main 不改写 `title`；false 为手动标题。
+     * 旧标签与显式名称创建默认 false；快捷新网页为 true，用户重命名后置 false。
+     */
+    autoTitle: z.boolean().default(false),
   })
   .strict();
 export type WorkbenchTab = z.infer<typeof WorkbenchTabSchema>;
@@ -92,6 +97,12 @@ export const WorkbenchRunSchema = z.object({
   review: z.object({ decision: z.enum(['accepted', 'changes_requested']), reviewedAt: z.string(), candidateId: Id }).nullable(),
 });
 export type WorkbenchRun = z.infer<typeof WorkbenchRunSchema>;
+/**
+ * 会话草稿的工程选择（OPS-1 R5，schema 5）：只保存本空间 App 的身份，与页面引用（`context` / `taskTargetRef`）分开。
+ * renderer 只能经 `saveTaskProject` 提交 `appId | null`；路径与 guestCwd 只在 confirmTask 时由 Main 冻结进 `appTarget`。
+ */
+export const TaskProjectSchema = SpaceAppSchema.pick({ appId: true, projectId: true });
+export type TaskProject = z.infer<typeof TaskProjectSchema>;
 export const WorkbenchSessionSchema = z.object({
   sessionId: Id,
   resourceId: Id,
@@ -118,6 +129,13 @@ export const WorkbenchSessionSchema = z.object({
   taskVersions: z.array(WorkbenchTaskVersionSchema),
   /** 本会话的 Harness 与 Profile；`null` 跟随全局默认（W4-7）。执行创建时冻结进 `harness`，之后不随此字段变化。 */
   harnessSelection: HarnessSelectionSchema.nullable().default(null),
+  /** 工程开关；`null` 为“未选择工程”。移除页面引用或采集普通网页不改变它；不从任务文字推断。 */
+  taskProject: TaskProjectSchema.nullable().default(null),
+  /**
+   * 工程开关是否已有决定（schema 5）：`false` 表示从未决定，首次成功采集本空间受管 App 页面时 Main 自动开启并置为 true；
+   * 用户显式开启或关闭（saveTaskProject）同样置为 true，此后采集不再改变开关。
+   */
+  taskProjectDecided: z.boolean().default(false),
 });
 export type WorkbenchSession = z.infer<typeof WorkbenchSessionSchema>;
 export const WorkbenchResourceSchema = z.object({
@@ -202,9 +220,16 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
   command('switchWorkspace', {}),
   command('createTab', {
     kind: TargetRefSchema.shape.kind,
+    /** 仅快捷创建网页启用，显式名称表单与旧调用默认手动模式。 */
+    autoTitle: z.boolean().optional(),
     environmentId: z.enum(['local', 'sandbox', 'ssh']).optional(),
     title: z.string().trim().min(1).max(200),
     url: z.string().max(2048).optional(),
+    /**
+     * 是否在活动窗格打开新标签（缺省为 true）。OPS-1 S1：采集发起时自动新建的接收会话与接收者菜单的「新建会话」
+     * 传 false，只新建标签、不改变布局；采集完成后再按条件展开。
+     */
+    activate: z.boolean().optional(),
   }),
   command('openTab', { resourceId: Id }),
   command('locateSession', { sessionId: Id, taskVersionId: Id.optional(), runId: Id.optional() }),
@@ -234,6 +259,8 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
     allowedScopes: WorkbenchSessionSchema.shape.taskAllowedScopes.removeDefault(),
   }),
   command('saveTaskTarget', { sessionId: Id, targetRef: TargetRefSchema.nullable() }),
+  /** 工程开关（R5）：只接受本空间 App 的 appId 或 null；Main 核对后保存 `{ appId, projectId }`。 */
+  command('saveTaskProject', { sessionId: Id, appId: SpaceAppSchema.shape.appId.nullable() }),
   command('captureContext', { sessionId: Id, resourceId: Id, requestId: Id }),
   command('cancelCapture', { resourceId: Id, requestId: Id }),
   command('hideBrowsers', {}),
@@ -243,6 +270,10 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
     sessionId: Id,
     goal: z.string().trim().min(1).max(32000),
     targetRef: TargetRefSchema.nullable(),
+    /** 用户看到的工程选择；Main 核对为本空间 App 后冻结 `appTarget`（含 guestCwd）。 */
+    appId: SpaceAppSchema.shape.appId.nullable(),
+    /** 页面引用：必须是本会话当前有效的采集；网页目标必须提供，其他目标必须为 null。 */
+    captureId: Id.nullable(),
   }),
   command('startRun', { sessionId: Id, taskVersionId: Id }),
   command('cancelRun', { runId: Id }),

@@ -31,3 +31,5 @@ export * from './source-change';
 
 export * from './app-import';
 export * from './harness';
+
+export * from './native-menu';

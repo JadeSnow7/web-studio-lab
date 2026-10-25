@@ -2,6 +2,8 @@
 
 Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) 既有设计与工程经验构建的 Electron 桌面工作台，参加 [OSCHINA 开源大赛 2026](https://www.oschina.net/os2026/)。目标闭环：在运行页面上点选元素、确认任务，由 Codex CLI 修改代码，工作台启动 App 并执行固定验收，给出可复验的证据，最后由开发者决定是否接受结果。
 
+本次整合的源码说明与历史记录分开：OPS / Browser / Harness 的链接记录绑定其原日期和来源版本，不能作为当前候选重新验证或用户接受的证明。当前验证状态以本次独立记录为准。
+
 范围、排期与验收以[任务计划](docs/plans/2026-10-os2026-task-plan.md)为准，实现约束见[架构文档](docs/ARCHITECTURE.md)。
 
 移动端扩展已形成[Expo Android 第一阶段设计](docs/design/2026-10-11-expo-android-phase1.md)和[实施与验收计划](docs/plans/2026-10-11-expo-android-phase1.md)：拟支持固定 Expo 项目、工作台 Web 预览、Android USB 真机连接和本地 APK 导出。当前仅完成设计，尚未修改移动端源码或执行移动端验收；不计入既有比赛闭环已实现能力。
@@ -68,7 +70,7 @@ pnpm test:e2e
 
 首页个人对话和会话页支持 Enter 发送、Shift+Enter 换行、取消和开始新对话。空间会话标签分别保存草稿、任务版本与运行，进入新会话使用空间的新建会话入口。界面显示 sandbox 与 guest cwd，运行详情可查看工具结果及警告。Codex 可以使用 guest 工具读写 `/home/agent/workspace`；对话历史分开，但文件系统与终端共享。新对话不会删除 guest 文件，也不承诺删除 CLI 历史。
 
-空间垂直标签中的“开发终端”提供显式连接入口，打开交互shell，支持持续 cwd/环境、Ctrl-C、窗口尺寸变化与关闭。切换标签保留 shell；关闭终端或取消对话须确认所属远端进程退出。应用不会停止整个 sandbox，sandbox 内安装与文件由 sbx 保留。Browser 可加载演示页面、受控公开 HTTPS 只读文档，以及当前空间明确启动且通过身份健康检查的沙箱应用。
+空间垂直标签中的“开发终端”提供显式连接入口，打开交互shell，支持持续 cwd/环境、Ctrl-C、窗口尺寸变化与关闭。切换标签保留 shell；关闭终端或取消对话须确认所属远端进程退出。应用不会停止整个 sandbox，sandbox 内安装与文件由 sbx 保留。Browser 可加载演示页面、原生 HTTP/HTTPS 网站，以及当前空间明确启动且通过身份健康检查的沙箱应用。
 
 普通 `pnpm test:e2e` 使用缺失配置或确定性 sbx fixture，不调用真实模型。App 名称/说明、失败草稿、键盘和窄窗流程由 `e2e/space-app.spec.ts` 验证。显式真实检查需要本机已准备好的 sandbox、有效的既有 sandbox 认证、网络和原生窗口权限：
 
@@ -95,9 +97,9 @@ pnpm exec playwright test e2e/app-control-harness.spec.ts
 
 资源归属用户账户，个人收藏、空间连接、正文版本与运行实例分别记录。全局“资源”定位为个人收藏；空间资源在空间页独立折叠区访问，活跃标签和后台实例保留各自状态。本轮实现、验收证据及未决项见[账户资源改造记录](docs/acceptance/resource-ownership-20261010/README.md)，目标约定见[冻结合同](docs/acceptance/resource-ownership-20261010/SPEC.md)。
 
-收藏网页链接只保存地址，不访问网络；公开 HTTPS 文档继续沿用受控只读路径，外部脚本、子资源和登录状态不进入文档视图。保存正文快照追加不可变版本，与收藏、连接空间分别执行；不支持捕获的链接仍可收藏。文档/文件入口和开发入口沿用已有授权环境能力。
+收藏网页链接只保存地址，不访问网络。普通网页在应用内使用 Chromium 原生 HTTP/HTTPS 浏览，保留网站样式、脚本、搜索、表单和登录；同空间网页共享持久网站会话，登录弹窗仍在应用内打开。不同空间、工作台和受管 App 使用独立 session。保存正文快照是独立的显式操作，只读取当前页面正文并追加不可变版本，与收藏、连接空间分别执行。行为、隔离边界与本轮实际验证见[完整浏览合同](docs/acceptance/full-browser-20261023/SPEC.md)和[验证记录](docs/acceptance/full-browser-20261023/README.md)。
 
-空间会话只读取本空间明确选择的连接版本，个人会话只读取明确选择的收藏版本，默认不附带。每轮最多 16 个参考，收藏数量不继承这个限制；新版本不改变在途与历史任务的固定证据。Main 是目录唯一写入者，当前 schema 4 持久化账户目录、工作台与 App 元数据，并识别两种历史 schema 3 来源；旧空间资源迁移为账户资源和原空间连接，默认不收藏，旧文件保留且不自动启动进程。
+空间会话只读取本空间明确选择的连接版本，个人会话只读取明确选择的收藏版本，默认不附带。每轮最多 16 个参考，收藏数量不继承这个限制；新版本不改变在途与历史任务的固定证据。Main 是目录唯一写入者，当前 schema 5 持久化账户目录、工作台与 App 元数据（schema 1–4 仅作迁移来源），并识别两种历史 schema 3 来源；旧空间资源迁移为账户资源和原空间连接，默认不收藏，旧文件保留且不自动启动进程。
 
 真实网络、模型结果和受控 fixture 分别记录。历史[公开快照合同](docs/verification/2026-10-06-public-resources/SPEC.md)保留来源隔离证据，旧空间所有权与 TaskFlow 专用集合由新合同替代。本轮未运行真实模型或 sandbox live。
 

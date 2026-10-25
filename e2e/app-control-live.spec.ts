@@ -126,6 +126,8 @@ test('product window + live sandbox app: control plane A03/A07 without model', a
       sessionId,
       goal: task.goal,
       targetRef: null,
+      appId: null,
+      captureId: null,
       allowedScopes: ['app.data.reset'],
       acceptance: ['固定场景通过'],
     });

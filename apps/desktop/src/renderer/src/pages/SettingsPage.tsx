@@ -3,7 +3,7 @@ import { Notice } from '../components/Badges';
 import { useStore } from '../lib/store';
 import { chatStore, selectedHarnessName } from '../state/chat';
 import { HarnessProfiles } from './HarnessProfiles';
-import { environmentStore } from '../state/execution';
+import { CHECKER_UNAVAILABLE_NOTE, environmentStore } from '../state/execution';
 import { workspaceStore, command } from '../state/workspace';
 
 const CAPABILITIES = ['createSession', 'observeState', 'cancel', 'pause', 'resume', 'enforceScope'] as const;
@@ -52,6 +52,12 @@ export function SettingsPage() {
         </label>
         <h2 id="settings-harness">连接与 Harness</h2>
         <Notice tone="warn">{env.execution?.reason ?? '正在读取执行服务状态…'}</Notice>
+        {/* 能力未接入只在设置页说明，不作为故障（OPS-1 S3）；接受门槛不变。 */}
+        {env.execution && !env.execution.checker.connected ? (
+          <Notice>
+            {CHECKER_UNAVAILABLE_NOTE[env.execution.checker.reason]}会话检查显示“检查器未接入”；接受结果仍需独立检查通过且适用于当前版本。
+          </Notice>
+        ) : null}
         <dl className="kv">
           <dt>默认 Harness</dt>
           <dd>{chat ? `${defaultHarness} · ${chat.available ? '对话已连接' : '对话不可用'}` : '读取中…'}</dd>

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { ObservationError, StatusFact, StatusKind, StatusScope, WorkbenchSnapshot } from '@wsl/protocol';
+import type { ExecutionStatus, ObservationError, StatusFact, StatusKind, StatusScope, WorkbenchSnapshot } from '@wsl/protocol';
 import { OBSERVATION_ERROR_LABEL, projectFacts } from '../../../shared/status';
 import { dismissError, reportError } from './errors';
 import { workspaceStore } from './workspace';
@@ -202,6 +202,26 @@ describe('确认与提示（提示通道）', () => {
     actions.ackFacts(T, []);
     expect(store.get().hints).toEqual([]);
     expect(forScope(present([closed('t')], store.get()), T).notice?.key).toBe('terminal:term-1:state');
+  });
+
+  it('采集结果 hint（OPS-1 S1）：带「打开」动作与要定位的会话，进入提示通道', () => {
+    const scope = resource('web-1');
+    actions.hint({
+      key: 'ui:web-1:captured',
+      scope,
+      label: '已采集到 Agent 会话',
+      source: 'capture-result',
+      until: 'ack',
+      action: { id: 'session.open', label: '打开' },
+      locate: { workspaceId: WS, sessionId: 's-1' },
+    });
+    expect(forScope(present([], store.get()), scope).notice).toMatchObject({
+      key: 'ui:web-1:captured',
+      channel: 'notice',
+      label: '已采集到 Agent 会话',
+      action: { id: 'session.open', label: '打开' },
+      locate: { workspaceId: WS, sessionId: 's-1' },
+    });
   });
 
   it('hint until:ack：关闭或窗格交互后清除；同 key 再次登记覆盖旧条目', () => {
@@ -728,6 +748,35 @@ describe('会话页的历史选择与状态槽取用', () => {
     expect(both[0]).toMatchObject({ label: '模型已停止，App 数据操作仍待确认', action: { id: 'run.reconcileCleanup', disabled: true } });
     expect(both[1]).toMatchObject({ label: '正在取消并核实退出…' });
     expect(both[1]!.action).toBeUndefined();
+  });
+});
+
+describe('检查器未接入（OPS-1 S3）：会话状态槽不出现问题，真实问题照常进入', () => {
+  const S = session('s1');
+  const execution: ExecutionStatus = {
+    available: false,
+    reason: null,
+    harness: { name: 'Codex CLI', state: 'integrated', version: null, model: null },
+    checker: { connected: false, reason: 'not_integrated' },
+  };
+  const viewsFor = (validation: Record<string, unknown>) => {
+    const snapshot = snapshotOf({ sessions: [sessionRecord('s1')], runs: [runRecord('r1', 's1', { validation })] });
+    return present(projectFacts({ snapshot, chat: null, setup: null, execution }), {}, snapshot);
+  };
+
+  it('not_run：「检查器未接入」是 ambient 稳态，槽内没有问题，也不计入「另有 N 项」', () => {
+    const views = viewsFor({ state: 'not_run', applicability: 'unknown', reason: null });
+    expect(find(views, 'validation:r1:state')).toMatchObject({ channel: 'ambient', kind: 'steady', label: '检查器未接入' });
+    const group = forScope(views, S);
+    expect(group.problem).toBeNull();
+    expect(group.more).toEqual([]);
+    expect(statusLabel(views, 'validation:r1:state')).toBe('检查器未接入');
+    expect(statusLabel(views, 'validation:r1:applicability')).toBeNull();
+  });
+
+  it('仅有原因文字的 blocked 仍在问题通道', () => {
+    const views = viewsFor({ state: 'blocked', applicability: 'unknown', reason: '独立检查适配器尚未接入；Agent 文本不能作为检查结果' });
+    expect(forScope(views, S).problem).toMatchObject({ key: 'validation:r1:state', channel: 'problem', label: '检查无法执行' });
   });
 });
 

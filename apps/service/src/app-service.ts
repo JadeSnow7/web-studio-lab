@@ -8,6 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { z } from 'zod';
 import {
   APP_SOURCE_TRANSPORT,
+  guestAppCwd,
   AgentCliEnvelopeSchema,
   AppSourceSchema,
   AppProfileSchema,
@@ -274,7 +275,7 @@ export class AppService {
           appInstanceId: null,
           state: confirmed ? 'stopped' : 'failed',
           url: null,
-          guestCwd: `/home/agent/workspace/.wsl-apps/${key.projectId}`,
+          guestCwd: guestAppCwd(key.projectId),
           guestPort: 'guestPort' in saved && !confirmed ? saved.guestPort : null,
           error: confirmed ? null : '上次运行中断，需核对沙箱进程与端口',
           cleanupConfirmed: confirmed,
@@ -623,7 +624,7 @@ export class AppService {
         appInstanceId: null,
         state: 'created',
         url: null,
-        guestCwd: `/home/agent/workspace/.wsl-apps/${key.projectId}`,
+        guestCwd: guestAppCwd(key.projectId),
         guestPort: null,
         error: null,
         cleanupConfirmed: true,

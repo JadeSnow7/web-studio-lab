@@ -48,6 +48,7 @@ import {
   type WorkspaceSnapshot,
   APP_DATA_RESET_SCOPE,
   type AppControlResult,
+  guestAppCwd,
 } from '@wsl/protocol';
 import {
   applyCatalogCommand,
@@ -63,6 +64,7 @@ import { RunDispatchFailure, type WorkbenchRuntime } from './ports';
 import type { AppControl, AppControlContext } from './app-control';
 import { AppControlFailure } from './app-control-failure';
 import { conflictMessage } from './guest-write-lease';
+import { validationResult } from './checker';
 
 type SourceRun = { target: AppTarget; baseline: AbortController; ready: boolean; capturing: boolean };
 const activeStates = ['starting', 'running', 'cancelling'];
@@ -127,6 +129,8 @@ export function validateSnapshot(snapshot: WorkbenchSnapshot): void {
       throw new Error('conflict: 持久标签显示无效');
     if (item.tabs.some((t) => !item.resources.some((r) => r.resourceId === t.targetRef.resourceId && r.kind === t.targetRef.kind)))
       throw new Error('denied: 标签引用不属于空间');
+    // 标题跟随页面标题只对网页标签有意义（OPS-1 R7）。
+    if (item.tabs.some((t) => t.autoTitle && t.targetRef.kind !== 'web')) throw new Error('denied: 只有网页标签可跟随页面标题');
     if (item.sessions.some((s) => !item.resources.some((r) => r.resourceId === s.resourceId && r.kind === 'session')))
       throw new Error('denied: 会话不属于空间');
     for (const [sessionId, records] of [
@@ -157,6 +161,9 @@ export function validateSnapshot(snapshot: WorkbenchSnapshot): void {
       if (session.captureRequest && !item.resources.some((r) => r.resourceId === session.captureRequest!.resourceId && r.kind === 'web'))
         throw new Error('denied: 采集请求网页不属于会话空间');
       if (session.context && session.contextTarget?.kind !== 'web') throw new Error('denied: 页面采集缺少对应网页目标');
+      if (session.taskProject && (session.taskProject.appId !== item.app?.appId || session.taskProject.projectId !== item.app?.projectId))
+        throw new Error('denied: 会话工程选择不属于空间');
+      if (session.taskProject && !session.taskProjectDecided) throw new Error('denied: 会话工程选择缺少决定记录');
       const versions = new Set<number>();
       for (const version of session.taskVersions) {
         if (allIds.has(version.taskVersionId) || versions.has(version.version)) throw new Error('conflict: 任务版本身份重复');
@@ -165,16 +172,21 @@ export function validateSnapshot(snapshot: WorkbenchSnapshot): void {
         if (version.workspaceId !== item.workspaceId || version.sessionId !== session.sessionId || !targetBelongs(version.targetRef))
           throw new Error('denied: 任务版本归属无效');
         if (version.capture && version.targetRef?.kind !== 'web') throw new Error('denied: 任务页面采集与目标不匹配');
+        // 工程绑定独立于页面引用（OPS-1 R5）：允许“有工程、无页面”或其他目标；若目标是受管 App 页面，必须属于同一工程。
+        const targetProject = version.targetRef
+          ? item.resources.find((resource) => resource.resourceId === version.targetRef?.resourceId)?.appProjectId
+          : undefined;
         if (
           version.appTarget &&
           (version.appTarget.workspaceId !== item.workspaceId ||
             version.appTarget.appId !== item.app?.appId ||
             version.appTarget.projectId !== item.app?.projectId ||
-            !item.resources.some(
-              (resource) => resource.resourceId === version.targetRef?.resourceId && resource.appProjectId === version.appTarget?.projectId,
-            ))
+            (targetProject !== undefined && targetProject !== version.appTarget.projectId))
         )
           throw new Error('denied: 任务 App 工程与目标不匹配');
+        // 冻结的 guest 工作目录只能是该工程在受管工作区中的目录（AppService 的同一规则），不能指向其他路径。
+        if (version.appTarget && version.appTarget.guestCwd !== guestAppCwd(version.appTarget.projectId))
+          throw new Error('denied: 任务 App 工程目录不在受管工作区');
       }
       if (item.runs.filter((run) => run.sessionId === session.sessionId && activeStates.includes(run.state)).length > 1)
         throw new Error('conflict: 会话存在重复活动执行');
@@ -225,6 +237,8 @@ export class WorkbenchApplication {
   private readonly runLaunchPhases = new Map<string, 'registering' | 'baseline' | 'sending'>();
   private readonly sourceRuns = new Map<string, SourceRun>();
   private readonly projectWriters = new Map<string, string>();
+  /** 重启时 App 恢复未经服务确认的工程（projectId）：持久化的 guestCwd 不能作为执行依据，直到服务再次报告该 App。 */
+  private readonly unconfirmedApps = new Set<string>();
   private readonly runOperations = new Set<Promise<unknown>>();
   private closing = false;
   private readonly terminalLaunches = new Map<string, Promise<TerminalSnapshot>>();
@@ -303,6 +317,7 @@ export class WorkbenchApplication {
             w.managedApp = restored;
           } catch (error) {
             w.managedApp = { ...previous, state: 'failed', url: null, cleanupConfirmed: false, error: `应用恢复未确认：${String(error)}` };
+            this.unconfirmedApps.add(previous.projectId);
           }
         }
         for (const r of w.resources) if (r.appProjectId) r.unavailableReason = '应用服务未启动';
@@ -450,6 +465,14 @@ export class WorkbenchApplication {
     await this.queue;
     return this.publicSnapshot();
   }
+  /**
+   * 当前快照，不等待命令队列（原生菜单构建用，OPS-1 S5）：菜单按打开时的事实构建，不因排队中的运行时命令延后弹出；
+   * renderer 在请求菜单前已等完自己对该空间的待决命令，冻结的版本若随后变化，执行时仍由版本冲突检查拒绝。
+   */
+  async currentSnapshot(): Promise<WorkbenchSnapshot> {
+    await this.ready;
+    return this.publicSnapshot();
+  }
   private publicSnapshot(): WorkbenchSnapshot {
     const snapshot = structuredClone(this.snapshot);
     for (const w of snapshot.workspaces) w.appImport = structuredClone(this.importSessions.get(w.workspaceId)?.view ?? null);
@@ -540,6 +563,7 @@ export class WorkbenchApplication {
       )
         return;
       w.managedApp = app;
+      this.unconfirmedApps.delete(app.projectId);
       if (app.cleanupConfirmed && app.state === 'stopped')
         await this.appControl?.confirmStopped(w.workspaceId, app.projectId, app.appInstanceId);
       if (app.state !== 'running')
@@ -1137,6 +1161,7 @@ export class WorkbenchApplication {
           )
             throw new Error('denied: 应用返回身份不一致');
           w.managedApp = app;
+          this.unconfirmedApps.delete(app.projectId);
           if (app.cleanupConfirmed && app.state === 'stopped')
             await this.appControl?.confirmStopped(w.workspaceId, app.projectId, app.appInstanceId);
           if (app.state === 'running' && app.url) {
@@ -1706,8 +1731,11 @@ export class WorkbenchApplication {
         contextApplicability: 'unknown',
         taskVersions: [],
         harnessSelection: null,
+        taskProject: null,
+        taskProjectDecided: false,
       });
-    const tab = { tabId: randomUUID(), title, pinned: false, group: null, targetRef: { kind, resourceId } };
+    // 描述默认手动命名；显式 createTab 的新网页单独启用自动标题。
+    const tab = { tabId: randomUUID(), title, pinned: false, group: null, targetRef: { kind, resourceId }, autoTitle: false };
     w.tabs.push(tab);
     return tab;
   }
@@ -1715,7 +1743,7 @@ export class WorkbenchApplication {
     const r = this.resource(w, resourceId);
     let tab = w.tabs.find((t) => t.targetRef.resourceId === resourceId);
     if (!tab) {
-      tab = { tabId: randomUUID(), title: r.title, pinned: false, group: null, targetRef: { kind: r.kind, resourceId } };
+      tab = { tabId: randomUUID(), title: r.title, pinned: false, group: null, targetRef: { kind: r.kind, resourceId }, autoTitle: false };
       w.tabs.push(tab);
     }
     const active = activateTab(w.layout, w.activePaneId, tab.tabId);
@@ -2138,6 +2166,7 @@ export class WorkbenchApplication {
             this.snapshot.workspaces = [w, ...this.snapshot.workspaces.filter((item) => item.workspaceId !== c.workspaceId)];
             break;
           case 'createTab': {
+            if (c.autoTitle && c.kind !== 'web') throw new Error('invalid_input: 只有网页可自动命名');
             if (c.url && c.kind !== 'web') throw new Error('invalid_input: 只有网页资源接受URL');
             const url = c.kind === 'web' && (c.url === undefined || c.url === '') ? 'wsl-demo://taskflow/index.html' : c.url;
             if (url) this.runtime.validateBrowserUrl(url);
@@ -2145,14 +2174,22 @@ export class WorkbenchApplication {
               if (!c.environmentId) throw new Error('invalid_input: 请选择已配置环境');
               const environment = this.snapshot.environments.find((e) => e.environmentId === c.environmentId);
               const capability = c.kind === 'file' ? 'files' : 'terminal';
-              if (!environment?.capabilities[capability] || (c.kind === 'ssh' && c.environmentId !== 'ssh'))
+              if (
+                environment?.state !== 'configured' ||
+                !environment.capabilities[capability] ||
+                (c.kind === 'ssh' && c.environmentId !== 'ssh')
+              )
                 throw new Error('unsupported: 该环境未配置此资源能力');
             }
             if (c.kind === 'web' && c.environmentId && c.environmentId !== 'local') throw new Error('unsupported: 原生网页属于本设备');
             const tab = this.createResource(w, c.kind, c.title, url, c.environmentId ?? (c.kind === 'web' ? 'local' : null));
-            const a = activateTab(w.layout, w.activePaneId, tab.tabId);
-            w.layout = a.layout;
-            w.activePaneId = a.activePaneId;
+            tab.autoTitle = c.autoTitle ?? false;
+            // activate: false（OPS-1 S1）：只新建标签，布局与活动窗格不变（采集发起时自动新建的接收会话）。
+            if (c.activate !== false) {
+              const a = activateTab(w.layout, w.activePaneId, tab.tabId);
+              w.layout = a.layout;
+              w.activePaneId = a.activePaneId;
+            }
             break;
           }
           case 'locateSession': {
@@ -2199,7 +2236,10 @@ export class WorkbenchApplication {
           case 'updateTab': {
             const t = w.tabs.find((t) => t.tabId === c.tabId);
             if (!t) throw new Error('not_found: 标签不存在');
-            if (c.title !== undefined) t.title = c.title;
+            if (c.title !== undefined) {
+              t.title = c.title;
+              t.autoTitle = false;
+            }
             if (c.pinned !== undefined) t.pinned = c.pinned;
             if (c.group !== undefined) t.group = c.group;
             break;
@@ -2253,6 +2293,18 @@ export class WorkbenchApplication {
             const s = this.session(w, c.sessionId);
             if (c.targetRef) this.resource(w, c.targetRef.resourceId, c.targetRef.kind);
             s.taskTargetRef = c.targetRef;
+            break;
+          }
+          case 'saveTaskProject': {
+            // 工程开关（OPS-1 R5）：只接受本空间 App 的 appId；路径与 guestCwd 在 confirmTask 时由 Main 冻结。
+            const s = this.session(w, c.sessionId);
+            if (c.appId === null) s.taskProject = null;
+            else {
+              if (!w.app || w.app.appId !== c.appId) throw new Error('conflict: 工程不属于此空间，请重新选择工程');
+              s.taskProject = { appId: w.app.appId, projectId: w.app.projectId };
+            }
+            // 显式开启或关闭都是用户的决定：之后采集受管 App 页面不再自动改变开关。
+            s.taskProjectDecided = true;
             break;
           }
           case 'saveDraft':
@@ -2319,19 +2371,52 @@ export class WorkbenchApplication {
             )
               throw new Error('unsupported: edu 工程导入或任务写回尚未开放');
             const s = this.session(w, c.sessionId);
+            // 页面引用（OPS-1 S2）：captureId 必须是本会话当前的采集，且与唯一的网页目标一致；网页目标不能静默沿用会话采集。
+            if (c.captureId !== null) {
+              if (s.context?.captureId !== c.captureId) {
+                const foreign = this.snapshot.workspaces.some((space) =>
+                  space.sessions.some((other) => other !== s && other.context?.captureId === c.captureId),
+                );
+                throw new Error(foreign ? 'denied: 页面引用不属于该会话' : 'conflict: 页面现场已失效，请重新选择元素');
+              }
+              if (c.targetRef?.kind !== 'web' || c.targetRef.resourceId !== s.contextTarget?.resourceId)
+                throw new Error('invalid_input: 页面引用与任务目标不一致');
+            }
+            let page: { capture: PageCapture; binding: { appInstanceId: string; instanceId: string; generation: number } } | null = null;
             if (c.targetRef) {
               const r = this.resource(w, c.targetRef.resourceId, c.targetRef.kind);
               if (r.kind === 'web') {
+                const current = this.runtime.browserState(r.resourceId).page;
                 if (
+                  c.captureId === null ||
                   !r.instanceId ||
                   !s.context ||
                   s.contextTarget?.resourceId !== r.resourceId ||
                   s.contextApplicability !== 'current' ||
-                  s.context.page.documentGeneration !== this.runtime.browserState(r.resourceId).page.documentGeneration ||
-                  s.context.page.webContentsId !== this.runtime.browserState(r.resourceId).page.webContentsId
+                  s.context.page.documentGeneration !== current.documentGeneration ||
+                  s.context.page.webContentsId !== current.webContentsId
                 )
                   throw new Error('conflict: 页面现场已失效，请重新选择元素');
+                page = {
+                  capture: structuredClone(s.context),
+                  binding: { appInstanceId: this.snapshot.appInstanceId, instanceId: r.instanceId, generation: r.generation },
+                };
               }
+            }
+            // 工程（R5）：只按用户看到的 appId 核对本空间 App 与会话当前的工程开关，并冻结 guestCwd；不从页面引用或任务文字推断。
+            let appTarget: (NonNullable<WorkspaceSnapshot['app']> & { guestCwd: string }) | null = null;
+            if (c.appId !== null) {
+              if (!w.app || w.app.appId !== c.appId) throw new Error('conflict: 工程不属于此空间，请重新选择工程');
+            }
+            if (c.appId !== (s.taskProject?.appId ?? null)) throw new Error('conflict: 工程开关已变化，请确认后重新发送');
+            const targetProject = c.targetRef ? this.resource(w, c.targetRef.resourceId).appProjectId : undefined;
+            // 不兼容的页面引用不能静默沿用：引用受管 App 页面时必须同时绑定该工程。
+            if (targetProject !== undefined && (c.appId === null || targetProject !== w.app?.projectId))
+              throw new Error('conflict: 引用的是 App 页面，需要开启工程或移除引用');
+            if (c.appId !== null && w.app) {
+              if (!w.managedApp?.guestCwd) throw new Error('conflict: App 尚未启动');
+              if (w.managedApp.guestCwd !== guestAppCwd(w.app.projectId)) throw new Error('denied: App 工程目录不在受管工作区');
+              appTarget = { ...structuredClone(w.app), guestCwd: w.managedApp.guestCwd };
             }
             s.taskVersions.push({
               taskVersionId: randomUUID(),
@@ -2339,23 +2424,10 @@ export class WorkbenchApplication {
               workspaceId: w.workspaceId,
               sessionId: s.sessionId,
               goal: c.goal,
-              appTarget:
-                w.app && w.managedApp?.guestCwd && c.targetRef && this.resource(w, c.targetRef.resourceId).appProjectId === w.app.projectId
-                  ? { ...structuredClone(w.app), guestCwd: w.managedApp.guestCwd }
-                  : null,
+              appTarget,
               targetRef: c.targetRef,
-              capture:
-                c.targetRef?.kind === 'web' && s.contextTarget?.resourceId === c.targetRef.resourceId && s.context
-                  ? structuredClone(s.context)
-                  : null,
-              captureBinding:
-                c.targetRef?.kind === 'web'
-                  ? {
-                      appInstanceId: this.snapshot.appInstanceId,
-                      instanceId: this.resource(w, c.targetRef.resourceId).instanceId!,
-                      generation: this.resource(w, c.targetRef.resourceId).generation,
-                    }
-                  : null,
+              capture: page?.capture ?? null,
+              captureBinding: page?.binding ?? null,
               confirmedAt: new Date().toISOString(),
               acceptance: [...(c.acceptance ?? s.taskAcceptance)],
               allowedScopes: [...(c.allowedScopes ?? s.taskAllowedScopes)],
@@ -2444,7 +2516,8 @@ export class WorkbenchApplication {
           }
           case 'runValidation': {
             const run = this.run(w, c.runId);
-            run.validation = { state: 'blocked', applicability: 'unknown', reason: '独立检查适配器尚未接入；Agent 文本不能作为检查结果' };
+            // 与 ExecutionStatus.checker 同源（checker.ts）；未接入时仍记 blocked，行为未变。
+            run.validation = validationResult();
             break;
           }
           case 'recordReview': {
@@ -2925,6 +2998,9 @@ export class WorkbenchApplication {
       const holder = this.snapshot.workspaces.flatMap((workspace) => workspace.sessions).find((session) => session.sessionId === writer);
       throw new Error(conflictMessage(writer, holder?.title ?? (writer === 'conv-personal-default' ? '个人对话' : undefined)));
     }
+    // 工程只来自冻结的 appTarget：引用受管 App 页面却没有绑定工程的版本不运行，也不在此补推工程（OPS-1 S2）。
+    if (!v.appTarget && v.targetRef && this.resource(w, v.targetRef.resourceId).appProjectId !== undefined)
+      throw new Error('conflict: 引用的是 App 页面，需要开启工程或移除引用');
     if (v.targetRef?.kind === 'web') {
       const r = this.resource(w, v.targetRef.resourceId, 'web');
       if (
@@ -2949,6 +3025,14 @@ export class WorkbenchApplication {
         v.appTarget.guestCwd !== w.managedApp?.guestCwd)
     )
       throw new Error('conflict: 任务 App 工程身份已失效，请重新确认');
+    if (v.appTarget) {
+      // App 构建或停止进行中时不开始写入工程的执行（反方向由 startApp 的源码采集检查保证）。
+      if (this.appOperations.has(w.workspaceId) || ['starting', 'stopping'].includes(w.managedApp?.state ?? ''))
+        throw new Error('conflict: App 正在启动或停止，暂不能开始写入工程的执行');
+      // 重启后 App 恢复未经服务确认：持久化的 guestCwd 不是事实，先核对（重新启动或停止 App）再执行。
+      if (this.unconfirmedApps.has(v.appTarget.projectId))
+        throw new Error('conflict: App 恢复未确认，暂不能开始写入工程的执行；请先启动或停止 App 核对状态');
+    }
     const context = v.capture
       ? { captureId: v.capture.captureId, capturedAt: v.capture.capturedAt, page: v.capture.page, element: v.capture.element }
       : null;
@@ -3443,6 +3527,14 @@ export class WorkbenchApplication {
       s.contextTarget = { kind: 'web', resourceId: r.resourceId };
       s.contextApplicability = 'current';
       s.captureRequest = { ...s.captureRequest, state: 'completed', error: null };
+      // 采集完成即成为本会话的任务目标（OPS-1 S1，修正 F3a），与采集结果同一次写入。协议只有一个目标：
+      // 它替换任务设置中选的文件 / 终端 / SSH 目标；之后改选那些目标或移除引用（saveTaskTarget）又替换它，证据保留。
+      s.taskTargetRef = { kind: 'web', resourceId: r.resourceId };
+      // 首次成功采集本空间受管 App 页面时自动开启工程（OPS-1 S2），与采集同一次写入；用户已决定过（含关闭）则不改变。
+      if (w.app && r.appProjectId === w.app.projectId && !s.taskProjectDecided) {
+        s.taskProject = { appId: w.app.appId, projectId: w.app.projectId };
+        s.taskProjectDecided = true;
+      }
       this.captures.delete(resourceId);
       return w;
     });

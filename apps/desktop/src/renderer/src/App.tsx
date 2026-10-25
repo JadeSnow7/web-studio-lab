@@ -1,3 +1,4 @@
+import { reportError } from './state/errors';
 import { initializeSetup } from './state/setup';
 import { useEffect, useRef, useState } from 'react';
 import { ROUTE_TITLES } from './shell/routes';
@@ -21,6 +22,8 @@ import { debugActions } from './state/debug';
 import { occlusion } from './state/occlusion';
 import { spaceActions } from './state/space-ui';
 import { startStatusPresentationSync } from './state/status-view';
+import { dispatchShortcut, installCaptureEscape } from './state/shortcuts';
+import { receiverActions } from './state/capture-receiver';
 export function App() {
   const shell = useStore(shellStore, (s) => s);
   const state = useStore(workspaceStore, (s) => s);
@@ -29,6 +32,7 @@ export function App() {
   const workspace = state.snapshot?.workspaces.find((w) => w.workspaceId === state.selectedId);
   useEffect(() => {
     initializeShell();
+    receiverActions.load();
     void initializeWorkspace();
     const unsubscribe = initializeSetup();
     const unsyncStatus = startStatusPresentationSync();
@@ -58,7 +62,10 @@ export function App() {
   }, [theme]);
   useEffect(
     () =>
-      window.studio.shell.onCommand((c) => {
+      window.studio.shell.onCommand((event) => {
+        const c = event.command;
+        void dispatchShortcut(event).catch((error: unknown) => reportError('执行快捷键', error));
+        if (c === 'focus-address') void window.studio.shell.focusWorkbench();
         if (c === 'toggle-workshop') void shellActions.toggleWorkshop();
         if (c === 'toggle-right-panel') void shellActions.toggleRightPanel();
         if (c === 'toggle-focus-mode') shellActions.toggleFocus();
@@ -79,6 +86,7 @@ export function App() {
       }),
     [],
   );
+  useEffect(installCaptureEscape, []);
   // 菜单「诊断」（⇧⌥⌘D）：仅 Main 启用诊断通道时 preload 才有 debug。
   useEffect(() => window.studio.debug?.onTogglePanel(() => void debugActions.toggle()), []);
   const leftMode = shell.focusMode ? 'collapsed' : panelMode(shell.workshop, narrow);
@@ -90,8 +98,12 @@ export function App() {
       const target = event.target;
       if (!(target instanceof Element)) return;
       // A nested menu/dialog owns dismissal; clicking either pane or its trigger
-      // keeps the other pane open so both can be used together.
-      if (target.closest('dialog, [role="menu"], .workshop, .right-panel, #left-panel-trigger, #right-panel-trigger')) return;
+      // keeps the other pane open so both can be used together. Native menu triggers
+      // (OPS-1 S5) open a Main menu that owns its own dismissal, like the HTML menus they replace.
+      if (
+        target.closest('dialog, [role="menu"], [aria-haspopup="menu"], .workshop, .right-panel, #left-panel-trigger, #right-panel-trigger')
+      )
+        return;
       const other = top === 'left' ? 'right' : 'left';
       if (occlusion.store.get()[other]) shellActions.closePanel(other, false);
       shellActions.closePanel(top, false);

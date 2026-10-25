@@ -1,5 +1,5 @@
 import { createStore } from '../lib/store';
-import { workspaceCommand, workspaceStore, beginNavigation, isCurrentNavigation } from './workspace';
+import { workspaceCommand, workspaceStore, beginNavigation, isCurrentNavigation, trackSpaceChange } from './workspace';
 import { shellActions } from './shell';
 import type { RunView } from '../workspace/RunDetails';
 export interface SessionLocation {
@@ -7,10 +7,14 @@ export interface SessionLocation {
   sessionId: string;
   taskVersionId?: string;
   runId?: string;
-  view?: RunView | 'task' | 'context' | 'checks';
+  view?: RunView | 'conversation' | 'task' | 'context' | 'checks';
 }
 export const locationStore = createStore<{ location: SessionLocation | null; token: number }>({ location: null, token: 0 });
-export async function locateSession(location: SessionLocation) {
+export function locateSession(location: SessionLocation) {
+  // 定位可能切换活动空间：期间视为空间切换进行中（OPS-1 S5）。
+  return trackSpaceChange(() => locateSessionNow(location));
+}
+async function locateSessionNow(location: SessionLocation) {
   const token = beginNavigation();
   const identity = {
     sessionId: location.sessionId,

@@ -7,6 +7,7 @@ import {
   appMenuHas,
   clickAppMenu,
   launchApp,
+  paneMenu,
   previewClick,
   previewElementCenter,
   screensDir,
@@ -155,14 +156,13 @@ test.describe('build 产物', () => {
       // 产生一份会话现场（PageCapture），用于证明它不进入复制 JSON 与日志。
       const session = page.getByRole('region', { name: 'Agent 会话内容' });
       await page.getByRole('button', { name: 'TaskFlow 预览', exact: true }).click();
-      await page.getByRole('button', { name: '选择元素', exact: true }).click();
-      await page.getByRole('button', { name: '左右分屏', exact: true }).click();
+      await paneMenu(app, page, '左右分屏');
       await page.getByRole('button', { name: 'Agent 会话', exact: true }).click();
-      await session.getByRole('button', { name: '任务', exact: true }).click();
-      await session.getByLabel('附加目标（明确选择）').selectOption({ label: 'TaskFlow 预览' });
-      await session.getByRole('button', { name: '采集目标元素' }).click();
+      // OPS-1 S1：「选择元素」一步发起，接收者为同屏的 Agent 会话。
+      await page.getByRole('button', { name: '选择元素', exact: true }).click();
       await expect(page.getByRole('button', { name: '选择中 · Esc 取消' })).toBeVisible();
       await previewClick(app, await previewElementCenter(app, '[data-testid="due-1"]'));
+      await session.getByRole('button', { name: '上下文', exact: true }).click();
       await expect(session).toContainText('现场适用性：有效');
       // 产品界面不再带「诊断详情」。
       await expect(session.getByText('诊断详情')).toHaveCount(0);

@@ -51,7 +51,7 @@ async function runningFixture() {
   const s = w.sessions[0]!;
   const command = (payload: Record<string, unknown>) =>
     app.command({ commandId: crypto.randomUUID(), workspaceId: w.workspaceId, ...payload } as WorkbenchCommand);
-  await command({ type: 'confirmTask', sessionId: s.sessionId, goal: 'fixture', targetRef: null });
+  await command({ type: 'confirmTask', sessionId: s.sessionId, goal: 'fixture', targetRef: null, appId: null, captureId: null });
   const version = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!;
   const conversation: ChatConversation = {
     conversationId: s.sessionId,

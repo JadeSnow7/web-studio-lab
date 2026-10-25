@@ -73,7 +73,7 @@ async function setup() {
   const session = initial.workspaces[0]!.sessions[0]!;
   const command = (payload: Record<string, unknown>) =>
     app.command({ commandId: crypto.randomUUID(), workspaceId: 'taskflow-demo', ...payload } as WorkbenchCommand);
-  await command({ type: 'confirmTask', sessionId: session.sessionId, goal: 'fixture', targetRef: null });
+  await command({ type: 'confirmTask', sessionId: session.sessionId, goal: 'fixture', targetRef: null, appId: null, captureId: null });
   const version = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!;
   return { app, runtime, repository, command, session, version };
 }

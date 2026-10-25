@@ -73,8 +73,7 @@ test('live：真实公开网页保存到空间并由 Docker Sandbox Codex 通过
     expect(resource.text).toContain('This domain is for use in');
     expect(resource.page.url).toBe(resource.url);
     expect(resource.version).toBe(1);
-    await openBrowserMenu(page, '更多网页操作');
-    await page.getByRole('menuitem', { name: '查看空间资源' }).click();
+    await openBrowserMenu(app, page, '更多网页操作', '查看空间资源');
     const detail = page.getByRole('region', { name: '资源详情' });
     await expect(detail).toContainText(resource.resourceId);
     await expect(detail).toContainText(resource.title);

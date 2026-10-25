@@ -1,3 +1,4 @@
+import type { NativeBrowserFocus } from '@wsl/protocol';
 import type { SetupManager } from './setup';
 import type { WorkbenchApplication } from './workbench/application';
 import { app, dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
@@ -13,6 +14,7 @@ import type { ChatService } from './chat-service';
 import type { HarnessProfileService } from './harness-profiles';
 import { getExecutionStatus } from './execution';
 import type { DebugStatus } from './debug-status';
+import type { NativeMenuService } from './native-menu';
 import { activeInvokeChannels, assertChannelEnabled, assertTrustedSender, type TrustedRenderer } from './ipc-guard';
 
 type Handlers = {
@@ -29,6 +31,12 @@ export interface IpcDeps {
   setup?: SetupManager;
   /** 仅诊断通道启用时存在；同时决定是否注册 `debug:status`。 */
   debug?: DebugStatus;
+  /** 原生菜单（OPS-1 S5）；测试与早期启动阶段可不提供，此时 `shell:show-menu` 报错。 */
+  menus?: NativeMenuService;
+  browserFocus?: {
+    nativeFocus(): NativeBrowserFocus | null;
+    restoreBrowserFocus(focus: NativeBrowserFocus): Promise<boolean>;
+  };
 }
 
 function senderInfo(event: IpcMainInvokeEvent, window: BrowserWindow) {
@@ -44,7 +52,7 @@ function assertLegacySession(id: string) {
   if (id !== 'conv-personal-default') throw new Error('会话必须通过所属空间任务用例访问');
 }
 
-export function registerIpc({ window, trusted, chat, profiles, workbench, setup, debug }: IpcDeps): () => void {
+export function registerIpc({ window, trusted, chat, profiles, workbench, setup, debug, menus, browserFocus }: IpcDeps): () => void {
   const requireProfiles = () => {
     if (!profiles) throw new Error('Harness Profile 服务不可用');
     return profiles;
@@ -117,6 +125,8 @@ export function registerIpc({ window, trusted, chat, profiles, workbench, setup,
       platform: process.platform,
       arch: process.arch,
       packaged: app.isPackaged,
+      // 与诊断通道同一判定：`debug` 只在开发服务器或 WSL_DEBUG_STATUS=1 时由装配处提供（index.ts）。
+      diagnostics: debug !== undefined,
     }),
     'chat:get-status': async () => {
       const status = await chat.status();
@@ -162,6 +172,25 @@ export function registerIpc({ window, trusted, chat, profiles, workbench, setup,
       return chat.reset(conversationId);
     },
     'execution:get-status': () => getExecutionStatus(),
+    // 来源已在下方统一核对、输入已按 ShowMenuRequestSchema 解析；身份与所属空间由菜单服务按 Main 快照核对。
+    'shell:show-menu': (request) => {
+      if (!menus) throw new Error('原生菜单服务不可用');
+      return menus.show(request);
+    },
+    // R9：只把焦点交回本窗口的工作台页面；窗口不在前台（用户已切到其他应用）或已销毁时不抢焦点。
+    'shell:focus-workbench': () => {
+      if (window.isDestroyed() || !window.isFocused()) return false;
+      window.webContents.focus();
+      return true;
+    },
+    'shell:native-focus': () => {
+      if (!browserFocus) throw new Error('原生焦点服务不可用');
+      return browserFocus.nativeFocus();
+    },
+    'shell:restore-browser-focus': (focus) => {
+      if (!browserFocus) throw new Error('原生焦点服务不可用');
+      return browserFocus.restoreBrowserFocus(focus);
+    },
     'debug:status': () => {
       if (!debug) throw new Error('诊断通道未启用');
       return debug.snapshot();

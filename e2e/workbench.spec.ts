@@ -1,7 +1,9 @@
+import { writeFile } from 'node:fs/promises';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import {
   clickAppMenu,
   launchApp,
+  paneMenu,
   previewClick,
   previewElementCenter,
   previewInfo,
@@ -55,17 +57,16 @@ test('启动：窗口、安全边界与 Browser 区真实加载', async () => {
   await windowShots(app, page, 'workbench-start');
 });
 
-test('点选：明确目标后采集摘要、截图与页面身份，先采集后确认不会崩溃', async () => {
-  await page.getByRole('button', { name: '选择元素', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('关联会话');
-  expect((await workspaceSnapshot(page)).workspaces[0]!.resources.find((r) => r.kind === 'web')!.preview!.picking).toBe(false);
-  await page.getByRole('button', { name: '左右分屏', exact: true }).click();
+test('点选：「选择元素」一步采集到同屏会话，采集摘要、截图与页面身份，先采集后确认不会崩溃', async () => {
+  await paneMenu(app, page, '左右分屏');
   await page.getByRole('button', { name: 'Agent 会话', exact: true }).click();
-  await session().getByRole('button', { name: '任务', exact: true }).click();
-  await session().getByLabel('附加目标（明确选择）').selectOption({ label: 'TaskFlow 预览' });
-  await session().getByRole('button', { name: '采集目标元素' }).click();
+  // OPS-1 S1：「选择元素」直接进入点选（接收者为同屏的 Agent 会话），不再先给指引、也不需在「任务」页附加目标。
+  await page.getByRole('button', { name: '选择元素', exact: true }).click();
   await expect(page.getByRole('button', { name: '选择中 · Esc 取消' })).toBeVisible();
   await previewClick(app, await previewElementCenter(app, '[data-testid="due-1"]'));
+  await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.sessions[0]!.captureRequest?.state).toBe('completed');
+  // 完成后不跳到「上下文」；现场详情仍在「上下文」视图。
+  await session().getByRole('button', { name: '上下文', exact: true }).click();
   await expect(session()).toContainText('现场适用性：有效');
   await expect(session().locator('img.context-image')).toHaveCount(2);
   // 产品界面不再外露「诊断详情」；采集条目移到诊断面板，面板内可查看并标注不可导出。
@@ -88,10 +89,14 @@ test('点选：明确目标后采集摘要、截图与页面身份，先采集�
 
 test('任务确认：中文目标生成权威不可变版本，重复点击不生成双版本', async () => {
   await session().getByRole('button', { name: '任务', exact: true }).click();
-  await session().getByLabel('修改目标').fill('修复截止日期字段，保存之后刷新仍保留。');
+  // OPS-1 S2：目标只在底部输入框；范围与验收在「任务设置」；「发送」= 确认任务 + 开始运行。
+  await session().getByRole('textbox', { name: '会话消息', exact: true }).fill('修复截止日期字段，保存之后刷新仍保留。');
+  await session()
+    .getByRole('button', { name: /^任务设置/ })
+    .click();
   await session().getByLabel('允许修改范围（每行一条）').fill('src/task.ts');
   await session().getByLabel('验收条件（每行一条）').fill('保存刷新后保留\nAPI字段一致');
-  const confirm = session().getByRole('button', { name: '确认任务（生成新版本）' });
+  const confirm = session().getByRole('button', { name: '发送', exact: true });
   await confirm.evaluate((node) => {
     (node as HTMLButtonElement).click();
     (node as HTMLButtonElement).click();
@@ -137,20 +142,35 @@ test('选择模式中导航：退出选择模式，之后页面点击正常生�
 
 test('运行、检查、审阅分别记录；没有独立检查器不会显示通过', async () => {
   await session().getByRole('button', { name: '任务', exact: true }).click();
-  await session().getByLabel('附加目标（明确选择）').selectOption('');
-  await session().getByLabel('修改目标').fill('只回复中文标记工作台742，不执行任何工具。');
-  await session().getByRole('button', { name: '确认任务（生成新版本）' }).click();
+  // 移除页面引用（保留采集证据），只发送文字任务；发送即确认并开始运行。
+  await session()
+    .getByRole('group', { name: '页面引用' })
+    .getByRole('button', { name: /^移除引用：/ })
+    .click();
+  await expect(session().getByRole('group', { name: '页面引用' })).toHaveCount(0);
+  await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('completed');
+  await session().getByRole('textbox', { name: '会话消息', exact: true }).fill('只回复中文标记工作台742，不执行任何工具。');
+  await session().getByRole('button', { name: '发送', exact: true }).click();
   await expect(session()).toContainText('任务 v2');
-  await session().getByRole('button', { name: '开始运行' }).click();
   const runState = session().locator('[data-status-key$=":state"][data-status="run:ok"]');
   await expect(runState).toBeVisible();
   await expect(runState).toContainText('执行完成');
   await session().getByRole('button', { name: '检查', exact: true }).click();
+  // 检查器未接入（OPS-1 S3）：尚未检查是中性稳态，不提供「运行检查」，状态槽没有检查问题。
   const notChecked = session().locator('[data-status="validation:idle"]');
   await expect(notChecked).toBeVisible();
-  await expect(notChecked).toContainText('尚未检查');
-  await session().getByRole('button', { name: '运行检查' }).click();
-  // 检查无法执行是问题：在会话状态槽的问题通道里可见，从不显示为通过。
+  await expect(notChecked).toContainText('检查器未接入');
+  await expect(session().getByRole('button', { name: '运行检查' })).toHaveCount(0);
+  await expect(session().locator('.status-slot').getByText('检查无法执行')).toHaveCount(0);
+  await expect(session().getByRole('button', { name: '接受结果' })).toBeDisabled();
+  expect((await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)!.validation.state).toBe('not_run');
+  // 既有 IPC 命令 runValidation 的 Main 行为未变：仍记录 blocked，检查无法执行是问题，在问题通道里可见，从不显示为通过。
+  const latest = (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)!;
+  const validated = await page.evaluate(
+    (command) => window.studio.workbench.command({ ...command, commandId: crypto.randomUUID() } as never),
+    { type: 'runValidation', workspaceId: latest.workspaceId, runId: latest.runId },
+  );
+  expect(validated.ok).toBe(true);
   await expect(session().locator('.status-slot [data-status-channel="problem"]').filter({ hasText: '检查无法执行' })).toBeVisible();
   await expect(session().locator('[data-status="validation:ok"]')).toHaveCount(0);
   await expect(session()).toContainText('审阅：尚未审阅');
@@ -193,26 +213,91 @@ test('侧栏：隐藏和临时展开使网页让位，按钮路径可固定恢�
 });
 
 test('菜单快捷键：应用菜单⌘B与⌘L仍走明确导航路径', async () => {
-  await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'TaskFlow 预览', exact: true }).click();
-  const clickMenu = (label: string) =>
-    app.evaluate(({ Menu, BrowserWindow }, target) => {
-      const find = (items: Electron.MenuItem[]): Electron.MenuItem | undefined => {
-        for (const item of items) {
-          if (item.label === target) return item;
-          const nested = item.submenu ? find(item.submenu.items) : undefined;
-          if (nested) return nested;
-        }
-        return undefined;
-      };
-      const item = find(Menu.getApplicationMenu()?.items ?? []);
-      if (!item) throw new Error(`missing menu ${target}`);
-      item.click(undefined, BrowserWindow.getAllWindows()[0], undefined as never);
-      return item.accelerator;
-    }, label);
-  expect(await clickMenu('编辑地址')).toBe('CmdOrCtrl+L');
-  await expect(page.getByLabel('页面地址')).toBeFocused();
-  await page.keyboard.press('Escape');
-  expect(await clickMenu('显示或隐藏 Workshop')).toBe('CmdOrCtrl+B');
+  const menus: unknown[] = [];
+  await page.evaluate(() => {
+    const rows: unknown[] = [];
+    let dropped = 0;
+    const append = (entry: unknown) => {
+      if (rows.length < 100) rows.push(entry);
+      else dropped++;
+    };
+    const focused = () => ({ id: document.activeElement?.id, tag: document.activeElement?.tagName, hasFocus: document.hasFocus() });
+    const record = (event: Event) =>
+      append({
+        time: Date.now(),
+        type: event.type,
+        target: event.target instanceof Element ? event.target.id || event.target.tagName : 'window',
+        focus: focused(),
+      });
+    const unsubscribe = window.studio.shell.onCommand((event) =>
+      append({ time: Date.now(), type: 'shell-command', event, focus: focused() }),
+    );
+    window.addEventListener('focusin', record, true);
+    window.addEventListener('blur', record, true);
+    (window as unknown as { __cmdLAudit: unknown }).__cmdLAudit = {
+      rows,
+      dropped: () => dropped,
+      cleanup: () => {
+        unsubscribe();
+        window.removeEventListener('focusin', record, true);
+        window.removeEventListener('blur', record, true);
+      },
+    };
+  });
+  const failures: unknown[] = [];
+  try {
+    await page.getByRole('navigation', { name: '空间标签' }).getByRole('button', { name: 'TaskFlow 预览', exact: true }).click();
+    const clickMenu = async (label: string) => {
+      const result = await app.evaluate(({ Menu, BrowserWindow }, target) => {
+        const find = (items: Electron.MenuItem[]): Electron.MenuItem | undefined => {
+          for (const item of items) {
+            if (item.label === target) return item;
+            const nested = item.submenu ? find(item.submenu.items) : undefined;
+            if (nested) return nested;
+          }
+          return undefined;
+        };
+        const item = find(Menu.getApplicationMenu()?.items ?? []);
+        if (!item) throw new Error(`missing menu ${target}`);
+        const owner = BrowserWindow.getAllWindows()[0];
+        const focus = {
+          time: Date.now(),
+          label: target,
+          focusedWindow: BrowserWindow.getFocusedWindow()?.id,
+          owner: owner?.id,
+          ownerFocused: owner?.isFocused(),
+        };
+        item.click(undefined, owner, undefined as never);
+        return { accelerator: item.accelerator, focus };
+      }, label);
+      menus.push(result.focus);
+      return result.accelerator;
+    };
+    expect(await clickMenu('编辑地址')).toBe('CmdOrCtrl+L');
+    await expect(page.getByLabel('页面地址')).toBeFocused();
+    await page.keyboard.press('Escape');
+    expect(await clickMenu('显示或隐藏 Workshop')).toBe('CmdOrCtrl+B');
+  } catch (error) {
+    failures.push(error);
+  }
+  try {
+    const renderer = await page.evaluate(() => {
+      const root = window as unknown as { __cmdLAudit?: { rows: unknown[]; dropped: () => number; cleanup: () => void } };
+      const audit = root.__cmdLAudit;
+      if (!audit) throw new Error('missing CmdL audit');
+      try {
+        return { rows: audit.rows, dropped: audit.dropped() };
+      } finally {
+        audit.cleanup();
+        delete root.__cmdLAudit;
+      }
+    });
+    await writeFile(test.info().outputPath('cmdl-audit.json'), JSON.stringify({ menus, renderer }, null, 2));
+  } catch (error) {
+    failures.push(error);
+  }
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1) throw new AggregateError(failures, failures.map(String).join('; '));
 });
 
 test('窄窗口：活动窗格保留原生bounds，扩大恢复多窗格', async () => {

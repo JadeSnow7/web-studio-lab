@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { tabTitle } from '../state/tab-title';
+import type { CSSProperties } from 'react';
 import type { PaneLayout, WorkspaceSnapshot } from '@wsl/protocol';
 import { Icon } from '../components/Icon';
-import { occlusion } from '../state/occlusion';
 import { workspaceCommand } from '../state/workspace';
+import { useStore } from '../lib/store';
+import { menuAnchorFromClick, nativeMenuKey, nativeMenuStore } from '../state/native-menu';
+import { showPaneMenu } from './native-menus';
 import { Files } from './Files';
 import { Browser } from './Browser';
 import { Terminal } from './Terminal';
@@ -36,7 +39,6 @@ export function WorkspaceContent({
   focus,
   narrow,
   onFocus,
-  onOverlay,
 }: {
   workspace: WorkspaceSnapshot;
   active: boolean;
@@ -44,35 +46,9 @@ export function WorkspaceContent({
   focus: boolean;
   narrow: boolean;
   onFocus: () => void;
-  onOverlay: (open: boolean) => Promise<boolean>;
 }) {
   const layout = geometry(workspace.layout);
-  const [menu, setMenu] = useState<string | null>(null);
-  const menuTrigger = useRef<HTMLButtonElement | null>(null);
-  const closeMenu = useCallback(() => {
-    setMenu(null);
-    void onOverlay(false);
-    const remainingSource = occlusion.top();
-    requestAnimationFrame(() => {
-      if (occlusion.top() === remainingSource) menuTrigger.current?.focus();
-    });
-  }, [onOverlay]);
-  useEffect(() => {
-    if (!active && menu) {
-      requestAnimationFrame(() => setMenu(null));
-      void onOverlay(false);
-    }
-    if (!active) return;
-    const escape = (event: KeyboardEvent) => {
-      if (!event.defaultPrevented && event.key === 'Escape' && occlusion.top() === 'pane-menu' && !document.querySelector('dialog[open]')) {
-        event.preventDefault();
-        closeMenu();
-      }
-    };
-    if (menu) requestAnimationFrame(() => document.querySelector<HTMLElement>('.pane-menu [role="menuitem"]')?.focus());
-    window.addEventListener('keydown', escape);
-    return () => window.removeEventListener('keydown', escape);
-  }, [active, menu, closeMenu, onOverlay]);
+  const openMenu = useStore(nativeMenuStore, (s) => s.open);
   const activePane = layout.find((p) => p.paneId === workspace.activePaneId)!;
   const displayed = (p: typeof activePane) => active && (!(focus || narrow) || p.paneId === activePane.paneId);
   const style = (p: typeof activePane) => (focus || narrow ? { left: 0, top: 0, width: '100%', height: '100%' } : p.style);
@@ -96,35 +72,14 @@ export function WorkspaceContent({
               <button
                 type="button"
                 className="pane-title"
-                aria-label={`聚焦窗格 · ${tab?.title ?? '空窗格'}`}
+                aria-label={`聚焦窗格 · ${tab ? tabTitle(workspace, tab) : '空窗格'}`}
                 onClick={() => setPane(p.paneId)}
               >
                 {tab ? <Icon name={icons[tab.targetRef.kind]} /> : null}
-                <span>{tab?.title ?? '空窗格'}</span>
+                <span>{tab ? tabTitle(workspace, tab) : '空窗格'}</span>
               </button>
+              {/* 窗格头只保留标题、专注与更多（OPS-1 S5）：分屏、平均分割、关闭窗格在原生「窗格操作」菜单里。 */}
               <div className="row">
-                <button
-                  type="button"
-                  className="icon-btn"
-                  aria-label="左右分屏"
-                  title="左右分屏"
-                  onClick={() =>
-                    void workspaceCommand(workspace.workspaceId, { type: 'splitPane', paneId: p.paneId, direction: 'horizontal' })
-                  }
-                >
-                  ◫
-                </button>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  aria-label="上下分屏"
-                  title="上下分屏"
-                  onClick={() =>
-                    void workspaceCommand(workspace.workspaceId, { type: 'splitPane', paneId: p.paneId, direction: 'vertical' })
-                  }
-                >
-                  ⬒
-                </button>
                 <button
                   type="button"
                   className="icon-btn"
@@ -141,25 +96,13 @@ export function WorkspaceContent({
                   type="button"
                   className="icon-btn"
                   aria-label="窗格操作"
-                  onClick={async (event) => {
-                    menuTrigger.current = event.currentTarget;
-                    if (!(await onOverlay(menu === null))) return;
-                    setMenu(menu ? null : p.paneId);
-                  }}
+                  title="窗格操作"
+                  aria-haspopup="menu"
+                  aria-expanded={openMenu === nativeMenuKey('pane', { workspaceId: workspace.workspaceId, paneId: p.paneId })}
+                  onClick={(event) => void showPaneMenu(workspace.workspaceId, p.paneId, menuAnchorFromClick(event, event.currentTarget))}
                 >
                   ···
                 </button>
-                {layout.length > 1 ? (
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label="关闭窗格"
-                    title="关闭窗格（标签保留）"
-                    onClick={() => void workspaceCommand(workspace.workspaceId, { type: 'closePane', paneId: p.paneId })}
-                  >
-                    ×
-                  </button>
-                ) : null}
               </div>
             </header>
             {!tab ? <div className="workspace-empty">选择左侧标签，在此打开内容。</div> : null}
@@ -205,29 +148,6 @@ export function WorkspaceContent({
           </div>
         );
       })}
-      {menu ? (
-        <div className="pane-menu" role="menu" aria-label="窗格操作">
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              void workspaceCommand(workspace.workspaceId, { type: 'setRatio', paneId: menu, ratio: 0.5 });
-              closeMenu();
-            }}
-          >
-            平均分割
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              closeMenu();
-            }}
-          >
-            关闭菜单
-          </button>
-        </div>
-      ) : null}
     </section>
   );
 }

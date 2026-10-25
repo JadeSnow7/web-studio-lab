@@ -3,6 +3,7 @@ import { Notice } from '../components/Badges';
 import { DEMO_CONTACTS } from '../demo/sampleData';
 import { useStore } from '../lib/store';
 import { chatStore, selectedHarnessName } from '../state/chat';
+import { demoEntriesVisible, environmentStore } from '../state/execution';
 import { CONVERSATIONS, draftsStore, PERSONAL_CONVERSATION_ID, type ConversationInfo } from '../state/drafts';
 import { Composer } from '../shell/Composer';
 import { ChatMessages } from '../shell/ChatMessages';
@@ -14,7 +15,10 @@ const AGENT_CONVERSATIONS = [PERSONAL_CONVERSATION_ID].map((id) => CONVERSATIONS
 
 /** 会话页与右栏、首页共用同一会话与草稿。 */
 export function ConversationsPage() {
-  const [section, setSection] = useState<Section>('agent');
+  const [selectedSection, setSection] = useState<Section>('agent');
+  // 「联系人与群聊」只有演示条目：正式构建隐藏，开发服务器或 WSL_DEBUG_STATUS=1 时才显示（OPS-1 S4）。
+  const showPeople = useStore(environmentStore, demoEntriesVisible);
+  const section: Section = showPeople ? selectedSection : 'agent';
   const [selectedId, setSelectedId] = useState(AGENT_CONVERSATIONS[0]?.id ?? '');
   const drafts = useStore(draftsStore, (d) => d);
   const harnessName = useStore(chatStore, (state) => selectedHarnessName(state));
@@ -23,14 +27,16 @@ export function ConversationsPage() {
   return (
     <div className="page-columns">
       <nav className="page-sidebar page-sidebar-wide" aria-label="会话列表">
-        <div className="segmented" role="tablist" aria-label="会话类别">
-          <button type="button" role="tab" aria-selected={section === 'agent'} onClick={() => setSection('agent')}>
-            Agent 工作
-          </button>
-          <button type="button" role="tab" aria-selected={section === 'people'} onClick={() => setSection('people')}>
-            联系人与群聊
-          </button>
-        </div>
+        {showPeople ? (
+          <div className="segmented" role="tablist" aria-label="会话类别">
+            <button type="button" role="tab" aria-selected={section === 'agent'} onClick={() => setSection('agent')}>
+              Agent 工作
+            </button>
+            <button type="button" role="tab" aria-selected={section === 'people'} onClick={() => setSection('people')}>
+              联系人与群聊
+            </button>
+          </div>
+        ) : null}
         {section === 'agent' ? (
           AGENT_CONVERSATIONS.map((c) => (
             <button

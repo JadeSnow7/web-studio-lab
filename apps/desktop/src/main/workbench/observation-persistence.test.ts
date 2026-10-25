@@ -57,7 +57,8 @@ it('explicitly migrates schema1 environment bindings while retaining resource an
     ['ssh', null],
   ]);
   expect(loaded?.workspaces[0]?.layout).toEqual(old.workspaces[0]?.layout);
-  expect(loaded?.workspaces[0]?.tabs).toEqual(old.workspaces[0]?.tabs);
+  // 迁移到 schema 5（OPS-1 R1）：标签身份与字段原样保留，并显式标为手动标题。
+  expect(loaded?.workspaces[0]?.tabs).toEqual(old.workspaces[0]?.tabs.map((tab) => ({ ...tab, autoTitle: false })));
   expect(loaded?.workspaces[0]?.theme).toBe('warm');
   expect(loaded?.workspaces[0]?.resources.filter((r) => ['file', 'ssh'].includes(r.kind)).every((r) => r.unavailableReason)).toBe(true);
 });
@@ -78,7 +79,7 @@ it('writes schema3 business descriptors without runtime handles and rejects futu
   };
   await repository.save(loaded, await catalogForTestSnapshot(loaded));
   const content = await readFile(file, 'utf8');
-  expect(JSON.parse(content).schemaVersion).toBe(4);
+  expect(JSON.parse(content).schemaVersion).toBe(5);
   expect(content).not.toContain('runtime-secret-handle');
   expect(content).not.toContain('-old-instance');
   const restored = await repository.load();

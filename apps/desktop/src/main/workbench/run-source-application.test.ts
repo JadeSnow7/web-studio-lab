@@ -201,10 +201,11 @@ async function fixture() {
     ).toBe(true);
     space = await owner(workspaceId);
     const current = required(space.resources.find((resource) => resource.resourceId === browser.resourceId));
+    const captureId = randomUUID();
     app.onCapture(
       browser.resourceId,
       {
-        captureId: randomUUID(),
+        captureId,
         capturedAt: 'fixture',
         page: page.page,
         element: {
@@ -234,6 +235,8 @@ async function fixture() {
             sessionId: session.sessionId,
             goal: 'change button',
             targetRef: { kind: 'web', resourceId: browser.resourceId },
+            appId: required(space.app).appId,
+            captureId,
           },
           workspaceId,
         )

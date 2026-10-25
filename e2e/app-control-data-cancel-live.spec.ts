@@ -140,6 +140,8 @@ for (const mode of ['automatic', 'manual', 'failure'] as const)
         allowedScopes: operation === 'reset' ? ['app.data.reset'] : [],
         acceptance: ['真实后端操作登记后取消并核对'],
         targetRef: null,
+        appId: null,
+        captureId: null,
       });
       const taskVersionId = (await space()).sessions.find((session) => session.sessionId === sessionId)!.taskVersions.at(-1)!.taskVersionId;
       await requireCommand({ type: 'startRun', sessionId, taskVersionId });

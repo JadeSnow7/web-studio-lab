@@ -21,12 +21,14 @@ vi.mock('electron', () => ({
       close: vi.fn(),
       session: {
         protocol: {
-          handle: vi.fn(() => {
-            if (fixture.protocolFailure) throw new Error('protocol installation failed');
-          }),
+          handle: vi.fn(() => {}),
           unhandle: vi.fn(),
         },
-        webRequest: { onBeforeRequest: vi.fn() },
+        webRequest: {
+          onBeforeRequest: vi.fn((listener) => {
+            if (listener && fixture.protocolFailure) throw new Error('session installation failed');
+          }),
+        },
         on: vi.fn(),
         removeListener: vi.fn(),
       },
@@ -46,12 +48,12 @@ beforeEach(() => {
   fixture.protocolFailure = false;
 });
 describe('R5 partial native construction cleanup', () => {
-  it.each(['addChildView', 'protocol'])('cleans the native view and partial registrations when %s throws', (failure) => {
+  it.each(['addChildView', 'session'])('cleans the native view and partial registrations when %s throws', (failure) => {
     const removeChildView = vi.fn();
     const addChildView = vi.fn(() => {
       if (failure === 'addChildView') throw new Error('attach failed');
     });
-    fixture.protocolFailure = failure === 'protocol';
+    fixture.protocolFailure = failure === 'session';
     const create = () =>
       new PreviewController({ contentView: { addChildView, removeChildView } } as unknown as BrowserWindow, {
         partition: 'fixture',
@@ -60,15 +62,10 @@ describe('R5 partial native construction cleanup', () => {
         onState: vi.fn(),
         onCaptured: vi.fn(),
       });
-    expect(create).toThrow(failure === 'protocol' ? 'protocol installation failed' : 'attach failed');
+    expect(create).toThrow(failure === 'session' ? 'session installation failed' : 'attach failed');
     const view = fixture.views[0]!;
     expect(view.webContents.close).toHaveBeenCalledOnce();
     expect(removeChildView).toHaveBeenCalledWith(view);
-    if (failure === 'protocol') {
-      expect(view.webContents.session.protocol.unhandle).toHaveBeenCalledWith('https');
-      expect(view.webContents.session.webRequest.onBeforeRequest).toHaveBeenLastCalledWith(null);
-      expect(view.webContents.session.removeListener).toHaveBeenCalledWith('will-download', expect.any(Function));
-    }
     fixture.protocolFailure = false;
     addChildView.mockImplementation(() => {});
     expect(create).not.toThrow();

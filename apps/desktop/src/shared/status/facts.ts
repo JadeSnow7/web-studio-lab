@@ -3,6 +3,8 @@ import {
   type AgentControlState,
   type CdpState,
   type ChatStatus,
+  type CheckerCapability,
+  type CheckerUnavailableReason,
   type EnvironmentDescription,
   type ExecutionStatus,
   type FileInvalidationHint,
@@ -209,6 +211,20 @@ const VALIDATION_STATE = {
   failed: { phase: 'failed', kind: 'problem', priority: 60, label: '检查未通过' },
   blocked: { phase: 'degraded', kind: 'problem', priority: 55, label: '检查无法执行' },
 } satisfies Record<ValidationState, Mapping>;
+
+/**
+ * 检查器未接入（OPS-1 S3）：只替换 not_run 的呈现，中性稳态，不进入问题通道，也没有动作；
+ * 这一组合下也不产出适用性事实（从未检查过，适用性没有意义，不在中性稳态旁挂警告色的「适用性未知」）。
+ * 已有的 running / failed / blocked（含仅有原因文字的历史 blocked）与适用性照旧映射，不因未接入降级（SPEC §9.3）。
+ */
+const VALIDATION_NOT_RUN_WITHOUT_CHECKER = {
+  not_integrated: { phase: 'idle', kind: 'steady', priority: 10, label: '检查器未接入' },
+} satisfies Record<CheckerUnavailableReason, Mapping>;
+
+/** 未接入的检查器原因；能力尚未读取（null）、已接入或运行已有检查记录时为 null，沿用原映射。 */
+function uncheckedWithoutChecker(state: ValidationState, checker: CheckerCapability | null): CheckerUnavailableReason | null {
+  return state === 'not_run' && checker && !checker.connected ? checker.reason : null;
+}
 
 /** current 不产出事实：检查适用于当前版本是默认状态。 */
 const VALIDATION_APPLICABILITY = {
@@ -674,7 +690,7 @@ export function sourceChangeStatus(run: WorkbenchRun): Mapping & { detail?: stri
   return { phase: 'active', kind: 'progress', priority: 45, label: '正在采集结束源码…' };
 }
 
-function runFacts(workspaceId: string, run: WorkbenchRun): StatusFact[] {
+function runFacts(workspaceId: string, run: WorkbenchRun, checker: CheckerCapability | null): StatusFact[] {
   const scope = sessionScope(workspaceId, run.sessionId);
   const run_: Entity<'run'> = { domain: 'run', entityId: run.runId, scope, instanceToken: run.runId };
   const raw = {
@@ -728,6 +744,7 @@ function runFacts(workspaceId: string, run: WorkbenchRun): StatusFact[] {
     );
 
   const validation: Entity<'validation'> = { domain: 'validation', entityId: run.runId, scope, instanceToken: run.runId };
+  const withoutChecker = uncheckedWithoutChecker(run.validation.state, checker);
   const validationRaw = {
     state: run.validation.state,
     applicability: run.validation.applicability,
@@ -737,13 +754,13 @@ function runFacts(workspaceId: string, run: WorkbenchRun): StatusFact[] {
     build(
       validation,
       'state',
-      fromMapping(VALIDATION_STATE[run.validation.state], {
+      fromMapping(withoutChecker ? VALIDATION_NOT_RUN_WITHOUT_CHECKER[withoutChecker] : VALIDATION_STATE[run.validation.state], {
         raw: validationRaw,
         detail: run.validation.state === 'failed' || run.validation.state === 'blocked' ? run.validation.reason : undefined,
       }),
     ),
   );
-  const applicability = VALIDATION_APPLICABILITY[run.validation.applicability];
+  const applicability = withoutChecker ? null : VALIDATION_APPLICABILITY[run.validation.applicability];
   if (applicability) facts.push(build(validation, 'applicability', fromMapping(applicability, { raw: validationRaw })));
 
   const review: Entity<'review'> = { domain: 'review', entityId: run.runId, scope, instanceToken: run.runId };
@@ -881,7 +898,11 @@ function fileHintFact(workspaceId: string, hint: FileInvalidationHint): StatusFa
 
 /* ---------- 入口 ---------- */
 
-function workspaceFacts(workspace: WorkspaceSnapshot, environments: readonly EnvironmentDescription[]): StatusFact[] {
+function workspaceFacts(
+  workspace: WorkspaceSnapshot,
+  environments: readonly EnvironmentDescription[],
+  checker: CheckerCapability | null,
+): StatusFact[] {
   const workspaceId = workspace.workspaceId;
   const facts: StatusFact[] = [...appFacts(workspace)];
   for (const resource of workspace.resources) {
@@ -890,7 +911,7 @@ function workspaceFacts(workspace: WorkspaceSnapshot, environments: readonly Env
     else if (resource.kind === 'file') facts.push(...fileFacts(workspaceId, resource));
   }
   for (const session of workspace.sessions) facts.push(...contextFacts(workspaceId, session));
-  for (const run of workspace.runs) facts.push(...runFacts(workspaceId, run));
+  for (const run of workspace.runs) facts.push(...runFacts(workspaceId, run, checker));
   const seen = new Set<string>();
   const records: Array<[string | null, ObservationRecord]> = [
     ...workspace.observations.map((record): [string | null, ObservationRecord] => [null, record]),
@@ -912,7 +933,9 @@ export function projectFacts(input: FactInput): StatusFact[] {
   const facts: StatusFact[] = [...chatFacts(input.chat), ...executionFacts(input.execution), ...setupFacts(input.setup)];
   if (input.snapshot) {
     facts.push(...storageFacts(input.snapshot));
-    for (const workspace of input.snapshot.workspaces) facts.push(...workspaceFacts(workspace, input.snapshot.environments ?? []));
+    // 检查器能力随 ExecutionStatus 由 Main 发布；尚未读取时为 null，按原映射呈现。
+    const checker = input.execution?.checker ?? null;
+    for (const workspace of input.snapshot.workspaces) facts.push(...workspaceFacts(workspace, input.snapshot.environments ?? [], checker));
   }
   return facts;
 }

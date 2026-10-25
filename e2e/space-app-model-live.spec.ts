@@ -151,9 +151,9 @@ test('live: real App creation, native element capture and product model edit reb
       .filter({ has: mainPage.locator(`[id="address-${browser.resourceId}"]`) });
     await expect(browserUi).toHaveCount(1);
     await expect(browserUi.getByLabel('页面地址', { exact: true })).toHaveValue(native.url());
-    await openBrowserMenu(mainPage, '采集到会话', browserUi);
-    await browserUi.getByLabel('关联会话', { exact: true }).selectOption(receiver.sessionId);
-    await browserUi.getByRole('button', { name: '采集到关联会话', exact: true }).click();
+    // 接收者原生菜单（OPS-1 S1）选定接收会话；「选择元素」一步发起采集。
+    await openBrowserMenu(application, mainPage, '接收会话', receiver.title, browserUi);
+    await browserUi.getByRole('button', { name: '选择元素', exact: true }).click();
     await expect.poll(async () => (await state()).resources.find((r) => r.resourceId === browser.resourceId)?.preview?.picking).toBe(true);
     const point = await native.getByRole('heading', { name: '从这里开始构建', exact: true }).boundingBox();
     if (!point) throw new Error('Native heading has no layout box');
@@ -168,6 +168,11 @@ test('live: real App creation, native element capture and product model edit reb
       { id: originalPage.webContentsId, x: Math.round(point.x + point.width / 2), y: Math.round(point.y + point.height / 2) },
     );
     const session = mainPage.getByRole('region', { name: 'Agent 会话内容' });
+    // 采集完成后不再跳到「上下文」（OPS-1 S1）：等 Main 写入结果，再在「上下文」视图核对现场。
+    await expect
+      .poll(async () => (await state()).sessions.find((s) => s.sessionId === receiver.sessionId)?.captureRequest?.state)
+      .toBe('completed');
+    await session.getByRole('button', { name: '上下文', exact: true }).click();
     await expect(session).toContainText('现场适用性：有效');
     const captured = (await state()).sessions.find((s) => s.sessionId === receiver.sessionId)!;
     expect(captured.contextTarget).toEqual({ kind: 'web', resourceId: browser.resourceId });
@@ -175,17 +180,22 @@ test('live: real App creation, native element capture and product model edit reb
     expect(captured.context!.element).toMatchObject({ tagName: 'h1', text: '从这里开始构建' });
     expect(captured.context!.element.selector).toContain('h1');
     expect(captured.context!.screenshot.viewport).toMatch(/^data:image\/png;base64,/);
-    await session.getByRole('button', { name: '任务', exact: true }).click();
-    await session.getByLabel('附加目标（明确选择）').selectOption(browser.resourceId);
+    // 采集完成即以该页面为任务目标（OPS-1 B3）；范围与验收在「任务设置」，目标在底部输入框，「发送」= 确认 + 开始运行。
+    expect(captured.taskTargetRef).toEqual({ kind: 'web', resourceId: browser.resourceId });
     const allowedFile = `${running.guestCwd}/src/App.tsx`;
+    await session.getByRole('button', { name: /^任务设置/ }).click();
+    await session.getByLabel('允许修改范围（每行一条）').fill(allowedFile);
+    await session.getByLabel('验收条件（每行一条）').fill(`只有 src/App.tsx 的目标标题发生变化\n原生 App 页面重启后显示 ${nonce}`);
     await session
-      .getByLabel('修改目标', { exact: true })
+      .getByRole('textbox', { name: '会话消息', exact: true })
       .fill(
         `直接使用工具修改 Main 绑定的当前 App 工程。只在 src/App.tsx 中将所选 h1 的文字“从这里开始构建”替换为“${nonce}”。只做这一次字符串替换，其他文件和其他字节保持原样，不格式化，不安装依赖，不构建，不启动或停止进程，不修改其他工程。完成后读取该文件核对并简短报告。`,
       );
-    await session.getByLabel('允许修改范围（每行一条）').fill(allowedFile);
-    await session.getByLabel('验收条件（每行一条）').fill(`只有 src/App.tsx 的目标标题发生变化\n原生 App 页面重启后显示 ${nonce}`);
-    await session.getByRole('button', { name: '确认任务（生成新版本）', exact: true }).click();
+    await receipt('model-start');
+    await session.getByRole('button', { name: '发送', exact: true }).click();
+    await expect
+      .poll(async () => (await state()).sessions.find((s) => s.sessionId === receiver.sessionId)!.taskVersions.length)
+      .toBeGreaterThan(0);
     const confirmed = (await state()).sessions.find((s) => s.sessionId === receiver.sessionId)!.taskVersions.at(-1)!;
     expect(confirmed.appTarget).toMatchObject({ ...owned, guestCwd: running.guestCwd });
     expect(confirmed.allowedScopes).toEqual([allowedFile]);
@@ -194,8 +204,6 @@ test('live: real App creation, native element capture and product model edit reb
     const { screenshot: _screenshot, ...captureIdentity } = confirmed.capture!;
     evidence['confirmed'] = { ...confirmed, capture: captureIdentity };
     ownedTaskVersionId = confirmed.taskVersionId;
-    await receipt('model-start');
-    await session.getByRole('button', { name: '开始运行', exact: true }).click();
     await expect
       .poll(
         async () => {

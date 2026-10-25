@@ -42,7 +42,10 @@ vi.mock('./window', () => ({
   }),
 }));
 vi.mock('./ipc', () => ({ registerIpc: () => vi.fn(), sendToRenderer: vi.fn() }));
-vi.mock('./menu', () => ({ installAppMenu: vi.fn() }));
+vi.mock('./menu', () => ({
+  installAppMenu: vi.fn(),
+  nativeMenuHost: vi.fn(() => ({ contentSize: () => null, popup: vi.fn(), close: vi.fn(), onInvalidated: vi.fn() })),
+}));
 vi.mock('./preview/demo-protocol', () => ({ registerDemoScheme: vi.fn() }));
 beforeEach(() => {
   vi.resetModules();

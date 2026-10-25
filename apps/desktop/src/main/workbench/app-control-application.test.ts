@@ -121,7 +121,10 @@ async function setup(allowedScopes: string[]) {
   expect((await command({ type: 'startApp' })).ok).toBe(true);
   const w = (await app.getSnapshot()).workspaces[0]!;
   const sessionId = w.sessions[0]!.sessionId;
-  expect((await command({ type: 'confirmTask', sessionId, goal: '修改欢迎语', targetRef: null, allowedScopes })).ok).toBe(true);
+  expect(
+    (await command({ type: 'confirmTask', sessionId, goal: '修改欢迎语', targetRef: null, appId: null, captureId: null, allowedScopes }))
+      .ok,
+  ).toBe(true);
   const version = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions.at(-1)!;
   expect((await command({ type: 'startRun', sessionId, taskVersionId: version.taskVersionId })).ok).toBe(true);
   const scope = vi.mocked(runtime.send).mock.calls[0]![2] as ObservationTurnScope;

@@ -449,7 +449,7 @@ it('edu first slice rejects confirmation and replay before creating a run or inv
   const sessionId = workspace.sessions[0]?.sessionId;
   if (!sessionId) throw new Error('fixture session missing');
   for (const command of [
-    { type: 'confirmTask', goal: 'change backend', sessionId, targetRef: null },
+    { type: 'confirmTask', goal: 'change backend', sessionId, targetRef: null, appId: null, captureId: null },
     { type: 'startRun', sessionId, taskVersionId: randomUUID() },
   ] as const) {
     const result = await f.app.command({ ...command, workspaceId: workspace.workspaceId, commandId: randomUUID() });
@@ -490,6 +490,8 @@ it('pending import blocks task admission before a published app exists', async (
   const rejected = await f.app.command({
     type: 'confirmTask',
     goal: 'ordinary coding',
+    appId: null,
+    captureId: null,
     sessionId: session.sessionId,
     targetRef: null,
     workspaceId: workspace.workspaceId,

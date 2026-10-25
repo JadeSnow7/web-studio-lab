@@ -46,7 +46,7 @@ test('sbx：空间提供独立终端标签，切换时隐藏原生预览', async
   await terminalTab.click();
   await expect(terminalTab).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('region', { name: '资源终端' })).toBeVisible();
-  expect((await previewInfo(app)).visible).toBe(false);
+  await expect.poll(async () => (await previewInfo(app)).visible).toBe(false);
   const panel = page.getByRole('region', { name: '资源终端' });
   await expect(panel).toContainText('sbx');
   await expect(panel.getByRole('button', { name: '连接终端', exact: true })).toBeDisabled();

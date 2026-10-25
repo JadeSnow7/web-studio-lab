@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import { RunSourceRepository } from './run-source-repository';
@@ -8,11 +8,18 @@ import {
   type CapturedSourceChange,
   WorkbenchSnapshotSchema,
   WorkbenchResourceSchema,
+  WorkbenchSessionSchema,
+  WorkbenchTabSchema,
   WorkspaceSnapshotSchema,
   SpaceAppSchema,
+  HarnessSelectionSchema,
+  TaskProjectSchema,
   ObservationRecordSchema,
   type ObservationRecord,
+  type WorkbenchSession,
   type WorkbenchSnapshot,
+  type WorkbenchTab,
+  type WorkspaceSnapshot,
   ResourceCatalogStateSchema,
   type ResourceCatalogState,
 } from '@wsl/protocol';
@@ -32,15 +39,85 @@ const LegacySnapshot = WorkbenchSnapshotSchema.extend({
 const SpaceAppV3Snapshot = LegacyWorkbenchSnapshotSchema.extend({
   workspaces: z.array(LegacyWorkspaceSnapshotSchema.extend({ app: SpaceAppSchema.nullable() })).min(1),
 });
+/** 当前持久化版本（OPS-1 R1）。只有这一版不需要迁移备份；更新的版本拒绝加载并保留原文件。 */
+const CURRENT_SCHEMA = 5;
+/** Fields schema 5 added; a schema 4 body that carries any of them is not a genuine schema 4 file. */
+const SCHEMA5_SESSION_FIELDS = { taskProject: true, taskProjectDecided: true } as const;
+// Schema 4 (W4 tip): no session project selection and no tab title mode; harnessSelection may be absent (default null).
+// Frozen shape: the current schemas minus the schema 5 fields. A later batch that adds a required session or tab field
+// must omit it here too, otherwise genuine schema 4 files stop migrating (repository.test.ts covers a real v4 body).
+const SchemaV4Snapshot = WorkbenchSnapshotSchema.extend({
+  workspaces: z.array(
+    WorkspaceSnapshotSchema.extend({
+      tabs: z.array(WorkbenchTabSchema.omit({ autoTitle: true })),
+      sessions: z.array(
+        WorkbenchSessionSchema.omit(SCHEMA5_SESSION_FIELDS).extend({
+          taskProject: z.never().optional(),
+          taskProjectDecided: z.never().optional(),
+        }),
+      ),
+    }),
+  ),
+});
+// Schema 5 writes W4's harnessSelection and the OPS fields explicitly; a body missing them is malformed, not defaulted,
+// and a session with unknown keys is refused rather than stripped.
+const SchemaV5Snapshot = WorkbenchSnapshotSchema.extend({
+  workspaces: z.array(
+    WorkspaceSnapshotSchema.extend({
+      tabs: z.array(WorkbenchTabSchema.extend({ autoTitle: z.boolean() })),
+      sessions: z.array(
+        WorkbenchSessionSchema.extend({
+          harnessSelection: HarnessSelectionSchema.nullable(),
+          taskProject: TaskProjectSchema.nullable(),
+          taskProjectDecided: z.boolean(),
+        }).strict(),
+      ),
+    }),
+  ),
+});
 const FileSchema = z.union([
   z.object({ schemaVersion: z.literal(1), snapshot: LegacySnapshot }).strict(),
   z.object({ schemaVersion: z.literal(2), snapshot: LegacyWorkbenchSnapshotSchema }).strict(),
   z.object({ schemaVersion: z.literal(3), snapshot: WorkbenchSnapshotSchema, catalog: ResourceCatalogStateSchema }).strict(),
   z.object({ schemaVersion: z.literal(3), snapshot: SpaceAppV3Snapshot }).strict(),
-  z.object({ schemaVersion: z.literal(4), snapshot: WorkbenchSnapshotSchema, catalog: ResourceCatalogStateSchema }).strict(),
+  z.object({ schemaVersion: z.literal(4), snapshot: SchemaV4Snapshot, catalog: ResourceCatalogStateSchema }).strict(),
+  z.object({ schemaVersion: z.literal(CURRENT_SCHEMA), snapshot: SchemaV5Snapshot, catalog: ResourceCatalogStateSchema }).strict(),
 ]);
+type PreSchema5Snapshot = Omit<WorkbenchSnapshot, 'workspaces'> & {
+  workspaces: Array<
+    Omit<WorkspaceSnapshot, 'tabs' | 'sessions'> & {
+      tabs: Array<Omit<WorkbenchTab, 'autoTitle'>>;
+      sessions: Array<Omit<WorkbenchSession, keyof typeof SCHEMA5_SESSION_FIELDS>>;
+    }
+  >;
+};
+/**
+ * 迁移到 schema 5（OPS-1 R1）：旧标签一律为手动标题，旧会话的工程选择为空且“尚未决定”（之后首次采集受管 App 页面时由 Main
+ * 自动开启）。历史任务版本（含已冻结的 appTarget）原样保留，不从页面、App 或任务文字推断、回填；harnessSelection 原样保留。
+ */
+function migrateToSchema5(snapshot: PreSchema5Snapshot): WorkbenchSnapshot {
+  return {
+    ...snapshot,
+    workspaces: snapshot.workspaces.map((workspace) => ({
+      ...workspace,
+      tabs: workspace.tabs.map((tab) => ({ ...tab, autoTitle: false })),
+      sessions: workspace.sessions.map((session) => ({ ...session, taskProject: null, taskProjectDecided: false })),
+    })),
+  };
+}
+/** Writes and fsyncs a file before it is renamed over the original or relied on as a migration backup. */
+async function writeDurably(file: string, contents: string, flag: 'w' | 'wx', mode: number): Promise<void> {
+  const handle = await open(file, flag, mode);
+  try {
+    await handle.writeFile(contents);
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+type CatalogBoundSnapshot = { workspaces: Array<Pick<WorkspaceSnapshot, 'workspaceId' | 'resources' | 'runs'>> };
 /** Digests are verified where bodies enter: capture, migration and file load. Saves of Main-owned state skip rehashing. */
-export function assertCatalogBindings(snapshot: WorkbenchSnapshot, catalog: ResourceCatalogState, verifyDigests = true): void {
+export function assertCatalogBindings(snapshot: CatalogBoundSnapshot, catalog: ResourceCatalogState, verifyDigests = true): void {
   for (const workspace of snapshot.workspaces)
     for (const run of workspace.runs)
       if (run.referenceSnapshot) {
@@ -115,7 +192,7 @@ export class FileWorkbenchRepository implements WorkbenchRepository {
   }
 
   get migrationPending(): boolean {
-    return this.loadedFile != null && this.loadedFile.schemaVersion !== 4;
+    return this.loadedFile != null && this.loadedFile.schemaVersion !== CURRENT_SCHEMA;
   }
   async load(): Promise<WorkbenchSnapshot | null> {
     let contents: string;
@@ -133,17 +210,18 @@ export class FileWorkbenchRepository implements WorkbenchRepository {
     if ('catalog' in stored) {
       parseResourceCatalog(stored.catalog);
       assertCatalogBindings(stored.snapshot, stored.catalog);
-      return stored.schemaVersion === 4 ? stored.snapshot : migrateAppDescriptions(stored.snapshot);
+      if (stored.schemaVersion === CURRENT_SCHEMA) return stored.snapshot;
+      return migrateToSchema5(stored.schemaVersion === 4 ? stored.snapshot : migrateAppDescriptions(stored.snapshot));
     }
     if (stored.schemaVersion === 2 || stored.schemaVersion === 3)
-      return migrateAppDescriptions({
+      return this.migrateLegacy({
         ...WorkbenchSnapshotSchema.parse(stored.snapshot),
         workspaces: stored.snapshot.workspaces.map((workspace) => ({
           ...WorkspaceSnapshotSchema.parse(workspace),
           resources: workspace.resources.map(({ catalogResourceId: _catalogResourceId, ...resource }) => resource),
         })),
       });
-    return migrateAppDescriptions(
+    return this.migrateLegacy(
       WorkbenchSnapshotSchema.parse({
         ...stored.snapshot,
         workspaces: stored.snapshot.workspaces.map((workspace) => ({
@@ -159,6 +237,10 @@ export class FileWorkbenchRepository implements WorkbenchRepository {
         })),
       }),
     );
+  }
+  /** Schema 1–3 (no catalog): App descriptions first, then the schema 5 fields. */
+  private migrateLegacy(snapshot: WorkbenchSnapshot): WorkbenchSnapshot {
+    return migrateToSchema5(migrateAppDescriptions(snapshot));
   }
   async loadCatalog(snapshot: WorkbenchSnapshot | null): Promise<ResourceCatalogState> {
     if (this.loadedFile === undefined) await this.load();
@@ -209,12 +291,12 @@ export class FileWorkbenchRepository implements WorkbenchRepository {
         })),
       })),
     };
-    const validated = FileSchema.parse({ schemaVersion: 4, snapshot: business, catalog });
+    const validated = FileSchema.parse({ schemaVersion: CURRENT_SCHEMA, snapshot: business, catalog });
     // Freeze the accepted business/catalog bytes before backup or filesystem I/O can yield.
-    const serialized = JSON.stringify({ schemaVersion: 4, snapshot: business, catalog });
+    const serialized = JSON.stringify({ schemaVersion: CURRENT_SCHEMA, snapshot: business, catalog });
     let previous: string | undefined;
-    // A schema4 file this repository loaded or wrote needs no backup; only unknown or legacy bytes are re-read.
-    if (this.loadedFile?.schemaVersion !== 4)
+    // A current-schema file this repository loaded or wrote needs no backup; only unknown or legacy bytes are re-read.
+    if (this.loadedFile?.schemaVersion !== CURRENT_SCHEMA)
       try {
         previous = await readFile(this.file, 'utf8');
       } catch (error) {
@@ -222,19 +304,24 @@ export class FileWorkbenchRepository implements WorkbenchRepository {
       }
     if (previous !== undefined) {
       const old = FileSchema.parse(JSON.parse(previous));
-      if (old.schemaVersion !== 4) {
+      if (old.schemaVersion !== CURRENT_SCHEMA) {
         const backup = this.file + '.legacy-schema-' + old.schemaVersion + '.json';
         try {
-          await writeFile(backup, previous, { flag: 'wx', mode: 0o400 });
+          // Never overwrite an existing backup; the original bytes must be durable before the file is replaced.
+          await writeDurably(backup, previous, 'wx', 0o400);
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
-          if ((await readFile(backup, 'utf8')) !== previous) throw new Error('conflict: 旧工作台迁移备份与来源不一致', { cause: error });
+          if ((await readFile(backup, 'utf8')) !== previous)
+            throw new Error(
+              `conflict: 旧工作台迁移备份与来源不一致；${path.basename(this.file)} 未改动，移走或核对 ${path.basename(backup)} 后才能迁移`,
+              { cause: error },
+            );
         }
       }
     }
     await mkdir(path.dirname(this.file), { recursive: true });
     const pending = this.file + '.pending';
-    await writeFile(pending, serialized, { mode: 0o600 });
+    await writeDurably(pending, serialized, 'w', 0o600);
     await rename(pending, this.file);
     this.loadedFile = validated;
   }

@@ -178,7 +178,7 @@ describe('R1-R7 backend migration baseline', () => {
   it('R1 saves each run conversation independently across subsequent runs and restart', async () => {
     const { app, runtime, repository, command } = setup();
     const session = (await app.getSnapshot()).workspaces[0]!.sessions[0]!;
-    await command({ type: 'confirmTask', sessionId: session.sessionId, goal: 'fixture', targetRef: null });
+    await command({ type: 'confirmTask', sessionId: session.sessionId, goal: 'fixture', targetRef: null, appId: null, captureId: null });
     const version = (await app.getSnapshot()).workspaces[0]!.sessions[0]!.taskVersions[0]!;
     vi.mocked(runtime.send)
       .mockResolvedValueOnce(conversation(session.sessionId, 'one', 1, 'first log'))

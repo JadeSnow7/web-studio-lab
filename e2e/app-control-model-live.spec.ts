@@ -268,6 +268,8 @@ test('A11: real guest Codex implements and self-verifies the frozen welcome task
       sessionId,
       goal,
       targetRef: null,
+      appId: null,
+      captureId: null,
       allowedScopes: task.allowedScopes,
       acceptance: ['真实 MCP 与命令沙箱 CLI 成功、Main 两项拒绝负例、两个 npm 检查；Host 独立固定验收'],
     });

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { DEBUG_PRELOAD_ARGUMENT, eventChannels, invokeChannels } from '@wsl/protocol';
+import { DEBUG_PRELOAD_ARGUMENT, ShowMenuRequestSchema, eventChannels, invokeChannels } from '@wsl/protocol';
 import type { EventChannel, EventPayload, InvokeChannel, InvokeRequest, InvokeResponse, StudioApi, StudioDebugApi } from '@wsl/protocol';
 
 // preload 只把具名方法交给工作台页面，不暴露 ipcRenderer 本身。
@@ -71,6 +71,12 @@ const studio: StudioApi & { debug?: StudioDebugApi } = {
   },
   shell: {
     onCommand: (listener) => subscribe('shell:command', listener),
+    // 在 preload 先按协议收窄成具体的菜单请求（非法输入得到被拒绝的 Promise，不同步抛出）；Main 仍在边界重新校验来源与输入。
+    showMenu: (menuId, context) =>
+      Promise.resolve().then(() => invoke('shell:show-menu', ShowMenuRequestSchema.parse({ menuId, context }))),
+    focusWorkbench: () => invoke('shell:focus-workbench'),
+    nativeFocus: () => invoke('shell:native-focus'),
+    restoreBrowserFocus: (focus) => invoke('shell:restore-browser-focus', focus),
   },
 };
 

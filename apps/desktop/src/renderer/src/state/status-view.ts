@@ -76,8 +76,12 @@ export interface Hint {
   key: string;
   scope: StatusScope;
   label: string;
-  source: 'capture-guidance' | 'bookmark' | 'snapshot' | 'reference' | 'first-use';
+  source: 'capture-result' | 'bookmark' | 'snapshot' | 'reference' | 'first-use';
   until: 'ack' | 'navigation';
+  /** 提示自带的一个动作（如「已采集到 {会话} · 打开」的「打开」）；由所在窗格的 onAction 执行。 */
+  action?: StatusFact['action'];
+  /** `session.open` 动作要定位的会话（登记时冻结，不随当前空间变化）。 */
+  locate?: { workspaceId: string; sessionId: string };
 }
 
 export interface TerminalGap {
@@ -416,6 +420,8 @@ export interface StatusView {
   historical?: true;
   /** run:<id>:state 专用：该 run 是所属会话的最新一条（与历史选择无关），侧栏行尾据此取值。 */
   latestRun?: true;
+  /** 展示层提示的定位目标（见 Hint.locate）。 */
+  locate?: { workspaceId: string; sessionId: string };
 }
 
 export interface PresentInput {
@@ -655,6 +661,8 @@ export function presentStatus(facts: readonly StatusFact[], state: PresentationS
       kind: 'confirmation',
       priority: 100 + index,
       label: hint.label,
+      ...(hint.action ? { action: { ...hint.action } } : {}),
+      ...(hint.locate ? { locate: { ...hint.locate } } : {}),
       instanceToken: hint.key,
       channel: 'notice',
       visible: true,
