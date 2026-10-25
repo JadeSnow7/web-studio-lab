@@ -1,0 +1,97 @@
+{
+  "version": "w7-e5/1",
+  "description": "W7 多 Harness 调度的确定性场景表：3 Harness × 2 Profile 路由池 + 内核。由 apps/service/src/workflow/scheduler-e5.test.ts 实现与断言；仅供离线测试，不含真实模型。矩阵里的 harnessId 用 ha/hb/hc，profileId 用 <h>:default 与固定 UUID（符合 HarnessProfileIdSchema）。",
+  "matrix": {
+    "harnesses": ["ha", "hb", "hc"],
+    "profiles": ["<harness>:default", "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"]
+  },
+  "scenarios": [
+    {
+      "id": "E5-01",
+      "name": "混合负载——200 调用经路由池完成",
+      "setup": {
+        "calls": 200,
+        "mix": "1/2 显式 harness 轮转、1/4 显式 harness+profile、1/4 缺省（auto）",
+        "plan": "fallback text，每成员小延迟"
+      },
+      "expect": {
+        "status": "completed",
+        "perProfileMaxInFlight": 1,
+        "routeRecorded": "每个 attempt_start 携带 route{harnessId,profileId} 且与 call_start.effective 冻结值一致",
+        "noSilentHarnessSwitch": "显式 harness/profile 的调用落在声明的成员上"
+      }
+    },
+    {
+      "id": "E5-02",
+      "name": "永久限流——成员全部 attempt 返 429",
+      "setup": { "memberPlan": "ha:default → fail rate_limit", "calls": "显式 profile ha:default + 其他成员正常" },
+      "expect": {
+        "status": "completed",
+        "rateLimitedCalls": "call_end failed{rate_limit}，attempts=1（rate_limit 不重试，排队消耗 attempt/时间预算）",
+        "otherCalls": "ok",
+        "noSilentSwitch": "429 的调用不改派其他 profile/harness"
+      }
+    },
+    {
+      "id": "E5-03",
+      "name": "全池耗尽——所有成员忙，排队等待由 call timeout 定界",
+      "setup": { "memberPlan": "全部成员 hang（不产终态）", "calls": 6, "timeoutMs": 1000, "retries": 0 },
+      "expect": {
+        "status": "completed",
+        "calls": "全部 call_end failed{timeout}（有限终态，不无限排队）",
+        "elapsed": "≈ 并发批次数 × timeoutMs，不超时悬挂"
+      }
+    },
+    {
+      "id": "E5-04",
+      "name": "全池耗尽——run deadline 不被排队/重试重置",
+      "setup": { "memberPlan": "全部成员 hang", "calls": 4, "timeoutMs": 3000, "retries": 3, "deadlineMs": 2500 },
+      "expect": {
+        "status": "failed",
+        "failureCode": "run_deadline_exceeded",
+        "note": "绝对 deadline 先于「排队×重试」的更长路径生效"
+      }
+    },
+    {
+      "id": "E5-05",
+      "name": "权限拒绝——成员返 permission_denied",
+      "setup": { "memberPlan": "hb:default → fail permission_denied", "calls": "显式 hb + 显式 profile hb:default" },
+      "expect": { "status": "completed", "calls": "call_end failed{permission_denied}，attempts=1（不重试）" }
+    },
+    {
+      "id": "E5-06",
+      "name": "资源不足——路由范围/成员表都没有该 Harness",
+      "setup": { "calls": "harness:'hz'（不在 routeScope）与 harness:'hx'（在 routeScope 但成员表空——宿主剔除后空池）" },
+      "expect": { "status": "completed", "calls": "call_end failed{unsupported_option}，不派发 attempt" }
+    },
+    {
+      "id": "E5-07",
+      "name": "Profile 忙——同 profile 并发调用 FIFO 串行",
+      "setup": { "calls": 3, "opts": "显式 harness:'ha' + profile:'ha:default'", "plan": "成员小延迟" },
+      "expect": {
+        "status": "completed",
+        "perProfileMaxInFlight": 1,
+        "order": "成员按 callSeq 登记序逐个执行（FIFO）"
+      }
+    },
+    {
+      "id": "E5-08",
+      "name": "停止等待者——等待槽位的调用随 stop 终止",
+      "setup": { "calls": 2, "opts": "显式同 profile", "plan": "成员长延迟", "action": "stop during wait" },
+      "expect": {
+        "status": "stopped",
+        "calls": "在飞与等待中调用均 call_end{stopped}",
+        "dispatched": "等待者从未派发成员 attempt（成员只看到第一个调用）"
+      }
+    },
+    {
+      "id": "E5-09",
+      "name": "无静默换 Harness/Profile——显式语义全程冻结",
+      "setup": { "calls": "显式 harness:'hb' 与显式 profile '<hb uuid>'，hb 成员忙时另一 profile 空闲" },
+      "expect": {
+        "status": "completed",
+        "frozen": "call_start.effective.profile == attempt_start.route.profileId == 实际派发成员；等待不改派"
+      }
+    }
+  ]
+}

@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { ObservationSchema, ObservationSourcesSchema, ObservationErrorSchema, type HarnessDescriptor } from '@wsl/protocol';
+import {
+  ObservationSchema,
+  ObservationSourcesSchema,
+  ObservationErrorSchema,
+  type HarnessDescriptor,
+  type WorkflowIsolation,
+} from '@wsl/protocol';
 import type { HarnessEvent, NativeHarnessAdapter } from '../types';
 
 /**
@@ -192,6 +198,20 @@ export const codexAdapter: NativeHarnessAdapter = {
     return sessionRef
       ? [...common, 'resume', '--json', '--skip-git-repo-check', sessionRef, '-']
       : [...common, '--json', '--skip-git-repo-check', '-'];
+  },
+  /**
+   * W3：readonly 是新会话的一次性 exec，--sandbox read-only，不携带 resume。
+   * W6a：lane 仍是一次性 exec，但沙箱放宽到 workspace-write——写入只可能落在 helper 物化的
+   * 独立 attempt 候选目录，该目录由 Lab 管理且每次 attempt 重建，CLI 不接触用户 checkout。
+   */
+  argvForIsolation(isolation: WorkflowIsolation): string[] | null {
+    if (isolation === 'readonly') {
+      return ['codex', 'exec', '--sandbox', 'read-only', '--json', '--skip-git-repo-check', '-'];
+    }
+    if (isolation === 'lane') {
+      return ['codex', 'exec', '--sandbox', 'workspace-write', '--json', '--skip-git-repo-check', '-'];
+    }
+    return null;
   },
   parseLine(line: string): HarnessEvent[] | null {
     const event = parseCodexLine(line);

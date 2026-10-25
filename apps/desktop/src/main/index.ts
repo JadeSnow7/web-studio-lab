@@ -3,9 +3,16 @@ import { packagedTemplateRuntime } from './template-runtime';
 import { SetupManager } from './setup';
 import { NativeSetupAdapter } from './setup-adapter';
 import { WorkbenchApplication } from './workbench/application';
+import { SqliteWorkflowJournal } from './workflow/journal-sqlite';
+import { WorkflowApplication } from './workflow/application';
+import { WorkflowCommands } from './workflow/commands';
+import { WorkflowCommandsStore } from './workflow/commands-store';
+import { ServiceWorkflowEnginePort } from './workflow/service-engine-port';
 import { FileWorkbenchRepository } from './workbench/repository';
+import { RunSourceRepository } from './workbench/run-source-repository';
 import { AppControl, FileAppControlStore } from './workbench/app-control';
 import { WorkbenchHost } from './workbench/host';
+import { mkdirSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { app, dialog, session, type BrowserWindow } from 'electron';
@@ -16,10 +23,18 @@ import { getExecutionStatus } from './execution';
 import { registerIpc, sendToRenderer } from './ipc';
 import { installAppMenu, nativeMenuHost } from './menu';
 import { NativeMenuService } from './native-menu';
+import { builtinProfileId, profileDirOf, type RouteScopeMember } from '@wsl/protocol';
 import { registerDemoScheme } from './preview/demo-protocol';
 import { createMainWindow, rendererSource } from './window';
 
 registerDemoScheme();
+
+/**
+ * W7：可进 workflow 路由的 Harness——如实写死当前矩阵：只有 codex native 提供
+ * argvForIsolation 的隔离执行能力；claude-code 是 ACP spec-harness，进不了成员表
+ * （对它声明 harness/profile 的调用由内核/路由池以 unsupported_option 拒绝）。
+ */
+const WORKFLOW_CAPABLE_HARNESSES: readonly string[] = ['codex'];
 
 function demoRoot(): string {
   return app.isPackaged ? path.join(process.resourcesPath, 'demo', 'taskflow') : path.resolve(app.getAppPath(), '../../demo/taskflow');
@@ -91,7 +106,56 @@ function openWorkbench(setup: SetupManager, profileStore: HarnessProfileStore): 
   );
   profiles = new HarnessProfileService(profileStore, chat);
   profileStore.onChange((snapshot) => sendToRenderer(window, 'chat:profiles', snapshot));
+  // host 先于 workflowApp：W6b 的 lane 绑定/候选应用需要它的 App 源码端口。
   const host = new WorkbenchHost(window, chat, demoRoot(), profiles);
+  // W4 workflow：journal 在 Main SQLite（userData/workflow/journal.sqlite），引擎是 service 远端实现；
+  // 启动先把遗留非终态 run 标记 needs_reconciliation（恢复标记，不写合成事件），由用户核对后标记已停止再续跑。
+  // W6a：候选 Git 对象仓在 userData/workflow/runs（Lab 管理，独立于 workbench runs）；
+  // 先建 port 再建应用，装配完成后把候选发布委托回填给 port。
+  mkdirSync(path.join(app.getPath('userData'), 'workflow'), { recursive: true });
+  let workflowUpdateSeq = 0;
+  const workflowEnginePort = new ServiceWorkflowEnginePort(chat);
+  const workflowApp = new WorkflowApplication({
+    journal: new SqliteWorkflowJournal(path.join(app.getPath('userData'), 'workflow', 'journal.sqlite')),
+    engine: workflowEnginePort,
+    candidateStore: new RunSourceRepository(path.join(app.getPath('userData'), 'workflow', 'runs')),
+    // W6b：受管 App 绑定/应用端口——workbench 在后面才装配，按惰性闭包调用时求值。
+    appResolver: () => workbench?.managedAppTarget() ?? null,
+    appSource: {
+      snapshot: (target, signal) => host.appSourceSnapshot(target, signal),
+      apply: (target, files, signal) => host.appSourceApply(target, files, signal),
+    },
+    acquireWriter: (projectId, ownerId) => workbench?.acquireProjectWriter(projectId, ownerId) ?? null,
+    // null 是「无阻塞」的健康回执，不能落入 ??——只有 workbench 缺席才报未就绪。
+    appBusy: (target) => (workbench === null ? 'unavailable: 工作台未就绪' : workbench.projectWriteBlocker(target)),
+    // W7：路由范围从 Profile 快照取——只收录可进 workflow 的 Harness（当前仅 codex native；
+    // claude-code 是 ACP spec-harness，无 argvForIsolation 不能进成员表）。logged_out 仍入列：
+    // 额度/登录只在执行期诚实失败，受理不预选。快照不可读时回退内置 codex:default，不阻断受理。
+    routeScopeProvider: (): RouteScopeMember[] => {
+      try {
+        return profileStore
+          .get()
+          .profiles.filter((profile) => WORKFLOW_CAPABLE_HARNESSES.includes(profile.harnessId))
+          .map((profile) => ({
+            harnessId: profile.harnessId,
+            profileId: profile.profileId,
+            profileDir: profileDirOf(profile.harnessId, profile.profileId),
+          }));
+      } catch {
+        return [{ harnessId: 'codex', profileId: builtinProfileId('codex'), profileDir: null }];
+      }
+    },
+    onEvent: (runId) => sendToRenderer(window, 'workflow:update', { workflowRunId: runId, seq: ++workflowUpdateSeq }),
+  });
+  workflowEnginePort.setCandidatePublisher(workflowApp);
+  workflowEnginePort.setLaneWorkspaceProvider(workflowApp);
+  workflowApp.recoverOpenRuns();
+  // W5 命令仓储：saved 命令存 userData/workflow/commands.json；损坏文件 fail-closed（builtin 可用）。
+  const workflowCommands = new WorkflowCommands(new WorkflowCommandsStore(path.join(app.getPath('userData'), 'workflow', 'commands.json')));
+  void workflowCommands.ready.then(() => {
+    if (workflowCommands.storeError)
+      console.error('工作流命令仓储读取失败（已保存命令不可用，内置命令不受影响）', workflowCommands.storeError);
+  });
   workbench = new WorkbenchApplication(new FileWorkbenchRepository(path.join(app.getPath('userData'), 'workbench.json')), host, (event) => {
     debug?.onWorkbench(event.snapshot);
     sendToRenderer(window, 'workbench:event', event);
@@ -121,6 +185,8 @@ function openWorkbench(setup: SetupManager, profileStore: HarnessProfileStore): 
     setup,
     menus,
     browserFocus: host,
+    workflow: workflowApp,
+    workflowCommands,
     ...(debug ? { debug } : {}),
   });
   const unsubscribeSetup = setup.subscribe((snapshot) => {
@@ -134,6 +200,8 @@ function openWorkbench(setup: SetupManager, profileStore: HarnessProfileStore): 
       await shutdownOwners([
         () => setup.shutdown(),
         async () => {
+          // Keep the service and journal listeners alive until workflow receipts settle.
+          await workflowApp.shutdown();
           const errors: unknown[] = [];
           for (const cleanup of [() => workbench?.shutdown(), () => chat.shutdown()]) {
             try {
@@ -159,6 +227,7 @@ function openWorkbench(setup: SetupManager, profileStore: HarnessProfileStore): 
   window.on('close', (event) => {
     if (allowed) return;
     event.preventDefault();
+    workflowApp.beginShutdown();
     if (closing) return;
     closing = true;
     void exit

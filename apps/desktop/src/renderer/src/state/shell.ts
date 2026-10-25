@@ -3,7 +3,7 @@ import { closePanel, panelMode, pinPanel, restorePanels, togglePanel, persistPan
 import { occlusion } from './occlusion';
 import { reportError } from './errors';
 import { beginNavigation } from './workspace';
-export type Route = 'home' | 'space' | 'resources' | 'conversations' | 'tasks' | 'settings';
+export type Route = 'home' | 'space' | 'resources' | 'conversations' | 'tasks' | 'workflows' | 'settings';
 export interface ShellState {
   route: Route;
   workshop: PanelState;
@@ -26,6 +26,7 @@ export const routeLabels: Record<Route, string> = {
   resources: '资源',
   conversations: '会话',
   tasks: '任务',
+  workflows: '工作流',
   settings: '应用设置',
 };
 export const workshopMode = panelMode;

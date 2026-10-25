@@ -10,7 +10,7 @@ import { launchApp, shot, target, workshopNavigate, workspaceSnapshot } from './
  */
 
 const sbxBin = path.resolve('e2e/fixtures/sbx.mjs');
-const STUDIO_KEYS = ['setup', 'workbench', 'chat', 'app', 'execution', 'shell'];
+const STUDIO_KEYS = ['setup', 'workbench', 'chat', 'app', 'execution', 'workflow', 'shell'];
 const CHECKER_NOTE = /产品检查器尚未接入/;
 const ACCEPT_WITHOUT_CHECKER = '产品检查器尚未接入：接受需要独立检查通过且适用于当前版本，目前不能接受结果。';
 const ACCEPT_REQUIRES_VALIDATION = '固定验收通过且仍适用于当前版本后，才能接受结果。';

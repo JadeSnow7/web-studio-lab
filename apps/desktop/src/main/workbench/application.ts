@@ -526,6 +526,70 @@ export class WorkbenchApplication {
       .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
     return snapshot;
   }
+  /**
+   * W6b workflow 受理期的 App 绑定解析：返回首个受管 App 的目标身份
+   * （首版单项目模型）；无受管 App 返回 null，lane 调用随后以 unavailable 失败。
+   */
+  managedAppTarget(): AppTarget | null {
+    for (const workspace of this.snapshot.workspaces) {
+      const app = workspace.managedApp;
+      if (app) return { workspaceId: app.workspaceId, projectId: app.projectId };
+    }
+    return null;
+  }
+  /**
+   * W6b workflow 候选应用前的 App 侧阻塞核对（不含写租约）：
+   * null 放行；'unavailable:' → App 不存在/未确认，'busy:' → 生命周期操作在途。
+   * 与 startRun 的 App 工程门禁同口径；'running' 不阻塞（任务执行亦允许运行期写工程）。
+   */
+  projectWriteBlocker(target: AppTarget): string | null {
+    if (this.closing) return 'unavailable: 工作台正在关闭';
+    const workspace = this.snapshot.workspaces.find((w) => w.workspaceId === target.workspaceId);
+    const app = workspace?.managedApp;
+    if (!workspace || !app || app.projectId !== target.projectId) return 'unavailable: 受管 App 不存在或已解绑';
+    if (
+      workspace.pendingAppImport ||
+      app.profile?.projectKind === 'edu-web' ||
+      ['selecting', 'scanning', 'ready', 'copying', 'starting', 'cancelling'].includes(
+        this.importSessions.get(workspace.workspaceId)?.view.phase ?? '',
+      )
+    )
+      return 'unavailable: edu 工程导入或任务写回尚未开放';
+    if (this.appOperations.has(workspace.workspaceId) || app.state === 'starting' || app.state === 'stopping')
+      return 'busy: App 正在启动或停止，暂不能应用候选';
+    if (!app.cleanupConfirmed) return 'busy: App 上次清理未确认';
+    if (this.unconfirmedApps.has(app.projectId)) return 'unavailable: App 恢复未确认，请先启动或停止 App 核对状态';
+    return null;
+  }
+  /**
+   * W6b workflow apply 的工程写租约：与任务执行/结束源码采集共用 projectWriters
+   * 互斥表，并拒绝目标工程上仍在活动或清理未确认的执行。获取是同步原子的；
+   * release 幂等且只释放本人持有的租约。
+   */
+  acquireProjectWriter(projectId: string, ownerId: string): { release(): void } | null {
+    if (this.closing || this.projectWriters.has(projectId)) return null;
+    if (
+      this.snapshot.workspaces.some((space) =>
+        space.runs.some(
+          (run) =>
+            (activeStates.includes(run.state) || run.cleanupPending || run.sourceCleanupPending) &&
+            space.sessions
+              .find((session) => session.sessionId === run.sessionId)
+              ?.taskVersions.find((version) => version.taskVersionId === run.taskVersionId)?.appTarget?.projectId === projectId,
+        ),
+      )
+    )
+      return null;
+    this.projectWriters.set(projectId, ownerId);
+    let released = false;
+    return {
+      release: () => {
+        if (released) return;
+        released = true;
+        if (this.projectWriters.get(projectId) === ownerId) this.projectWriters.delete(projectId);
+      },
+    };
+  }
   command(command: WorkbenchCommand): Promise<WorkbenchResult> {
     if (command.type === 'reconcileRunCleanup') return this.reconcileRunCleanup(command.workspaceId, command.runId);
     if (command.type === 'answerPermission') return this.answerPermission(command);

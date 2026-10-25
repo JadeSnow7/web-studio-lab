@@ -6,6 +6,8 @@ import { ChatConversationSchema, type ChatServiceMessage, type ChatServiceReques
 
 const fixture = vi.hoisted(() => ({
   start: vi.fn(),
+  workflowBegin: vi.fn(),
+  workflowShutdown: vi.fn<() => Promise<void>>(async () => undefined),
   appShutdown: vi.fn<() => Promise<void>>(async () => undefined),
   taskAdmission: vi.fn<(workspaceId: string | null) => Promise<void>>(async () => undefined),
 }));
@@ -22,6 +24,13 @@ vi.mock('./app-service', () => ({
   AppService: class {
     shutdown = fixture.appShutdown;
     assertTaskAdmission = fixture.taskAdmission;
+  },
+}));
+vi.mock('./workflow-host', () => ({
+  ServiceWorkflowHost: class {
+    beginShutdown = fixture.workflowBegin;
+    shutdown = fixture.workflowShutdown;
+    owns = () => false;
   },
 }));
 vi.mock('./environment-resources', () => ({
@@ -200,4 +209,34 @@ describe('service request cancellation admission', () => {
     expect(cancelled.turnId).not.toBe(before.turnId);
     expect(fixture.start).toHaveBeenCalledTimes(history ? 1 : 0);
   });
+});
+
+it.each(['rpc', 'SIGTERM'] as const)('%s shutdown owns workflow cleanup before app/connection teardown', async (path) => {
+  const test = await host();
+  let release!: () => void;
+  fixture.workflowShutdown.mockImplementationOnce(
+    () =>
+      new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+  );
+  const exit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+  try {
+    if (path === 'rpc') test.request({ id: 'workflow-close', method: 'shutdown' });
+    else for (const listener of process.listeners('SIGTERM')) if (!signalListeners.includes(listener)) listener('SIGTERM');
+    expect(fixture.workflowBegin).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(fixture.workflowShutdown).toHaveBeenCalledOnce());
+    expect(fixture.appShutdown).not.toHaveBeenCalled();
+    expect(exit).not.toHaveBeenCalled();
+    expect(test.messages.some((message) => message.type === 'response' && message.id === 'workflow-close')).toBe(false);
+    release();
+    await vi.waitFor(() => expect(fixture.appShutdown).toHaveBeenCalledOnce());
+    if (path === 'rpc')
+      await vi.waitFor(() =>
+        expect(test.messages.some((message) => message.type === 'response' && message.id === 'workflow-close')).toBe(true),
+      );
+    else await vi.waitFor(() => expect(exit).toHaveBeenCalledExactlyOnceWith(0));
+  } finally {
+    exit.mockRestore();
+  }
 });

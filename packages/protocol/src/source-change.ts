@@ -122,6 +122,15 @@ export const AppSourceSnapshotResultSchema = z.discriminatedUnion('ok', [
   z.object({ ok: z.literal(false), target: AppTargetSchema, cleanupConfirmed: z.boolean(), error: z.string().min(1).max(1000) }).strict(),
 ]);
 export type AppSourceSnapshotResult = z.infer<typeof AppSourceSnapshotResultSchema>;
+/**
+ * W6b：app.source.apply 的回执形状——成功只承诺「helper 退出 0 且清理已确认」；
+ * 失败带目标身份、清理确认状态与错误文本（busy: 前缀供 Main 归并 app_busy）。
+ */
+export const AppSourceApplyResultSchema = z.discriminatedUnion('ok', [
+  z.object({ ok: z.literal(true), target: AppTargetSchema, cleanupConfirmed: z.literal(true) }).strict(),
+  z.object({ ok: z.literal(false), target: AppTargetSchema, cleanupConfirmed: z.boolean(), error: z.string().min(1).max(1000) }).strict(),
+]);
+export type AppSourceApplyResult = z.infer<typeof AppSourceApplyResultSchema>;
 export const SourceSnapshotFrameSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('file'), path: SourcePathSchema, mode: SourceFileSchema.shape.mode }).strict(),
   z.object({ type: z.literal('chunk'), base64: base64(SOURCE_CHUNK_BYTES) }).strict(),

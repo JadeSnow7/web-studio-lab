@@ -1,15 +1,23 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as WorkflowJournalModule from './workflow/journal-sqlite';
 const fixture = vi.hoisted(() => ({
+  userData: '',
+  journals: [] as { close(): void }[],
   listeners: new Map<string, (event: { preventDefault(): void }) => void>(),
   close: vi.fn(),
   shutdown: vi.fn(),
   workbenchShutdown: vi.fn(),
+  workflowShutdown: vi.fn(),
+  workflowBegin: vi.fn(),
   getSnapshot: vi.fn(),
   dispose: vi.fn(),
   dialog: vi.fn(),
 }));
 vi.mock('electron', () => ({
-  app: { whenReady: () => Promise.resolve(), on: vi.fn(), getPath: () => '/tmp', getAppPath: () => '/desktop' },
+  app: { whenReady: () => Promise.resolve(), on: vi.fn(), getPath: () => fixture.userData, getAppPath: () => '/desktop' },
   dialog: { showMessageBox: fixture.dialog },
   session: { defaultSession: { setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
 }));
@@ -17,6 +25,10 @@ vi.mock('./chat-service', () => ({
   ChatService: class {
     setObservationReader = vi.fn();
     setAppControlReader = vi.fn();
+    // W4：ServiceWorkflowEnginePort 构造时在 ChatService 上注册的 workflow 消息/退出监听。
+    setWorkflowListener = vi.fn();
+    onExit = vi.fn();
+    workflowRequest = vi.fn(async () => null);
     shutdown = fixture.shutdown;
   },
 }));
@@ -25,6 +37,26 @@ vi.mock('./workbench/application', () => ({
     getSnapshot = fixture.getSnapshot;
     shutdown = fixture.workbenchShutdown;
     setAppControl = vi.fn();
+  },
+}));
+vi.mock('./workflow/journal-sqlite', async (importOriginal) => {
+  const actual = await importOriginal<typeof WorkflowJournalModule>();
+  return {
+    ...actual,
+    SqliteWorkflowJournal: class extends actual.SqliteWorkflowJournal {
+      constructor(...args: ConstructorParameters<typeof actual.SqliteWorkflowJournal>) {
+        expect(args[0]).toBe(path.join(fixture.userData, 'workflow', 'journal.sqlite'));
+        super(...args);
+        fixture.journals.push(this);
+      }
+    },
+  };
+});
+vi.mock('./workflow/application', () => ({
+  WorkflowApplication: class {
+    beginShutdown = fixture.workflowBegin;
+    shutdown = fixture.workflowShutdown;
+    recoverOpenRuns = vi.fn();
   },
 }));
 vi.mock('./workbench/repository', () => ({ FileWorkbenchRepository: class {} }));
@@ -47,14 +79,20 @@ vi.mock('./menu', () => ({
   nativeMenuHost: vi.fn(() => ({ contentSize: () => null, popup: vi.fn(), close: vi.fn(), onInvalidated: vi.fn() })),
 }));
 vi.mock('./preview/demo-protocol', () => ({ registerDemoScheme: vi.fn() }));
-beforeEach(() => {
+beforeEach(async () => {
+  fixture.userData = await mkdtemp(path.join(tmpdir(), 'wsl-window-close-'));
   vi.resetModules();
   fixture.listeners.clear();
   vi.clearAllMocks();
   fixture.shutdown.mockResolvedValue(undefined);
   fixture.workbenchShutdown.mockResolvedValue(undefined);
+  fixture.workflowShutdown.mockResolvedValue(undefined);
   fixture.dialog.mockResolvedValue({ response: 1 });
   fixture.getSnapshot.mockRejectedValue(new Error('corrupt workspace file'));
+});
+afterEach(async () => {
+  for (const journal of fixture.journals.splice(0)) journal.close();
+  await rm(fixture.userData, { recursive: true, force: true });
 });
 describe('window shutdown', () => {
   async function open() {
@@ -165,4 +203,34 @@ describe('window shutdown', () => {
     await vi.waitFor(() => expect(fixture.dialog).toHaveBeenCalledOnce());
     expect(fixture.close).not.toHaveBeenCalled();
   });
+});
+
+it('window closure keeps workflow receipts available before workbench and chat cleanup', async () => {
+  let release!: () => void;
+  fixture.workflowShutdown.mockImplementation(
+    () =>
+      new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+  );
+  fixture.getSnapshot.mockResolvedValue(undefined);
+  await import('./index');
+  await vi.waitFor(() => expect(fixture.listeners.has('close')).toBe(true));
+  fixture.listeners.get('close')!({ preventDefault: vi.fn() });
+  expect(fixture.workflowBegin).toHaveBeenCalledOnce();
+  await vi.waitFor(() => expect(fixture.workflowShutdown).toHaveBeenCalledOnce());
+  expect(fixture.workbenchShutdown).not.toHaveBeenCalled();
+  expect(fixture.shutdown).not.toHaveBeenCalled();
+  release();
+  await vi.waitFor(() => expect(fixture.close).toHaveBeenCalledOnce());
+});
+it('workflow cleanup failure keeps the service and window available for exit confirmation', async () => {
+  fixture.workflowShutdown.mockRejectedValue(new Error('workflow guest cleanup unconfirmed'));
+  await import('./index');
+  await vi.waitFor(() => expect(fixture.listeners.has('close')).toBe(true));
+  fixture.listeners.get('close')!({ preventDefault: vi.fn() });
+  await vi.waitFor(() => expect(fixture.dialog).toHaveBeenCalledOnce());
+  expect(fixture.workbenchShutdown).not.toHaveBeenCalled();
+  expect(fixture.shutdown).not.toHaveBeenCalled();
+  expect(fixture.close).not.toHaveBeenCalled();
 });

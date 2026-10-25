@@ -261,5 +261,122 @@ class SourceSnapshotTests(unittest.TestCase):
         self.assertEqual(before, [(item.read_bytes(), item.stat().st_mtime_ns, item.stat().st_mode) for item in (source, identity)])
 
 
+class SourceApplyTests(unittest.TestCase):
+    """W6b：app-helper apply——候选树整条替换源码命名空间，排除名与身份文件保留。"""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='wsl-apply-')
+        self.root = Path(self.temp.name).resolve()
+        self.project = self.root / 'project-test'
+        self.project.mkdir()
+        self.identity = {'workspaceId': 'space-test', 'environmentId': 'sandbox', 'projectId': 'project-test'}
+        self.write('.wsl-identity.json', json.dumps(self.identity).encode())
+        self.receipts = []
+        self.root_patch = patch.object(helper, 'ROOT', self.root)
+        self.output_patch = patch.object(helper, 'output', self.receipts.append)
+        self.root_patch.start()
+        self.output_patch.start()
+        self.addCleanup(self.root_patch.stop)
+        self.addCleanup(self.output_patch.stop)
+        self.addCleanup(self.temp.cleanup)
+
+    def write(self, name, data=b'content\n'):
+        target = self.project / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+        return target
+
+    def entry(self, path, data=b'new\n'):
+        return {'path': path, 'base64': base64.b64encode(data).decode('ascii')}
+
+    def apply(self, files, **request):
+        return helper.run(
+            {'operation': 'apply', 'workspaceId': 'space-test', 'projectId': 'project-test', 'files': files, **request}
+        )
+
+    def tree(self):
+        return {
+            item.relative_to(self.project).as_posix(): item.read_bytes()
+            for item in sorted(self.project.rglob('*'))
+            if item.is_file()
+        }
+
+    def test_writes_payload_deletes_absent_and_prunes_excluded_safe(self):
+        keep = self.write('keep.ts', b'before\n')
+        self.write('stale.ts')
+        self.write('stale-dir/old.ts')
+        protected = [self.write('node_modules/pkg/index.js'), self.write('.data/db'), self.write('.env', b'SYNTHETIC')]
+        before = [(item.read_bytes()) for item in protected]
+        self.apply([self.entry('keep.ts', b'after\n'), self.entry('new-dir/new.ts', b'created\n')])
+        self.assertEqual(keep.read_bytes(), b'after\n')
+        self.assertEqual((self.project / 'new-dir' / 'new.ts').read_bytes(), b'created\n')
+        self.assertFalse((self.project / 'stale.ts').exists())
+        self.assertFalse((self.project / 'stale-dir').exists(), 'emptied namespace directory must be pruned')
+        self.assertEqual(before, [item.read_bytes() for item in protected])
+        self.assertTrue((self.project / '.wsl-identity.json').exists())
+        self.assertEqual(self.receipts, [{'applied': True, 'written': 2, 'deleted': 2}])
+
+    def test_empty_payload_deletes_namespace_but_preserves_exclusions(self):
+        self.write('a.ts')
+        self.write('dir/b.ts')
+        protected = self.write('dist/out.js')
+        self.apply([])
+        self.assertFalse((self.project / 'a.ts').exists())
+        self.assertFalse((self.project / 'dir').exists())
+        self.assertTrue(protected.exists())
+        self.assertEqual(self.receipts[0]['deleted'], 2)
+
+    def test_rejects_paths_outside_source_namespace(self):
+        untouched = self.write('keep.ts')
+        for path in ('node_modules/evil.js', 'nested/node_modules/evil.js', '.env', '.env.local',
+                     '.data/x', 'data/x', '.wsl-evil', 'nested/.ssh/key', '.git/config', 'dist/out.js'):
+            with self.subTest(path=path):
+                with self.assertRaisesRegex(ValueError, 'namespace|path'):
+                    self.apply([self.entry(path)])
+                self.assertEqual(untouched.read_bytes(), b'content\n')
+
+    def test_rejects_malformed_entries_duplicates_and_budget(self):
+        with self.assertRaisesRegex(ValueError, 'invalid apply file'):
+            self.apply([{'path': 'a.ts'}])
+        with self.assertRaisesRegex(ValueError, 'invalid apply file'):
+            self.apply([{'path': 'a.ts', 'base64': 'eA==', 'mode': '100644'}])
+        with self.assertRaisesRegex(ValueError, 'duplicate apply file'):
+            self.apply([self.entry('a.ts'), self.entry('a.ts', b'other\n')])
+        with self.assertRaisesRegex(ValueError, 'budget'):
+            self.apply([self.entry(f'f{i}.ts') for i in range(helper.APPLY_MAX_FILES + 1)])
+        with self.assertRaisesRegex(ValueError, 'budget'):
+            self.apply([self.entry('big.bin', b'x' * (helper.APPLY_MAX_BYTES + 1))])
+        with self.assertRaisesRegex(ValueError, 'path conflict'):
+            self.apply([self.entry('a'), self.entry('a/b.ts')])
+
+    def test_dir_file_kind_changes(self):
+        self.write('src/old.ts')
+        self.write('leaf')
+        self.apply([self.entry('src', b'now a file\n'), self.entry('leaf/nested.ts')])
+        self.assertTrue((self.project / 'src').is_file())
+        self.assertEqual((self.project / 'src').read_bytes(), b'now a file\n')
+        self.assertTrue((self.project / 'leaf' / 'nested.ts').is_file())
+
+    def test_rejects_special_files_in_namespace(self):
+        target = self.write('normal')
+        link = self.project / 'link'
+        link.symlink_to(target)
+        with self.assertRaises((ValueError, OSError)):
+            self.apply([self.entry('normal', b'x\n')])
+        link.unlink()
+        fifo = self.project / 'pipe'
+        os.mkfifo(fifo)
+        with self.assertRaises((ValueError, OSError)):
+            self.apply([self.entry('normal', b'x\n')])
+
+    def test_rejects_identity_mismatch_extra_fields_and_missing_root(self):
+        with self.assertRaisesRegex(ValueError, 'identity'):
+            helper.run({'operation': 'apply', 'workspaceId': 'other-space', 'projectId': 'project-test', 'files': []})
+        with self.assertRaisesRegex(ValueError, 'unsupported apply request'):
+            self.apply([], extra='field')
+        with self.assertRaises(FileNotFoundError):
+            helper.run({'operation': 'apply', 'workspaceId': 'space-test', 'projectId': 'absent', 'files': []})
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

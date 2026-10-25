@@ -42,10 +42,26 @@ export default tseslint.config(
       'apps/desktop/*.ts',
       'e2e/**/*.{ts,js,mjs}',
       'scripts/check-docs.mjs',
+      'scripts/workflow-e8.mjs',
       '*.ts',
       '*.js',
     ],
     languageOptions: { globals: { ...globals.node } },
+  },
+  {
+    // vm-worker 的 prelude 注入这些 DSL 名称；仅 fixture 脚本读取，不授予 Node 全局能力。
+    files: ['fixtures/workflow/scripts/*.mjs'],
+    languageOptions: {
+      globals: {
+        agent: 'readonly',
+        phase: 'readonly',
+        args: 'readonly',
+        parallel: 'readonly',
+        pipeline: 'readonly',
+        log: 'readonly',
+        WorkflowContractError: 'readonly',
+      },
+    },
   },
   {
     // renderer 不使用 Node 或 Electron API（架构约束第 3 节）。

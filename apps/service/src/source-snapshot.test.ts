@@ -48,6 +48,7 @@ async function fixture(
     closeError?: boolean;
     timeout?: number;
     closeGate?: Promise<void>;
+    closeOutcome?: GuestOutcome;
     onSnapshot?: AppServiceOptions['onSnapshot'];
   } = {},
 ) {
@@ -68,7 +69,7 @@ async function fixture(
   const sourceClose = vi.fn(async () => {
     if (options.closeGate) await options.closeGate;
     if (options.closeError) throw new Error('close rejected');
-    const outcome = { confirmed: !options.unknown, exitCode: -15, error: null };
+    const outcome = options.closeOutcome ?? { confirmed: !options.unknown, exitCode: -15, error: null };
     snapshotDone.resolve(outcome);
     return outcome;
   });
@@ -83,7 +84,7 @@ async function fixture(
     if (input.mode !== 'codex') throw new Error('unexpected mode');
     const request: unknown = JSON.parse(input.prompt ?? '{}');
     if (!request || typeof request !== 'object' || !('operation' in request)) throw new Error('invalid request');
-    if (request.operation === 'source-snapshot') {
+    if (request.operation === 'source-snapshot' || request.operation === 'apply') {
       sourceOutput = onFrame;
       return { done: snapshotDone.promise, close: sourceClose };
     }
@@ -377,4 +378,73 @@ describe('bounded raw source snapshot', () => {
       expect(f.appClose).toHaveBeenCalledOnce();
     }
   });
+});
+
+describe('source apply committed receipt ownership', () => {
+  const files = [{ path: 'src/file.ts', base64: Buffer.from('written\n').toString('base64') }];
+  it.each(['before-abort', 'after-abort'] as const)('preserves a committed receipt %s until cleanup confirms', async (timing) => {
+    const release = deferred<void>();
+    const f = await fixture({ closeGate: release.promise, closeOutcome: { confirmed: true, exitCode: 0, error: null } });
+    const controller = new AbortController();
+    const applying = f.service.sourceApply(target, files, controller.signal);
+    await vi.waitFor(() => expect(f.start).toHaveBeenCalledOnce());
+    if (timing === 'before-abort') f.output('WSL_APP_RESULT:{"applied":true}\n');
+    controller.abort();
+    await vi.waitFor(() => expect(f.sourceClose).toHaveBeenCalledOnce());
+    if (timing === 'after-abort') f.output('WSL_APP_RESULT:{"applied":true}\n');
+    release.resolve();
+    expect(await applying).toEqual({ ok: true, target, cleanupConfirmed: true });
+    await f.service.shutdown();
+  });
+  it.each(['missing', 'invalid', 'not-applied', 'negative-cleanup', 'exit-failed'] as const)(
+    'does not promote %s into a committed write',
+    async (kind) => {
+      const release = deferred<void>();
+      const confirmed = kind !== 'negative-cleanup';
+      const f = await fixture({
+        closeGate: release.promise,
+        closeOutcome: { confirmed, exitCode: kind === 'exit-failed' ? 2 : 0, error: null },
+      });
+      const controller = new AbortController();
+      const applying = f.service.sourceApply(target, files, controller.signal);
+      await vi.waitFor(() => expect(f.start).toHaveBeenCalledOnce());
+      controller.abort();
+      if (kind !== 'missing')
+        f.output(
+          kind === 'invalid'
+            ? 'WSL_APP_RESULT:{broken\n'
+            : kind === 'not-applied'
+              ? 'WSL_APP_RESULT:{"applied":false}\n'
+              : 'WSL_APP_RESULT:{"applied":true}\n',
+        );
+      release.resolve();
+      expect(await applying).toMatchObject({ ok: false, cleanupConfirmed: confirmed });
+      if (confirmed) await f.service.shutdown();
+      else await expect(f.service.shutdown()).rejects.toThrow(/清理未确认/);
+    },
+  );
+});
+
+it('service shutdown keeps an in-flight committed source apply receipt visible until cleanup confirms', async () => {
+  const release = deferred<void>();
+  const f = await fixture({ closeGate: release.promise, closeOutcome: { confirmed: true, exitCode: 0, error: null } });
+  const applying = f.service.sourceApply(target, [{ path: 'src/file.ts', base64: 'eA==' }]);
+  await vi.waitFor(() => expect(f.start).toHaveBeenCalledOnce());
+  const shutdown = f.service.shutdown();
+  await vi.waitFor(() => expect(f.sourceClose).toHaveBeenCalledOnce());
+  f.output('WSL_APP_RESULT:{"applied":true}\n');
+  release.resolve();
+  expect(await applying).toEqual({ ok: true, target, cleanupConfirmed: true });
+  await shutdown;
+});
+it('source apply does not dispatch if cancellation preceded admission', async () => {
+  const f = await fixture();
+  const controller = new AbortController();
+  controller.abort();
+  expect(await f.service.sourceApply(target, [{ path: 'src/file.ts', base64: 'eA==' }], controller.signal)).toMatchObject({
+    ok: false,
+    cleanupConfirmed: true,
+  });
+  expect(f.start).not.toHaveBeenCalled();
+  await f.service.shutdown();
 });

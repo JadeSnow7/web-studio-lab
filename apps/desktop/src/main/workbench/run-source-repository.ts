@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
-import { lstat, mkdir, open } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, open, rm } from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { z } from 'zod';
@@ -13,6 +14,7 @@ import {
   SourcePathSchema,
   SOURCE_DIFF_MAX_FILES,
   SOURCE_PATCH_MAX_BYTES,
+  type AppSource,
   type AppSourceSnapshot,
   type CapturedSourceChange,
   type SourceChangeFile,
@@ -89,7 +91,7 @@ export class RunSourceRepository {
     return directory;
   }
 
-  private async writeExclusive(directory: string, name: 'baseline.json' | 'capture.lock' | 'source.patch', content: string): Promise<void> {
+  private async writeExclusive(directory: string, name: string, content: string): Promise<void> {
     const file = await open(path.join(directory, name), 'wx', 0o400);
     try {
       await file.writeFile(content, 'utf8');
@@ -99,7 +101,8 @@ export class RunSourceRepository {
     }
   }
 
-  private async read(runId: string, name: 'baseline.json' | 'source.patch', maxBytes: number): Promise<Buffer> {
+  private async read(runId: string, name: string, maxBytes: number): Promise<Buffer> {
+    if (!/^[a-z0-9][a-z0-9.-]{0,63}$/i.test(name) || name.includes('..')) throw new Error('denied: 无效源码证据名称');
     const directory = this.runPath(runId);
     const rootBefore = await this.directory(this.root);
     const parentBefore = await this.directory(directory);
@@ -152,6 +155,7 @@ export class RunSourceRepository {
     input?: AsyncIterable<Buffer>,
     limit = 4096,
     truncate = false,
+    extraEnv?: Record<string, string>,
   ): Promise<{ bytes: Buffer; truncated: boolean }> {
     signal?.throwIfAborted();
     const child = spawn(this.gitBinary, [...gitConfig, '--git-dir=' + path.join(directory, 'objects.git'), ...args], {
@@ -166,6 +170,7 @@ export class RunSourceRepository {
         GIT_CONFIG_SYSTEM: nullFile,
         GIT_ATTR_NOSYSTEM: '1',
         GIT_NO_REPLACE_OBJECTS: '1',
+        ...extraEnv,
       },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
@@ -214,7 +219,7 @@ export class RunSourceRepository {
 
   private async importTree(
     directory: string,
-    branch: 'baseline' | 'after',
+    branch: 'baseline' | 'after' | 'after-check' | `after-${number}`,
     source: AppSourceSnapshot,
     signal?: AbortSignal,
   ): Promise<string> {
@@ -253,6 +258,51 @@ export class RunSourceRepository {
   }
 
   async capture(runId: string, baseTree: string, input: AppSourceSnapshot, signal?: AbortSignal): Promise<CapturedSourceChange> {
+    return this.captureInternal(
+      runId,
+      baseTree,
+      input,
+      {
+        branch: 'after',
+        lockName: 'capture.lock',
+        patchName: 'source.patch',
+      },
+      signal,
+    );
+  }
+
+  /**
+   * W6a：workflow lane 候选的按调用序号快照。与 capture() 同一基线核对与 diff 口径，
+   * 但锁定、after 引用与 patch 证据都按 callSeq 分名——同一 run 可多次发布互不覆盖。
+   */
+  async captureCandidate(
+    runId: string,
+    callSeq: number,
+    baseTree: string,
+    input: AppSourceSnapshot,
+    signal?: AbortSignal,
+  ): Promise<CapturedSourceChange> {
+    if (!Number.isInteger(callSeq) || callSeq < 1 || callSeq > 1_000_000) throw new Error('denied: 无效候选调用序号');
+    return this.captureInternal(
+      runId,
+      baseTree,
+      input,
+      {
+        branch: `after-${callSeq}`,
+        lockName: `capture-${callSeq}.lock`,
+        patchName: `source-${callSeq}.patch`,
+      },
+      signal,
+    );
+  }
+
+  private async captureInternal(
+    runId: string,
+    baseTree: string,
+    input: AppSourceSnapshot,
+    artifact: { branch: 'after' | `after-${number}`; lockName: string; patchName: string },
+    signal?: AbortSignal,
+  ): Promise<CapturedSourceChange> {
     const source = validatedSource(input);
     const baseline = BaselineSchema.parse(JSON.parse((await this.read(runId, 'baseline.json', 4096)).toString('utf8')));
     if (
@@ -266,8 +316,8 @@ export class RunSourceRepository {
     await this.directory(path.join(directory, 'objects.git'));
     const savedTree = await this.git(directory, ['rev-parse', '--verify', 'refs/heads/baseline^{tree}'], signal);
     if (savedTree.bytes.toString('ascii').trim() !== baseTree) throw new Error('conflict: 宿主源码基线发生变化');
-    await this.writeExclusive(directory, 'capture.lock', '');
-    const afterTree = await this.importTree(directory, 'after', source, signal);
+    await this.writeExclusive(directory, artifact.lockName, '');
+    const afterTree = await this.importTree(directory, artifact.branch, source, signal);
     const names = await this.git(
       directory,
       [...diffArgs, '--name-status', '-z', baseTree, afterTree, '--'],
@@ -308,7 +358,7 @@ export class RunSourceRepository {
       truncated: diff.truncated || changes.length > SOURCE_DIFF_MAX_FILES,
       patchSha256,
     });
-    await this.writeExclusive(directory, 'source.patch', patch);
+    await this.writeExclusive(directory, artifact.patchName, patch);
     return result;
   }
 
@@ -357,5 +407,210 @@ export class RunSourceRepository {
     const bytes = await this.read(runId, 'source.patch', SOURCE_PATCH_MAX_BYTES);
     if (createHash('sha256').update(bytes).digest('hex') !== patchSha256) throw new Error('conflict: diff SHA-256 不匹配');
     return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  }
+
+  /**
+   * W6b：读取某次 lane 发布的 diff（captureCandidate 写入的 `source-{callSeq}.patch`），
+   * 与 readPatch 相同的 sha256 校验。
+   */
+  async readCandidatePatch(runId: string, callSeq: number, patchSha256: string): Promise<string> {
+    if (!Number.isInteger(callSeq) || callSeq < 1 || callSeq > 1_000_000) throw new Error('denied: 无效候选调用序号');
+    if (!CapturedSourceChangeSchema.shape.patchSha256.safeParse(patchSha256).success) throw new Error('denied: 无效 diff 摘要');
+    const bytes = await this.read(runId, `source-${callSeq}.patch`, SOURCE_PATCH_MAX_BYTES);
+    if (createHash('sha256').update(bytes).digest('hex') !== patchSha256) throw new Error('conflict: diff SHA-256 不匹配');
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  }
+
+  /**
+   * W6b：以与候选树相同的约定（全部 100644 模式）计算一份活体源码（App 快照）的
+   * tree-id，使 baseTree ↔ 当前源码比较只反映路径与内容。blob 写入 run 的
+   * objects.git（内容寻址、无引用），解析出树后删除临时分支。
+   */
+  async computeTree(runId: string, input: AppSourceSnapshot, signal?: AbortSignal): Promise<string> {
+    const source = validatedSource(input);
+    const normalized: AppSourceSnapshot = {
+      ...source,
+      files: source.files.map((file) => ({ ...file, mode: '100644' })),
+    };
+    const directory = this.runPath(runId);
+    await this.directory(path.join(directory, 'objects.git'));
+    const tree = await this.importTree(directory, 'after-check', normalized, signal);
+    await this.git(directory, ['update-ref', '-d', 'refs/heads/after-check'], signal).catch(() => undefined);
+    return tree;
+  }
+
+  /**
+   * W6b：把候选树物化为 app.source.apply 消费的扁平文件列表——`git ls-tree -r` 枚举、
+   * `git show` 逐 blob 读出。树必须已存在于 run 的 objects.git（由
+   * createBaseline/captureCandidate 创建）。预算：≤256 文件、≤512 KiB 总量
+   * （与 AppSourceApplyFilesSchema 同口径）。
+   */
+  async materialize(runId: string, treeId: string, signal?: AbortSignal): Promise<AppSource['files']> {
+    if (!TreeSchema.safeParse(treeId).success) throw new Error('denied: 无效树身份');
+    const directory = this.runPath(runId);
+    await this.directory(path.join(directory, 'objects.git'));
+    // ls-tree -rz: "<mode> <type> <oid>\t<path>\0"
+    const ls = await this.git(directory, ['ls-tree', '-rz', '--full-tree', treeId], signal, undefined, 48 * 1024 * 1024);
+    const entries = ls.bytes
+      .toString('utf8')
+      .split('\0')
+      .filter((line) => line.length > 0)
+      .map((line) => {
+        const tab = line.indexOf('\t');
+        const meta = line.slice(0, tab).split(' ');
+        return { mode: meta[0] ?? '', type: meta[1] ?? '', oid: meta[2] ?? '', path: line.slice(tab + 1) };
+      });
+    if (entries.length > 256) throw new Error('候选树超过应用文件预算');
+    const files: AppSource['files'] = [];
+    let total = 0;
+    for (const entry of entries) {
+      if (entry.type !== 'blob') continue; // -r 下不应出现 subtree；commit/submodule 一律忽略
+      const blob = await this.git(directory, ['show', entry.oid], signal, undefined, 512 * 1024 + 1);
+      total += blob.bytes.length;
+      if (total > 512 * 1024) throw new Error('候选树超过应用字节预算');
+      files.push({ path: entry.path, base64: blob.bytes.toString('base64') });
+    }
+    return files;
+  }
+
+  /** ls-tree -r -z 的平铺视图：path → {mode, oid}（只收 blob；submodule/commit 条目跳过）。 */
+  private async lsTreeMap(directory: string, treeId: string, signal?: AbortSignal): Promise<Map<string, { mode: string; oid: string }>> {
+    const ls = await this.git(directory, ['ls-tree', '-rz', '--full-tree', treeId], signal, undefined, 48 * 1024 * 1024);
+    const map = new Map<string, { mode: string; oid: string }>();
+    for (const line of ls.bytes.toString('utf8').split('\0')) {
+      if (line.length === 0) continue;
+      const tab = line.indexOf('\t');
+      const meta = line.slice(0, tab).split(' ');
+      if (meta[1] !== 'blob') continue;
+      map.set(line.slice(tab + 1), { mode: meta[0] ?? '', oid: meta[2] ?? '' });
+    }
+    return map;
+  }
+
+  /**
+   * W8：lane 候选的文件级三向合并。B = 调用登记基线，candidate = lane 采集树，
+   * P = 当前候选指针。两侧相对 B 各自 diff：同路径比较结果（blob 相同或两边都删
+   * → 相同补丁按「已合入」去重不冲突；不同结果 → conflict）；目录/文件位置
+   * 冲突（一侧在某路径是文件、另一侧把它当目录）同样判冲突。
+   * 无冲突时用临时 index（read-tree P + update-index --index-info + write-tree）
+   * 构造合并树 M——只写 objects.git，不 touch 工作区/HEAD/真实 index。
+   */
+  async mergeCandidate(
+    runId: string,
+    callSeq: number,
+    baseTree: string,
+    candidateTree: string,
+    pointerTree: string,
+    signal?: AbortSignal,
+  ): Promise<{ merged: string } | { conflict: { files: string[] } }> {
+    for (const treeId of [baseTree, candidateTree, pointerTree]) {
+      if (!TreeSchema.safeParse(treeId).success) throw new Error('denied: 无效树身份');
+    }
+    if (!Number.isInteger(callSeq) || callSeq < 1 || callSeq > 1_000_000) throw new Error('denied: 无效候选调用序号');
+    const directory = this.runPath(runId);
+    await this.directory(path.join(directory, 'objects.git'));
+
+    const base = await this.lsTreeMap(directory, baseTree, signal);
+    const candidate = await this.lsTreeMap(directory, candidateTree, signal);
+    const pointer = await this.lsTreeMap(directory, pointerTree, signal);
+    // 预算：平铺路径数与对象数上限与候选文件预算同口径。
+    for (const [name, map] of [
+      ['base', base],
+      ['candidate', candidate],
+      ['pointer', pointer],
+    ] as const) {
+      if (map.size > 4096) throw new Error(`denied: 合并树 ${name} 超过路径预算`);
+    }
+    const outcomeOf = (map: Map<string, { mode: string; oid: string }>, path: string) => map.get(path) ?? null;
+    const changed = (from: Map<string, { mode: string; oid: string }>, to: Map<string, { mode: string; oid: string }>) => {
+      const paths = new Set<string>();
+      for (const [p, e] of to) {
+        const before = from.get(p);
+        if (before === undefined || before.oid !== e.oid || before.mode !== e.mode) paths.add(p);
+      }
+      for (const p of from.keys()) {
+        if (!to.has(p)) paths.add(p);
+      }
+      return paths;
+    };
+    const laneDiff = changed(base, candidate);
+    const pointerDiff = changed(base, pointer);
+    const ancestorsOf = (p: string): string[] => {
+      const out: string[] = [];
+      let i = p.indexOf('/');
+      while (i > 0) {
+        out.push(p.slice(0, i));
+        i = p.indexOf('/', i + 1);
+      }
+      return out;
+    };
+    const conflicts = new Set<string>();
+    // 同路径重叠：结果相同（含两边都删）→ 去重；不同 → 冲突。
+    for (const p of laneDiff) {
+      if (!pointerDiff.has(p)) continue;
+      const laneOut = outcomeOf(candidate, p);
+      const pointerOut = outcomeOf(pointer, p);
+      const same =
+        laneOut === null && pointerOut === null
+          ? true
+          : laneOut !== null && pointerOut !== null && laneOut.oid === pointerOut.oid && laneOut.mode === pointerOut.mode;
+      if (!same) conflicts.add(p);
+    }
+    // 目录/文件位置冲突：lane 在某目录下产文件而 P 在该目录位置有（改动过的）文件，或反之。
+    for (const p of laneDiff) {
+      for (const dir of ancestorsOf(p)) {
+        const inPointer = outcomeOf(pointer, dir);
+        const inBase = outcomeOf(base, dir);
+        if ((inPointer === null) !== (inBase === null) || (inPointer !== null && inBase !== null && inPointer.oid !== inBase.oid)) {
+          conflicts.add(p);
+        }
+      }
+    }
+    for (const p of pointerDiff) {
+      for (const dir of ancestorsOf(p)) {
+        const inCandidate = outcomeOf(candidate, dir);
+        const inBase = outcomeOf(base, dir);
+        if ((inCandidate === null) !== (inBase === null) || (inCandidate !== null && inBase !== null && inCandidate.oid !== inBase.oid)) {
+          conflicts.add(p);
+        }
+      }
+    }
+    if (conflicts.size > 0) return { conflict: { files: [...conflicts].sort() } };
+
+    // 无冲突：lane 的非重叠变更套到 P 上（重叠且结果相同的路径天然已在 P 中）。
+    const tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'wsl-merge-index-'));
+    const indexFile = path.join(tmpRoot, 'index');
+    const env = { GIT_INDEX_FILE: indexFile };
+    try {
+      await this.git(directory, ['read-tree', pointerTree], signal, undefined, 4096, false, env);
+      const updates: Buffer[] = [];
+      let applyCount = 0;
+      for (const p of [...laneDiff].sort()) {
+        const pointerOut = outcomeOf(pointer, p);
+        const laneOut = outcomeOf(candidate, p);
+        const same =
+          laneOut === null && pointerOut === null
+            ? true
+            : laneOut !== null && pointerOut !== null && laneOut.oid === pointerOut.oid && laneOut.mode === pointerOut.mode;
+        if (same) continue; // 相同补丁去重：已在 P 中，不重复写。
+        applyCount += 1;
+        if (applyCount > 4096) throw new Error('denied: 合并补丁超过路径预算');
+        if (laneOut === null) {
+          updates.push(Buffer.from(`0 0000000000000000000000000000000000000000\t${p}\n`));
+        } else {
+          updates.push(Buffer.from(`${laneOut.mode} ${laneOut.oid}\t${p}\n`));
+        }
+      }
+      if (updates.length > 0) {
+        async function* lines(): AsyncGenerator<Buffer> {
+          for (const line of updates) yield line;
+        }
+        await this.git(directory, ['update-index', '--add', '--remove', '--index-info'], signal, lines(), 4096, false, env);
+      }
+      const tree = await this.git(directory, ['write-tree'], signal, undefined, 4096, false, env);
+      return { merged: TreeSchema.parse(tree.bytes.toString('ascii').trim()) };
+    } finally {
+      await rm(tmpRoot, { recursive: true, force: true });
+    }
   }
 }

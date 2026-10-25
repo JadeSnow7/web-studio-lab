@@ -6,7 +6,9 @@ import { app, utilityProcess, type UtilityProcess } from 'electron';
 import {
   ManagedAppSchema,
   AppSourceSchema,
+  AppSourceApplyResultSchema,
   AppSourceSnapshotResultSchema,
+  type AppSourceApplyResult,
   type AppSourceSnapshotResult,
   type AppTarget,
   type AppSource,
@@ -25,6 +27,7 @@ import {
   TerminalSnapshotSchema,
   type TerminalSnapshot,
   ChatServiceMessageSchema,
+  type ChatServiceMessage,
   ChatServiceRequestSchema,
   ChatStatusSchema,
   type ChatConversation,
@@ -93,6 +96,35 @@ export class ChatService {
     this.appControlReader = reader;
   }
   private lastStatus: ChatStatus | null = null;
+  /** W4/W6a/W8 workflow：workflow-event/workflow-done/workflow-candidate/workflow-lanebase 消息的接收方（ServiceWorkflowEnginePort 注册）。 */
+  private workflowListener:
+    | ((
+        message: Extract<
+          ChatServiceMessage,
+          { type: 'workflow-event' | 'workflow-done' | 'workflow-cleanup-unconfirmed' | 'workflow-candidate' | 'workflow-lanebase' }
+        >,
+      ) => void)
+    | null = null;
+  setWorkflowListener(listener: NonNullable<ChatService['workflowListener']>) {
+    this.workflowListener = listener;
+  }
+  /** 服务退出/通信失败监听；workflow port 据此结清未收到 workflow-done 的 run。 */
+  private readonly exitListeners = new Set<() => void>();
+  onExit(listener: () => void) {
+    this.exitListeners.add(listener);
+  }
+  /** W4：workflow 引擎端口复用的具名请求通道；只暴露给 workflow port，不扩散通用 RPC。 */
+  workflowRequest(
+    request:
+      | Omit<Extract<ChatServiceRequest, { method: 'workflow-run' }>, 'id'>
+      | Omit<Extract<ChatServiceRequest, { method: 'workflow-stop' }>, 'id'>
+      | Omit<Extract<ChatServiceRequest, { method: 'workflow-shutdown' }>, 'id'>
+      | Omit<Extract<ChatServiceRequest, { method: 'workflow-event-ack' }>, 'id'>
+      | Omit<Extract<ChatServiceRequest, { method: 'workflow-candidate.reply' }>, 'id'>
+      | Omit<Extract<ChatServiceRequest, { method: 'workflow-lanebase.reply' }>, 'id'>,
+  ): Promise<unknown> {
+    return this.request(request);
+  }
   constructor(
     private readonly onConversation: (conversation: ChatConversation) => void,
     private readonly onStatus: (status: ChatStatus) => void,
@@ -210,6 +242,16 @@ export class ChatService {
           this.onFileHint(message.hint);
           return;
         }
+        if (
+          message.type === 'workflow-event' ||
+          message.type === 'workflow-done' ||
+          message.type === 'workflow-cleanup-unconfirmed' ||
+          message.type === 'workflow-candidate' ||
+          message.type === 'workflow-lanebase'
+        ) {
+          this.workflowListener?.(message);
+          return;
+        }
         const request = this.pending.get(message.id);
         if (!request) throw new Error('对话服务返回未知请求身份');
         this.pending.delete(message.id);
@@ -261,6 +303,7 @@ export class ChatService {
     for (const controller of this.observationCalls.values()) controller.abort();
     for (const controller of this.appCalls.values()) controller.abort();
     this.failure ??= reason;
+    for (const listener of this.exitListeners) listener();
     for (const current of this.managedApps.values()) {
       if (current.state === 'running' || current.state === 'starting' || current.state === 'stopping') {
         const failed: ManagedApp = {
@@ -406,6 +449,30 @@ export class ChatService {
       signal.removeEventListener('abort', cancel);
       // The owned snapshot receipt decides cleanup. A delayed cancellation ACK
       // remains registered in pending, but cannot hold an already-clean helper.
+    }
+  }
+  /** W6b：候选应用——与 appSourceSnapshot 同一取消/清理确认模型；回执身份必须等于请求目标。 */
+  async appSourceApply(target: AppTarget, files: AppSource['files'], signal: AbortSignal): Promise<AppSourceApplyResult> {
+    if (signal.aborted || this.stopped || this.failure)
+      return { ok: false, target, cleanupConfirmed: true, error: '源码应用已取消或服务不可用；未发送应用请求' };
+    const callId = randomUUID();
+    this.sourceCleanup.add(callId);
+    const cancel = () => {
+      void this.request({ method: 'app.source.cancel', payload: { callId } }).catch(() => undefined);
+    };
+    signal.addEventListener('abort', cancel, { once: true });
+    try {
+      const result = AppSourceApplyResultSchema.parse(
+        await this.request({ method: 'app.source.apply', payload: { callId, target, files } }),
+      );
+      if (result.target.workspaceId !== target.workspaceId || result.target.projectId !== target.projectId)
+        throw new Error('源码回执归属不匹配');
+      if (result.cleanupConfirmed) this.sourceCleanup.delete(callId);
+      return result;
+    } catch {
+      return { ok: false, target, cleanupConfirmed: false, error: '源码 helper 回执无效或传输中断；清理未确认' };
+    } finally {
+      signal.removeEventListener('abort', cancel);
     }
   }
   async appGet(target: AppTarget) {

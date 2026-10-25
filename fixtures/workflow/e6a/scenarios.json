@@ -1,0 +1,84 @@
+{
+  "version": "w6b-e6a/1",
+  "description": "候选发布→显式应用（apply）的确定性场景表；由单测应用用例与 E2E 驱动器共用，不含真实模型。",
+  "scenarios": [
+    {
+      "id": "E6A-01",
+      "name": "publish→apply 事务序",
+      "setup": { "script": "lane", "app": "managed", "candidate": "published", "runStatus": "completed" },
+      "expect": {
+        "order": [
+          "acquireProjectWriter",
+          "appSource.snapshot",
+          "computeTree == candidate.baseTree",
+          "materialize",
+          "appSource.apply",
+          "journal apply event",
+          "release"
+        ],
+        "result": "ok",
+        "appliedAt": "non-null"
+      }
+    },
+    {
+      "id": "E6A-02",
+      "name": "源冲突——发布后工程被改动",
+      "setup": { "script": "lane", "app": "managed", "candidate": "published", "liveTree": "≠ candidate.baseTree" },
+      "expect": { "result": "apply_conflict", "appliedAt": "null", "applyCalled": false, "leaseReleased": true }
+    },
+    {
+      "id": "E6A-03",
+      "name": "工程忙——写租约被占",
+      "setup": { "script": "lane", "app": "managed", "candidate": "published", "writer": "held-by-run" },
+      "expect": { "result": "project_busy", "applyCalled": false, "snapshotCalled": false }
+    },
+    {
+      "id": "E6A-04",
+      "name": "App 生命周期在途",
+      "setup": { "script": "lane", "app": "starting|stopping|cleanup-unconfirmed", "candidate": "published" },
+      "expect": { "result": "project_busy", "applyCalled": false }
+    },
+    {
+      "id": "E6A-05",
+      "name": "App 不可用/未绑定",
+      "setup": { "script": "lane", "app": "missing|unbound-run", "candidate": "published|none" },
+      "expect": { "result": "app_unavailable", "applyCalled": false }
+    },
+    {
+      "id": "E6A-06",
+      "name": "helper 应用失败——清理已确认但写入未确认",
+      "setup": { "script": "lane", "app": "managed", "candidate": "published", "applyResult": "ok:false" },
+      "expect": { "result": "apply_failed", "appliedAt": "null", "leaseReleased": true }
+    },
+    {
+      "id": "E6A-07",
+      "name": "未终态 run",
+      "setup": { "script": "lane", "runStatus": "running|stopping|needs_reconciliation" },
+      "expect": { "result": "run_busy", "applyCalled": false }
+    },
+    {
+      "id": "E6A-08",
+      "name": "无候选 run",
+      "setup": { "script": "readonly|lane-unpublished", "runStatus": "completed" },
+      "expect": { "result": "candidate_unavailable", "applyCalled": false }
+    },
+    {
+      "id": "E6A-09",
+      "name": "幂等应用——同一候选树重复 apply",
+      "setup": { "script": "lane", "app": "managed", "candidate": "published", "alreadyApplied": "currentTree" },
+      "expect": { "result": "ok", "applyCalled": false, "note": "no-op 成功，不重写不重登" }
+    },
+    {
+      "id": "E6A-10",
+      "name": "写租约互斥——apply 与任务执行/source-run 不可重叠",
+      "setup": { "writer": "apply-held", "then": "startRun-with-appTarget|sourceSnapshot" },
+      "expect": { "result": "conflict", "note": "acquireProjectWriter 与 projectWriters 同表互斥" }
+    },
+    {
+      "id": "E6A-11",
+      "name": "lane 未绑定——无受管 App 时调用得 unavailable",
+      "setup": { "script": "lane", "app": "none" },
+      "expect": { "result": "call_end failed{unavailable}", "attemptDispatched": false }
+    }
+  ]
+}

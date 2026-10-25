@@ -30,13 +30,13 @@ test('启动：窗口、安全边界与 Browser 区真实加载', async () => {
     await page.evaluate(() => ({
       require: typeof (window as Window & { require?: unknown }).require,
       process: typeof (window as Window & { process?: unknown }).process,
-      // 诊断通道在本文件中启用：恰为原来的六个键加 `debug`（未启用时的六键断言见 workspace-debug.spec.ts）。
+      // 诊断通道在本文件中启用：恰为七个公开键加 `debug`（未启用时的七键断言见 workspace-debug.spec.ts）。
       studio: Object.keys(window.studio),
     })),
   ).toEqual({
     require: 'undefined',
     process: 'undefined',
-    studio: ['setup', 'workbench', 'chat', 'app', 'execution', 'shell', 'debug'],
+    studio: ['setup', 'workbench', 'chat', 'app', 'execution', 'workflow', 'shell', 'debug'],
   });
   await expect.poll(async () => (await previewInfo(app)).url).toBe('wsl-demo://taskflow/index.html');
   const info = await previewInfo(app);

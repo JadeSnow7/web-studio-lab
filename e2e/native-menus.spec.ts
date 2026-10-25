@@ -392,10 +392,18 @@ test('O08b 迟到选择：菜单打开期间切换空间，业务动作仍作用
   await expect(page.getByRole('dialog', { name: '编辑名称' })).toHaveCount(0);
 });
 
-test('O08b 非法菜单请求：他空间、未知身份、伪造字段被拒绝，不显示菜单；window.studio 顶层仍为六个键', async () => {
+test('O08b 非法菜单请求：他空间、未知身份、伪造字段被拒绝，不显示菜单；window.studio 顶层仍为七个键', async () => {
   await launch();
-  expect(await page.evaluate(() => Object.keys(window.studio))).toEqual(['setup', 'workbench', 'chat', 'app', 'execution', 'shell']);
-  // OPS-1 R9/B5 在 shell 下提供具名焦点交接与恢复；顶层仍为六个键。
+  expect(await page.evaluate(() => Object.keys(window.studio))).toEqual([
+    'setup',
+    'workbench',
+    'chat',
+    'app',
+    'execution',
+    'workflow',
+    'shell',
+  ]);
+  // OPS-1 R9/B5 在 shell 下提供具名焦点交接与恢复；顶层仍为七个键。
   expect(await page.evaluate(() => Object.keys(window.studio.shell))).toEqual([
     'onCommand',
     'showMenu',

@@ -1,0 +1,12 @@
+{
+  "script": "schema-retry.mjs",
+  "args": null,
+  "mock": {
+    "count-retry": [{ "fail": "schema_bad" }, { "json": { "count": 7 } }]
+  },
+  "expect": {
+    "status": "completed",
+    "calls": [{ "seq": 1, "label": "count-retry", "status": "ok", "attempts": 2 }],
+    "result": { "status": "complete", "count": 7 }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "script": "schema-ok.mjs",
+  "args": null,
+  "mock": {
+    "count": [{ "json": { "count": 3 } }]
+  },
+  "expect": {
+    "status": "completed",
+    "calls": [{ "seq": 1, "label": "count", "status": "ok" }],
+    "result": { "status": "complete", "count": 3 }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "script": "fanout-4097.mjs",
+  "args": null,
+  "mock": {},
+  "expect": {
+    "status": "failed",
+    "failureCode": "contract_violation",
+    "calls": [],
+    "result": null
+  }
+}

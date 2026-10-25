@@ -7,6 +7,15 @@ import type { HarnessProfileId, HarnessProfilesSnapshot, HarnessSelection } from
 import type { AppInfo, ShellCommandEvent, NativeBrowserFocus } from './app';
 import type { ExecutionStatus } from './execution';
 import type { NativeMenuChoice, NativeMenuContext, NativeMenuId } from './native-menu';
+import type {
+  WorkflowAccepted,
+  WorkflowCommandCard,
+  WorkflowCommandSave,
+  WorkflowPatchResult,
+  WorkflowRunRow,
+  WorkflowStatusProjection,
+  WorkflowUpdateEvent,
+} from './workflow';
 
 import type { CatalogAction, ResourceRevision, CatalogReferenceSnapshot } from './resource-catalog';
 export type Unsubscribe = () => void;
@@ -64,6 +73,29 @@ export interface StudioApi {
   };
   execution: {
     getStatus(): Promise<ExecutionStatus>;
+  };
+  /**
+   * W5 workflow 命令入口（最小可信产品面）：命令卡展示脚本/args/输入与 hash；
+   * builtin 代码即批准，saved 命令保存即失效、须显式批准后才可运行；
+   * run/resume 由 Main 幂等受理（requestId 去重），并发 1，busy 以明确错误拒绝。
+   * stop 返回时清理已确认。
+   */
+  workflow: {
+    commands(): Promise<WorkflowCommandCard[]>;
+    run(requestId: string, commandId: string): Promise<WorkflowAccepted>;
+    resume(requestId: string, parentRunId: string, commandId: string): Promise<WorkflowAccepted>;
+    saveCommand(input: WorkflowCommandSave): Promise<WorkflowCommandCard>;
+    approveCommand(commandId: string): Promise<WorkflowCommandCard>;
+    deleteCommand(commandId: string): Promise<null>;
+    stop(runId: string): Promise<WorkflowRunRow>;
+    reconcile(runId: string): Promise<WorkflowRunRow>;
+    status(runId: string): Promise<WorkflowStatusProjection | null>;
+    runs(): Promise<WorkflowRunRow[]>;
+    /** W6b：候选最新发布的统一 diff 预览（不应用任何修改）。 */
+    patch(runId: string): Promise<WorkflowPatchResult>;
+    /** W6b：显式把已发布候选应用到受管 App；冲突/忙/不可用均抛明确错误，应用成功后返回更新后的 run 行。 */
+    apply(runId: string): Promise<WorkflowRunRow>;
+    onUpdate(listener: (update: WorkflowUpdateEvent) => void): Unsubscribe;
   };
   shell: {
     onCommand(listener: (command: ShellCommandEvent) => void): Unsubscribe;

@@ -4,6 +4,7 @@ import type { WorkbenchApplication } from './workbench/application';
 import { app, dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import {
   invokeChannels,
+  type AppTarget,
   type EventChannel,
   type EventPayload,
   type InvokeChannel,
@@ -16,6 +17,9 @@ import { getExecutionStatus } from './execution';
 import type { DebugStatus } from './debug-status';
 import type { NativeMenuService } from './native-menu';
 import { activeInvokeChannels, assertChannelEnabled, assertTrustedSender, type TrustedRenderer } from './ipc-guard';
+import { WorkflowApplicationError, type WorkflowApplication } from './workflow/application';
+import { WorkflowCommandError, type WorkflowCommands } from './workflow/commands';
+import type { WorkflowCandidateState, WorkflowRunRow } from './workflow/journal-sqlite';
 
 type Handlers = {
   [C in InvokeChannel]: (request: InvokeRequest<C>) => Promise<InvokeResponse<C>> | InvokeResponse<C>;
@@ -37,6 +41,10 @@ export interface IpcDeps {
     nativeFocus(): NativeBrowserFocus | null;
     restoreBrowserFocus(focus: NativeBrowserFocus): Promise<boolean>;
   };
+  /** W4 workflow 应用用例；测试与早期启动阶段可不提供，此时 workflow:* 通道报错。 */
+  workflow?: WorkflowApplication;
+  /** W5 workflow 命令仓储（内置 + 已保存命令与批准绑定）；缺省时 workflow:* 通道报错。 */
+  workflowCommands?: WorkflowCommands;
 }
 
 function senderInfo(event: IpcMainInvokeEvent, window: BrowserWindow) {
@@ -52,7 +60,49 @@ function assertLegacySession(id: string) {
   if (id !== 'conv-personal-default') throw new Error('会话必须通过所属空间任务用例访问');
 }
 
-export function registerIpc({ window, trusted, chat, profiles, workbench, setup, debug, menus, browserFocus }: IpcDeps): () => void {
+/** runs 行对外投影：剥掉 resultJson/engine/createdSeq/dslVersion/baseTree 等内部列；W6a 透出候选投影；W6b 透出 App 绑定。 */
+function workflowRunRowView(row: WorkflowRunRow & { candidate?: WorkflowCandidateState }) {
+  return {
+    runId: row.runId,
+    requestId: row.requestId,
+    status: row.status,
+    scriptHash: row.scriptHash,
+    argsHash: row.argsHash,
+    parentRunId: row.parentRunId,
+    createdMs: row.createdMs,
+    failureCode: row.failureCode,
+    ...(row.candidate !== undefined ? { candidate: row.candidate } : {}),
+    requiresApp: row.requiresApp,
+    writes: row.writes,
+    appTarget: row.appTargetJson === null ? null : (JSON.parse(row.appTargetJson) as AppTarget),
+  };
+}
+
+/** 应用层与命令仓储错误带稳定 code 前缀，renderer 可据此前缀区分 busy/mismatch/not_approved 等。 */
+function workflowCall<T>(fn: () => T | Promise<T>): Promise<T> {
+  return Promise.resolve()
+    .then(fn)
+    .catch((error: unknown) => {
+      if (error instanceof WorkflowApplicationError || error instanceof WorkflowCommandError) {
+        throw new Error(`${error.code}：${error.message}`);
+      }
+      throw error;
+    });
+}
+
+export function registerIpc({
+  window,
+  trusted,
+  chat,
+  profiles,
+  workbench,
+  setup,
+  debug,
+  menus,
+  browserFocus,
+  workflow,
+  workflowCommands,
+}: IpcDeps): () => void {
   const requireProfiles = () => {
     if (!profiles) throw new Error('Harness Profile 服务不可用');
     return profiles;
@@ -60,6 +110,14 @@ export function registerIpc({ window, trusted, chat, profiles, workbench, setup,
   const requireSetup = () => {
     if (!setup) throw new Error('安装服务不可用');
     return setup;
+  };
+  const requireWorkflow = () => {
+    if (!workflow) throw new Error('工作流服务不可用');
+    return workflow;
+  };
+  const requireWorkflowCommands = () => {
+    if (!workflowCommands) throw new Error('工作流命令仓储不可用');
+    return workflowCommands;
   };
   const handlers: Handlers = {
     'setup:status': () => requireSetup().status(),
@@ -195,6 +253,75 @@ export function registerIpc({ window, trusted, chat, profiles, workbench, setup,
       if (!debug) throw new Error('诊断通道未启用');
       return debug.snapshot();
     },
+    'workflow:commands': () => requireWorkflowCommands().cards(),
+    'workflow:run': ({ requestId, commandId }) =>
+      workflowCall(async () => {
+        const app = requireWorkflow();
+        // saved 命令未批准/已变更 → command_not_approved；未知 id → unknown_command。
+        const command = await requireWorkflowCommands().resolve(commandId, { requireApproved: true });
+        return app.run({ requestId, script: command.script, args: command.args, deadlineMs: command.deadlineMs, input: command.input });
+      }),
+    'workflow:resume': ({ requestId, parentRunId, commandId }) =>
+      workflowCall(async () => {
+        const app = requireWorkflow();
+        // 续跑绑定父 run 的 hash，与命令当前批准状态无关——命令后续改动不影响续跑。
+        const command = await requireWorkflowCommands().resolve(commandId, { requireApproved: false });
+        return app.resume({
+          requestId,
+          parentWorkflowRunId: parentRunId,
+          script: command.script,
+          args: command.args,
+          deadlineMs: command.deadlineMs,
+          input: command.input,
+        });
+      }),
+    'workflow:command-save': (request) => workflowCall(() => requireWorkflowCommands().save(request)),
+    'workflow:command-approve': ({ commandId }) => workflowCall(() => requireWorkflowCommands().approve(commandId)),
+    'workflow:command-delete': ({ commandId }) =>
+      workflowCall(async () => {
+        await requireWorkflowCommands().delete(commandId);
+        return null;
+      }),
+    'workflow:stop': ({ runId }) =>
+      workflowCall(async () => {
+        const app = requireWorkflow();
+        // 返回时内核清理已确认（attempt 取消、worker dispose、终态 journal 已提交）。
+        await app.stop(runId);
+        return workflowRunRowView(app.runRow(runId));
+      }),
+    'workflow:reconcile': ({ runId }) =>
+      workflowCall(() => {
+        const app = requireWorkflow();
+        app.reconcileAsStopped(runId);
+        return workflowRunRowView(app.runRow(runId));
+      }),
+    'workflow:status': ({ runId }) =>
+      workflowCall(() => {
+        const app = requireWorkflow();
+        try {
+          return app.status(runId);
+        } catch (error) {
+          if (error instanceof WorkflowApplicationError && error.code === 'run_not_found') return null;
+          throw error;
+        }
+      }),
+    'workflow:runs': () => {
+      const app = requireWorkflow();
+      return app.listRuns(50).map(workflowRunRowView);
+    },
+    // W6b：候选 diff 预览——只读，不产生任何写入。
+    'workflow:patch': ({ runId }) =>
+      workflowCall(async () => {
+        const app = requireWorkflow();
+        return app.workflowPatch(runId);
+      }),
+    // W6b：显式授权应用候选——错误码：run_not_found/candidate_unavailable/
+    // app_unavailable/project_busy/apply_conflict/apply_failed。
+    'workflow:apply': ({ runId }) =>
+      workflowCall(async () => {
+        const app = requireWorkflow();
+        return workflowRunRowView(await app.applyCandidate(runId));
+      }),
   };
 
   const channels = activeInvokeChannels(debug !== undefined);

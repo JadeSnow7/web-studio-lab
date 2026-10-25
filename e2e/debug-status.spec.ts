@@ -25,7 +25,7 @@ import {
  */
 
 const sbxBin = path.resolve('e2e/fixtures/sbx.mjs');
-const SIX_KEYS = ['setup', 'workbench', 'chat', 'app', 'execution', 'shell'];
+const STUDIO_KEYS = ['setup', 'workbench', 'chat', 'app', 'execution', 'workflow', 'shell'];
 
 const studioKeys = (page: Page) => page.evaluate(() => Object.keys(window.studio));
 const debugSnapshot = (page: Page) => page.evaluate(() => window.studio.debug!.status());
@@ -106,10 +106,10 @@ const emitFactsChanged = (app: ElectronApplication) =>
 test.describe('build 产物', () => {
   test.skip(target === 'packaged', 'packaged 的矩阵行见文件末尾');
 
-  test('默认关闭：studio 恰 6 键、菜单无「诊断」、debug:status 未注册、转换与菜单快捷键都不存在', async () => {
+  test('默认关闭：studio 恰 7 键、菜单无「诊断」、debug:status 未注册、转换与菜单快捷键都不存在', async () => {
     const { app, page } = await launchApp();
     try {
-      expect(await studioKeys(page)).toEqual(SIX_KEYS);
+      expect(await studioKeys(page)).toEqual(STUDIO_KEYS);
       expect(await page.evaluate(() => window.studio.debug)).toBeUndefined();
       expect(await appMenuHas(app, '诊断')).toBe(false);
       expect(await hasDebugHandler(app)).toBe(false);
@@ -125,7 +125,7 @@ test.describe('build 产物', () => {
     const { app, page } = await launchApp({ sbxBin, debugStatus: true, statusLog: log });
     try {
       await setWindowSize(app, 1440, 900);
-      expect(await studioKeys(page)).toEqual([...SIX_KEYS, 'debug']);
+      expect(await studioKeys(page)).toEqual([...STUDIO_KEYS, 'debug']);
       expect(await appMenuHas(app, '诊断')).toBe(true);
       expect(await hasDebugHandler(app)).toBe(true);
 
@@ -322,11 +322,11 @@ test.describe('build 产物', () => {
 
 /* packaged 两行（plan §2 P3）：本机不运行，`WSL_E2E_TARGET=packaged` 时执行。helper 会清除所有 WSL_*，debugStatus 在清除之后再写入。 */
 
-test('packaged 默认关闭：studio 恰 6 键、菜单无「诊断」、debug:status 未注册', async () => {
+test('packaged 默认关闭：studio 恰 7 键、菜单无「诊断」、debug:status 未注册', async () => {
   test.skip(target !== 'packaged', '仅 packaged 目标');
   const { app, page } = await launchApp();
   try {
-    expect(await studioKeys(page)).toEqual(SIX_KEYS);
+    expect(await studioKeys(page)).toEqual(STUDIO_KEYS);
     expect(await appMenuHas(app, '诊断')).toBe(false);
     expect(await hasDebugHandler(app)).toBe(false);
   } finally {
@@ -338,7 +338,7 @@ test('packaged 显式启用（WSL_DEBUG_STATUS=1）：studio.debug 存在、菜�
   test.skip(target !== 'packaged', '仅 packaged 目标');
   const { app, page } = await launchApp({ debugStatus: true });
   try {
-    expect(await studioKeys(page)).toEqual([...SIX_KEYS, 'debug']);
+    expect(await studioKeys(page)).toEqual([...STUDIO_KEYS, 'debug']);
     expect(await appMenuHas(app, '诊断')).toBe(true);
     expect(await hasDebugHandler(app)).toBe(true);
     expect(DebugStatusSnapshotSchema.safeParse(await debugSnapshot(page)).success).toBe(true);

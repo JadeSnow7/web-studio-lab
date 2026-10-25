@@ -10,6 +10,15 @@ import { ExecutionStatusSchema } from './execution';
 import { ShowMenuRequestSchema, ShowMenuResultSchema } from './native-menu';
 import { HarnessProfileIdSchema, HarnessProfilesSnapshotSchema, HarnessSelectionSchema } from './harness';
 import { DebugStatusSnapshotSchema, StatusTransitionSchema, type DebugStatusSnapshot, type StatusTransition } from './status';
+import {
+  WorkflowAcceptedSchema,
+  WorkflowCommandCardSchema,
+  WorkflowCommandSaveSchema,
+  WorkflowPatchResultSchema,
+  WorkflowRunRowSchema,
+  WorkflowStatusProjectionSchema,
+  WorkflowUpdateEventSchema,
+} from './workflow';
 
 import {
   CatalogActionSchema,
@@ -70,6 +79,43 @@ export const invokeChannels = {
   'shell:restore-browser-focus': { request: NativeBrowserFocusSchema, response: z.boolean() },
   /** 诊断通道：仅开发服务器或 WSL_DEBUG_STATUS=1 时注册（status-interface.md §8.1）；未启用时 Main 不注册、ipc-guard 拒绝。 */
   'debug:status': { request: NoArgs, response: DebugStatusSnapshotSchema },
+  /**
+   * W5 workflow 命令入口：命令卡展示脚本/args/输入与 hash；builtin 代码即批准，
+   * saved 命令内容改动必须重新显式批准（contentHash 与 approvedHash 绑定）才允许运行。
+   * commandId 必须命中 Main 的命令仓储；hash 校验在应用层完成，卡片仅供展示。
+   */
+  'workflow:commands': { request: NoArgs, response: z.array(WorkflowCommandCardSchema) },
+  'workflow:run': {
+    request: z.object({ requestId: z.uuid(), commandId: z.string().min(1).max(200) }).strict(),
+    response: WorkflowAcceptedSchema,
+  },
+  'workflow:resume': {
+    request: z.object({ requestId: z.uuid(), parentRunId: z.string().min(1).max(200), commandId: z.string().min(1).max(200) }).strict(),
+    response: WorkflowAcceptedSchema,
+  },
+  /** saved 命令的新建/编辑：内容改动丢弃既有批准；save 以 commandId 命中内置命令时另存新 id。 */
+  'workflow:command-save': { request: WorkflowCommandSaveSchema, response: WorkflowCommandCardSchema },
+  /** 把当前内容的 contentHash 记为 approvedHash；builtin 为恒批准的 no-op。 */
+  'workflow:command-approve': {
+    request: z.object({ commandId: z.string().min(1).max(200) }).strict(),
+    response: WorkflowCommandCardSchema,
+  },
+  /** 删除已保存命令（仅 saved；内置命令不可删）。 */
+  'workflow:command-delete': { request: z.object({ commandId: z.string().min(1).max(200) }).strict(), response: z.null() },
+  'workflow:stop': { request: z.object({ runId: z.string().min(1).max(200) }).strict(), response: WorkflowRunRowSchema },
+  'workflow:reconcile': { request: z.object({ runId: z.string().min(1).max(200) }).strict(), response: WorkflowRunRowSchema },
+  'workflow:status': {
+    request: z.object({ runId: z.string().min(1).max(200) }).strict(),
+    response: WorkflowStatusProjectionSchema.nullable(),
+  },
+  'workflow:runs': { request: NoArgs, response: z.array(WorkflowRunRowSchema) },
+  /** W6b：返回候选最新发布的统一 diff（patchSha256 供与投影核对）；无候选时应用层抛 not_found。 */
+  'workflow:patch': { request: z.object({ runId: z.string().min(1).max(200) }).strict(), response: WorkflowPatchResultSchema },
+  /**
+   * W6b：显式授权把已发布候选应用到受管 App——终态 run、有候选、绑定 App、
+   * 工程写租约空闲、源基线与候选基线一致才执行；冲突/忙/不可用均以明确错误拒绝。
+   */
+  'workflow:apply': { request: z.object({ runId: z.string().min(1).max(200) }).strict(), response: WorkflowRunRowSchema },
 } as const;
 
 export type InvokeChannel = keyof typeof invokeChannels;
@@ -89,6 +135,8 @@ export const eventChannels = {
   'debug:facts-changed': z.literal('changed'),
   /** 菜单「诊断面板」：通知 renderer 打开或关闭诊断面板；仅诊断通道启用时发送。 */
   'debug:panel': z.literal('toggle'),
+  /** W4 workflow：某 run 的 journal 有新事件；seq 仅为单调 tick，内容经 status/runs 重取。 */
+  'workflow:update': WorkflowUpdateEventSchema,
 } as const;
 
 export type EventChannel = keyof typeof eventChannels;

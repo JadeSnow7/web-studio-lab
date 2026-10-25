@@ -93,6 +93,9 @@ export class WorkbenchHost implements WorkbenchRuntime {
   appSourceSnapshot(target: AppTarget, signal: AbortSignal) {
     return this.chat.appSourceSnapshot(target, signal);
   }
+  appSourceApply(target: AppTarget, files: AppSource['files'], signal: AbortSignal) {
+    return this.chat.appSourceApply(target, files, signal);
+  }
   async appExport(target: AppTarget) {
     const source = await this.chat.appExport(target);
     return exportAppSource(path.join(app.getPath('userData'), 'exports'), target, source);

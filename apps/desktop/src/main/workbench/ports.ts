@@ -1,6 +1,8 @@
 import type { EduImport, EduAppImportPreview, AppImportOutcome } from '@wsl/protocol';
 import type { AppUiPort } from './app-control';
 import type {
+  AppSource,
+  AppSourceApplyResult,
   AppSourceSnapshotResult,
   AppAgentOperation,
   AppAgentResult,
@@ -44,6 +46,8 @@ export interface WorkbenchRuntime {
   appImportSource?(target: AppTarget, source: AppImportSource, importOperationId: string): Promise<AppImportOutcome>;
   appCancelImport?(target: AppTarget, importOperationId: string): Promise<AppImportOutcome>;
   appSourceSnapshot?(target: AppTarget, signal: AbortSignal): Promise<AppSourceSnapshotResult>;
+  /** W6b：候选应用到受管 App 源码树；调用方须先持有工程写租约并完成基线冲突核对。 */
+  appSourceApply?(target: AppTarget, files: AppSource['files'], signal: AbortSignal): Promise<AppSourceApplyResult>;
   appGet?(target: AppTarget): Promise<ManagedApp>;
   appCreate?(target: AppTarget): Promise<ManagedApp>;
   appStart?(target: AppTarget): Promise<ManagedApp>;

@@ -1,0 +1,90 @@
+{
+  "version": "w8-e6b/1",
+  "description": "固定波次 lane 合并/冲突/回收的确定性场景表；由 apps/desktop/src/main/workflow/e6b-wave.test.ts 以真 RunSourceRepository + SqliteWorkflowJournal + WorkflowApplication 实现断言；仅供离线测试，不含真实模型。",
+  "scenarios": [
+    {
+      "id": "E6B-01",
+      "name": "同基线两 lane 独立文件修改 → 按序合入",
+      "setup": {
+        "base": ["a.txt"],
+        "lanes": [
+          { "callSeq": 1, "writes": { "x.txt": "X" } },
+          { "callSeq": 2, "writes": { "y.txt": "Y" } }
+        ]
+      },
+      "expect": {
+        "publications": 2,
+        "pointerAdvances": 2,
+        "mergedTree": "a.txt+x.txt+y.txt",
+        "assert": "物化合并树逐文件比对内容，不以 commit 成功代替"
+      }
+    },
+    {
+      "id": "E6B-02",
+      "name": "同基线两 lane 改同一文件不同内容 → 后者 conflict",
+      "setup": {
+        "base": ["a.txt"],
+        "lanes": [
+          { "callSeq": 1, "writes": { "shared.txt": "L1" } },
+          { "callSeq": 2, "writes": { "shared.txt": "L2" } }
+        ]
+      },
+      "expect": {
+        "conflict": { "files": ["shared.txt"], "candidateRef": "seq2 候选树可查" },
+        "pointerStays": "先者合并树",
+        "publications": 1,
+        "candidateRetained": "tree 可物化、patch 可读"
+      }
+    },
+    {
+      "id": "E6B-03",
+      "name": "同基线两 lane 相同补丁 → 去重合入",
+      "setup": {
+        "base": ["a.txt"],
+        "lanes": [
+          { "callSeq": 1, "writes": { "same.txt": "S" } },
+          { "callSeq": 2, "writes": { "same.txt": "S" } }
+        ]
+      },
+      "expect": {
+        "publications": 2,
+        "dedupe": "第二条 publication prev==next（事实记录，指针不变）",
+        "bothOk": true,
+        "noCumulativeDelta": "指针树只含一次补丁"
+      }
+    },
+    {
+      "id": "E6B-04",
+      "name": "波内 lane 失败/取消 → 其余照常发布，未发布候选保留为孤立对象",
+      "setup": {
+        "lanes": [
+          { "callSeq": 1, "end": "failed" },
+          { "callSeq": 2, "writes": { "y.txt": "Y" } }
+        ]
+      },
+      "expect": { "failedEnd": "call_end{failed} 照常提交", "otherPublished": true, "orphan": "已采集未发布候选留 objects.git 可诊断" }
+    },
+    {
+      "id": "E6B-05",
+      "name": "合并途中失败 → 无半提交",
+      "setup": { "inject": "mergeCandidate 第二次调用抛错" },
+      "expect": { "pointer": "仅第一条合并", "rows": "publications 与指针一致", "resumeStable": "续跑重放稳定" }
+    },
+    {
+      "id": "E6B-06",
+      "name": "第二波 lane 的 laneWorkspace 返回已合并基线",
+      "setup": { "wave1": [{ "callSeq": 1, "writes": { "x.txt": "X" } }], "wave2": [{ "callSeq": 2, "registeredAfter": "wave1 发布" }] },
+      "expect": { "callBaseTree": "seq2 登记基线 = 第一波合并树", "workspaceFiles": "物化文件含第一波新增 x.txt" }
+    },
+    {
+      "id": "E6B-07",
+      "name": "乱序完成仍按 callSeq 发布",
+      "setup": { "kernel": "lane-b 先完成、lane-a 后到（延迟控制物理次序）" },
+      "expect": {
+        "publishOrder": "[1, 2]",
+        "publicationCallSeq": "journal publications 按 call_seq 递增",
+        "covered": "lane.test.ts 波次用例"
+      }
+    }
+  ]
+}

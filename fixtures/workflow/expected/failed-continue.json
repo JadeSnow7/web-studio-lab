@@ -1,0 +1,18 @@
+{
+  "script": "failed-continue.mjs",
+  "args": null,
+  "mock": {
+    "ok-1": [{ "text": "r1" }],
+    "bad": [{ "fail": "crash" }],
+    "ok-2": [{ "text": "r2" }]
+  },
+  "expect": {
+    "status": "completed",
+    "calls": [
+      { "seq": 1, "label": "ok-1", "status": "ok" },
+      { "seq": 2, "label": "bad", "status": "failed", "code": "crash" },
+      { "seq": 3, "label": "ok-2", "status": "ok" }
+    ],
+    "result": { "status": "complete", "ok": 2, "failed": 1 }
+  }
+}

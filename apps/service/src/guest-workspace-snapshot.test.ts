@@ -12,7 +12,7 @@ from pathlib import Path
 from types import SimpleNamespace
 request=json.load(sys.stdin)
 tree=ast.parse(request['helper'])
-names={'workspace_path','workspace_snapshot_limits','snapshot_workspace'}
+names={'workspace_path','workspace_snapshot_limits','workspace_files','snapshot_workspace'}
 nodes=[node for node in tree.body if
        (isinstance(node,ast.FunctionDef) and node.name in names) or
        (isinstance(node,ast.Assign) and any(isinstance(target,ast.Name) and target.id=='WORKSPACE_BYTES' for target in node.targets))]

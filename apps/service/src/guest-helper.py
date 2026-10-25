@@ -66,7 +66,7 @@ def workspace_path(root, relative):
 def create_workspace(payload):
     if (not isinstance(payload, dict) or set(payload) != {"runId", "files"} or
             str(uuid.UUID(payload["runId"])) != payload["runId"] or
-            not isinstance(payload["files"], list) or not 0 < len(payload["files"]) <= 256):
+            not isinstance(payload["files"], list) or not len(payload["files"]) <= 256):
         raise ValueError("invalid guest workspace payload")
     # Hold explicit ownership before populating any files. A failed initial write
     # has no child process and can be safely cleaned immediately.
@@ -105,7 +105,7 @@ def workspace_snapshot_limits(root):
     return components, 256 * components + 3
 
 
-def snapshot_workspace(root, run_id):
+def workspace_files(root):
     max_depth, max_entries = workspace_snapshot_limits(root)
     files = []
     total = 0
@@ -152,7 +152,40 @@ def snapshot_workspace(root, run_id):
             files.append({"path": relative, "base64": base64.b64encode(content).decode("ascii")})
         else:
             raise ValueError("guest workspace non-file: " + relative)
-    emit("workspace", runId=run_id, files=files)
+    return files
+
+
+def snapshot_workspace(root, run_id):
+    emit("workspace", runId=run_id, files=workspace_files(root))
+
+
+def wait_collect_request(stdin, buffer):
+    """W6a lane：child 退出 0 后的采集窗口——等一帧 collect 或 close（含 EOF/超时）。
+    返回 True 表示收到 collect；close/EOF/超时/其他帧一律返回 False 或拒绝。
+    窗口有界：采集方失联不得把 workspace 清理无限期挂起。"""
+    deadline = time.monotonic() + 120
+    while True:
+        while b"\n" in buffer:
+            line, buffer = buffer.split(b"\n", 1)
+            if len(line) > 1048576:
+                raise ValueError("control frame too large")
+            frame = json.loads(line)
+            if not isinstance(frame, dict):
+                raise ValueError("invalid control frame")
+            if frame == {"type": "collect"}:
+                return True
+            if frame == {"type": "close"}:
+                return False
+            raise ValueError("invalid control frame")
+        if len(buffer) > 1048576:
+            raise ValueError("control frame too large")
+        readable, _, _ = select.select([stdin], [], [], max(0, deadline - time.monotonic()))
+        if not readable:
+            return False
+        data = os.read(stdin, 65536)
+        if not data:
+            return False
+        buffer += data
 
 
 def drain_streams(streams):
@@ -279,10 +312,13 @@ def read_start():
     start = json.loads(first)
     if not isinstance(start, dict) or start.get("type") != "start" or start.get("mode") not in ("codex", "terminal"):
         raise ValueError("invalid start frame")
-    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "mcp", "stdin", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "duplex", "eduOwner", "profileDir"}
-    for key in ("observation", "observationImages", "duplex"):
+    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "mcp", "stdin", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "collect", "duplex", "eduOwner", "profileDir"}
+    for key in ("observation", "observationImages", "duplex", "collect"):
         if key in start and type(start[key]) is not bool:
-            raise ValueError("invalid observation capability")
+            raise ValueError("invalid capability flag " + key)
+    # W6a：候选采集只对已物化的 workspace 有意义，且不得出现在 terminal 模式。
+    if start.get("collect") is True and "workspace" not in start:
+        raise ValueError("collect requires a workspace")
     if "mcp" in start and start["mcp"] not in ("codex-config", "acp-stdio"):
         raise ValueError("invalid MCP injection")
     # relay keeps the child's stdin open for a long-lived protocol (ACP); the prompt then travels as input frames.
@@ -622,7 +658,15 @@ def main(start):
             ownership["complete"](owner)
         emit("exit", exitCode=child.returncode)
         if workspace is not None:
-            snapshot_workspace(workspace.name, start["workspace"]["runId"])
+            # W6a lane：collect 声明且本轮未被 close 打断时打开采集窗口——helper 等一帧
+            # collect/close，仅 collect 触发候选文件集回传；窗口有界，清理永不悬挂。
+            if start.get("collect") is True and not closing:
+                if wait_collect_request(stdin, buffer):
+                    emit("collect", runId=start["workspace"]["runId"], files=workspace_files(workspace.name))
+                else:
+                    snapshot_workspace(workspace.name, start["workspace"]["runId"])
+            else:
+                snapshot_workspace(workspace.name, start["workspace"]["runId"])
             workspace.cleanup()
             workspace = None
         close_observers()

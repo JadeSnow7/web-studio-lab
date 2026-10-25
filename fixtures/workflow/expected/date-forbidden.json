@@ -1,0 +1,11 @@
+{
+  "script": "date-forbidden.mjs",
+  "args": null,
+  "mock": {},
+  "expect": {
+    "status": "failed",
+    "failureCode": "script_error",
+    "calls": [],
+    "result": null
+  }
+}

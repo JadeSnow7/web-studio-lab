@@ -50,6 +50,8 @@ const FrameSchema = z.discriminatedUnion('type', [
     .strict(),
   z.object({ type: z.literal('output'), stream: z.enum(['stdout', 'stderr']), data: z.string() }),
   z.object({ type: z.literal('workspace'), ...workspaceSchema.shape }).strict(),
+  /** W6a：lane attempt 结束后 helper 回传的候选文件集（与 workspace 同形状，runId 为所属 run）。 */
+  z.object({ type: z.literal('collect'), ...workspaceSchema.shape }).strict(),
   z.object({ type: z.literal('exit'), exitCode: z.number().int().nullable() }),
   z.object({ type: z.literal('cleanup'), ok: z.boolean(), error: z.string().optional() }),
   z.object({ type: z.literal('error'), error: z.string() }),
@@ -79,6 +81,12 @@ export type GuestStart =
         identity: { workspaceId: string; environmentId: 'sandbox'; projectId: string; appInstanceId: string };
         sourceSha256: string;
       };
+      /**
+       * W6a：lane 模式——child 退出码 0 后 helper 在清理 workspace 前等待一帧
+       * {type:'collect'}（或 close），采集目录文件集经 collect 帧回传。
+       * 仅在声明 workspace 时有效；未声明 collect 的 start 不打开采集窗口。
+       */
+      collect?: boolean;
       /** 本轮 Profile 的配置目录（W4）；helper 再次校验后只设置这一个环境变量。 */
       profileDir?: ProfileDir;
     }
@@ -201,6 +209,7 @@ export class GuestProcess {
       | { type: 'input-end' }
       | { type: 'resize'; cols: number; rows: number }
       | { type: 'close-input' }
+      | { type: 'collect' }
       | { type: 'close' },
   ) {
     if (this.ended) throw new Error('guest 传输已关闭');

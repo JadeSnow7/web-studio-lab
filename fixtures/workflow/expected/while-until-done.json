@@ -1,0 +1,18 @@
+{
+  "script": "while-until-done.mjs",
+  "args": null,
+  "mock": {
+    "probe-0": [{ "json": { "done": false } }],
+    "probe-1": [{ "json": { "done": false } }],
+    "probe-2": [{ "json": { "done": true } }]
+  },
+  "expect": {
+    "status": "completed",
+    "calls": [
+      { "seq": 1, "label": "probe-0", "status": "ok" },
+      { "seq": 2, "label": "probe-1", "status": "ok" },
+      { "seq": 3, "label": "probe-2", "status": "ok" }
+    ],
+    "result": { "status": "complete", "rounds": 3 }
+  }
+}

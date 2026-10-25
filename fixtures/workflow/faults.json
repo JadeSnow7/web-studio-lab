@@ -1,0 +1,60 @@
+{
+  "description": "P0a 故障注入点。每个点列出注入方式与预期行为；实现测试按 contract-p0a §8 判据断言。E3 只读子集的随机中断在此基础上由固定 seed 选择 callSeq。",
+  "points": [
+    {
+      "id": "stop-before-dispatch",
+      "inject": "在第 k 个 call_start 之后、attempt 派发前调用 run.stop()",
+      "expect": "该调用 call_end{stopped}，不派发；run 终态 stopped；续跑时该调用重新派发"
+    },
+    {
+      "id": "stop-mid-attempt",
+      "inject": "attempt 运行中调用 run.stop()，MockHarness 响应 AbortSignal",
+      "expect": "attempt_end{stopped}、call_end{stopped}；run stopped；该调用续跑不命中缓存"
+    },
+    {
+      "id": "crash-before-commit",
+      "inject": "call_end 落盘前终止内核进程（测试层模拟：丢弃内存队列）",
+      "expect": "已执行结果视为未提交；续跑重跑该调用"
+    },
+    {
+      "id": "commit-before-deliver",
+      "inject": "call_end 落盘后、deliver 前停止运行",
+      "expect": "续跑命中缓存：写 call_end{cached}，不重跑 CLI，VM 正常收到保存结果"
+    },
+    {
+      "id": "late-callback-after-dispose",
+      "inject": "VM dispose 后，worker 收到迟到的 deliver/dispose 消息或宿主 resolve",
+      "expect": "不抛异常、不写 journal、不触发新动作；运行状态不变"
+    },
+    {
+      "id": "infinite-loop",
+      "inject": "脚本 while(true){} 死循环",
+      "expect": "vm_cpu_segment 中断，run failed；宿主/测试进程保持响应"
+    },
+    {
+      "id": "microtask-bomb",
+      "inject": "脚本用 promise .then 自链制造无限微任务",
+      "expect": "jobs_budget_exceeded 或 vm_budget_exceeded 中断；不饿死宿主"
+    },
+    {
+      "id": "huge-alloc",
+      "inject": "脚本分配超大数组/字符串",
+      "expect": "vm_out_of_memory；宿主不受影响"
+    },
+    {
+      "id": "proto-pollution-args",
+      "inject": "args 含 __proto__/constructor 键",
+      "expect": "VM 内读取不污染宿主对象；kernel 侧不出现 __proto__ 自有键合并"
+    },
+    {
+      "id": "resume-after-stop",
+      "inject": "任意 k 处停止后 resumeFrom",
+      "expect": "已完成且命中缓存的调用不重跑；未完成调用按序执行；最终 result 与无中断运行深度相等"
+    },
+    {
+      "id": "resume-mismatch",
+      "inject": "用不同脚本或 args 调用 resumeFrom",
+      "expect": "拒绝，错误码 resume_mismatch；不产生 journal"
+    }
+  ]
+}

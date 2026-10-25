@@ -1,0 +1,24 @@
+{
+  "script": "pipeline-ok.mjs",
+  "args": null,
+  "mock": {
+    "s1-a": [{ "text": "a" }],
+    "s1-b": [{ "text": "b" }],
+    "s1-c": [{ "text": "c" }],
+    "s2-a": [{ "text": "sa" }],
+    "s2-b": [{ "text": "sb" }],
+    "s2-c": [{ "text": "sc" }]
+  },
+  "expect": {
+    "status": "completed",
+    "calls": [
+      { "seq": 1, "label": "s1-a", "status": "ok" },
+      { "seq": 2, "label": "s1-b", "status": "ok" },
+      { "seq": 3, "label": "s1-c", "status": "ok" },
+      { "seq": 4, "label": "s2-a", "status": "ok" },
+      { "seq": 5, "label": "s2-b", "status": "ok" },
+      { "seq": 6, "label": "s2-c", "status": "ok" }
+    ],
+    "result": { "status": "complete", "values": ["sa", "sb", "sc"] }
+  }
+}

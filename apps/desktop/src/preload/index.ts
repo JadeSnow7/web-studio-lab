@@ -69,6 +69,22 @@ const studio: StudioApi & { debug?: StudioDebugApi } = {
   execution: {
     getStatus: () => invoke('execution:get-status'),
   },
+  workflow: {
+    commands: () => invoke('workflow:commands'),
+    run: (requestId, commandId) => invoke('workflow:run', { requestId, commandId }),
+    resume: (requestId, parentRunId, commandId) => invoke('workflow:resume', { requestId, parentRunId, commandId }),
+    saveCommand: (input) => invoke('workflow:command-save', input),
+    approveCommand: (commandId) => invoke('workflow:command-approve', { commandId }),
+    deleteCommand: (commandId) => invoke('workflow:command-delete', { commandId }),
+    stop: (runId) => invoke('workflow:stop', { runId }),
+    reconcile: (runId) => invoke('workflow:reconcile', { runId }),
+    status: (runId) => invoke('workflow:status', { runId }),
+    runs: () => invoke('workflow:runs'),
+    // W6b：候选 diff 预览（只读）与显式应用（授权后才写受管 App）。
+    patch: (runId) => invoke('workflow:patch', { runId }),
+    apply: (runId) => invoke('workflow:apply', { runId }),
+    onUpdate: (listener) => subscribe('workflow:update', listener),
+  },
   shell: {
     onCommand: (listener) => subscribe('shell:command', listener),
     // 在 preload 先按协议收窄成具体的菜单请求（非法输入得到被拒绝的 Promise，不同步抛出）；Main 仍在边界重新校验来源与输入。

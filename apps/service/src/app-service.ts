@@ -22,7 +22,9 @@ import {
   type AppImportRequest,
   type AppImportTarget,
   type AppImportOutcome,
+  AppSourceApplyFilesSchema,
   AppTargetSchema,
+  type AppSourceApplyResult,
   type AppSourceSnapshotResult,
   STANDARD_APP_EXPORT_BUDGET,
   AppOperationReceiptSchema,
@@ -1633,6 +1635,150 @@ export class AppService {
       return { ok: true, cleanupConfirmed: true, snapshot: reader.result(target) };
     } catch (error) {
       return unavailable(error instanceof Error ? error.message : '源码采集失败', confirmed);
+    } finally {
+      accepting = false;
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', cancel);
+      stop = undefined;
+      if (confirmed && this.sourceProcesses.get(id) === handle) this.sourceProcesses.delete(id);
+      resolveSettled?.();
+    }
+  }
+
+  /**
+   * W6b：把已发布候选的文件集写入受管 App 工程树（app-helper apply 操作）。
+   * 与 sourceSnapshot 共用 sourceProcesses 槽位保证源码 helper 串行；写租约与
+   * 基线冲突核对由调用方（Main 应用用例）负责，这里只防御性复查工程空闲、
+   * 载荷预算与 helper 清理确认。
+   */
+  async sourceApply(key: AppKey, files: AppSourceFile[], signal?: AbortSignal): Promise<AppSourceApplyResult> {
+    const target = AppTargetSchema.parse(key);
+    const id = this.id(key);
+    const unavailable = (error: string, cleanupConfirmed: boolean): AppSourceApplyResult => ({
+      ok: false,
+      target,
+      cleanupConfirmed,
+      error: error.slice(0, 1000),
+    });
+    try {
+      await this.ensureLoaded();
+      const entry = this.entry(key);
+      if (entry.snapshot.profile.projectKind !== 'standard-app') return unavailable('edu 应用候选源码应用尚未开放', true);
+      if (this.imports.busy(key)) return unavailable('工程导入尚未结清', true);
+      if (this.sourceProcesses.has(id)) return unavailable('busy:上次源码 helper 尚未确认清理', false);
+      if (this.closing || signal?.aborted) return unavailable('源码应用已取消或服务正在关闭', true);
+      if (entry.exitCompletion || entry.operation || entry.stopping || entry.commandProcess)
+        return unavailable('busy:工程有限 helper 正在运行或清理未确认；未应用候选', true);
+      if (
+        entry.process ||
+        entry.agentProcess ||
+        entry.httpOperation ||
+        entry.snapshot.state === 'running' ||
+        entry.snapshot.state === 'starting' ||
+        entry.snapshot.state === 'stopping' ||
+        !entry.snapshot.cleanupConfirmed
+      )
+        return unavailable('busy:应用运行中或清理未确认；未应用候选', true);
+      if (!this.connection.getStatus().available) return unavailable('源码应用服务不可用；未启动 helper', true);
+    } catch {
+      return unavailable('源码工程不可用或未创建；未启动 helper', !this.sourceProcesses.has(id));
+    }
+    const payload = AppSourceApplyFilesSchema.safeParse(files);
+    if (!payload.success) return unavailable('源码应用载荷超出预算或编码无效', true);
+    let receipt = '';
+    let failure: string | null = null;
+    let cancelled = false;
+    let accepting = true;
+    let stop: (() => Promise<GuestOutcome>) | undefined;
+    const unknownHandle = {
+      stop: async (): Promise<GuestOutcome> => ({ confirmed: false, exitCode: null, error: '源码 helper 派发结果未知' }),
+      settled: Promise.resolve(),
+    };
+    this.sourceProcesses.set(id, unknownHandle);
+    let child: Pick<GuestProcess, 'done' | 'close'>;
+    try {
+      child = this.connection.start(
+        {
+          type: 'start',
+          mode: 'codex',
+          argv: ['python3', '-I', '-u', '-c', helper],
+          prompt: JSON.stringify({ operation: 'apply', ...target, files: payload.data }),
+        },
+        (frame) => {
+          if (!accepting || failure || frame.type !== 'output' || frame.stream !== 'stdout') return;
+          if ((receipt + frame.data).length > 65536) {
+            failure = '源码应用回执超过预算';
+            if (stop)
+              stop().catch(() => {
+                failure = '源码 helper 清理失败';
+              });
+            return;
+          }
+          receipt += frame.data;
+        },
+      );
+    } catch {
+      accepting = false;
+      return unavailable('源码 helper 派发结果未知；不能确认清理', false);
+    }
+    let resolveStopped: ((outcome: GuestOutcome) => void) | undefined;
+    let resolveSettled: (() => void) | undefined;
+    const stopped = new Promise<GuestOutcome>((resolve) => {
+      resolveStopped = resolve;
+    });
+    const settled = new Promise<void>((resolve) => {
+      resolveSettled = resolve;
+    });
+    let stopping: Promise<GuestOutcome> | undefined;
+    stop = () => {
+      if (!stopping) {
+        stopping = Promise.resolve()
+          .then(() => child.close())
+          .catch((): GuestOutcome => ({ confirmed: false, exitCode: null, error: '源码 helper 清理失败' }))
+          .then((outcome) => {
+            resolveStopped?.(outcome);
+            if (!outcome.confirmed) stopping = undefined;
+            return outcome;
+          });
+      }
+      return stopping;
+    };
+    const handle = { stop, settled };
+    this.sourceProcesses.set(id, handle);
+    const cancel = () => {
+      // Stop the owned helper, but keep reading the result of an already-dispatched write.
+      cancelled = true;
+      handle.stop().catch(() => {
+        failure = '源码 helper 清理失败';
+      });
+    };
+    signal?.addEventListener('abort', cancel, { once: true });
+    if (failure || signal?.aborted) cancel();
+    const timer = setTimeout(cancel, this.options.sourceSnapshotTimeoutMs ?? 120000);
+    let confirmed = false;
+    try {
+      const outcome = await Promise.race([
+        child.done.catch((): GuestOutcome => ({ confirmed: false, exitCode: null, error: '源码 helper 传输失败' })),
+        stopped,
+      ]);
+      const cleanup = stopping ? await stopping : outcome;
+      confirmed = outcome.confirmed && cleanup.confirmed;
+      if (!confirmed) throw new Error('源码 helper 清理未确认；保留所属句柄');
+      if (failure) throw new Error(failure);
+      if (outcome.error || outcome.exitCode !== 0)
+        throw new Error(
+          cancelled || this.closing ? '源码应用已取消或超时；未确认完整写入' : '源码应用未完成：路径、预算或工程状态不满足；候选未完整写入',
+        );
+      const line = receipt.split('\n').find((item) => item.startsWith('WSL_APP_RESULT:'));
+      if (!line) throw new Error(cancelled || this.closing ? '源码应用已取消或超时；缺少成功回执' : '源码应用缺少回执');
+      const parsed = z
+        .object({ applied: z.literal(true) })
+        .passthrough()
+        .safeParse(JSON.parse(line.slice('WSL_APP_RESULT:'.length)));
+      if (!parsed.success) throw new Error('源码应用回执无效');
+      return { ok: true, target, cleanupConfirmed: true };
+    } catch (error) {
+      return unavailable(error instanceof Error ? error.message : '源码应用失败', confirmed);
     } finally {
       accepting = false;
       clearTimeout(timer);

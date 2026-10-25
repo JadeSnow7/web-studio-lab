@@ -1,0 +1,12 @@
+{
+  "script": "args-echo.mjs",
+  "args": { "topic": "类型检查" },
+  "mock": {
+    "echo": [{ "text": "主题：类型检查" }]
+  },
+  "expect": {
+    "status": "completed",
+    "calls": [{ "seq": 1, "label": "echo", "status": "ok" }],
+    "result": { "status": "complete", "value": "主题：类型检查" }
+  }
+}

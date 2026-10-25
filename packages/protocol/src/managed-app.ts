@@ -126,6 +126,47 @@ export const AppSourceSchema = z
   .object({ files: exportFiles, sha256: z.string().regex(/^[a-f0-9]{64}$/), profile: AppProfileSchema.optional() })
   .strict();
 export const EduImportSchema = AppTargetSchema.extend({ files: exportFiles, source: EduSourceSchema }).strict();
+/**
+ * W6b：app.source.apply 载荷的文件数组——与导出预算同口径（≤256 个、解码合计 ≤512 KiB），
+ * 允许空集（候选把工程清空为只有 .wsl-identity.json 的合法形状）。
+ */
+export const AppSourceApplyFilesSchema = z
+  .array(
+    AppSourceFileSchema.extend({
+      base64: z.string().max(Math.ceil(STANDARD_APP_EXPORT_BUDGET.maxSourceBytes / 3) * 4),
+    }),
+  )
+  .max(STANDARD_APP_EXPORT_BUDGET.maxFiles)
+  .superRefine((files, context) => {
+    if (files.length > STANDARD_APP_EXPORT_BUDGET.maxFiles) return;
+    let remaining = STANDARD_APP_EXPORT_BUDGET.maxSourceBytes;
+    for (const [index, file] of files.entries()) {
+      const encoded = file.base64;
+      const reject = (message: string) => context.addIssue({ code: 'custom', path: [index, 'base64'], message });
+      if (encoded.length > Math.ceil(remaining / 3) * 4) {
+        reject('应用源码超出传输预算');
+        return;
+      }
+      const padding = encoded.endsWith('==') ? 2 : encoded.endsWith('=') ? 1 : 0;
+      const decodedBytes = (encoded.length / 4) * 3 - padding;
+      if (decodedBytes > remaining) {
+        reject('应用源码超出传输预算');
+        return;
+      }
+      if (encoded.length % 4 !== 0) {
+        reject('无效源码编码');
+        return;
+      }
+      for (let offset = 0; offset < encoded.length - padding; offset++) {
+        const char = encoded.charCodeAt(offset);
+        if (!((char >= 65 && char <= 90) || (char >= 97 && char <= 122) || (char >= 48 && char <= 57) || char === 43 || char === 47)) {
+          reject('无效源码编码');
+          return;
+        }
+      }
+      remaining -= decodedBytes;
+    }
+  });
 export const ManagedAppSchema = AppTargetSchema.extend({
   profile: AppProfileSchema.optional(),
   sourceSha256: sha256.optional(),

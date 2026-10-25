@@ -1,0 +1,22 @@
+{
+  "script": "pipeline-mid-fail.mjs",
+  "args": null,
+  "mock": {
+    "s1-a": [{ "text": "a" }],
+    "s1-b": [{ "fail": "crash" }],
+    "s1-c": [{ "text": "c" }],
+    "s2-a": [{ "text": "sa" }],
+    "s2-c": [{ "text": "sc" }]
+  },
+  "expect": {
+    "status": "completed",
+    "calls": [
+      { "seq": 1, "label": "s1-a", "status": "ok" },
+      { "seq": 2, "label": "s1-b", "status": "failed", "code": "crash" },
+      { "seq": 3, "label": "s1-c", "status": "ok" },
+      { "seq": 4, "label": "s2-a", "status": "ok" },
+      { "seq": 5, "label": "s2-c", "status": "ok" }
+    ],
+    "result": { "status": "complete", "ok": 2, "codes": ["ok", "crash", "ok"] }
+  }
+}

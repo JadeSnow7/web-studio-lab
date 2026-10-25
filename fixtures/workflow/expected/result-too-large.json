@@ -1,0 +1,12 @@
+{
+  "script": "result-too-large.mjs",
+  "args": null,
+  "mock": {
+    "big": [{ "textBytes": 2097152 }]
+  },
+  "expect": {
+    "status": "completed",
+    "calls": [{ "seq": 1, "label": "big", "status": "failed", "code": "result_too_large" }],
+    "result": { "status": "complete", "code": "result_too_large" }
+  }
+}

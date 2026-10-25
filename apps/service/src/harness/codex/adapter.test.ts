@@ -33,6 +33,18 @@ describe('Codex native 适配器（W2）', () => {
     expect(codexAdapter.mcpInjection).toBe('codex-config');
   });
 
+  it('readonly 隔离参数使用 read-only 沙箱且不含续会话参数', () => {
+    expect(codexAdapter.argvForIsolation?.('readonly')).toEqual([
+      'codex',
+      'exec',
+      '--sandbox',
+      'read-only',
+      '--json',
+      '--skip-git-repo-check',
+      '-',
+    ]);
+  });
+
   it('把 Codex 事件映射为归一化事件，未知事件返回 null，已知无效果事件返回空数组', () => {
     expect(codexAdapter.parseLine(line({ type: 'future.event' }))).toBeNull();
     expect(codexAdapter.parseLine(line({ type: 'turn.started' }))).toEqual([]);

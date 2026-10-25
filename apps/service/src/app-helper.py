@@ -608,6 +608,14 @@ def run(request):
         else:
             raise ValueError('unsupported: standard-template operations are not available for edu-web')
         return
+    if request['operation'] == 'apply':
+        # W6b：整条候选树替换工程源码命名空间。调用方已持有工程写租约并做过
+        # 基线冲突核对；这里仍以 source_path/预算复查载荷，且只触碰源码命名空间
+        # （.wsl-* 收据、node_modules、.data 等保留原样）。
+        if set(request) != {'operation', 'workspaceId', 'projectId', 'files'}:
+            raise ValueError('unsupported apply request')
+        source_apply(root, request['files'])
+        return
     if request['operation'] == 'dependencies':
         if request['platform'] != sys.platform or request['arch'] != 'arm64' or os.uname().machine != 'aarch64':
             raise ValueError('dependency archive platform mismatch')
@@ -874,6 +882,132 @@ def source_snapshot(project, workspace_id):
             os.close(root)
     finally:
         os.close(parent)
+
+
+APPLY_MAX_FILES = 256
+APPLY_MAX_BYTES = 524288
+
+
+def source_apply(root, files):
+    """Replace the project source namespace with the candidate payload.
+
+    Runs only under the caller-held project writer lease, after Main has compared
+    the live tree against the candidate baseline. Namespace files absent from the
+    payload are deleted and emptied directories pruned; excluded entries
+    (.wsl-*, node_modules, .data, credentials) are never touched. A path present
+    as the wrong kind (file where a parent directory is needed, or a directory
+    where a payload file lands) is removed first so the result matches the
+    candidate tree exactly.
+    """
+    if not isinstance(files, list) or len(files) > APPLY_MAX_FILES:
+        raise ValueError('apply payload exceeds budget')
+    payload = {}
+    parents = set()
+    total = 0
+    for entry in files:
+        if not isinstance(entry, dict) or set(entry) != {'path', 'base64'}:
+            raise ValueError('invalid apply file')
+        relative = source_path(entry['path'])
+        # 载荷路径必须整体落在源码命名空间内：含排除名（.env、node_modules、
+        # .data、.wsl-* 等）的分量属于快照不可见的区域，写入会绕过冲突检测。
+        if any(part.lower() in SOURCE_EXCLUDED or part.lower().startswith(('.wsl-', '.env.'))
+               for part in relative.split('/')):
+            raise ValueError('apply path outside source namespace')
+        if relative in payload:
+            raise ValueError('duplicate apply file')
+        data = base64.b64decode(entry['base64'], validate=True)
+        total += len(data)
+        if total > APPLY_MAX_BYTES:
+            raise ValueError('apply payload exceeds budget')
+        payload[relative] = data
+        parts = relative.split('/')[:-1]
+        for depth in range(1, len(parts) + 1):
+            parents.add('/'.join(parts[:depth]))
+    for relative in payload:
+        if relative in parents:
+            raise ValueError('apply payload path conflict')
+
+    directory_flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_DIRECTORY
+    # O_NONBLOCK：载荷叶路径若被替换为 fifo 等特殊文件，open 不等待对端而直接失败。
+    file_flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW | os.O_NONBLOCK
+    root_fd = os.open(root, directory_flags)
+    deleted = 0
+    try:
+        namespaces_dirs = []
+
+        def walk(fd, prefix):
+            nonlocal deleted
+            for name in sorted(os.listdir(fd)):
+                if name.lower() in SOURCE_EXCLUDED or name.lower().startswith(('.wsl-', '.env.')):
+                    continue
+                info = os.stat(name, dir_fd=fd, follow_symlinks=False)
+                if stat.S_ISDIR(info.st_mode):
+                    child = os.open(name, directory_flags, dir_fd=fd)
+                    try:
+                        walk(child, prefix + name + '/')
+                    finally:
+                        os.close(child)
+                    namespaces_dirs.append(prefix + name)
+                elif stat.S_ISREG(info.st_mode):
+                    if prefix + name not in payload:
+                        os.unlink(name, dir_fd=fd)
+                        deleted += 1
+                else:
+                    raise ValueError('source links or special files are unsupported')
+
+        walk(root_fd, '')
+
+        def open_parent(relative):
+            fd = os.dup(root_fd)
+            try:
+                parts = relative.split('/')
+                for part in parts[:-1]:
+                    try:
+                        info = os.stat(part, dir_fd=fd, follow_symlinks=False)
+                        if not stat.S_ISDIR(info.st_mode):
+                            os.unlink(part, dir_fd=fd)
+                            raise FileNotFoundError
+                        child = os.open(part, directory_flags, dir_fd=fd)
+                    except FileNotFoundError:
+                        os.mkdir(part, 0o755, dir_fd=fd)
+                        child = os.open(part, directory_flags, dir_fd=fd)
+                    os.close(fd)
+                    fd = child
+                return fd, parts[-1]
+            except Exception:
+                os.close(fd)
+                raise
+
+        # 先清空可被腾出的命名空间目录（后序，子目录在前），再写入载荷，
+        # 这样「目录 → 文件」的候选变更可以落位；载荷新建目录在最后补一轮清理外保持原样。
+        for directory in namespaces_dirs:
+            try:
+                os.rmdir(directory, dir_fd=root_fd)
+            except OSError:
+                pass
+        for relative in sorted(payload):
+            fd, leaf = open_parent(relative)
+            try:
+                try:
+                    info = os.stat(leaf, dir_fd=fd, follow_symlinks=False)
+                    if stat.S_ISDIR(info.st_mode):
+                        os.rmdir(leaf, dir_fd=fd)
+                except FileNotFoundError:
+                    pass
+                out = os.open(leaf, file_flags, 0o644, dir_fd=fd)
+                try:
+                    if not stat.S_ISREG(os.fstat(out).st_mode):
+                        raise ValueError('apply target is not a regular file')
+                    view = memoryview(payload[relative])
+                    while view:
+                        view = view[os.write(out, view):]
+                finally:
+                    os.close(out)
+            finally:
+                os.close(fd)
+    finally:
+        os.close(root_fd)
+    output({'applied': True, 'written': len(payload), 'deleted': deleted})
 
 
 AGENT_DB_READS = {'query', 'snapshot'}

@@ -1,0 +1,17 @@
+{
+  "script": "seq-two-calls.mjs",
+  "args": null,
+  "mock": {
+    "diag": [{ "text": "diag-result" }],
+    "sum": [{ "text": "sum-result" }]
+  },
+  "expect": {
+    "status": "completed",
+    "phases": ["诊断", "汇总"],
+    "calls": [
+      { "seq": 1, "label": "diag", "status": "ok", "phase": "诊断" },
+      { "seq": 2, "label": "sum", "status": "ok", "phase": "汇总" }
+    ],
+    "result": { "status": "complete", "a": "diag-result", "b": "sum-result" }
+  }
+}

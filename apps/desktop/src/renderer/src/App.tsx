@@ -10,6 +10,7 @@ import { ResourcesPage } from './pages/ResourcesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SpacePage } from './pages/SpacePage';
 import { TasksPage } from './pages/TasksPage';
+import { WorkflowsPage } from './pages/WorkflowsPage';
 import { DebugPanel } from './shell/DebugPanel';
 import { ErrorToasts, ModalLayer } from './shell/Overlays';
 import { RightPanel } from './shell/RightPanel';
@@ -162,6 +163,9 @@ export function App() {
           </div>
           <div className="page" hidden={shell.route !== 'tasks'}>
             <TasksPage />
+          </div>
+          <div className="page" hidden={shell.route !== 'workflows'}>
+            <WorkflowsPage />
           </div>
           <div className="page" hidden={shell.route !== 'settings'}>
             <SettingsPage />

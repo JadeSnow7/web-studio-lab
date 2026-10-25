@@ -7,6 +7,7 @@ export const ROUTES: ReadonlyArray<{ route: Route; label: string; icon: IconName
   { route: 'resources', label: '资源', icon: 'folder' },
   { route: 'conversations', label: '会话', icon: 'chat' },
   { route: 'tasks', label: '任务', icon: 'task' },
+  { route: 'workflows', label: '工作流', icon: 'history' },
 ];
 
 export const ROUTE_TITLES: Record<Route, string> = {
@@ -15,5 +16,6 @@ export const ROUTE_TITLES: Record<Route, string> = {
   resources: '资源',
   conversations: '会话',
   tasks: '任务',
+  workflows: '工作流',
   settings: '应用设置',
 };

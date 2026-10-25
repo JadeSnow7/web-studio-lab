@@ -1,4 +1,4 @@
-import type { HarnessDescriptor } from '@wsl/protocol';
+import type { HarnessDescriptor, WorkflowIsolation } from '@wsl/protocol';
 
 /**
  * service 侧 Harness 适配器契约（ADR-0003 决定 1）。
@@ -55,6 +55,12 @@ export interface NativeHarnessAdapter {
   descriptor(version: string | null): HarnessDescriptor;
   /** 本轮命令行；sessionRef 为上一轮返回的会话身份，首轮为 null。提示词经 stdin 传入。 */
   argv(sessionRef: string | null): string[];
+  /**
+   * 隔离执行对应的命令行（W3/W6a）。未实现或返回 null 表示该隔离级别对本 Harness 不可用。
+   * readonly 只允许比 argv() 更收紧的沙箱；lane 在独立 attempt 候选目录内可写，但不得指向
+   * 用户项目 checkout 或其他 run 的状态。返回 argv 即视为一次性调用，不带续会话参数。
+   */
+  argvForIsolation?(isolation: WorkflowIsolation): string[] | null;
   /**
    * 解析一行输出。返回 null 表示不是本协议的已知事件（忽略且不发布快照）；
    * 返回数组（可为空）表示已知事件。字段缺失等协议违约直接抛出 Error，由执行核心记为协议错误。

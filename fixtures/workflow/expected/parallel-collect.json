@@ -1,0 +1,18 @@
+{
+  "script": "parallel-collect.mjs",
+  "args": null,
+  "mock": {
+    "p-0": [{ "text": "v0" }],
+    "p-1": [{ "text": "v1" }],
+    "p-2": [{ "text": "v2" }]
+  },
+  "expect": {
+    "status": "completed",
+    "calls": [
+      { "seq": 1, "label": "p-0", "status": "ok" },
+      { "seq": 2, "label": "p-1", "status": "ok" },
+      { "seq": 3, "label": "p-2", "status": "ok" }
+    ],
+    "result": { "status": "complete", "values": ["v0", "v1", "v2"] }
+  }
+}
