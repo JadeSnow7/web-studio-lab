@@ -84,30 +84,68 @@ def create_workspace(payload):
         raise
 
 
+def workspace_snapshot_limits(root):
+    try:
+        path_max = os.pathconf(root, "PC_PATH_MAX")
+    except (OSError, ValueError) as error:
+        raise ValueError("guest workspace filesystem path limit unavailable") from error
+    if type(path_max) is not int or path_max < 2:
+        raise ValueError("guest workspace filesystem path limit unavailable")
+    # Full paths are used for scandir/open. A nonempty component needs at least
+    # one byte and a separator; omit the root length for a conservative bound.
+    # Every file contributes at most this many ancestors plus itself. The three
+    # excluded root directories also count, but their contents are never scanned.
+    components = path_max // 2
+    return components, 256 * components + 3
+
+
 def snapshot_workspace(root, run_id):
+    max_depth, max_entries = workspace_snapshot_limits(root)
     files = []
     total = 0
-    def walk(directory, prefix=""):
-        nonlocal total
-        for entry in sorted(os.scandir(directory), key=lambda item: item.name):
-            relative = prefix + entry.name
-            workspace_path(root, relative)
-            if entry.is_symlink():
-                raise ValueError("guest workspace symlink: " + relative)
-            if not prefix and entry.name in ("node_modules", "dist", ".vite") and entry.is_dir(follow_symlinks=False):
-                continue
-            if entry.is_dir(follow_symlinks=False):
-                walk(entry.path, relative + "/")
-            elif entry.is_file(follow_symlinks=False):
-                with open(entry.path, "rb") as source:
-                    content = source.read(WORKSPACE_BYTES + 1)
-                total += len(content)
-                if total > WORKSPACE_BYTES or len(files) >= 256:
-                    raise ValueError("guest workspace snapshot exceeds budget")
-                files.append({"path": relative, "base64": base64.b64encode(content).decode("ascii")})
-            else:
-                raise ValueError("guest workspace non-file: " + relative)
-    walk(root)
+    visited = 0
+
+    def scan(directory):
+        nonlocal visited
+        entries = []
+        with os.scandir(directory) as iterator:
+            for entry in iterator:
+                visited += 1
+                if visited > max_entries:
+                    raise ValueError("guest workspace snapshot exceeds enumeration budget")
+                entries.append(entry)
+        entries.sort(key=lambda item: item.name)
+        return iter(entries)
+
+    # Keep depth-first lexical order without retaining scanner handles or relying
+    # on Python's recursion limit for paths the filesystem can represent.
+    stack = [(scan(root), "")]
+    while stack:
+        entries, prefix = stack[-1]
+        try:
+            entry = next(entries)
+        except StopIteration:
+            stack.pop()
+            continue
+        if len(stack) > max_depth:
+            raise ValueError("guest workspace snapshot exceeds path depth budget")
+        relative = prefix + entry.name
+        workspace_path(root, relative)
+        if entry.is_symlink():
+            raise ValueError("guest workspace symlink: " + relative)
+        if not prefix and entry.name in ("node_modules", "dist", ".vite") and entry.is_dir(follow_symlinks=False):
+            continue
+        if entry.is_dir(follow_symlinks=False):
+            stack.append((scan(entry.path), relative + "/"))
+        elif entry.is_file(follow_symlinks=False):
+            with open(entry.path, "rb") as source:
+                content = source.read(WORKSPACE_BYTES + 1)
+            total += len(content)
+            if total > WORKSPACE_BYTES or len(files) >= 256:
+                raise ValueError("guest workspace snapshot exceeds budget")
+            files.append({"path": relative, "base64": base64.b64encode(content).decode("ascii")})
+        else:
+            raise ValueError("guest workspace non-file: " + relative)
     emit("workspace", runId=run_id, files=files)
 
 
