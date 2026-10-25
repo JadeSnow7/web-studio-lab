@@ -26,6 +26,11 @@ const documents = [
   'docs/acceptance/integration-20261008/integration-disposition.md',
   'docs/architecture/adr/0001-modular-monolith.md',
   'docs/architecture/adr/0002-app-control-plane.md',
+  'docs/architecture/adr/0003-pluggable-harness-and-collaboration.md',
+  'docs/design/2026-10-21-multi-harness-collaboration.md',
+  'docs/plans/2026-10-21-multi-harness-collaboration.md',
+  'docs/plans/2026-10-16-post-review-update-plan.md',
+  'docs/acceptance/consolidation-20261025/README.md',
   'docs/architecture/task-priority-walkthrough.md',
   'docs/architecture/baseline-2026-10-06.md',
   // OPS-1 本轮规范与执行记录：新增未跟踪文件不在 git diff --check 范围内，由此检查链接与尾随空白。

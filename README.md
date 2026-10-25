@@ -2,39 +2,50 @@
 
 Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) 既有设计与工程经验构建的 Electron 桌面工作台，参加 [OSCHINA 开源大赛 2026](https://www.oschina.net/os2026/)。目标闭环：在运行页面上点选元素、确认任务，由 Codex CLI 修改代码，工作台启动 App 并执行固定验收，给出可复验的证据，最后由开发者决定是否接受结果。
 
-本次整合的源码说明与历史记录分开：OPS / Browser / Harness 的链接记录绑定其原日期和来源版本，不能作为当前候选重新验证或用户接受的证明。当前验证状态以本次独立记录为准。
+本次整合的源码说明与历史记录分开：OPS / Browser / Harness 的链接记录绑定其原日期和来源版本，不能作为当前候选重新验证或用户接受的证明。本轮范围和已完成检查见[2026-10-25 整合记录](docs/acceptance/consolidation-20261025/README.md)；最终验收以仓库外回执为准。
 
 范围、排期与验收以[任务计划](docs/plans/2026-10-os2026-task-plan.md)为准，实现约束见[架构文档](docs/ARCHITECTURE.md)。
 
 移动端扩展已形成[Expo Android 第一阶段设计](docs/design/2026-10-11-expo-android-phase1.md)和[实施与验收计划](docs/plans/2026-10-11-expo-android-phase1.md)：拟支持固定 Expo 项目、工作台 Web 预览、Android USB 真机连接和本地 APK 导出。当前仅完成设计，尚未修改移动端源码或执行移动端验收；不计入既有比赛闭环已实现能力。
 
+多 Harness 的目标路线、采纳决定与实施映射分别见[设计](docs/design/2026-10-21-multi-harness-collaboration.md)、[ADR-0003](docs/architecture/adr/0003-pluggable-harness-and-collaboration.md)和[计划](docs/plans/2026-10-21-multi-harness-collaboration.md)。MHC-W8 指 Bot/会议，WF-W8 指 Workflow 固定波次；MHC-W9 指 Gemini/Cursor，WF-W9 指 Ultra，不能混用。
+
+| 范围               | 源码与证据边界                                                                                                                                                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 普通会话           | Codex native / Claude Code ACP、Profile 自检/选择/冻结与一次审批已有接线；历史 live 不等于本候选复验                                                                                                                                    |
+| Workflow 隔离候选  | I4 已整合只读执行、候选发布/显式应用、固定波次及关闭清理修复源码；实际隔离适配器仅 Codex native；已取得的历史真实运行证据仅覆盖 `codex:default`，当前候选未做真实多 Profile 矩阵验收；成员表由 Main 每次受理时冻结的 Profile 快照生成。 |
+| 真实矩阵与阶段出口 | MockHarness 3×2 等 fixture 矩阵只证明离线条件；E8 真实矩阵、WF-W9/Ultra 未做，P2/P3 出口尚未通过                                                                                                                                        |
+| 后续路线           | 多方案选择、Board/Handoff、Bot/会议、Gemini/Cursor、remote 仍未在本次实施或接受                                                                                                                                                         |
+
+2026-10-25 整合注记：上表说明源码范围；I4 聚焦红/绿回归与离线全量检查已完成，最终构建和窗口验收待主代理执行，不提前宣称 Workflow 产品验收通过。[2026-10-14 收尾记录](docs/acceptance/consolidation-20261011/closeout-20261014.md)只保留当日保全事实，不增加本次产品结论。
+
 ## 当前状态
 
-当前候选树整合 Electron 工作台、统一观察、受管标准 App、账户资源目录、App 控制面、App 名称/说明和任务目标绑定，以及统一状态呈现与诊断。六板块布局继续遵循[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)。2026-10-13 的 PR 范围、审查修复、实际验证与未运行项见[当前 PR 说明](docs/acceptance/consolidation-20261011/PR.md)；[2026-10-11 整合记录](docs/acceptance/consolidation-20261011/README.md)、[状态界面实施与修复记录](docs/acceptance/status-surface-20261011/README.md)及更早记录保留为历史，不能替代当前版本复验。独立源码工具支持 edu-web 源码快照、校验、三方合并和人工冲突解决，见[CLI 说明](docs/development/edu-source-cli.md)；edu 导入/运行接线仍保留在独立分支。
+当前候选树整合 Electron 工作台、统一观察、受管标准 App、账户资源目录、App 控制面、App 名称/说明和任务目标绑定，以及统一状态呈现与诊断。六板块布局继续遵循[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)。2026-10-13 的 PR 范围、审查修复、实际验证与未运行项见[2026-10-13 历史 PR 说明](docs/acceptance/consolidation-20261011/PR.md)；[2026-10-11 整合记录](docs/acceptance/consolidation-20261011/README.md)、[状态界面实施与修复记录](docs/acceptance/status-surface-20261011/README.md)及更早记录保留为历史，不能替代当前版本复验。独立源码工具支持 edu-web 源码快照、校验、三方合并和人工冲突解决，见[CLI 说明](docs/development/edu-source-cli.md)；当前 edu-only 导入、运行和导出接线受 Main/source 保护约束；edu 任务写回及发音验证未开放，旧分支记录不替代本候选验收。
 
-| 能力         | 实现与验证边界                                                                                                                                                          |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 全局导航     | 首页、空间、资源、会话、任务和底部设置保持独立入口；空间工作台只装配到空间页                                                                                            |
-| 空间工作台   | 空间切换、垂直标签、最多四窗格、后台资源重开；关闭标签不停止实例                                                                                                        |
-| 左右侧栏     | 全局按钮和空间标签整组浮动/固定；右侧仅通知；左右固定偏好分别保存到本设备                                                                                               |
-| 主题         | 设置页编辑当前空间的白/暗/暖/系统主题，终端同步共享颜色                                                                                                                 |
-| 网页与现场   | 原生WebContentsView、地址与导航、同一页面CDP采集；请求固定接收会话与文档身份                                                                                            |
-| 对话与终端   | sbx内Codex和Linux PTY；个人会话独立，空间会话由Main工作台管理                                                                                                           |
-| 任务与通知   | 持久任务版本、运行历史、日志、终态通知与阅读回执；执行、检查和人工接受分别记录                                                                                          |
-| 恢复         | 恢复元数据、草稿、布局和历史，不自动重放执行或重新连接PTY                                                                                                               |
-| 标准应用     | 独立版本化 React/TS/Vite + Hono + Drizzle/PGlite + Zod 模板；空间内创建、受管启动、Browser接入、停止与源码导出                                                          |
-| 完整业务闭环 | priority业务API、独立检查器及任务页真实diff/报告仍未实现；VS001与标准应用的本轮结果见[最小闭环记录](docs/acceptance/integrated-app-installer-public-20261009/README.md) |
-| 统一观察     | Browser、文件、终端与 SSH 已接 Main、MCP 和空间界面；完整验证进行中                                                                                                     |
-| App 控制面   | 阶段 A 已接线；下文保留历史真实模型与 Host 复验证据，本次 PR 不重新调用模型或 sandbox live；产品检查器尚未接入                                                          |
-| 状态与诊断   | Main 只读事实投影与 Renderer 状态槽；取消、接管和清理未确认持续可见，诊断默认关闭，日志有界且检查文件归属                                                               |
-| Code Wiki    | [独立交互原型](docs/design/2026-10-12-code-wiki/README.md)：模块、通信、源码依赖及流程地图；源码摘录固定于 2026-10-12，不是当前 PR 的自动扫描结果                       |
+| 能力         | 实现与验证边界                                                                                                                                                                                                  |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 全局导航     | 首页、空间、资源、会话、任务和底部设置保持独立入口；空间工作台只装配到空间页                                                                                                                                    |
+| 空间工作台   | 空间切换、垂直标签、最多四窗格、后台资源重开；关闭标签不停止实例                                                                                                                                                |
+| 左右侧栏     | 全局按钮和空间标签整组浮动/固定；右侧仅通知；左右固定偏好分别保存到本设备                                                                                                                                       |
+| 主题         | 设置页编辑当前空间的白/暗/暖/系统主题，终端同步共享颜色                                                                                                                                                         |
+| 网页与现场   | 原生WebContentsView、地址与导航、同一页面CDP采集；请求固定接收会话与文档身份                                                                                                                                    |
+| 对话与终端   | sbx内Codex和Linux PTY；个人会话独立，空间会话由Main工作台管理                                                                                                                                                   |
+| 任务与通知   | 持久任务版本、运行历史、日志、终态通知与阅读回执；执行、检查和人工接受分别记录                                                                                                                                  |
+| 恢复         | 恢复元数据、草稿、布局和历史，不自动重放执行或重新连接PTY                                                                                                                                                       |
+| 标准应用     | 独立版本化 React/TS/Vite + Hono + Drizzle/PGlite + Zod 模板；空间内创建、受管启动、Browser接入、停止与源码导出                                                                                                  |
+| 完整业务闭环 | 任务源码快照与真实diff已有接线；priority业务API、独立检查器与完整固定业务闭环仍有缺口；2026-10-09 的 VS001/标准应用历史结果见[最小闭环记录](docs/acceptance/integrated-app-installer-public-20261009/README.md) |
+| 统一观察     | Browser、文件、终端与 SSH 已接 Main、MCP 和空间界面；完整验证进行中                                                                                                                                             |
+| App 控制面   | 阶段 A 已接线；下文保留历史真实模型与 Host 复验证据，本次 PR 不重新调用模型或 sandbox live；产品检查器尚未接入                                                                                                  |
+| 状态与诊断   | Main 只读事实投影与 Renderer 状态槽；取消、接管和清理未确认持续可见，诊断默认关闭，日志有界且检查文件归属                                                                                                       |
+| Code Wiki    | [独立交互原型](docs/design/2026-10-12-code-wiki/README.md)：模块、通信、源码依赖及流程地图；源码摘录固定于 2026-10-12，不是本候选的自动扫描结果                                                                 |
 
 ## 环境
 
 详细安装与独立 sbx 沙箱测试前置条件见[开发依赖与安装](docs/development/dependencies.md)。2026-10-06 的本机历史记录包含 sbx v0.47.0、Docker/OpenAI OAuth 准备与真实 smoke，见[沙箱验证记录](docs/verification/2026-10-06-sbx/README.md)和[应用接入验证](docs/verification/2026-10-06-sbx-app/README.md)。新机器须重新准备，本轮认证和 live 是否可用以当前验收记录为准。未配置 sbx 不妨碍启动桌面；sandbox 对话/终端会明确不可用。
 
 - macOS Apple Silicon。其他平台没有验证。
-- Node：与 Electron 44.5.1 内置的 Node 24 对齐，`.nvmrc` 为 24。2026-10-06 的本地验证实际运行在 Node 26.5.0 上，Node 24 尚未单独验证。
+- Node：与 Electron 44.5.1 内置的 Node 24 对齐，`.nvmrc` 为 24。2026-10-06 的本地验证实际运行在 Node 26.5.0 上，该记录不代表当前环境；本次离线检查已使用 Node 24.21.0。
 - pnpm 10.34.6（见根 `package.json` 的 `packageManager`）。若本机尚未安装，可以 `npm install -g pnpm@10.34.6`，或者在下面的命令前加 `npx pnpm@10.34.6` 代替 `pnpm`。
 - 首次运行 Electron 时会下载 Electron 二进制（约 100 MB）；首次打包时 electron-builder 还会下载自己的 Electron 包与 dmg 工具。需要网络。
 
@@ -56,7 +67,7 @@ WSL_SBX_NAME=wsl-sbx-smoke-20261006 pnpm dev
 pnpm check
 ```
 
-`pnpm check` 依次运行类型检查（含 e2e 与配置文件）、ESLint、Prettier 格式检查和 Vitest 单元测试，并在首个失败时停止。本整合树保留 VS001 与来源档案的原始格式；全树 lint/格式的已知失败和本候选实际结果在[当前 PR 说明](docs/acceptance/consolidation-20261011/PR.md)分列。需要全部结果时分别运行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm test`，不要自动格式化封存证据。
+`pnpm check` 依次运行类型检查（含 e2e 与配置文件）、ESLint、Prettier 格式检查和 Vitest 单元测试，并在首个失败时停止。本树保留 VS001 与来源档案的原始格式；2026-10-13 的失败与结果只属于[历史 PR 说明](docs/acceptance/consolidation-20261011/PR.md)。本轮分别执行的检查、来源格式例外及未运行项见[本轮整合记录](docs/acceptance/consolidation-20261025/README.md)。需要全部结果时分别运行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm test`，不要自动格式化封存证据。
 
 ```bash
 pnpm test:e2e

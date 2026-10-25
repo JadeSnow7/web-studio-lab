@@ -1,6 +1,6 @@
 # Web Studio Lab 架构基线
 
-本项目采用按业务职责组织的模块化单体：Electron Main 的 WorkbenchApplication 唯一拥有工作台业务事实，独立 Node 服务承载 Harness、PTY 和文件等适配器，renderer 呈现投影。五个业务模块是责任划分，四个代码层次是依赖约束，进程是运行与权限边界，三者不能互相替代。
+本项目采用按业务职责组织的模块化单体：Electron Main 是业务、授权和持久提交权威，WorkbenchApplication 拥有工作台任务、项目写许可与人工接受，WorkflowApplication/Journal 拥有 workflow 受理、恢复和候选发布/应用事实。独立 Node 服务承载唯一 workflow 执行内核及 Harness、PTY、文件适配器；renderer 只呈现投影。五个业务模块是责任划分，四个代码层次是依赖约束，进程是运行与权限边界，三者不能互相替代。
 
 本文区分当前实现与后续目标。2026-10-08 的[本地整合合同](acceptance/integration-20261008/SPEC.md)以空间重制提交 `9e1df45` 为基准；实际接线、验证状态与缺口见[当前运行时](architecture/current-runtime.md)和[整合记录](acceptance/integration-20261008/task-summary.md)。2026-10-06 无应用源码的结论仅适用于[当时的基线](architecture/baseline-2026-10-06.md)，不能用于当前树。“必须/建议/可选”的强度见[开发规范](../CONTRIBUTING.md)；模块化单体的历史取舍见[ADR-0001](architecture/adr/0001-modular-monolith.md)；受管 App 控制面的唯一 dispatcher 位于 Main 应用层，见 [ADR-0002](architecture/adr/0002-app-control-plane.md)。
 
@@ -10,13 +10,13 @@
 
 全局首页、空间、资源、会话、任务和设置直接可达。空间页内的资源窗格展示网页、文件和终端，会话标签承载对话、现场、目标与运行记录；任务页展示同一 Main 快照中的历史。Workspace 组织资源、会话、上下文和布局。导航入口不是业务模块；同一个任务可以在多个视图中展示，但只有一个业务状态所有者。
 
-首版围绕一个固定 TypeScript 全栈模板，完成“提出需求 → 修改代码 → 运行 → 验证 → 审阅”，一个项目、一个 Agent 串行执行。优先接现成 Codex CLI Harness；有效版本、参数、模型和工具组合须在接入时实测。当前已接入标准全栈模板、受管 App 生命周期、App 控制面与 VS001 adapter；本次整合不补做尚未实现的比赛 priority 业务 API、独立产品检查器或完整 C1–C3 验收，不增加云账号、好友、订阅、多 Agent 调度、实时协作、第二模板或生成 App 部署。现有资源在切换视图后继续运行，不等于实现后台任务调度器。
+首版围绕一个固定 TypeScript 全栈模板，完成“提出需求 → 修改代码 → 运行 → 验证 → 审阅”，一个项目、一个 Agent 串行执行。优先接现成 Codex CLI Harness；有效版本、参数、模型和工具组合须在接入时实测。当前已接入标准全栈模板、受管 App 生命周期、App 控制面与 VS001 adapter；本次整合不补做尚未实现的比赛 priority 业务 API、独立产品检查器或完整 C1–C3 验收，不增加云账号、好友、订阅、实时协作、第二模板或生成 App 部署。普通会话 Harness/Profile 与 Workflow 隔离候选按各自合同接入；完整多 Agent 目标按 [ADR-0003](architecture/adr/0003-pluggable-harness-and-collaboration.md) 和[多 Harness 路线](plans/2026-10-21-multi-harness-collaboration.md)分阶段规划。Board/Handoff、Bot/会议、多方案、remote、MHC-W9 Gemini/Cursor 与 WF-W9 Ultra 不因文档采纳而获实现授权。现有资源在切换视图后继续运行，不等于实现后台任务调度器。
 
 长期分工：Rein 提供单 Agent Harness/runtime；Veriflow 负责任务编排、验收、修复策略与证据组织；Web Studio 提供工作环境、浏览器、终端、文件和交互。当前 Lab 用最小本地应用用例承接所需编排，不要求依赖三个仓库。后续接 Rein/Veriflow 时通过能力接口替换相应实现，必须保持一个任务权威写入者，不在 Main、服务和外部编排器各做一份流程。
 
 ## 2. 业务模块及状态所有权
 
-以下是职责分解；当前空间、资源描述、会话与任务事实集中由 Main WorkbenchApplication 写入，适配器只报告执行事实。表中写入许可、独立验证、条件文件保存等仍属未来目标，不是要求创建五个包或五套空目录。保留参考的五组职责，因为它们分别因项目身份、资源生命周期、上下文、执行推进、结果判定而变化；跨组数据可以共同存储，写入权限仍归所属模块。
+以下是职责分解；空间、资源描述、会话与 TaskRun 事实由 Main WorkbenchApplication 写入，Harness Profile 由 Main 专属存储持有，workflow 的持久事实由 Main WorkflowApplication/Journal 单写。service 内唯一 kernel 持有授权执行中的调度、attempt/重试及有序交付状态，事件经 Main 确认；两层不复制彼此的权威记录。表中写入许可、独立验证、条件文件保存等仍属未来目标，不是要求创建五个包或五套空目录。保留参考的五组职责，因为它们分别因项目身份、资源生命周期、上下文、执行推进、结果判定而变化；跨组数据可以共同存储，写入权限仍归所属模块。
 
 | 模块             | 职责与权威状态                                                                                                                        | 公开能力（语义，非已有函数）                                                  | 依赖能力与协作                                                                                 |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -100,9 +100,9 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    UI[六板块 Renderer] -->|具名命令与查询| P[Preload]
-    P -->|来源与载荷校验| M[Main WorkbenchApplication 唯一业务权威]
-    M -->|带资源和实例身份的调用| S[Node 适配宿主]
+    UI[Renderer 投影] -->|具名命令与查询| P[Preload]
+    P -->|来源与载荷校验| M[Main 业务授权与持久提交权威]
+    M -->|带资源和实例身份的调用| S[Node 执行内核与适配宿主]
     S -->|PTY与会话执行事实| M
     M -->|只读快照| P
     P --> UI
@@ -112,17 +112,17 @@ flowchart TB
     S --> R[文件与PTY适配器]
 ```
 
-独立 Node 适配宿主由 Electron utility process 承载，服务源码无 Electron import。Main 通过注入端口协调业务和原生页面；服务维护所属子进程、传输状态与有界缓冲，不复制 Main 的空间、任务版本、运行和审阅状态。将来 CLI 复验须复用同一业务权威；当前没有独立 CLI 产品验收入口。打包与真实连接是否通过以本轮执行记录为准。
+独立 Node 适配宿主由 Electron utility process 承载，服务源码无 Electron import。Main 通过注入端口协调业务和原生页面；服务内唯一 workflow kernel 负责冻结授权内的调用调度、有限重试、交付及 VM 推进，并维护所属子进程、传输状态与有界缓冲；它不自行确认持久发布，也不复制 Main 的空间、任务版本和人工审阅状态。将来 CLI 复验须复用同一业务权威；当前没有独立 CLI 产品验收入口。打包与真实连接是否通过以本轮执行记录为准。
 
 不恢复旧草案的工作台 Hono/WS 监听服务、随机端口/token 发现接口；生成 App 自己的 API 可继续用 Hono。项目页面与工作台 IPC 没有直接通道。运行页面、文件内容和工具输出是外部输入，只能补充上下文，不能自行增加工具、路径、命令或预算权限。
 
-目标 Electron 基线：工作台和预览均使用 `contextIsolation: true`、`sandbox: true`、`nodeIntegration: false`、`webSecurity: true`；项目预览无工作台 preload，隔离 browser session，权限默认拒绝，导航/新窗口/外部 URL 按显式策略处理。Main 校验实际 sender、顶层 frame 与来源，并校验请求载荷；Preload 只暴露具名能力及取消订阅，不暴露原始 `ipcRenderer`、任意通道或通用执行脚本能力。这些原则依据 [Electron 官方安全指南](https://www.electronjs.org/docs/latest/tutorial/security)，本次保全运行了离线检查与构建；真实窗口与完整隔离行为不能由这些检查替代，历史结果见具体合同。
+目标 Electron 基线：工作台和预览均使用 `contextIsolation: true`、`sandbox: true`、`nodeIntegration: false`、`webSecurity: true`；项目预览无工作台 preload，隔离 browser session，权限默认拒绝，导航/新窗口/外部 URL 按显式策略处理。Main 校验实际 sender、顶层 frame 与来源，并校验请求载荷；Preload 只暴露具名能力及取消订阅，不暴露原始 `ipcRenderer`、任意通道或通用执行脚本能力。这些原则依据 [Electron 官方安全指南](https://www.electronjs.org/docs/latest/tutorial/security)；历史离线检查、构建与窗口结果见各日期合同，不能替代当前候选复验。
 
 文件适配器必须以固定项目根和获准范围解析路径，检查规范化、符号链接及新建文件父路径；不可用字符串前缀或只信任 Renderer 传入路径。模型凭据由受控适配器按需取得，不进入普通日志、协议 DTO 或默认模型上下文。子进程只接收必要环境、cwd 和能力；Electron renderer sandbox 不等于 Harness/项目 Node 进程的 OS 沙箱。若接入能力不能保证所需范围，应阻止该能力或明确要求新的授权，不能将 UI 白名单包装为强隔离。
 
 ## 5. 生命周期与一致性约束
 
-本节区分已有运行事实与完整闭环约束。Main 已持有任务版本、执行、取消与历史，以及受管 AppInstance 的身份、租约和清理事实；完整项目统一写入许可与独立产品检查器仍未实现。检查方式同时作为接入时的验收输入。
+本节区分已有运行事实与完整闭环约束。Main 已持有任务版本、执行、取消与历史，以及受管 AppInstance 的身份、租约和清理事实；当前有普通会话 guest 全局串行许可、受管项目执行/源码采集许可与 Workflow 显式 apply 的同表许可；这不是任意外部写入的锁。独立产品检查器仍未接入。检查方式同时作为接入时的验收输入。
 
 | 操作/不变量          | 责任与语义                                                                                                                         | 接入验收                                                                                   |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -137,7 +137,7 @@ flowchart TB
 | 验证绑定             | 固定输出快照、TaskVersion、验收版本/hash、环境/依赖/命令/数据版本及 AppInstance                                                    | 代码或条件变化后，旧结果留作历史，当前状态变为待验证/不适用                                |
 | 异常恢复             | 执行核心核对文件快照、进程身份和未确认结果，必要时进入 `interrupted`/待核对；不直接重放命令                                        | 模拟响应丢失或宿主崩溃，不重复迁移/写入，不误杀复用 PID 的无关进程                         |
 
-统一写入许可控制的是 Lab 自己发起的动作，不能锁住所有外部编辑器。不能用“检查哈希后直接覆盖”宣称任意外部并发原子安全；Harness 接入时须明确使用受控写入工具或隔离修改副本并带版本条件应用，外部冲突必须可见。由哪个具体适配器落实写入与冲突检查，须与 Harness 能力一起验证；目前未实现。
+统一写入许可控制的是 Lab 自己发起的动作，不能锁住所有外部编辑器。不能用“检查哈希后直接覆盖”宣称任意外部并发原子安全；Harness 接入时须明确使用受控写入工具或隔离修改副本并带版本条件应用，外部冲突必须可见。当前 Workflow 候选内部 merge 与最终受管 App apply 分开，后者须人工明确授权、持同一项目写许可并比较基线；不能描述为会议或候选发布的自动附带动作。每个具体适配器的能力仍须独立验证。
 
 ### 目标状态与结果适用性
 
@@ -153,4 +153,12 @@ SourceSnapshot 必须覆盖实际参与验证/交付的完整代码内容，包�
 
 当前落点是 Main 工作台、窄 IPC、原生预览、独立服务、恢复与测试；完整比赛业务闭环仍有明确缺口。具体源码路径、配置和验证入口集中在[当前运行时](architecture/current-runtime.md)、[README](../README.md)与[开发依赖](development/dependencies.md)。
 
-跨分支整合保留历史证据；当前来源裁决与最终验证见[2026-10-11 整合记录](acceptance/consolidation-20261011/README.md)，[INTEGRATION-1](acceptance/integration-20261008/SPEC.md)的来源台账和逐阶段检查作为历史依据。原始 architecture/VS001 记录保留当时结论；不把旧文档中的 service 权威建议当作恢复第二套状态的指令。每项新能力先明确 Main 身份与权限来源，接 Provider、生命周期和持久化，再接 renderer 与 MCP 消费者，最后在同一最终源码复验。
+跨分支整合保留历史证据；[2026-10-11 整合记录](acceptance/consolidation-20261011/README.md)只记当时的来源裁决和验证；本次来源整合与检查见[2026-10-25 整合记录](acceptance/consolidation-20261025/README.md)，最终验收以仓库外回执为准，[INTEGRATION-1](acceptance/integration-20261008/SPEC.md)的来源台账和逐阶段检查作为历史依据。原始 architecture/VS001 记录保留当时结论；不把旧文档中的 service 权威建议当作恢复第二套状态的指令。每项新能力先明确 Main 身份与权限来源，接 Provider、生命周期和持久化，再接 renderer 与 MCP 消费者，最后在同一最终源码复验。
+
+## 2026-10-25 路线与实现放置协调（本轮整合说明）
+
+[ADR-0003 附录](architecture/adr/0003-pluggable-harness-and-collaboration.md)保留原采纳记录，并细化原“所有编排在 Main”的放置表述：业务、授权和持久提交在 Main，唯一执行 kernel 的调用调度/有限重试/有序交付在 service。这里只协调文档，不迁移代码或创建新的业务框架。
+
+Agent 职责中的 Harness 探测/选择与 Profile 已有普通会话接线；Bot 定义、Context Board、Handoff、Meeting 与完整持久 Lane/AppInstance 仍是路线目标，不要求为空名词建目录或表。MHC-W5/W6 完整 Lane/多方案与 WF-W8 固定波次候选不同；MHC-W7/W8 看板/会议与 WF-W7/W8 路由/波次不同。
+
+Workflow 的实际隔离适配器仅 Codex native；已取得的历史真实运行证据仅覆盖 `codex:default`，当前候选未做真实多 Profile 矩阵验收；成员表由 Main 每次受理时冻结的 Profile 快照生成。普通会话注册 Claude Code ACP 不能证明 Workflow 支持 ACP。离线多成员 fixture 不是真实矩阵，E8、WF-W9/Ultra 未做。I4 的缓存登记/发布与停止竞态、固定波次绕过和退出清理已有本轮确定性红/绿回归及离线全量复验；最终构建、窗口与产品接受仍待主代理核对，本节不据此接受 P2/P3。

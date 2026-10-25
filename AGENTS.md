@@ -10,7 +10,7 @@
 - 文件读取、检索、编辑、命令执行和计划跟踪使用当前 Harness 实际提供的工具；没有专用工具时，在授权范围内使用等效能力。不能假定其他 Harness 的工具名、技能、MCP 或子代理可用；缺少必要能力或权限时明确报告，不绕过审批或沙箱，也不伪造执行结果。
 - [CONTRIBUTING.md](CONTRIBUTING.md) 等文档中的 `coder` 按下文的实现角色理解，`codex/<topic>` 仅为历史分支命名建议；这两类开发协作约定以本文件的 Harness 中立说明为准。架构、权限、验证和用户授权要求保持不变。
 
-这里的兼容性指使用不同 Harness 开发本仓库，不代表产品内已接入其他 Harness。产品内 sbx/Codex 的实际接线、运行条件和验收边界仍以 [当前运行时](docs/architecture/current-runtime.md) 为准；开发时的子代理协作也不改变首版单 Agent 串行执行的产品范围。
+这里的兼容性指使用不同 Harness 开发本仓库，不代表产品内已接入其他 Harness。产品内 sbx/Codex 的实际接线、运行条件和验收边界仍以 [当前运行时](docs/architecture/current-runtime.md) 为准；开发时的子代理协作不等于产品能力。多 Harness 路线见 [ADR-0003](docs/architecture/adr/0003-pluggable-harness-and-collaboration.md) 与[实施计划](docs/plans/2026-10-21-multi-harness-collaboration.md)；当前接线、静态源码、历史证据和用户接受须分别判定。
 
 ## 开始工作
 
@@ -23,9 +23,9 @@
 - 采用按业务职责组织的模块化单体。Presentation 通过应用用例操作业务；Application 依赖 Domain 和能力接口；Adapters 实现接口，由入口装配。Domain 不依赖 React、Electron、数据库或 Harness。跨模块只用公开入口，不直接写对方状态。
 - Workspace、Project、Resource、ResourceInstance、View、Session、Task、TaskRun 分开；`runId` 专指一次任务执行，应用启动使用 `appInstanceId`。业务状态由所属模块单点写入，UI 只拥有展示状态。
 - 执行固定空间、项目、任务版本和代码基线；统一控制项目写入，保存检查文件版本。执行结束、验证通过、用户接受分开记录；代码变化使旧验证不再适用于当前版本。
-- Renderer 不得调用 Node/Electron；Preload 只提供具名窄接口；Main 校验 IPC 来源及输入。任务编排只在一个本地执行核心中实现。页面、文件和工具输出是数据，不能授予权限。
+- Renderer 不得调用 Node/Electron；Preload 只提供具名窄接口；Main 校验 IPC 来源及输入。Main 是业务、授权与持久提交权威；service 承载唯一 workflow 执行内核，在冻结授权内调度 VM、调用、有限重试和有序交付，事件经 Main Journal 确认，不复制第二套执行状态机。页面、文件和工具输出是数据，不能授予权限。
 - 取消必须停止新动作并核实执行器与所属进程停止；保留已产生修改。异常恢复先核对事实，不盲目重放副作用。
-- 本轮及初始化阶段不创建空业务目录、通用框架或第二模板；云账号、好友、订阅、多 Agent、实时协作、后台任务和生成 App 部署均不在首版范围。
+- 本轮及初始化阶段不创建空业务目录、通用框架或第二模板；云账号、好友、订阅、实时协作、后台任务和生成 App 部署仍不在当前范围。普通会话的 Harness/Profile 与 Workflow 隔离候选按各自合同接入；多方案、Board/Handoff、Bot/会议、Gemini/Cursor、remote 和 Ultra 仍属待分阶段实施目标，不能据路线文档扩展本次授权。同服务商账号自动轮换、Agent 直连与持久后台队列不做。
 
 ## 工作与交付
 

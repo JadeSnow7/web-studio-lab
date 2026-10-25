@@ -1,7 +1,7 @@
 # 当前运行时与目标架构的边界
 
-本次整合中的 OPS / Browser / Harness 说明描述候选源码接线；链接内既有检查、窗口和 live 记录均为对应日期与来源版本的历史证据，不是本候选的重新验证。当前类型、测试、构建、窗口及验收结果须以本次独立记录为准；虚拟补丁准备不构成运行通过。
-本记录以2026-10-13候选树为基础，后续切片在对应段落更新实际接线；本轮范围、审查修复、验证与未运行项见[当前 PR 说明](../acceptance/consolidation-20261011/PR.md)。[2026-10-11 整合记录](../acceptance/consolidation-20261011/README.md)保留当时的来源去向与验证边界。2026-10-08[INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)和[SR-1](../acceptance/space-remake/SPEC.md)保留各自源码基线与历史窗口证据，历史通过不能替代当前版本复验。
+本次整合中的 OPS / Browser / Harness 说明描述候选源码接线；链接内既有检查、窗口和 live 记录均为对应日期与来源版本的历史证据，不是本候选的重新验证。当前类型、测试、构建、窗口及验收结果须以本次独立记录为准；源码存在、离线检查和窗口验收分别记录。
+本文最初以 2026-10-13 候选树为基础；[当时的 PR 说明](../acceptance/consolidation-20261011/PR.md)只保留历史范围与结果。2026-10-25 的来源整合、修复与已执行检查见[本轮整合记录](../acceptance/consolidation-20261025/README.md)，最终构建、窗口和验收以仓库外回执为准。[2026-10-11 整合记录](../acceptance/consolidation-20261011/README.md)保留当时的来源去向与验证边界。2026-10-08[INTEGRATION-1](../acceptance/integration-20261008/SPEC.md)和[SR-1](../acceptance/space-remake/SPEC.md)保留各自源码基线与历史窗口证据，历史通过不能替代当前版本复验。
 
 ## 已有能力和缺口
 
@@ -30,7 +30,7 @@
 
 ## 4. Electron 安全基线
 
-当前 Browser 区承载演示页面、原生 HTTP/HTTPS 网站和当前空间受管沙箱应用，统一按不可信内容处理。[BROWSER-1](../acceptance/full-browser-20261023/SPEC.md) 按用户授权替代普通网页的只读文档模式；受管 App 控制面仍须服务身份健康检查和 Main 实例租约授权。本轮验证范围见[记录](../acceptance/full-browser-20261023/README.md)。
+当前 Browser 区承载演示页面、原生 HTTP/HTTPS 网站和当前空间受管沙箱应用，统一按不可信内容处理。[BROWSER-1](../acceptance/full-browser-20261023/SPEC.md) 按用户授权替代普通网页的只读文档模式；受管 App 控制面仍须服务身份健康检查和 Main 实例租约授权。2026-10-23 的历史验证范围见[当时记录](../acceptance/full-browser-20261023/README.md)；本轮复验范围另见整合记录。
 
 ### 4.1 窗口与视图配置
 
@@ -194,3 +194,23 @@ R5 edu 导出保留 main 已合入的线性有界编码检查、NFC/大小写路
 - 任务确认（B1 已实施）：`confirmTask` 必填 `appId: uuid | null` 与 `captureId | null`，`startRun` 仍只接收任务版本身份。`captureId` 必须等于本会话当前采集（属于他会话为 `denied`，过期或未知为 `conflict`），且目标必须是该采集的网页（否则 `invalid_input`）；网页目标必须带当前有效的 `captureId`，不能静默沿用会话采集（`conflict`）。`appId` 不等于本空间 App 时 `conflict`；`appId` 与会话保存的工程开关不一致时 `conflict`“工程开关已变化”；引用受管 App 页面却未开启工程时 `conflict`“引用的是 App 页面，需要开启工程或移除引用”；App 存在但 `managedApp.guestCwd` 为空时 `conflict`“App 尚未启动”；`guestCwd` 不是该工程在受管工作区中的目录（`/home/agent/workspace/.wsl-apps/{projectId}`）时 `denied`。被拒绝的确认不产生任务版本、写入登记或持久化变化，草稿不变。通过后冻结 `appTarget`（App 描述 + `guestCwd`）与页面证据；工程只来自 `appId`。有工程、无页面（或工程 + 普通网页 / 终端 / 文件目标）的版本与带 App 页面的版本一样在 `startRun` 登记项目写入（同项目执行互斥）、采集源码 baseline 并在结束后生成 diff。`startRun` 在任何副作用前拒绝（`conflict`）：冻结工程的 appId / projectId / guestCwd 与当前不一致（“任务 App 工程身份已失效”）；App 启动或停止进行中；重启时 App 恢复未经服务确认（持久化的 guestCwd 不作为依据，直到服务再次报告该 App）；引用受管 App 页面却没有冻结工程的历史版本（不从页面补推工程）。Profile 忙在创建执行前拒绝，不留下项目写入登记；未登录在启动准备时记录失败，不切换 Profile。恢复校验允许“有工程、无页面”及工程 + 其他目标；若目标是受管 App 页面须属于同一工程；冻结的 `guestCwd` 必须是该工程的受管目录；会话 `taskProject` 须属于本空间 App。重新运行已确认版本使用其冻结的工程，不随草稿开关变化。
 - 检查器能力（B4 已实施）：Main 经 `execution:get-status` 的 `ExecutionStatus.checker` 发布（不持久化，不进入 `workbench.json`）：`{ connected: true }` 或 `{ connected: false, reason: 'not_integrated' }`，当前恒为后者；它与 `runValidation` 写入的记录同源（`main/workbench/checker.ts`）。共享事实层只把“未接入 + `not_run`”映射为中性稳态“检查器未接入”，且不再产出“检查适用性未知”；运行中照旧为进行中，实际失败、失效与其他 `blocked`（含只有原因文字的历史记录）照旧，仍为问题。能力尚未读取时按原映射呈现，界面也不提供“运行检查”。`recordReview(accepted)` 仍要求 `passed` 且 `current`，没有 `accepted_unchecked`。
 - 未接入入口（B4 已实施）：`app:get-info` 的 `AppInfo.diagnostics` 与诊断通道同一判定（开发服务器或 `WSL_DEBUG_STATUS=1`，只在 Main）。为 false 时首页只有对话与近期空间，会话页没有“联系人与群聊”，任务页没有“演示记录”，通知栏没有“历史演示动态”；真实历史、观察结果与 W4 Harness / Profile 设置不受影响。renderer 不读环境变量，也不从 `studio.debug` 推断。
+
+## Workflow 源码边界与整合状态（2026-10-25）
+
+本节依据 I4 修复后、I5 文档前的冻结源码树 `720745f79355270de2926ff313fcfa54b4b8f42f`，记录已整合接线与离线检查边界。普通会话支持矩阵、Workflow 隔离矩阵、源码存在、自动复验与用户接受分别记录；本节不把旧执行记录改写成本次验证。
+
+- Main WorkflowApplication 受理人工命令、冻结授权/输入/路由范围、核对恢复与显式候选应用；SQLite Journal 是持久提交事实源，当前源码 schema 为 v4。WorkbenchApplication 保留 TaskVersion/TaskRun、项目写许可、Main edu/import 门禁与人工接受。
+- service 的 engine 创建唯一 workflow kernel，后者调度调用/attempt、有限重试、Profile 容量等待、VM 推进与有序交付；持久事件经 Main 确认。Main 与 service 不各建一套调度器。
+- 当前一条活动 workflow run，调用在途上限 4、每 Profile 单活动并有本次受理 run 内的有界 FIFO；不是持久后台任务队列。内部候选 merge 和用户 App 的显式 apply 是不同动作，后者核对项目写许可、来源与基线。
+- 实际隔离适配器仅 Codex native；已取得的历史真实运行证据仅覆盖 `codex:default`，当前候选未做真实多 Profile 矩阵验收；成员表由 Main 每次受理时冻结的 Profile 快照生成。Claude Code ACP 仅在普通会话注册，不能按名称加入 Workflow 隔离矩阵。MockHarness 3×2 等离线 fixture 不是真实多 Harness/Profile 验收，E8 未做。
+- WF-W8 的固定波次候选源码不等于 MHC-W8 Bot/会议。缓存登记/发布、停止竞态、固定波次绕过与退出清理已按独立红基准修复并在候选离线复验；真实窗口和最终构建仍待主代理执行，离线结果不能提前作为产品通过。WF-W9/Ultra 未实现、未运行，P2/P3 整阶段未据此接受。
+
+路线与原采纳决定见 [ADR-0003](adr/0003-pluggable-harness-and-collaboration.md)；Workflow 初始设计、执行记录分别见[方案入口](../design/workflow-runtime-20261024/README.md)与其链接。源码冻结点与本轮检查范围见本轮整合记录；主代理将在最终窗口完成后写仓库外验收回执，避免改动已测源码。
+
+### WF-W8 runtime 与关闭约束（2026-10-25）
+
+lane 只允许无未完成 helper 的真正顶层，或一个单层 parallel 的初始同步 thunk；异步延续、pipeline、嵌套与重叠 helper 的动态 options/别名 lane 在 host/cache 前拒绝。readonly 异步 helper 和已结清后的后续波次保留。VM 的 guard/host 使用同一个 JSON options 快照，host callback 不暴露为脚本 global；kernel 还拒绝前批 lane 未发布时的新 lane，所以静态 analyze 不是唯一执行权威。
+
+Main 是业务授权与持久事实提交 authority，service 是唯一执行 kernel：调用/attempt 调度、有限重试、按序交付和 VM 推进在 service，journal 事实经 Main 确认。关闭开始同时封 Main 与 service 的受理门、abort pending launch/source 操作，待已启动执行、发布、源码操作与 writer 结清后再按 workbench → chat 顺序收尾；journal/engine listener 保留到回执结清。已成功源码写入的合法回执不能被竞速的取消抹掉。
+
+未确认 guest 清理走 `WorkflowCleanupUnconfirmedError` 与内部 `workflow-cleanup-unconfirmed` 通知，done/stop 拒绝并保留 owner/Profile 占用，Main 投影 needs_reconciliation；同进程 live/未知受理 owner 不能人工标记 stopped 来解锁新运行。重启后的人工核对仍须先核实外部事实。失败沿现有退出确认报告，不能将普通 failed/stopped 当清理证明。实现与检查来源见本轮整合记录；这不构成最终窗口或用户接受。
