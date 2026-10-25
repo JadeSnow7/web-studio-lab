@@ -128,6 +128,7 @@ describe.skipIf(process.platform !== 'linux')('guest helper 的 stdin relay（W3
   it.each([
     [{ stdin: 'pipe' }, 'invalid stdin mode'],
     [{ stdin: 'relay', prompt: 'x' }, 'invalid stdin mode'],
+    [{ stdin: 'relay', duplex: true }, 'conflicting stdin modes'],
   ])('非法 stdin 声明 %j 在预检阶段拒绝', async (extra, message) => {
     const frames = await relay(
       { type: 'start', mode: 'codex', argv: [process.execPath, fakeAgent, 'reply'], ...extra },

@@ -9,7 +9,7 @@ test.skip(target !== 'build', 'Uses an isolated bootstrap and intercepted native
 for (const [name, original] of [
   ['invalid JSON', '{broken'],
   ['null sandbox', JSON.stringify({ version: 1, sandbox: null, apps: [] })],
-  ['future version', JSON.stringify({ version: 2, sandbox: fixtureSandbox, apps: [] })],
+  ['future version', JSON.stringify({ version: 99, sandbox: fixtureSandbox, apps: [] })],
 ] as const) {
   test(`exit preserves ${name}, supports cancel and successful retry after repair`, async () => {
     const userData = await mkdtemp(path.join(tmpdir(), 'wsl-shutdown-'));

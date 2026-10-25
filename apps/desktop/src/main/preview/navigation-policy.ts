@@ -17,3 +17,22 @@ export function isAllowedPreviewUrl(url: string, allowedOrigins: readonly string
   const origin = previewOriginOf(url);
   return origin !== null && allowedOrigins.includes(origin);
 }
+
+export function isAllowedManagedAppUrl(url: string, leaseUrl: string): boolean {
+  try {
+    const current = new URL(url);
+    const lease = new URL(leaseUrl);
+    return (
+      lease.protocol === 'http:' &&
+      lease.hostname === '127.0.0.1' &&
+      !!lease.port &&
+      !lease.username &&
+      !lease.password &&
+      current.origin === lease.origin &&
+      !current.username &&
+      !current.password
+    );
+  } catch {
+    return false;
+  }
+}

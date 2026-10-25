@@ -7,6 +7,7 @@ import { ChatConversationSchema, type ChatServiceMessage, type ChatServiceReques
 const fixture = vi.hoisted(() => ({
   start: vi.fn(),
   appShutdown: vi.fn<() => Promise<void>>(async () => undefined),
+  taskAdmission: vi.fn<(workspaceId: string | null) => Promise<void>>(async () => undefined),
 }));
 vi.mock('./sbx', () => ({
   SbxConnection: class {
@@ -20,6 +21,7 @@ vi.mock('./sbx', () => ({
 vi.mock('./app-service', () => ({
   AppService: class {
     shutdown = fixture.appShutdown;
+    assertTaskAdmission = fixture.taskAdmission;
   },
 }));
 vi.mock('./environment-resources', () => ({
@@ -83,6 +85,39 @@ async function host() {
 }
 const conversationId = 'conv-space-taskflow-demo-impl';
 describe('service request cancellation admission', () => {
+  it.each(['denied: edu tasks are not enabled', 'denied: source import ownership is pending'])(
+    'rejects RPC send before model startup for %s',
+    async (reason) => {
+      const test = await host();
+      const response = (id: string) => test.messages.find((message) => message.type === 'response' && message.id === id);
+      test.request({ id: 'register', method: 'register', payload: { conversationId, workspaceId: 'taskflow-demo' } });
+      test.request({ id: 'before', method: 'get', payload: { conversationId } });
+      await vi.waitFor(() => expect(response('before')).toBeDefined());
+      const prior = response('before');
+      if (prior?.type !== 'response') throw new Error('missing before receipt');
+      const before = ChatConversationSchema.parse(prior.result);
+      fixture.taskAdmission.mockRejectedValueOnce(new Error(reason));
+      test.request({
+        id: 'denied',
+        method: 'send',
+        payload: { conversationId, text: 'must not start', references: emptyReferences(conversationId), harness: CODEX_DEFAULT_TURN },
+      });
+      await vi.waitFor(() =>
+        expect(test.messages.find((message) => message.type === 'error' && message.id === 'denied')).toEqual({
+          type: 'error',
+          id: 'denied',
+          error: reason,
+        }),
+      );
+      expect(fixture.taskAdmission).toHaveBeenCalledExactlyOnceWith('taskflow-demo');
+      expect(fixture.start).not.toHaveBeenCalled();
+      test.request({ id: 'after', method: 'get', payload: { conversationId } });
+      await vi.waitFor(() => expect(response('after')).toBeDefined());
+      const received = response('after');
+      if (received?.type !== 'response') throw new Error('missing after receipt');
+      expect(ChatConversationSchema.parse(received.result)).toEqual(before);
+    },
+  );
   it.each(['cancel', 'shutdown'] as const)('%s bypasses queued sends before guest launch', async (method) => {
     const test = await host();
     test.request({ id: 'register', method: 'register', payload: { conversationId, workspaceId: 'taskflow-demo' } });

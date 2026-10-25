@@ -162,6 +162,8 @@ interface WorkspaceOverrides {
   fileHints?: unknown[];
   managedApp?: unknown;
   app?: unknown;
+  appImport?: unknown;
+  pendingAppImport?: unknown;
 }
 const environment = (environmentId: 'local' | 'sandbox' | 'ssh', overrides: Record<string, unknown> = {}) => ({
   environmentId,
@@ -654,6 +656,58 @@ describe('projectFacts: 受管 App', () => {
 
   it('instanceToken 为 appInstanceId', () => {
     expect(find(factsOf({ managedApp: managedApp() }), `app:${WS}:state`)!.instanceToken).toBe('app-1');
+  });
+
+  const pending = { previewId: '11111111-1111-4111-8111-111111111111', projectId: '33333333-3333-4333-8333-333333333333' };
+  const importView = (overrides: Record<string, unknown> = {}) => ({
+    ...pending,
+    phase: 'copying',
+    preview: null,
+    progress: { files: 0, bytes: 0 },
+    error: null,
+    canCancel: true,
+    canRetry: false,
+    published: false,
+    ...overrides,
+  });
+  const reservation = () => managedApp({ state: 'starting', appInstanceId: null, guestCwd: '', guestPort: null, cleanupConfirmed: false });
+  it.each([
+    ['scanning', 'progress', '正在检查导入来源…'],
+    ['copying', 'progress', '正在导入工程…'],
+    ['cancelling', 'progress', '正在取消并核对导入…'],
+    ['failed', 'unresolved', '工程导入未完成，身份已保留'],
+  ])('unpublished %s uses import facts without claiming service startup', (phase, kind, label) => {
+    const state = snapshot({ managedApp: reservation(), pendingAppImport: pending, appImport: importView({ phase }) });
+    const original = structuredClone(state);
+    const facts = projectFacts(input({ snapshot: state }));
+    expect(keys(facts)).toEqual([`app:${WS}:state`]);
+    expect(find(facts, `app:${WS}:state`)).toMatchObject({ kind, label, raw: { cleanupConfirmed: false } });
+    expect(facts.some((fact) => fact.label === '正在启动应用…')).toBe(false);
+    expect(state).toEqual(original);
+  });
+  it.each([
+    undefined,
+    { phase: 'failed', error: { code: 'import_recovery', message: '请核对导入副本状态' } },
+    { phase: 'starting' },
+    { previewId: '22222222-2222-4222-8222-222222222222', phase: 'copying' },
+    { projectId: '44444444-4444-4444-8444-444444444444', phase: 'copying' },
+    { previewId: '22222222-2222-4222-8222-222222222222', phase: 'starting', published: true },
+    { projectId: '44444444-4444-4444-8444-444444444444', phase: 'starting', published: true },
+  ])('missing, recovered or mismatched import evidence remains unresolved: %j', (view) => {
+    const fact = find(
+      factsOf({ managedApp: reservation(), pendingAppImport: pending, appImport: view ? importView(view) : null }),
+      `app:${WS}:state`,
+    );
+    expect(fact).toMatchObject({ phase: 'unknown', kind: 'unresolved', label: '工程导入结果待核对' });
+    expect(fact?.action).toBeUndefined();
+  });
+  it.each([
+    { pendingAppImport: null, appImport: importView({ published: true, phase: 'starting' }) },
+    { pendingAppImport: pending, appImport: importView({ published: true, phase: 'starting' }) },
+    { pendingAppImport: { ...pending, projectId: '44444444-4444-4444-8444-444444444444' }, appImport: importView() },
+  ])('published service startup and unrelated reservations keep the original service fact: %j', (imports) => {
+    const fact = find(factsOf({ managedApp: managedApp({ state: 'starting' }), ...imports }), `app:${WS}:state`);
+    expect(fact).toMatchObject({ phase: 'pending', kind: 'progress', label: '正在启动应用…', instanceToken: 'app-1' });
   });
 });
 

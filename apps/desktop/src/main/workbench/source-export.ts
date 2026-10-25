@@ -1,9 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { lstat, mkdir, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { AppSourceSchema, AppTargetSchema, type AppSource, type AppTarget } from '@wsl/protocol';
+import { AppSourceSchema, AppTargetSchema, EDU_REQUIRED_FILES, isEduSourcePath, type AppSource, type AppTarget } from '@wsl/protocol';
 
-/** Standard-app export: validate the complete input before creating any output. */
+const sourceHash = (content: Buffer | string) => createHash('sha256').update(content).digest('hex');
+
+/** Managed-app export: validate the complete input before creating any output. */
 export async function exportAppSource(directory: string, target: AppTarget, supplied: AppSource) {
   const identity = AppTargetSchema.parse(target);
   const source = AppSourceSchema.parse(supplied);
@@ -30,6 +32,35 @@ export async function exportAppSource(directory: string, target: AppTarget, supp
     }
     return { path: file.path, bytes: Buffer.from(file.base64, 'base64') };
   });
+  const exportId = randomUUID();
+  let manifest: unknown = { ...identity, ...source };
+  let sha256 = source.sha256;
+  const edu = source.profile?.projectKind === 'edu-web' ? source.profile.source : null;
+  if (edu) {
+    if (
+      decoded.some((file) => !isEduSourcePath(file.path)) ||
+      EDU_REQUIRED_FILES.some((file) => !decoded.some((entry) => entry.path === file))
+    )
+      throw new Error('edu 导出文件不符合 profile');
+    if (sourceHash(JSON.stringify(edu.files)) !== edu.sourceSha256) throw new Error('edu 导入基线散列不匹配');
+    const files = decoded
+      .map((file) => ({ path: file.path, sha256: sourceHash(file.bytes), bytes: file.bytes.length }))
+      .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+    const protectedFiles = (items: typeof files) => items.filter((file) => !file.path.startsWith('admin/src/'));
+    if (JSON.stringify(protectedFiles(files)) !== JSON.stringify(protectedFiles(edu.files)))
+      throw new Error('edu 后端或锁文件变化，需要显式重新导入来源');
+    sha256 = sourceHash(JSON.stringify(files));
+    manifest = {
+      schemaVersion: 1,
+      projectKind: 'edu-web',
+      profileVersion: 1,
+      sourceKind: 'workbench-export',
+      repository: { commit: edu.repository.commit, dirty: edu.repository.dirty || sha256 !== edu.sourceSha256 },
+      sourceSha256: sha256,
+      files,
+      workbench: { ...target, environmentId: 'sandbox', exportId, exportedAt: new Date().toISOString(), importBase: edu },
+    };
+  }
   // Resolve an existing ancestor without creating missing directories. Textual aliases
   // such as /var can expand, so pathname limits apply to the actual destination.
   let resolvedDirectory = path.resolve(directory);
@@ -48,22 +79,24 @@ export async function exportAppSource(directory: string, target: AppTarget, supp
       resolvedDirectory = parent;
     }
   }
-  const output = path.join(resolvedDirectory, identity.projectId + '-' + randomUUID());
-  const manifestPath = output + '.manifest.json';
+  const output = path.join(resolvedDirectory, identity.projectId + '-' + exportId);
+  const root = edu ? path.join(output, 'source') : output;
+  const manifestPath = edu ? path.join(output, 'manifest.json') : output + '.manifest.json';
   // The supported macOS runtime has PATH_MAX=1024, including the terminating NUL.
   if (
     process.platform === 'darwin' &&
-    [output, manifestPath, ...decoded.map((file) => path.join(output, file.path))].some((file) => Buffer.byteLength(file) >= 1024)
+    [output, root, manifestPath, ...decoded.map((file) => path.join(root, file.path))].some((file) => Buffer.byteLength(file) >= 1024)
   )
     throw new Error('源码导出完整路径超出系统长度限制');
   // All input and predictable path checks precede the first mkdir; I/O failures are not transactional.
   await mkdir(resolvedDirectory, { recursive: true, mode: 0o700 });
   await mkdir(output, { mode: 0o700 });
+  if (edu) await mkdir(root, { mode: 0o700 });
   for (const file of decoded) {
-    const destination = path.join(output, file.path);
+    const destination = path.join(root, file.path);
     await mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
     await writeFile(destination, file.bytes, { flag: 'wx', mode: 0o600 });
   }
-  await writeFile(manifestPath, JSON.stringify({ ...identity, ...source }, null, 2), { flag: 'wx', mode: 0o600 });
-  return { path: output, manifestPath, sha256: source.sha256 };
+  await writeFile(manifestPath, JSON.stringify(manifest, null, 2), { flag: 'wx', mode: 0o600 });
+  return { path: root, manifestPath, sha256 };
 }
