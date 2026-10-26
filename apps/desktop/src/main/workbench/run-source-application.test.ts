@@ -764,9 +764,10 @@ describe('Main source evidence lifecycle', () => {
             (await f.command({ type: 'captureContext', sessionId: p.session.sessionId, resourceId: browser.resourceId, requestId })).ok,
           ).toBe(true);
           const currentBrowser = required((await f.owner()).resources.find((resource) => resource.resourceId === browser.resourceId));
+          const captureId = randomUUID();
           f.app.onCapture(
             browser.resourceId,
-            { ...required(p.version.capture), captureId: randomUUID() },
+            { ...required(p.version.capture), captureId },
             currentBrowser.instanceId,
             currentBrowser.generation,
             requestId,
@@ -779,6 +780,8 @@ describe('Main source evidence lifecycle', () => {
                 sessionId: p.session.sessionId,
                 goal: 'next run',
                 targetRef: { kind: 'web', resourceId: browser.resourceId },
+                appId: required((await f.owner()).app).appId,
+                captureId,
               })
             ).ok,
           ).toBe(true);
