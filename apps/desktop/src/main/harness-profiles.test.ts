@@ -192,12 +192,14 @@ describe('HarnessProfileService（W4a）', () => {
   });
 
   it('执行服务第一次可用时为全部 Profile 各自检一次，之后的状态更新不重复', async () => {
-    const { profiles, rt } = await service();
+    const { store, profiles, rt } = await service();
     const status = { available: true, reason: null, version: 'v', sandbox: 's', cwd: '/w', harnesses: rt.harnesses() };
     profiles.onStatus({ ...status, available: false });
     expect(rt.checkProfile).not.toHaveBeenCalled();
     profiles.onStatus(status);
     profiles.onStatus(status);
     await vi.waitFor(() => expect(rt.checkProfile).toHaveBeenCalledTimes(2));
+    // 自检在后台写入文件；等结果都已写入再结束，否则 afterEach 删除临时目录时可能与写入竞争（ENOTEMPTY）。
+    await vi.waitFor(() => expect(store.get().profiles.every((profile) => profile.check !== null)).toBe(true));
   });
 });
