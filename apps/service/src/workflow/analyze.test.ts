@@ -151,4 +151,32 @@ describe('analyzeScript (合同 §1)', () => {
   it('W8: lane at top level stays allowed', () => {
     expect(analyzeScript(laneMain(`return agent('a', { isolation: 'lane' });`)).ok).toBe(true);
   });
+
+  // —— W9 meta.ultra 布尔门禁（fail-closed）——
+
+  it('W9: meta.ultra boolean literals accepted and surfaced', () => {
+    for (const ultra of ['true', 'false']) {
+      const r = analyzeScript(
+        `export const meta = { name: 't', description: 'd', ultra: ${ultra} };\nexport default async function main() {}`,
+      );
+      expect(r.ok).toBe(true);
+      if (r.ok) expect(r.meta.ultra).toBe(ultra === 'true');
+    }
+  });
+
+  it('W9: meta.ultra absent defaults to undefined (non-ultra)', () => {
+    const r = analyzeScript(`export const meta = ${META};\nexport default async function main() {}`);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.meta.ultra).toBeUndefined();
+  });
+
+  for (const bad of ["'true'", '1', '0', 'null', '"ultra"', 'FLAG', '{ }']) {
+    it(`W9: meta.ultra non-boolean literal ${bad} is rejected`, () => {
+      const r = analyzeScript(
+        `export const meta = { name: 't', description: 'd', ultra: ${bad} };\nexport default async function main() {}`,
+      );
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.code).toBe('script_rejected');
+    });
+  }
 });

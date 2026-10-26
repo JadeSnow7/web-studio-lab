@@ -59,8 +59,11 @@ export interface NativeHarnessAdapter {
    * 隔离执行对应的命令行（W3/W6a）。未实现或返回 null 表示该隔离级别对本 Harness 不可用。
    * readonly 只允许比 argv() 更收紧的沙箱；lane 在独立 attempt 候选目录内可写，但不得指向
    * 用户项目 checkout 或其他 run 的状态。返回 argv 即视为一次性调用，不带续会话参数。
+   * W9：execution 是调用级推理选项（effective.model/tier，已由内核校验与冻结）；
+   * 适配器把它翻译成 CLI 开关，表达不出的组合返回 null——调用以 unsupported_option
+   * 失败而不派发。缺省 execution 时行为与既有版本一致。
    */
-  argvForIsolation?(isolation: WorkflowIsolation): string[] | null;
+  argvForIsolation?(isolation: WorkflowIsolation, execution?: { model?: string; tier?: 'small' | 'medium' | 'big' }): string[] | null;
   /**
    * 解析一行输出。返回 null 表示不是本协议的已知事件（忽略且不发布快照）；
    * 返回数组（可为空）表示已知事件。字段缺失等协议违约直接抛出 Error，由执行核心记为协议错误。

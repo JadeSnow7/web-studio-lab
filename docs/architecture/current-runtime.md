@@ -199,11 +199,11 @@ R5 edu 导出保留 main 已合入的线性有界编码检查、NFC/大小写路
 
 本节依据 I4 修复后、I5 文档前的冻结源码树 `720745f79355270de2926ff313fcfa54b4b8f42f`，记录已整合接线与离线检查边界。普通会话支持矩阵、Workflow 隔离矩阵、源码存在、自动复验与用户接受分别记录；本节不把旧执行记录改写成本次验证。
 
-- Main WorkflowApplication 受理人工命令、冻结授权/输入/路由范围、核对恢复与显式候选应用；SQLite Journal 是持久提交事实源，当前源码 schema 为 v4。WorkbenchApplication 保留 TaskVersion/TaskRun、项目写许可、Main edu/import 门禁与人工接受。
+- Main WorkflowApplication 受理人工命令、冻结授权/输入/路由范围、核对恢复与显式候选应用；SQLite Journal 是持久提交事实源，W8 冻结源码 schema 为 v4；本次 W9 增量升级为 v5，新增默认关闭的 ultra 展示字段。WorkbenchApplication 保留 TaskVersion/TaskRun、项目写许可、Main edu/import 门禁与人工接受。
 - service 的 engine 创建唯一 workflow kernel，后者调度调用/attempt、有限重试、Profile 容量等待、VM 推进与有序交付；持久事件经 Main 确认。Main 与 service 不各建一套调度器。
 - 当前一条活动 workflow run，调用在途上限 4、每 Profile 单活动并有本次受理 run 内的有界 FIFO；不是持久后台任务队列。内部候选 merge 和用户 App 的显式 apply 是不同动作，后者核对项目写许可、来源与基线。
 - 实际隔离适配器仅 Codex native；已取得的历史真实运行证据仅覆盖 `codex:default`，当前候选未做真实多 Profile 矩阵验收；成员表由 Main 每次受理时冻结的 Profile 快照生成。Claude Code ACP 仅在普通会话注册，不能按名称加入 Workflow 隔离矩阵。MockHarness 3×2 等离线 fixture 不是真实多 Harness/Profile 验收，E8 未做。
-- WF-W8 的固定波次候选源码不等于 MHC-W8 Bot/会议。缓存登记/发布、停止竞态、固定波次绕过与退出清理已按独立红基准修复并在候选离线复验；真实窗口和最终构建仍待主代理执行，离线结果不能提前作为产品通过。WF-W9/Ultra 未实现、未运行，P2/P3 整阶段未据此接受。
+- WF-W8 的固定波次候选源码不等于 MHC-W8 Bot/会议。缓存登记/发布、停止竞态、固定波次绕过与退出清理已按独立红基准修复并在候选离线复验；真实窗口和最终构建仍待主代理执行，离线结果不能提前作为产品通过。上述是 W8 冻结时的边界；本次 W9 接线范围见下节，P2/P3 整阶段仍未据此接受。
 
 路线与原采纳决定见 [ADR-0003](adr/0003-pluggable-harness-and-collaboration.md)；Workflow 初始设计、执行记录分别见[方案入口](../design/workflow-runtime-20261024/README.md)与其链接。源码冻结点与本轮检查范围见本轮整合记录；主代理将在最终窗口完成后写仓库外验收回执，避免改动已测源码。
 
@@ -214,3 +214,14 @@ lane 只允许无未完成 helper 的真正顶层，或一个单层 parallel 的
 Main 是业务授权与持久事实提交 authority，service 是唯一执行 kernel：调用/attempt 调度、有限重试、按序交付和 VM 推进在 service，journal 事实经 Main 确认。关闭开始同时封 Main 与 service 的受理门、abort pending launch/source 操作，待已启动执行、发布、源码操作与 writer 结清后再按 workbench → chat 顺序收尾；journal/engine listener 保留到回执结清。已成功源码写入的合法回执不能被竞速的取消抹掉。
 
 未确认 guest 清理走 `WorkflowCleanupUnconfirmedError` 与内部 `workflow-cleanup-unconfirmed` 通知，done/stop 拒绝并保留 owner/Profile 占用，Main 投影 needs_reconciliation；同进程 live/未知受理 owner 不能人工标记 stopped 来解锁新运行。重启后的人工核对仍须先核实外部事实。失败沿现有退出确认报告，不能将普通 failed/stopped 当清理证明。实现与检查来源见本轮整合记录；这不构成最终窗口或用户接受。
+
+### WF-W9 推理档与 Ultra 标记（2026-10-25 分批整合）
+
+本次仅整合 W9 的 20 路径源码增量，来源为原 dirty 工作树的冻结快照与 observation-01/03 哈希核验，不以其 HEAD 代替 dirty 基准。W8 的执行所有权、清理未确认优先级、Profile 占用和 source-apply 回执保护保持不变。
+
+- `opts.tier` / `opts.model` 冻结到 `effective` 与 `contentKey`，由 `argvForIsolation(isolation, execution?)` 翻译为 Codex CLI 参数：small/medium/big 分别映射 low/medium/high，model 经 `-m` 传递。路由解析后以 `checkExecution` 做登记期表达力核对；不支持的组合在 attempt_start 前拒绝，执行入口仍保留 argv 拒绝保护。
+- `meta.ultra` 只接受布尔字面量，默认关闭；内核在 run 事件回显，Main Journal v5 迁移并投影为 UI 徽标。该标记不绕过批准、不增加预算、不改变路由，也不注入指挥提示；`ULTRA_DIRECTOR_HINT` 仅为协议导出文案。
+- 本批不包含 E9 报告工具、E8 runner、原始 live 材料。E9 已发现把同一 task/pair 重复记录判为 sufficient / meets_gate 的门槛缺陷，未修复、未验收，不能据其报告批准默认启用 Ultra。
+- 当前验证限于静态、离线单测、fixture 证据断言与构建；W9 的 Electron 窗口、真实模型、guest 和付费调用均未运行。历史 W9/E8 执行陈述不构成本批结果，仍继承 Harness #18/#22/#23 审查阻塞。
+
+具体范围、来源和未运行项见 [W9 分批记录](../design/workflow-runtime-20261024/record-w9.md)。

@@ -11,6 +11,19 @@ import { SOURCE_DIFF_MAX_FILES, SOURCE_PATCH_MAX_BYTES, SourceChangeFileSchema }
 /** DSL 版本：变更使既有缓存与运行身份失效（合同 §1/§7）。 */
 export const WORKFLOW_DSL_VERSION = 'lab-workflow/1';
 
+/**
+ * W9 Ultra 指挥提示的 canonical 文案：供未来的指挥侧（director）实现与文档引用，
+ * 固定文本保证各组/各次实验条件可比。当前版本不注入任何会话——导出仅供引用，
+ * meta.ultra 只是 run 的受理标记，不改变审批、预算或路由。
+ * 语义要点：先判断任务是否值得编排（不值得就退化为单 Agent 直跑），
+ * 值得才生成确定性 workflow 计划，且规划/重试/停止/恢复全部计入同一总预算。
+ */
+export const ULTRA_DIRECTOR_HINT =
+  '先判断这个任务是否值得编排：不值得就直接以单个 Agent 调用完成，不制造多余编排。' +
+  '值得时，生成一个确定性的 workflow 计划：声明 phases，把可并行的只读调用放进固定波次，' +
+  '写操作走 lane 隔离并按调用序号合并候选。规划、失败重试、被停止调用与恢复全部计入同一总预算，' +
+  '不得为通过验收而超支或绕过审批。';
+
 /** W6a：调用隔离词汇——readonly 只读；lane 从固定输入物化独立 attempt 候选目录并发布候选快照。 */
 export const WorkflowIsolationSchema = z.enum(['readonly', 'lane']);
 export type WorkflowIsolation = z.infer<typeof WorkflowIsolationSchema>;
@@ -81,6 +94,11 @@ const WorkflowRunEventSchema = z.object({
   baseTree: tree.optional(),
   /** W6a：候选发布面向的应用目标；缺省为合成身份。 */
   appTarget: AppTargetSchema.optional(),
+  /**
+   * W9：脚本 meta.ultra === true 时回显。Ultra 只是 run 的受理/展示标记：
+   * 不跳过审批、不改变预算、不改变路由（零特权语义见 record-w9）。
+   */
+  ultra: z.boolean().optional(),
 });
 
 const WorkflowPhaseEventSchema = z.object({
@@ -365,6 +383,8 @@ export const WorkflowRunRowSchema = z
     writes: z.boolean(),
     /** W6b：本次执行实际绑定的受管 App；命令含 lane 但当时无受管 App 时为 null（lane 调用得 unavailable）。 */
     appTarget: AppTargetSchema.nullable(),
+    /** W9：脚本 meta.ultra === true 的 Ultra 标记（零特权，仅展示/实验分组）。 */
+    ultra: z.boolean(),
   })
   .strict();
 export type WorkflowRunRow = z.infer<typeof WorkflowRunRowSchema>;

@@ -4,6 +4,7 @@ import type { GuestFrame, GuestOutcome, GuestStart } from '../sbx';
 import type { HarnessEvent, NativeHarnessAdapter } from '../harness/types';
 import { codexAdapter } from '../harness/codex/adapter';
 import { WorkflowCleanupUnconfirmedError, type CallEvent, type WorkflowCall } from './call-adapter';
+import { contentKey } from './contract';
 import { IsolatedGuestAdapter, type GuestProcessLike, type IsolatedGuestAdapterDeps } from './isolated-guest-adapter';
 
 // W3 只读 guest 适配器：伪 GuestProcessLike 记录启动规格、按测试推送帧、
@@ -495,4 +496,125 @@ it('return gives a typed cleanup rejection priority over a simultaneous ordinary
   } finally {
     execution.mockRestore();
   }
+});
+
+describe('W9 推理档路由（argvForIsolation execution 形参）', () => {
+  it('tier → model_reasoning_effort 映射：small→low、medium→medium、big→high', () => {
+    const expected = { small: 'low', medium: 'medium', big: 'high' } as const;
+    for (const [tier, effort] of Object.entries(expected)) {
+      const argv = codexAdapter.argvForIsolation?.('readonly', { tier: tier as 'small' | 'medium' | 'big' });
+      expect(argv).toEqual([
+        'codex',
+        'exec',
+        '--sandbox',
+        'read-only',
+        '--json',
+        '--skip-git-repo-check',
+        '-c',
+        `model_reasoning_effort=${effort}`,
+        '-',
+      ]);
+    }
+  });
+
+  it('model → -m 原样透传；model+tier 不同帧（validateOpts 已互斥，单测分别覆盖）', () => {
+    expect(codexAdapter.argvForIsolation?.('readonly', { model: 'gpt-5.2-codex' })).toEqual([
+      'codex',
+      'exec',
+      '--sandbox',
+      'read-only',
+      '--json',
+      '--skip-git-repo-check',
+      '-m',
+      'gpt-5.2-codex',
+      '-',
+    ]);
+    // model 与 tier 同时给出时同帧组合（防御路径；互斥在 validateOpts 保证）。
+    const both = codexAdapter.argvForIsolation?.('lane', { model: 'm1', tier: 'big' });
+    expect(both).toEqual([
+      'codex',
+      'exec',
+      '--sandbox',
+      'workspace-write',
+      '--json',
+      '--skip-git-repo-check',
+      '-m',
+      'm1',
+      '-c',
+      'model_reasoning_effort=high',
+      '-',
+    ]);
+  });
+
+  it('无 execution 时 argv 与既有版本逐位一致（readonly/lane）', () => {
+    expect(codexAdapter.argvForIsolation?.('readonly')).toEqual([
+      'codex',
+      'exec',
+      '--sandbox',
+      'read-only',
+      '--json',
+      '--skip-git-repo-check',
+      '-',
+    ]);
+    expect(codexAdapter.argvForIsolation?.('lane')).toEqual([
+      'codex',
+      'exec',
+      '--sandbox',
+      'workspace-write',
+      '--json',
+      '--skip-git-repo-check',
+      '-',
+    ]);
+    expect(codexAdapter.argvForIsolation?.('shared' as 'readonly', { tier: 'small' })).toBeNull();
+  });
+
+  it('effective.tier 经 WorkflowCall 透传进 start argv', async () => {
+    const { adapter, spawned } = rig({ harness: codexAdapter });
+    const iterator = adapter.run(call({ effective: { harness: 'codex', tier: 'big' } }), NEVER)[Symbol.asyncIterator]();
+    const first = iterator.next();
+    expect(spawned[0]!.spec).toMatchObject({ argv: expect.arrayContaining(['model_reasoning_effort=high']) });
+    spawned[0]!.proc.settle(clean);
+    await first;
+  });
+
+  it('effective.model 经 WorkflowCall 透传进 start argv（-m 开关）', async () => {
+    const { adapter, spawned } = rig({ harness: codexAdapter });
+    const iterator = adapter.run(call({ effective: { harness: 'codex', model: 'gpt-5.2-codex' } }), NEVER)[Symbol.asyncIterator]();
+    const first = iterator.next();
+    expect(spawned[0]!.spec).toMatchObject({
+      argv: ['codex', 'exec', '--sandbox', 'read-only', '--json', '--skip-git-repo-check', '-m', 'gpt-5.2-codex', '-'],
+    });
+    spawned[0]!.proc.settle(clean);
+    await first;
+  });
+
+  it('argv 组装返回 null（组合表达不出）→ run() 入口 failed{unsupported_option}，不 spawn', async () => {
+    const harness = stubHarness({ argvForIsolation: (isolation) => (isolation === 'readonly' ? null : ['stub']) });
+    const { adapter, spawned } = rig({ harness });
+    const iterator = adapter.run(call({ effective: { harness: 'stub', tier: 'small' } }), NEVER)[Symbol.asyncIterator]();
+    expect((await iterator.next()).value).toMatchObject({ type: 'failed', code: 'unsupported_option' });
+    expect(spawned).toHaveLength(0);
+  });
+
+  it('checkExecution：可表达 → null；argv null → RouteRejection{unsupported_option}', () => {
+    const { adapter } = rig();
+    expect(adapter.checkExecution({ harness: 'stub', isolation: 'readonly' })).toBeNull();
+    expect(adapter.checkExecution({ harness: 'stub', isolation: 'readonly', tier: 'small' })).toBeNull();
+    const rejecting = rig({ harness: stubHarness({ argvForIsolation: () => null }) });
+    expect(rejecting.adapter.checkExecution({ harness: 'stub', isolation: 'readonly', model: 'm' })).toMatchObject({
+      code: 'unsupported_option',
+    });
+  });
+
+  it('tier/model 冻结进 effective → contentKey 分区（续跑换档不命中缓存）', () => {
+    const base = { prompt: 'p', schema: undefined, label: null, tools: [] as string[], isolation: 'readonly' as const };
+    const keyOf = (effective: Record<string, unknown>) => contentKey({ ...base, effective });
+    const plain = keyOf({ harness: 'codex' });
+    expect(keyOf({ harness: 'codex', tier: 'big' })).not.toBe(plain);
+    expect(keyOf({ harness: 'codex', tier: 'small' })).not.toBe(keyOf({ harness: 'codex', tier: 'big' }));
+    expect(keyOf({ harness: 'codex', model: 'm1' })).not.toBe(plain);
+    expect(keyOf({ harness: 'codex', model: 'm1' })).not.toBe(keyOf({ harness: 'codex', model: 'm2' }));
+    // 同档位同模型同键（缓存命中方向不变）。
+    expect(keyOf({ harness: 'codex', tier: 'big' })).toBe(keyOf({ harness: 'codex', tier: 'big' }));
+  });
 });

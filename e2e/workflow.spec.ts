@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
@@ -277,6 +278,77 @@ export default async function main() {
   await expect(conflictRow).toContainText('conflict');
   await expect(conflictRow).toContainText('shared.txt');
   await windowShots(app, page, 'workflow-wave-conflict');
+});
+
+function hasW9ReasoningArgv(log: string, runId: string): boolean {
+  return log
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .some((line) => {
+      const entry: unknown = JSON.parse(line);
+      return (
+        typeof entry === 'object' &&
+        entry !== null &&
+        'runId' in entry &&
+        entry.runId === runId &&
+        'mode' in entry &&
+        entry.mode === 'codex' &&
+        'argv' in entry &&
+        Array.isArray(entry.argv) &&
+        entry.argv.includes('model_reasoning_effort=high')
+      );
+    });
+}
+
+test('W9：tier 档位经 argv 到达 guest（model_reasoning_effort）+ Ultra 徽标可见', async () => {
+  const sandbox = `fixture-w9-${randomUUID()}`;
+  ({ app, page } = await launchApp({ sbxBin, sandbox }));
+  await workshopNavigate(page, '工作流');
+
+  // saved 命令：meta.ultra=true + tier:'big' 调用——批准绑定照常（ultra 零特权）。
+  await page.getByRole('button', { name: '新建命令' }).click();
+  await page.getByLabel('命令名称').fill('W9 档位与 Ultra');
+  await page.getByLabel('命令脚本').fill(
+    `export const meta = { name: 'W9 档位与 Ultra', description: 'tier big + ultra 标记', ultra: true };
+export default async function main() {
+  const r = await agent('给出一句话', { label: '档位调用', tier: 'big' });
+  return { ok: r.status === 'ok' };
+}
+`,
+  );
+  await page.getByLabel('命令 args').fill('{}');
+  await page.getByLabel('命令时限').fill('60000');
+  await page.getByRole('button', { name: '保存命令', exact: true }).click();
+  const card = page.locator('.workflow-card', { hasText: 'W9 档位与 Ultra' }).last();
+  await card.getByRole('button', { name: '批准' }).click();
+  await card.getByRole('button', { name: '运行' }).click();
+  const row = page.getByRole('button', { name: /W9 档位与 Ultra · / }).first();
+  await expect(row).toBeVisible({ timeout: 15000 });
+  const runId = await row.getAttribute('title');
+  if (runId === null) throw new Error('W9 run row is missing its runId');
+  // Ultra 徽标：run 行与详情都标记（零特权，仅展示/实验分组）。
+  await expect(row).toContainText('Ultra', { timeout: 15000 });
+  await row.click();
+  await expect(detail()).toContainText('已完成', { timeout: 30000 });
+  await expect(detail().locator('[data-ultra-badge]')).toContainText('Ultra');
+  await expect(detail().locator('[data-call-seq="1"]')).toContainText('ok');
+
+  // fixture 记录的 start argv：tier:'big' 映射为 model_reasoning_effort=high。
+  const argvLog = path.join(tmpdir(), `wsl-sbx-argv-${sandbox}.jsonl`);
+  await expect
+    .poll(
+      async () => {
+        try {
+          return hasW9ReasoningArgv(await readFile(argvLog, 'utf8'), runId);
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 15000 },
+    )
+    .toBe(true);
+  await windowShots(app, page, 'workflow-w9-tier-ultra');
 });
 
 test('强制杀死所属 Electron：重启后 needs_reconciliation → 标记已停止 → 可续跑', async ({ browserName: _browserName }, testInfo) => {

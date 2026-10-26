@@ -92,6 +92,18 @@ if (dependencyRequest?.startsWith('{')) {
     fs.writeFileSync(collectCountPath(runId), String(n));
     return n;
   };
+  // W9：每次 start 把 argv 追加到 tmpdir 的 JSONL——E2E 据此断言推理档/模型开关真实到达 guest。
+  const argvLogPath = path.join(tmpdir(), `wsl-sbx-argv-${sandbox}.jsonl`);
+  const recordArgv = (value) => {
+    try {
+      fs.appendFileSync(
+        argvLogPath,
+        JSON.stringify({ runId: value.workspace?.runId ?? null, mode: value.mode ?? null, argv: value.argv ?? [] }) + '\n',
+      );
+    } catch {
+      // 记录失败不影响 fixture 协议本身。
+    }
+  };
   // W3b relay：在本机启动 argv 指定的进程（测试中是确定性的假 ACP Agent），转发 input / input-end；不运行 guest 或模型。
   let relayChild = null;
   /** W6b：app-helper 操作——argv 为 python3 -c <helper>，prompt 是 JSON 请求；工程文件集持久化。 */
@@ -291,6 +303,7 @@ if (dependencyRequest?.startsWith('{')) {
     }
     if (value.type === 'start') {
       mode = value.mode;
+      recordArgv(value);
       frame({ type: 'ready', pid: process.pid });
       if (mode === 'terminal') {
         size = `${value.rows} ${value.cols}`;

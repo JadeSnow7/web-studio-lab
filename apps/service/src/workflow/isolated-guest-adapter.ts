@@ -2,7 +2,7 @@ import type { ProfileDir, WorkflowInputFile, WorkflowRunInput } from '@wsl/proto
 import type { GuestFrame, GuestOutcome, GuestProcess, GuestStart } from '../sbx';
 import type { HarnessEvent, NativeHarnessAdapter } from '../harness/types';
 import { WorkflowCleanupUnconfirmedError } from './call-adapter';
-import type { CallEvent, CallUsage, WorkflowCall, WorkflowCallAdapter } from './call-adapter';
+import type { CallEvent, CallUsage, ExecutionCapabilityRequest, RouteRejection, WorkflowCall, WorkflowCallAdapter } from './call-adapter';
 
 /** SbxConnection.start 返回进程的最小面：完成回执、清理关闭与写帧。 */
 export type GuestProcessLike = Pick<GuestProcess, 'done' | 'close' | 'write'>;
@@ -49,6 +49,34 @@ export class IsolatedGuestAdapter implements WorkflowCallAdapter {
 
   constructor(private readonly deps: IsolatedGuestAdapterDeps) {
     this.harnessId = deps.harness.harnessId;
+  }
+
+  /**
+   * W9：登记期表达力核对——isolation+model/tier 组不出 argv 时按 unsupported_option
+   * 在 attempt_start 之前拒绝（内核同路径处理，不消耗注定丢弃的执行）。
+   */
+  checkExecution(request: ExecutionCapabilityRequest): RouteRejection | null {
+    const argv = this.argvFor(request.isolation, request);
+    if (argv !== null && argv.length > 0) return null;
+    return {
+      code: 'unsupported_option',
+      message:
+        request.model !== undefined || request.tier !== undefined
+          ? `${this.deps.harness.label} 无法表达 ${request.isolation} 隔离与指定 model/tier 组合`
+          : `${this.deps.harness.label} 不提供 ${request.isolation} 隔离能力`,
+    };
+  }
+
+  /** 调用级 execution 参数（effective.model/tier）→ 隔离 argv；两字段缺省时按无 execution 调用。 */
+  private argvFor(isolation: WorkflowCall['isolation'], execution: { model?: string; tier?: 'small' | 'medium' | 'big' }) {
+    const options =
+      execution.model !== undefined || execution.tier !== undefined
+        ? {
+            ...(execution.model !== undefined ? { model: execution.model } : {}),
+            ...(execution.tier !== undefined ? { tier: execution.tier } : {}),
+          }
+        : undefined;
+    return this.deps.harness.argvForIsolation?.(isolation, options) ?? null;
   }
 
   run(call: WorkflowCall, signal: AbortSignal): AsyncIterable<CallEvent> {
@@ -100,9 +128,15 @@ export class IsolatedGuestAdapter implements WorkflowCallAdapter {
       yield { type: 'failed', code: 'unsupported_option', message: `isolation ${String(call.isolation)} 不受支持` };
       return;
     }
-    const argv = harness.argvForIsolation?.(call.isolation) ?? null;
-    if (!argv || argv.length === 0) {
-      yield { type: 'failed', code: 'unsupported_option', message: `${harness.label} 不提供 ${call.isolation} 隔离能力` };
+    // W9：run() 入口兜底判定——登记期 checkExecution 已早拒绝的情形不会到这里；
+    // 适配器绕过登记或表达力在执行期变化时，argv 组不出仍在 spawn 前失败。
+    const argv = this.argvFor(call.isolation, call.effective);
+    if (argv === null || argv.length === 0) {
+      const reason =
+        call.effective.model !== undefined || call.effective.tier !== undefined
+          ? `${harness.label} 无法表达 ${call.isolation} 隔离与指定 model/tier 组合`
+          : `${harness.label} 不提供 ${call.isolation} 隔离能力`;
+      yield { type: 'failed', code: 'unsupported_option', message: reason };
       return;
     }
 

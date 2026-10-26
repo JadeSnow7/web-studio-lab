@@ -444,6 +444,8 @@ class Kernel {
       status: 'running',
       baseTree: this.baseTree ?? undefined,
       appTarget: this.appTarget ?? undefined,
+      // W9：meta.ultra === true 时回显（受理标记；零特权——不跳审批、不改预算、不改路由）。
+      ...(this.meta.ultra === true ? { ultra: true } : {}),
     }).then((committed) => {
       // 首条 run 事件未落盘不进入执行：journal 失败已由 initiateFailure 标记。
       if (!committed) return;
@@ -606,6 +608,21 @@ class Kernel {
           if (resolved.provenance === 'auto') validated.call.effective.profileAuto = true;
           validated.call.route = { harnessId: resolved.harnessId, profileId: resolved.profileId };
         }
+      }
+    }
+    if (validated.ok) {
+      // W9：登记期表达力核对——isolation+model/tier 组不出启动 argv 时按 unsupported_option
+      // 在 attempt_start 之前拒绝（与校验/路由拒绝同路径：call_start/call_end 照写、不派发）。
+      // 适配器未实现 checkExecution 时放行，由 run() 入口的 argv 组装兜底。
+      const capable = this.adapter.checkExecution?.({
+        harness: validated.call.effective.harness,
+        ...(validated.call.effective.profile !== undefined ? { profile: validated.call.effective.profile } : {}),
+        isolation: validated.call.isolation,
+        ...(validated.call.effective.model !== undefined ? { model: validated.call.effective.model } : {}),
+        ...(validated.call.effective.tier !== undefined ? { tier: validated.call.effective.tier } : {}),
+      });
+      if (capable !== null && capable !== undefined) {
+        validated = { ok: false, code: capable.code, message: capable.message };
       }
     }
     const label = validated.ok ? validated.call.label : typeof rawOpts.label === 'string' ? rawOpts.label : null;
@@ -1280,6 +1297,7 @@ class Kernel {
         result: outcome.result,
         baseTree: this.baseTree ?? undefined,
         appTarget: this.appTarget ?? undefined,
+        ...(this.meta.ultra === true ? { ultra: true } : {}),
       },
       { final: true },
     );

@@ -10,9 +10,11 @@ import type { WorkflowCandidateProjection, WorkflowJournalEvent, WorkflowPublica
  * 新增 publications 表登记每次 lane 候选发布；发布事实与 call_end 投影在同一事务落盘。
  * W8（v4）：calls 增加 base_tree（call_start 时冻结的候选指针，即 lane attempt 基线）
  * 与 conflict_json（conflict 终态的 files/candidateRef 事实）。
+ * W9（v5）：runs 增加 ultra——脚本 meta.ultra === true 的受理标记（零特权；
+ * 权威值由 service 内核经 run 事件回显投影，Main 不重新推导）。
  */
 
-export const WORKFLOW_JOURNAL_SCHEMA_VERSION = 4;
+export const WORKFLOW_JOURNAL_SCHEMA_VERSION = 5;
 
 /** canonical：递归排序键的 JSON.stringify；undefined 键丢弃，数组保序（与 service 内核一致）。 */
 export function canonical(value: unknown): string {
@@ -91,6 +93,8 @@ export interface WorkflowRunRow {
   requiresApp: boolean;
   /** W6b：脚本 declara aislamiento de escritura (lane). */
   writes: boolean;
+  /** W9：脚本 meta.ultra === true 的 Ultra 标记（零特权，仅展示/实验分组；由 run 事件投影）。 */
+  ultra: boolean;
 }
 
 export interface WorkflowCallRow {
@@ -192,7 +196,8 @@ export class SqliteWorkflowJournal {
         app_target_json TEXT,
         applied_at INTEGER,
         requires_app INTEGER NOT NULL DEFAULT 0,
-        writes INTEGER NOT NULL DEFAULT 0
+        writes INTEGER NOT NULL DEFAULT 0,
+        ultra INTEGER NOT NULL DEFAULT 0
       );
       CREATE TABLE IF NOT EXISTS calls (
         run_id TEXT NOT NULL,
@@ -288,6 +293,15 @@ export class SqliteWorkflowJournal {
         COMMIT;
       `);
       version = 4;
+    }
+    if (version === 4) {
+      // W9：runs.ultra——Ultra 受理标记列；已有行保持 0（非 Ultra，与缺省语义一致）。
+      this.db.exec(`
+        BEGIN IMMEDIATE;
+        ALTER TABLE runs ADD COLUMN ultra INTEGER NOT NULL DEFAULT 0;
+        COMMIT;
+      `);
+      version = 5;
     }
     if (version !== WORKFLOW_JOURNAL_SCHEMA_VERSION)
       throw new WorkflowJournalError('journal_schema_unsupported', `workflow journal schema ${from} cannot be migrated`);
@@ -415,7 +429,8 @@ export class SqliteWorkflowJournal {
           this.db
             .prepare(
               `UPDATE runs SET status = ?, failure_code = ?, result_json = ?,
-                 parent_run_id = ?, script_hash = ?, args_hash = ?, dsl_version = ?
+                 parent_run_id = ?, script_hash = ?, args_hash = ?, dsl_version = ?,
+                 ultra = CASE WHEN ? THEN ? ELSE ultra END
                WHERE run_id = ?`,
             )
             .run(
@@ -426,6 +441,9 @@ export class SqliteWorkflowJournal {
               event.scriptHash,
               event.argsHash,
               event.dslVersion,
+              // W9：run 事件携带 ultra 时投影进 runs 行；旧事件不带字段则保持现值。
+              event.ultra !== undefined ? 1 : 0,
+              event.ultra === true ? 1 : 0,
               event.runId,
             );
           break;
@@ -687,6 +705,7 @@ export class SqliteWorkflowJournal {
       appliedAt: row['applied_at'] === null ? null : Number(row['applied_at']),
       requiresApp: Number(row['requires_app'] ?? 0) === 1,
       writes: Number(row['writes'] ?? 0) === 1,
+      ultra: Number(row['ultra'] ?? 0) === 1,
     };
   }
 

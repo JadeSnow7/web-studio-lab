@@ -2,6 +2,7 @@ import type { ProfileDir } from '@wsl/protocol';
 import {
   WorkflowCleanupUnconfirmedError,
   type CallEvent,
+  type ExecutionCapabilityRequest,
   type RouteRejection,
   type RouteResolution,
   type WorkflowCall,
@@ -91,6 +92,17 @@ export class RoutedAdapterPool implements WorkflowCallAdapter {
       }
     }
     return { harnessId: best.harnessId, profileId: best.profileId, provenance: 'auto' };
+  }
+
+  /**
+   * W9：登记期表达力核对——委托给已解析成员的适配器（成员 adapter 各自持有 native harness 的
+   * argvForIsolation）。成员缺失（resolveRoute 未先行解析）时放行，由 run() 的 internal 兜底；
+   * 成员适配器未实现 checkExecution 时同样放行，表达力判定落到 run() 入口。
+   */
+  checkExecution(request: ExecutionCapabilityRequest): RouteRejection | null {
+    if (request.profile === undefined) return null;
+    const member = this.members.find((item) => item.harnessId === request.harness && item.profileId === request.profile);
+    return member?.adapter.checkExecution?.(request) ?? null;
   }
 
   run(call: WorkflowCall, signal: AbortSignal): AsyncIterable<CallEvent> {

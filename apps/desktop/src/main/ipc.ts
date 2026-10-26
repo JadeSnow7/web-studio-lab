@@ -75,6 +75,8 @@ function workflowRunRowView(row: WorkflowRunRow & { candidate?: WorkflowCandidat
     requiresApp: row.requiresApp,
     writes: row.writes,
     appTarget: row.appTargetJson === null ? null : (JSON.parse(row.appTargetJson) as AppTarget),
+    // W9：Ultra 受理标记（零特权——只用于展示与 E9 实验分组）。
+    ultra: row.ultra,
   };
 }
 

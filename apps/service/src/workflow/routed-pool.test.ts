@@ -232,3 +232,32 @@ describe('RoutedAdapterPool.run', () => {
     expect(events).toEqual([{ type: 'failed', code: 'internal', message: expect.stringContaining('ha:missing') }]);
   });
 });
+
+describe('W9 checkExecution（表达力核对委托）', () => {
+  /** 成员适配器带 checkExecution：argv 表达不出时按 unsupported_option 登记期拒绝。 */
+  const memberWithCheck = (harnessId: string, profileId: string, reject: boolean): PoolMember => {
+    const base = scriptedMember(harnessId, profileId, async () => okEvent());
+    (base.adapter as WorkflowCallAdapter).checkExecution = () =>
+      reject ? { code: 'unsupported_option', message: `${harnessId} 无法表达该 model/tier 组合` } : null;
+    return base;
+  };
+
+  it('委托到 {harness,profile} 命中的成员适配器；表达不出 → unsupported_option', () => {
+    const pool = new RoutedAdapterPool({
+      defaultHarness: 'ha',
+      members: [memberWithCheck('ha', 'ha:default', true), memberWithCheck('hb', 'hb:default', false)],
+    });
+    expect(pool.checkExecution({ harness: 'ha', profile: 'ha:default', isolation: 'readonly', tier: 'big' })).toMatchObject({
+      code: 'unsupported_option',
+    });
+    expect(pool.checkExecution({ harness: 'hb', profile: 'hb:default', isolation: 'readonly', tier: 'big' })).toBeNull();
+  });
+
+  it('成员未命中或成员适配器未实现 checkExecution → 放行（run() 入口兜底）', () => {
+    const pool = new RoutedAdapterPool({ defaultHarness: 'ha', members: [scriptedMember('ha', 'ha:default', async () => okEvent())] });
+    expect(pool.checkExecution({ harness: 'ha', profile: 'ha:missing', isolation: 'readonly' })).toBeNull();
+    expect(pool.checkExecution({ harness: 'ha', isolation: 'readonly' })).toBeNull();
+    // 成员适配器无 checkExecution（scriptedMember 未定义）→ null。
+    expect(pool.checkExecution({ harness: 'ha', profile: 'ha:default', isolation: 'readonly' })).toBeNull();
+  });
+});

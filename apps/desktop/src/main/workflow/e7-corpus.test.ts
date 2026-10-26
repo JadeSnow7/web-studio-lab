@@ -855,6 +855,56 @@ const CORPUS: E7Entry[] = [
       },
     }),
   ),
+
+  // —— W9 推理档（opts.tier/opts.model）边界与 argv 表达力 ——
+  // tier 越界：validateOpts 的 invalid_args。
+  E('E7-126', 'exec_options', 'reject:invalid_args', () => kernelOutcome(wrap("return agent('x', { tier: 'huge' });"))),
+  // model 与 tier 互斥：同给即 invalid_args。
+  E('E7-127', 'exec_options', 'reject:invalid_args', () => kernelOutcome(wrap("return agent('x', { tier: 'small', model: 'm1' });"))),
+  // model 超 64 字符上限。
+  E('E7-128', 'exec_options', 'reject:invalid_args', () => kernelOutcome(wrap(`return agent('x', { model: '${'m'.repeat(65)}' });`))),
+  // argv 表达不出的组合：登记期 checkExecution 拒绝 → unsupported_option，不派发 attempt。
+  E('E7-129', 'exec_options', 'reject:unsupported_option', () =>
+    kernelOutcome(wrap("return agent('x', { label: 'e', tier: 'big' });"), undefined, {
+      adapter: {
+        harnessId: 'mock',
+        checkExecution: () => ({ code: 'unsupported_option' as const, message: 'argv 表达不出该组合' }),
+        run: () => {
+          throw new Error('must not dispatch');
+        },
+      },
+    }),
+  ),
+  // 合法档位正控（防全拒绝制造通过）。
+  E('E7-130', 'exec_options', 'allow', () => kernelOutcome(wrap("return agent('x', { tier: 'big' });"))),
+  E('E7-131', 'exec_options', 'allow', () => kernelOutcome(wrap("return agent('x', { model: 'gpt-5.2-codex' });"))),
+
+  // —— W9 meta.ultra 布尔门禁与零特权 ——
+  // 非布尔/非字面量一律 analyze 拒绝（fail-closed）。
+  E('E7-132', 'ultra_meta', 'reject:script_rejected', () =>
+    Promise.resolve(
+      analyzeOutcome(`export const meta = { name: 'm', description: 'd', ultra: 'yes' };\nexport default async function main() {}`),
+    ),
+  ),
+  E('E7-133', 'ultra_meta', 'reject:script_rejected', () =>
+    Promise.resolve(
+      analyzeOutcome(`export const meta = { name: 'm', description: 'd', ultra: 1 };\nexport default async function main() {}`),
+    ),
+  ),
+  // 布尔字面量合法；ultra:true 不改变批准语义——saved 命令仍需显式批准才可运行。
+  E('E7-134', 'ultra_meta', 'reject:command_not_approved', async (ctx) => {
+    const card = await saveLike(ctx, {
+      script: `export const meta = { name: 'u', description: 'd', ultra: true };\nexport default async function main() { return { ok: 1 }; }`,
+    });
+    return attempt(runLike(ctx, card.commandId));
+  }),
+  E('E7-135', 'ultra_meta', 'allow', async (ctx) => {
+    const card = await saveLike(ctx, {
+      script: `export const meta = { name: 'u', description: 'd', ultra: true };\nexport default async function main() { return { ok: 1 }; }`,
+    });
+    await ctx.commands.approve(card.commandId);
+    return attempt(runLike(ctx, card.commandId));
+  }),
 ];
 
 describe('E7 授权语料（W5，≥100 条版本化语料）', () => {

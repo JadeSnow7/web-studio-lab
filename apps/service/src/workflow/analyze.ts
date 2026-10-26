@@ -11,6 +11,11 @@ export interface ScriptMeta {
   description: string;
   phases?: string[];
   size?: 'small' | 'medium' | 'large';
+  /**
+   * W9：Ultra 受理标记（默认 false）。只许布尔字面量——非布尔/非字面量在 analyze 拒绝
+   * （fail-closed）。Ultra 是 run 级展示/实验分组标记，零特权：不跳审批、不改预算、不改路由。
+   */
+  ultra?: boolean;
 }
 
 export interface ScriptRejected {
@@ -219,6 +224,11 @@ function readMeta(statement: Node): MetaRead {
     if (!Array.isArray(meta.phases) || meta.phases.some((p) => typeof p !== 'string' || p.length === 0)) {
       return bad('meta.phases 必须是非空字符串数组');
     }
+  }
+  // W9：meta.ultra 只收布尔字面量（literalValue 已保证字面量级，非布尔一律拒绝——
+  // fail-closed，不容忍 'true'/1/表达式 等近似写法）。
+  if (meta.ultra !== undefined && typeof meta.ultra !== 'boolean') {
+    return bad('meta.ultra 必须是布尔字面量');
   }
   return { ok: true, meta };
 }

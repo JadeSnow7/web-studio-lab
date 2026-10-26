@@ -203,15 +203,20 @@ export const codexAdapter: NativeHarnessAdapter = {
    * W3：readonly 是新会话的一次性 exec，--sandbox read-only，不携带 resume。
    * W6a：lane 仍是一次性 exec，但沙箱放宽到 workspace-write——写入只可能落在 helper 物化的
    * 独立 attempt 候选目录，该目录由 Lab 管理且每次 attempt 重建，CLI 不接触用户 checkout。
+   * W9：execution 把 effective.model/tier 翻译成 codex CLI 开关——tier 映射
+   * model_reasoning_effort（small→low、medium→medium、big→high），model 经 -m 原样透传
+   * （≤64 chars 已由内核 validateOpts 定界）；两者可同帧组合，缺省 execution 时 argv 原样。
    */
-  argvForIsolation(isolation: WorkflowIsolation): string[] | null {
-    if (isolation === 'readonly') {
-      return ['codex', 'exec', '--sandbox', 'read-only', '--json', '--skip-git-repo-check', '-'];
+  argvForIsolation(isolation: WorkflowIsolation, execution?: { model?: string; tier?: 'small' | 'medium' | 'big' }): string[] | null {
+    const sandbox = isolation === 'readonly' ? 'read-only' : isolation === 'lane' ? 'workspace-write' : null;
+    if (sandbox === null) return null;
+    const extra: string[] = [];
+    if (execution?.model !== undefined) extra.push('-m', execution.model);
+    if (execution?.tier !== undefined) {
+      const effort = { small: 'low', medium: 'medium', big: 'high' }[execution.tier];
+      extra.push('-c', `model_reasoning_effort=${effort}`);
     }
-    if (isolation === 'lane') {
-      return ['codex', 'exec', '--sandbox', 'workspace-write', '--json', '--skip-git-repo-check', '-'];
-    }
-    return null;
+    return ['codex', 'exec', '--sandbox', sandbox, '--json', '--skip-git-repo-check', ...extra, '-'];
   },
   parseLine(line: string): HarnessEvent[] | null {
     const event = parseCodexLine(line);

@@ -466,6 +466,7 @@ export function WorkflowsPage() {
               {' '}
               {statusLabel(row.status)} · {timeText(row.createdMs)}
               {row.candidate ? ' · 候选' : ''}
+              {row.ultra ? ' · Ultra' : ''}
             </span>
           </button>
         ))}
@@ -485,6 +486,8 @@ export function WorkflowsPage() {
             <p data-status={selectedRow.status}>
               状态：{statusLabel(selectedRow.status)}
               {selectedRow.failureCode ? ` · ${selectedRow.failureCode}` : ''}
+              {/* W9：Ultra 受理标记——零特权徽标，不改变审批/预算/路由。 */}
+              {selectedRow.ultra ? <span data-ultra-badge> · Ultra</span> : null}
             </p>
             <nav className="row gap-8" aria-label="运行操作">
               {selectedRow.status === 'running' || selectedRow.status === 'stopping' ? (

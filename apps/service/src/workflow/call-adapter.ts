@@ -85,6 +85,19 @@ export interface RouteRejection {
   message: string;
 }
 
+/**
+ * W9：登记期的执行选项表达力核对请求。isolation 已由 validateOpts 收敛到 readonly|lane；
+ * model/tier 是冻结进 effective 的推理选项——适配器据此判断启动 argv 能否表达该组合。
+ */
+export interface ExecutionCapabilityRequest {
+  harness: string;
+  /** 路由解析后冻结的 profile（成员身份）；单适配器路径缺省。 */
+  profile?: string;
+  isolation: WorkflowIsolation;
+  model?: string;
+  tier?: 'small' | 'medium' | 'big';
+}
+
 export interface WorkflowCallAdapter {
   readonly harnessId: string;
   /**
@@ -92,5 +105,12 @@ export interface WorkflowCallAdapter {
    * 缺省实现 = 单适配器：内核维持既有行为，opts.profile 只记录不参与路由。
    */
   resolveRoute?(requested: { harness: string; profile?: string }): RouteResolution | RouteRejection;
+  /**
+   * W9：登记期核对「isolation + model/tier」能否表达为本适配器的启动 argv。
+   * 返回 RouteRejection → 与路由拒绝同路径（call_start/call_end 照写、不派发 attempt）；
+   * 返回 null 或未实现 → 放行，由 run() 入口的 argv 组装兜底（null → failed{unsupported_option}）。
+   * 早拒绝优先：表达不出的组合在 attempt_start 之前失败，不消耗一次注定丢弃的执行。
+   */
+  checkExecution?(request: ExecutionCapabilityRequest): RouteRejection | null;
   run(call: WorkflowCall, signal: AbortSignal): AsyncIterable<CallEvent>;
 }

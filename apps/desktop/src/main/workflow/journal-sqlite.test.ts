@@ -30,21 +30,21 @@ function insertRun(journal: SqliteWorkflowJournal, runId: string, requestId: str
 }
 
 describe('SqliteWorkflowJournal', () => {
-  it('creates schema version 4 on a fresh file', () => {
+  it('creates schema version 5 on a fresh file', () => {
     const file = freshDbPath();
     const journal = new SqliteWorkflowJournal(file);
     journal.close();
     const db = new DatabaseSync(file);
-    expect(Number(db.prepare('PRAGMA user_version').get()?.['user_version'])).toBe(4);
+    expect(Number(db.prepare('PRAGMA user_version').get()?.['user_version'])).toBe(5);
     for (const table of ['runs', 'calls', 'attempts', 'events', 'publications']) {
       expect(db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(table)).toBeDefined();
     }
-    // W6b：runs 的绑定元数据列在 v3 出现。
+    // W6b：runs 的绑定元数据列在 v3 出现；W9：ultra 在 v5 出现。
     const columns = db
       .prepare('PRAGMA table_info(runs)')
       .all()
       .map((row) => String(row['name']));
-    for (const column of ['requires_app', 'writes', 'app_target_json', 'applied_at', 'base_tree', 'candidate_tree']) {
+    for (const column of ['requires_app', 'writes', 'app_target_json', 'applied_at', 'base_tree', 'candidate_tree', 'ultra']) {
       expect(columns).toContain(column);
     }
     db.close();
@@ -53,7 +53,7 @@ describe('SqliteWorkflowJournal', () => {
   it('rejects files with a newer schema version and preserves them', () => {
     const file = freshDbPath();
     const db = new DatabaseSync(file);
-    db.exec('PRAGMA user_version = 4');
+    db.exec('PRAGMA user_version = 6');
     db.close();
     try {
       new SqliteWorkflowJournal(file);
@@ -61,10 +61,68 @@ describe('SqliteWorkflowJournal', () => {
     } catch (error) {
       expect(error).toMatchObject({ name: 'WorkflowJournalError', code: 'journal_schema_unsupported' });
     }
-    // 不向下迁移、不破坏文件：user_version 仍为 4。
+    // 不向下迁移、不破坏文件：user_version 仍为 6。
     const again = new DatabaseSync(file);
-    expect(Number(again.prepare('PRAGMA user_version').get()?.['user_version'])).toBe(4);
+    expect(Number(again.prepare('PRAGMA user_version').get()?.['user_version'])).toBe(6);
     again.close();
+  });
+
+  it('migrates a v4 file to v5：runs.ultra 补列，既有行保持 0', () => {
+    const file = freshDbPath();
+    // 手工构造 v4 形状（ultra 列不存在）。
+    const db = new DatabaseSync(file);
+    db.exec(`
+      CREATE TABLE runs (
+        run_id TEXT PRIMARY KEY, request_id TEXT UNIQUE, parent_run_id TEXT,
+        script_hash TEXT NOT NULL, args_hash TEXT NOT NULL, dsl_version TEXT NOT NULL,
+        status TEXT NOT NULL, failure_code TEXT, result_json TEXT, engine TEXT,
+        created_ms INTEGER NOT NULL, created_seq INTEGER NOT NULL,
+        base_tree TEXT, candidate_tree TEXT, app_target_json TEXT, applied_at INTEGER,
+        requires_app INTEGER NOT NULL DEFAULT 0, writes INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE TABLE calls (
+        run_id TEXT NOT NULL, call_seq INTEGER NOT NULL, call_id TEXT NOT NULL,
+        phase TEXT, label TEXT, content_key TEXT NOT NULL, effective_json TEXT NOT NULL,
+        prompt_hash TEXT NOT NULL, status TEXT NOT NULL, code TEXT, result_json TEXT,
+        cached_from_run_id TEXT, attempts INTEGER NOT NULL DEFAULT 0,
+        published_tree TEXT, base_tree TEXT, conflict_json TEXT,
+        PRIMARY KEY (run_id, call_seq)
+      );
+      CREATE TABLE attempts (
+        run_id TEXT NOT NULL, call_seq INTEGER NOT NULL, attempt INTEGER NOT NULL,
+        status TEXT NOT NULL, code TEXT, PRIMARY KEY (run_id, call_seq, attempt)
+      );
+      CREATE TABLE events (seq INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL, kind TEXT NOT NULL, json TEXT NOT NULL);
+      CREATE TABLE publications (
+        run_id TEXT NOT NULL, call_seq INTEGER NOT NULL, prev_tree TEXT NOT NULL, next_tree TEXT NOT NULL,
+        patch_sha256 TEXT NOT NULL, files_json TEXT NOT NULL, created_ms INTEGER NOT NULL,
+        PRIMARY KEY (run_id, call_seq)
+      );
+      INSERT INTO runs (run_id, script_hash, args_hash, dsl_version, status, created_ms, created_seq)
+        VALUES ('old-run', 'sh', 'ah', 'lab-workflow/1', 'completed', 1, 1);
+      PRAGMA user_version = 4;
+    `);
+    db.close();
+
+    const journal = new SqliteWorkflowJournal(file);
+    // 迁移行读出 ultra=false（非 Ultra，与缺省语义一致）。
+    expect(journal.getRun('old-run')).toMatchObject({ runId: 'old-run', status: 'completed', ultra: false });
+    journal.close();
+    const check = new DatabaseSync(file);
+    expect(Number(check.prepare('PRAGMA user_version').get()?.['user_version'])).toBe(5);
+    check.close();
+  });
+
+  it('W9：run 事件携带 ultra:true 时投影进 runs 行，未携带保持现值', () => {
+    const journal = new SqliteWorkflowJournal(freshDbPath());
+    insertRun(journal, 'r1');
+    expect(journal.getRun('r1')!.ultra).toBe(false);
+    journal.appendEvent({ t: 'run', runId: 'r1', parentRunId: null, ...RUN_EVENT_BASE, status: 'running', ultra: true });
+    expect(journal.getRun('r1')!.ultra).toBe(true);
+    // 后续 run 事件不带 ultra 字段：现值保持（不被冲回 false）。
+    journal.appendEvent({ t: 'run', runId: 'r1', parentRunId: null, ...RUN_EVENT_BASE, status: 'completed', result: 'x' });
+    expect(journal.getRun('r1')!).toMatchObject({ status: 'completed', ultra: true });
+    journal.close();
   });
 
   it('applies typed projections inside one transaction per event', () => {
