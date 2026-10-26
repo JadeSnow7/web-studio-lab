@@ -279,7 +279,7 @@ def read_start():
     start = json.loads(first)
     if not isinstance(start, dict) or start.get("type") != "start" or start.get("mode") not in ("codex", "terminal"):
         raise ValueError("invalid start frame")
-    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "mcp", "stdin", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "duplex", "eduOwner", "profileDir"}
+    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "mcp", "stdin", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "profileDir", "duplex", "eduOwner"}
     for key in ("observation", "observationImages", "duplex"):
         if key in start and type(start[key]) is not bool:
             raise ValueError("invalid observation capability")
@@ -430,14 +430,16 @@ def main(start):
                 ownership = {"__name__": "wsl_edu_owned"}
                 exec(compile(base64.b64decode(OWNED_PROCESS_BASE64), "<edu-owned-process>", "exec"), ownership)
                 owner = ownership["begin"](start["eduOwner"], child.pid)
-            if not relay:
-                child.stdin.write(start.get("prompt", "").encode())
-            if relay or start.get("duplex"):
-                child.stdin.flush()
+            if relay:
                 relay_fd = child.stdin.fileno()
                 os.set_blocking(relay_fd, False)
             else:
-                child.stdin.close()
+                child.stdin.write(start.get("prompt", "").encode())
+                if start.get("duplex"):
+                    child.stdin.flush()
+                    os.set_blocking(child.stdin.fileno(), False)
+                else:
+                    child.stdin.close()
             streams = {child.stdout.fileno(): ("stdout", codecs.getincrementaldecoder("utf-8")("replace")),
                        child.stderr.fileno(): ("stderr", codecs.getincrementaldecoder("utf-8")("replace"))}
         emit("ready", pid=child.pid)
@@ -450,7 +452,7 @@ def main(start):
         pending_input = b""
         input_ended = False
         leader_cleaned = False
-        input_fd = master if terminal else relay_fd
+        input_fd = master if terminal else relay_fd if relay else child.stdin.fileno() if start.get("duplex") else None
         while (streams or child.poll() is None) and not closing:
             if owner:
                 ownership["update"](owner, owned_members(child.pid, owner[1]["leader"]))
@@ -470,7 +472,7 @@ def main(start):
                     written = os.write(input_fd, pending_input)
                     pending_input = pending_input[written:]
                 except BrokenPipeError:
-                    if not relay:
+                    if not (terminal or relay):
                         raise
                     # The child stopped reading; its exit is reported through the normal path.
                     pending_input = b""
@@ -544,7 +546,7 @@ def main(start):
                         if not isinstance(frame, dict):
                             raise ValueError("invalid control frame")
                         kind = frame.get("type")
-                        keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "input": {"type", "data"}, "input-end": {"type"}, "close-input": {"type"}, "resize": {"type", "cols", "rows"}}
+                        keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "close-input": {"type"}, "input": {"type", "data"}, "input-end": {"type"}, "resize": {"type", "cols", "rows"}}
                         if kind not in keys or set(frame) != keys[kind]:
                             raise ValueError("invalid control fields")
                         if cli_channel is not None:
@@ -564,11 +566,11 @@ def main(start):
                                 client.close()
                         elif kind == "close":
                             closing = True
-                        elif not terminal and start.get("duplex") and kind == "close-input":
+                        elif not terminal and not relay and start.get("duplex") and kind == "close-input":
                             pending_input = b""
                             input_fd = None
                             child.stdin.close()
-                        elif not terminal and start.get("duplex") and kind == "input":
+                        elif not terminal and not relay and start.get("duplex") and kind == "input":
                             data = frame["data"]
                             if not isinstance(data, str) or not 0 < len(data.encode()) <= 65536 or child.stdin.closed:
                                 raise ValueError("invalid duplex input")

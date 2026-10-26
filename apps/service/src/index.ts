@@ -237,7 +237,7 @@ parent.on('message', ({ data }) => {
           result = chat.getStatus();
           break;
         case 'profile.check':
-          result = await chat.checkProfile(request.payload.harnessId, request.payload.profileDir);
+          result = await chat.checkProfileReceipt(request.payload.harnessId, request.payload.profileDir);
           break;
         case 'permission.reply':
           result = chat.answerPermission(request.payload.conversationId, request.payload.requestId, request.payload.optionId);

@@ -34,6 +34,11 @@ if (dependencyRequest?.startsWith('{')) {
     if (value.type === 'close') return finish();
     if (value.type !== 'start') return;
     frame({ type: 'ready', pid: process.pid });
+    // App tests do not provide an ACP Agent; its probes and Profile checks still confirm cleanup.
+    if (value.stdin === 'relay' || value.argv[0] === 'claude-agent-acp') {
+      frame({ type: 'output', stream: 'stderr', data: 'fixture: ACP Agent unavailable\n' });
+      return finish(127);
+    }
     if (value.argv.includes('--version') || value.argv[1] === 'login') {
       frame({ type: 'output', stream: 'stdout', data: 'codex-cli fixture\n' });
       return finish();

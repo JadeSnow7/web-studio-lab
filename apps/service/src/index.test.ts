@@ -85,6 +85,28 @@ async function host() {
 }
 const conversationId = 'conv-space-taskflow-demo-impl';
 describe('service request cancellation admission', () => {
+  it.each(['no-start', 'unknown'] as const)('sends a typed Profile cleanup receipt for %s self-check', async (kind) => {
+    const test = await host();
+    if (kind === 'unknown')
+      fixture.start.mockImplementationOnce(() => ({
+        done: Promise.resolve({ confirmed: false, exitCode: null, error: 'fixture cleanup unknown' }),
+        close: async () => ({ confirmed: false, exitCode: null, error: 'fixture cleanup unknown' }),
+      }));
+    test.request({
+      id: 'profile-receipt',
+      method: 'profile.check',
+      payload: { harnessId: kind === 'no-start' ? 'unregistered' : 'codex', profileDir: null },
+    });
+    await vi.waitFor(() =>
+      expect(test.messages.find((message) => message.type === 'response' && message.id === 'profile-receipt')).toBeDefined(),
+    );
+    expect(test.messages.find((message) => message.type === 'response' && message.id === 'profile-receipt')).toMatchObject({
+      type: 'response',
+      id: 'profile-receipt',
+      result: { type: 'profile-check', ok: kind === 'unknown', cleanupConfirmed: kind === 'no-start' },
+    });
+    if (kind === 'no-start') expect(fixture.start).not.toHaveBeenCalled();
+  });
   it.each(['denied: edu tasks are not enabled', 'denied: source import ownership is pending'])(
     'rejects RPC send before model startup for %s',
     async (reason) => {

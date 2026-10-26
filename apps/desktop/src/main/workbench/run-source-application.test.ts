@@ -1,5 +1,5 @@
 import { codexHarnessRuntime } from './harness-test-fixture';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
@@ -19,6 +19,32 @@ import { WorkbenchApplication } from './application';
 import { FileWorkbenchRepository, type WorkbenchRepository } from './repository';
 import { RunDispatchFailure, type WorkbenchRuntime } from './ports';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
+
+const serviceMock = vi.hoisted(() => ({ callbacks: new Map<string, (value: unknown) => void>(), postMessage: vi.fn() }));
+vi.mock('electron', () => ({
+  app: { isPackaged: false, getAppPath: () => '/desktop', getPath: () => '/user-data' },
+  utilityProcess: {
+    fork: () => ({
+      once: (name: string, callback: (value: unknown) => void) => serviceMock.callbacks.set(name, callback),
+      on: (name: string, callback: (value: unknown) => void) => {
+        serviceMock.callbacks.set(name, callback);
+        if (name === 'message')
+          callback({
+            type: 'initialized',
+            status: { available: true, reason: null, version: 'fixture', sandbox: 'fixture', cwd: '/home/agent/workspace', harnesses: [] },
+            cleanupPending: false,
+          });
+      },
+      postMessage: serviceMock.postMessage,
+      kill: vi.fn(),
+    }),
+  },
+}));
+import { ChatService } from '../chat-service';
+beforeEach(() => {
+  serviceMock.callbacks.clear();
+  serviceMock.postMessage.mockClear();
+});
 
 function deferred<T>() {
   let complete: ((value: T) => void) | undefined;
@@ -595,6 +621,248 @@ describe('Main source evidence lifecycle', () => {
     expect((await p.run()).state).toBe('cancelling');
     expect((await p.run()).executorState?.cleanupPending).toBe(true);
     expect(f.capture).toHaveBeenCalledOnce();
+  });
+  it.each(['disconnect', 'rejection'] as const)('pending send + idle query keeps source/project cleanup causal: %s', async (outcome) => {
+    const f = await fixture();
+    const p = await f.prepare();
+    const service = new ChatService((conversation) => f.app.onConversation(conversation), vi.fn());
+    f.send.mockImplementation((...args) => service.send(...args));
+    const starting = p.start();
+    await vi.waitFor(() => expect(f.send).toHaveBeenCalledOnce());
+    const sendRequest = required(serviceMock.postMessage.mock.calls.find(([request]) => request.method === 'send'))[0];
+    const querying = service.get(p.session.sessionId);
+    const query = required(serviceMock.postMessage.mock.calls.at(-1))[0];
+    serviceMock.callbacks.get('message')?.({
+      type: 'response',
+      id: query.id,
+      result: {
+        conversationId: p.session.sessionId,
+        generation: 'generation',
+        seq: 0,
+        threadId: null,
+        turnId: null,
+        state: 'idle',
+        messages: [],
+        toolExecutions: [],
+        warnings: [],
+        cleanupPending: false,
+        error: null,
+      },
+    });
+    await querying;
+    if (outcome === 'disconnect') {
+      // Reproduce the production failure fallback: no ending helper was sent, so
+      // that helper's cleanup=true must not erase the unresolved model dispatch.
+      f.snapshots.mockImplementation((target, signal) => service.appSourceSnapshot(target, signal));
+      serviceMock.callbacks.get('exit')?.(1);
+    } else serviceMock.callbacks.get('message')?.({ type: 'error', id: sendRequest.id, error: 'admission rejected' });
+    await starting;
+    const managedApp = required((await f.owner()).managedApp);
+    await f.app.onApp({ ...managedApp, state: 'stopped', url: null, cleanupConfirmed: true });
+    if (outcome === 'disconnect') {
+      await vi.waitFor(async () => expect((await p.run()).state).toBe('cancelling'));
+      expect(await p.run()).toMatchObject({
+        cleanupPending: true,
+        executorState: { cleanupPending: true },
+        sourceChange: { state: 'baseline', baseTree },
+      });
+      expect(f.snapshots).toHaveBeenCalledOnce();
+      expect(f.capture).not.toHaveBeenCalled();
+      expect(await p.start()).toMatchObject({ ok: false, error: { code: 'conflict' } });
+      expect(await f.command({ type: 'startApp' })).toMatchObject({
+        ok: false,
+        error: { code: 'conflict', message: expect.stringContaining('清理未确认') },
+      });
+      await expect(f.app.shutdown()).rejects.toThrow('清理未确认');
+      await expect(service.shutdown()).rejects.toThrow('清理未确认');
+    } else {
+      await vi.waitFor(async () => expect((await p.run()).sourceChange?.state).toBe('captured'));
+      expect(await p.run()).toMatchObject({ state: 'failed', cleanupPending: false, executorState: { cleanupPending: false } });
+      expect(f.capture).toHaveBeenCalledOnce();
+      expect((await f.command({ type: 'startApp' })).ok).toBe(true);
+      expect(service.writeHolder()).toBeNull();
+      serviceMock.callbacks.get('exit')?.(0);
+      await expect(service.shutdown()).resolves.toBeUndefined();
+    }
+  });
+  it.each(['disconnect', 'rejection', 'ack'] as const)(
+    'does not finalize a cancelled run before its own send receipt: %s',
+    async (outcome) => {
+      const f = await fixture();
+      const p = await f.prepare();
+      const service = new ChatService((conversation) => f.app.onConversation(conversation), vi.fn());
+      f.send.mockImplementation((...args) => service.send(...args));
+      f.cancel.mockImplementation((...args) => service.cancel(...args));
+      f.runtime.writeHolder = () => service.writeHolder();
+      const starting = p.start();
+      try {
+        await vi.waitFor(() => expect(f.send).toHaveBeenCalledOnce());
+        const sendRequest = required(serviceMock.postMessage.mock.calls.find(([request]) => request.method === 'send'))[0];
+        const runId = (await p.run()).runId;
+        await f.command({ type: 'cancelRun', runId });
+        await vi.waitFor(() => expect(f.cancel).toHaveBeenCalledOnce());
+        const cancelRequest = required(serviceMock.postMessage.mock.calls.find(([request]) => request.method === 'cancel'))[0];
+        const clean: ChatConversation = {
+          conversationId: p.session.sessionId,
+          generation: 'generation',
+          turnId: 'cancel-before-send-ack',
+          seq: 2,
+          threadId: null,
+          state: 'cancelled',
+          messages: [],
+          toolExecutions: [],
+          warnings: [],
+          cleanupPending: false,
+          error: null,
+        };
+        serviceMock.callbacks.get('message')?.({ type: 'response', id: cancelRequest.id, result: clean });
+        await required(f.cancel.mock.results[0]).value;
+        expect(await p.run()).toMatchObject({ state: 'cancelling', cleanupPending: true, endedAt: null });
+        expect(f.snapshots).toHaveBeenCalledOnce();
+        expect(f.capture).not.toHaveBeenCalled();
+        expect(service.writeHolder()).toBe(p.session.sessionId);
+        const managedApp = required((await f.owner()).managedApp);
+        await f.app.onApp({ ...managedApp, state: 'stopped', url: null, cleanupConfirmed: true });
+        expect(await f.command({ type: 'startApp' })).toMatchObject({ ok: false, error: { code: 'conflict' } });
+        if (outcome === 'disconnect') serviceMock.callbacks.get('exit')?.(1);
+        else if (outcome === 'rejection')
+          serviceMock.callbacks.get('message')?.({ type: 'error', id: sendRequest.id, error: 'admission rejected' });
+        else
+          serviceMock.callbacks.get('message')?.({
+            type: 'response',
+            id: sendRequest.id,
+            result: { ...clean, seq: 1, state: 'running', cleanupPending: true },
+          });
+        await starting;
+        if (outcome === 'disconnect') {
+          expect(await p.run()).toMatchObject({
+            state: 'cancelling',
+            cleanupPending: true,
+            endedAt: null,
+            sourceChange: { state: 'baseline', baseTree },
+          });
+          // A later event cannot manufacture the missing send receipt.
+          serviceMock.callbacks.get('message')?.({ type: 'event', conversation: { ...clean, seq: 3 } });
+          expect((await p.run()).cleanupPending).toBe(true);
+          expect(f.capture).not.toHaveBeenCalled();
+          expect(f.snapshots).toHaveBeenCalledOnce();
+          expect(await p.start()).toMatchObject({ ok: false, error: { code: 'conflict' } });
+          expect(await f.command({ type: 'startApp' })).toMatchObject({ ok: false, error: { code: 'conflict' } });
+          await expect(f.app.shutdown()).rejects.toThrow('清理未确认');
+          await expect(service.shutdown()).rejects.toThrow('清理未确认');
+        } else {
+          await vi.waitFor(async () => expect((await p.run()).sourceChange?.state).toBe('captured'));
+          expect(await p.run()).toMatchObject({ state: 'cancelled', cleanupPending: false });
+          expect(f.capture).toHaveBeenCalledOnce();
+          expect(service.writeHolder()).toBeNull();
+          // Stopping the app invalidated the old page instance. Restore a real
+          // public-command capture/confirmation before checking the next run.
+          expect((await f.command({ type: 'startApp' })).ok).toBe(true);
+          const browser = required((await f.owner()).resources.find((resource) => resource.appProjectId));
+          const requestId = randomUUID();
+          expect(
+            (await f.command({ type: 'captureContext', sessionId: p.session.sessionId, resourceId: browser.resourceId, requestId })).ok,
+          ).toBe(true);
+          const currentBrowser = required((await f.owner()).resources.find((resource) => resource.resourceId === browser.resourceId));
+          f.app.onCapture(
+            browser.resourceId,
+            { ...required(p.version.capture), captureId: randomUUID() },
+            currentBrowser.instanceId,
+            currentBrowser.generation,
+            requestId,
+          );
+          await f.app.getSnapshot();
+          expect(
+            (
+              await f.command({
+                type: 'confirmTask',
+                sessionId: p.session.sessionId,
+                goal: 'next run',
+                targetRef: { kind: 'web', resourceId: browser.resourceId },
+              })
+            ).ok,
+          ).toBe(true);
+          const nextVersion = required(
+            required((await f.owner()).sessions.find((session) => session.sessionId === p.session.sessionId)).taskVersions.at(-1),
+          );
+          f.send.mockImplementation(async (sessionId) => ({
+            ...clean,
+            conversationId: sessionId,
+            turnId: 'new-turn',
+            seq: 4,
+            state: 'running',
+            cleanupPending: true,
+          }));
+          const restarted = await f.command({ type: 'startRun', sessionId: p.session.sessionId, taskVersionId: nextVersion.taskVersionId });
+          expect(restarted.ok, JSON.stringify(restarted.ok ? null : restarted.error)).toBe(true);
+          serviceMock.callbacks.get('message')?.({ type: 'event', conversation: { ...clean, seq: 999 } });
+          expect(await p.run()).toMatchObject({ state: 'running', executionBinding: { turnId: 'new-turn' } });
+          f.app.onConversation({ ...clean, turnId: 'new-turn', seq: 5 });
+          await vi.waitFor(async () => expect((await p.run()).sourceChange?.state).toBe('captured'));
+          expect(f.capture).toHaveBeenCalledTimes(2);
+          const restoredApp = required((await f.owner()).managedApp);
+          await f.app.onApp({ ...restoredApp, state: 'stopped', url: null, cleanupConfirmed: true });
+          const appRestart = await f.command({ type: 'startApp' });
+          expect(appRestart.ok, JSON.stringify(appRestart.ok ? null : appRestart.error)).toBe(true);
+        }
+      } finally {
+        serviceMock.callbacks.get('exit')?.(1);
+        await starting;
+        await service.shutdown().catch(() => undefined);
+      }
+    },
+  );
+  it('binds a cancelled pending send to its ACK before accepting later cleanup events', async () => {
+    const f = await fixture();
+    const p = await f.prepare();
+    const service = new ChatService((conversation) => f.app.onConversation(conversation), vi.fn());
+    f.send.mockImplementation((...args) => service.send(...args));
+    f.cancel.mockImplementation((...args) => service.cancel(...args));
+    const starting = p.start();
+    try {
+      await vi.waitFor(() => expect(f.send).toHaveBeenCalledOnce());
+      const sendRequest = required(serviceMock.postMessage.mock.calls.find(([request]) => request.method === 'send'))[0];
+      await f.command({ type: 'cancelRun', runId: (await p.run()).runId });
+      await vi.waitFor(() => expect(f.cancel).toHaveBeenCalledOnce());
+      const cancelRequest = required(serviceMock.postMessage.mock.calls.find(([request]) => request.method === 'cancel'))[0];
+      const old: ChatConversation = {
+        conversationId: p.session.sessionId,
+        generation: 'generation',
+        turnId: 'old-turn',
+        seq: 2,
+        threadId: null,
+        state: 'cancelled',
+        messages: [],
+        toolExecutions: [],
+        warnings: [],
+        cleanupPending: false,
+        error: null,
+      };
+      // Both a terminal event and cancellation ACK can refer to the prior turn.
+      serviceMock.callbacks.get('message')?.({ type: 'event', conversation: old });
+      serviceMock.callbacks.get('message')?.({ type: 'response', id: cancelRequest.id, result: old });
+      await required(f.cancel.mock.results[0]).value;
+      expect(await p.run()).toMatchObject({ state: 'cancelling', cleanupPending: true, endedAt: null });
+      expect(f.capture).not.toHaveBeenCalled();
+      const owned = { ...old, turnId: 'owned-turn', seq: 3, state: 'running' as const, cleanupPending: true };
+      serviceMock.callbacks.get('message')?.({ type: 'response', id: sendRequest.id, result: owned });
+      await starting;
+      expect(await p.run()).toMatchObject({ state: 'cancelling', cleanupPending: true, executionBinding: { turnId: 'owned-turn' } });
+      serviceMock.callbacks.get('message')?.({ type: 'event', conversation: { ...old, seq: 4 } });
+      expect(await p.run()).toMatchObject({ state: 'cancelling', cleanupPending: true, executionBinding: { turnId: 'owned-turn' } });
+      expect(f.capture).not.toHaveBeenCalled();
+      serviceMock.callbacks.get('message')?.({
+        type: 'event',
+        conversation: { ...owned, seq: 5, state: 'cancelled', cleanupPending: false },
+      });
+      await vi.waitFor(async () => expect((await p.run()).sourceChange?.state).toBe('captured'));
+      expect(await p.run()).toMatchObject({ state: 'cancelled', cleanupPending: false });
+      expect(f.capture).toHaveBeenCalledOnce();
+    } finally {
+      serviceMock.callbacks.get('exit')?.(1);
+      await starting;
+      await service.shutdown().catch(() => undefined);
+    }
   });
   it('retains a baseline saved during cancellation and still captures its ending state', async () => {
     const f = await fixture();

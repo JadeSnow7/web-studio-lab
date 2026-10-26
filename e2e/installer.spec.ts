@@ -56,6 +56,10 @@ test('安装设置：失败恢复、可信目录选择、SSH字段与保存后�
     await page.screenshot({ path: path.join(directory, 'installation-settings.png') });
     await app.close();
     ({ app, page } = await launchApp({ userData: directory }));
+    // The launcher establishes native width before React necessarily projects the restored pinned rail.
+    // Wait for that known wide layout before deciding whether Workshop needs an explicit expansion.
+    await expect(page.locator('.workshop-docked')).toBeVisible();
+    await expect(page.locator('#left-panel-trigger')).toHaveAttribute('aria-expanded', 'true');
     await workshopNavigate(page, '设置');
     await expect(page.getByLabel('已授权本地目录')).toHaveValue(directory);
     await expect(page.getByLabel('SSH 用户名')).toHaveValue('比赛用户');
@@ -71,6 +75,9 @@ test('无启动变量的新配置显示首次安装；损坏记录可见且不�
   await writeFile(path.join(directory, 'runtime.json'), invalid);
   const { app, page } = await launchApp({ userData: directory, cleanInstall: true });
   try {
+    // A fresh profile restores the pinned Workshop at the launcher's default wide size.
+    await expect(page.locator('.workshop-docked')).toBeVisible();
+    await expect(page.locator('#left-panel-trigger')).toHaveAttribute('aria-expanded', 'true');
     if (target !== 'packaged') await workshopNavigate(page, '设置');
     await expect(page.getByRole('region', { name: '比赛环境安装' })).toContainText('原文件已保留');
     await expect(page.getByRole('button', { name: '开始准备' })).toBeDisabled();
