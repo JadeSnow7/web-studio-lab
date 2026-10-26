@@ -70,7 +70,17 @@ describe('edu collector concurrent filesystem boundaries', () => {
     try {
       await mkdir(path.join(root, 'admin/oversized'));
       // Entries are streamed, including unsupported extensions; the budget is not an allowlist-only count.
-      for (let index = 0; index < 4100; index++) await writeFile(path.join(root, 'admin/oversized', `${index}.bin`), '');
+      // Bound fixture setup work without changing the real entry count or collector's traversal budget.
+      for (let index = 0; index < 4100; index += 16) {
+        const writes = await Promise.allSettled(
+          Array.from({ length: Math.min(16, 4100 - index) }, (_, offset) =>
+            writeFile(path.join(root, 'admin/oversized', `${index + offset}.bin`), ''),
+          ),
+        );
+        // Await every started write before throwing so finally cannot race unfinished fixture creation.
+        const failure = writes.find((result) => result.status === 'rejected');
+        if (failure?.status === 'rejected') throw failure.reason;
+      }
       await expect(collectEduSource(root, new AbortController().signal, identity)).rejects.toThrow(/遍历预算/);
     } finally {
       await rm(root, { recursive: true, force: true });
