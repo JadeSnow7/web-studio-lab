@@ -144,6 +144,14 @@ parent.on('message', ({ data }) => {
           await ready;
           result = await apps.create(request.payload);
           break;
+        case 'app.importSource':
+          await ready;
+          result = await apps.importSource(request.payload);
+          break;
+        case 'app.cancelImport':
+          await ready;
+          result = await apps.cancelImport(request.payload);
+          break;
         case 'app.start':
           await ready;
           result = await apps.start(request.payload);
@@ -229,7 +237,7 @@ parent.on('message', ({ data }) => {
           result = chat.getStatus();
           break;
         case 'profile.check':
-          result = await chat.checkProfile(request.payload.harnessId, request.payload.profileDir);
+          result = await chat.checkProfileReceipt(request.payload.harnessId, request.payload.profileDir);
           break;
         case 'permission.reply':
           result = chat.answerPermission(request.payload.conversationId, request.payload.requestId, request.payload.optionId);
@@ -238,6 +246,7 @@ parent.on('message', ({ data }) => {
           result = chat.get(request.payload.conversationId);
           break;
         case 'send':
+          await apps.assertTaskAdmission(request.payload.references.workspaceId);
           result = admission?.cancelled
             ? chat.get(request.payload.conversationId)
             : await chat.send(

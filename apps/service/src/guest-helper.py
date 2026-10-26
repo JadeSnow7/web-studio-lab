@@ -1,5 +1,6 @@
 """Linux guest only: owned session cleanup and framed Codex/PTY transport."""
 import base64
+from pathlib import Path
 import codecs
 import ctypes
 import errno
@@ -28,6 +29,7 @@ PROFILE_HOME = "/home/agent"
 PROFILE_PATH = re.compile(r"^/home/agent/\.wsl-profiles/[a-z][a-z0-9-]{0,39}/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 PROFILE_ENVS = ("CLAUDE_CONFIG_DIR", "CODEX_HOME")
 TERMINAL_RC_BASE64 = ""
+OWNED_PROCESS_BASE64 = ""
 RESOURCE_MCP_BASE64 = ""  # Replaced only by the trusted host build, never by a page or frame.
 WORKSPACE_BYTES = 524288
 
@@ -88,30 +90,68 @@ def create_workspace(payload):
         raise
 
 
+def workspace_snapshot_limits(root):
+    try:
+        path_max = os.pathconf(root, "PC_PATH_MAX")
+    except (OSError, ValueError) as error:
+        raise ValueError("guest workspace filesystem path limit unavailable") from error
+    if type(path_max) is not int or path_max < 2:
+        raise ValueError("guest workspace filesystem path limit unavailable")
+    # Full paths are used for scandir/open. A nonempty component needs at least
+    # one byte and a separator; omit the root length for a conservative bound.
+    # Every file contributes at most this many ancestors plus itself. The three
+    # excluded root directories also count, but their contents are never scanned.
+    components = path_max // 2
+    return components, 256 * components + 3
+
+
 def snapshot_workspace(root, run_id):
+    max_depth, max_entries = workspace_snapshot_limits(root)
     files = []
     total = 0
-    def walk(directory, prefix=""):
-        nonlocal total
-        for entry in sorted(os.scandir(directory), key=lambda item: item.name):
-            relative = prefix + entry.name
-            workspace_path(root, relative)
-            if entry.is_symlink():
-                raise ValueError("guest workspace symlink: " + relative)
-            if not prefix and entry.name in ("node_modules", "dist", ".vite") and entry.is_dir(follow_symlinks=False):
-                continue
-            if entry.is_dir(follow_symlinks=False):
-                walk(entry.path, relative + "/")
-            elif entry.is_file(follow_symlinks=False):
-                with open(entry.path, "rb") as source:
-                    content = source.read(WORKSPACE_BYTES + 1)
-                total += len(content)
-                if total > WORKSPACE_BYTES or len(files) >= 256:
-                    raise ValueError("guest workspace snapshot exceeds budget")
-                files.append({"path": relative, "base64": base64.b64encode(content).decode("ascii")})
-            else:
-                raise ValueError("guest workspace non-file: " + relative)
-    walk(root)
+    visited = 0
+
+    def scan(directory):
+        nonlocal visited
+        entries = []
+        with os.scandir(directory) as iterator:
+            for entry in iterator:
+                visited += 1
+                if visited > max_entries:
+                    raise ValueError("guest workspace snapshot exceeds enumeration budget")
+                entries.append(entry)
+        entries.sort(key=lambda item: item.name)
+        return iter(entries)
+
+    # Keep depth-first lexical order without retaining scanner handles or relying
+    # on Python's recursion limit for paths the filesystem can represent.
+    stack = [(scan(root), "")]
+    while stack:
+        entries, prefix = stack[-1]
+        try:
+            entry = next(entries)
+        except StopIteration:
+            stack.pop()
+            continue
+        if len(stack) > max_depth:
+            raise ValueError("guest workspace snapshot exceeds path depth budget")
+        relative = prefix + entry.name
+        workspace_path(root, relative)
+        if entry.is_symlink():
+            raise ValueError("guest workspace symlink: " + relative)
+        if not prefix and entry.name in ("node_modules", "dist", ".vite") and entry.is_dir(follow_symlinks=False):
+            continue
+        if entry.is_dir(follow_symlinks=False):
+            stack.append((scan(entry.path), relative + "/"))
+        elif entry.is_file(follow_symlinks=False):
+            with open(entry.path, "rb") as source:
+                content = source.read(WORKSPACE_BYTES + 1)
+            total += len(content)
+            if total > WORKSPACE_BYTES or len(files) >= 256:
+                raise ValueError("guest workspace snapshot exceeds budget")
+            files.append({"path": relative, "base64": base64.b64encode(content).decode("ascii")})
+        else:
+            raise ValueError("guest workspace non-file: " + relative)
     emit("workspace", runId=run_id, files=files)
 
 
@@ -141,7 +181,7 @@ def emit(kind, **fields):
     print(PREFIX + json.dumps({"type": kind, **fields}), flush=True)
 
 
-def owned_members(sid):
+def owned_members(sid, leader_identity=None):
     processes = {}
     for entry in os.scandir("/proc"):
         if not entry.name.isdigit():
@@ -159,7 +199,12 @@ def owned_members(sid):
         if descendants.issubset(owned):
             break
         owned.update(descendants)
-    owned.update(pid for pid, (_, session) in processes.items() if session == sid)
+    same_session = True
+    if leader_identity is not None:
+        current = ownership_identity(sid)
+        same_session = current is None or current == leader_identity
+    if same_session:
+        owned.update(pid for pid, (_, session) in processes.items() if session == sid)
     owned.discard(os.getpid())
     return owned
 
@@ -175,15 +220,23 @@ def reap(members, leader):
             pass
 
 
-def cleanup(sid, child):
+def ownership_identity(pid):
+    try:
+        fields = Path('/proc/%d/stat' % pid).read_text().rsplit(')', 1)[1].split()
+        return {'pid': pid, 'startTicks': fields[19]}
+    except FileNotFoundError:
+        return None
+
+
+def cleanup(sid, child, leader_identity=None):
     # Subreaper adopts orphaned background jobs, so zombies can actually be reaped.
     for sig, duration in [(signal.SIGTERM, 1.5), (signal.SIGKILL, 3.0)]:
         deadline = time.monotonic() + duration
         while True:
             child.poll()
-            members = owned_members(sid)
+            members = owned_members(sid, leader_identity)
             reap(members, child.pid)
-            members = owned_members(sid)
+            members = owned_members(sid, leader_identity)
             if not members:
                 return
             for pid in members:
@@ -203,27 +256,31 @@ def resize(fd, cols, rows):
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
 
 
+START_FRAME_BYTES = 3 * 1024 * 1024  # APP_SOURCE_TRANSPORT.startFrameBytes; checked by the shared contract test.
+
+
 def read_start():
     if sys.platform != "linux":
         raise RuntimeError("guest helper requires Linux")
     libc = ctypes.CDLL(None, use_errno=True)
     if libc.prctl(36, 1, 0, 0, 0) != 0:
         raise OSError(ctypes.get_errno(), "PR_SET_CHILD_SUBREAPER")
-    first = b""
+    # Amortized linear append; read exactly through LF so later control bytes stay on this fd.
+    first = bytearray()
     while not first.endswith(b"\n"):
         byte = os.read(sys.stdin.fileno(), 1)
         if not byte:
             break
-        first += byte
-        if len(first) > 1048576:
+        first.extend(byte)
+        if len(first) > START_FRAME_BYTES:
             raise ValueError("start frame too large")
     if not first:
         raise RuntimeError("missing start frame")
     start = json.loads(first)
     if not isinstance(start, dict) or start.get("type") != "start" or start.get("mode") not in ("codex", "terminal"):
         raise ValueError("invalid start frame")
-    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "mcp", "stdin", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "profileDir"}
-    for key in ("observation", "observationImages"):
+    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "mcp", "stdin", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "profileDir", "duplex", "eduOwner"}
+    for key in ("observation", "observationImages", "duplex"):
         if key in start and type(start[key]) is not bool:
             raise ValueError("invalid observation capability")
     if "mcp" in start and start["mcp"] not in ("codex-config", "acp-stdio"):
@@ -267,6 +324,8 @@ def main(start):
     relay_fd = None
     master = None
     child = None
+    owner = None
+    ownership = None
     resource_fd = None
     observer = None
     observer_dir = None
@@ -363,12 +422,22 @@ def main(start):
                 workspace = create_workspace(start["workspace"])
             child = subprocess.Popen(argv, cwd=workspace.name if workspace else CWD, env=env, stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+            if "eduOwner" in start:
+                if not OWNED_PROCESS_BASE64:
+                    raise ValueError("owned edu receipt implementation missing")
+                ownership = {"__name__": "wsl_edu_owned"}
+                exec(compile(base64.b64decode(OWNED_PROCESS_BASE64), "<edu-owned-process>", "exec"), ownership)
+                owner = ownership["begin"](start["eduOwner"], child.pid)
             if relay:
                 relay_fd = child.stdin.fileno()
                 os.set_blocking(relay_fd, False)
             else:
                 child.stdin.write(start.get("prompt", "").encode())
-                child.stdin.close()
+                if start.get("duplex"):
+                    child.stdin.flush()
+                    os.set_blocking(child.stdin.fileno(), False)
+                else:
+                    child.stdin.close()
             streams = {child.stdout.fileno(): ("stdout", codecs.getincrementaldecoder("utf-8")("replace")),
                        child.stderr.fileno(): ("stderr", codecs.getincrementaldecoder("utf-8")("replace"))}
         emit("ready", pid=child.pid)
@@ -381,8 +450,13 @@ def main(start):
         pending_input = b""
         input_ended = False
         leader_cleaned = False
-        input_fd = master if terminal else relay_fd
+        input_fd = master if terminal else relay_fd if relay else child.stdin.fileno() if start.get("duplex") else None
         while (streams or child.poll() is None) and not closing:
+            if owner:
+                ownership["update"](owner, owned_members(child.pid, owner[1]["leader"]))
+                if ownership["revoked"](owner):
+                    closing = True
+                    break
             if cli_channel is not None:
                 calls, cancelled, admitted = cli_channel.poll(4 - len(observer_clients) - len(cli_channel.active), 64 - observation_count)
                 observation_count += admitted
@@ -396,6 +470,8 @@ def main(start):
                     written = os.write(input_fd, pending_input)
                     pending_input = pending_input[written:]
                 except BrokenPipeError:
+                    if not (terminal or relay):
+                        raise
                     # The child stopped reading; its exit is reported through the normal path.
                     pending_input = b""
                     input_ended = True
@@ -468,7 +544,7 @@ def main(start):
                         if not isinstance(frame, dict):
                             raise ValueError("invalid control frame")
                         kind = frame.get("type")
-                        keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "input": {"type", "data"}, "input-end": {"type"}, "resize": {"type", "cols", "rows"}}
+                        keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "close-input": {"type"}, "input": {"type", "data"}, "input-end": {"type"}, "resize": {"type", "cols", "rows"}}
                         if kind not in keys or set(frame) != keys[kind]:
                             raise ValueError("invalid control fields")
                         if cli_channel is not None:
@@ -488,6 +564,17 @@ def main(start):
                                 client.close()
                         elif kind == "close":
                             closing = True
+                        elif not terminal and not relay and start.get("duplex") and kind == "close-input":
+                            pending_input = b""
+                            input_fd = None
+                            child.stdin.close()
+                        elif not terminal and not relay and start.get("duplex") and kind == "input":
+                            data = frame["data"]
+                            if not isinstance(data, str) or not 0 < len(data.encode()) <= 65536 or child.stdin.closed:
+                                raise ValueError("invalid duplex input")
+                            pending_input += data.encode()
+                            if len(pending_input) > 65536:
+                                raise ValueError("duplex input queue too large")
                         elif kind == "input" and (terminal or relay):
                             data = frame["data"]
                             if not isinstance(data, str) or not 0 < len(data.encode()) <= 65536:
@@ -523,14 +610,16 @@ def main(start):
                         del streams[fd]
             # Leader exit does not imply background jobs have released the streams.
             if child.poll() is not None and not leader_cleaned:
-                cleanup(child.pid, child)
+                cleanup(child.pid, child, owner[1]["leader"] if owner else None)
                 leader_cleaned = True
         if closing:
-            cleanup(child.pid, child)
+            cleanup(child.pid, child, owner[1]["leader"] if owner else None)
             drain_streams(streams)
         else:
             child.wait()
-            cleanup(child.pid, child)
+            cleanup(child.pid, child, owner[1]["leader"] if owner else None)
+        if owner:
+            ownership["complete"](owner)
         emit("exit", exitCode=child.returncode)
         if workspace is not None:
             snapshot_workspace(workspace.name, start["workspace"]["runId"])
@@ -542,8 +631,10 @@ def main(start):
         emit("error", error=str(error))
         if child is not None:
             try:
-                cleanup(child.pid, child)
+                cleanup(child.pid, child, owner[1]["leader"] if owner else None)
                 drain_streams(streams)
+                if owner:
+                    ownership["complete"](owner)
             except BaseException as cleanup_error:
                 report_retained_workspace(workspace, start, cleanup_error)
                 emit("cleanup", ok=False, error=str(cleanup_error))

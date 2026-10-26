@@ -45,10 +45,10 @@ async function prompt(id, { sessionId }) {
     chunk(sessionId, '完成');
     return send({ id, result: { stopReason: 'end_turn' } });
   }
-  if (scenario === 'permission') {
+  if (scenario === 'permission' || scenario === 'permission-other-session') {
     update(sessionId, { sessionUpdate: 'tool_call', toolCallId: 't2', title: '修改 App.tsx', kind: 'edit', status: 'pending' });
     const answer = await ask('session/request_permission', {
-      sessionId,
+      sessionId: scenario === 'permission-other-session' ? 'someone-else' : sessionId,
       toolCall: { toolCallId: 't2' },
       options: [
         { optionId: 'yes', name: 'Allow once', kind: 'allow_once' },

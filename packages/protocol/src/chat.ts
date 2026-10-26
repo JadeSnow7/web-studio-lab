@@ -1,3 +1,4 @@
+import { AppImportRequestSchema, AppImportTargetSchema, AppImportOutcomeSchema } from './app-import';
 import { WorkspaceObservationResultSchema, ObservationRequestSchema as RequestSchema, ObservationTurnScopeSchema } from './observation';
 import { EnvironmentListSchema, RuntimeResourceIdentitySchema } from './environments';
 import {
@@ -97,6 +98,15 @@ export const ChatSendSchema = z
   .strict();
 /** 无模型自检一个 Profile：在运行环境内以其配置目录运行版本与登录状态命令。 */
 export const ProfileCheckRequestSchema = z.object({ harnessId: HarnessIdSchema, profileDir: ProfileDirSchema.nullable() }).strict();
+/** Internal self-check transport receipt; never persisted as the Profile business result. */
+export const ProfileCheckReceiptSchema = z.discriminatedUnion('ok', [
+  z
+    .object({ type: z.literal('profile-check'), ok: z.literal(true), result: ProfileCheckResultSchema, cleanupConfirmed: z.boolean() })
+    .strict(),
+  z.object({ type: z.literal('profile-check'), ok: z.literal(false), error: z.string(), cleanupConfirmed: z.boolean() }).strict(),
+]);
+export type ProfileCheckReceipt = z.infer<typeof ProfileCheckReceiptSchema>;
+
 export const ChatTargetSchema = z.object({ conversationId: ChatSlotSchema });
 export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
   z
@@ -114,6 +124,8 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
       payload: AppTargetSchema.extend({ files: z.array(AppSourceFileSchema).min(1).max(256) }),
     })
     .strict(),
+  z.object({ id: z.string(), method: z.literal('app.importSource'), payload: AppImportRequestSchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('app.cancelImport'), payload: AppImportTargetSchema }).strict(),
   ...(['app.get', 'app.start', 'app.stop', 'app.export'] as const).map((method) =>
     z.object({ id: z.string(), method: z.literal(method), payload: AppTargetSchema }).strict(),
   ),
@@ -225,8 +237,9 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
       AppLogsSchema,
       ManagedAppSchema,
       AppSourceSchema,
+      AppImportOutcomeSchema,
       ChatStatusSchema,
-      ProfileCheckResultSchema,
+      ProfileCheckReceiptSchema,
       ChatConversationSchema,
       TerminalSnapshotSchema,
       EnvironmentListSchema,

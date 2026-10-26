@@ -4,6 +4,19 @@ import type { PermissionOption, PermissionOutcome, RequestPermissionParams } fro
 import { AcpTurn } from './turn';
 
 describe('ACP 一次性审批策略', () => {
+  it('直接调用策略时缺失 kind 仍必须询问，不自动允许', async () => {
+    const onDeny = vi.fn();
+    const ask = vi.fn().mockResolvedValue({ outcome: { outcome: 'selected', optionId: 'reject' } });
+    const options: PermissionOption[] = [
+      { optionId: 'allow', name: 'Allow once', kind: 'allow_once' },
+      { optionId: 'reject', name: 'Reject once', kind: 'reject_once' },
+    ];
+    const params: RequestPermissionParams = { sessionId: 'session', toolCall: { toolCallId: 'tool' }, options };
+    expect(await approvalPolicy({ onDeny, ask })(params)).toEqual({ outcome: { outcome: 'selected', optionId: 'reject' } });
+    expect(ask).toHaveBeenCalledExactlyOnceWith(params, options);
+    expect(onDeny).not.toHaveBeenCalled();
+  });
+
   it.each(['fetch', 'edit'])('只有持久选项时取消 %s 请求，不选择始终拒绝', async (kind) => {
     const onDeny = vi.fn();
     const ask = vi.fn();
@@ -52,6 +65,7 @@ describe('ACP ID-only 请求的真实轮次审批', () => {
     { label: '未登记工具必须等待审批', knownKind: null, shouldAsk: true },
     { label: '已登记 edit 仍自动允许一次', knownKind: 'edit', shouldAsk: false },
     { label: '已登记 fetch 必须等待审批', knownKind: 'fetch', shouldAsk: true },
+    { label: '已登记 switch_mode 必须等待审批', knownKind: 'switch_mode', shouldAsk: true },
   ])('$label', async ({ knownKind, shouldAsk }) => {
     const written: { id?: number | string; method?: string; result?: unknown; error?: unknown }[] = [];
     let resolveApproval: (outcome: PermissionOutcome) => void = () => {
