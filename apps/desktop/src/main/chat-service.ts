@@ -1,3 +1,4 @@
+import { AppImportOutcomeSchema, type AppImportRequest, type AppImportTarget } from '@wsl/protocol';
 import path from 'node:path';
 import { RunDispatchFailure } from './workbench/ports';
 import { randomUUID } from 'node:crypto';
@@ -410,6 +411,17 @@ export class ChatService {
     const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.get', payload: target }));
     this.managedApps.set(target.projectId, snapshot);
     return snapshot;
+  }
+  async appImportSource(request: AppImportRequest) {
+    const result = AppImportOutcomeSchema.parse(await this.request({ method: 'app.importSource', payload: request }));
+    if (result.app) this.managedApps.set(request.projectId, result.app);
+    return result;
+  }
+  async appCancelImport(target: AppImportTarget) {
+    const result = AppImportOutcomeSchema.parse(await this.request({ method: 'app.cancelImport', payload: target }));
+    if (result.app) this.managedApps.set(target.projectId, result.app);
+    else if (result.outcome === 'cancelled') this.managedApps.delete(target.projectId);
+    return result;
   }
   async appCreate(target: AppTarget, files: AppSource['files']) {
     const snapshot = ManagedAppSchema.parse(await this.request({ method: 'app.create', payload: { ...target, files } }));

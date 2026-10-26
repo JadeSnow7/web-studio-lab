@@ -1,3 +1,4 @@
+import type { EduImport, EduAppImportPreview, AppImportOutcome } from '@wsl/protocol';
 import type { AppUiPort } from './app-control';
 import type {
   AppSourceSnapshotResult,
@@ -29,7 +30,16 @@ export class RunDispatchFailure extends Error {
     super(message);
   }
 }
+export type ImportProgress = { files: number; bytes: number };
+export type AppImportSource = Pick<EduImport, 'source' | 'files'>;
+export type AppImportSelection = AppImportSource & {
+  preview: EduAppImportPreview;
+  revalidate(signal: AbortSignal): Promise<AppImportSource>;
+};
 export interface WorkbenchRuntime {
+  appSelectImportSource?(signal: AbortSignal, progress: (value: ImportProgress) => void): Promise<AppImportSelection | null>;
+  appImportSource?(target: AppTarget, source: AppImportSource, importOperationId: string): Promise<AppImportOutcome>;
+  appCancelImport?(target: AppTarget, importOperationId: string): Promise<AppImportOutcome>;
   appSourceSnapshot?(target: AppTarget, signal: AbortSignal): Promise<AppSourceSnapshotResult>;
   appGet?(target: AppTarget): Promise<ManagedApp>;
   appCreate?(target: AppTarget): Promise<ManagedApp>;
