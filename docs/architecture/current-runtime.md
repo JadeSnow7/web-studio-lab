@@ -90,7 +90,11 @@ main process 对每个 IPC 请求做两项检查：
 
 执行核心经 service 侧 Harness 适配器启动 CLI 并读取输出（ADR-0003，[W2 合同](../acceptance/harness-port-codex-20261022/SPEC.md)）：当前只有 Codex native 适配器（`apps/service/src/harness/codex/adapter.ts`），对话状态附带 Harness 描述符，`startRun` 把 Harness 出处冻结进执行记录；start 帧以 `mcp: 'codex-config'` 显式声明 MCP 挂载方式，guest helper 不再按 argv 识别 Harness。执行服务同时注册 Codex native 与 Claude Code 的 ACP 包装器，启动时分别探测（ACP 只发 `initialize`），按 Harness 报告可用性；每次执行由 Main 按会话选择或全局默认指定 Harness 与 Profile，`startRun` 把含 `profileId` 的出处冻结进执行记录（[W4 合同](../acceptance/harness-profiles-20261022/SPEC.md)）。Profile 只引用 guest 内的配置目录：内置 `codex:default` 沿用 guest 预设的 `CODEX_HOME` 与 sbx secret，`claude-code:default` 使用 guest `~/.claude`，新建的 Claude Code Profile 位于 `/home/agent/.wsl-profiles/claude-code/<uuid>`，经 start 帧映射到 `CLAUDE_CONFIG_DIR`，service 与 helper 各自校验；记录存于 userData 的 `harness-profiles.json`，只含目录引用与无模型自检的解析结果，不含凭据。同一 Profile 同时最多一个活动执行；尚未自检的 Profile 在启动路径上补做自检，未登录时执行失败并说明原因，不换用其他 Profile。ACP 的 stdin relay、MCP 经 `session/new` 传入与对等审批策略见 [W3b 记录](../acceptance/harness-acp-wiring-20261022/README.md)；逐项审批界面属于 W4b，尚未实现。
 
+Profile 无模型自检由 service 持有每次检查及其版本／登录状态子进程；关闭后不启动下一阶段，退出须等待所属进程实际完成，清理未知或启动归属未确认时保持失败。`profile.check` 的内部回执按请求返回业务结果或错误及必填 `cleanupConfirmed`；Main 按请求身份保留未确认清理，断连、通用错误或缺失回执不能清除，其他并发检查的成功也不能代替它。该清理字段不进入 Profile 业务结果或持久记录；正常确认清理的自检不占住退出。
+
 Codex 首轮使用 `exec --json`，续轮显式 `exec resume <threadId>`，采用 `workspace-write` 并启用 guest 工具。消息历史按应用会话隔离，但各会话和终端共享 guest 文件系统；开始新对话不删除文件。服务拥有 generation、threadId、turnId 与序号，保留有界工具结果和非致命警告，截断结果明确标示。成功要求助手文本、会话身份、完成事件、正常退出和远端清理确认。
+
+隔离 workspace 的返回快照仍限 256 文件和 524288 解码字节。目录先逐项计数、关闭扫描句柄，再对有界列表排序；空目录及根部排除项 `node_modules`、`dist`、`.vite` 本身均计数，排除目录内容不进入扫描。以根文件系统的 `PC_PATH_MAX=P` 推导路径段上界 `floor(P/2)`，全局枚举条目上限为 `256*floor(P/2)+3`，超限在读取到第一个超额条目时拒绝；路径限额不可用或未定时明确失败。完整路径访问受文件系统约束，公式忽略根路径长度以保守容纳所有合法文件祖先；不把 AppSource 的 500 字符限制新增到通用 GuestWorkspace。Linux 常见的 P=4096 对应 524291 项，macOS 的 P=1024 对应 131075 项；这是保守有限工作量，不是时延 SLO，也不为目录清理或整个 guest 生命周期新增截止时间。显式深度优先栈保持原排序，不依赖 Python 递归上限；拒绝不改变原有清理确认与保留工作目录的规则。
 
 每会话最多一个活动回复。个人与空间会话均在共享清理状态未知时拒绝新发送和重置。service 层各会话槽互不阻塞；Main `ChatService` 另持有 sandbox guest 工作区写入许可：所有会话共享同一 guest 工作目录，同一时刻只允许一个会话的轮次写入，其他会话发送以 `conflict` 拒绝，持有者停止并确认清理后释放；`startRun` 在创建执行前检查（[W0 合同](../acceptance/project-write-lease-20261021/SPEC.md)）。Lane 隔离落地前会话之间不并行写入。取消等待所属传输的完成回执及同步终态发布；单独cleanup帧不提前确认清理，完成或发布异常保留原失败原因与尚未确认的占用。取消、重置、终端关闭和窗口退出均等待已登记guest进程清理；宿主sbx进程退出不等于远端清理成功。缺少回执时显示失败并保留占用。空间消息历史、草稿和运行事实持久化；恢复历史不等于恢复模型上下文。重启后终端需显式重连，活跃运行记为中断，不自动重放。CLI自身会话和guest文件仍由CLI/sandbox管理。
 
@@ -164,3 +168,15 @@ service→Main 的 MCP 请求沿具名消息和 AbortSignal 传递；guest使用
 - 模板：standard-app 1.1.0 内建 registry/bridge、agent-cli、`/api/__agent` 与 manifest；受管启动对含 `build:agent` 的项目改用 agent 构建，旧 1.0.0 项目照旧生产构建并返回 `unsupported`。健康检查接受 1.0.0 与 1.1.0。
 - 验证：修复后的 A03/A07 无模型 live 通过；[A11 真实模型与 Host 固定复验](../verification/2026-10-11-app-control-plane/round-09-model-live/README.md) 通过，真实 MCP describe、UI、state、query 链路已运行。[round-10](../verification/2026-10-11-app-control-plane/round-10-cli/README.md) 在保持 `workspace-write` 与 Main 权限不变的前提下改用 CLI 文件通道，真实命令沙箱 11 项检查（含两项 Main 拒绝）、MCP 及 Host 固定 16 步通过；所属进程、映射和通道清理确认。[round-11](../verification/2026-10-11-app-control-plane/round-11-cli-cancel/README.md) 通过实际产品按钮取消真实在途 CLI，核对 11 个所属进程退出、通道删除、45 个源码文件保留及下一轮真实 CLI 的迟到响应隔离；按钮为 Playwright 自动点击，返回帧延迟由测试启动层控制。
 - 缺口：独立产品检查器仍未接入，测试内 Host 复验不写入 TaskRun 的 validation，也不构成用户接受；真人输入、安装包复验未在本轮执行；Expo（阶段 B）与 Android（阶段 C）未实现。
+
+## edu 导入 / R5 切片（本地实现）
+
+从 `130066850086ffab6295d46e410ae152294a654f` 按行为提取 edu-only 导入、运行和导出链，叠加在已合并标准 source 链之上。Main collector 只读采集原生选择的 Git 根，固定 Git 配置且拒绝外部过滤器、partial clone、submodule、链接和超预算目录；256 文件 / 524288 解码字节限制保持。renderer 只提交预览身份和确认散列。
+
+Main 持久化未决操作，service journal 与 guest staging / 原子发布 / receipt 核对同一 workspace、project、operation 和源码身份。取消、退出未确认或重启期间不释放未知占用，不自动重放副作用。edu 运行使用既有所属进程记录与恢复通道，默认 AI0，要求 guest Python 3.12。每次启动先只读采集并冻结当前源码清单摘要；持久化记录、所属进程、启动请求和就绪回执必须绑定同一摘要，guest 在创建构建目录前复核。启动前后校验保护文件，锁定依赖安装、测试和构建发生在 guest，可能访问依赖下载网络。
+
+源码与编码传输分别限额：通用 guest start 的 JSON 加 LF 上限为 3 MiB（原为 1 MiB），宿主先编码并按 UTF-8 字节预检，再创建子进程；当次注入的受管应用 helper 的 JSON 编码最多 128 KiB。内层应用请求同为 3 MiB，导入回执聚合最多 1 MiB，错误码最多 100 字符。按 256 文件、524288 解码字节、每路径最多 500 个 UTF-16 单元推导，base64 合计最多 699732 字节；包含两份路径清单、JSON 转义和固定字段余量，内层至多 2276436 字节，外层至多 2703700 字节，导入回执至多 802560 字节。guest 首帧使用线性 bytearray 逐字节读取并在 LF 停止，不预读后续控制帧。该调整只扩大有限 start 编码容量，不承诺任意 start 参数都可传输；后续控制帧的 1 MiB 上限、输入队列、源码/磁盘清单预算、路径检查与超时不变。导出含 base64 的回执独立于导入回执限额，继续由既有有界日志及完整源码校验接收；不混用 1 MiB 导入回执上限。
+
+R5 edu 导出保留 main 已合入的线性有界编码检查、NFC/大小写路径别名、文件/目录冲突和 UTF-8 完整路径预检。输出实际源码字节、实际文件清单和不可变 importBase；标准 App 的原输出布局不变。只有 `admin/src/` 差异允许，其他来源文件增删改必须重新导入。
+
+本片不接 edu 模型候选、任务写回或发音验证；Main、service 和 UI 明确拒绝相应任务入口。Mota/R6 权限、保存、撤权和攻击防护仍须作为后续完整切片；research 与纯模块化整理未迁移。离线 fixture 覆盖不代表真实 guest、真实模型、已安装应用或用户产品验收；实际执行结果随候选提交单独记录。

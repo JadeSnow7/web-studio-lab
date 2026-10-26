@@ -624,6 +624,23 @@ function appFacts(workspace: WorkspaceSnapshot): StatusFact[] {
     cleanupConfirmed: app.cleanupConfirmed,
     guestPort: app.guestPort,
   };
+  const pending = workspace.pendingAppImport;
+  if (pending && app.workspaceId === workspace.workspaceId && pending.projectId === app.projectId) {
+    const view =
+      workspace.appImport?.previewId === pending.previewId && workspace.appImport.projectId === pending.projectId
+        ? workspace.appImport
+        : null;
+    if (!view?.published) {
+      // A reserved project is not evidence of a running service or confirmed cleanup.
+      let mapping: Mapping = { phase: 'unknown', kind: 'unresolved', priority: 80, label: '工程导入结果待核对' };
+      if (view?.phase === 'scanning') mapping = { phase: 'pending', kind: 'progress', priority: 60, label: '正在检查导入来源…' };
+      else if (view?.phase === 'copying') mapping = { phase: 'pending', kind: 'progress', priority: 60, label: '正在导入工程…' };
+      else if (view?.phase === 'cancelling') mapping = { phase: 'pending', kind: 'progress', priority: 60, label: '正在取消并核对导入…' };
+      else if (view?.phase === 'failed' && view.error?.code !== 'import_recovery')
+        mapping = { phase: 'unknown', kind: 'unresolved', priority: 80, label: '工程导入未完成，身份已保留' };
+      return [build({ ...entity, instanceToken: `import:${pending.previewId}` }, 'state', fromMapping(mapping, { raw }))];
+    }
+  }
   const facts = [
     build(entity, 'state', fromMapping(APP_STATE[app.state], { raw, detail: app.state === 'failed' ? app.error : undefined })),
   ];

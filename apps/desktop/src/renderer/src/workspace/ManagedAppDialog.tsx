@@ -1,3 +1,4 @@
+import { AppImportPanel, appImportActive, type AppImportAction } from './AppImportPanel';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { StatusScope } from '@wsl/protocol';
 import { StatusDot, StatusSlot } from '../components/Status';
@@ -48,25 +49,37 @@ export function ManagedAppDialog({ workspaceId }: { workspaceId: string | null }
     else dialog.current?.close();
   }, [workspaceId]);
   const app = workspace?.managedApp;
-  const act = async (type: 'startApp' | 'stopApp' | 'exportApp') => {
+  const act = async (
+    payload: AppImportAction | { type: 'startApp' | 'stopApp' | 'exportApp' } | { type: 'openAppPage'; page: 'admin' | 'student' },
+  ) => {
+    const type = payload.type;
     if (!workspaceId) return;
     const targetId = workspaceId;
     const key = `${targetId}:${type}`;
     const active = [...busy.current].filter((item) => item.startsWith(`${targetId}:`));
-    if (busy.current.has(key) || (type !== 'stopApp' && active.length)) return;
+    if (busy.current.has(key) || (!['stopApp', 'cancelAppImport'].includes(type) && active.length)) return;
     busy.current.add(key);
     setOperations((s) => ({ ...s, [targetId]: [...(s[targetId] ?? []), type] }));
     setErrors((s) => ({ ...s, [targetId]: null }));
     try {
-      const result = await workspaceCommand(targetId, { type });
-      if (!result?.ok)
-        setErrors((s) => ({ ...s, [targetId]: result ? result.error.message : (workspaceStore.get().error ?? '操作失败，请重试。') }));
+      const result = await workspaceCommand(targetId, payload);
+      if (!result?.ok) {
+        const message = result ? result.error.message : (workspaceStore.get().error ?? '操作失败，请重试。');
+        const importView = ['previewAppImport', 'confirmAppImport', 'cancelAppImport', 'retryAppImport'].includes(type)
+          ? result?.snapshot.workspaces.find((item) => item.workspaceId === targetId)?.appImport
+          : null;
+        // The import panel owns this persistent failure; keep the fallback for transport and unrelated operation errors.
+        if (!importView || importView.phase === 'completed' || importView.error?.message !== message)
+          setErrors((s) => ({ ...s, [targetId]: message }));
+      }
     } finally {
       busy.current.delete(key);
       setOperations((s) => ({ ...s, [targetId]: (s[targetId] ?? []).filter((item) => item !== type) }));
     }
   };
   const noteId = useId();
+  const importing = appImportActive(workspace?.appImport) || !!workspace?.pendingAppImport;
+  const edu = app?.profile?.projectKind === 'edu-web';
   const idle = !!app?.cleanupConfirmed && !['starting', 'running', 'stopping'].includes(app.state);
   return (
     <dialog
@@ -89,12 +102,14 @@ export function ManagedAppDialog({ workspaceId }: { workspaceId: string | null }
         {/* 空间名与工程类型是不变量说明，不是状态：悬停与视觉隐藏文本，对话框描述引用它。 */}
         {workspace ? (
           <span id={noteId} className="sr-only">
-            {workspace.name} · 沙箱 React 全栈工程
+            {workspace.name} · {edu ? 'edu-web 隔离工程' : '沙箱 React 全栈工程'}
           </span>
         ) : null}
         {workspace?.app ? (
           <>
-            <p title={[`${workspace.name} · 沙箱 React 全栈工程`, app?.guestCwd].filter(Boolean).join('\n')}>
+            <p
+              title={[`${workspace.name} · ${edu ? 'edu-web 隔离工程' : '沙箱 React 全栈工程'}`, app?.guestCwd].filter(Boolean).join('\n')}
+            >
               <strong>{workspace.app.name}</strong>
             </p>
             {workspace.app.description ? <p className="muted small">{workspace.app.description}</p> : null}
@@ -111,29 +126,67 @@ export function ManagedAppDialog({ workspaceId }: { workspaceId: string | null }
             </button>
           </>
         ) : null}
+        {workspace?.appImport && workspace.appImport.phase !== 'completed' ? (
+          <AppImportPanel
+            view={workspace.appImport}
+            pending={pending}
+            cleanupConfirmed={!!app?.cleanupConfirmed}
+            canRestart={idle && !importing}
+            onAction={(action) => void act(action)}
+          />
+        ) : null}
         {app && workspace ? (
           <>
             <AppServiceStatus workspaceId={workspace.workspaceId} guestCwd={app.guestCwd} />
             <div className="row gap-8">
-              <button type="button" className="btn btn-primary" disabled={!idle || !!pending} onClick={() => void act('startApp')}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!idle || !!pending || importing}
+                onClick={() => void act({ type: 'startApp' })}
+              >
                 启动应用
               </button>
               <button
                 type="button"
                 className="btn"
                 disabled={
+                  importing ||
                   !['starting', 'running', 'failed'].includes(app.state) ||
                   (workspaceId !== null && operations[workspaceId]?.includes('stopApp')) ||
                   (!!pending && pending !== 'startApp')
                 }
-                onClick={() => void act('stopApp')}
+                onClick={() => void act({ type: 'stopApp' })}
               >
                 {app.state === 'starting' ? '取消启动' : '停止应用'}
               </button>
-              <button type="button" className="btn" disabled={!idle || !!pending} onClick={() => void act('exportApp')}>
+              <button
+                type="button"
+                className="btn"
+                disabled={!idle || !!pending || importing}
+                onClick={() => void act({ type: 'exportApp' })}
+              >
                 导出源码
               </button>
             </div>
+            {edu ? (
+              <>
+                <div className="row gap-8 app-import-actions">
+                  {(['admin', 'student'] as const).map((page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      className="btn"
+                      disabled={app.state !== 'running' || !!pending || importing}
+                      onClick={() => void act({ type: 'openAppPage', page })}
+                    >
+                      {page === 'admin' ? '打开管理员页' : '打开学生页'}
+                    </button>
+                  ))}
+                </div>
+                <p className="muted small">当前仅支持页面运行和源码导出；任务写回与发音验证尚未开放。</p>
+              </>
+            ) : null}
             {app.state === 'failed' && app.error ? (
               <details className="managed-app-error">
                 <summary>错误详情</summary>
@@ -154,7 +207,7 @@ export function ManagedAppDialog({ workspaceId }: { workspaceId: string | null }
             <button
               type="button"
               className="btn btn-primary"
-              disabled={!!pending || !workspace}
+              disabled={!!pending || !workspace || importing}
               onClick={() => {
                 if (workspace) {
                   spaceActions.closeApp();
@@ -163,6 +216,14 @@ export function ManagedAppDialog({ workspaceId }: { workspaceId: string | null }
               }}
             >
               创建标准应用
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={!!pending || !workspace || importing}
+              onClick={() => void act({ type: 'previewAppImport' })}
+            >
+              导入已有 edu 工程
             </button>
           </>
         )}

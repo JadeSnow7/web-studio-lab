@@ -13,7 +13,7 @@ const ALLOWED_KINDS = new Set(['read', 'edit', 'delete', 'move', 'search', 'exec
 
 export function workspaceWritePolicy(onDeny?: (params: RequestPermissionParams, reason: string) => void): PermissionDecider {
   return (params) => {
-    const kind = params.toolCall.kind ?? 'other';
+    const kind = params.toolCall.kind ?? 'unknown';
     const allow = params.options.find((option) => option.kind === 'allow_once');
     const reject =
       params.options.find((option) => option.kind === 'reject_once') ?? params.options.find((option) => option.kind === 'reject_always');

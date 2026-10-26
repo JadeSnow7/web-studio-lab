@@ -30,3 +30,4 @@ export * from './status';
 export * from './source-change';
 
 export * from './harness';
+export * from './app-import';
