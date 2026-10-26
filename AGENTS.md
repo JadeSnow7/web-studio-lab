@@ -46,3 +46,7 @@ env -u ELECTRON_RUN_AS_NODE pnpm exec playwright test
 ```
 
 这不修改项目或系统配置，不关闭 Electron sandbox，也不启用真实模型或 sandbox live。失败记录与清理环境后的独立复跑应分别保留。
+
+## edu 外部来源
+
+edu-web profile v1 来自用户明确选择的完整 Git 工程，不是第二个内置模板。256 文件 / 524288 字节预算、导入原目录只读、所有非 `admin/src/` 文件保护、操作身份及未知清理占用须保持。默认 AI0，本片尚未开放 edu 任务写回或发音验证；不得经标准 coding 通道绕过。导入/运行/导出合同见 [UX-CONTRACT](UX-CONTRACT.md)，真实 guest 与模型验收仍需明确授权。
