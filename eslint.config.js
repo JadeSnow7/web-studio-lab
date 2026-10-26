@@ -43,6 +43,8 @@ export default tseslint.config(
       'e2e/**/*.{ts,js,mjs}',
       'scripts/check-docs.mjs',
       'scripts/workflow-e8.mjs',
+      'scripts/e9-report.mjs',
+      'scripts/e9-report.test.mjs',
       '*.ts',
       '*.js',
     ],
@@ -50,7 +52,7 @@ export default tseslint.config(
   },
   {
     // vm-worker 的 prelude 注入这些 DSL 名称；仅 fixture 脚本读取，不授予 Node 全局能力。
-    files: ['fixtures/workflow/scripts/*.mjs'],
+    files: ['fixtures/workflow/scripts/*.mjs', 'fixtures/workflow/e9/group-b/*.mjs', 'fixtures/workflow/e9/group-c/*.mjs'],
     languageOptions: {
       globals: {
         agent: 'readonly',

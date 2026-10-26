@@ -1,0 +1,410 @@
+{
+  "schemaVersion": 1,
+  "window": { "startedAt": "2026-10-30T09:00:00Z", "endedAt": "2026-10-30T18:00:00Z" },
+  "groups": {
+    "A": {
+      "runs": [
+        {
+          "taskId": "type-fix",
+          "pair": 1,
+          "ranAt": "2026-10-30T09:05:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 3, "wallMs": 120000, "inputTokens": 3200, "outputTokens": 800, "cost": null }
+        },
+        {
+          "taskId": "type-fix",
+          "pair": 2,
+          "ranAt": "2026-10-30T09:20:00Z",
+          "passed": false,
+          "interventions": 1,
+          "budget": { "attempts": 4, "wallMs": 180000, "inputTokens": 4100, "outputTokens": 900, "cost": null }
+        },
+        {
+          "taskId": "type-fix",
+          "pair": 3,
+          "ranAt": "2026-10-30T09:40:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 3, "wallMs": 110000, "inputTokens": 3000, "outputTokens": 750, "cost": null }
+        },
+        {
+          "taskId": "authz-audit",
+          "pair": 1,
+          "ranAt": "2026-10-30T10:00:00Z",
+          "passed": true,
+          "interventions": 1,
+          "audit": { "expectedFindings": 4, "truePositives": 2, "falsePositives": 0 },
+          "budget": { "attempts": 3, "wallMs": 140000, "inputTokens": 3600, "outputTokens": 850, "cost": null }
+        },
+        {
+          "taskId": "authz-audit",
+          "pair": 2,
+          "ranAt": "2026-10-30T10:20:00Z",
+          "passed": false,
+          "interventions": 1,
+          "audit": { "expectedFindings": 4, "truePositives": 2, "falsePositives": 1 },
+          "budget": { "attempts": 4, "wallMs": 170000, "inputTokens": 4000, "outputTokens": 900, "cost": null }
+        },
+        {
+          "taskId": "authz-audit",
+          "pair": 3,
+          "ranAt": "2026-10-30T10:45:00Z",
+          "passed": true,
+          "interventions": 1,
+          "audit": { "expectedFindings": 4, "truePositives": 3, "falsePositives": 0 },
+          "budget": { "attempts": 3, "wallMs": 150000, "inputTokens": 3700, "outputTokens": 880, "cost": null }
+        },
+        {
+          "taskId": "component-migration",
+          "pair": 1,
+          "ranAt": "2026-10-30T11:00:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 3, "wallMs": 200000, "inputTokens": 5000, "outputTokens": 1200, "cost": null }
+        },
+        {
+          "taskId": "component-migration",
+          "pair": 2,
+          "ranAt": "2026-10-30T11:30:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 3, "wallMs": 190000, "inputTokens": 4800, "outputTokens": 1100, "cost": null }
+        },
+        {
+          "taskId": "component-migration",
+          "pair": 3,
+          "ranAt": "2026-10-30T12:00:00Z",
+          "passed": false,
+          "interventions": 1,
+          "budget": { "attempts": 4, "wallMs": 220000, "inputTokens": 5200, "outputTokens": 1300, "cost": null }
+        },
+        {
+          "taskId": "coverage-backfill",
+          "pair": 1,
+          "ranAt": "2026-10-30T13:00:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 3, "wallMs": 160000, "inputTokens": 4200, "outputTokens": 1000, "cost": null }
+        },
+        {
+          "taskId": "coverage-backfill",
+          "pair": 2,
+          "ranAt": "2026-10-30T13:30:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 3, "wallMs": 150000, "inputTokens": 4100, "outputTokens": 980, "cost": null }
+        },
+        {
+          "taskId": "coverage-backfill",
+          "pair": 3,
+          "ranAt": "2026-10-30T14:00:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 3, "wallMs": 155000, "inputTokens": 4150, "outputTokens": 990, "cost": null }
+        }
+      ]
+    },
+    "B": {
+      "runs": [
+        {
+          "taskId": "type-fix",
+          "pair": 1,
+          "ranAt": "2026-10-30T09:06:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 4, "wallMs": 130000, "inputTokens": 3600, "outputTokens": 900, "cost": null }
+        },
+        {
+          "taskId": "type-fix",
+          "pair": 2,
+          "ranAt": "2026-10-30T09:22:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 4, "wallMs": 150000, "inputTokens": 3800, "outputTokens": 950, "cost": null }
+        },
+        {
+          "taskId": "type-fix",
+          "pair": 3,
+          "ranAt": "2026-10-30T09:42:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 4, "wallMs": 125000, "inputTokens": 3500, "outputTokens": 880, "cost": null }
+        },
+        {
+          "taskId": "authz-audit",
+          "pair": 1,
+          "ranAt": "2026-10-30T10:05:00Z",
+          "passed": true,
+          "interventions": 1,
+          "audit": { "expectedFindings": 4, "truePositives": 3, "falsePositives": 0 },
+          "budget": { "attempts": 4, "wallMs": 160000, "inputTokens": 4200, "outputTokens": 1000, "cost": null }
+        },
+        {
+          "taskId": "authz-audit",
+          "pair": 2,
+          "ranAt": "2026-10-30T10:25:00Z",
+          "passed": true,
+          "interventions": 1,
+          "audit": { "expectedFindings": 4, "truePositives": 4, "falsePositives": 0 },
+          "budget": { "attempts": 4, "wallMs": 155000, "inputTokens": 4300, "outputTokens": 1050, "cost": null }
+        },
+        {
+          "taskId": "authz-audit",
+          "pair": 3,
+          "ranAt": "2026-10-30T10:50:00Z",
+          "passed": true,
+          "interventions": 1,
+          "audit": { "expectedFindings": 4, "truePositives": 4, "falsePositives": 1 },
+          "budget": { "attempts": 4, "wallMs": 165000, "inputTokens": 4400, "outputTokens": 1080, "cost": null }
+        },
+        {
+          "taskId": "component-migration",
+          "pair": 1,
+          "ranAt": "2026-10-30T11:05:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 4, "wallMs": 210000, "inputTokens": 5500, "outputTokens": 1400, "cost": null }
+        },
+        {
+          "taskId": "component-migration",
+          "pair": 2,
+          "ranAt": "2026-10-30T11:35:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 4, "wallMs": 200000, "inputTokens": 5400, "outputTokens": 1350, "cost": null }
+        },
+        {
+          "taskId": "component-migration",
+          "pair": 3,
+          "ranAt": "2026-10-30T12:05:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 4, "wallMs": 205000, "inputTokens": 5450, "outputTokens": 1380, "cost": null }
+        },
+        {
+          "taskId": "coverage-backfill",
+          "pair": 1,
+          "ranAt": "2026-10-30T13:05:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 4, "wallMs": 170000, "inputTokens": 4600, "outputTokens": 1150, "cost": null }
+        },
+        {
+          "taskId": "coverage-backfill",
+          "pair": 2,
+          "ranAt": "2026-10-30T13:35:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 4, "wallMs": 165000, "inputTokens": 4500, "outputTokens": 1100, "cost": null }
+        },
+        {
+          "taskId": "coverage-backfill",
+          "pair": 3,
+          "ranAt": "2026-10-30T14:05:00Z",
+          "passed": true,
+          "interventions": 1,
+          "budget": { "attempts": 4, "wallMs": 168000, "inputTokens": 4550, "outputTokens": 1120, "cost": null }
+        }
+      ]
+    },
+    "C": {
+      "runs": [
+        {
+          "taskId": "type-fix",
+          "pair": 1,
+          "ranAt": "2026-10-30T09:08:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 140000, "inputTokens": 3900, "outputTokens": 980, "cost": null }
+        },
+        {
+          "taskId": "type-fix",
+          "pair": 2,
+          "ranAt": "2026-10-30T09:25:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 160000, "inputTokens": 4000, "outputTokens": 1000, "cost": null }
+        },
+        {
+          "taskId": "type-fix",
+          "pair": 3,
+          "ranAt": "2026-10-30T09:45:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 135000, "inputTokens": 3800, "outputTokens": 950, "cost": null }
+        },
+        {
+          "taskId": "authz-audit",
+          "pair": 1,
+          "ranAt": "2026-10-30T10:08:00Z",
+          "passed": true,
+          "interventions": 2,
+          "audit": { "expectedFindings": 4, "truePositives": 3, "falsePositives": 0 },
+          "budget": { "attempts": 5, "wallMs": 170000, "inputTokens": 4600, "outputTokens": 1100, "cost": null }
+        },
+        {
+          "taskId": "authz-audit",
+          "pair": 2,
+          "ranAt": "2026-10-30T10:30:00Z",
+          "passed": true,
+          "interventions": 2,
+          "audit": { "expectedFindings": 4, "truePositives": 4, "falsePositives": 0 },
+          "budget": { "attempts": 5, "wallMs": 165000, "inputTokens": 4700, "outputTokens": 1150, "cost": null }
+        },
+        {
+          "taskId": "authz-audit",
+          "pair": 3,
+          "ranAt": "2026-10-30T10:55:00Z",
+          "passed": true,
+          "interventions": 2,
+          "audit": { "expectedFindings": 4, "truePositives": 4, "falsePositives": 1 },
+          "budget": { "attempts": 5, "wallMs": 175000, "inputTokens": 4800, "outputTokens": 1180, "cost": null }
+        },
+        {
+          "taskId": "component-migration",
+          "pair": 1,
+          "ranAt": "2026-10-30T11:10:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 220000, "inputTokens": 5800, "outputTokens": 1500, "cost": null }
+        },
+        {
+          "taskId": "component-migration",
+          "pair": 2,
+          "ranAt": "2026-10-30T11:40:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 210000, "inputTokens": 5700, "outputTokens": 1450, "cost": null }
+        },
+        {
+          "taskId": "component-migration",
+          "pair": 3,
+          "ranAt": "2026-10-30T12:10:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 215000, "inputTokens": 5750, "outputTokens": 1480, "cost": null }
+        },
+        {
+          "taskId": "coverage-backfill",
+          "pair": 1,
+          "ranAt": "2026-10-30T13:10:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 180000, "inputTokens": 4900, "outputTokens": 1250, "cost": null }
+        },
+        {
+          "taskId": "coverage-backfill",
+          "pair": 2,
+          "ranAt": "2026-10-30T13:40:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 175000, "inputTokens": 4800, "outputTokens": 1200, "cost": null }
+        },
+        {
+          "taskId": "coverage-backfill",
+          "pair": 3,
+          "ranAt": "2026-10-30T14:10:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 178000, "inputTokens": 4850, "outputTokens": 1220, "cost": null }
+        }
+      ]
+    },
+    "D": {
+      "runs": [
+        {
+          "taskId": "type-fix",
+          "pair": 1,
+          "ranAt": "2026-10-30T09:12:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 145000, "inputTokens": 4000, "outputTokens": 1000, "cost": null }
+        },
+        {
+          "taskId": "type-fix",
+          "pair": 2,
+          "ranAt": "2026-10-30T09:28:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 150000, "inputTokens": 4050, "outputTokens": 1010, "cost": null }
+        },
+        {
+          "taskId": "type-fix",
+          "pair": 3,
+          "ranAt": "2026-10-30T09:48:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 142000, "inputTokens": 3980, "outputTokens": 990, "cost": null }
+        },
+        {
+          "taskId": "authz-audit",
+          "pair": 1,
+          "ranAt": "2026-10-30T10:12:00Z",
+          "passed": true,
+          "interventions": 2,
+          "audit": { "expectedFindings": 4, "truePositives": 3, "falsePositives": 0 },
+          "budget": { "attempts": 5, "wallMs": 172000, "inputTokens": 4650, "outputTokens": 1120, "cost": null }
+        },
+        {
+          "taskId": "authz-audit",
+          "pair": 2,
+          "ranAt": "2026-10-30T10:35:00Z",
+          "passed": true,
+          "interventions": 2,
+          "audit": { "expectedFindings": 4, "truePositives": 4, "falsePositives": 0 },
+          "budget": { "attempts": 5, "wallMs": 168000, "inputTokens": 4720, "outputTokens": 1160, "cost": null }
+        },
+        {
+          "taskId": "authz-audit",
+          "pair": 3,
+          "ranAt": "2026-10-30T10:58:00Z",
+          "passed": true,
+          "interventions": 2,
+          "audit": { "expectedFindings": 4, "truePositives": 4, "falsePositives": 1 },
+          "budget": { "attempts": 5, "wallMs": 176000, "inputTokens": 4810, "outputTokens": 1190, "cost": null }
+        },
+        {
+          "taskId": "component-migration",
+          "pair": 1,
+          "ranAt": "2026-10-30T11:15:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 225000, "inputTokens": 5900, "outputTokens": 1520, "cost": null }
+        },
+        {
+          "taskId": "component-migration",
+          "pair": 2,
+          "ranAt": "2026-10-30T11:45:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 212000, "inputTokens": 5750, "outputTokens": 1470, "cost": null }
+        },
+        {
+          "taskId": "coverage-backfill",
+          "pair": 1,
+          "ranAt": "2026-10-30T13:15:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 182000, "inputTokens": 4950, "outputTokens": 1260, "cost": null }
+        },
+        {
+          "taskId": "coverage-backfill",
+          "pair": 2,
+          "ranAt": "2026-10-30T13:45:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 176000, "inputTokens": 4850, "outputTokens": 1210, "cost": null }
+        },
+        {
+          "taskId": "coverage-backfill",
+          "pair": 3,
+          "ranAt": "2026-10-30T14:15:00Z",
+          "passed": true,
+          "interventions": 2,
+          "budget": { "attempts": 5, "wallMs": 179000, "inputTokens": 4880, "outputTokens": 1230, "cost": null }
+        }
+      ]
+    }
+  }
+}

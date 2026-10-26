@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "experiment": "E9",
+  "description": "E9 端到端收益对照的预注册任务集（plan.md §62-72）：4 个固定任务，各组同 Harness/模型/工具/输入/验收/总预算。预埋缺陷、期望输出与独立验收脚本提前封存，不给被测 Agent 查看真值。",
+  "tasks": [
+    {
+      "id": "type-fix",
+      "title": "类型错误修复",
+      "description": "在冻结工程快照中定位并修复全部 TypeScript 类型错误，使 tsc --noEmit 通过。",
+      "snapshot": "fixtures/workflow/e9/snapshots/type-fix/",
+      "acceptance": "独立验收脚本对修复后快照运行 tsc --noEmit：退出码 0 判 passed；真值错误清单提前封存，用于审计召回/误报统计。",
+      "audit": true,
+      "budget": { "attempts": 12, "wallMs": 900000, "inputTokens": null, "outputTokens": null, "cost": null }
+    },
+    {
+      "id": "authz-audit",
+      "title": "鉴权缺陷审计",
+      "description": "审计冻结工程快照中的鉴权检查缺陷：按预埋清单统计命中（召回）与误报。",
+      "snapshot": "fixtures/workflow/e9/snapshots/authz-audit/",
+      "acceptance": "独立验收脚本把 Agent 报告的缺陷路径与预埋清单比对：recall = TP/期望缺陷数，fpRate = FP/(TP+FP)；真值清单对被测 Agent 不可见。",
+      "audit": true,
+      "budget": { "attempts": 12, "wallMs": 900000, "inputTokens": null, "outputTokens": null, "cost": null }
+    },
+    {
+      "id": "component-migration",
+      "title": "组件迁移",
+      "description": "把冻结工程快照中的指定类组件迁移到函数组件并保持既有测试通过。",
+      "snapshot": "fixtures/workflow/e9/snapshots/component-migration/",
+      "acceptance": "独立验收脚本在迁移后快照上运行既有测试套件：全部通过判 passed。",
+      "audit": false,
+      "budget": { "attempts": 12, "wallMs": 900000, "inputTokens": null, "outputTokens": null, "cost": null }
+    },
+    {
+      "id": "coverage-backfill",
+      "title": "覆盖率补齐",
+      "description": "为冻结工程快照中未覆盖的分支补齐测试，使行覆盖率达到封存阈值。",
+      "snapshot": "fixtures/workflow/e9/snapshots/coverage-backfill/",
+      "acceptance": "独立验收脚本运行测试套件并比对覆盖率阈值：达标判 passed。",
+      "audit": false,
+      "budget": { "attempts": 12, "wallMs": 900000, "inputTokens": null, "outputTokens": null, "cost": null }
+    }
+  ]
+}

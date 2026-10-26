@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "experiment": "E9",
+  "description": "E9 组级预算表（预注册）：每组每任务 3 次配对先导的总额度口径。attempts 含规划、失败重试、被停止调用与恢复——全部计入同一总预算；超预算与基础设施失败分别记账，不从失败分母中删除。",
+  "perTaskPerGroup": {
+    "attempts": 12,
+    "wallMs": 900000,
+    "inputTokens": null,
+    "outputTokens": null,
+    "cost": null
+  },
+  "perGroupTotal": {
+    "attempts": 48,
+    "wallMs": 3600000,
+    "inputTokens": null,
+    "outputTokens": null,
+    "cost": null
+  },
+  "notes": [
+    "token/成本口径在成本容许值冻结前记 unknown（null）：不折算、不记 0、不与通过率门槛混算。",
+    "模型别名无法固定实际版本时，记录供应商标识与时间窗口，明确可复现性限制（见 README 配对规则）。",
+    "预算超出按 overBudget=true 记账；infraFailure 单独记账。两者都留在通过率分母中。"
+  ]
+}
