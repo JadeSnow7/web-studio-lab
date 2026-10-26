@@ -30,3 +30,9 @@ per-call 记录 `{promptIdx, schemaIdx, firstOk, repairedOk, category, attempts}
 - prompt 措辞与 schema 形状耦合带来的方差：同一 prompt 在不同 schema 上的失败不能相互背书；报告按 (promptIdx, schemaIdx) 全量列出。
 - live 需要真实模型与 sandbox：`WSL_WORKFLOW_LIVE=1` + `WSL_SBX_BIN` + `WSL_SBX_NAME` 显式设置才会执行；否则 runner 打印拒绝并非零退出。
 - `--fixture` 模式是 MockHarness 自检：验证 runner 全链路（kernel + schema 校验 + 修复重试 + 报告形状），不产生模型结论。
+
+## CLI argument boundaries
+
+`--offset` and `--limit` accept non-negative safe integers only. Omitted `--offset` means 0; omitted `--limit` and explicit `--limit 0` retain the existing unlimited selection. Negative, fractional, non-finite, missing, duplicate and unknown arguments exit 2 before engine initialization, journal writes or calls. A valid but empty slice exits 4. Any `unplanned_call` is diagnostic-only and exits 5; a completed fixture run is not a live acceptance result.
+
+Offline regression entry: `pnpm test:workflow-e8`; it is included in `pnpm test`.

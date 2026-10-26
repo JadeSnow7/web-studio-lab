@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run && node --test scripts/packaging/*.test.mjs && pnpm test:external-builds && pnpm test:edu-source",
+    "test": "vitest run && node --test scripts/packaging/*.test.mjs && pnpm test:external-builds && pnpm test:edu-source && pnpm test:workflow-e8",
     "edu:source": "node scripts/edu-source.mjs",
     "test:edu-source": "node --test scripts/edu-source.test.mjs",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
@@ -29,7 +29,8 @@
     "package:unsigned": "node scripts/external-builds.mjs verify && node scripts/packaging/package-release.mjs --unsigned",
     "test:packaging": "node --test scripts/packaging/*.test.mjs",
     "builds:external": "node scripts/external-builds.mjs setup",
-    "test:external-builds": "node --test scripts/external-builds.test.mjs"
+    "test:external-builds": "node --test scripts/external-builds.test.mjs",
+    "test:workflow-e8": "node --test scripts/workflow-e8.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -18,23 +18,39 @@ import { registerHooks } from 'node:module';
 import { tsImport } from 'tsx/esm/api';
 import * as rawHooks from './raw-loader-hooks.mjs';
 
-// 源码经 tsx 直跑时 vite `?raw` 导入无 loader——注册本仓库的最小 ?raw 钩子（live 路径依赖 sbx.ts）。
-registerHooks(rawHooks);
-
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
-const flag = (name) => args.includes(name);
-const opt = (name, fallback) => {
-  const i = args.indexOf(name);
-  return i >= 0 ? args[i + 1] : fallback;
-};
-
-const fixtureMode = flag('--fixture');
-const reportPath = opt('--report', null);
-const limit = Number(opt('--limit', '0')) || null;
-// live 节流：--offset N 从第 N 个 prompt 起切批，配合 --limit 控制单轮调用数；
-// 批间等待由调用方（shell）负责——VM 内无定时器，脚本自身不能节流。
-const offset = Number(opt('--offset', '0')) || 0;
+const options = new Map();
+const valuedOptions = new Set(['--report', '--limit', '--offset']);
+function invalidArguments(message) {
+  console.error(`E8 invalid arguments: ${message}`);
+  process.exit(2);
+}
+for (let index = 0; index < args.length; index++) {
+  const name = args[index];
+  if (name !== '--fixture' && !valuedOptions.has(name)) invalidArguments(`unknown option ${name}`);
+  if (options.has(name)) invalidArguments(`duplicate option ${name}`);
+  if (name === '--fixture') {
+    options.set(name, true);
+  } else {
+    const value = args[++index];
+    if (!value || value.startsWith('--')) invalidArguments(`missing value for ${name}`);
+    options.set(name, value);
+  }
+}
+function integerOption(name) {
+  const value = options.get(name) ?? '0';
+  if (!/^\d+$/.test(value) || !Number.isSafeInteger(Number(value))) {
+    invalidArguments(`${name} must be a non-negative safe integer`);
+  }
+  return Number(value);
+}
+const fixtureMode = options.has('--fixture');
+const reportPath = options.get('--report') ?? null;
+const limitValue = integerOption('--limit');
+// Preserve the existing explicit zero/unset meaning: no limit.
+const limit = limitValue === 0 ? null : limitValue;
+const offset = integerOption('--offset');
 
 if (!reportPath) {
   console.error('用法：node scripts/workflow-e8.mjs [--fixture] --report <path> [--limit N]');
@@ -50,6 +66,8 @@ if (!fixtureMode) {
   }
 }
 
+// Invalid arguments are rejected before registering hooks or initializing the engine.
+registerHooks(rawHooks);
 const service = (p) => resolve(root, 'apps/service/src', p);
 const { createRun } = await tsImport(service('workflow/kernel.ts'), import.meta.url);
 const { MockHarness } = await tsImport(service('workflow/mock-harness.ts'), import.meta.url);

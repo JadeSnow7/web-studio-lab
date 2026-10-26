@@ -43,6 +43,8 @@ export default tseslint.config(
       'e2e/**/*.{ts,js,mjs}',
       'scripts/check-docs.mjs',
       'scripts/workflow-e8.mjs',
+      'scripts/workflow-e8.test.mjs',
+      'scripts/raw-loader-hooks.mjs',
       '*.ts',
       '*.js',
     ],
