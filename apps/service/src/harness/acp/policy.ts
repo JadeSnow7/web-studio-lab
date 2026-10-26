@@ -20,7 +20,7 @@ export interface ApprovalHandlers {
 
 export function approvalPolicy(handlers: ApprovalHandlers): PermissionDecider {
   return (params) => {
-    const kind = params.toolCall.kind ?? 'other';
+    const kind = params.toolCall.kind ?? 'unknown';
     const allow = params.options.find((option) => option.kind === 'allow_once');
     const reject = (reason: string): PermissionOutcome => {
       handlers.onDeny(params, reason);

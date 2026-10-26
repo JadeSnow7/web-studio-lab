@@ -54,8 +54,13 @@ describe('ACP ID-only 请求的真实轮次审批', () => {
     { label: '已登记 fetch 必须等待审批', knownKind: 'fetch', shouldAsk: true },
   ])('$label', async ({ knownKind, shouldAsk }) => {
     const written: { id?: number | string; method?: string; result?: unknown; error?: unknown }[] = [];
-    const pending = Promise.withResolvers<PermissionOutcome>();
-    const ask = vi.fn(() => pending.promise);
+    let resolveApproval: (outcome: PermissionOutcome) => void = () => {
+      throw new Error('approval promise not initialized');
+    };
+    const pending = new Promise<PermissionOutcome>((resolve) => {
+      resolveApproval = resolve;
+    });
+    const ask = vi.fn(() => pending);
     const onDeny = vi.fn();
     const turn = new AcpTurn(
       (line) => written.push(JSON.parse(line)),
@@ -113,7 +118,7 @@ describe('ACP ID-only 请求的真实轮次审批', () => {
           expect.objectContaining({ toolCall: expect.objectContaining({ toolCallId: 'tool', kind: knownKind }) }),
           [allow, reject],
         );
-        pending.resolve({ outcome: { outcome: 'selected', optionId: 'reject' } });
+        resolveApproval({ outcome: { outcome: 'selected', optionId: 'reject' } });
       } else {
         expect(ask).not.toHaveBeenCalled();
       }
@@ -125,7 +130,7 @@ describe('ACP ID-only 请求的真实轮次审批', () => {
       await reply('session/prompt', { stopReason: 'end_turn' });
       await expect(running).resolves.toMatchObject({ result: { stopReason: 'end_turn' } });
     } finally {
-      pending.resolve({ outcome: { outcome: 'cancelled' } });
+      resolveApproval({ outcome: { outcome: 'cancelled' } });
       turn.close('test cleanup');
       await running;
     }
