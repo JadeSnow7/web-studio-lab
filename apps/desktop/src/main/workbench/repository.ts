@@ -210,6 +210,8 @@ export class FileWorkbenchRepository implements WorkbenchRepository {
       })),
     };
     const validated = FileSchema.parse({ schemaVersion: 4, snapshot: business, catalog });
+    // Freeze the accepted business/catalog bytes before backup or filesystem I/O can yield.
+    const serialized = JSON.stringify({ schemaVersion: 4, snapshot: business, catalog });
     let previous: string | undefined;
     // A schema4 file this repository loaded or wrote needs no backup; only unknown or legacy bytes are re-read.
     if (this.loadedFile?.schemaVersion !== 4)
@@ -232,7 +234,7 @@ export class FileWorkbenchRepository implements WorkbenchRepository {
     }
     await mkdir(path.dirname(this.file), { recursive: true });
     const pending = this.file + '.pending';
-    await writeFile(pending, JSON.stringify({ schemaVersion: 4, snapshot: business, catalog }), { mode: 0o600 });
+    await writeFile(pending, serialized, { mode: 0o600 });
     await rename(pending, this.file);
     this.loadedFile = validated;
   }

@@ -639,7 +639,7 @@ describe('managed app ownership', () => {
   it.each([
     '{broken',
     JSON.stringify({ version: 1, sandbox: null, apps: [] }),
-    JSON.stringify({ version: 2, sandbox: 'sandbox-test', apps: [] }),
+    JSON.stringify({ version: 4, sandbox: 'sandbox-test', apps: [] }),
   ])('preserves an invalid registry and retries reading after external repair: %s', async (original) => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'wsl-app-invalid-'));
     try {
@@ -726,8 +726,32 @@ describe('managed app ownership', () => {
       expect(onSnapshot).toHaveBeenCalledTimes(2);
       expect(onSnapshot).toHaveBeenLastCalledWith(expect.objectContaining({ ...second, state: 'stopped', cleanupConfirmed: true }));
       expect(JSON.parse(await readFile(registryPath, 'utf8')).apps).toEqual([
-        { ...key, state: 'failed', cleanupConfirmed: false },
-        { ...second, state: 'stopped', cleanupConfirmed: true },
+        {
+          ...key,
+          state: 'failed',
+          cleanupConfirmed: false,
+          profile: { projectKind: 'standard-app', profileVersion: 1 },
+          appInstanceId: null,
+          url: null,
+          guestPort: null,
+          port: null,
+          portPending: false,
+          portRemovalPending: false,
+          processExpected: false,
+        },
+        {
+          ...second,
+          state: 'stopped',
+          cleanupConfirmed: true,
+          profile: { projectKind: 'standard-app', profileVersion: 1 },
+          appInstanceId: null,
+          url: null,
+          guestPort: null,
+          port: null,
+          portPending: false,
+          portRemovalPending: false,
+          processExpected: false,
+        },
       ]);
       expect(test.starts()).toBe(0);
     } finally {

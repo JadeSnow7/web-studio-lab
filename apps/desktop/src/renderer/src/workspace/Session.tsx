@@ -271,6 +271,10 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
   };
   const [submitting, setSubmitting] = useState(false);
   const submission = useRef(false);
+  const eduTasksUnavailable =
+    workspace.managedApp?.profile?.projectKind === 'edu-web' ||
+    !!workspace.pendingAppImport ||
+    ['selecting', 'scanning', 'ready', 'copying', 'starting', 'cancelling'].includes(workspace.appImport?.phase ?? '');
   const busy = currentRun?.state === 'running' || currentRun?.state === 'starting' || currentRun?.state === 'cancelling';
   const perform = async (action: () => Promise<void>) => {
     if (submission.current) return;
@@ -285,6 +289,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
   };
   const confirm = () =>
     perform(async () => {
+      if (eduTasksUnavailable) return;
       await saveTail.current;
       const resource = workspace.resources.find((r) => r.resourceId === target);
       const targetRef: TargetRef | null = resource ? { kind: resource.kind, resourceId: resource.resourceId } : null;
@@ -301,7 +306,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
   const send = () =>
     perform(async () => {
       const text = draftValue.current;
-      if (!text.trim() || busy) return;
+      if (!text.trim() || busy || eduTasksUnavailable) return;
       await saveTail.current;
       const resource = workspace.resources.find((r) => r.resourceId === target);
       const result = await workspaceCommand(workspace.workspaceId, {
@@ -520,7 +525,12 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
             >
               采集目标元素
             </button>
-            <button type="button" className="btn" disabled={!draft.trim() || submitting} onClick={() => void confirm()}>
+            <button
+              type="button"
+              className="btn"
+              disabled={!draft.trim() || submitting || eduTasksUnavailable}
+              onClick={() => void confirm()}
+            >
               确认任务（生成新版本）
             </button>
             {version ? (
@@ -540,7 +550,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
                 <button
                   type="button"
                   className="btn btn-primary"
-                  disabled={busy || submitting}
+                  disabled={busy || submitting || eduTasksUnavailable}
                   onClick={() =>
                     void perform(async () => {
                       await workspaceCommand(workspace.workspaceId, {
@@ -717,12 +727,13 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
             }
           }}
         />
+        {eduTasksUnavailable ? <p className="muted small">edu 工程的任务写回尚未开放；草稿会保留。</p> : null}
         <div className="workspace-composer-actions">
           <button
             type="button"
             className="btn btn-primary"
             title="Enter 发送 · Shift+Enter 换行 · 草稿按会话保存"
-            disabled={!draft.trim() || busy || submitting}
+            disabled={!draft.trim() || busy || submitting || eduTasksUnavailable}
             onClick={() => void send()}
           >
             发送

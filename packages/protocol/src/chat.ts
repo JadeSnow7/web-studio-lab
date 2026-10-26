@@ -1,3 +1,4 @@
+import { AppImportRequestSchema, AppImportTargetSchema, AppImportOutcomeSchema } from './app-import';
 import { WorkspaceObservationResultSchema, ObservationRequestSchema as RequestSchema, ObservationTurnScopeSchema } from './observation';
 import { EnvironmentListSchema, RuntimeResourceIdentitySchema } from './environments';
 import {
@@ -84,6 +85,8 @@ export const ChatServiceRequestSchema = z.discriminatedUnion('method', [
       payload: AppTargetSchema.extend({ files: z.array(AppSourceFileSchema).min(1).max(256) }),
     })
     .strict(),
+  z.object({ id: z.string(), method: z.literal('app.importSource'), payload: AppImportRequestSchema }).strict(),
+  z.object({ id: z.string(), method: z.literal('app.cancelImport'), payload: AppImportTargetSchema }).strict(),
   ...(['app.get', 'app.start', 'app.stop', 'app.export'] as const).map((method) =>
     z.object({ id: z.string(), method: z.literal(method), payload: AppTargetSchema }).strict(),
   ),
@@ -193,6 +196,7 @@ export const ChatServiceMessageSchema = z.discriminatedUnion('type', [
       AppLogsSchema,
       ManagedAppSchema,
       AppSourceSchema,
+      AppImportOutcomeSchema,
       ChatStatusSchema,
       ChatConversationSchema,
       TerminalSnapshotSchema,

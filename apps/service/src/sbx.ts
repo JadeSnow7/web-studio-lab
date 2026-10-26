@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { z } from 'zod';
 import {
+  APP_SOURCE_TRANSPORT,
   ResourceBundleSchema,
   type AppControlResult,
   type ChatStatus,
@@ -12,10 +13,12 @@ import {
   type WorkspaceObservationResult,
 } from '@wsl/protocol';
 import helper from './guest-helper.py?raw';
+import ownedProcess from './edu-owned-process.py?raw';
 import resourceMcp from './resource_mcp.py?raw';
 import terminalRc from './terminal-bash-integration.sh?raw';
 
 const guestHelper = helper
+  .replace('OWNED_PROCESS_BASE64 = ""', `OWNED_PROCESS_BASE64 = "${Buffer.from(ownedProcess).toString('base64')}"`)
   .replace('TERMINAL_RC_BASE64 = ""', `TERMINAL_RC_BASE64 = "${Buffer.from(terminalRc).toString('base64')}"`)
   .replace('RESOURCE_MCP_BASE64 = ""', `RESOURCE_MCP_BASE64 = "${Buffer.from(resourceMcp).toString('base64')}"`);
 
@@ -70,8 +73,20 @@ export type GuestStart =
       observation?: boolean;
       observationImages?: boolean;
       workspace?: GuestWorkspace;
+      duplex?: boolean;
+      eduOwner?: {
+        identity: { workspaceId: string; environmentId: 'sandbox'; projectId: string; appInstanceId: string };
+        sourceSha256: string;
+      };
     }
   | { type: 'start'; mode: 'terminal'; cols: number; rows: number };
+
+/** Include nested JSON escaping and LF before acquiring any guest process. */
+export function encodeGuestStart(start: GuestStart): string {
+  const encoded = JSON.stringify(start) + '\n';
+  if (Buffer.byteLength(encoded, 'utf8') > APP_SOURCE_TRANSPORT.startFrameBytes) throw new Error('guest start frame exceeds budget');
+  return encoded;
+}
 
 export async function resolveSbxBinary(override = process.env['WSL_SBX_BIN']): Promise<string> {
   const candidates = override
@@ -118,6 +133,7 @@ export class GuestProcess {
   ) {
     if (start.mode === 'codex' && start.resourceBundle) ResourceBundleSchema.parse(start.resourceBundle);
     if (start.mode === 'codex' && start.workspace) workspaceSchema.parse(start.workspace);
+    const encodedStart = encodeGuestStart(start);
     this.done = new Promise((resolve) => {
       this.finish = resolve;
     });
@@ -172,7 +188,7 @@ export class GuestProcess {
       if (!this.ready && !this.error) this.error = 'guest 未返回 ready';
       this.finish({ error: this.error, exitCode: this.exitCode, confirmed: this.confirmed });
     });
-    this.write(start);
+    this.child.stdin.write(encodedStart);
   }
   write(
     frame:
@@ -181,10 +197,14 @@ export class GuestProcess {
       | { type: 'input'; data: string }
       | { type: 'input-end' }
       | { type: 'resize'; cols: number; rows: number }
+      | { type: 'close-input' }
       | { type: 'close' },
   ) {
     if (this.ended) throw new Error('guest 传输已关闭');
     this.child.stdin.write(JSON.stringify(frame) + '\n');
+  }
+  closeInput() {
+    this.write({ type: 'close-input' });
   }
   private fail(reason: string) {
     this.error ??= reason;
