@@ -1,0 +1,87 @@
+[
+  {
+    "id": "findings",
+    "schema": {
+      "type": "object",
+      "required": ["summary", "findings"],
+      "properties": {
+        "summary": { "type": "string" },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["title", "severity"],
+            "properties": {
+              "title": { "type": "string" },
+              "severity": { "enum": ["low", "medium", "high"] }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "verdict",
+    "schema": {
+      "type": "object",
+      "required": ["verdict", "confidence"],
+      "properties": {
+        "verdict": { "enum": ["pass", "fail", "uncertain"] },
+        "confidence": { "type": "number" },
+        "reasons": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  {
+    "id": "kvlist",
+    "schema": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "value"],
+        "properties": { "key": { "type": "string" }, "value": { "type": "string" } }
+      }
+    }
+  },
+  {
+    "id": "diag",
+    "schema": {
+      "type": "object",
+      "required": ["rootCause", "fixes"],
+      "properties": {
+        "rootCause": { "type": "string" },
+        "fixes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["action", "effort"],
+            "properties": {
+              "action": { "type": "string" },
+              "effort": { "enum": ["small", "medium", "large"] }
+            }
+          }
+        },
+        "notes": { "type": "string" }
+      }
+    }
+  },
+  {
+    "id": "counted",
+    "schema": {
+      "type": "object",
+      "required": ["total", "breakdown"],
+      "properties": {
+        "total": { "type": "integer" },
+        "breakdown": {
+          "type": "object",
+          "properties": {
+            "ok": { "type": "integer" },
+            "failed": { "type": "integer" },
+            "skipped": { "type": "integer" }
+          }
+        }
+      }
+    }
+  }
+]
