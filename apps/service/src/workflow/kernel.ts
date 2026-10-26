@@ -1,3 +1,4 @@
+import { WORKFLOW_EXECUTION_VERSION } from '@wsl/protocol';
 import { randomUUID } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import type { AppTarget, WorkflowIsolation, WorkflowPublication } from '@wsl/protocol';
@@ -399,6 +400,9 @@ class Kernel {
       if (!runEvent || runEvent.t !== 'run') {
         throw new WorkflowContractError('resume_mismatch', `ancestor run ${ancestorId} journal lacks run event`);
       }
+      if (runEvent.executionVersion !== WORKFLOW_EXECUTION_VERSION) {
+        throw new WorkflowContractError('resume_mismatch', 'ancestor execution semantics are incompatible; start a new run explicitly');
+      }
       if (direct && (runEvent.scriptHash !== scriptHash || runEvent.argsHash !== argsHash)) {
         throw new WorkflowContractError('resume_mismatch', 'scriptHash or argsHash differ from parent run');
       }
@@ -441,6 +445,7 @@ class Kernel {
       scriptHash: this.scriptHash,
       argsHash: this.argsHash,
       dslVersion: DSL_VERSION,
+      executionVersion: WORKFLOW_EXECUTION_VERSION,
       status: 'running',
       baseTree: this.baseTree ?? undefined,
       appTarget: this.appTarget ?? undefined,
@@ -1292,6 +1297,7 @@ class Kernel {
         scriptHash: this.scriptHash,
         argsHash: this.argsHash,
         dslVersion: DSL_VERSION,
+        executionVersion: WORKFLOW_EXECUTION_VERSION,
         status: outcome.status,
         failureCode: outcome.failureCode,
         result: outcome.result,

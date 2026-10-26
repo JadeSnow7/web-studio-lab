@@ -1,8 +1,9 @@
+import { WORKFLOW_EXECUTION_VERSION } from '@wsl/protocol';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { WorkflowJournalEvent } from '@wsl/protocol';
 import { SqliteWorkflowJournal } from './journal-sqlite';
 
@@ -240,4 +241,129 @@ describe('SqliteWorkflowJournal', () => {
     expect(reopened.listNonTerminalRuns()).toHaveLength(0);
     reopened.close();
   });
+});
+
+describe('W9 migration crash boundaries', () => {
+  function v4File(halfMigrated = false): string {
+    const file = freshDbPath();
+    const journal = new SqliteWorkflowJournal(file);
+    insertRun(journal, 'preserved');
+    journal.close();
+    const db = new DatabaseSync(file);
+    try {
+      if (!halfMigrated) db.exec('ALTER TABLE runs DROP COLUMN ultra');
+      db.exec('PRAGMA user_version = 4');
+    } finally {
+      db.close();
+    }
+    return file;
+  }
+
+  it('recovers the exact v4 plus committed-ultra shape left by the old migration', () => {
+    const file = v4File(true);
+    const journal = new SqliteWorkflowJournal(file);
+    try {
+      expect(journal.getRun('preserved')).toMatchObject({ runId: 'preserved', ultra: false });
+    } finally {
+      journal.close();
+    }
+    const db = new DatabaseSync(file);
+    try {
+      expect(db.prepare('PRAGMA user_version').get()?.['user_version']).toBe(5);
+    } finally {
+      db.close();
+    }
+  });
+
+  it.each(['ALTER TABLE runs ADD COLUMN ultra', 'PRAGMA user_version = 5'])(
+    'rolls back DDL and version together when interrupted after %s executes',
+    (marker) => {
+      const file = v4File();
+      const exec = DatabaseSync.prototype.exec;
+      const spy = vi.spyOn(DatabaseSync.prototype, 'exec').mockImplementation(function (this: DatabaseSync, sql: string) {
+        exec.call(this, sql);
+        if (sql.includes(marker)) throw new Error('injected migration interruption');
+      });
+      try {
+        expect(() => new SqliteWorkflowJournal(file)).toThrow('injected migration interruption');
+      } finally {
+        spy.mockRestore();
+      }
+      const db = new DatabaseSync(file);
+      try {
+        expect(db.prepare('PRAGMA user_version').get()?.['user_version']).toBe(4);
+        expect(
+          db
+            .prepare('PRAGMA table_info(runs)')
+            .all()
+            .map((c) => c['name']),
+        ).not.toContain('ultra');
+        expect(db.prepare('SELECT run_id FROM runs').all()).toEqual([{ run_id: 'preserved' }]);
+      } finally {
+        db.close();
+      }
+      const reopened = new SqliteWorkflowJournal(file);
+      try {
+        expect(reopened.getRun('preserved')?.ultra).toBe(false);
+      } finally {
+        reopened.close();
+      }
+    },
+  );
+
+  it('does not normalize an unknown pre-existing ultra column', () => {
+    const file = v4File();
+    const db = new DatabaseSync(file);
+    try {
+      db.exec("ALTER TABLE runs ADD COLUMN ultra TEXT DEFAULT 'yes'");
+    } finally {
+      db.close();
+    }
+    expect(() => new SqliteWorkflowJournal(file)).toThrow(/schema|ultra/);
+    const check = new DatabaseSync(file);
+    try {
+      expect(check.prepare('PRAGMA user_version').get()?.['user_version']).toBe(4);
+      expect(
+        check
+          .prepare('PRAGMA table_info(runs)')
+          .all()
+          .find((c) => c['name'] === 'ultra')?.['type'],
+      ).toBe('TEXT');
+    } finally {
+      check.close();
+    }
+  });
+});
+
+it('retains the first durable execution identity on reopen without upgrading legacy history', () => {
+  const file = freshDbPath();
+  const journal = new SqliteWorkflowJournal(file);
+  insertRun(journal, 'legacy');
+  insertRun(journal, 'current');
+  journal.appendEvent({ t: 'run', runId: 'legacy', parentRunId: null, ...RUN_EVENT_BASE, status: 'running' });
+  // A later terminal receipt cannot retroactively certify the first execution.
+  journal.appendEvent({
+    t: 'run',
+    runId: 'legacy',
+    parentRunId: null,
+    ...RUN_EVENT_BASE,
+    status: 'completed',
+    executionVersion: WORKFLOW_EXECUTION_VERSION,
+  });
+  journal.appendEvent({
+    t: 'run',
+    runId: 'current',
+    parentRunId: null,
+    ...RUN_EVENT_BASE,
+    status: 'running',
+    executionVersion: WORKFLOW_EXECUTION_VERSION,
+  });
+  journal.close();
+  const reopened = new SqliteWorkflowJournal(file);
+  try {
+    expect(reopened.executionVersionForRun('legacy')).toBeNull();
+    expect(reopened.executionVersionForRun('current')).toBe(WORKFLOW_EXECUTION_VERSION);
+  } finally {
+    reopened.close();
+  }
 });

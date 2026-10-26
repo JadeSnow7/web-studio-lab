@@ -10,6 +10,8 @@ import { SOURCE_DIFF_MAX_FILES, SOURCE_PATCH_MAX_BYTES, SourceChangeFileSchema }
 
 /** DSL 版本：变更使既有缓存与运行身份失效（合同 §1/§7）。 */
 export const WORKFLOW_DSL_VERSION = 'lab-workflow/1';
+/** Execution identity changes when identical DSL/options acquire different adapter semantics. */
+export const WORKFLOW_EXECUTION_VERSION = 'tier-model-argv/1';
 
 /**
  * W9 Ultra 指挥提示的 canonical 文案：供未来的指挥侧（director）实现与文档引用，
@@ -87,6 +89,8 @@ const WorkflowRunEventSchema = z.object({
   scriptHash: z.string(),
   argsHash: z.string(),
   dslVersion: z.string(),
+  /** Missing on legacy journals: readable history, but not compatible for resume. */
+  executionVersion: z.string().max(64).optional(),
   status: WorkflowRunStatusSchema,
   failureCode: WorkflowRunFailureCodeSchema.optional(),
   result: z.unknown().optional(),

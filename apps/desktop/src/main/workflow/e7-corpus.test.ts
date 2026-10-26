@@ -1,3 +1,4 @@
+import { WORKFLOW_EXECUTION_VERSION } from '@wsl/protocol';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -145,6 +146,7 @@ async function completeRun(
     scriptHash: accepted.scriptHash,
     argsHash: accepted.argsHash,
     dslVersion: 'lab-workflow/1',
+    executionVersion: WORKFLOW_EXECUTION_VERSION,
     status: 'completed',
     result: { ok: 1 },
   });
@@ -756,6 +758,7 @@ const CORPUS: E7Entry[] = [
       scriptHash: run.scriptHash,
       argsHash: run.argsHash,
       dslVersion: 'lab-workflow/1',
+      executionVersion: WORKFLOW_EXECUTION_VERSION,
       status: 'stopped',
     });
     ctx.engine.finish(run.workflowRunId, { status: 'stopped' });

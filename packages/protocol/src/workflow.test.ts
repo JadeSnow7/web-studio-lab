@@ -64,6 +64,7 @@ describe('workflow W5 schemas', () => {
         requiresApp: false,
         writes: false,
         appTarget: null,
+        ultra: false,
       }).status,
     ).toBe('running');
     expect(WorkflowAcceptedSchema.parse({ workflowRunId: 'r1', scriptHash: 's', argsHash: 'a' }).workflowRunId).toBe('r1');

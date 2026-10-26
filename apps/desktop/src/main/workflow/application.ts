@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   WORKFLOW_DSL_VERSION,
+  WORKFLOW_EXECUTION_VERSION,
   type AppSource,
   type AppSourceApplyResult,
   type AppSourceSnapshot,
@@ -372,6 +373,8 @@ export class WorkflowApplication {
     if (parent.scriptHash !== scriptHash || parent.argsHash !== argsHash) {
       throw new WorkflowApplicationError('resume_mismatch', 'scriptHash or argsHash differ from parent run');
     }
+    this.assertResumeExecution(parent.runId);
+    const cache = this.buildResumeCache(parent.runId);
     // W6a：候选谱系随父继承——目标取父 run 登记值（父无目标时允许请求声明），
     // 声明不一致即 resume_mismatch；基线必须逐位相等，回放链才对得上 CAS 前驱。
     const parentTarget = parent.appTargetJson === null ? null : (JSON.parse(parent.appTargetJson) as AppTarget);
@@ -382,7 +385,6 @@ export class WorkflowApplication {
     // 父未绑定时重新解析；冻结输入=目标 App 的实时快照。
     const binding = await this.bindLane(request.script, parentTarget ?? request.appTarget ?? null, request.input, signal);
     const appTarget = binding.target ?? DEFAULT_APP_TARGET;
-    const cache = this.buildResumeCache(parent.runId);
     for (const entry of cache) {
       if (entry.publication !== undefined && entry.publication.baseTree !== parent.baseTree) {
         throw new WorkflowApplicationError('resume_mismatch', 'ancestor publication baseline differs from parent run');
@@ -897,6 +899,7 @@ export class WorkflowApplication {
     let ancestorId: string | null = parentRunId;
     while (ancestorId !== null) {
       const current: string = ancestorId;
+      this.assertResumeExecution(current);
       for (const entry of this.journalCall(() => this.journal.callsForResume(current))) {
         if (!cache.has(entry.contentKey)) cache.set(entry.contentKey, entry);
       }
@@ -904,6 +907,12 @@ export class WorkflowApplication {
       ancestorId = row?.parentRunId ?? null;
     }
     return [...cache.values()];
+  }
+
+  private assertResumeExecution(runId: string): void {
+    if (this.journalCall(() => this.journal.executionVersionForRun(runId)) !== WORKFLOW_EXECUTION_VERSION) {
+      throw new WorkflowApplicationError('resume_mismatch', 'ancestor execution semantics are incompatible; start a new run explicitly');
+    }
   }
 
   private journalCall<T>(fn: () => T): T {

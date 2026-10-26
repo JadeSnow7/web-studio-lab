@@ -1,3 +1,4 @@
+import { WORKFLOW_EXECUTION_VERSION } from '@wsl/protocol';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -66,6 +67,7 @@ function runEvent(
     runId,
     parentRunId: null,
     dslVersion: DSL,
+    executionVersion: WORKFLOW_EXECUTION_VERSION,
     ...hashes,
     status,
     ...extra,
@@ -229,6 +231,7 @@ describe('WorkflowApplication', () => {
     const engine = new FakeEngine();
     const app = new WorkflowApplication({ journal, engine });
     const run = await app.run({ requestId: 'open', script: 's', args: { a: 1 } });
+    await engine.emit(run.workflowRunId, runEvent(run.workflowRunId, 'running', run));
 
     // 模拟重启：新应用实例不持有句柄，恢复扫描标记待核对。
     const recovered = new WorkflowApplication({ journal, engine: new FakeEngine() });
@@ -606,4 +609,65 @@ it('shutdown preserves a successful source write fact when cancellation races it
   expect((await applying).candidate?.appliedAt).toBe(7000);
   expect(ctx.calls.at(-1)).toBe('release');
   expect(ctx.journal.listEvents(runId).filter((event) => event.t === 'apply')).toHaveLength(1);
+});
+
+it('rejects a legacy execution journal without admitting or replaying a child', async () => {
+  const { app, engine, journal } = makeApp();
+  try {
+    const parent = await app.run({ requestId: 'legacy-parent', script: 's', args: null });
+    await engine.emit(parent.workflowRunId, runEvent(parent.workflowRunId, 'completed', parent, { executionVersion: undefined }));
+    engine.finish(parent.workflowRunId, { status: 'completed', result: 'old' });
+    await expectAppError(
+      app.resume({ requestId: 'legacy-child', parentWorkflowRunId: parent.workflowRunId, script: 's', args: null }),
+      'resume_mismatch',
+    );
+    expect(engine.specs.size).toBe(1);
+    expect(journal.listRuns()).toHaveLength(1);
+    expect(journal.getRun(parent.workflowRunId)?.status).toBe('completed');
+  } finally {
+    for (const runId of engine.specs.keys()) engine.finish(runId, { status: 'completed', result: null });
+    await app.shutdown();
+    journal.close();
+  }
+});
+
+it('rejects a reconciled run whose execution identity never became durable', async () => {
+  const { app, engine, journal } = makeApp();
+  const recovered = new WorkflowApplication({ journal, engine: new FakeEngine() });
+  try {
+    const parent = await app.run({ requestId: 'pre-event', script: 's', args: null });
+    recovered.recoverOpenRuns();
+    recovered.reconcileAsStopped(parent.workflowRunId);
+    await expectAppError(
+      recovered.resume({ requestId: 'pre-event-child', parentWorkflowRunId: parent.workflowRunId, script: 's', args: null }),
+      'resume_mismatch',
+    );
+    expect(journal.listRuns()).toHaveLength(1);
+  } finally {
+    for (const runId of engine.specs.keys()) engine.finish(runId, { status: 'completed', result: null });
+    await app.shutdown();
+    await recovered.shutdown();
+    journal.close();
+  }
+});
+
+it('rejects an incompatible older ancestor even when the direct parent has current execution identity', async () => {
+  const { app, engine, journal } = makeApp();
+  try {
+    const grand = await app.run({ requestId: 'legacy-grand', script: 's', args: null });
+    await engine.emit(grand.workflowRunId, runEvent(grand.workflowRunId, 'completed', grand, { executionVersion: undefined }));
+    engine.finish(grand.workflowRunId, { status: 'completed', result: null });
+    const parent = await app.run({ requestId: 'current-parent', script: 's', args: null });
+    await completeRun(engine, parent, null, grand.workflowRunId);
+    await expectAppError(
+      app.resume({ requestId: 'mixed-child', parentWorkflowRunId: parent.workflowRunId, script: 's', args: null }),
+      'resume_mismatch',
+    );
+    expect(engine.specs.size).toBe(2);
+    expect(journal.listRuns()).toHaveLength(2);
+  } finally {
+    for (const runId of engine.specs.keys()) engine.finish(runId, { status: 'completed', result: null });
+    await app.shutdown();
+    journal.close();
+  }
 });

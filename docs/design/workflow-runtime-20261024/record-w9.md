@@ -33,3 +33,9 @@
 - E2E：`workflow.spec.ts` 新增 saved 命令 `ultra:true` + `tier:'big'` 用例。断言使用独立 sandbox 日志并绑定可见 run 行的完整 runId，防止其他运行的 high 参数使本用例误通过；本批只做类型及无窗口 fixture 断言验证，尚未运行该窗口用例。
 - 上述是本批应覆盖的源码与用例范围；实际命令和结果绑定本批最终 tree，保存在仓库外报告。窗口 E2E、真实模型、guest 及付费调用均为 `not_run`，不把来源历史陈述写成本批通过。
 
+## 2026-10-26 续跑与迁移修复
+
+- `WORKFLOW_DSL_VERSION` 保持 `lab-workflow/1`。新增独立的 `WORKFLOW_EXECUTION_VERSION = tier-model-argv/1`，随内核首条/终态 run 事件持久化，并参与 contentKey；它区分 W8 仅记录 tier/model 与 W9 真正传递到 argv 的执行语义，不改变脚本语法或冻结输入。
+- Main 与 JSONL 续跑入口逐祖先检查执行版本。旧日志无标记、未知版本或首条执行事实尚未落盘时，返回 `resume_mismatch`，要求用户显式新建运行；不会把缓存 miss 当作授权自动重放调用。旧记录仍可查看，不能通过手动停止确认把未知执行身份升级成成功。
+- SQLite v1→v5 的待执行 DDL 与最终 `user_version` 放在同一事务；中断同时回滚。对旧实现可能留下的“user_version=4 但已提交 ultra 列”，只接受 INTEGER / NOT NULL / DEFAULT 0 / 非主键的已知列定义，保留原行并完成版本更新；未知定义拒绝，不吞 schema 错误。
+- 协议正例补齐已要求的 `ultra:false`。目录预算历史超时本轮定向未复现，原因仍为 undetermined；没有修改其源码、测试超时或并发配置。新负例、独立回归轮次及未运行边界在任务报告保存，不改历史失败。

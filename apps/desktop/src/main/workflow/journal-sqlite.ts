@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { DatabaseSync, type SQLOutputValue } from 'node:sqlite';
+import { WorkflowJournalEventSchema } from '@wsl/protocol';
 import type { WorkflowCandidateProjection, WorkflowJournalEvent, WorkflowPublication, WorkflowRunInput } from '@wsl/protocol';
 
 /**
@@ -249,13 +250,14 @@ export class SqliteWorkflowJournal {
   /**
    * v1→v2：给既有文件追加候选列与 publications 表；已有行候选列保持 NULL（无候选能力）。
    * v2→v3：requires_app/writes 列（W6b 命令卡元数据——lane 声明的卡片级投影）。
-   * DDL 单事务，user_version 在提交后落位——中途失败文件仍是可读 v1/v2。
+   * DDL 与 user_version 同事务提交；任一步中断均回滚到原版本。
    */
   private migrate(from: number): void {
     let version = from;
-    if (version === 1) {
-      this.db.exec(`
-        BEGIN IMMEDIATE;
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      if (version === 1) {
+        this.db.exec(`
         ALTER TABLE runs ADD COLUMN base_tree TEXT;
         ALTER TABLE runs ADD COLUMN candidate_tree TEXT;
         ALTER TABLE runs ADD COLUMN app_target_json TEXT;
@@ -271,41 +273,47 @@ export class SqliteWorkflowJournal {
           created_ms INTEGER NOT NULL,
           PRIMARY KEY (run_id, call_seq)
         );
-        COMMIT;
       `);
-      version = 2;
-    }
-    if (version === 2) {
-      this.db.exec(`
-        BEGIN IMMEDIATE;
+        version = 2;
+      }
+      if (version === 2) {
+        this.db.exec(`
         ALTER TABLE runs ADD COLUMN requires_app INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE runs ADD COLUMN writes INTEGER NOT NULL DEFAULT 0;
-        COMMIT;
       `);
-      version = 3;
-    }
-    if (version === 3) {
-      // W8：lane 波次的调用基线与冲突事实列；已有行保持 NULL（无 W8 语义）。
-      this.db.exec(`
-        BEGIN IMMEDIATE;
+        version = 3;
+      }
+      if (version === 3) {
+        // W8：lane 波次的调用基线与冲突事实列；已有行保持 NULL（无 W8 语义）。
+        this.db.exec(`
         ALTER TABLE calls ADD COLUMN base_tree TEXT;
         ALTER TABLE calls ADD COLUMN conflict_json TEXT;
-        COMMIT;
       `);
-      version = 4;
+        version = 4;
+      }
+      if (version === 4) {
+        // W9：runs.ultra——Ultra 受理标记列；已有行保持 0（非 Ultra，与缺省语义一致）。
+        // The previous implementation could commit this column while leaving version=4.
+        // Recover only that exact known shape; an unrelated column is not a migration receipt.
+        const ultra = this.db
+          .prepare('PRAGMA table_info(runs)')
+          .all()
+          .find((column) => column['name'] === 'ultra');
+        if (ultra === undefined) {
+          this.db.exec('ALTER TABLE runs ADD COLUMN ultra INTEGER NOT NULL DEFAULT 0');
+        } else if (ultra['type'] !== 'INTEGER' || ultra['notnull'] !== 1 || ultra['dflt_value'] !== '0' || ultra['pk'] !== 0) {
+          throw new WorkflowJournalError('journal_schema_unsupported', 'unknown runs.ultra column in schema 4');
+        }
+        version = 5;
+      }
+      if (version !== WORKFLOW_JOURNAL_SCHEMA_VERSION)
+        throw new WorkflowJournalError('journal_schema_unsupported', `workflow journal schema ${from} cannot be migrated`);
+      this.db.exec(`PRAGMA user_version = ${WORKFLOW_JOURNAL_SCHEMA_VERSION}`);
+      this.db.exec('COMMIT');
+    } catch (error) {
+      this.db.exec('ROLLBACK');
+      throw error;
     }
-    if (version === 4) {
-      // W9：runs.ultra——Ultra 受理标记列；已有行保持 0（非 Ultra，与缺省语义一致）。
-      this.db.exec(`
-        BEGIN IMMEDIATE;
-        ALTER TABLE runs ADD COLUMN ultra INTEGER NOT NULL DEFAULT 0;
-        COMMIT;
-      `);
-      version = 5;
-    }
-    if (version !== WORKFLOW_JOURNAL_SCHEMA_VERSION)
-      throw new WorkflowJournalError('journal_schema_unsupported', `workflow journal schema ${from} cannot be migrated`);
-    this.db.exec(`PRAGMA user_version = ${WORKFLOW_JOURNAL_SCHEMA_VERSION}`);
   }
 
   /** 受理时登记 run 行；created_seq 是单写者内的受理序号。W6a：baseTree/appTargetJson 一并登记。 */
@@ -398,6 +406,14 @@ export class SqliteWorkflowJournal {
       .prepare('SELECT json FROM events WHERE run_id = ? ORDER BY seq')
       .all(runId)
       .map((row) => JSON.parse(String(row['json'])) as WorkflowJournalEvent);
+  }
+
+  /** Read execution identity from the first durable run event; legacy history has none. */
+  executionVersionForRun(runId: string): string | null {
+    const row = this.db.prepare("SELECT json FROM events WHERE run_id = ? AND kind = 'run' ORDER BY seq LIMIT 1").get(runId);
+    if (row === undefined) return null;
+    const event = WorkflowJournalEventSchema.parse(JSON.parse(String(row['json'])));
+    return event.t === 'run' ? (event.executionVersion ?? null) : null;
   }
 
   /** 非终态（含 needs_reconciliation）：恢复扫描与 P0 并发 1 的 busy 判定共用。 */

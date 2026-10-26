@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { WORKFLOW_DSL_VERSION, type WorkflowIsolation } from '@wsl/protocol';
+import { WORKFLOW_DSL_VERSION, WORKFLOW_EXECUTION_VERSION, type WorkflowIsolation } from '@wsl/protocol';
 
 /**
  * P0a 冻结合同的转写层（contract-p0a.md 的唯一代码来源）。
@@ -140,7 +140,7 @@ export function sha256Hex(input: string | Buffer): string {
   return createHash('sha256').update(input).digest('hex');
 }
 
-/** contentKey = sha256(canonical({prompt, effective, schema, isolation, label, tools, dslVersion}))；W6a 起隔离级别进入身份。 */
+/** contentKey = sha256(canonical({prompt, effective, schema, isolation, label, tools, dslVersion, executionVersion}))；W6a 起隔离级别进入身份。 */
 export function contentKey(input: {
   prompt: string;
   effective: Record<string, unknown>;
@@ -158,6 +158,7 @@ export function contentKey(input: {
       label: input.label,
       tools: input.tools,
       dslVersion: DSL_VERSION,
+      executionVersion: WORKFLOW_EXECUTION_VERSION,
     }),
   );
 }

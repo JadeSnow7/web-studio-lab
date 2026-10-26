@@ -3,7 +3,9 @@ import { createRun, resumeRun } from './kernel';
 import { MockHarness } from './mock-harness';
 import { RoutedAdapterPool } from './routed-pool';
 import { callsView, freshJournalDir, loadFixture, readRunJournal } from './test-helpers';
-import { readdirSync } from 'node:fs';
+import { readdirSync, writeFileSync } from 'node:fs';
+import { canonical, contentKey, DSL_VERSION, sha256Hex } from './contract';
+import { JsonlJournal } from './journal-jsonl';
 
 // E3 只读子集：pipeline-ok 在 seq3 的 call_end 落盘后、seq4 派发前停止；
 // 续跑须命中 seq1–3 缓存（不重派），seq4–6 正常执行，result 与无中断运行深度相等。
@@ -117,4 +119,41 @@ export default async function main() {
     ).rejects.toMatchObject({ name: 'WorkflowContractError', code: 'resume_mismatch' });
     expect(readdirSync(journalDir).length).toBe(1);
   }, 30_000);
+});
+
+describe('W9 execution semantics compatibility', () => {
+  it('separates tier/model execution from the legacy metadata-only cache key', () => {
+    const input = { prompt: 'p', effective: { harness: 'mock', model: 'm', tier: 'big' }, schema: undefined, label: 'l', tools: [] };
+    const legacy = sha256Hex(canonical({ ...input, isolation: 'readonly', dslVersion: DSL_VERSION }));
+    expect(contentKey(input)).not.toBe(legacy);
+  });
+
+  for (const version of [undefined, 'unknown-execution/9']) {
+    it(`rejects ${version ?? 'legacy'} execution semantics before creating a child or dispatching`, async () => {
+      const script = `export const meta = { name: 'compat', description: 'd' };
+export default async function main() { return await agent('p', { label: 'l', tier: 'big' }); }`;
+      const journalDir = freshJournalDir();
+      const parentAdapter = new MockHarness({ l: [{ text: 'old-result' }] });
+      const parent = await createRun({ script, args: null, journalDir, adapter: parentAdapter });
+      expect(await parent.done).toMatchObject({ status: 'completed', result: { status: 'ok', value: 'old-result' } });
+      expect(parentAdapter.dispatchCount).toBe(1);
+      const parentEvents = await readRunJournal(journalDir, parent.runId);
+      expect(callsView(parentEvents)).toMatchObject([{ seq: 1, label: 'l', status: 'ok', attempts: 1 }]);
+      const file = JsonlJournal.filePath(journalDir, parent.runId);
+      const events = parentEvents.map((e) => (e.t === 'run' ? { ...e, executionVersion: version } : e));
+      writeFileSync(file, events.map((e) => JSON.stringify(e)).join('\n') + '\n');
+      const before = readdirSync(journalDir);
+      const adapter = new MockHarness({ l: [{ text: 'new-result' }] });
+      const receipt = await resumeRun({ script, args: null, journalDir, parentRunId: parent.runId, adapter }).then(
+        async (child) => {
+          await child.done;
+          return { accepted: true };
+        },
+        (error: unknown) => ({ error }),
+      );
+      expect(receipt).toMatchObject({ error: { code: 'resume_mismatch' } });
+      expect(adapter.dispatchCount).toBe(0);
+      expect(readdirSync(journalDir)).toEqual(before);
+    });
+  }
 });
