@@ -256,9 +256,13 @@ export class AcpTurn {
     if (!parsed.success) throw new AcpProtocolError('ACP 权限请求缺少字段');
     if (this.cancelRequested || this.phase === 'done') return { outcome: { outcome: 'cancelled' } };
     const decide = this.input.decidePermission ?? denyAllPermissions;
+    const request = parsed.data;
+    // ACP permission updates may contain only the ID; preserve the known tool kind.
+    const kind = request.toolCall.kind ?? this.tools.get(request.toolCall.toolCallId)?.kind;
+    const resolved = kind ? { ...request, toolCall: { ...request.toolCall, kind } } : request;
     return new Promise<PermissionOutcome>((resolve) => {
       this.pendingPermissions.add(resolve);
-      Promise.resolve(decide(parsed.data)).then(
+      Promise.resolve(decide(resolved)).then(
         (outcome) => {
           if (!this.pendingPermissions.delete(resolve)) return;
           resolve(outcome);

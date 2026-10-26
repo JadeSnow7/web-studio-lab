@@ -42,6 +42,11 @@ interface Turn {
   observation: AbortController;
   calls: Map<string, AbortController>;
 }
+interface AcpProbe {
+  process: GuestProcess;
+  client: AcpClient;
+  closePromise: Promise<GuestOutcome> | null;
+}
 interface Slot {
   conversation: ChatConversation;
   active: Turn | null;
@@ -85,20 +90,36 @@ export class CodexChat {
   ) {
     this.connection = connection;
   }
+  private initialization: Promise<ChatStatus> | null = null;
+  private shutdownPromise: Promise<void> | null = null;
+  private acpProbe: AcpProbe | null = null;
   private acpInit: InitializeResult | null = null;
   private acpFailure: string | null = null;
   private get label() {
     return this.harness.kind === 'native' ? this.harness.adapter.label : this.harness.spec.label;
   }
   async initialize(): Promise<ChatStatus> {
+    if (this.closing) return this.getStatus();
+    if (this.initialization) return this.initialization;
+    // Unknown probe cleanup retains ownership; another initialization must not replace it.
+    if (this.acpProbe) return this.getStatus();
+    this.initialization = this.initializeHarness();
+    try {
+      return await this.initialization;
+    } finally {
+      this.initialization = null;
+    }
+  }
+  private async initializeHarness(): Promise<ChatStatus> {
     const status = await this.connection.initialize();
-    if (this.harness.kind === 'acp' && status.available) await this.probeAcp(this.harness.spec);
+    if (!this.closing && this.harness.kind === 'acp' && status.available) await this.probeAcp(this.harness.spec);
     return this.withHarness(status);
   }
   getStatus(): ChatStatus {
     return this.withHarness(this.connection.getStatus());
   }
   private withHarness(status: ChatStatus): ChatStatus {
+    if (this.closing) status = { ...status, available: false, reason: '对话服务正在关闭', version: null };
     if (this.harness.kind === 'native')
       return { ...status, harness: this.harness.adapter.descriptor(status.available ? status.version : null) };
     const harness = acpDescriptor(this.harness.spec, this.acpInit);
@@ -135,12 +156,18 @@ export class CodexChat {
         throw new AcpMethodNotFound(method);
       },
     });
-    const exited = probe.done.then(() => client.close('Agent 进程在初始化前退出'));
+    const owned: AcpProbe = { process: probe, client, closePromise: null };
+    this.acpProbe = owned;
+    const exited = probe.done.then(
+      () => client.close('Agent 进程在初始化前退出'),
+      (error: unknown) => client.close(error instanceof Error ? error.message : String(error)),
+    );
+    let initialized: InitializeResult | null = null;
     const timer = setTimeout(() => client.close('Agent 初始化超时'), 30000);
     try {
       const init = InitializeResultSchema.parse(await client.request('initialize', acpInitializeParams()));
       if (init.protocolVersion !== ACP_PROTOCOL_VERSION) throw new AcpProtocolError(`ACP 协议版本不兼容：${init.protocolVersion}`);
-      this.acpInit = init;
+      initialized = init;
     } catch (error) {
       this.acpFailure = (error as Error).message;
     } finally {
@@ -152,13 +179,32 @@ export class CodexChat {
         // 传输已关闭：退出结果由 done 报告。
       }
     }
-    const outcome = await Promise.race([probe.done, new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))]);
-    const settled = outcome ?? (await probe.close());
-    await exited;
-    if (!settled.confirmed) {
+    let cleanupTimer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const outcome = await Promise.race([
+        probe.done,
+        new Promise<null>((resolve) => {
+          cleanupTimer = setTimeout(() => resolve(null), 10000);
+        }),
+      ]);
+      const settled = outcome ?? (await this.closeAcpProbe(owned));
+      await exited;
+      if (!settled.confirmed) throw new Error(settled.error ?? '探测进程清理未确认');
+      if (this.acpProbe === owned) this.acpProbe = null;
+      if (settled.error || settled.exitCode !== 0) throw new Error(settled.error ?? '探测进程异常退出');
+      // A shutdown or failed cleanup cannot publish late availability.
+      if (!this.closing) this.acpInit = initialized;
+    } catch (error) {
       this.acpInit = null;
-      this.acpFailure = settled.error ?? '探测进程清理未确认';
+      this.acpFailure = error instanceof Error ? error.message : String(error);
+    } finally {
+      clearTimeout(cleanupTimer);
     }
+  }
+  private closeAcpProbe(probe: AcpProbe): Promise<GuestOutcome> {
+    probe.client.close('ACP 探测正在停止');
+    probe.closePromise ??= Promise.resolve().then(() => probe.process.close());
+    return probe.closePromise;
   }
   private slot(id: ChatSlot): Slot {
     let slot = this.slots.get(id);
@@ -589,11 +635,28 @@ export class CodexChat {
     // Admission can close independently of that connection's cleanup.
     this.closing = true;
   }
-  async shutdown(): Promise<void> {
+  shutdown(): Promise<void> {
     this.beginShutdown();
-    const outcomes = await Promise.allSettled([this.connection.shutdown(), ...[...this.slots.keys()].map((id) => this.cancel(id))]);
+    this.shutdownPromise ??= Promise.resolve().then(() => this.finishShutdown());
+    return this.shutdownPromise;
+  }
+  private async finishShutdown(): Promise<void> {
+    const probe = this.acpProbe;
+    const probeCleanup = probe
+      ? this.closeAcpProbe(probe).then((outcome) => {
+          if (!outcome.confirmed) throw new Error(outcome.error ?? '探测进程清理未确认');
+        })
+      : Promise.resolve();
+    const outcomes = await Promise.allSettled([
+      this.connection.shutdown(),
+      probeCleanup,
+      // If a probe exists, await its done handling too; close alone is not a cleanup receipt.
+      ...(probe && this.initialization ? [this.initialization] : []),
+      ...[...this.slots.keys()].map((id) => this.cancel(id)),
+    ]);
     const failure = outcomes.find((outcome) => outcome.status === 'rejected');
     if (failure?.status === 'rejected') throw failure.reason;
+    if (this.acpProbe) throw new Error(this.acpFailure ?? '探测进程清理未确认');
   }
 }
 
