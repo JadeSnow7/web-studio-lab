@@ -21,6 +21,7 @@ import {
   type FileInvalidationHint,
   type CatalogReferenceSnapshot,
   ChatConversationSchema,
+  ChatSendSchema,
   TerminalSnapshotSchema,
   type TerminalSnapshot,
   ChatServiceMessageSchema,
@@ -53,6 +54,7 @@ export class ChatService {
       reject: (error: Error) => void;
       resourceId?: string;
       conversationSlot?: ChatSlot;
+      sendLease?: symbol;
       start: { kind: 'chat'; slot: ChatSlot; seq: number } | { kind: 'terminal'; seq: number; resourceId: string } | null;
     }
   >();
@@ -209,6 +211,8 @@ export class ChatService {
         this.pending.delete(message.id);
         if (message.type === 'error') {
           const start = request.start;
+          if (start?.kind === 'chat' && request.sendLease)
+            this.writeLease.sendSettled(request.sendLease, this.conversations.get(start.slot));
           if (start?.kind === 'chat') {
             const current = this.conversations.get(start.slot);
             // Service publishes a new conversation before starting its executor.
@@ -229,6 +233,7 @@ export class ChatService {
               return;
             }
             this.remember(conversation.data);
+            if (request.sendLease) this.writeLease.sendSettled(request.sendLease, this.conversations.get(conversation.data.conversationId));
           }
           if (message.result && 'sessionId' in message.result) {
             if (request.resourceId) {
@@ -271,16 +276,19 @@ export class ChatService {
     for (const request of this.pending.values()) {
       const start = request.start;
       if (!start) continue;
-      const current = start.kind === 'chat' ? this.conversations.get(start.slot) : this.terminals.get(start.resourceId);
-      // 新快照的清理确认可解除尚未收到 ACK 的启动请求占用。
-      if (!current || current.seq <= start.seq || current.cleanupPending) this.unknownCleanup = true;
+      // A conversation snapshot has no send request identity: even a newer clean
+      // event may belong to a query, cancellation, or an earlier queued turn.
+      // Only that send's matched response/error can settle its dispatch obligation.
+      if (start.kind === 'chat') this.unknownCleanup = true;
+      else {
+        const current = this.terminals.get(start.resourceId);
+        if (!current || current.seq <= start.seq || current.cleanupPending) this.unknownCleanup = true;
+      }
     }
     for (const request of this.pending.values()) {
       const start = request.start;
-      if (start?.kind === 'chat') {
-        const current = this.conversations.get(start.slot);
-        request.reject(new RunDispatchFailure(this.failure, !current || current.seq <= start.seq || current.cleanupPending));
-      } else request.reject(new Error(this.failure));
+      if (start?.kind === 'chat') request.reject(new RunDispatchFailure(this.failure, true));
+      else request.reject(new Error(this.failure));
     }
 
     this.pending.clear();
@@ -317,6 +325,7 @@ export class ChatService {
 
   private request(
     request: ChatServiceRequest extends infer R ? (R extends { id: string } ? Omit<R, 'id'> : never) : never,
+    sendLease?: symbol,
   ): Promise<unknown> {
     if (this.stopped && request.method !== 'shutdown') return Promise.reject(new Error('对话服务正在关闭'));
     if (this.failure) return Promise.reject(new Error(this.failure));
@@ -346,7 +355,7 @@ export class ChatService {
         data.method === 'get' || data.method === 'send' || data.method === 'cancel' || data.method === 'reset'
           ? data.payload.conversationId
           : undefined;
-      this.pending.set(data.id, { resolve, reject, start, resourceId, conversationSlot });
+      this.pending.set(data.id, { resolve, reject, start, resourceId, conversationSlot, sendLease });
       try {
         this.child.postMessage(data);
       } catch (error) {
@@ -474,18 +483,16 @@ export class ChatService {
   async send(id: ChatSlot, text: string, observationScope: ObservationTurnScope | undefined, references: CatalogReferenceSnapshot) {
     // 服务已失败或正在关闭时不取得许可，让请求按原有原因拒绝，避免用写入冲突掩盖真实故障。
     if (this.stopped || this.failure) throw new RunDispatchFailure(this.failure ?? '对话服务正在关闭', false, true);
-    this.writeLease.acquire(id, this.conversations.get(id)?.seq ?? -1);
+    const payload = ChatSendSchema.safeParse({ conversationId: id, text, observationScope, references });
+    if (!payload.success) throw new RunDispatchFailure(payload.error.message, false, true);
+    const sendLease = this.writeLease.acquire(id, this.conversations.get(id)?.seq ?? -1);
     try {
-      const result = ChatConversationSchema.parse(
-        await this.request({ method: 'send', payload: { conversationId: id, text, observationScope, references } }),
-      );
+      const result = ChatConversationSchema.parse(await this.request({ method: 'send', payload: payload.data }, sendLease));
       if (result.conversationId !== id) throw new Error('对话启动回执归属不匹配');
       return result;
     } catch (error) {
       if (error instanceof RunDispatchFailure) {
-        // 只有判定为从未启动的拒绝才按最新快照尝试释放；已接纳但清理未知或通信失败时保留许可，
-        // 已接纳且已确认清理的轮次由 remember() 采信的新快照经 observe 释放。
-        if (error.knownNotSent) this.writeLease.sendRejected(id, this.conversations.get(id));
+        // 明确回执已在 message 分支结算该 send；传输失败/形状异常没有结算票据，继续占用。
         throw error;
       }
       this.unknownCleanup = true;
