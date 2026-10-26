@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { HarnessDescriptorSchema } from '@wsl/protocol';
 import type { HarnessEvent } from '../types';
 import { codexAdapter } from '../codex/adapter';
@@ -113,23 +113,78 @@ describe('ACP 轮次驱动（W3a）', () => {
   });
 
   it('默认策略拒绝权限请求，选择 reject_once', async () => {
-    const { events, outcome } = await drive('permission');
+    const { events, outcome, written, code } = await drive('permission');
     expect(outcome).toMatchObject({ ok: true, result: { stopReason: 'end_turn' } });
+    expect(code).toBe(0);
+    expect(written).toContainEqual({ jsonrpc: '2.0', id: 1000, result: { outcome: { outcome: 'selected', optionId: 'no' } } });
     expect(events).toContainEqual({ type: 'message', id: 'anon-0', text: '决定：no' });
     expect(events).toContainEqual(expect.objectContaining({ type: 'tool', id: 't2', exitCode: 1 }));
   });
 
-  it('注入的策略可以批准；策略抛错时按 cancelled 回复', async () => {
+  it('同会话的注入策略可以批准，真实 RPC 返回所选 option', async () => {
     const allowed = await drive('permission', {
       decide: () => (params) => ({ outcome: { outcome: 'selected', optionId: params.options[0]!.optionId } }),
     });
+    expect(allowed.code).toBe(0);
     expect(allowed.events).toContainEqual({ type: 'message', id: 'anon-0', text: '决定：yes' });
-    const thrown = await drive('permission', {
+    expect(allowed.written).toContainEqual({ jsonrpc: '2.0', id: 1000, result: { outcome: { outcome: 'selected', optionId: 'yes' } } });
+  });
+
+  it.each(['sync', 'async'] as const)('策略失败（%s）：真实 RPC 回复 cancelled 而非 JSON-RPC error', async (kind) => {
+    const failed = await drive('permission', {
       decide: () => () => {
-        throw new Error('审批不可用');
+        if (kind === 'sync') throw new Error('审批不可用');
+        return Promise.reject(new Error('审批不可用'));
       },
     });
-    expect(thrown.events).toContainEqual({ type: 'message', id: 'anon-0', text: '决定：cancelled' });
+    expect(failed.code).toBe(0);
+    expect(failed.written).toContainEqual({ jsonrpc: '2.0', id: 1000, result: { outcome: { outcome: 'cancelled' } } });
+    expect(failed.written.filter((message) => (message as { id?: number }).id === 1000)).toHaveLength(1);
+  });
+
+  it('其他会话的权限请求不能调用当前策略，真实 RPC 明确拒绝且不执行工具', async () => {
+    const decide = vi.fn<PermissionDecider>(() => ({ outcome: { outcome: 'selected', optionId: 'yes' } }));
+    const denied = await drive('permission-other-session', { decide: () => decide });
+    expect(denied.code).toBe(0);
+    expect(decide).not.toHaveBeenCalled();
+    expect(denied.written).toContainEqual({ jsonrpc: '2.0', id: 1000, result: { outcome: { outcome: 'cancelled' } } });
+    expect(denied.events).toContainEqual(expect.objectContaining({ type: 'tool', id: 't2', exitCode: 1 }));
+  });
+
+  it('尚未建立活动会话时拒绝权限请求，不调用审批策略', async () => {
+    const written: unknown[] = [];
+    const decide = vi.fn<PermissionDecider>(() => ({ outcome: { outcome: 'selected', optionId: 'yes' } }));
+    const turn = new AcpTurn(
+      (line) => written.push(JSON.parse(line)),
+      () => undefined,
+      {
+        cwd: '/w',
+        mcpServers: [],
+        sessionRef: null,
+        prompt: 'x',
+        signal: new AbortController().signal,
+        decidePermission: decide,
+      },
+    );
+    try {
+      turn.receive(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1000,
+          method: 'session/request_permission',
+          params: {
+            sessionId: 'someone-else',
+            toolCall: { toolCallId: 't' },
+            options: [{ optionId: 'yes', name: 'Allow', kind: 'allow_once' }],
+          },
+        }),
+      );
+      await expect.poll(() => written.length).toBe(1);
+      expect(decide).not.toHaveBeenCalled();
+      expect(written).toEqual([{ jsonrpc: '2.0', id: 1000, result: { outcome: { outcome: 'cancelled' } } }]);
+    } finally {
+      turn.close('test complete');
+    }
   });
 
   it('取消：待决的权限请求回复 cancelled，发 session/cancel，Agent 以 cancelled 结束且不记失败', async () => {
@@ -147,6 +202,20 @@ describe('ACP 轮次驱动（W3a）', () => {
     expect(events).toContainEqual({ type: 'message', id: 'anon-1', text: '权限：cancelled' });
     expect(events).toContainEqual(expect.objectContaining({ type: 'tool', id: 't3', exitCode: null }));
     expect(events.some((event) => event.type === 'turn_failed' || event.type === 'turn_completed')).toBe(false);
+  });
+
+  it('策略同步触发取消后，迟到的批准不得覆盖 cancelled 或重复回复', async () => {
+    const { outcome, written, code } = await drive('cancel', {
+      decide: (controller) => () => {
+        controller.abort();
+        return { outcome: { outcome: 'selected', optionId: 'yes' } };
+      },
+    });
+    expect(outcome).toMatchObject({ ok: true, result: { stopReason: 'cancelled', cancelRequested: true } });
+    expect(code).toBe(0);
+    expect(written.filter((message) => (message as { id?: number }).id === 1000)).toEqual([
+      { jsonrpc: '2.0', id: 1000, result: { outcome: { outcome: 'cancelled' } } },
+    ]);
   });
 
   it('取消发生在权限请求之前：随后到达的权限请求直接回复 cancelled', async () => {
