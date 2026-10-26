@@ -1,3 +1,7 @@
+import { isDeepStrictEqual } from 'node:util';
+import type { ManagedApp, AppImportView, AppImportOutcome } from '@wsl/protocol';
+import type { AppImportSelection, AppImportSource } from './ports';
+import { ImportFailure, importError } from './import-source';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   AppSourceSnapshotResultSchema,
@@ -62,6 +66,25 @@ import { conflictMessage } from './guest-write-lease';
 
 type SourceRun = { target: AppTarget; baseline: AbortController; ready: boolean; capturing: boolean };
 const activeStates = ['starting', 'running', 'cancelling'];
+const standardAppProfile = { projectKind: 'standard-app', profileVersion: 1 };
+const sameAppProfile = (left: ManagedApp, right: ManagedApp) =>
+  isDeepStrictEqual(left.profile ?? standardAppProfile, right.profile ?? standardAppProfile);
+type ImportCommand = Extract<WorkbenchCommand, { type: 'previewAppImport' | 'confirmAppImport' | 'cancelAppImport' | 'retryAppImport' }>;
+type ImportSession = {
+  workspaceId: string;
+  revision: number;
+  view: AppImportView;
+  controller: AbortController;
+  selection?: AppImportSelection;
+  selecting?: Promise<WorkbenchResult>;
+  confirming?: Promise<WorkbenchResult>;
+  cancelling?: Promise<WorkbenchResult>;
+  dispatched: boolean;
+  cancelRequested: boolean;
+};
+function importSource(selection: AppImportSelection): AppImportSource {
+  return { source: structuredClone(selection.source), files: structuredClone(selection.files) };
+}
 function workspace(workspaceId: string, name: string): WorkspaceSnapshot {
   const paneId = randomUUID();
   return {
@@ -200,6 +223,8 @@ export class WorkbenchApplication {
   private readonly observationScopes = new Map<string, ObservationTurnScope>();
   private readonly runLaunches = new Map<string, () => Promise<void>>();
   private readonly runLaunchPhases = new Map<string, 'registering' | 'baseline' | 'sending'>();
+  // A terminal snapshot cannot settle a send. Hold its evidence until the owned receipt arrives.
+  private readonly pendingRunDispatches = new Map<string, ChatConversation | null>();
   private readonly sourceRuns = new Map<string, SourceRun>();
   private readonly projectWriters = new Map<string, string>();
   private readonly runOperations = new Set<Promise<unknown>>();
@@ -397,6 +422,30 @@ export class WorkbenchApplication {
       await this.saveState(this.snapshot);
     }
     if (saved && migrateOwnership && !recoveredExecution) await this.saveState(this.snapshot);
+    for (const w of this.snapshot.workspaces) {
+      delete w.appImport;
+      if (!w.pendingAppImport) continue;
+      const pending = w.pendingAppImport;
+      if (w.managedApp?.projectId !== pending.projectId) throw new Error('denied: 导入恢复身份不一致');
+      this.importSessions.set(w.workspaceId, {
+        workspaceId: w.workspaceId,
+        revision: w.revision,
+        controller: new AbortController(),
+        dispatched: true,
+        cancelRequested: false,
+        view: {
+          previewId: pending.previewId,
+          projectId: pending.projectId,
+          phase: 'failed',
+          preview: null,
+          progress: { files: 0, bytes: 0 },
+          published: false,
+          canCancel: true,
+          canRetry: false,
+          error: { code: 'import_recovery', message: '应用已重启；请核对并取消以确认导入副本状态。' },
+        },
+      });
+    }
   }
   async getSnapshot(): Promise<WorkbenchSnapshot> {
     await this.ready;
@@ -405,6 +454,7 @@ export class WorkbenchApplication {
   }
   private publicSnapshot(): WorkbenchSnapshot {
     const snapshot = structuredClone(this.snapshot);
+    for (const w of snapshot.workspaces) w.appImport = structuredClone(this.importSessions.get(w.workspaceId)?.view ?? null);
     snapshot.catalog = {
       accountId: this.catalog.accountId,
       revision: this.catalog.revision,
@@ -457,7 +507,16 @@ export class WorkbenchApplication {
   }
   command(command: WorkbenchCommand): Promise<WorkbenchResult> {
     if (command.type === 'reconcileRunCleanup') return this.reconcileRunCleanup(command.workspaceId, command.runId);
-    if (command.type === 'createApp' || command.type === 'startApp' || command.type === 'stopApp' || command.type === 'exportApp')
+    if (
+      command.type === 'createApp' ||
+      command.type === 'startApp' ||
+      command.type === 'stopApp' ||
+      command.type === 'exportApp' ||
+      command.type === 'previewAppImport' ||
+      command.type === 'confirmAppImport' ||
+      command.type === 'cancelAppImport' ||
+      command.type === 'retryAppImport'
+    )
       return this.appCommand(command);
     if (
       command.type === 'startRun' ||
@@ -474,7 +533,13 @@ export class WorkbenchApplication {
         return;
       }
       const w = this.snapshot.workspaces.find((w) => w.workspaceId === app.workspaceId);
-      if (!w?.managedApp || w.managedApp.projectId !== app.projectId || w.managedApp.appInstanceId !== app.appInstanceId) return;
+      if (
+        !w?.managedApp ||
+        w.managedApp.projectId !== app.projectId ||
+        w.managedApp.appInstanceId !== app.appInstanceId ||
+        !sameAppProfile(app, w.managedApp)
+      )
+        return;
       w.managedApp = app;
       if (app.cleanupConfirmed && app.state === 'stopped')
         await this.appControl?.confirmStopped(w.workspaceId, app.projectId, app.appInstanceId);
@@ -490,9 +555,23 @@ export class WorkbenchApplication {
   }
   private readonly pendingAppFailures = new Map<string, NonNullable<WorkspaceSnapshot['managedApp']>>();
   private readonly appOperations = new Map<string, string>();
+  private readonly importSessions = new Map<string, ImportSession>();
   private readonly appCommands = new Map<string, { fingerprint: string; promise: Promise<WorkbenchResult> }>();
   private appCommand(
-    c: Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>,
+    c: Extract<
+      WorkbenchCommand,
+      {
+        type:
+          | 'createApp'
+          | 'previewAppImport'
+          | 'confirmAppImport'
+          | 'cancelAppImport'
+          | 'retryAppImport'
+          | 'startApp'
+          | 'stopApp'
+          | 'exportApp';
+      }
+    >,
     activateApp = true,
   ): Promise<WorkbenchResult> {
     const fingerprint = createHash('sha256').update(JSON.stringify(c)).digest('hex');
@@ -507,9 +586,456 @@ export class WorkbenchApplication {
           });
     if (this.commands.has(c.commandId))
       return Promise.resolve({ ok: false, error: { code: 'conflict', message: '命令身份已使用' }, snapshot: this.publicSnapshot() });
-    const promise = this.executeAppCommand(c, activateApp);
+    const session = this.importSessions.get(c.workspaceId);
+    const promise =
+      c.type === 'stopApp' && session && session.view.phase !== 'completed' && session.view.canCancel
+        ? this.importCommand({
+            type: 'cancelAppImport',
+            workspaceId: c.workspaceId,
+            commandId: c.commandId,
+            previewId: session.view.previewId,
+          })
+        : ['previewAppImport', 'confirmAppImport', 'cancelAppImport', 'retryAppImport'].includes(c.type)
+          ? this.importCommand(c as ImportCommand)
+          : this.executeAppCommand(
+              c as Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>,
+              activateApp,
+            );
     this.appCommands.set(c.commandId, { fingerprint, promise });
     return promise;
+  }
+  private importTick(session: ImportSession) {
+    if (this.importSessions.get(session.workspaceId) !== session) return;
+    this.snapshot.seq++;
+    this.emitSnapshot(session.workspaceId, session.view.previewId);
+  }
+  private importResult(session: ImportSession): WorkbenchResult {
+    return session.view.error
+      ? { ok: false, error: { code: 'execution_failed', message: session.view.error.message }, snapshot: this.publicSnapshot() }
+      : this.result();
+  }
+  private importCommand(c: ImportCommand): Promise<WorkbenchResult> {
+    if (c.type === 'previewAppImport') return this.previewImport(c);
+    const session = this.importSessions.get(c.workspaceId);
+    if (!session || session.view.previewId !== c.previewId)
+      return Promise.resolve({
+        ok: false,
+        error: { code: 'conflict', message: '检查结果已失效，请重新选择工程。' },
+        snapshot: this.publicSnapshot(),
+      });
+    if (c.type === 'cancelAppImport') {
+      if (!session.view.canCancel) return Promise.resolve(this.importResult(session));
+      return (session.cancelling ??= this.cancelImport(session).finally(() => {
+        session.cancelling = undefined;
+      }));
+    }
+    if (session.cancelling)
+      return Promise.resolve({
+        ok: false,
+        error: { code: 'conflict', message: '正在确认取消结果，请等待操作结束。' },
+        snapshot: this.publicSnapshot(),
+      });
+    if (c.type === 'confirmAppImport' && c.sourceSha256 !== session.view.preview?.sourceSha256)
+      return Promise.resolve({
+        ok: false,
+        error: { code: 'conflict', message: '确认内容与检查结果不一致。' },
+        snapshot: this.publicSnapshot(),
+      });
+    if (session.confirming) return session.confirming;
+    if (session.view.phase === 'completed') return Promise.resolve(this.result());
+    if ((c.type === 'retryAppImport' && !session.view.canRetry) || (c.type === 'confirmAppImport' && session.view.phase !== 'ready'))
+      return Promise.resolve({
+        ok: false,
+        error: { code: 'conflict', message: '当前阶段不能执行此操作，请按面板提示处理。' },
+        snapshot: this.publicSnapshot(),
+      });
+    if (c.type === 'retryAppImport' && !session.selection && !session.view.projectId)
+      return this.previewImport({ type: 'previewAppImport', workspaceId: c.workspaceId, commandId: c.commandId });
+    session.confirming = this.confirmImport(session).finally(() => {
+      session.confirming = undefined;
+    });
+    return session.confirming;
+  }
+  private async previewImport(c: Extract<ImportCommand, { type: 'previewAppImport' }>): Promise<WorkbenchResult> {
+    let session: ImportSession | undefined;
+    try {
+      await this.serialize(() => {
+        const w = this.requireWorkspace(c.workspaceId);
+        if (
+          w.managedApp ||
+          this.appOperations.has(w.workspaceId) ||
+          w.pendingAppImport ||
+          w.runs.some((run) => activeStates.includes(run.state) || run.cleanupPending)
+        )
+          throw new ImportFailure('import_busy', '空间已有工程或操作正在进行，请先完成当前操作。');
+        if (c.expectedRevision !== undefined && c.expectedRevision !== w.revision)
+          throw new ImportFailure('workspace_changed', '空间已变化，请重新打开导入入口。');
+        if (!this.runtime.appSelectImportSource || !this.runtime.appImportSource || !this.runtime.appCancelImport)
+          throw new ImportFailure('import_unavailable', '当前应用尚未配置工程导入服务。');
+        this.importSessions.get(w.workspaceId)?.controller.abort();
+        session = {
+          workspaceId: w.workspaceId,
+          revision: w.revision,
+          controller: new AbortController(),
+          dispatched: false,
+          cancelRequested: false,
+          view: {
+            previewId: randomUUID(),
+            phase: 'selecting',
+            preview: null,
+            progress: { files: 0, bytes: 0 },
+            error: null,
+            canCancel: true,
+            canRetry: false,
+            projectId: null,
+            published: false,
+          },
+        };
+        this.importSessions.set(w.workspaceId, session);
+        this.appOperations.set(w.workspaceId, session.view.previewId);
+        this.importTick(session);
+      });
+      if (!session) throw new ImportFailure('import_unavailable', '未建立导入操作。');
+      const current = session;
+      const selecting = (async () => {
+        try {
+          if (!this.runtime.appSelectImportSource) throw new ImportFailure('import_unavailable', '工程选择服务不可用。');
+          const selected = await this.runtime.appSelectImportSource(current.controller.signal, (progress) => {
+            void this.serialize(() => {
+              if (this.importSessions.get(current.workspaceId) !== current || current.cancelRequested) return;
+              current.view.phase = 'scanning';
+              current.view.progress = progress;
+              this.importTick(current);
+            }).catch(() => undefined);
+          });
+          await this.serialize(() => {
+            if (this.importSessions.get(current.workspaceId) !== current) return;
+            if (!selected || current.cancelRequested) {
+              current.view.phase = 'cancelled';
+              current.view.canCancel = false;
+            } else {
+              const source = importSource(selected);
+              if (selected.preview.sourceSha256 !== source.source.sourceSha256)
+                throw new ImportFailure('source_changed', '检查结果不一致，请重新选择工程。');
+              current.selection = {
+                ...structuredClone({ source: selected.source, files: selected.files, preview: selected.preview }),
+                revalidate: selected.revalidate,
+              };
+              current.view.preview = structuredClone(selected.preview);
+              current.view.phase = 'ready';
+              current.view.progress = { files: selected.preview.fileCount, bytes: selected.preview.totalBytes };
+            }
+            this.importTick(current);
+          });
+        } catch (error) {
+          await this.serialize(() => {
+            current.view.phase = current.cancelRequested ? 'cancelled' : 'failed';
+            current.view.error = current.cancelRequested ? null : importError(error);
+            current.view.canRetry = !current.cancelRequested;
+            current.view.canCancel = false;
+            this.importTick(current);
+          });
+        } finally {
+          await this.serialize(() => {
+            if (this.appOperations.get(current.workspaceId) === current.view.previewId) this.appOperations.delete(current.workspaceId);
+          });
+        }
+        return this.importResult(current);
+      })();
+      current.selecting = selecting;
+      return await selecting;
+    } catch (error) {
+      const safe = importError(error);
+      return { ok: false, error: { code: 'execution_failed', message: safe.message }, snapshot: this.publicSnapshot() };
+    }
+  }
+  private async persistImport(session: ImportSession, w: WorkspaceSnapshot) {
+    try {
+      await this.persist(w, session.view.previewId);
+    } catch {
+      this.snapshot.storageError = '工程导入状态保存失败，请重试；已确认的运行事实仍保留。';
+      throw new ImportFailure('storage_failed', this.snapshot.storageError);
+    }
+  }
+  private async acceptImportOutcome(session: ImportSession, outcome: AppImportOutcome) {
+    await this.serialize(async () => {
+      const w = this.requireWorkspace(session.workspaceId);
+      if (this.importSessions.get(w.workspaceId) !== session || w.managedApp?.projectId !== session.view.projectId)
+        throw new ImportFailure('import_stale', '导入归属已变化，无法更新当前工程。');
+      if (outcome.outcome === 'failed') {
+        session.view.canRetry = outcome.retryable;
+        throw new ImportFailure(
+          outcome.errorCode ?? 'import_failed',
+          outcome.retryable ? '隔离环境导入失败；工程身份已保留，可以重试。' : '导入结果尚未确认，请核对并取消以确认副本状态。',
+        );
+      }
+      if (outcome.outcome === 'cancelled') {
+        // The service receipt confirms this exact operation has no published copy.
+        const previous = { app: w.app, managedApp: w.managedApp, pending: w.pendingAppImport };
+        w.app = null;
+        w.managedApp = null;
+        w.pendingAppImport = null;
+        try {
+          await this.persistImport(session, w);
+        } catch (error) {
+          w.app = previous.app;
+          w.managedApp = previous.managedApp;
+          w.pendingAppImport = previous.pending;
+          throw error;
+        }
+        session.view.projectId = null;
+        session.view.published = false;
+        session.view.phase = 'cancelled';
+        session.view.error = null;
+        session.view.canCancel = false;
+        session.view.canRetry = false;
+      } else {
+        const app = outcome.app;
+        if (!app || app.workspaceId !== w.workspaceId || app.projectId !== session.view.projectId || !sameAppProfile(app, w.managedApp))
+          throw new ImportFailure('import_identity', '导入回执身份不一致；请核对并取消。');
+        w.managedApp = structuredClone(app);
+        session.view.published = true;
+        const pending = w.pendingAppImport;
+        w.pendingAppImport = null;
+        try {
+          await this.persistImport(session, w);
+        } catch (error) {
+          w.pendingAppImport = pending;
+          throw error;
+        }
+      }
+      this.importTick(session);
+    });
+  }
+  private async confirmImport(session: ImportSession): Promise<WorkbenchResult> {
+    try {
+      await this.serialize(() => {
+        const w = this.requireWorkspace(session.workspaceId);
+        if (this.appOperations.has(w.workspaceId) || w.runs.some((run) => activeStates.includes(run.state) || run.cleanupPending))
+          throw new ImportFailure('import_busy', '当前操作尚未结束，请稍后重试。');
+        if (
+          this.importSessions.get(w.workspaceId) !== session ||
+          (session.view.projectId
+            ? w.managedApp && w.managedApp.projectId !== session.view.projectId
+            : w.managedApp || w.revision !== session.revision)
+        )
+          throw new ImportFailure('workspace_changed', '空间已有变化，请重新检查工程。');
+        session.cancelRequested = false;
+        session.controller = new AbortController();
+        session.view.error = null;
+        session.view.canRetry = false;
+        session.view.canCancel = true;
+        session.view.phase = session.view.published ? 'starting' : 'scanning';
+        this.appOperations.set(w.workspaceId, session.view.previewId);
+        this.importTick(session);
+      });
+      if (!session.view.published) {
+        const selected = session.selection;
+        if (!selected) throw new ImportFailure('import_recovery', '应用已重启，请先核对并取消未决导入。');
+        const current = await selected.revalidate(session.controller.signal);
+        if (!isDeepStrictEqual(current, importSource(selected)))
+          throw new ImportFailure('source_changed', '工程在检查后发生变化，请重新选择并检查。');
+        await this.serialize(async () => {
+          session.controller.signal.throwIfAborted();
+          const w = this.requireWorkspace(session.workspaceId);
+          if (this.importSessions.get(w.workspaceId) !== session || this.appOperations.get(w.workspaceId) !== session.view.previewId)
+            throw new ImportFailure('import_stale', '本次导入已失效。');
+          if (!w.managedApp) {
+            if (w.revision !== session.revision) throw new ImportFailure('workspace_changed', '空间已变化，请重新检查工程。');
+            const projectId = session.view.projectId ?? randomUUID();
+            session.view.projectId = projectId;
+            const previous = { app: w.app, managedApp: w.managedApp, pending: w.pendingAppImport };
+            w.app = {
+              appId: randomUUID(),
+              workspaceId: w.workspaceId,
+              projectId,
+              name: selected.preview.name,
+              description: '导入的 edu 工程',
+              revision: 0,
+            };
+            w.managedApp = {
+              workspaceId: w.workspaceId,
+              projectId,
+              profile: { projectKind: 'edu-web', profileVersion: 1, source: structuredClone(selected.source) },
+              sourceSha256: selected.source.sourceSha256,
+              environmentId: 'sandbox',
+              appInstanceId: null,
+              state: 'starting',
+              url: null,
+              guestCwd: '',
+              error: null,
+              cleanupConfirmed: false,
+            };
+            w.pendingAppImport = { previewId: session.view.previewId, projectId };
+            try {
+              await this.persistImport(session, w);
+            } catch (error) {
+              w.app = previous.app;
+              w.managedApp = previous.managedApp;
+              w.pendingAppImport = previous.pending;
+              throw error;
+            }
+          }
+          session.view.phase = 'copying';
+          session.view.progress = { files: 0, bytes: 0 };
+          this.importTick(session);
+        });
+        if (session.cancelRequested) return this.result();
+        const projectId = session.view.projectId;
+        if (!projectId || !this.runtime.appImportSource) throw new ImportFailure('import_unavailable', '导入工程或服务身份缺失。');
+        session.dispatched = true;
+        const outcome = await this.runtime.appImportSource(
+          { workspaceId: session.workspaceId, projectId },
+          importSource(selected),
+          session.view.previewId,
+        );
+        if (!session.cancelRequested) await this.acceptImportOutcome(session, outcome);
+      } else {
+        await this.serialize(async () => {
+          const w = this.requireWorkspace(session.workspaceId);
+          const pending = w.pendingAppImport;
+          w.pendingAppImport = null;
+          try {
+            await this.persistImport(session, w);
+          } catch (error) {
+            w.pendingAppImport = pending;
+            throw error;
+          }
+        });
+      }
+      await this.serialize(() => {
+        if (this.appOperations.get(session.workspaceId) === session.view.previewId) this.appOperations.delete(session.workspaceId);
+      });
+      if (session.cancelRequested || session.view.phase === 'cancelled') return this.importResult(session);
+      await this.serialize(() => {
+        session.view.phase = 'starting';
+        this.importTick(session);
+      });
+      if (session.cancelRequested) return this.result();
+      const started = await this.executeAppCommand({ type: 'startApp', commandId: randomUUID(), workspaceId: session.workspaceId }, false);
+      await this.serialize(() => {
+        if (session.cancelRequested) return;
+        const app = this.requireWorkspace(session.workspaceId).managedApp;
+        if (!started.ok || app?.projectId !== session.view.projectId || app.state !== 'running')
+          throw new ImportFailure('start_failed', '工程已导入，但启动未成功。请确认环境后重试启动。');
+        session.view.phase = 'completed';
+        session.view.error = null;
+        session.view.canCancel = false;
+        session.view.canRetry = false;
+        this.importTick(session);
+      });
+    } catch (error) {
+      await this.serialize(() => {
+        if (session.cancelRequested) return;
+        const safe =
+          session.view.phase === 'copying' && !(error instanceof ImportFailure)
+            ? new ImportFailure('import_result_unknown', '隔离环境导入结果尚未确认，请核对并取消以确认副本状态。')
+            : error;
+        session.view.phase = 'failed';
+        session.view.error = importError(safe);
+        if (!session.dispatched) session.view.canRetry = true;
+        else if (session.view.published)
+          session.view.canRetry = Boolean(this.requireWorkspace(session.workspaceId).managedApp?.cleanupConfirmed);
+        session.view.canCancel = Boolean(
+          session.view.projectId || this.requireWorkspace(session.workspaceId).pendingAppImport || session.view.published,
+        );
+        this.importTick(session);
+      });
+    } finally {
+      await this.serialize(() => {
+        if (this.appOperations.get(session.workspaceId) === session.view.previewId) this.appOperations.delete(session.workspaceId);
+      });
+    }
+    return this.importResult(session);
+  }
+  private async cancelImport(session: ImportSession): Promise<WorkbenchResult> {
+    let cancellation: Promise<AppImportOutcome> | undefined;
+    try {
+      await this.serialize(() => {
+        session.cancelRequested = true;
+        session.controller.abort();
+        session.view.phase = 'cancelling';
+        session.view.error = null;
+        session.view.canRetry = false;
+        this.importTick(session);
+      });
+      if (session.dispatched && !session.view.published) {
+        const projectId = session.view.projectId;
+        if (!projectId || !this.runtime.appCancelImport) throw new ImportFailure('import_unavailable', '取消工程或服务身份缺失。');
+        cancellation = this.runtime.appCancelImport({ workspaceId: session.workspaceId, projectId }, session.view.previewId);
+        // Attach a rejection handler immediately even while the import request is still pending.
+        void cancellation.catch(() => undefined);
+      }
+      if (session.view.published) {
+        await this.serialize(async () => {
+          const w = this.requireWorkspace(session.workspaceId);
+          if (w.managedApp?.projectId !== session.view.projectId)
+            throw new ImportFailure('import_stale', '工程身份已变化，请核对当前空间。');
+          const pending = w.pendingAppImport;
+          if (!pending) return;
+          if (pending.previewId !== session.view.previewId) throw new ImportFailure('import_stale', '导入恢复身份不一致，请核对当前空间。');
+          w.pendingAppImport = null;
+          try {
+            await this.persistImport(session, w);
+          } catch (error) {
+            w.pendingAppImport = pending;
+            throw error;
+          }
+        });
+        const stopped = await this.executeAppCommand({ type: 'stopApp', commandId: randomUUID(), workspaceId: session.workspaceId }, false);
+        if (!stopped.ok || !this.requireWorkspace(session.workspaceId).managedApp?.cleanupConfirmed)
+          throw new ImportFailure('stop_unconfirmed', '工程副本已保留，但停止尚未确认，请再次核对并取消。');
+      }
+      await session.selecting;
+      await session.confirming;
+      if (cancellation) await this.acceptImportOutcome(session, await cancellation);
+      else if (!session.dispatched) {
+        await this.serialize(async () => {
+          const w = this.requireWorkspace(session.workspaceId);
+          if (w.pendingAppImport?.previewId !== session.view.previewId) {
+            if (!w.managedApp) session.view.projectId = null;
+            return;
+          }
+          const previous = { app: w.app, managedApp: w.managedApp, pending: w.pendingAppImport };
+          w.app = null;
+          w.managedApp = null;
+          w.pendingAppImport = null;
+          try {
+            await this.persistImport(session, w);
+          } catch (error) {
+            w.app = previous.app;
+            w.managedApp = previous.managedApp;
+            w.pendingAppImport = previous.pending;
+            throw error;
+          }
+          session.view.projectId = null;
+        });
+      }
+      if (session.view.published && !this.requireWorkspace(session.workspaceId).managedApp?.cleanupConfirmed) {
+        const stopped = await this.executeAppCommand({ type: 'stopApp', commandId: randomUUID(), workspaceId: session.workspaceId }, false);
+        if (!stopped.ok || !this.requireWorkspace(session.workspaceId).managedApp?.cleanupConfirmed)
+          throw new ImportFailure('stop_unconfirmed', '工程副本已保留，但停止尚未确认，请再次核对并取消。');
+      }
+      await this.serialize(() => {
+        session.view.phase = 'cancelled';
+        session.view.error = null;
+        session.view.canCancel = false;
+        session.view.canRetry = session.view.published;
+        this.importTick(session);
+      });
+    } catch (error) {
+      await this.serialize(() => {
+        session.view.phase = 'failed';
+        session.view.error =
+          error instanceof ImportFailure
+            ? importError(error)
+            : { code: 'import_cleanup_unknown', message: '取消结果尚未确认，请再次核对并取消。' };
+        session.view.canCancel = true;
+        session.view.canRetry = false;
+        this.importTick(session);
+      });
+    }
+    return this.importResult(session);
   }
   private async executeAppCommand(
     c: Extract<WorkbenchCommand, { type: 'createApp' | 'startApp' | 'stopApp' | 'exportApp' }>,
@@ -522,6 +1048,7 @@ export class WorkbenchApplication {
       await this.serialize(async () => {
         const w = this.requireWorkspace(c.workspaceId);
         if (c.expectedRevision !== undefined && c.expectedRevision !== w.revision) throw new Error('conflict: 空间已有较新修改');
+        if (w.pendingAppImport) throw new Error('conflict: 导入结果尚未确认，请在导入面板核对并取消');
         const appBefore = structuredClone(w.managedApp ?? null);
         if (c.type !== 'stopApp' && this.appControl?.hasPending(w.workspaceId)) throw new Error('conflict: App 数据操作结果待确认');
         const writerId = w.managedApp ? this.projectWriters.get(w.managedApp.projectId) : undefined;
@@ -529,7 +1056,14 @@ export class WorkbenchApplication {
         if (
           c.type === 'startApp' &&
           ((sourceOwner && (!sourceOwner.ready || sourceOwner.capturing)) ||
-            w.runs.some((run) => run.sourceCleanupPending || (run.cleanupPending && !this.runLogBaselines.has(run.runId))))
+            w.runs.some(
+              (run) =>
+                run.sourceCleanupPending ||
+                (run.cleanupPending &&
+                  (!this.runLogBaselines.has(run.runId) ||
+                    run.executorState?.state === 'failed' ||
+                    this.pendingRunDispatches.has(run.runId))),
+            ))
         )
           throw new Error('conflict: 项目源码采集或 helper 清理未确认，暂不能启动写入工程的构建');
         const pending = this.appOperations.get(w.workspaceId);
@@ -603,7 +1137,13 @@ export class WorkbenchApplication {
           this.pendingAppFailures.delete(c.workspaceId);
           if (app.state === 'running' && interrupted?.appInstanceId === app.appInstanceId && interrupted.projectId === app.projectId)
             app = interrupted;
-          if (app.workspaceId !== w.workspaceId || app.projectId !== target!.projectId) throw new Error('denied: 应用返回身份不一致');
+          if (
+            app.workspaceId !== w.workspaceId ||
+            app.projectId !== target!.projectId ||
+            !w.managedApp ||
+            !sameAppProfile(app, w.managedApp)
+          )
+            throw new Error('denied: 应用返回身份不一致');
           w.managedApp = app;
           if (app.cleanupConfirmed && app.state === 'stopped')
             await this.appControl?.confirmStopped(w.workspaceId, app.projectId, app.appInstanceId);
@@ -614,7 +1154,9 @@ export class WorkbenchApplication {
               resource = this.resource(w, tab.targetRef.resourceId);
               resource.appProjectId = app.projectId;
             }
-            resource.url = app.url;
+            const previousPath = resource.url ? new URL(resource.url).pathname : '/';
+            resource.url =
+              app.profile?.projectKind === 'edu-web' && previousPath === '/student' ? new URL('/student', app.url).href : app.url;
             resource.unavailableReason = null;
             if (activateApp) this.openResource(w, resource.resourceId);
             // AI restarts need a live browser without changing the user's current or intervening navigation.
@@ -1244,7 +1786,14 @@ export class WorkbenchApplication {
   }
   private async saveState(snapshot: WorkbenchSnapshot): Promise<void> {
     this.syncCatalogBindings(snapshot);
-    await this.repository.save(snapshot, this.catalog);
+    const durable = {
+      ...snapshot,
+      workspaces: snapshot.workspaces.map((workspace) => {
+        const { appImport: _appImport, ...stored } = workspace;
+        return stored;
+      }),
+    };
+    await this.repository.save(durable, this.catalog);
   }
   private catalogContext() {
     return {
@@ -1764,6 +2313,14 @@ export class WorkbenchApplication {
             break;
           }
           case 'confirmTask': {
+            if (
+              w.pendingAppImport ||
+              w.managedApp?.profile?.projectKind === 'edu-web' ||
+              ['selecting', 'scanning', 'ready', 'copying', 'starting', 'cancelling'].includes(
+                this.importSessions.get(w.workspaceId)?.view.phase ?? '',
+              )
+            )
+              throw new Error('unsupported: edu 工程导入或任务写回尚未开放');
             const s = this.session(w, c.sessionId);
             if (c.targetRef) {
               const r = this.resource(w, c.targetRef.resourceId, c.targetRef.kind);
@@ -1910,6 +2467,24 @@ export class WorkbenchApplication {
             this.ensureBrowser(w, r);
             if (c.layout.visible && this.snapshot.activeWorkspaceId !== w.workspaceId) throw new Error('denied: 不能显示后台空间网页');
             this.runtime.browserLayout(r.resourceId, c.layout);
+            return rememberResult();
+          }
+          case 'openAppPage': {
+            const app = w.managedApp;
+            if (c.page !== 'student' && c.page !== 'admin') throw new Error('unsupported: 当前工程不支持该页面');
+            if (app?.profile?.projectKind !== 'edu-web' || app.state !== 'running' || !app.url)
+              throw new Error('unavailable: edu 应用未运行');
+            const resource = w.resources.find((item) => item.kind === 'web' && item.appProjectId === app.projectId);
+            if (!resource) throw new Error('not_found: edu 网页资源不存在');
+            this.ensureBrowser(w, resource);
+            await this.runtime.browserAction(
+              resource.resourceId,
+              'navigate',
+              new URL(c.page === 'student' ? '/student' : '/', app.url).href,
+            );
+            resource.url = new URL(c.page === 'student' ? '/student' : '/', app.url).href;
+            this.openResource(w, resource.resourceId);
+            await this.persist(w, resource.resourceId);
             return rememberResult();
           }
           case 'browserAction': {
@@ -2219,7 +2794,14 @@ export class WorkbenchApplication {
     const control = this.sourceRuns.get(run.runId);
     if (!control || !control.ready || control.capturing || !['completed', 'failed', 'cancelled'].includes(run.state)) return;
     const executor = run.executorState;
-    if (!executor || executor.cleanupPending || activeStates.includes(executor.state) || run.cleanupPending) return;
+    if (
+      !executor ||
+      executor.cleanupPending ||
+      activeStates.includes(executor.state) ||
+      run.cleanupPending ||
+      this.pendingRunDispatches.has(run.runId)
+    )
+      return;
     if (run.sourceChange?.state !== 'baseline') {
       this.releaseSourceRun(run.runId);
       return;
@@ -2319,6 +2901,14 @@ export class WorkbenchApplication {
     });
   }
   private async startRun(w: WorkspaceSnapshot, sessionId: string, versionId: string) {
+    if (
+      w.pendingAppImport ||
+      w.managedApp?.profile?.projectKind === 'edu-web' ||
+      ['selecting', 'scanning', 'ready', 'copying', 'starting', 'cancelling'].includes(
+        this.importSessions.get(w.workspaceId)?.view.phase ?? '',
+      )
+    )
+      throw new Error('unsupported: edu 工程导入或任务写回尚未开放');
     if (this.closing) throw new Error('unavailable: 工作台正在关闭，不能开始新执行');
     const s = this.session(w, sessionId);
     const v = s.taskVersions.find((v) => v.taskVersionId === versionId);
@@ -2443,6 +3033,8 @@ export class WorkbenchApplication {
           const current = this.run(this.requireWorkspace(workspaceId), run.runId);
           if (current.state !== 'starting' || this.closing) return false;
           this.runLaunchPhases.set(run.runId, 'sending');
+          this.pendingRunDispatches.set(run.runId, null);
+          current.cleanupPending = true;
           // Dispatch under the ownership check, but never await external I/O on the metadata queue.
           return { receipt: this.runtime.send(sessionId, text, structuredClone(scope), structuredClone(referenceSnapshot)) };
         });
@@ -2451,8 +3043,25 @@ export class WorkbenchApplication {
         await this.updateRuntime(() => {
           const workspace = this.requireWorkspace(workspaceId);
           const current = this.run(workspace, run.runId);
-          if (!activeStates.includes(current.state) || current.state === 'cancelling') return null;
-          this.applyConversation(workspace, conversation);
+          const terminal = this.pendingRunDispatches.get(run.runId);
+          this.pendingRunDispatches.delete(run.runId);
+          if (!activeStates.includes(current.state)) return null;
+          if (!this.runTurns.has(run.runId)) {
+            const binding = { generation: conversation.generation, turnId: conversation.turnId };
+            this.runTurns.set(run.runId, binding);
+            current.executionBinding = { ...binding };
+          }
+          // A cancellation may have completed while send awaited its ACK. Only a
+          // terminal snapshot of that acknowledged turn can finish the run now.
+          this.applyConversation(
+            workspace,
+            terminal &&
+              terminal.generation === conversation.generation &&
+              terminal.turnId === conversation.turnId &&
+              terminal.seq > conversation.seq
+              ? terminal
+              : conversation,
+          );
           return workspace;
         });
       } catch (error) {
@@ -2464,14 +3073,15 @@ export class WorkbenchApplication {
             this.markSourceCleanupUnknown(current);
             return workspace;
           }
-          if ((error instanceof RunDispatchFailure && error.cleanupPending) || current.executorState?.cleanupPending) {
+          if (error instanceof RunDispatchFailure ? error.cleanupPending : current.executorState?.cleanupPending) {
             current.state = 'cancelling';
             current.cleanupPending = true;
             current.executorState = { state: 'failed', cleanupPending: true };
             current.error = '启动回执失败；模型清理未确认，结束源码尚不能采集';
             return workspace;
           }
-          // A rejected dispatch started no executor, so a pending cancellation is already settled here;
+          this.pendingRunDispatches.delete(run.runId);
+          // A rejected dispatch has confirmed no outstanding executor, so cancellation is settled here;
           // the later cancel receipt only reflects the unchanged conversation and must not decide this run.
           const cancelled = current.state === 'cancelling';
           current.state = cancelled ? 'cancelled' : 'failed';
@@ -2635,6 +3245,17 @@ export class WorkbenchApplication {
     if (bound && (bound.generation !== conversation.generation || bound.turnId !== conversation.turnId)) return;
     if (!executing && s.conversation && s.conversation.generation !== conversation.generation) return;
     if (s.conversation?.generation === conversation.generation && s.conversation.seq >= conversation.seq) return;
+    if (
+      executing &&
+      this.pendingRunDispatches.has(executing.runId) &&
+      !activeStates.includes(conversation.state) &&
+      !conversation.cleanupPending
+    ) {
+      const previous = this.pendingRunDispatches.get(executing.runId);
+      if (!previous || previous.seq < conversation.seq) this.pendingRunDispatches.set(executing.runId, structuredClone(conversation));
+      executing.cleanupPending = true;
+      return;
+    }
     if (executing && !bound) this.runTurns.set(executing.runId, { generation: conversation.generation, turnId: conversation.turnId });
     if (executing) {
       const binding = this.runTurns.get(executing.runId);
@@ -2652,7 +3273,11 @@ export class WorkbenchApplication {
     }
     if (executing) {
       executing.appCleanupPending = this.appControl?.hasPending(w.workspaceId, executing.runId) ?? false;
-      executing.cleanupPending = executing.appCleanupPending || conversation.cleanupPending || Boolean(executing.sourceCleanupPending);
+      executing.cleanupPending =
+        executing.appCleanupPending ||
+        conversation.cleanupPending ||
+        Boolean(executing.sourceCleanupPending) ||
+        this.pendingRunDispatches.has(executing.runId);
       executing.cleanupRetryAvailable = this.appControl?.canRetryCleanup(executing.runId) ?? false;
       executing.cleanupReconciling = this.appControl?.isReconciling(executing.runId) ?? false;
       if (executing.cleanupPending && !['starting', 'running'].includes(conversation.state)) {
@@ -2684,7 +3309,8 @@ export class WorkbenchApplication {
       const model = run.executorState;
       // 历史 conversation 是展示记录，不能替代旧执行器的退出回执。
       const modelCleanupUnknown = !model || model.cleanupPending || activeStates.includes(model.state);
-      run.cleanupPending = run.appCleanupPending || modelCleanupUnknown || Boolean(run.sourceCleanupPending);
+      run.cleanupPending =
+        run.appCleanupPending || modelCleanupUnknown || Boolean(run.sourceCleanupPending) || this.pendingRunDispatches.has(run.runId);
       run.cleanupRetryAvailable = this.appControl?.canRetryCleanup(runId) ?? false;
       run.cleanupReconciling = this.appControl?.isReconciling(runId) ?? false;
       if (

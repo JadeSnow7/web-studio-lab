@@ -202,19 +202,41 @@ describe('对话服务宿主故障', () => {
     mock.callbacks.get('exit')?.(1);
     await expect(service.shutdown()).rejects.toThrow('guest 清理未确认');
   });
-  it('未ACK的send已有新快照确认清理，不保留错误的启动未知占用', async () => {
-    const service = new ChatService(
-      () => undefined,
-      () => undefined,
-    );
+  it.each(['get', 'cancel', 'event'] as const)('未 ACK send 的 %s 快照不能在断连时证明该发送已清理', async (kind) => {
+    const service = new ChatService(vi.fn(), vi.fn());
     const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'));
-    const rejection = expect(sending).rejects.toThrow('退出');
+    const outcome = sending.catch((error: unknown) => error);
+    const settled: ChatConversation = {
+      ...snapshot,
+      seq: 2,
+      state: kind === 'get' ? 'idle' : kind === 'cancel' ? 'cancelled' : 'failed',
+      turnId: kind === 'get' ? null : snapshot.turnId,
+      cleanupPending: false,
+    };
+    if (kind === 'event') mock.callbacks.get('message')?.({ type: 'event', conversation: settled });
+    else {
+      const querying = kind === 'get' ? service.get(snapshot.conversationId) : service.cancel(snapshot.conversationId);
+      const query = mock.postMessage.mock.calls.at(-1)![0];
+      mock.callbacks.get('message')?.({ type: 'response', id: query.id, result: settled });
+      await querying;
+    }
+    mock.callbacks.get('exit')?.(1);
+    expect(await outcome).toMatchObject({ cleanupPending: true, knownNotSent: false });
+    expect(service.writeHolder()).toBe(snapshot.conversationId);
+    await expect(service.shutdown()).rejects.toThrow('guest 清理未确认');
+  });
+  it('send 对应 ACK 后的实际清理确认允许服务退出与正常关闭', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const sending = service.send(snapshot.conversationId, 'hello', undefined, emptyReferences(snapshot.conversationId));
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({ type: 'response', id: request.id, result: snapshot });
+    await sending;
     mock.callbacks.get('message')?.({
       type: 'event',
       conversation: { ...snapshot, seq: 2, state: 'failed', cleanupPending: false, error: 'model rejected' },
     });
+    expect(service.writeHolder()).toBeNull();
     mock.callbacks.get('exit')?.(1);
-    await rejection;
     await expect(service.shutdown()).resolves.toBeUndefined();
   });
   it('初始化回执尚未到达时service退出不能推断guest probe已清理', async () => {
@@ -691,6 +713,108 @@ describe('sandbox 工作区写入许可（W0）', () => {
     state: 'running',
     cleanupPending: true,
   };
+
+  it('L13：发送前 schema 拒绝不取得许可，也不影响同槽已有 pending send', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    await expect(service.send('conv-personal-default', ' ', undefined, emptyReferences('conv-personal-default'))).rejects.toMatchObject({
+      knownNotSent: true,
+      cleanupPending: false,
+    });
+    expect(service.writeHolder()).toBeNull();
+    expect(sends()).toHaveLength(0);
+    const pending = service.send('conv-personal-default', 'valid', undefined, emptyReferences('conv-personal-default'));
+    const sendRequest = mock.postMessage.mock.calls.at(-1)![0];
+    try {
+      await expect(service.send('conv-personal-default', '', undefined, emptyReferences('conv-personal-default'))).rejects.toMatchObject({
+        knownNotSent: true,
+        cleanupPending: false,
+      });
+      expect(service.writeHolder()).toBe('conv-personal-default');
+      expect(sends()).toHaveLength(1);
+    } finally {
+      mock.callbacks.get('message')?.({ type: 'response', id: sendRequest.id, result: running });
+      await pending;
+    }
+  });
+
+  it('L9：未缓存会话的 get idle 不结算仍在排队的 send', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const pending = service
+      .send('conv-personal-default', 'queued', undefined, emptyReferences('conv-personal-default'))
+      .catch((error: unknown) => error);
+    const sendRequest = mock.postMessage.mock.calls.at(-1)![0];
+    const reading = service.get('conv-personal-default');
+    reply({ ...running, seq: 0, turnId: null, state: 'idle', cleanupPending: false });
+    await reading;
+    try {
+      expect(service.writeHolder()).toBe('conv-personal-default');
+      await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'))).rejects.toThrow(/^conflict:/);
+      expect(sends()).toHaveLength(1);
+    } finally {
+      mock.callbacks.get('message')?.({ type: 'error', id: sendRequest.id, error: 'queued send rejected' });
+      await pending;
+    }
+    expect(service.writeHolder()).toBeNull();
+  });
+
+  it('L10：前一轮停止不能释放同槽下一次尚未结算的 send', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const first = service.send('conv-personal-default', 'first', undefined, emptyReferences('conv-personal-default'));
+    reply(running);
+    await first;
+    const next = service
+      .send('conv-personal-default', 'queued next', undefined, emptyReferences('conv-personal-default'))
+      .catch((error: unknown) => error);
+    const nextRequest = mock.postMessage.mock.calls.at(-1)![0];
+    event({ ...running, seq: 2, state: 'idle', cleanupPending: false });
+    try {
+      expect(service.writeHolder()).toBe('conv-personal-default');
+      await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'))).rejects.toThrow(/^conflict:/);
+    } finally {
+      mock.callbacks.get('message')?.({ type: 'error', id: nextRequest.id, error: 'next send rejected' });
+      await next;
+    }
+    expect(service.writeHolder()).toBeNull();
+  });
+
+  it('L11：同槽两个 pending send 的一个拒绝不结算另一个', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const first = service
+      .send('conv-personal-default', 'first', undefined, emptyReferences('conv-personal-default'))
+      .catch((error: unknown) => error);
+    const firstRequest = mock.postMessage.mock.calls.at(-1)![0];
+    const second = service
+      .send('conv-personal-default', 'second', undefined, emptyReferences('conv-personal-default'))
+      .catch((error: unknown) => error);
+    const secondRequest = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({ type: 'error', id: firstRequest.id, error: 'first rejected' });
+    await first;
+    try {
+      expect(service.writeHolder()).toBe('conv-personal-default');
+      await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'))).rejects.toThrow(/^conflict:/);
+    } finally {
+      mock.callbacks.get('message')?.({ type: 'error', id: secondRequest.id, error: 'second rejected' });
+      await second;
+    }
+    expect(service.writeHolder()).toBeNull();
+  });
+
+  it('L12：取消回执不代替被取消 queued send 自己的回执', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const pending = service.send('conv-personal-default', 'queued', undefined, emptyReferences('conv-personal-default'));
+    const sendRequest = mock.postMessage.mock.calls.at(-1)![0];
+    const cancelling = service.cancel('conv-personal-default');
+    const cancelled: ChatConversation = { ...running, seq: 2, state: 'cancelled', cleanupPending: false };
+    reply(cancelled);
+    await cancelling;
+    try {
+      expect(service.writeHolder()).toBe('conv-personal-default');
+    } finally {
+      mock.callbacks.get('message')?.({ type: 'response', id: sendRequest.id, result: cancelled });
+      await pending;
+    }
+    expect(service.writeHolder()).toBeNull();
+  });
 
   it('L1/L2：另一会话运行中时拒绝且不发请求，完成并确认清理后放行', async () => {
     const service = new ChatService(vi.fn(), vi.fn());

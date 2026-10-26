@@ -1,6 +1,10 @@
+import { collectEduSource } from './edu-source';
+import { describeImport } from './import-source';
+import type { AppImportSelection, AppImportSource, ImportProgress } from './ports';
+import { isAllowedManagedAppUrl } from '../preview/navigation-policy';
 import { isAllowedPreviewUrl } from '../preview/navigation-policy';
 import { parsePublicUrl } from '../preview/public-document';
-import { app, session, type BrowserWindow } from 'electron';
+import { app, dialog, session, type BrowserWindow } from 'electron';
 import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import type { AppTarget, ManagedApp, AppSource, CatalogReferenceSnapshot, AppAgentOperation } from '@wsl/protocol';
@@ -17,6 +21,27 @@ import type { WorkbenchRuntime } from './ports';
 import type { WorkbenchApplication } from './application';
 import { exportAppSource } from './source-export';
 export class WorkbenchHost implements WorkbenchRuntime {
+  async appSelectImportSource(signal: AbortSignal, progress: (value: ImportProgress) => void): Promise<AppImportSelection | null> {
+    signal.throwIfAborted();
+    const selected = await dialog.showOpenDialog(this.window, {
+      properties: ['openDirectory'],
+      title: '选择 edu 工程',
+      buttonLabel: '检查工程',
+      message: '请选择 edu-web Git 工程根目录。先静态检查源码，再由你确认导入；不读取环境文件或执行工程脚本。',
+    });
+    signal.throwIfAborted();
+    if (selected.canceled || !selected.filePaths[0] || this.window.isDestroyed()) return null;
+    const root = selected.filePaths[0];
+    progress({ files: 0, bytes: 0 });
+    const source = await collectEduSource(root, signal, undefined, progress);
+    return { ...source, preview: describeImport(source, path.basename(root)), revalidate: (scope) => collectEduSource(root, scope) };
+  }
+  appImportSource(target: AppTarget, source: AppImportSource, importOperationId: string) {
+    return this.chat.appImportSource({ ...target, ...source, importOperationId });
+  }
+  appCancelImport(target: AppTarget, importOperationId: string) {
+    return this.chat.appCancelImport({ ...target, importOperationId });
+  }
   async reload(): Promise<void> {
     await this.application?.performActiveBrowserAction('reload');
   }
@@ -78,6 +103,7 @@ export class WorkbenchHost implements WorkbenchRuntime {
     const lease = projectId ? this.appLeases.get(projectId) : undefined;
     if (!projectId || !lease || lease.state !== 'running')
       throw new AppControlFailure('browser_unavailable', '不是当前运行的受管 App 网页');
+    if (lease.profile?.projectKind === 'edu-web') throw new AppControlFailure('unsupported', 'edu 工程的任务控制尚未开放');
     const preview = this.browser(resourceId);
     let driver = this.appUis.get(resourceId);
     if (!driver) {
@@ -199,7 +225,14 @@ export class WorkbenchHost implements WorkbenchRuntime {
   ensureBrowser(workspaceId: string, resource: WorkbenchResource): void {
     const lease = resource.appProjectId ? this.appLeases.get(resource.appProjectId) : undefined;
     if (resource.appProjectId) {
-      if (!lease || lease.workspaceId !== workspaceId || lease.state !== 'running' || resource.url !== lease.url)
+      if (
+        !lease ||
+        lease.workspaceId !== workspaceId ||
+        lease.state !== 'running' ||
+        !(lease.profile?.projectKind === 'edu-web'
+          ? isAllowedManagedAppUrl(resource.url ?? '', lease.url ?? '')
+          : resource.url === lease.url)
+      )
         throw new Error('unavailable: 应用实例已停止或需要重新启动');
     } else this.validateBrowserUrl(resource.url ?? 'wsl-demo://taskflow/index.html');
     if (this.browsers.has(resource.resourceId)) return;

@@ -1,3 +1,4 @@
+import { AppImportViewSchema } from './app-import';
 import { ObservationRecordSchema, FileInvalidationHintSchema } from './observation';
 import { EnvironmentListSchema } from './environments';
 import { z } from 'zod';
@@ -135,6 +136,8 @@ export type WorkbenchResource = z.infer<typeof WorkbenchResourceSchema>;
 export const WorkspaceSnapshotSchema = z.object({
   app: SpaceAppSchema.nullable().optional(),
   managedApp: ManagedAppSchema.nullable().optional(),
+  appImport: AppImportViewSchema.nullable().optional(),
+  pendingAppImport: z.object({ previewId: z.uuid(), projectId: z.uuid() }).strict().nullable().optional(),
   appExport: z.object({ path: z.string(), manifestPath: z.string().optional(), sha256: z.string() }).nullable().optional(),
   workspaceId: Id,
   name: z.string().min(1).max(200),
@@ -184,6 +187,11 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
     name: SpaceAppSchema.shape.name,
     description: SpaceAppSchema.shape.description,
   }),
+  command('previewAppImport', {}),
+  command('confirmAppImport', { previewId: z.uuid(), sourceSha256: z.string().regex(/^[a-f0-9]{64}$/) }),
+  command('cancelAppImport', { previewId: z.uuid() }),
+  command('retryAppImport', { previewId: z.uuid() }),
+  command('openAppPage', { page: z.enum(['admin', 'student']) }),
   command('startApp', {}),
   command('stopApp', {}),
   command('exportApp', {}),
