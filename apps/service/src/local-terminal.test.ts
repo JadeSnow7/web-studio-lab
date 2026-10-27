@@ -1,3 +1,8 @@
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import helperSource from './local-terminal.py?raw';
+import zshRc from './terminal-zsh-integration.sh?raw';
+import bashRc from './terminal-bash-integration.sh?raw';
 import { mkdtemp, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
@@ -202,6 +207,164 @@ it(
     } finally {
       vi.unstubAllEnvs();
     }
+  },
+  lifecycleTimeout,
+);
+
+it(
+  'HUP cleanup confirms the real sleep birth identity stopped, not just the helper acknowledgement',
+  async () => {
+    const probe = String.raw`
+import sys, os, json, subprocess, base64, select, time, signal
+helper, rc, cwd = sys.argv[1:4]
+exec(helper.split('# Do not mix')[0], globals())
+table = ProcessTable()
+def info(pid):
+    identity = table.identity(pid)
+    if not identity:
+        return None
+    if sys.platform == 'darwin':
+        value = table.BsdInfo()
+        if table.libproc.proc_pidinfo(pid, 3, 0, ctypes.byref(value), ctypes.sizeof(value)) != ctypes.sizeof(value):
+            raise RuntimeError('test process metadata unavailable')
+        parent = value.ppid
+        name = bytes(value.comm).split(b'\0', 1)[0].decode()
+    else:
+        contents = open('/proc/%d/stat' % pid).read()
+        fields = contents.rsplit(')', 1)[1].split()
+        parent = int(fields[1])
+        name = contents.split('(', 1)[1].rsplit(')', 1)[0]
+    return dict(pid=pid, identity=identity, parent=parent, name=name)
+p = subprocess.Popen([sys.executable, '-I', '-B', '-u', '-c', helper], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
+root = table.identity(p.pid)
+known = {}
+child = None
+deadline = time.monotonic() + 10
+output = ''
+def send(value):
+    p.stdin.write((json.dumps(value) + '\n').encode())
+    p.stdin.flush()
+def next_frame():
+    if not select.select([p.stdout], [], [], max(0, min(5, deadline - time.monotonic())))[0]:
+        raise RuntimeError('test PTY transport timed out')
+    line = p.stdout.readline()
+    if not line:
+        raise RuntimeError('test PTY transport closed early')
+    return json.loads(line)
+try:
+    send(dict(shell='/bin/zsh' if sys.platform == 'darwin' else '/bin/bash', cwd=cwd, cols=80, rows=24, rc=base64.b64encode(rc.encode()).decode()))
+    assert next_frame()['type'] == 'ready'
+    send(dict(type='input', data="trap '' HUP; printf '%s%s\\n' 'HUP_' 'READY'; sleep 60\n"))
+    while 'HUP_READY' not in output:
+        frame = next_frame()
+        if frame['type'] == 'output':
+            output += frame['data']
+    time.sleep(.1)
+    rows = {pid: row for pid in table.pids() if (row := info(pid))}
+    descendants = {p.pid}
+    while True:
+        expanded = descendants | {pid for pid, row in rows.items() if row['parent'] in descendants}
+        if expanded == descendants:
+            break
+        descendants = expanded
+    assert table.identity(p.pid) == root
+    for pid in descendants:
+        row = rows[pid]
+        assert row['identity'][0] == os.getuid() and table.identity(pid) == row['identity']
+        known[pid] = row['identity']
+    sleeps = [rows[pid] for pid in descendants if rows[pid]['name'] == 'sleep']
+    assert len(sleeps) == 1
+    child = sleeps[0]
+    send(dict(type='close'))
+    out, _err = p.communicate(timeout=max(.1, min(5, deadline - time.monotonic())))
+    frames = [json.loads(line) for line in out.splitlines()]
+    current = table.identity(child['pid'])
+    alive = bool(current and current == child['identity'] and not current[2])
+    print(json.dumps(dict(code=p.returncode, cleanup=[frame['ok'] for frame in frames if frame['type'] == 'cleanup'], sleepPid=child['pid'], sleepBirth=child['identity'][1], ownedBeforeClose=True, childAlive=alive)))
+finally:
+    # Also account for startup/assertion failures before the normal capture point.
+    if table.identity(p.pid) == root:
+        rows = {pid: row for pid in table.pids() if (row := info(pid))}
+        descendants = {p.pid}
+        while True:
+            expanded = descendants | {pid for pid, row in rows.items() if row['parent'] in descendants}
+            if expanded == descendants:
+                break
+            descendants = expanded
+        if table.identity(p.pid) == root:
+            for pid in descendants:
+                row = rows.get(pid)
+                if row and row['identity'][0] == os.getuid() and table.identity(pid) == row['identity']:
+                    known[pid] = row['identity']
+    # Exact parent-chain/birth evidence above authorizes these test-owned positive PIDs only.
+    for pid, identity in known.items():
+        current = table.identity(pid)
+        if current and current == identity and current[0] == os.getuid() and not current[2] and table.identity(pid) == current:
+            os.kill(pid, signal.SIGKILL)
+    if p.poll() is None:
+        p.kill()
+        p.wait()
+`;
+    const { stdout } = await promisify(execFile)(python, [
+      '-I',
+      '-B',
+      '-u',
+      '-c',
+      probe,
+      helperSource,
+      process.platform === 'darwin' ? zshRc : bashRc,
+      process.cwd(),
+    ]);
+    const result: unknown = JSON.parse(stdout);
+    console.info('[HUP child identity]', JSON.stringify(result));
+    expect(result).toMatchObject({ code: 0, cleanup: [true], ownedBeforeClose: true, childAlive: false });
+  },
+  lifecycleTimeout,
+);
+
+it(
+  'closes two idle PTYs in creation order while the surviving PTY remains usable',
+  async () => {
+    const a = new LocalTerminal(process.cwd(), { ...identity, resourceId: 'peer-a', instanceId: 'peer-a' }, () => undefined, python);
+    const b = new LocalTerminal(process.cwd(), { ...identity, resourceId: 'peer-b', instanceId: 'peer-b' }, () => undefined, python);
+    await withTerminal(a, async (closeA) => {
+      await withTerminal(b, async (closeB) => {
+        await open(a);
+        await expectRunning(a);
+        const bId = await open(b);
+        await expectRunning(b);
+        await expect.poll(() => b.get().output.length).toBeGreaterThan(0);
+        await closeA();
+        expect(a.get().cleanupPending).toBe(false);
+        expect(b.get().state).toBe('running');
+        b.write(bId, "printf '%s%s\\n' 'PEER_' 'SURVIVED'\n");
+        await expect.poll(() => b.get().output).toContain('PEER_SURVIVED');
+        await closeB();
+        expect(b.get().cleanupPending).toBe(false);
+      });
+    });
+  },
+  lifecycleTimeout,
+);
+
+it(
+  'carries current peer witnesses when input exits a shell normally',
+  async () => {
+    const a = new LocalTerminal(process.cwd(), { ...identity, resourceId: 'exit-a', instanceId: 'exit-a' }, () => undefined, python);
+    const b = new LocalTerminal(process.cwd(), { ...identity, resourceId: 'exit-b', instanceId: 'exit-b' }, () => undefined, python);
+    await withTerminal(a, async () => {
+      await withTerminal(b, async () => {
+        const aId = await open(a);
+        await expectRunning(a);
+        const bId = await open(b);
+        await expectRunning(b);
+        a.write(aId, 'exit\n');
+        await expect.poll(() => a.get().state, { timeout: readyTimeout }).toBe('closed');
+        expect(a.get().cleanupPending).toBe(false);
+        b.write(bId, "printf '%s%s\\n' 'EXIT_PEER_' 'SURVIVED'\n");
+        await expect.poll(() => b.get().output).toContain('EXIT_PEER_SURVIVED');
+      });
+    });
   },
   lifecycleTimeout,
 );
