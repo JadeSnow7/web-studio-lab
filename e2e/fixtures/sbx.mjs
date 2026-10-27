@@ -94,6 +94,8 @@ if (dependencyRequest?.startsWith('{')) {
   };
   // W3b relay：在本机启动 argv 指定的进程（测试中是确定性的假 ACP Agent），转发 input / input-end；不运行 guest 或模型。
   let relayChild = null;
+  let relaySpawned = false;
+  let relayCloseRequested = false;
   /** W6b：app-helper 操作——argv 为 python3 -c <helper>，prompt 是 JSON 请求；工程文件集持久化。 */
   const appHelper = (value) => {
     let request;
@@ -233,6 +235,10 @@ if (dependencyRequest?.startsWith('{')) {
           ? [process.execPath, fileURLToPath(new URL('../../apps/service/src/fixtures/fake-acp-agent.mjs', import.meta.url)), scenario]
           : value.argv;
       relayChild = spawn(command, rest, { stdio: ['pipe', 'pipe', 'pipe'], env });
+      relayChild.once('spawn', () => {
+        relaySpawned = true;
+        if (relayCloseRequested) relayChild.kill('SIGKILL');
+      });
       relayChild.on('error', (error) => {
         try {
           frame({ type: 'error', error: error.message });
@@ -256,7 +262,9 @@ if (dependencyRequest?.startsWith('{')) {
     if (relayChild && value.type === 'input') return void relayChild.stdin.write(value.data);
     if (relayChild && value.type === 'input-end') return void relayChild.stdin.end();
     if (relayChild && value.type === 'close') {
-      relayChild.kill('SIGKILL');
+      // Failed spawn retains a handle until its error event; killing it early can signal process group 0.
+      relayCloseRequested = true;
+      if (relaySpawned) relayChild.kill('SIGKILL');
       return;
     }
     // W6b/W8 lane 采集窗口：exit0 已发，等一帧 collect（回传候选文件集）或 close（仅清理）。

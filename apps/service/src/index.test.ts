@@ -9,6 +9,8 @@ const fixture = vi.hoisted(() => ({
   workflowBegin: vi.fn(),
   workflowShutdown: vi.fn<() => Promise<void>>(async () => undefined),
   appShutdown: vi.fn<() => Promise<void>>(async () => undefined),
+  connectionShutdown: vi.fn<() => Promise<void>>(async () => undefined),
+  environmentShutdown: vi.fn<() => Promise<void>>(async () => undefined),
   taskAdmission: vi.fn<(workspaceId: string | null) => Promise<void>>(async () => undefined),
 }));
 vi.mock('./sbx', () => ({
@@ -17,7 +19,7 @@ vi.mock('./sbx', () => ({
     getStatus = () => ({ available: true, reason: null, sandbox: 'fixture', version: 'fixture', cwd: '/home/agent/workspace' });
     getCleanupPending = () => false;
     start = fixture.start;
-    shutdown = async () => undefined;
+    shutdown = fixture.connectionShutdown;
   },
 }));
 vi.mock('./app-service', () => ({
@@ -35,7 +37,7 @@ vi.mock('./workflow-host', () => ({
 }));
 vi.mock('./environment-resources', () => ({
   EnvironmentResources: class {
-    shutdown = async () => undefined;
+    shutdown = fixture.environmentShutdown;
   },
 }));
 
@@ -94,6 +96,28 @@ async function host() {
 }
 const conversationId = 'conv-space-taskflow-demo-impl';
 describe('service request cancellation admission', () => {
+  it.each(['no-start', 'unknown'] as const)('sends a typed Profile cleanup receipt for %s self-check', async (kind) => {
+    const test = await host();
+    if (kind === 'unknown')
+      fixture.start.mockImplementationOnce(() => ({
+        done: Promise.resolve({ confirmed: false, exitCode: null, error: 'fixture cleanup unknown' }),
+        close: async () => ({ confirmed: false, exitCode: null, error: 'fixture cleanup unknown' }),
+      }));
+    test.request({
+      id: 'profile-receipt',
+      method: 'profile.check',
+      payload: { harnessId: kind === 'no-start' ? 'unregistered' : 'codex', profileDir: null },
+    });
+    await vi.waitFor(() =>
+      expect(test.messages.find((message) => message.type === 'response' && message.id === 'profile-receipt')).toBeDefined(),
+    );
+    expect(test.messages.find((message) => message.type === 'response' && message.id === 'profile-receipt')).toMatchObject({
+      type: 'response',
+      id: 'profile-receipt',
+      result: { type: 'profile-check', ok: kind === 'unknown', cleanupConfirmed: kind === 'no-start' },
+    });
+    if (kind === 'no-start') expect(fixture.start).not.toHaveBeenCalled();
+  });
   it.each(['denied: edu tasks are not enabled', 'denied: source import ownership is pending'])(
     'rejects RPC send before model startup for %s',
     async (reason) => {
@@ -238,5 +262,56 @@ it.each(['rpc', 'SIGTERM'] as const)('%s shutdown owns workflow cleanup before a
     else await vi.waitFor(() => expect(exit).toHaveBeenCalledExactlyOnceWith(0));
   } finally {
     exit.mockRestore();
+  }
+});
+
+it.each(['rpc', 'SIGTERM'] as const)('%s shutdown attempts every owner after workflow cleanup rejects', async (path) => {
+  const test = await host();
+  let rejectWorkflow!: (error: Error) => void;
+  fixture.workflowShutdown.mockImplementationOnce(
+    () =>
+      new Promise<void>((_resolve, reject) => {
+        rejectWorkflow = reject;
+      }),
+  );
+  fixture.appShutdown.mockRejectedValueOnce(new Error('app cleanup unconfirmed'));
+  const exit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+  const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  const previousExitCode = process.exitCode;
+  try {
+    if (path === 'rpc') test.request({ id: 'rejected-workflow-close', method: 'shutdown' });
+    else for (const listener of process.listeners('SIGTERM')) if (!signalListeners.includes(listener)) listener('SIGTERM');
+    await vi.waitFor(() => expect(fixture.workflowShutdown).toHaveBeenCalledOnce());
+    expect(fixture.appShutdown).not.toHaveBeenCalled();
+    expect(fixture.connectionShutdown).not.toHaveBeenCalled();
+    expect(fixture.environmentShutdown).not.toHaveBeenCalled();
+    rejectWorkflow(new Error('workflow cleanup unconfirmed'));
+    await vi.waitFor(() => expect(fixture.appShutdown).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(fixture.connectionShutdown).toHaveBeenCalledOnce());
+    expect(fixture.environmentShutdown).toHaveBeenCalledOnce();
+    const [workflowOrder] = fixture.workflowShutdown.mock.invocationCallOrder;
+    const [appOrder] = fixture.appShutdown.mock.invocationCallOrder;
+    const [connectionOrder] = fixture.connectionShutdown.mock.invocationCallOrder;
+    if (workflowOrder === undefined || appOrder === undefined || connectionOrder === undefined) throw new Error('Missing owner attempt');
+    expect(workflowOrder).toBeLessThan(appOrder);
+    expect(appOrder).toBeLessThan(connectionOrder);
+    expect(exit).not.toHaveBeenCalled();
+    expect(test.messages.some((message) => message.type === 'response' && message.id === 'rejected-workflow-close')).toBe(false);
+    if (path === 'rpc') {
+      const response = test.messages.find((message) => message.type === 'error' && message.id === 'rejected-workflow-close');
+      expect(response).toMatchObject({ type: 'error', error: expect.stringContaining('workflow cleanup unconfirmed') });
+      expect(response).toMatchObject({ type: 'error', error: expect.stringContaining('app cleanup unconfirmed') });
+    } else {
+      await vi.waitFor(() => expect(process.exitCode).toBe(1));
+      const cause: unknown = error.mock.calls[0]?.[1];
+      expect(cause).toBeInstanceOf(AggregateError);
+      expect(String(cause)).toContain('workflow cleanup unconfirmed');
+      expect(String(cause)).toContain('app cleanup unconfirmed');
+    }
+  } finally {
+    process.exitCode = previousExitCode;
+    fixture.appShutdown.mockReset().mockResolvedValue(undefined);
+    exit.mockRestore();
+    error.mockRestore();
   }
 });

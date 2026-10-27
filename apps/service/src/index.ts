@@ -105,6 +105,23 @@ const workflowHost = new ServiceWorkflowHost({
   start: (start, onFrame) => chat.connection.start(start, onFrame),
   harnesses: REGISTERED_HARNESSES.flatMap((entry) => (entry.kind === 'native' ? [entry.adapter] : [])),
 });
+// Workflow attempts settle before the shared connection closes; a failed owner must not skip the others.
+async function shutdownOwnedServices(): Promise<void> {
+  const workflowResult = await Promise.allSettled([Promise.resolve().then(() => workflowHost.shutdown())]);
+  const results = [
+    ...workflowResult,
+    ...(await Promise.allSettled([
+      shutdownServiceOwners(
+        () => apps.shutdown(),
+        () => chat.shutdown(),
+        () => environments.shutdown(),
+      ),
+    ])),
+  ];
+  const errors = results.flatMap((result) => (result.status === 'rejected' ? [result.reason] : []));
+  if (errors.length)
+    throw new AggregateError(errors, errors.map((error: unknown) => (error instanceof Error ? error.message : String(error))).join('\n'));
+}
 // Capture and resource writes share ordering. Cancellation must bypass a held
 // capture so it can revoke CodexChat.preparing before any guest is launched.
 let sendOperations: Promise<unknown> = Promise.resolve();
@@ -267,7 +284,7 @@ parent.on('message', ({ data }) => {
             result = chat.getStatus();
             break;
           case 'profile.check':
-            result = await chat.checkProfile(request.payload.harnessId, request.payload.profileDir);
+            result = await chat.checkProfileReceipt(request.payload.harnessId, request.payload.profileDir);
             break;
           case 'permission.reply':
             result = chat.answerPermission(request.payload.conversationId, request.payload.requestId, request.payload.optionId);
@@ -316,12 +333,7 @@ parent.on('message', ({ data }) => {
           case 'shutdown': {
             for (const controller of observations.values()) controller.abort();
             for (const controller of agentCalls.values()) controller.abort();
-            await workflowHost.shutdown();
-            await shutdownServiceOwners(
-              () => apps.shutdown(),
-              () => chat.shutdown(),
-              () => environments.shutdown(),
-            );
+            await shutdownOwnedServices();
 
             result = null;
             break;
@@ -357,15 +369,7 @@ process.on('SIGTERM', () => {
   chat.beginShutdown();
   for (const controller of sourceCalls.values()) controller.abort();
   for (const controller of observations.values()) controller.abort();
-  void workflowHost
-    .shutdown()
-    .then(() =>
-      shutdownServiceOwners(
-        () => apps.shutdown(),
-        () => chat.shutdown(),
-        () => environments.shutdown(),
-      ),
-    )
+  void shutdownOwnedServices()
     .then(() => process.exit(0))
     .catch((error: unknown) => {
       console.error('guest 清理失败', error);

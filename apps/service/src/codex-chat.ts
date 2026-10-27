@@ -15,6 +15,7 @@ import {
   type CatalogReferenceSnapshot,
   type HarnessAvailability,
   type ProfileCheckResult,
+  type ProfileCheckReceipt,
   type ProfileDir,
   type TurnHarness,
   type PermissionRequest,
@@ -57,6 +58,22 @@ interface Turn {
     string,
     { request: PermissionRequest; settle: (outcome: PermissionOutcome, note: string | null, publish?: boolean) => void }
   >;
+}
+interface ProfileCheckOperation {
+  probes: Set<ProfileProbe>;
+  startUnconfirmed: boolean;
+}
+interface ProfileProbe {
+  cleanupConfirmed: boolean;
+  process: GuestProcess;
+  closePromise: Promise<GuestOutcome> | null;
+  cleanupError: string | null;
+}
+interface AcpProbe {
+  entry: RegisteredHarness;
+  process: GuestProcess;
+  client: AcpClient;
+  closePromise: Promise<GuestOutcome> | null;
 }
 interface Slot {
   conversation: ChatConversation;
@@ -116,15 +133,39 @@ export class CodexChat {
     }
   }
   private readonly harnesses = new Map<string, RegisteredHarness>();
+  private initialization: Promise<ChatStatus> | null = null;
+  private shutdownPromise: Promise<void> | null = null;
+  private acpProbe: AcpProbe | null = null;
+  private readonly profileProbes = new Set<ProfileProbe>();
+  private profileStartUnknown = false;
+  private readonly profileChecks = new Set<Promise<ProfileCheckResult>>();
   async initialize(): Promise<ChatStatus> {
+    if (this.closing) return this.getStatus();
+    if (this.initialization) return this.initialization;
+    // Unknown probe cleanup retains ownership; another initialization must not replace it.
+    if (this.acpProbe) return this.getStatus();
+    this.initialization = this.initializeHarness();
+    try {
+      return await this.initialization;
+    } finally {
+      this.initialization = null;
+    }
+  }
+  private async initializeHarness(): Promise<ChatStatus> {
     const status = await this.connection.initialize();
-    if (status.available) for (const entry of this.harnesses.values()) if (entry.harness.kind === 'acp') await this.probeAcp(entry);
+    if (status.available) {
+      for (const entry of this.harnesses.values()) {
+        if (this.closing || this.acpProbe) break;
+        if (entry.harness.kind === 'acp') await this.probeAcp(entry);
+      }
+    }
     return this.withHarnesses(status);
   }
   getStatus(): ChatStatus {
     return this.withHarnesses(this.connection.getStatus());
   }
   private withHarnesses(status: SandboxStatus): ChatStatus {
+    if (this.closing) status = { ...status, available: false, reason: '对话服务正在关闭', version: null };
     return { ...status, harnesses: [...this.harnesses.values()].map((entry) => this.availability(entry, status)) };
   }
   private availability(entry: RegisteredHarness, status: SandboxStatus): HarnessAvailability {
@@ -168,12 +209,18 @@ export class CodexChat {
         throw new AcpMethodNotFound(method);
       },
     });
-    const exited = probe.done.then(() => client.close('Agent 进程在初始化前退出'));
+    const owned: AcpProbe = { entry, process: probe, client, closePromise: null };
+    this.acpProbe = owned;
+    const exited = probe.done.then(
+      () => client.close('Agent 进程在初始化前退出'),
+      (error: unknown) => client.close(error instanceof Error ? error.message : String(error)),
+    );
+    let initialized: InitializeResult | null = null;
     const timer = setTimeout(() => client.close('Agent 初始化超时'), 30000);
     try {
       const init = InitializeResultSchema.parse(await client.request('initialize', acpInitializeParams()));
       if (init.protocolVersion !== ACP_PROTOCOL_VERSION) throw new AcpProtocolError(`ACP 协议版本不兼容：${init.protocolVersion}`);
-      entry.acpInit = init;
+      initialized = init;
     } catch (error) {
       entry.acpFailure = (error as Error).message;
     } finally {
@@ -185,50 +232,160 @@ export class CodexChat {
         // 传输已关闭：退出结果由 done 报告。
       }
     }
-    const outcome = await Promise.race([probe.done, new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))]);
-    const settled = outcome ?? (await probe.close());
-    await exited;
-    if (!settled.confirmed) {
+    let cleanupTimer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const outcome = await Promise.race([
+        probe.done,
+        new Promise<null>((resolve) => {
+          cleanupTimer = setTimeout(() => resolve(null), 10000);
+        }),
+      ]);
+      const settled = outcome ?? (await this.closeAcpProbe(owned));
+      await exited;
+      if (!settled.confirmed) throw new Error(settled.error ?? '探测进程清理未确认');
+      if (this.acpProbe === owned) this.acpProbe = null;
+      if (settled.error || settled.exitCode !== 0) throw new Error(settled.error ?? '探测进程异常退出');
+      // A shutdown or failed cleanup cannot publish late availability.
+      if (!this.closing) entry.acpInit = initialized;
+    } catch (error) {
       entry.acpInit = null;
-      entry.acpFailure = settled.error ?? '探测进程清理未确认';
+      entry.acpFailure = error instanceof Error ? error.message : String(error);
+    } finally {
+      clearTimeout(cleanupTimer);
     }
+  }
+  private closeAcpProbe(probe: AcpProbe): Promise<GuestOutcome> {
+    probe.client.close('ACP 探测正在停止');
+    probe.closePromise ??= Promise.resolve().then(() => probe.process.close());
+    return probe.closePromise;
   }
   /**
    * 无模型自检一个 Profile（W4）：在 guest 内以其配置目录依次运行版本命令与登录状态命令。
    * 只保留解析出的版本与登录状态；原始输出可能含账号信息，读完即丢弃。清理未确认时结果为 undetermined。
    */
   async checkProfile(harnessId: string, profileDir: ProfileDir | null): Promise<ProfileCheckResult> {
+    const receipt = await this.checkProfileReceipt(harnessId, profileDir);
+    if (!receipt.ok) throw new Error(receipt.error);
+    return receipt.result;
+  }
+  async checkProfileReceipt(harnessId: string, profileDir: ProfileDir | null): Promise<ProfileCheckReceipt> {
+    const operation: ProfileCheckOperation = { probes: new Set(), startUnconfirmed: false };
+    const cleanupConfirmed = () => !operation.startUnconfirmed && [...operation.probes].every((probe) => probe.cleanupConfirmed);
+    try {
+      const result = await this.checkProfileResult(harnessId, profileDir, operation);
+      return { type: 'profile-check', ok: true, result, cleanupConfirmed: cleanupConfirmed() };
+    } catch (error) {
+      return {
+        type: 'profile-check',
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+        cleanupConfirmed: cleanupConfirmed(),
+      };
+    }
+  }
+  private async checkProfileResult(
+    harnessId: string,
+    profileDir: ProfileDir | null,
+    operation: ProfileCheckOperation,
+  ): Promise<ProfileCheckResult> {
     if (this.closing) throw new Error('对话服务正在关闭');
     const entry = this.harnesses.get(harnessId);
     if (!entry) throw new Error(`未注册的 Harness：${harnessId}`);
-    const check = entry.harness.kind === 'native' ? entry.harness.adapter.selfCheck : entry.harness.spec.selfCheck;
     this.assertProfileDir(entry.harness, harnessId, profileDir);
     if (!this.connection.getStatus().available)
       return { cliVersion: null, login: 'undetermined', reason: this.connection.getStatus().reason };
+    this.assertCleanupKnown();
+    // Register the operation before it can start a process; shutdown owns queued checks too.
+    const checking = Promise.resolve().then(() => this.runProfileCheck(entry, profileDir, operation));
+    this.profileChecks.add(checking);
+    try {
+      return await checking;
+    } finally {
+      this.profileChecks.delete(checking);
+    }
+  }
+  private async runProfileCheck(
+    entry: RegisteredHarness,
+    profileDir: ProfileDir | null,
+    operation: ProfileCheckOperation,
+  ): Promise<ProfileCheckResult> {
+    const check = entry.harness.kind === 'native' ? entry.harness.adapter.selfCheck : entry.harness.spec.selfCheck;
     const run = async (argv: string[]) => {
+      if (this.closing) throw new Error('对话服务正在关闭');
+      this.assertCleanupKnown();
       let stdout = '';
       let stderr = '';
-      const process = this.connection.start({ type: 'start', mode: 'codex', argv, ...(profileDir ? { profileDir } : {}) }, (frame) => {
-        if (frame.type !== 'output') return;
-        if (frame.stream === 'stdout' && stdout.length < 65536) stdout += frame.data;
-        if (frame.stream === 'stderr' && stderr.length < 65536) stderr += frame.data;
-      });
-      const outcome = await Promise.race([process.done, new Promise<null>((resolve) => setTimeout(() => resolve(null), 30000))]);
-      const settled = outcome ?? (await process.close());
-      return { stdout, stderr, settled };
+      operation.startUnconfirmed = true;
+      let process: GuestProcess;
+      try {
+        process = this.connection.start({ type: 'start', mode: 'codex', argv, ...(profileDir ? { profileDir } : {}) }, (frame) => {
+          if (frame.type !== 'output') return;
+          if (frame.stream === 'stdout' && stdout.length < 65536) stdout += frame.data;
+          if (frame.stream === 'stderr' && stderr.length < 65536) stderr += frame.data;
+        });
+      } catch (error) {
+        // A throwing start cannot prove that no process was created before returning ownership.
+        this.profileStartUnknown = true;
+        throw error;
+      }
+      const owned: ProfileProbe = { process, closePromise: null, cleanupError: null, cleanupConfirmed: false };
+      this.profileProbes.add(owned);
+      operation.probes.add(owned);
+      operation.startUnconfirmed = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        // start is synchronous, but its callbacks may already have closed admission.
+        const outcome = this.closing
+          ? await this.closeProfileProbe(owned)
+          : await Promise.race([
+              process.done,
+              new Promise<null>((resolve) => {
+                timer = setTimeout(() => resolve(null), 30000);
+              }),
+            ]);
+        const settled = outcome ?? (await this.closeProfileProbe(owned));
+        if (!settled.confirmed) {
+          owned.cleanupError = settled.error ?? '自检进程清理未确认';
+          return { stdout, stderr, settled };
+        }
+        // A close response cannot substitute for the owned process's actual completion.
+        const completed = await process.done;
+        if (completed.confirmed) {
+          owned.cleanupConfirmed = true;
+          this.profileProbes.delete(owned);
+        } else owned.cleanupError = completed.error ?? '自检进程清理未确认';
+        return { stdout, stderr, settled: { ...completed, error: settled.error ?? completed.error } };
+      } catch (error) {
+        owned.cleanupError = error instanceof Error ? error.message : String(error);
+        throw error;
+      } finally {
+        clearTimeout(timer);
+      }
     };
     const version = await run(check.versionArgv);
-    if (!version.settled.confirmed)
+    if (this.closing) throw new Error('对话服务正在关闭');
+    if (!version.settled.confirmed || version.settled.error)
       return { cliVersion: null, login: 'undetermined', reason: version.settled.error ?? '自检进程清理未确认' };
     const cliVersion = version.settled.exitCode === 0 ? version.stdout.trim().split('\n')[0]?.slice(0, 200) || null : null;
     const status = await run(check.statusArgv);
-    if (!status.settled.confirmed) return { cliVersion, login: 'undetermined', reason: status.settled.error ?? '自检进程清理未确认' };
+    if (this.closing) throw new Error('对话服务正在关闭');
+    if (!status.settled.confirmed || status.settled.error)
+      return { cliVersion, login: 'undetermined', reason: status.settled.error ?? '自检进程清理未确认' };
     const login = check.parseStatus(status.settled.exitCode, status.stdout, status.stderr);
     return {
       cliVersion,
       login,
       reason: login === 'undetermined' ? `无法从登录状态命令判断（退出码 ${String(status.settled.exitCode)}）` : null,
     };
+  }
+  private closeProfileProbe(probe: ProfileProbe): Promise<GuestOutcome> {
+    probe.closePromise ??= Promise.resolve()
+      .then(() => probe.process.close())
+      .catch((error: unknown) => {
+        probe.cleanupError = error instanceof Error ? error.message : String(error);
+        throw error;
+      });
+    return probe.closePromise;
   }
   /** 配置目录必须正好是该 Profile 的约定目录，并映射到该 Harness 声明的环境变量；内置 Profile 不带目录。 */
   private assertProfileDir(harness: ChatHarness, harnessId: string, profileDir: ProfileDir | null, profileId?: string) {
@@ -365,6 +522,8 @@ export class CodexChat {
     return snapshot;
   }
   private assertCleanupKnown(): void {
+    if (this.profileStartUnknown) throw new Error('自检进程启动归属未确认');
+    for (const probe of this.profileProbes) if (probe.cleanupError) throw new Error(probe.cleanupError);
     if (this.connection.getCleanupPending()) throw new Error('共享 sandbox 清理状态未知');
     for (const slot of this.slots.values()) {
       if (slot.active?.cleanupError) throw new Error(slot.active.cleanupError);
@@ -783,11 +942,39 @@ export class CodexChat {
     // Admission can close independently of that connection's cleanup.
     this.closing = true;
   }
-  async shutdown(): Promise<void> {
+  shutdown(): Promise<void> {
     this.beginShutdown();
-    const outcomes = await Promise.allSettled([this.connection.shutdown(), ...[...this.slots.keys()].map((id) => this.cancel(id))]);
+    this.shutdownPromise ??= Promise.resolve().then(() => this.finishShutdown());
+    return this.shutdownPromise;
+  }
+  private async finishShutdown(): Promise<void> {
+    const probe = this.acpProbe;
+    const probeCleanup = probe
+      ? this.closeAcpProbe(probe).then((outcome) => {
+          if (!outcome.confirmed) throw new Error(outcome.error ?? '探测进程清理未确认');
+        })
+      : Promise.resolve();
+    const profileCleanup = [...this.profileProbes].map((profile) =>
+      this.closeProfileProbe(profile).then((outcome) => {
+        if (!outcome.confirmed) throw new Error(outcome.error ?? '自检进程清理未确认');
+      }),
+    );
+    const outcomes = await Promise.allSettled([
+      this.connection.shutdown(),
+      probeCleanup,
+      ...profileCleanup,
+      // Closing a check deliberately rejects its result; process cleanup remains a separate fact.
+      Promise.allSettled([...this.profileChecks]),
+      // If a probe exists, await its done handling too; close alone is not a cleanup receipt.
+      ...(probe && this.initialization ? [this.initialization] : []),
+      ...[...this.slots.keys()].map((id) => this.cancel(id)),
+    ]);
     const failure = outcomes.find((outcome) => outcome.status === 'rejected');
     if (failure?.status === 'rejected') throw failure.reason;
+    if (this.acpProbe) throw new Error(this.acpProbe.entry.acpFailure ?? '探测进程清理未确认');
+    if (this.profileStartUnknown) throw new Error('自检进程启动归属未确认');
+    if (this.profileProbes.size)
+      throw new Error([...this.profileProbes].find((profile) => profile.cleanupError)?.cleanupError ?? '自检进程清理未确认');
   }
 }
 

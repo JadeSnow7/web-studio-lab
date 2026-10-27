@@ -76,6 +76,8 @@ export type GuestStart =
       observation?: boolean;
       observationImages?: boolean;
       workspace?: GuestWorkspace;
+      /** 本轮 Profile 的配置目录（W4）；helper 再次校验后只设置这一个环境变量。 */
+      profileDir?: ProfileDir;
       duplex?: boolean;
       eduOwner?: {
         identity: { workspaceId: string; environmentId: 'sandbox'; projectId: string; appInstanceId: string };
@@ -87,8 +89,6 @@ export type GuestStart =
        * 仅在声明 workspace 时有效；未声明 collect 的 start 不打开采集窗口。
        */
       collect?: boolean;
-      /** 本轮 Profile 的配置目录（W4）；helper 再次校验后只设置这一个环境变量。 */
-      profileDir?: ProfileDir;
     }
   | { type: 'start'; mode: 'terminal'; cols: number; rows: number };
 

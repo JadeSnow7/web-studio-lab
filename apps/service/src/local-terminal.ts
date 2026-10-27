@@ -8,8 +8,20 @@ import helper from './local-terminal.py?raw';
 import bashRc from './terminal-bash-integration.sh?raw';
 import zshRc from './terminal-zsh-integration.sh?raw';
 
+const BirthSchema = z.array(z.number().int().nonnegative().safe()).min(1).max(2);
+const ProcessIdentitySchema = z.object({ pid: z.number().int().positive().safe(), birth: BirthSchema }).strict();
+type Peer = { helper: z.infer<typeof ProcessIdentitySchema>; root: z.infer<typeof ProcessIdentitySchema> };
+// Only helpers actually spawned by this adapter can contribute exclusion witnesses.
+const activeHelpers = new Map<ChildProcessWithoutNullStreams, Peer>();
+function peersFor(child: ChildProcessWithoutNullStreams) {
+  return [...activeHelpers].filter(([other]) => other !== child).map(([, peer]) => peer);
+}
+function publishPeers() {
+  for (const child of activeHelpers.keys()) child.stdin.write(JSON.stringify({ type: 'peers', peers: peersFor(child) }) + '\n');
+}
+
 const FrameSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('ready') }).strict(),
+  z.object({ type: z.literal('ready'), helper: ProcessIdentitySchema, root: ProcessIdentitySchema }).strict(),
   z.object({ type: z.literal('output'), data: z.string().max(65536) }).strict(),
   z.object({ type: z.literal('exit'), exitCode: z.number().int() }).strict(),
   z.object({ type: z.literal('cleanup'), ok: z.boolean() }).strict(),
@@ -68,7 +80,12 @@ export class LocalTerminal {
       if (this.child !== child) return;
       try {
         const frame = FrameSchema.parse(JSON.parse(line));
-        if (frame.type === 'ready' && this.snapshot.state === 'starting') this.snapshot.state = 'running';
+        if (frame.type === 'ready') {
+          if (frame.helper.pid !== child.pid || activeHelpers.has(child)) throw new Error('invalid PTY identity');
+          activeHelpers.set(child, { helper: frame.helper, root: frame.root });
+          publishPeers();
+          if (this.snapshot.state === 'starting') this.snapshot.state = 'running';
+        }
         if (frame.type === 'cleanup') this.cleanupConfirmed = frame.ok;
         if (frame.type === 'output') {
           this.observation?.append(frame.data);
@@ -90,6 +107,7 @@ export class LocalTerminal {
       this.publish();
     });
     child.once('close', (code) => {
+      if (activeHelpers.delete(child)) publishPeers();
       if (this.child !== child) return;
       this.observation?.close();
       this.child = null;
@@ -113,7 +131,8 @@ export class LocalTerminal {
   }
   write(sessionId: string, data: string) {
     if (Buffer.byteLength(data) > 65536) throw new Error('input too large');
-    this.target(sessionId).stdin.write(JSON.stringify({ type: 'input', data }) + '\n');
+    const child = this.target(sessionId);
+    child.stdin.write(JSON.stringify({ type: 'input', data, peers: peersFor(child) }) + '\n');
   }
   resize(sessionId: string, cols: number, rows: number) {
     const child = this.target(sessionId);
@@ -129,7 +148,7 @@ export class LocalTerminal {
     const child = this.child;
     this.snapshot.state = 'closing';
     this.publish();
-    child.stdin.write('{"type":"close"}\n');
+    child.stdin.write(JSON.stringify({ type: 'close', peers: peersFor(child) }) + '\n');
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('PTY cleanup timeout')), 5000);
       child.once('close', () => {
