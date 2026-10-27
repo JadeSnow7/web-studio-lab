@@ -78,6 +78,9 @@ function release(source: string, restoreFocus = true) {
   }
   requestAnimationFrame(() => {
     if (generation !== restoring) return;
+    // Closing and restoring span a frame; keep focus acquired by a newer interaction or overlay.
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active !== document.body && active.isConnected && !active.closest('dialog:not([open])')) return;
     if (element?.isConnected && !element.closest('dialog:not([open])')) element.focus();
     else document.querySelector<HTMLButtonElement>('[aria-label="切换空间"]')?.focus();
   });

@@ -1897,6 +1897,7 @@ async function createFileTab(app: ElectronApplication, page: Page, title: string
   await editor.getByLabel('名称', { exact: true }).fill(title);
   await editor.getByLabel('资源环境').selectOption('local');
   await editor.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(editor).not.toBeVisible();
   await expect(filesPanel(page)).toBeVisible();
 }
 
