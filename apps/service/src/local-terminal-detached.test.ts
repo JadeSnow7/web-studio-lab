@@ -40,7 +40,12 @@ with tempfile.TemporaryDirectory(prefix='wsl-owned-detached-test-') as tmp:
         current = table.identity(child)
         alive = bool(current and current == identity and not current[2])
         frames = [json.loads(line) for line in out.splitlines()]
-        print(json.dumps(dict(returncode=p.returncode, cleanup=[frame['ok'] for frame in frames if frame['type'] == 'cleanup'], detachedAlive=alive)))
+        cleanup = [frame['ok'] for frame in frames if frame['type'] == 'cleanup']
+        if p.returncode != 0 or cleanup != [True]:
+            print(json.dumps(dict(helperPid=p.pid, childPid=child, childBirth=identity[1], childAlive=alive,
+                                  helperExceptionType=err.splitlines()[-1].split(':', 1)[0] if err.splitlines() else None,
+                                  diagnostic=[line for line in err.splitlines() if line.startswith('WSL_PTY_DIAGNOSTIC ')])), file=sys.stderr)
+        print(json.dumps(dict(returncode=p.returncode, cleanup=cleanup, detachedAlive=alive)))
     finally:
         if child and identity:
             current = table.identity(child)
@@ -50,8 +55,10 @@ with tempfile.TemporaryDirectory(prefix='wsl-owned-detached-test-') as tmp:
             p.kill()
             p.wait()
 `;
-  const { stdout } = await promisify(execFile)(python, ['-I', '-B', '-c', 'import sys\n' + probe, helper], { timeout: 10000 });
-  expect(JSON.parse(stdout)).toEqual({ returncode: 0, cleanup: [true], detachedAlive: false });
+  const { stdout, stderr } = await promisify(execFile)(python, ['-I', '-B', '-c', 'import sys\n' + probe, helper], { timeout: 10000 });
+  const receipt = JSON.parse(stdout);
+  if (receipt.returncode !== 0) console.error('[PTY detached failure]', stderr);
+  expect(receipt).toEqual({ returncode: 0, cleanup: [true], detachedAlive: false });
 }, 15000);
 
 it('never signals a reused birth identity or an unreadable owned marker', async () => {

@@ -34,14 +34,18 @@ it('host file and PTY Python invocations leave source and bytecode unchanged, in
   await writeFile(path.join(root, 'document.txt'), 'HOST_READ_OK');
   const wrapper = path.join(root, 'python-wrapper');
   const prefix = 'import sys; sys.path.insert(0, ' + JSON.stringify(root) + '); import bytecode_canary; sys.path.pop(0)\n';
-  // Preserve production flags while forcing a fresh module compile; without -B this creates a detectable .pyc.
+  // Preserve the spawned PID and production flags while forcing a fresh compile; without -B the canary creates a detectable .pyc.
   await writeFile(
     wrapper,
-    '#!/usr/bin/env node\nconst {spawnSync}=require("node:child_process"); const args=process.argv.slice(2); const source=args.indexOf("-c")+1; args[source]=' +
+    '#!' +
+      python +
+      '\nimport os, sys\nargs = sys.argv[1:]\nsource = args.index("-c") + 1\nargs[source] = ' +
       JSON.stringify(prefix) +
-      '+args[source]; const result=spawnSync(' +
+      '+ args[source]\nos.execv(' +
       JSON.stringify(python) +
-      ',args,{stdio:args.length>source+1?[0,1,2,3]:"inherit"}); process.exit(result.status??1);\n',
+      ', [' +
+      JSON.stringify(python) +
+      ', *args])\n',
     { mode: 0o700 },
   );
   const files = new LocalFileTransport(root, wrapper);
