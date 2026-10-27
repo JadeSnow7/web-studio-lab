@@ -40,6 +40,8 @@ class ProcessTable:
         elif not sys.platform.startswith('linux'):
             raise RuntimeError('owned process identity unavailable on this platform')
         self.birth = self.identity(os.getpid())[1]
+        native = self.native_identity(os.getpid()) if sys.platform == 'darwin' else None
+        self.native_uniqueid = native[0] if native else None
         self.members = {}
         self.lineage = {}
         self.observed = {}
@@ -92,6 +94,16 @@ class ProcessTable:
         except FileNotFoundError:
             return None
 
+    def native_identity(self, pid):
+        combined = self.ProcessInfo()
+        info = combined.unique
+        ctypes.set_errno(0)
+        size = self.libproc.proc_pidinfo(pid, 17, 0, ctypes.byref(info), ctypes.sizeof(info))
+        if size != ctypes.sizeof(info):
+            # This optional negative witness is unavailable, never proof of absence or permission to signal.
+            return None
+        return (info.uniqueid, info.version, bytes(info))
+
     def details(self, pid, include_exec=True):
         if sys.platform == 'darwin':
             # XNU PROC_PIDT_BSDINFOWITHUNIQID (18) includes pidversion: birth alone does not detect exec.
@@ -103,7 +115,8 @@ class ProcessTable:
                     return None
                 raise RuntimeError('owned process ancestry/exec identity unavailable')
             bsd = info.bsd
-            return (bsd.uid, (bsd.start_sec, bsd.start_usec), bsd.status == 5, bsd.ppid, info.unique.version)
+            return (bsd.uid, (bsd.start_sec, bsd.start_usec), bsd.status == 5, bsd.ppid, info.unique.version,
+                    info.unique.uniqueid, info.unique.parent_uniqueid, info.unique.parent_version)
         try:
             with open('/proc/%d/stat' % pid) as file:
                 fields = file.read().rsplit(')', 1)[1].split()
@@ -189,6 +202,7 @@ class ProcessTable:
 
     def remaining(self):
         self.complete = False
+        init_before = self.native_identity(1) if sys.platform == 'darwin' else None
         before_pids = set(self.pids())
         known = set(self.members.items()) | set(self.lineage.items())
         if self.root:
@@ -223,6 +237,12 @@ class ProcessTable:
                     and all(before[pid] is not None and before[pid] == after[pid] for pid in inspect))
         stable = {pid: detail for pid, detail in before.items()
                   if detail and detail == after[pid] and basic[pid] == detail[:3] == after_basic[pid] and not detail[2]}
+        init_after = self.native_identity(1) if sys.platform == 'darwin' else None
+        init_parent = None
+        if (init_before and init_before == init_after and init_before[1] != 0 and self.native_uniqueid
+            and 0 < init_before[0] < self.native_uniqueid):
+            init_parent = init_before[:2]
+        peer_claims = {(value['pid'], tuple(value['birth'])) for peer in self.peers for value in peer.values()}
         owned = set()
         if self.root and self.root[0] in stable and stable[self.root[0]][:2] == (os.getuid(), self.root[1]):
             owned = self.descendants(stable, self.root[0])
@@ -258,6 +278,11 @@ class ProcessTable:
             elif self.lineage.get(pid) == birth:
                 found[pid] = birth
             elif marked[pid] is None:
+                # Exec can rewrite parent_uniqueid after reparenting, so the original parent's 32-bit
+                # version must also match actual init. This only excludes; it never grants ownership.
+                if (init_parent and (pid, birth) not in peer_claims and detail[5] > 0
+                    and detail[6:8] == init_parent):
+                    continue
                 # Same UID and recent birth select a candidate, never permission to signal it.
                 complete = False
         self.observed.update((pid, stable[pid]) for pid in found)

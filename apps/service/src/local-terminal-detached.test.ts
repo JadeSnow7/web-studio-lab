@@ -100,13 +100,15 @@ def make(with_foreign=False):
     table = ProcessTable()
     table.birth = (1, 0)
     table.root = (r, (2, 0))
-    rows = {r: (uid, (2, 0), False, 1, 10), c: (uid, (3, 0), False, r, 11), g: (uid, (4, 0), False, c, 12)}
+    rows = {r: (uid, (2, 0), False, 1, 10, 11, 1, 5), c: (uid, (3, 0), False, r, 11, 12, 11, 10), g: (uid, (4, 0), False, c, 12, 13, 12, 11)}
     if with_foreign:
-        rows[foreign] = (uid, (5, 0), False, 1, 13)
+        rows[foreign] = (uid, (5, 0), False, 1, 13, 14, 999, 13)
     table.pids = lambda: list(rows)
     table.details = rows.get
     table.identity = lambda pid: rows[pid][:3] if pid in rows else None
     table.marked = lambda pid: None
+    table.native_uniqueid = 1000
+    table.native_identity = lambda pid: (1, 5, b'init')
     return table, rows
 # A complete, twice-observed full chain can authorize specific positive PIDs; a foreign candidate cannot.
 table, rows = make(True)
@@ -183,7 +185,7 @@ assert not signals
 # Proven ownership survives expected reparenting, while exec identity still cannot change.
 table, rows = make()
 found = table.remaining()
-rows[c] = (*rows[c][:3], 1, rows[c][4])
+rows[c] = (*rows[c][:3], 1, *rows[c][4:])
 signals.clear()
 table.signal({c: found[c]}, signal.SIGTERM)
 assert signals == [c]
@@ -191,9 +193,9 @@ assert signals == [c]
 peer_helper, peer_root, peer_child = 1000010, 1000011, 1000012
 def peer_case():
     table, rows = make()
-    rows[peer_helper] = (uid, (6, 0), False, 77, 15)
-    rows[peer_root] = (uid, (7, 0), False, peer_helper, 16)
-    rows[peer_child] = (uid, (8, 0), False, peer_root, 17)
+    rows[peer_helper] = (uid, (6, 0), False, 77, 15, 20, 77, 14)
+    rows[peer_root] = (uid, (7, 0), False, peer_helper, 16, 21, 20, 15)
+    rows[peer_child] = (uid, (8, 0), False, peer_root, 17, 22, 21, 16)
     table.set_peers([{'helper': {'pid': peer_helper, 'birth': [6, 0]}, 'root': {'pid': peer_root, 'birth': [7, 0]}}])
     return table, rows
 table, rows = peer_case()
@@ -201,11 +203,11 @@ assert set(table.remaining()) == {r, c, g} and table.complete
 for corruption in ['helper_birth', 'root_birth', 'root_parent', 'helper_gone']:
     table, rows = peer_case()
     if corruption == 'helper_birth':
-        rows[peer_helper] = (uid, (60, 0), False, 77, 15)
+        rows[peer_helper] = (uid, (60, 0), False, 77, 15, 23, 77, 14)
     elif corruption == 'root_birth':
-        rows[peer_root] = (uid, (70, 0), False, peer_helper, 16)
+        rows[peer_root] = (uid, (70, 0), False, peer_helper, 16, 24, 20, 15)
     elif corruption == 'root_parent':
-        rows[peer_root] = (uid, (7, 0), False, 1, 16)
+        rows[peer_root] = (uid, (7, 0), False, 1, 16, 21, 20, 15)
     else:
         del rows[peer_helper]
     assert set(table.remaining()) == {r, c, g} and not table.complete
@@ -223,7 +225,7 @@ for conflict in ['marker', 'lineage']:
     assert peer_child not in signals
 # A forged witness claiming the owned root cannot convert it to peer cleanup authority.
 table, rows = make()
-rows[peer_helper] = (uid, (1, 0), False, 77, 15)
+rows[peer_helper] = (uid, (1, 0), False, 77, 15, 20, 77, 14)
 rows[r] = (*rows[r][:3], peer_helper, rows[r][4])
 table.set_peers([{'helper': {'pid': peer_helper, 'birth': [1, 0]}, 'root': {'pid': r, 'birth': [2, 0]}}])
 assert not table.remaining() and not table.complete
@@ -498,3 +500,133 @@ print(json.dumps(dict(knownUidDriftUnknown=True, repeatedFilteredScansUnknown=Tr
     inspectionFailureUnknown: true,
   });
 });
+
+it.runIf(process.platform === 'darwin')(
+  'uses only stable direct-init native provenance as negative evidence without signalling or covering positive ownership',
+  async () => {
+    const probe = String.raw`
+import sys, json
+exec(sys.argv[1].split('# Do not mix')[0], globals())
+uid, candidate, root, helper_pid = os.getuid(), 1000101, 1000102, 1000103
+signals = []
+os.kill = lambda pid, sig: signals.append(pid)
+def make():
+    table = ProcessTable()
+    table.birth = (10, 0)
+    table.native_uniqueid = 100
+    table.root = None
+    row = [uid, (20, 0), False, 1, 800, 150, 1, 572]
+    rows = {candidate: tuple(row)}
+    table.pids = lambda: list(rows)
+    table.details = rows.get
+    table.identity = lambda pid: rows[pid][:3] if pid in rows else None
+    table.marked = lambda pid: None
+    table.native_identity = lambda pid: (1, 572, b'complete-init-record')
+    return table, rows
+# The old implementation treats this complete native negative proof as unknown.
+table, rows = make()
+assert not table.remaining() and table.complete, 'stable direct-init candidate blocked despite no positive ownership'
+table.signal({}, signal.SIGKILL)
+assert not signals
+# No current PPID, name, UID, or generic old ancestor can substitute for the exact native parent pair.
+for index, value in [(5, 0), (6, 0), (6, 99), (7, 0), (7, 573)]:
+    table, rows = make()
+    row = list(rows[candidate]); row[index] = value; rows[candidate] = tuple(row)
+    assert not table.remaining() and not table.complete
+# An orphan may exec with parent_uniqueid reset to init while keeping its creator's original version.
+table, rows = make()
+row = list(rows[candidate]); row[7] = 700; rows[candidate] = tuple(row)
+assert not table.remaining() and not table.complete
+# Missing/short/denied native reads are unavailable proof, never absence or exclusion.
+for unavailable in [None, (0, 572, b'zero-init'), (1, 0, b'zero-version'), (101, 572, b'newer-init')]:
+    table, rows = make()
+    table.native_identity = lambda pid: unavailable
+    assert not table.remaining() and not table.complete
+for changed in [(2, 572, b'new-unique'), (1, 573, b'new-version'), (1, 572, b'changed-record')]:
+    table, rows = make()
+    reads = iter([(1, 572, b'complete-init-record'), changed])
+    table.native_identity = lambda pid: next(reads)
+    assert not table.remaining() and not table.complete
+# Exercise the actual flavor17 boundary: short and permission-denied reads remain unavailable proof.
+for size, error in [(55, 0), (0, errno.EPERM)]:
+    table, rows = make()
+    del table.native_identity
+    class UnavailableNative:
+        def proc_pidinfo(self, pid, flavor, arg, data, capacity):
+            assert pid == 1 and flavor == 17 and capacity == 56
+            ctypes.set_errno(error)
+            return size
+    table.libproc = UnavailableNative()
+    assert not table.remaining() and not table.complete
+for helper_id in [None, 0]:
+    table, rows = make()
+    table.native_uniqueid = helper_id
+    assert not table.remaining() and not table.complete
+# Missing/denied candidate metadata cannot become a negative match.
+table, rows = make()
+table.details = lambda pid: None
+assert not table.remaining() and not table.complete
+table, rows = make()
+def denied_candidate(pid):
+    raise PermissionError('candidate native identity unavailable')
+table.details = denied_candidate
+try:
+    table.remaining()
+except PermissionError:
+    pass
+else:
+    raise AssertionError('candidate denial was accepted')
+assert not table.complete
+# Candidate exec/birth/native ancestry drift invalidates the entire scan even if init stays stable.
+for index, value in [(1, (21, 0)), (4, 801), (5, 151), (6, 2), (7, 573)]:
+    table, rows = make()
+    first = rows[candidate]
+    second = list(first); second[index] = value
+    reads = iter([first, tuple(second)])
+    table.details = lambda pid: next(reads)
+    assert not table.remaining() and not table.complete
+# Marker or already proven birth ownership takes precedence over this negative witness.
+for proof in ['marker', 'root', 'member', 'lineage']:
+    table, rows = make()
+    birth = rows[candidate][1]
+    if proof == 'marker':
+        table.marked = lambda pid: True
+    elif proof == 'root':
+        table.root = (candidate, birth)
+    elif proof == 'member':
+        table.members[candidate] = birth
+    else:
+        table.lineage[candidate] = birth
+    try:
+        found = table.remaining()
+    except RuntimeError:
+        assert proof == 'member'  # A formerly readable marker may not disappear through the negative path.
+        assert not table.complete
+    else:
+        assert found.get(candidate) == birth, proof
+# An unverified peer claiming this exact birth cannot be bypassed through the init exclusion.
+table, rows = make()
+table.set_peers([{'helper': {'pid': helper_pid, 'birth': [11, 0]}, 'root': {'pid': candidate, 'birth': [20, 0]}}])
+assert not table.remaining() and not table.complete
+# Positive marker plus peer proof conflict remains unknown and does not add the peer candidate to signals.
+table, rows = make()
+rows[helper_pid] = (uid, (11, 0), False, 77, 600, 120, 77, 500)
+row = list(rows[candidate]); row[3] = helper_pid; rows[candidate] = tuple(row)
+table.set_peers([{'helper': {'pid': helper_pid, 'birth': [11, 0]}, 'root': {'pid': candidate, 'birth': [20, 0]}}])
+table.marked = lambda pid: True if pid == candidate else False
+found = table.remaining()
+assert candidate not in found and not table.complete
+assert not signals
+print(json.dumps(dict(directInitNegative=True, orphanExecUnknown=True, nativeDriftUnknown=True, positiveOwnershipPreserved=True, peerConflictUnknown=True, noSignals=True)))
+`;
+    const { stdout } = await promisify(execFile)(python, ['-I', '-B', '-c', probe, helper], { timeout: 5000 });
+    expect(JSON.parse(stdout)).toEqual({
+      directInitNegative: true,
+      orphanExecUnknown: true,
+      nativeDriftUnknown: true,
+      positiveOwnershipPreserved: true,
+      peerConflictUnknown: true,
+      noSignals: true,
+    });
+  },
+);
