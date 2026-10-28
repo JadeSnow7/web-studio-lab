@@ -241,7 +241,7 @@ describe('ACP 轮次驱动（W3a）', () => {
     const { events, written } = await drive('noload', { sessionRef: 'sess-prev' });
     expect(written.some((message) => (message as { method?: string }).method === 'session/load')).toBe(false);
     expect(events).toContainEqual({ type: 'warning', text: 'Agent 未声明 loadSession，已开始新会话；之前的上下文不会带入' });
-    expect(events).toContainEqual({ type: 'session', ref: 'sess-noload' });
+    expect(events).toContainEqual({ type: 'session', ref: 'sess-noload', fresh: true });
   });
 
   it.each([

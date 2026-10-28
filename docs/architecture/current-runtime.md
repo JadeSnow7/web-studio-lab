@@ -88,7 +88,7 @@ main process 对每个 IPC 请求做两项检查：
 
 每次进程调用通过 `sbx exec -i` 启动内置 Python 标准库 helper。helper 在 guest 内管理所属进程、PTY 与清理；stdin 控制帧和模型 prompt 分开，stdout 使用明确帧封装。终端使用 xterm.js 与 fit addon 展示 guest PTY，不依赖 Electron native node-pty ABI。输入、尺寸和会话身份在 IPC 边界校验；隐藏终端保留同一 shell，关闭时等待远端清理确认。
 
-执行核心经 service 侧 Harness 适配器启动 CLI 并读取输出（ADR-0003，[W2 合同](../acceptance/harness-port-codex-20261022/SPEC.md)）：当前只有 Codex native 适配器（`apps/service/src/harness/codex/adapter.ts`），对话状态附带 Harness 描述符，`startRun` 把 Harness 出处冻结进执行记录；start 帧以 `mcp: 'codex-config'` 显式声明 MCP 挂载方式，guest helper 不再按 argv 识别 Harness。
+执行核心经 service 侧 Harness 适配器启动 CLI 并读取输出（ADR-0003，[W2 合同](../acceptance/harness-port-codex-20261022/SPEC.md)）：当前只有 Codex native 适配器（`apps/service/src/harness/codex/adapter.ts`），对话状态附带 Harness 描述符，`startRun` 把 Harness 出处冻结进执行记录；start 帧以 `mcp: 'codex-config'` 显式声明 MCP 挂载方式，guest helper 不再按 argv 识别 Harness。开发期可用 `WSL_HARNESS=claude-code` 切到 Claude Code 的 ACP 包装器：helper 以 stdin relay 保持长连接，wsl_space MCP 经 `session/new` 传入，审批按与 Codex `workspace-write` 对等的策略自动处理（[W3b 记录](../acceptance/harness-acp-wiring-20261022/README.md)）；真实模型验收尚未运行。
 
 Codex 首轮使用 `exec --json`，续轮显式 `exec resume <threadId>`，采用 `workspace-write` 并启用 guest 工具。消息历史按应用会话隔离，但各会话和终端共享 guest 文件系统；开始新对话不删除文件。服务拥有 generation、threadId、turnId 与序号，保留有界工具结果和非致命警告，截断结果明确标示。成功要求助手文本、会话身份、完成事件、正常退出和远端清理确认。
 

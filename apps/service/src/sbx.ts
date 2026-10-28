@@ -38,6 +38,15 @@ const FrameSchema = z.discriminatedUnion('type', [
     .strict(),
   z.object({ type: z.literal('observation-cancel'), id: z.string().uuid() }).strict(),
   z.object({ type: z.literal('ready'), pid: z.number().int().positive() }),
+  /** acp-stdio：helper 准备好的 wsl_space MCP 启动方式，先于 ready 发出，供 session/new 使用。 */
+  z
+    .object({
+      type: z.literal('mcp-server'),
+      name: z.literal('wsl_space'),
+      command: z.string().startsWith('/'),
+      args: z.array(z.string()).max(16),
+    })
+    .strict(),
   z.object({ type: z.literal('output'), stream: z.enum(['stdout', 'stderr']), data: z.string() }),
   z.object({ type: z.literal('workspace'), ...workspaceSchema.shape }).strict(),
   z.object({ type: z.literal('exit'), exitCode: z.number().int().nullable() }),
@@ -56,7 +65,9 @@ export type GuestStart =
       mode: 'codex';
       argv: string[];
       /** 挂载 wsl_space MCP 的方式，由适配器声明；携带 resourceBundle 时必填，helper 不按 argv 识别 Harness。 */
-      mcp?: 'codex-config';
+      mcp?: 'codex-config' | 'acp-stdio';
+      /** relay：保持子进程 stdin 打开，经 input / input-end 帧转发（ACP 长连接）；此时不携带 prompt。 */
+      stdin?: 'relay';
       prompt?: string;
       resourceBundle?: ResourceBundle;
       observation?: boolean;
@@ -184,6 +195,7 @@ export class GuestProcess {
       | { type: 'observation-result'; id: string; result: WorkspaceObservationResult | AppControlResult }
       | GuestStart
       | { type: 'input'; data: string }
+      | { type: 'input-end' }
       | { type: 'resize'; cols: number; rows: number }
       | { type: 'close-input' }
       | { type: 'close' },
@@ -197,6 +209,26 @@ export class GuestProcess {
   private fail(reason: string) {
     this.error ??= reason;
     this.close();
+  }
+  /** relay 模式：把文本按 UTF-8 不超过 60000 字节的块写入子进程 stdin。 */
+  writeInput(text: string) {
+    let chunk = '';
+    let bytes = 0;
+    for (const char of text) {
+      const size = Buffer.byteLength(char, 'utf8');
+      if (bytes + size > 60000) {
+        this.write({ type: 'input', data: chunk });
+        chunk = '';
+        bytes = 0;
+      }
+      chunk += char;
+      bytes += size;
+    }
+    if (chunk) this.write({ type: 'input', data: chunk });
+  }
+  /** relay 模式：写完已排队的输入后关闭子进程 stdin，让长连接 Agent 自行退出。 */
+  endInput() {
+    this.write({ type: 'input-end' });
   }
   close(): Promise<GuestOutcome> {
     if (!this.closing && !this.ended) {

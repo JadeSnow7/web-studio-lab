@@ -273,12 +273,15 @@ def read_start():
     start = json.loads(first)
     if not isinstance(start, dict) or start.get("type") != "start" or start.get("mode") not in ("codex", "terminal"):
         raise ValueError("invalid start frame")
-    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "mcp", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "duplex", "eduOwner"}
+    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "mcp", "stdin", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "duplex", "eduOwner"}
     for key in ("observation", "observationImages", "duplex"):
         if key in start and type(start[key]) is not bool:
             raise ValueError("invalid observation capability")
-    if "mcp" in start and start["mcp"] != "codex-config":
+    if "mcp" in start and start["mcp"] not in ("codex-config", "acp-stdio"):
         raise ValueError("invalid MCP injection")
+    # relay keeps the child's stdin open for a long-lived protocol (ACP); the prompt then travels as input frames.
+    if "stdin" in start and (start["stdin"] != "relay" or "prompt" in start):
+        raise ValueError("invalid stdin mode")
     if set(start) - allowed:
         raise ValueError("unknown start fields")
     return start
@@ -289,6 +292,8 @@ def main(start):
     env = dict(os.environ)
     env["PATH"] = "/usr/local/bin:/usr/local/share/npm-global/bin:" + env.get("PATH", "")
     terminal = start["mode"] == "terminal"
+    relay = not terminal and start.get("stdin") == "relay"
+    relay_fd = None
     master = None
     child = None
     owner = None
@@ -344,7 +349,7 @@ def main(start):
                 raise ValueError("invalid Codex argv")
             if "resourceBundle" in start:
                 # The trusted service declares how this Harness mounts MCP; the helper no longer infers it from argv.
-                if start.get("mcp") != "codex-config" or not RESOURCE_MCP_BASE64:
+                if start.get("mcp") not in ("codex-config", "acp-stdio") or not RESOURCE_MCP_BASE64:
                     raise ValueError("resource capability requires a declared MCP injection")
                 source = base64.b64decode(RESOURCE_MCP_BASE64, validate=True).decode("utf-8")
                 module = {"__name__": "wsl_resource_module"}
@@ -372,11 +377,19 @@ def main(start):
                     os.chmod(cli, 0o755)
                     env["WSL_APP_CHANNEL"] = cli_channel_path
                     env["PATH"] = observer_dir.name + ":" + env["PATH"]
-                # TOML basic strings/arrays use the same escaping used here by JSON.
-                config = ["-c", 'mcp_servers.wsl_space.command="python3"', "-c",
-                          "mcp_servers.wsl_space.args=" + json.dumps(["-I", "-u", "-c", source, descriptor, *observation_args]),
-                          "-c", "mcp_servers.wsl_space.required=true"]
-                argv = [argv[0], *config, *argv[1:]]
+                mcp_args = ["-I", "-u", "-c", source, descriptor, *observation_args]
+                if start["mcp"] == "acp-stdio":
+                    # ACP clients pass MCP servers in session/new; the service needs the absolute command first.
+                    python = shutil.which("python3")
+                    if not python:
+                        raise ValueError("python3 unavailable for MCP")
+                    emit("mcp-server", name="wsl_space", command=python, args=mcp_args)
+                else:
+                    # TOML basic strings/arrays use the same escaping used here by JSON.
+                    config = ["-c", 'mcp_servers.wsl_space.command="python3"', "-c",
+                              "mcp_servers.wsl_space.args=" + json.dumps(mcp_args),
+                              "-c", "mcp_servers.wsl_space.required=true"]
+                    argv = [argv[0], *config, *argv[1:]]
             if "workspace" in start:
                 workspace = create_workspace(start["workspace"])
             child = subprocess.Popen(argv, cwd=workspace.name if workspace else CWD, env=env, stdin=subprocess.PIPE,
@@ -387,12 +400,16 @@ def main(start):
                 ownership = {"__name__": "wsl_edu_owned"}
                 exec(compile(base64.b64decode(OWNED_PROCESS_BASE64), "<edu-owned-process>", "exec"), ownership)
                 owner = ownership["begin"](start["eduOwner"], child.pid)
-            child.stdin.write(start.get("prompt", "").encode())
-            if start.get("duplex"):
-                child.stdin.flush()
-                os.set_blocking(child.stdin.fileno(), False)
+            if relay:
+                relay_fd = child.stdin.fileno()
+                os.set_blocking(relay_fd, False)
             else:
-                child.stdin.close()
+                child.stdin.write(start.get("prompt", "").encode())
+                if start.get("duplex"):
+                    child.stdin.flush()
+                    os.set_blocking(child.stdin.fileno(), False)
+                else:
+                    child.stdin.close()
             streams = {child.stdout.fileno(): ("stdout", codecs.getincrementaldecoder("utf-8")("replace")),
                        child.stderr.fileno(): ("stderr", codecs.getincrementaldecoder("utf-8")("replace"))}
         emit("ready", pid=child.pid)
@@ -403,8 +420,9 @@ def main(start):
         buffer = b""
         closing = False
         pending_input = b""
-        input_fd = master if terminal else child.stdin.fileno() if start.get("duplex") else None
+        input_ended = False
         leader_cleaned = False
+        input_fd = master if terminal else relay_fd if relay else child.stdin.fileno() if start.get("duplex") else None
         while (streams or child.poll() is None) and not closing:
             if owner:
                 ownership["update"](owner, owned_members(child.pid, owner[1]["leader"]))
@@ -420,8 +438,18 @@ def main(start):
                     emit("observation-call", id=call_id, tool=request["tool"], args=request["args"])
             readable, writable, _ = select.select([stdin, *streams, *([observer.fileno()] if observer else []), *[client.fileno() for client, pending, _ in observer_clients.values()]], [input_fd] if pending_input and input_fd is not None else [], [], 0.1)
             if writable:
-                written = os.write(input_fd, pending_input)
-                pending_input = pending_input[written:]
+                try:
+                    written = os.write(input_fd, pending_input)
+                    pending_input = pending_input[written:]
+                except BrokenPipeError:
+                    if not (terminal or relay):
+                        raise
+                    # The child stopped reading; its exit is reported through the normal path.
+                    pending_input = b""
+                    input_ended = True
+            if relay and input_ended and not pending_input and input_fd is not None:
+                child.stdin.close()
+                input_fd = None
             for call_id, (client, pending, deadline) in list(observer_clients.items()):
                 if time.monotonic() > deadline:
                     if pending is None:
@@ -488,7 +516,7 @@ def main(start):
                         if not isinstance(frame, dict):
                             raise ValueError("invalid control frame")
                         kind = frame.get("type")
-                        keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "close-input": {"type"}, "input": {"type", "data"}, "resize": {"type", "cols", "rows"}}
+                        keys = {"observation-result": {"type", "id", "result"}, "close": {"type"}, "close-input": {"type"}, "input": {"type", "data"}, "input-end": {"type"}, "resize": {"type", "cols", "rows"}}
                         if kind not in keys or set(frame) != keys[kind]:
                             raise ValueError("invalid control fields")
                         if cli_channel is not None:
@@ -508,24 +536,28 @@ def main(start):
                                 client.close()
                         elif kind == "close":
                             closing = True
-                        elif not terminal and start.get("duplex") and kind == "close-input":
+                        elif not terminal and not relay and start.get("duplex") and kind == "close-input":
                             pending_input = b""
                             input_fd = None
                             child.stdin.close()
-                        elif not terminal and start.get("duplex") and kind == "input":
+                        elif not terminal and not relay and start.get("duplex") and kind == "input":
                             data = frame["data"]
                             if not isinstance(data, str) or not 0 < len(data.encode()) <= 65536 or child.stdin.closed:
                                 raise ValueError("invalid duplex input")
                             pending_input += data.encode()
                             if len(pending_input) > 65536:
                                 raise ValueError("duplex input queue too large")
-                        elif terminal and kind == "input":
+                        elif kind == "input" and (terminal or relay):
                             data = frame["data"]
                             if not isinstance(data, str) or not 0 < len(data.encode()) <= 65536:
                                 raise ValueError("invalid terminal input")
+                            if input_ended:
+                                raise ValueError("input after input-end")
                             pending_input += data.encode()
                             if len(pending_input) > 1048576:
                                 raise ValueError("terminal input queue too large")
+                        elif kind == "input-end" and relay:
+                            input_ended = True
                         elif terminal and kind == "resize":
                             resize(master, frame["cols"], frame["rows"])
                         else:

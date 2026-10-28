@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CodexChat, parseCodexLine } from './codex-chat';
+import { CodexChat, parseCodexLine, type ChatHarness } from './codex-chat';
 import { resolveSbxBinary } from './sbx';
 import type { ChatConversation, ChatSlot } from '@wsl/protocol';
 
@@ -140,5 +140,140 @@ describe('Harness 端口（W2）', () => {
       '--sandbox',
       'workspace-write',
     ]);
+  });
+});
+
+describe('ACP Harness 经执行核心（W3b，fixture sbx + 假 ACP Agent）', () => {
+  const fakeAgent = path.resolve('apps/service/src/fixtures/fake-acp-agent.mjs');
+  const acp = (scenario: string): Extract<ChatHarness, { kind: 'acp' }> => ({
+    kind: 'acp',
+    spec: {
+      harnessId: 'claude-code',
+      displayName: 'Claude Code',
+      label: 'Claude Code',
+      command: [process.execPath, fakeAgent, scenario],
+      install: { npm: 'fixture', version: '0' },
+      configDirEnv: null,
+    },
+  });
+  async function acpChat(scenario: string) {
+    const acpEvents: ChatConversation[] = [];
+    const instance = new CodexChat(root, (event) => acpEvents.push(event), undefined, acp(scenario));
+    await instance.initialize();
+    return { instance, acpEvents };
+  }
+  async function settle(instance: CodexChat, id: ChatSlot = personal) {
+    await expect.poll(() => instance.get(id).state, { timeout: 8000 }).not.toBe('running');
+    return instance.get(id);
+  }
+
+  it('探测只发 initialize，状态报告实测的 ACP 能力与版本', async () => {
+    const { instance } = await acpChat('reply');
+    try {
+      const status = instance.getStatus();
+      expect(status.available).toBe(true);
+      expect(status.version).toBe('1.2.3');
+      expect(status.harness).toMatchObject({
+        harnessId: 'claude-code',
+        adapter: 'acp',
+        capabilitySource: 'probed',
+        capabilities: { resume: true },
+      });
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('一轮对话：relay 启动、MCP 经 session/new 传入、消息与工具进入会话、正常完成并确认清理', async () => {
+    const { instance } = await acpChat('reply');
+    const start = vi.spyOn(instance.connection, 'start');
+    try {
+      await instance.send(personal, '你好', undefined, emptyReferences(personal));
+      const done = await settle(instance);
+      expect(done).toMatchObject({ state: 'idle', error: null, cleanupPending: false, threadId: 'sess-reply' });
+      expect(done.messages.map((message) => message.text)).toEqual(['你好', '你好，世界', '完成']);
+      expect(done.toolExecutions).toEqual([
+        expect.objectContaining({ command: 'acp:read 读取 README', output: 'README 内容', exitCode: 0 }),
+      ]);
+      expect(done.warnings).toContain('ACP 未识别的更新类型：future_update');
+      expect(start.mock.calls.at(-1)![0]).toMatchObject({
+        mode: 'codex',
+        mcp: 'acp-stdio',
+        stdin: 'relay',
+        argv: [process.execPath, fakeAgent, 'reply'],
+      });
+      expect(start.mock.calls.at(-1)![0]).not.toHaveProperty('prompt');
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('工作区写入策略：编辑类权限自动放行一次', async () => {
+    const { instance } = await acpChat('permission');
+    try {
+      await instance.send(personal, '改文件', undefined, emptyReferences(personal));
+      const done = await settle(instance);
+      expect(done.messages.at(-1)?.text).toBe('决定：yes');
+      expect(done.state).toBe('idle');
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('不支持 loadSession 时第二轮换用新会话，不判为会话冲突', async () => {
+    const { instance } = await acpChat('noload');
+    try {
+      await instance.send(personal, '一', undefined, emptyReferences(personal));
+      expect((await settle(instance)).state).toBe('idle');
+      await instance.send(personal, '二', undefined, emptyReferences(personal));
+      const second = await settle(instance);
+      expect(second.state).toBe('idle');
+      expect(second.warnings).toContain('Agent 未声明 loadSession，已开始新会话；之前的上下文不会带入');
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('取消：发出 session/cancel 后关闭进程，记为已取消且清理确认', async () => {
+    const { instance } = await acpChat('cancel');
+    try {
+      await instance.send(personal, '慢任务', undefined, emptyReferences(personal));
+      await expect.poll(() => instance.get(personal).messages.some((message) => message.text === '开始'), { timeout: 8000 }).toBe(true);
+      const cancelled = await instance.cancel(personal);
+      expect(cancelled).toMatchObject({ state: 'cancelled', cleanupPending: false });
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it.each([
+    ['refusal', 'Agent 停止：refusal'],
+    ['malformed', 'Claude Code 协议错误：ACP 输出不是 JSON'],
+  ])('%s 记为失败并带原因', async (scenario, message) => {
+    const { instance } = await acpChat(scenario);
+    try {
+      await instance.send(personal, 'x', undefined, emptyReferences(personal));
+      const done = await settle(instance);
+      expect(done.state).toBe('failed');
+      expect(done.error).toContain(message);
+    } finally {
+      await instance.shutdown();
+    }
+  });
+
+  it('Agent 不可启动时状态不可用并说明原因', async () => {
+    const instance = new CodexChat(root, () => undefined, undefined, {
+      kind: 'acp',
+      spec: { ...acp('reply').spec, command: ['/definitely/missing-acp-agent'] },
+    });
+    try {
+      await instance.initialize();
+      const status = instance.getStatus();
+      expect(status.available).toBe(false);
+      expect(status.reason).toMatch(/^Claude Code 不可用：/);
+      await expect(instance.send(personal, 'x', undefined, emptyReferences(personal))).rejects.toThrow('Claude Code 不可用');
+    } finally {
+      await instance.shutdown();
+    }
   });
 });
