@@ -63,6 +63,25 @@ export default tseslint.config(
     },
   },
   {
+    // 受管 App 的类型差异只在 app-kinds/ 声明，service 其余代码不按 projectKind 分支。
+    // app-imports.ts 暂例外：导入请求在 protocol 中只携带 edu 来源，泛化导入属于后续步骤。
+    files: ['apps/service/src/**/*.ts'],
+    ignores: ['apps/service/src/app-kinds/**', 'apps/service/src/app-imports.ts', '**/*.test.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "BinaryExpression MemberExpression[property.name='projectKind']",
+          message: '按 projectKind 分支的行为请声明在 apps/service/src/app-kinds/ 的类型策略中。',
+        },
+        {
+          selector: "SwitchStatement > MemberExpression.discriminant[property.name='projectKind']",
+          message: '按 projectKind 分支的行为请声明在 apps/service/src/app-kinds/ 的类型策略中。',
+        },
+      ],
+    },
+  },
+  {
     // protocol 只依赖 zod。
     files: ['packages/protocol/**/*.ts'],
     rules: {

@@ -13,11 +13,8 @@ import {
   AppProfileSchema,
   AppImportRequestSchema,
   AppImportTargetSchema,
-  EDU_REQUIRED_FILES,
-  isEduSourcePath,
   type AppProfile,
   type AppSource,
-  type EduSource,
   type AppImportRequest,
   type AppImportTarget,
   type AppImportOutcome,
@@ -34,6 +31,8 @@ import { type GuestOutcome, type GuestProcess, type SbxConnection } from './sbx'
 import rawHelper from './app-helper.py?raw';
 import ownedProcess from './edu-owned-process.py?raw';
 import { AppImports } from './app-imports';
+import { validateEduSources } from './app-kinds/edu-web';
+import { appKindOf } from './app-kinds/registry';
 const helper = rawHelper.replace('OWNED_PROCESS_BASE64 = ""', `OWNED_PROCESS_BASE64 = "${Buffer.from(ownedProcess).toString('base64')}"`);
 if (Buffer.byteLength(JSON.stringify(helper), 'utf8') > APP_SOURCE_TRANSPORT.helperJsonBytes)
   throw new Error('application helper exceeds encoded transport budget');
@@ -127,25 +126,6 @@ export function validateAppSources(files: AppSourceFile[]): void {
   }
   // Decoded source is separately bounded from the encoded 3 MiB start frame.
   if (total > 524288) throw new Error('应用源码超出传输预算');
-}
-
-function validateEduSources(files: AppSourceFile[], baseline: EduSource, importing: boolean): string {
-  AppSourceSchema.shape.files.parse(files);
-  const current = [...files]
-    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
-    .map((file) => {
-      if (!isEduSourcePath(file.path)) throw new Error('不支持的 edu 源码路径');
-      const bytes = Buffer.from(file.base64, 'base64');
-      return { path: file.path, sha256: createHash('sha256').update(bytes).digest('hex'), bytes: bytes.length };
-    });
-  for (const name of EDU_REQUIRED_FILES) if (!current.some((file) => file.path === name)) throw new Error('edu 工程缺少必需源码：' + name);
-  const digest = createHash('sha256').update(JSON.stringify(current)).digest('hex');
-  if (importing && (digest !== baseline.sourceSha256 || JSON.stringify(current) !== JSON.stringify(baseline.files)))
-    throw new Error('edu 源码与来源散列不匹配');
-  const protectedFiles = (metadata: EduSource['files']) => metadata.filter((file) => !file.path.startsWith('admin/src/'));
-  if (!importing && JSON.stringify(protectedFiles(current)) !== JSON.stringify(protectedFiles(baseline.files)))
-    throw new Error('edu 后端或锁文件变化，需要显式重新导入来源');
-  return digest;
 }
 
 const standardProfile: AppProfile = { projectKind: 'standard-app', profileVersion: 1 };
@@ -351,6 +331,9 @@ export class AppService {
   private id(key: AppKey) {
     return `${key.workspaceId}\0${key.projectId}`;
   }
+  private kind(entry: Entry) {
+    return appKindOf(entry.snapshot.profile);
+  }
   private entry(key: AppKey) {
     keySchema.parse(key);
     const entry = this.entries.get(this.id(key));
@@ -395,8 +378,9 @@ export class AppService {
   private launch(entry: Entry, operation: 'create' | 'start' | 'export', files?: AppSourceFile[]) {
     const snapshot = entry.snapshot;
     const { workspaceId, projectId, appInstanceId } = snapshot;
+    const pinned = this.kind(entry).pinnedSource !== null;
     const expectedSourceSha256 =
-      operation === 'start' && snapshot.profile.projectKind === 'edu-web'
+      operation === 'start' && pinned
         ? z
             .string()
             .regex(/^[a-f0-9]{64}$/)
@@ -446,8 +430,7 @@ export class AppService {
             for (const line of lines) {
               if (line.startsWith('WSL_APP_SOURCE:')) {
                 const digest = line.slice('WSL_APP_SOURCE:'.length);
-                if (snapshot.profile.projectKind !== 'edu-web' || sourceSeen || digest !== expectedSourceSha256)
-                  entry.readyError = '应用源码回执无效';
+                if (!pinned || sourceSeen || digest !== expectedSourceSha256) entry.readyError = '应用源码回执无效';
                 else {
                   snapshot.sourceSha256 = digest;
                   sourceSeen = true;
@@ -477,8 +460,7 @@ export class AppService {
                 })
                 .strict()
                 .safeParse(message);
-              if (!parsed.success || entry.readyPort !== null || (snapshot.profile.projectKind === 'edu-web' && !sourceSeen))
-                entry.readyError = '应用就绪端口或身份回执不匹配';
+              if (!parsed.success || entry.readyPort !== null || (pinned && !sourceSeen)) entry.readyError = '应用就绪端口或身份回执不匹配';
               else {
                 entry.readyPort = parsed.data.port;
                 entry.snapshot.guestPort = parsed.data.port;
@@ -537,6 +519,7 @@ export class AppService {
     let parsed: AppImportRequest;
     try {
       parsed = AppImportRequestSchema.parse(input);
+      // 导入请求在 protocol 中只携带 edu 来源。
       validateEduSources(parsed.files, parsed.source, true);
     } catch {
       throw new Error('import_input_invalid');
@@ -572,11 +555,12 @@ export class AppService {
     this.registrySandbox = sandbox;
   }
   private newEntry(key: AppKey, profile: AppProfile): Entry {
+    const pinned = appKindOf(profile).pinnedSource;
     return {
       snapshot: {
         ...key,
         profile: structuredClone(profile),
-        ...(profile.projectKind !== 'standard-app' ? { sourceSha256: profile.source.sourceSha256 } : {}),
+        ...(pinned ? { sourceSha256: pinned.initialSha256(profile) } : {}),
         environmentId: 'sandbox',
         appInstanceId: null,
         state: 'created',
@@ -678,7 +662,7 @@ export class AppService {
     )
       throw new Error('首版仅允许一个应用服务运行');
     entry.cancelled = false;
-    entry.agentToken = entry.snapshot.profile.projectKind === 'standard-app' ? randomBytes(32).toString('hex') : null;
+    entry.agentToken = this.kind(entry).unavailable.agent === undefined ? randomBytes(32).toString('hex') : null;
     entry.snapshot = { ...entry.snapshot, appInstanceId: randomUUID(), state: 'starting', error: null, url: null, guestPort: null };
     entry.recoveryInstanceId = entry.snapshot.appInstanceId;
     entry.recoveryUrl = null;
@@ -794,19 +778,20 @@ export class AppService {
       },
       Math.max(1, deadline - Date.now()),
     );
+    const kind = this.kind(entry);
     try {
       check();
-      if (entry.snapshot.profile.projectKind === 'edu-web') {
+      if (kind.pinnedSource) {
         const source = z
           .object({ files: AppSourceSchema.shape.files })
           .strict()
           .parse(await this.command(entry, 'export'));
-        entry.snapshot.sourceSha256 = validateEduSources(source.files, entry.snapshot.profile.source, false);
+        entry.snapshot.sourceSha256 = kind.pinnedSource.verify(source.files, entry.snapshot.profile, false);
         await this.persist();
         check();
       }
       if (this.options.dependencyArchivePath && !entry.snapshot.appInstanceId) throw new Error('缺少应用实例身份');
-      if (this.options.dependencyArchivePath && entry.snapshot.profile.projectKind === 'standard-app')
+      if (this.options.dependencyArchivePath && kind.installsDependencyArchive)
         await this.importDependencies(entry, this.options.dependencyArchivePath);
       check();
       const child = this.launch(entry, 'start');
@@ -835,13 +820,13 @@ export class AppService {
       check();
       // Register uncertain publication before asking sandboxd to mutate bindings.
       entry.portPending = true;
-      if (entry.snapshot.profile.projectKind === 'edu-web') await this.persist();
+      if (kind.recoversOwnedInstance) await this.persist();
       const receipt = await this.ports(['--publish', `${guestPort}/tcp4`]);
       const published = /^Published 127\.0\.0\.1:(\d+) -> (\d+)\/tcp4\s*$/m.exec(receipt);
       if (!published || Number(published[2]) !== guestPort) throw new Error('端口发布回执未知，不能推断映射所有权');
       entry.port = portSchema.parse({ host_ip: '127.0.0.1', host_port: Number(published[1]), sandbox_port: guestPort, protocol: 'tcp4' });
       entry.recoveryUrl = `http://127.0.0.1:${entry.port.host_port}`;
-      if (entry.snapshot.profile.projectKind === 'edu-web') await this.persist();
+      if (kind.recoversOwnedInstance) await this.persist();
       checkChild();
       check();
       const ports = await this.listPorts();
@@ -861,9 +846,8 @@ export class AppService {
             const health = z
               .object({
                 ok: z.literal(true),
-                templateId: z.literal(entry.snapshot.profile.projectKind === 'edu-web' ? 'edu-web' : 'wsl-standard-app'),
-                // 1.1.0 增加 Agent 控制面；既有 1.0.0 项目按原身份恢复，不强制升级。
-                templateVersion: entry.snapshot.profile.projectKind === 'edu-web' ? z.literal('1.0.0') : z.enum(['1.0.0', '1.1.0']),
+                templateId: z.literal(kind.health.templateId),
+                templateVersion: z.enum(kind.health.templateVersions),
                 identity: z
                   .object({
                     workspaceId: z.literal(entry.snapshot.workspaceId),
@@ -975,7 +959,7 @@ export class AppService {
         // Remove the original persistent request, not only its current ephemeral host binding.
         // sbx's resolved host:guest form leaves the request alive across an idle VM restart.
         entry.portRemovalPending = true;
-        if (entry.snapshot.profile.projectKind === 'edu-web') await this.persist();
+        if (this.kind(entry).recoversOwnedInstance) await this.persist();
         await this.ports(['--unpublish', `${ownedPort.sandbox_port}/${ownedPort.protocol}`]);
         if ((await this.listPorts()).some((port) => port.sandbox_port === ownedPort.sandbox_port))
           throw new Error('应用端口仍有映射，清理未确认');
@@ -1029,7 +1013,9 @@ export class AppService {
   async captureRecoverySource(key: AppKey, fromStop = false): Promise<string> {
     await this.ensureLoaded();
     const entry = this.entry(key);
-    if (entry.snapshot.profile.projectKind !== 'edu-web' || entry.exitCompletion || entry.operation || (entry.stopping && !fromStop))
+    const kind = this.kind(entry);
+    const pinned = kind.pinnedSource;
+    if (!kind.recoversOwnedInstance || !pinned || entry.exitCompletion || entry.operation || (entry.stopping && !fromStop))
       throw new Error('verification_recovery_app_busy');
     const confirmed = entry.snapshot.cleanupConfirmed;
     const cancelled = entry.cancelled;
@@ -1039,7 +1025,7 @@ export class AppService {
         .object({ files: z.array(fileSchema) })
         .strict()
         .parse(await this.command(entry, 'export'));
-      return validateEduSources(result.files, entry.snapshot.profile.source, false);
+      return pinned.verify(result.files, entry.snapshot.profile, false);
     } finally {
       entry.snapshot.cleanupConfirmed = confirmed;
       entry.cancelled = cancelled;
@@ -1052,7 +1038,7 @@ export class AppService {
     if (
       before.appInstanceId !== appInstanceId ||
       before.sourceSha256 !== sourceSha256 ||
-      entry.snapshot.profile.projectKind !== 'edu-web' ||
+      !this.kind(entry).recoversOwnedInstance ||
       entry.process ||
       entry.commandProcess ||
       entry.exitCompletion ||
@@ -1205,15 +1191,10 @@ export class AppService {
     entry.snapshot.state = 'stopping';
     const operation = entry.operation;
     const exitCompletion = entry.exitCompletion;
+    const recoverable = this.kind(entry).recoversOwnedInstance;
     entry.stopping = (async () => {
       if (exitCompletion) await exitCompletion;
-      if (
-        entry.snapshot.profile.projectKind === 'edu-web' &&
-        entry.processExited &&
-        !entry.snapshot.cleanupConfirmed &&
-        !operation &&
-        !entry.commandProcess
-      )
+      if (recoverable && entry.processExited && !entry.snapshot.cleanupConfirmed && !operation && !entry.commandProcess)
         entry.process = null;
       const recoverInterrupted = async () => {
         try {
@@ -1232,13 +1213,7 @@ export class AppService {
           return structuredClone(entry.snapshot);
         }
       };
-      if (
-        entry.snapshot.profile.projectKind === 'edu-web' &&
-        !entry.process &&
-        !entry.snapshot.cleanupConfirmed &&
-        !entry.commandProcess &&
-        !operation
-      )
+      if (recoverable && !entry.process && !entry.snapshot.cleanupConfirmed && !entry.commandProcess && !operation)
         return recoverInterrupted();
       // Finite create/export helpers own no published mapping. Cancel them now;
       // a running app must retain its process until cleanup removes that mapping.
@@ -1252,13 +1227,7 @@ export class AppService {
       if (entry.agentAdmission) await Promise.allSettled([entry.agentAdmission]);
       await this.cleanup(entry);
       if (entry.commandProcess) entry.snapshot.cleanupConfirmed = false;
-      if (
-        entry.snapshot.profile.projectKind === 'edu-web' &&
-        entry.processExited &&
-        !entry.snapshot.cleanupConfirmed &&
-        !entry.commandProcess &&
-        !entry.operation
-      ) {
+      if (recoverable && entry.processExited && !entry.snapshot.cleanupConfirmed && !entry.commandProcess && !entry.operation) {
         entry.process = null;
         return recoverInterrupted();
       }
@@ -1300,8 +1269,8 @@ export class AppService {
       cleanupConfirmed: true,
       envelope: { ok: false, error: { code, message } },
     });
-    if (entry.snapshot.profile.projectKind !== 'standard-app')
-      return { ...fail('unsupported', 'edu 应用尚未开放任务与标准控制面'), operationDispatched: false };
+    const unsupported = this.kind(entry).unavailable.agent;
+    if (unsupported !== undefined) return { ...fail('unsupported', unsupported), operationDispatched: false };
     if (signal.aborted)
       return {
         ...fail('cancelled', '控制面请求已取消'),
@@ -1540,7 +1509,8 @@ export class AppService {
     try {
       await this.ensureLoaded();
       const entry = this.entry(key);
-      if (entry.snapshot.profile.projectKind !== 'standard-app') return unavailable('edu 应用任务源码采集尚未开放', true);
+      const unsupported = this.kind(entry).unavailable.sourceSnapshot;
+      if (unsupported !== undefined) return unavailable(unsupported, true);
       if (this.imports.busy(key)) return unavailable('工程导入尚未结清', true);
       if (this.sourceProcesses.has(id)) return unavailable('上次源码 helper 尚未确认清理', false);
       if (this.closing || signal?.aborted) return unavailable('源码采集已取消或服务正在关闭', true);
@@ -1666,8 +1636,8 @@ export class AppService {
         // Export encoding and decoded budget are checked by the shared wire contract.
         const paths = new Set<string>();
         for (const file of result.files) validateAppSourcePath(file.path, paths);
-        if (entry.snapshot.profile.projectKind === 'edu-web')
-          entry.snapshot.sourceSha256 = validateEduSources(result.files, entry.snapshot.profile.source, false);
+        const pinned = this.kind(entry).pinnedSource;
+        if (pinned) entry.snapshot.sourceSha256 = pinned.verify(result.files, entry.snapshot.profile, false);
         return { ...entry.snapshot };
       } finally {
         await this.persist();
@@ -1688,12 +1658,10 @@ export class AppService {
   async assertTaskAdmission(workspaceId: string | null): Promise<void> {
     await this.ensureLoaded();
     if (this.imports.blocksWorkspace(workspaceId)) throw new Error('denied: source import ownership is pending');
-    if (
-      [...this.entries.values()].some(
-        (entry) => entry.snapshot.workspaceId === workspaceId && entry.snapshot.profile.projectKind === 'edu-web',
-      )
-    )
-      throw new Error('denied: edu tasks require a separately implemented candidate workflow');
+    for (const entry of this.entries.values()) {
+      const denied = entry.snapshot.workspaceId === workspaceId ? this.kind(entry).unavailable.task : undefined;
+      if (denied !== undefined) throw new Error(denied);
+    }
   }
   async shutdown(): Promise<void> {
     this.closing = true;
