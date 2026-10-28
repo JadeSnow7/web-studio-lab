@@ -1,3 +1,4 @@
+import { CODEX_TEST_REF, CODEX_TEST_TURN, codexHarnessRuntime } from './harness-test-fixture';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -63,6 +64,9 @@ const make = async () => {
     terminalStop: vi.fn(),
     send: vi.fn(),
     cancel: vi.fn(),
+    resolveHarness: vi.fn(codexHarnessRuntime.resolveHarness),
+    prepareHarness: vi.fn(codexHarnessRuntime.prepareHarness),
+    answerPermission: vi.fn(codexHarnessRuntime.answerPermission),
   };
   const app = new WorkbenchApplication(repository, runtime, vi.fn());
   await app.getSnapshot();
@@ -276,59 +280,161 @@ describe('workbench authoritative commands', () => {
     });
     expect(own.ok).toBe(true);
   });
-  it('freezes the reported Harness into the run record at startRun (W2)', async () => {
-    const { app, runtime } = await make();
+  /** 确认一个任务版本并返回启动命令的参数。 */
+  const confirmed = async (app: WorkbenchApplication, suffix: string) => {
     const s = (await app.getSnapshot()).workspaces[0]?.sessions[0];
     if (!s) throw new Error('fixture');
-    const ref = { harnessId: 'codex', displayName: 'Codex CLI', adapter: 'native', version: '0.160.0' } as const;
-    runtime.currentHarness = vi.fn(() => ref);
-    vi.mocked(runtime.send).mockResolvedValue(conversation(s.sessionId, 'harness', 5));
     await app.command({
       type: 'confirmTask',
       workspaceId: 'taskflow-demo',
-      commandId: 'confirm-h',
+      commandId: 'confirm-' + suffix,
       sessionId: s.sessionId,
       goal: 'goal',
       targetRef: null,
     });
-    const v = (await app.getSnapshot()).workspaces[0]?.sessions[0]?.taskVersions[0];
+    const v = (await app.getSnapshot()).workspaces[0]?.sessions[0]?.taskVersions.at(-1);
     if (!v) throw new Error('fixture');
-    await app.command({
-      type: 'startRun',
-      workspaceId: 'taskflow-demo',
-      commandId: 'start-h',
-      sessionId: s.sessionId,
-      taskVersionId: v.taskVersionId,
-    });
+    return {
+      s,
+      start: {
+        type: 'startRun' as const,
+        workspaceId: 'taskflow-demo',
+        commandId: 'start-' + suffix,
+        sessionId: s.sessionId,
+        taskVersionId: v.taskVersionId,
+      },
+    };
+  };
+  it('freezes the resolved Harness and Profile into the run record and passes the same turn to send (W2, W4a)', async () => {
+    const { app, runtime } = await make();
+    const { s, start } = await confirmed(app, 'h');
+    const ref = { ...CODEX_TEST_REF, version: '0.160.0' };
+    vi.mocked(runtime.resolveHarness).mockReturnValue({ ref, turn: CODEX_TEST_TURN });
+    vi.mocked(runtime.send).mockResolvedValue(conversation(s.sessionId, 'harness', 5));
+    await app.command(start);
+    await vi.waitFor(() => expect(runtime.send).toHaveBeenCalled());
     expect((await app.getSnapshot()).workspaces[0]?.runs[0]?.harness).toEqual(ref);
-    vi.mocked(runtime.currentHarness!).mockReturnValue({ ...ref, version: '9.9.9' });
+    expect(vi.mocked(runtime.send).mock.calls[0]?.[4]).toEqual(CODEX_TEST_TURN);
+    expect(runtime.prepareHarness).toHaveBeenCalledWith(CODEX_TEST_TURN);
+    vi.mocked(runtime.resolveHarness).mockReturnValue({ ref: { ...ref, version: '9.9.9' }, turn: CODEX_TEST_TURN });
     expect((await app.getSnapshot()).workspaces[0]?.runs[0]?.harness?.version).toBe('0.160.0');
   });
-  it('omits the Harness when the runtime reports none (W2)', async () => {
+  it('resolves the session selection, falling back to the global default when it is null (W4a)', async () => {
     const { app, runtime } = await make();
-    const s = (await app.getSnapshot()).workspaces[0]?.sessions[0];
-    if (!s) throw new Error('fixture');
-    vi.mocked(runtime.send).mockResolvedValue(conversation(s.sessionId, 'none', 5));
+    const { s, start } = await confirmed(app, 'sel');
+    const selection = { harnessId: 'claude-code', profileId: 'a1b2c3d4-0000-4000-8000-00000000000a' };
+    const set = await app.command({
+      type: 'setSessionHarness',
+      workspaceId: 'taskflow-demo',
+      commandId: 'sel',
+      sessionId: s.sessionId,
+      selection,
+    });
+    expect(set.ok).toBe(true);
+    expect(set.snapshot.workspaces[0]?.sessions[0]?.harnessSelection).toEqual(selection);
+    vi.mocked(runtime.send).mockResolvedValue(conversation(s.sessionId, 'sel', 5));
+    await app.command(start);
+    expect(runtime.resolveHarness).toHaveBeenLastCalledWith(selection);
+  });
+  it('rejects startRun before creating a run when the Harness cannot be resolved (W4a)', async () => {
+    const { app, runtime } = await make();
+    const { start } = await confirmed(app, 'u');
+    vi.mocked(runtime.resolveHarness).mockImplementation(() => {
+      throw new Error('conflict: Profile「默认」未登录，请登录后重新自检');
+    });
+    const result = await app.command(start);
+    expect(result).toMatchObject({ ok: false, error: { code: 'conflict', message: expect.stringContaining('未登录') } });
+    expect((await app.getSnapshot()).workspaces[0]?.runs).toEqual([]);
+    expect(runtime.send).not.toHaveBeenCalled();
+  });
+  it('allows one active run per Profile and rejects a second one before creating it (W4a)', async () => {
+    const { app, runtime } = await make();
+    const { s, start } = await confirmed(app, 'p1');
+    vi.mocked(runtime.send).mockResolvedValue(conversation(s.sessionId, 'p1', 5));
+    expect((await app.command(start)).ok).toBe(true);
+    const other = await app.command({
+      type: 'createTab',
+      workspaceId: 'taskflow-demo',
+      commandId: 'tab-p2',
+      kind: 'session',
+      title: '另一会话',
+    });
+    const second = other.snapshot.workspaces[0]?.sessions.at(-1);
+    if (!second) throw new Error('fixture');
     await app.command({
       type: 'confirmTask',
       workspaceId: 'taskflow-demo',
-      commandId: 'confirm-n',
-      sessionId: s.sessionId,
+      commandId: 'confirm-p2',
+      sessionId: second.sessionId,
       goal: 'goal',
       targetRef: null,
     });
-    const v = (await app.getSnapshot()).workspaces[0]?.sessions[0]?.taskVersions[0];
-    if (!v) throw new Error('fixture');
-    await app.command({
+    const v2 = (await app.getSnapshot()).workspaces[0]?.sessions.at(-1)?.taskVersions[0];
+    if (!v2) throw new Error('fixture');
+    const result = await app.command({
       type: 'startRun',
       workspaceId: 'taskflow-demo',
-      commandId: 'start-n',
-      sessionId: s.sessionId,
-      taskVersionId: v.taskVersionId,
+      commandId: 'start-p2',
+      sessionId: second.sessionId,
+      taskVersionId: v2.taskVersionId,
     });
+    expect(result).toMatchObject({ ok: false, error: { code: 'conflict', message: expect.stringContaining('codex:default') } });
+    expect((await app.getSnapshot()).workspaces[0]?.runs.filter((run) => run.sessionId === second.sessionId)).toEqual([]);
+  });
+  it('fails the run without starting the executor when the pre-launch Profile check is not logged in (W4a)', async () => {
+    const { app, runtime } = await make();
+    const { start } = await confirmed(app, 'prep');
+    vi.mocked(runtime.prepareHarness).mockRejectedValue(new Error('Profile「默认」未登录：请登录后重新自检'));
+    await app.command(start);
+    await vi.waitFor(async () => expect((await app.getSnapshot()).workspaces[0]?.runs[0]?.state).toBe('failed'));
     const run = (await app.getSnapshot()).workspaces[0]?.runs[0];
-    expect(run).toBeDefined();
-    expect(run && 'harness' in run).toBe(false);
+    expect(run).toMatchObject({ cleanupPending: false, error: expect.stringContaining('未登录') });
+    expect(runtime.send).not.toHaveBeenCalled();
+  });
+  it("forwards a permission reply only for a pending request of the session's current run (W4b)", async () => {
+    const { app, runtime } = await make();
+    const { s, start } = await confirmed(app, 'perm');
+    const requestId = '11111111-1111-4111-8111-111111111111';
+    const pending = {
+      ...conversation(s.sessionId, 'perm', 5),
+      permissionRequests: [
+        {
+          requestId,
+          turnId: 'turn',
+          toolCallId: 't4',
+          title: '获取 https://example.invalid/data',
+          kind: 'fetch',
+          options: [
+            { optionId: 'yes', name: 'Allow once', kind: 'allow_once' as const },
+            { optionId: 'no', name: 'Reject', kind: 'reject_once' as const },
+          ],
+          requestedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 600000).toISOString(),
+        },
+      ],
+    };
+    vi.mocked(runtime.send).mockResolvedValue(pending);
+    await app.command(start);
+    await vi.waitFor(async () =>
+      expect((await app.getSnapshot()).workspaces[0]?.runs[0]?.conversation?.permissionRequests).toHaveLength(1),
+    );
+    const answer = (requestIdValue: string, optionId: string | null) =>
+      app.command({
+        type: 'answerPermission',
+        workspaceId: 'taskflow-demo',
+        commandId: crypto.randomUUID(),
+        sessionId: s.sessionId,
+        requestId: requestIdValue,
+        optionId,
+      });
+    expect(await answer('22222222-2222-4222-8222-222222222222', 'yes')).toMatchObject({ ok: false, error: { code: 'conflict' } });
+    expect(await answer(requestId, 'always')).toMatchObject({ ok: false, error: { code: 'conflict', message: '选项不属于该权限请求' } });
+    expect(runtime.answerPermission).not.toHaveBeenCalled();
+    vi.mocked(runtime.answerPermission).mockResolvedValueOnce(conversation(s.sessionId, 'perm', 6));
+    expect((await answer(requestId, 'yes')).ok).toBe(true);
+    expect(runtime.answerPermission).toHaveBeenCalledWith(s.sessionId, requestId, 'yes');
+    vi.mocked(runtime.answerPermission).mockRejectedValueOnce(new Error('权限请求已结束或不存在'));
+    expect(await answer(requestId, null)).toMatchObject({ ok: false, error: { code: 'conflict', message: '权限请求已结束或不存在' } });
   });
   it('keeps verifier unavailable and rejects review of a failed run', async () => {
     const { app, runtime } = await make();

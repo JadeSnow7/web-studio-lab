@@ -51,6 +51,7 @@ describe('edu-only import protocol boundary', () => {
     const valid = {
       conversationId: 'conv-personal-default',
       text: 'run task',
+      harness: { harnessId: 'codex', profileId: 'codex:default', profileDir: null },
       references: {
         accountId: 'account-fixture',
         workspaceId: null,

@@ -1,3 +1,4 @@
+import { codexHarnessRuntime } from './harness-test-fixture';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
@@ -22,6 +23,7 @@ async function setup() {
     }),
   };
   const runtime: WorkbenchRuntime = {
+    ...codexHarnessRuntime,
     environmentsList: vi.fn().mockResolvedValue([
       {
         environmentId: 'local',

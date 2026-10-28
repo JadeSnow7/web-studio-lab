@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CodexChat } from './codex-chat';
+import { CodexChat, type ChatHarness } from './codex-chat';
 import { GuestProcess, SbxConnection, type GuestFrame, type GuestOutcome } from './sbx';
 import { claudeCodeAcp } from './harness/acp/agents';
 
@@ -30,7 +30,7 @@ afterEach(async () => {
     vi.restoreAllMocks();
   }
 });
-function setup(initial = Promise.resolve(status)) {
+function setup(initial = Promise.resolve(status), harnesses: readonly ChatHarness[] = [{ kind: 'acp', spec: claudeCodeAcp }]) {
   const connection = new SbxConnection();
   vi.spyOn(connection, 'initialize').mockReturnValue(initial);
   vi.spyOn(connection, 'getStatus').mockReturnValue(status);
@@ -86,11 +86,79 @@ function setup(initial = Promise.resolve(status)) {
     });
     return remote;
   });
-  const chat = new CodexChat('.', () => undefined, connection, { kind: 'acp', spec: claudeCodeAcp });
+  const chat = new CodexChat('.', () => undefined, connection, harnesses);
   return { chat, connection, transports };
 }
 
 describe('ACP availability probe shutdown ownership', () => {
+  it.each(['unknown', 'shutdown'] as const)('does not advance to another Harness after %s probe cleanup', async (kind) => {
+    const harnesses: ChatHarness[] = [
+      { kind: 'acp', spec: claudeCodeAcp },
+      { kind: 'acp', spec: { ...claudeCodeAcp, harnessId: 'second-agent' } },
+    ];
+    const { chat, connection, transports } = setup(Promise.resolve(status), harnesses);
+    const initializing = chat.initialize();
+    await tick();
+    const probe = transports[0];
+    if (!probe) throw new Error('missing probe');
+    let shutting: Promise<void> | undefined;
+    try {
+      if (kind === 'shutdown') shutting = chat.shutdown();
+      probe.reply();
+      probe.done.resolve(kind === 'unknown' ? unknown : success);
+      probe.closing.resolve(kind === 'unknown' ? unknown : success);
+      const result = await initializing;
+      expect(connection.start).toHaveBeenCalledTimes(1);
+      expect(result.harnesses.map((entry) => entry.available)).toEqual([false, false]);
+      if (kind === 'unknown') {
+        await chat.initialize();
+        expect(connection.start).toHaveBeenCalledTimes(1);
+        await expect(chat.shutdown()).rejects.toThrow('fixture cleanup unknown');
+      } else await shutting;
+    } finally {
+      for (const active of transports) {
+        active.reply();
+        active.done.resolve(success);
+        active.closing.resolve(success);
+      }
+      await initializing;
+      await shutting;
+    }
+  });
+  it('publishes each Harness only after its own confirmed probe cleanup', async () => {
+    const harnesses: ChatHarness[] = [
+      { kind: 'acp', spec: claudeCodeAcp },
+      { kind: 'acp', spec: { ...claudeCodeAcp, harnessId: 'second-agent' } },
+    ];
+    const { chat, connection, transports } = setup(Promise.resolve(status), harnesses);
+    const initializing = chat.initialize();
+    try {
+      await tick();
+      const first = transports[0];
+      if (!first) throw new Error('missing first probe');
+      first.reply();
+      first.done.resolve(success);
+      first.closing.resolve(success);
+      await tick();
+      expect(connection.start).toHaveBeenCalledTimes(2);
+      expect(chat.getStatus().harnesses.map((entry) => entry.available)).toEqual([true, false]);
+      const second = transports[1];
+      if (!second) throw new Error('missing second probe');
+      second.reply();
+      second.done.resolve(success);
+      second.closing.resolve(success);
+      expect((await initializing).harnesses.map((entry) => entry.available)).toEqual([true, true]);
+      await chat.shutdown();
+      expect(chat.getStatus().harnesses.map((entry) => entry.available)).toEqual([false, false]);
+    } finally {
+      for (const active of transports) {
+        active.reply();
+        active.done.resolve(success);
+        active.closing.resolve(success);
+      }
+      await initializing;
+    }
+  });
   it('does not advertise a successful handshake until cleanup is confirmed', async () => {
     const { chat, transports } = setup();
     const initializing = chat.initialize();
@@ -100,12 +168,12 @@ describe('ACP availability probe shutdown ownership', () => {
     probe.reply();
     await tick();
     try {
-      expect(chat.getStatus().available).toBe(false);
+      expect(chat.getStatus().harnesses[0]?.available).toBe(false);
     } finally {
       probe.done.resolve(success);
       probe.closing.resolve(success);
     }
-    expect((await initializing).available).toBe(true);
+    expect((await initializing).harnesses[0]?.available).toBe(true);
     await chat.shutdown();
     expect(probe.close).not.toHaveBeenCalled();
   });
@@ -121,7 +189,7 @@ describe('ACP availability probe shutdown ownership', () => {
     probe.reply();
     probe.done.resolve(outcome);
     probe.closing.resolve(outcome);
-    expect((await initializing).available).toBe(false);
+    expect((await initializing).harnesses[0]?.available).toBe(false);
     await chat.shutdown();
   });
 
@@ -150,16 +218,18 @@ describe('ACP availability probe shutdown ownership', () => {
     });
     // This local Agent acknowledges receipt on stderr but never answers initialize.
     const script = `require('node:readline').createInterface({input:process.stdin}).on('line',()=>process.stderr.write('ACP_TEST_PID:'+process.pid+'\\n'));`;
-    const chat = new CodexChat('.', () => undefined, connection, {
-      kind: 'acp',
-      spec: { ...claudeCodeAcp, command: [process.execPath, '-e', script] },
-    });
+    const chat = new CodexChat('.', () => undefined, connection, [
+      {
+        kind: 'acp',
+        spec: { ...claudeCodeAcp, command: [process.execPath, '-e', script] },
+      },
+    ]);
     const initializing = chat.initialize();
     try {
       await initialized.promise;
       expect(agentPid).toBeDefined();
       await chat.shutdown();
-      expect((await initializing).available).toBe(false);
+      expect((await initializing).harnesses[0]?.available).toBe(false);
       expect(await remote?.done).toMatchObject({ confirmed: true });
       for (const pid of [agentPid, helperPid]) {
         expect(pid).toBeDefined();
@@ -195,7 +265,7 @@ describe('ACP availability probe shutdown ownership', () => {
       await initialization;
       await shutting;
     }
-    expect(chat.getStatus().available).toBe(false);
+    expect(chat.getStatus().harnesses[0]?.available).toBe(false);
   });
   it('does not start an ACP process when connection initialization completes after shutdown', async () => {
     const initial = deferred<typeof status>();
@@ -214,7 +284,7 @@ describe('ACP availability probe shutdown ownership', () => {
       }
       await initialization;
     }
-    expect(chat.getStatus().available).toBe(false);
+    expect(chat.getStatus().harnesses[0]?.available).toBe(false);
   });
   it('deduplicates initialization so shutdown cannot lose an earlier probe', async () => {
     const { chat, connection, transports } = setup();
@@ -242,7 +312,7 @@ describe('ACP availability probe shutdown ownership', () => {
     probe.reply();
     probe.done.resolve(unknown);
     probe.closing.resolve(unknown);
-    expect((await initializing).available).toBe(false);
+    expect((await initializing).harnesses[0]?.available).toBe(false);
     await expect(chat.shutdown()).rejects.toThrow('fixture cleanup unknown');
   });
   it('records rejected completion without an unhandled rejection and fails shutdown', async () => {
@@ -254,7 +324,7 @@ describe('ACP availability probe shutdown ownership', () => {
     probe.done.reject(new Error('fixture done rejected'));
     probe.closing.reject(new Error('fixture close rejected'));
     await expect(chat.shutdown()).rejects.toThrow('fixture close rejected');
-    expect((await initializing).available).toBe(false);
+    expect((await initializing).harnesses[0]?.available).toBe(false);
   });
   it('keeps protocol failure unavailable after confirmed physical cleanup', async () => {
     const { chat, transports } = setup();
@@ -265,7 +335,7 @@ describe('ACP availability probe shutdown ownership', () => {
     probe.reply({ protocolVersion: 999, agentCapabilities: {}, authMethods: [] });
     probe.done.resolve(success);
     probe.closing.resolve(success);
-    expect(await initializing).toMatchObject({ available: false, reason: expect.stringContaining('不兼容') });
+    expect((await initializing).harnesses[0]).toMatchObject({ available: false, reason: expect.stringContaining('不兼容') });
     await chat.shutdown();
   });
 });

@@ -51,8 +51,17 @@ const studio: StudioApi & { debug?: StudioDebugApi } = {
     },
     cancel: (conversationId) => invoke('chat:cancel', { conversationId }),
     reset: (conversationId) => invoke('chat:reset', { conversationId }),
+    answerPermission: (conversationId, requestId, optionId) => invoke('chat:permission-reply', { conversationId, requestId, optionId }),
     onStatus: (listener) => subscribe('chat:status', listener),
     onConversation: (listener) => subscribe('chat:conversation', listener),
+    profiles: {
+      get: () => invoke('chat:profiles-get'),
+      create: (label) => invoke('chat:profiles-create', { label }),
+      check: (profileId) => invoke('chat:profiles-check', { profileId }),
+      remove: (profileId) => invoke('chat:profiles-remove', { profileId }),
+      setDefault: (selection) => invoke('chat:profiles-default', selection),
+      onChange: (listener) => subscribe('chat:profiles', listener),
+    },
   },
   app: {
     getInfo: () => invoke('app:get-info'),

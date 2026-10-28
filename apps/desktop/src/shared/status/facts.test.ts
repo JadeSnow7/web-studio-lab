@@ -231,7 +231,7 @@ describe('projectFacts: 全局事实', () => {
   it('chat 三种情形：读取中、可用、不可用', () => {
     const pending = find(projectFacts(input()), 'chat:global:state')!;
     expect(pending).toMatchObject({ phase: 'pending', kind: 'steady', label: '正在读取对话状态' });
-    const chat: ChatStatus = { available: true, reason: null, version: '0.160.0', sandbox: 'sbx-1', cwd: '/work' };
+    const chat: ChatStatus = { available: true, reason: null, version: '0.160.0', sandbox: 'sbx-1', cwd: '/work', harnesses: [] };
     expect(find(projectFacts(input({ chat })), 'chat:global:state')).toMatchObject({
       phase: 'ok',
       kind: 'steady',
@@ -1193,7 +1193,7 @@ describe('projectFacts: 观察与文件', () => {
 
 describe('projectFacts: 键、raw 白名单、限制与纯度', () => {
   const maximal = () => {
-    const chat: ChatStatus = { available: false, reason: '沙箱未启动', version: null, sandbox: null, cwd: null };
+    const chat: ChatStatus = { available: false, reason: '沙箱未启动', version: null, sandbox: null, cwd: null, harnesses: [] };
     return input({
       chat,
       execution: execution(),
@@ -1338,7 +1338,7 @@ describe('projectFacts: 键、raw 白名单、限制与纯度', () => {
   it('label ≤120、detail ≤300 字符', () => {
     const facts = projectFacts(
       input({
-        chat: { available: false, reason: 'r'.repeat(1000), version: null, sandbox: null, cwd: null },
+        chat: { available: false, reason: 'r'.repeat(1000), version: null, sandbox: null, cwd: null, harnesses: [] },
         snapshot: snapshot(
           {
             resources: [
@@ -1380,7 +1380,9 @@ describe('projectFacts: 键、raw 白名单、限制与纯度', () => {
   it('凭据先脱敏再截断：横跨 detail 截断边界的 sk- token 不留下残片', () => {
     const token = `sk-${'AbCd1234'.repeat(8)}`;
     const detail = `${'x'.repeat(285)} ${token} ${'y'.repeat(50)}`;
-    const facts = projectFacts(input({ chat: { available: false, reason: detail, version: null, sandbox: null, cwd: null } }));
+    const facts = projectFacts(
+      input({ chat: { available: false, reason: detail, version: null, sandbox: null, cwd: null, harnesses: [] } }),
+    );
     const fact = find(facts, 'chat:global:state')!;
     expect(fact.detail).not.toMatch(/sk-/);
     expect(fact.detail!.length).toBeLessThanOrEqual(300);

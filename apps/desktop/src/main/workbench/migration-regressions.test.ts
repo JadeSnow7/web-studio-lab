@@ -1,3 +1,4 @@
+import { codexHarnessRuntime } from './harness-test-fixture';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -67,6 +68,7 @@ function setup() {
     }),
   };
   const runtime: WorkbenchRuntime = {
+    ...codexHarnessRuntime,
     registerSession: vi.fn(),
     environmentsList: vi.fn().mockResolvedValue([
       {

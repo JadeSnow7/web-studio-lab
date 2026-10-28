@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { projectConversation, type ChatState } from './chat';
 import type { ChatConversation } from '@wsl/protocol';
-const initial: ChatState = { status: null, conversations: {}, errors: {}, pending: {} };
+const initial: ChatState = { status: null, conversations: {}, errors: {}, pending: {}, profiles: null, profilesError: null };
 const snapshot: ChatConversation = {
   conversationId: 'conv-personal-default',
   generation: 'new',

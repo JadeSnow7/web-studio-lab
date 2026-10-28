@@ -58,7 +58,13 @@ describe('Harness 协议（W2）', () => {
       },
       capabilitySource: 'declared',
     });
-    expect(harnessRefOf(descriptor)).toEqual({ harnessId: 'codex', displayName: 'Codex CLI', adapter: 'native', version: '0.160.0' });
+    expect(harnessRefOf(descriptor, 'codex:default')).toEqual({
+      harnessId: 'codex',
+      displayName: 'Codex CLI',
+      adapter: 'native',
+      version: '0.160.0',
+      profileId: 'codex:default',
+    });
   });
   it('旧版 HarnessStatus / RunRecord 的 harness 不带 harnessId 仍可解析，名称不再限定为 Codex', () => {
     expect(

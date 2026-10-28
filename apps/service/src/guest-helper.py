@@ -8,8 +8,10 @@ import fcntl
 import json
 import os
 import pty
+import re
 import select
 import socket
+import stat
 import uuid
 import signal
 import shutil
@@ -22,6 +24,10 @@ import time
 
 PREFIX = "WSL_GUEST_FRAME:"
 CWD = "/home/agent/workspace"
+# Profile config directories (W4): only <root>/<harnessId>/<uuid v4>, mapped to one declared variable.
+PROFILE_HOME = "/home/agent"
+PROFILE_PATH = re.compile(r"^/home/agent/\.wsl-profiles/[a-z][a-z0-9-]{0,39}/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+PROFILE_ENVS = ("CLAUDE_CONFIG_DIR", "CODEX_HOME")
 TERMINAL_RC_BASE64 = ""
 OWNED_PROCESS_BASE64 = ""
 RESOURCE_MCP_BASE64 = ""  # Replaced only by the trusted host build, never by a page or frame.
@@ -273,7 +279,7 @@ def read_start():
     start = json.loads(first)
     if not isinstance(start, dict) or start.get("type") != "start" or start.get("mode") not in ("codex", "terminal"):
         raise ValueError("invalid start frame")
-    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "mcp", "stdin", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "duplex", "eduOwner"}
+    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "mcp", "stdin", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "profileDir", "duplex", "eduOwner"}
     for key in ("observation", "observationImages", "duplex"):
         if key in start and type(start[key]) is not bool:
             raise ValueError("invalid observation capability")
@@ -282,15 +288,37 @@ def read_start():
     # relay keeps the child's stdin open for a long-lived protocol (ACP); the prompt then travels as input frames.
     if "stdin" in start and (start["stdin"] != "relay" or "prompt" in start):
         raise ValueError("invalid stdin mode")
+    if "profileDir" in start:
+        profile = start["profileDir"]
+        if (not isinstance(profile, dict) or set(profile) != {"env", "path"} or profile["env"] not in PROFILE_ENVS
+                or not isinstance(profile["path"], str) or not PROFILE_PATH.match(profile["path"])):
+            raise ValueError("invalid profile directory")
     if set(start) - allowed:
         raise ValueError("unknown start fields")
     return start
+
+
+def prepare_profile_dir(path):
+    """Create the profile directory one component at a time; every component must be a real directory we own."""
+    current = PROFILE_HOME
+    for part in path[len(PROFILE_HOME) + 1:].split("/"):
+        current = os.path.join(current, part)
+        try:
+            os.mkdir(current, 0o700)
+        except FileExistsError:
+            pass
+        info = os.lstat(current)
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
+            raise ValueError("invalid profile directory")
+    return current
 
 
 def main(start):
     os.makedirs(CWD, exist_ok=True)
     env = dict(os.environ)
     env["PATH"] = "/usr/local/bin:/usr/local/share/npm-global/bin:" + env.get("PATH", "")
+    if "profileDir" in start:
+        env[start["profileDir"]["env"]] = prepare_profile_dir(start["profileDir"]["path"])
     terminal = start["mode"] == "terminal"
     relay = not terminal and start.get("stdin") == "relay"
     relay_fd = None

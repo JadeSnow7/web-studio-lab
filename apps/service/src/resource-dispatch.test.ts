@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ChatServiceRequestSchema, invokeChannels } from '@wsl/protocol';
 import { emptyReferences } from './reference-test-fixture';
+import { CODEX_DEFAULT_TURN } from './codex-chat';
 describe('resource authority IPC seam', () => {
   it.each(['resources.list', 'resources.save', 'resources.remove'])('retires service %s writes and reads', (method) => {
     expect(ChatServiceRequestSchema.safeParse({ id: 'legacy', method, payload: { spaceId: 'taskflow-demo' } }).success).toBe(false);
@@ -15,6 +16,19 @@ describe('resource authority IPC seam', () => {
         id: 'send',
         method: 'send',
         payload: { conversationId: 'conv-personal-default', text: 'read', references: emptyReferences('conv-personal-default') },
+      }).success,
+    ).toBe(false);
+    // W4a：发送还必须带 Main 解析的 Harness 与 Profile。
+    expect(
+      ChatServiceRequestSchema.safeParse({
+        id: 'send',
+        method: 'send',
+        payload: {
+          conversationId: 'conv-personal-default',
+          text: 'read',
+          references: emptyReferences('conv-personal-default'),
+          harness: CODEX_DEFAULT_TURN,
+        },
       }).success,
     ).toBe(true);
   });

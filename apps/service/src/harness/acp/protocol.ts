@@ -97,6 +97,7 @@ export const RequestPermissionParamsSchema = z
   })
   .passthrough();
 export type RequestPermissionParams = z.infer<typeof RequestPermissionParamsSchema>;
+export type PermissionOption = z.infer<typeof PermissionOptionSchema>;
 export type PermissionOutcome = { outcome: { outcome: 'selected'; optionId: string } | { outcome: 'cancelled' } };
 
 export function textOf(block: unknown): string | null {

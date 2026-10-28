@@ -1,3 +1,4 @@
+import { codexHarnessRuntime } from './harness-test-fixture';
 import { catalogSha256 } from './resource-catalog';
 import { catalogForTestSnapshot } from './catalog-test-fixture';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
@@ -15,6 +16,7 @@ it.each([1, 2, 3])(
     const file = path.join(await mkdtemp(path.join(tmpdir(), 'space-app-')), 'workbench.json');
     const repo = new FileWorkbenchRepository(file);
     const runtime = {
+      ...codexHarnessRuntime,
       publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
     } as unknown as WorkbenchRuntime;
     const app = new WorkbenchApplication(
@@ -73,6 +75,7 @@ it.each([1, 2, 3])(
 it('rolls back creation and edits when the repository fails, without invoking runtime create', async () => {
   let fail = false;
   const runtime = {
+    ...codexHarnessRuntime,
     publicResourcesList: vi.fn().mockResolvedValue({ spaceId: 'taskflow-demo', revision: 0, resources: [] }),
     appCreate: vi.fn(async (target) => ({
       ...target,

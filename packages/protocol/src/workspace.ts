@@ -6,7 +6,7 @@ import { SourceChangeSchema } from './source-change';
 import { CatalogSummarySchema, CatalogReferenceSnapshotSchema } from './resource-catalog';
 import { ManagedAppSchema, SpaceAppSchema } from './managed-app';
 import { ChatConversationSchema } from './chat';
-import { HarnessRefSchema } from './harness';
+import { HarnessRefSchema, HarnessSelectionSchema } from './harness';
 import { PageCaptureSchema, PreviewLayoutSchema, PreviewStateSchema } from './preview';
 import { TerminalWriteSchema, TerminalSnapshotSchema } from './terminal';
 
@@ -116,6 +116,8 @@ export const WorkbenchSessionSchema = z.object({
   taskAllowedScopes: z.array(z.string().trim().min(1).max(200)).max(20).default([]),
   contextApplicability: z.enum(['current', 'stale', 'unknown']),
   taskVersions: z.array(WorkbenchTaskVersionSchema),
+  /** 本会话的 Harness 与 Profile；`null` 跟随全局默认（W4-7）。执行创建时冻结进 `harness`，之后不随此字段变化。 */
+  harnessSelection: HarnessSelectionSchema.nullable().default(null),
 });
 export type WorkbenchSession = z.infer<typeof WorkbenchSessionSchema>;
 export const WorkbenchResourceSchema = z.object({
@@ -224,6 +226,8 @@ export const WorkbenchCommandSchema = z.discriminatedUnion('type', [
     theme: WorkspaceSnapshotSchema.shape.theme.optional(),
   }),
   command('saveDraft', { sessionId: Id, draft: z.string().max(32000) }),
+  command('setSessionHarness', { sessionId: Id, selection: HarnessSelectionSchema.nullable() }),
+  command('answerPermission', { sessionId: Id, requestId: z.string().uuid(), optionId: z.string().min(1).max(200).nullable() }),
   command('saveTaskCriteria', {
     sessionId: Id,
     acceptance: WorkbenchSessionSchema.shape.taskAcceptance.removeDefault(),

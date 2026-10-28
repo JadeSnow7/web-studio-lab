@@ -1,3 +1,4 @@
+import { codexHarnessRuntime } from './harness-test-fixture';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -30,7 +31,7 @@ vi.mock('electron', () => ({
         if (name === 'message')
           callback({
             type: 'initialized',
-            status: { available: true, reason: null, version: 'fixture', sandbox: 'fixture', cwd: '/home/agent/workspace' },
+            status: { available: true, reason: null, version: 'fixture', sandbox: 'fixture', cwd: '/home/agent/workspace', harnesses: [] },
             cleanupPending: false,
           });
       },
@@ -133,6 +134,7 @@ async function fixture() {
     return result;
   });
   const runtime: WorkbenchRuntime = {
+    ...codexHarnessRuntime,
     appSourceSnapshot: snapshots,
     appCreate: async (target) => {
       const app: ManagedApp = {

@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Notice } from '../components/Badges';
 import { DEMO_CONTACTS } from '../demo/sampleData';
 import { useStore } from '../lib/store';
-import { harnessDisplayName } from '@wsl/protocol';
-import { chatStore } from '../state/chat';
+import { chatStore, selectedHarnessName } from '../state/chat';
 import { CONVERSATIONS, draftsStore, PERSONAL_CONVERSATION_ID, type ConversationInfo } from '../state/drafts';
 import { Composer } from '../shell/Composer';
 import { ChatMessages } from '../shell/ChatMessages';
@@ -18,7 +17,7 @@ export function ConversationsPage() {
   const [section, setSection] = useState<Section>('agent');
   const [selectedId, setSelectedId] = useState(AGENT_CONVERSATIONS[0]?.id ?? '');
   const drafts = useStore(draftsStore, (d) => d);
-  const harnessName = useStore(chatStore, (state) => harnessDisplayName(state.status));
+  const harnessName = useStore(chatStore, (state) => selectedHarnessName(state));
   const selected = CONVERSATIONS[selectedId] ?? null;
 
   return (

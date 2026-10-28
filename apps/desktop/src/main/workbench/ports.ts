@@ -21,6 +21,8 @@ import type {
   TerminalSnapshot,
   WorkbenchResource,
   HarnessRef,
+  HarnessSelection,
+  TurnHarness,
 } from '@wsl/protocol';
 export class RunDispatchFailure extends Error {
   constructor(
@@ -74,11 +76,19 @@ export interface WorkbenchRuntime {
     text: string,
     scope: ObservationTurnScope | undefined,
     references: CatalogReferenceSnapshot,
+    harness: TurnHarness,
   ): Promise<ChatConversation>;
   cancel(sessionId: string): Promise<ChatConversation>;
+  /** 把用户对权限请求的回复转给执行服务（W4b）；请求已结束或选项不符时抛出。 */
+  answerPermission(sessionId: string, requestId: string, optionId: string | null): Promise<ChatConversation>;
   /** 当前持有 sandbox guest 工作区写入许可的会话；无人持有时为 null。未实现时视为不检查。 */
   writeHolder?(): string | null;
-  /** 对话服务当前使用的 Harness 出处，startRun 时冻结进执行记录；未实现或未报告时为 null。 */
-  currentHarness?(): HarnessRef | null;
+  /**
+   * 解析会话的 Harness 选择（null 为全局默认）：返回冻结进执行记录的出处与本轮参数。
+   * 在元数据队列内同步调用，只读已知结果；Harness 不可用或 Profile 已知未登录时抛出（W4a）。
+   */
+  resolveHarness(selection: HarnessSelection | null): { ref: HarnessRef; turn: TurnHarness };
+  /** 启动路径上补做尚未完成的 Profile 自检；不是已登录时抛出，执行按“从未启动”记为失败。 */
+  prepareHarness(turn: TurnHarness): Promise<void>;
 }
 export type CaptureListener = (resourceId: string, capture: PageCapture) => void;

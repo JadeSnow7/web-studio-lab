@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { harnessDisplayName } from '@wsl/protocol';
 import { useStore } from '../lib/store';
-import { chatActions, chatStore } from '../state/chat';
+import { chatActions, chatStore, selectedHarness, selectedHarnessName } from '../state/chat';
+import { PermissionRequests } from '../components/PermissionRequests';
 
 /** 首页、会话页与右栏展示同一份服务会话；演示消息不进入真实历史。 */
 export function ChatMessages({ conversationId }: { conversationId: string }) {
@@ -9,6 +9,9 @@ export function ChatMessages({ conversationId }: { conversationId: string }) {
   const error = useStore(chatStore, (state) => state.errors[conversationId]);
   const pending = useStore(chatStore, (state) => state.pending[conversationId]);
   const status = useStore(chatStore, (state) => state.status);
+  // 个人对话按全局默认的 Harness 与 Profile 执行（W4-7）；名称与版本取自该 Harness 的报告。
+  const harnessName = useStore(chatStore, (state) => selectedHarnessName(state));
+  const harness = useStore(chatStore, (state) => selectedHarness(state));
   const list = useRef<HTMLDivElement>(null);
   const nearBottom = useRef(true);
   useEffect(() => {
@@ -19,8 +22,8 @@ export function ChatMessages({ conversationId }: { conversationId: string }) {
     <>
       <div className="row space-between">
         <span className="muted small" aria-label="对话执行环境">
-          sbx · {status?.sandbox ?? '未选择沙箱'} · {status?.cwd ?? '工作目录未读取'} · {harnessDisplayName(status)} ·{' '}
-          {status?.available ? status.version : (status?.reason ?? '检查中')} · 应用内消息仅本次启动可见
+          sbx · {status?.sandbox ?? '未选择沙箱'} · {status?.cwd ?? '工作目录未读取'} · {harnessName} ·{' '}
+          {harness?.available ? harness.descriptor.version : (harness?.reason ?? status?.reason ?? '检查中')} · 应用内消息仅本次启动可见
         </span>
         <button type="button" className="btn btn-ghost" disabled={pending || busy} onClick={() => void chatActions.reset(conversationId)}>
           开始新对话
@@ -41,12 +44,16 @@ export function ChatMessages({ conversationId }: { conversationId: string }) {
           conversation.messages.map((message) => (
             <div key={message.id} className={`message message-${message.role === 'user' ? 'user' : 'agent'}`}>
               <p style={{ whiteSpace: 'pre-wrap' }}>{message.text}</p>
-              <span>{message.role === 'user' ? '你' : harnessDisplayName(status)}</span>
+              <span>{message.role === 'user' ? '你' : harnessName}</span>
             </div>
           ))
         ) : (
           <p className="muted">还没有消息。发送后将在这里显示真实回复。</p>
         )}
+        <PermissionRequests
+          conversation={conversation}
+          onAnswer={(requestId, optionId) => chatActions.answerPermission(conversationId, requestId, optionId)}
+        />
         {conversation?.toolExecutions.length ? (
           <details className="chat-tools">
             <summary>工具执行 · {conversation.toolExecutions.length} 条</summary>

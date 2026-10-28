@@ -256,12 +256,18 @@ export class AcpTurn {
     if (!parsed.success) throw new AcpProtocolError('ACP 权限请求缺少字段');
     if (this.cancelRequested || this.phase !== 'prompting' || parsed.data.sessionId !== this.sessionId)
       return { outcome: { outcome: 'cancelled' } };
-    const request = parsed.data;
-    // ACP permission updates may contain only the ID; preserve the known tool kind.
-    const kind = request.toolCall.kind ?? this.tools.get(request.toolCall.toolCallId)?.kind;
-    const resolved = kind ? { ...request, toolCall: { ...request.toolCall, kind } } : request;
+    // 请求可能只带 toolCallId：用本轮已知的工具标题与类型补齐，策略与界面据此判断和展示（W4b）。
+    const known = this.tools.get(parsed.data.toolCall.toolCallId);
+    const request = {
+      ...parsed.data,
+      toolCall: {
+        ...parsed.data.toolCall,
+        title: parsed.data.toolCall.title ?? known?.title ?? null,
+        kind: parsed.data.toolCall.kind ?? known?.kind ?? null,
+      },
+    };
     // async 边界把策略的同步抛错与异步拒绝交给同一 cancelled / 待决清理路径。
-    const decide = async () => (this.input.decidePermission ?? denyAllPermissions)(resolved);
+    const decide = async () => (this.input.decidePermission ?? denyAllPermissions)(request);
     return new Promise<PermissionOutcome>((resolve) => {
       this.pendingPermissions.add(resolve);
       decide().then(

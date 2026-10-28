@@ -1,9 +1,11 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { harnessDisplayName, type StatusScope, type WorkbenchSession, type WorkspaceSnapshot, type TargetRef } from '@wsl/protocol';
+import { type StatusScope, type WorkbenchSession, type WorkspaceSnapshot, type TargetRef } from '@wsl/protocol';
 import { StatusDot, StatusSlot } from '../components/Status';
 import { useStore } from '../lib/store';
 import { locationStore } from '../state/location';
-import { chatStore } from '../state/chat';
+import { chatStore, selectedHarnessName } from '../state/chat';
+import { HarnessSelectField } from './HarnessSelect';
+import { PermissionRequests } from '../components/PermissionRequests';
 import { cancelContextCapture, captureContext } from '../state/capture';
 import { occlusion } from '../state/occlusion';
 import { reportError } from '../state/errors';
@@ -246,9 +248,9 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
   const runStatus = useStatusViewByKey(scope, `run:${run?.runId ?? ''}:state`);
   // 对话的版本 · 沙箱 · cwd（不可用时为原因）：不常驻正文，并入对话视图顶部状态点的悬停（合同 A3 chat 段）。
   const chatStatus = useStatusViewByKey(GLOBAL_SCOPE, 'chat:global:state');
-  // 选中执行冻结的 Harness 优先；否则使用对话服务当前报告的 Harness。
-  const serviceHarness = useStore(chatStore, (state) => harnessDisplayName(state.status));
-  const harnessName = run?.harness?.displayName ?? serviceHarness;
+  // 选中执行冻结的 Harness 优先；否则显示本会话的选择（空为全局默认，W4-7）。
+  const sessionHarness = useStore(chatStore, (state) => selectedHarnessName(state, session.harnessSelection));
+  const harnessName = run?.harness?.displayName ?? sessionHarness;
   // 状态槽与上下文页内联的「现场适用性」用同一份分组结果，槽里已是问题的不再在页内重复。
   const slot = useStatusView(scope);
   const composerInput = useRef<HTMLTextAreaElement>(null);
@@ -411,7 +413,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
               <div className="session-run-state">
                 <StatusDot
                   view={(run && runStatus) || chatStatus!}
-                  title={[((run && runStatus) || chatStatus!).label, chatStatus?.detail ? `${serviceHarness} · ${chatStatus.detail}` : null]
+                  title={[((run && runStatus) || chatStatus!).label, chatStatus?.detail ? `${sessionHarness} · ${chatStatus.detail}` : null]
                     .filter(Boolean)
                     .join('\n')}
                 />
@@ -431,6 +433,12 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
                 </p>
               )}
             </div>
+            <PermissionRequests
+              conversation={conversation}
+              onAnswer={(requestId, optionId) =>
+                workspaceCommand(workspace.workspaceId, { type: 'answerPermission', sessionId: session.sessionId, requestId, optionId })
+              }
+            />
             {conversation?.toolExecutions.length ? (
               <details>
                 <summary>工具执行 · {conversation.toolExecutions.length} 条</summary>
@@ -514,6 +522,12 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
                   ))}
               </select>
             </label>
+            <HarnessSelectField
+              selection={session.harnessSelection}
+              onChange={(selection) =>
+                void workspaceCommand(workspace.workspaceId, { type: 'setSessionHarness', sessionId: session.sessionId, selection })
+              }
+            />
             <button
               type="button"
               className="btn"
@@ -702,7 +716,7 @@ export function Session({ workspace, session }: { workspace: WorkspaceSnapshot; 
       <StatusSlot scope={scope} onAction={onAction} omitActions={omitActions} />
       <div className="workspace-composer">
         <span className="sr-only" id={`draft-hint-${sessionId}`}>
-          发送到 · {workspace.name} / {session.title} / {serviceHarness}
+          发送到 · {workspace.name} / {session.title} / {sessionHarness}
         </span>
         <textarea
           ref={composerInput}

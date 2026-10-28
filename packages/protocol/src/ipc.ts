@@ -5,8 +5,9 @@ import { WorkbenchCommandSchema, WorkbenchEventSchema, WorkbenchResultSchema, Wo
 import { z } from 'zod';
 import { RunPatchQuerySchema, RunPatchResultSchema } from './source-change';
 import { AppInfoSchema, ShellCommandSchema } from './app';
-import { ChatConversationSchema, ChatStatusSchema, ChatTargetSchema } from './chat';
+import { ChatConversationSchema, ChatStatusSchema, ChatTargetSchema, PermissionReplySchema } from './chat';
 import { ExecutionStatusSchema } from './execution';
+import { HarnessProfileIdSchema, HarnessProfilesSnapshotSchema, HarnessSelectionSchema } from './harness';
 import { DebugStatusSnapshotSchema, StatusTransitionSchema, type DebugStatusSnapshot, type StatusTransition } from './status';
 
 import {
@@ -43,6 +44,15 @@ export const invokeChannels = {
   'workbench:command': { request: WorkbenchCommandSchema, response: WorkbenchResultSchema },
   'app:get-info': { request: NoArgs, response: AppInfoSchema },
   'chat:get-status': { request: NoArgs, response: ChatStatusSchema },
+  'chat:permission-reply': { request: PermissionReplySchema, response: ChatConversationSchema },
+  'chat:profiles-get': { request: NoArgs, response: HarnessProfilesSnapshotSchema },
+  'chat:profiles-create': {
+    request: z.object({ label: z.string().trim().min(1).max(60) }).strict(),
+    response: HarnessProfilesSnapshotSchema,
+  },
+  'chat:profiles-check': { request: z.object({ profileId: HarnessProfileIdSchema }).strict(), response: HarnessProfilesSnapshotSchema },
+  'chat:profiles-remove': { request: z.object({ profileId: HarnessProfileIdSchema }).strict(), response: HarnessProfilesSnapshotSchema },
+  'chat:profiles-default': { request: HarnessSelectionSchema, response: HarnessProfilesSnapshotSchema },
   'chat:get': { request: ChatTargetSchema, response: ChatConversationSchema },
   'chat:send': { request: PersonalChatSendSchema, response: ChatConversationSchema },
   'chat:cancel': { request: ChatTargetSchema, response: ChatConversationSchema },
@@ -61,6 +71,7 @@ export const eventChannels = {
   'setup:status': SetupSnapshotSchema,
   'workbench:event': WorkbenchEventSchema,
   'chat:status': ChatStatusSchema,
+  'chat:profiles': HarnessProfilesSnapshotSchema,
   'chat:conversation': ChatConversationSchema,
   'shell:command': ShellCommandSchema,
   /** 诊断事件：每条转换（已脱敏）；仅诊断通道启用时发送。 */

@@ -11,7 +11,15 @@ import {
   type ChatConversation,
   type ChatSlot,
   type ChatStatus,
+  type SandboxStatus,
   type CatalogReferenceSnapshot,
+  type HarnessAvailability,
+  type ProfileCheckResult,
+  type ProfileCheckReceipt,
+  type ProfileDir,
+  type TurnHarness,
+  type PermissionRequest,
+  profileDirOf,
 } from '@wsl/protocol';
 import { SbxConnection, GUEST_CWD, type GuestProcess, type GuestOutcome } from './sbx';
 import { codexAdapter } from './harness/codex/adapter';
@@ -20,13 +28,17 @@ import { acpDescriptor, type AcpAgentSpec } from './harness/acp/agents';
 import { AcpClient, AcpMethodNotFound, AcpProtocolError } from './harness/acp/client';
 import { ACP_PROTOCOL_VERSION, InitializeResultSchema, type AcpStdioMcpServer, type InitializeResult } from './harness/acp/protocol';
 import { AcpTurn, acpInitializeParams } from './harness/acp/turn';
-import { workspaceWritePolicy } from './harness/acp/policy';
+import { approvalPolicy } from './harness/acp/policy';
+import type { PermissionOption, PermissionOutcome, RequestPermissionParams } from './harness/acp/protocol';
+import { harnessIdOf } from './harness/registry';
 
 export { parseCodexLine } from './harness/codex/adapter';
 
 /** 执行核心使用的 Harness：native 逐行解析一次性进程的输出；acp 经 stdin relay 与长连接 Agent 往返。 */
 export type ChatHarness = { kind: 'native'; adapter: NativeHarnessAdapter } | { kind: 'acp'; spec: AcpAgentSpec };
 export const CODEX_HARNESS: ChatHarness = { kind: 'native', adapter: codexAdapter };
+/** Codex 内置 Profile 的本轮选择。service 入口总是显式传入 Main 解析的选择；缺省值只供直接驱动执行核心的测试使用。 */
+export const CODEX_DEFAULT_TURN: TurnHarness = { harnessId: 'codex', profileId: 'codex:default', profileDir: null };
 
 interface Turn {
   process: GuestProcess;
@@ -41,8 +53,24 @@ interface Turn {
   completion: Promise<void> | null;
   observation: AbortController;
   calls: Map<string, AbortController>;
+  /** 本轮待用户决定的权限请求（W4b）；settle 答复 Agent、移除快照中的请求并按需发布。 */
+  approvals: Map<
+    string,
+    { request: PermissionRequest; settle: (outcome: PermissionOutcome, note: string | null, publish?: boolean) => void }
+  >;
+}
+interface ProfileCheckOperation {
+  probes: Set<ProfileProbe>;
+  startUnconfirmed: boolean;
+}
+interface ProfileProbe {
+  cleanupConfirmed: boolean;
+  process: GuestProcess;
+  closePromise: Promise<GuestOutcome> | null;
+  cleanupError: string | null;
 }
 interface AcpProbe {
+  entry: RegisteredHarness;
   process: GuestProcess;
   client: AcpClient;
   closePromise: Promise<GuestOutcome> | null;
@@ -50,6 +78,13 @@ interface AcpProbe {
 interface Slot {
   conversation: ChatConversation;
   active: Turn | null;
+  /** 当前 threadId 由哪个 Harness 与 Profile 建立；换用其他组合时不复用该会话身份。 */
+  threadOwner: { harnessId: string; profileId: string } | null;
+}
+interface RegisteredHarness {
+  harness: ChatHarness;
+  acpInit: InitializeResult | null;
+  acpFailure: string | null;
 }
 export class CodexChat {
   private observationReader:
@@ -85,19 +120,25 @@ export class CodexChat {
     _root: string,
     private readonly emit: (conversation: ChatConversation) => void,
     connection = new SbxConnection(),
-    /** 本执行核心使用的 Harness；默认 Codex native。 */
-    private readonly harness: ChatHarness = CODEX_HARNESS,
+    /** 本执行核心可用的全部 Harness；每轮由调用方按 harnessId 选择其一（W4）。 */
+    harnesses: readonly ChatHarness[] = [CODEX_HARNESS],
+    /** 权限请求无人回复时按拒绝处理的时限（W4-10 A：10 分钟）；测试可缩短。 */
+    private readonly approvalTimeoutMs = 600000,
   ) {
     this.connection = connection;
+    for (const harness of harnesses) {
+      const id = harnessIdOf(harness);
+      if (this.harnesses.has(id)) throw new Error(`Harness 重复注册：${id}`);
+      this.harnesses.set(id, { harness, acpInit: null, acpFailure: null });
+    }
   }
+  private readonly harnesses = new Map<string, RegisteredHarness>();
   private initialization: Promise<ChatStatus> | null = null;
   private shutdownPromise: Promise<void> | null = null;
   private acpProbe: AcpProbe | null = null;
-  private acpInit: InitializeResult | null = null;
-  private acpFailure: string | null = null;
-  private get label() {
-    return this.harness.kind === 'native' ? this.harness.adapter.label : this.harness.spec.label;
-  }
+  private readonly profileProbes = new Set<ProfileProbe>();
+  private profileStartUnknown = false;
+  private readonly profileChecks = new Set<Promise<ProfileCheckResult>>();
   async initialize(): Promise<ChatStatus> {
     if (this.closing) return this.getStatus();
     if (this.initialization) return this.initialization;
@@ -112,29 +153,41 @@ export class CodexChat {
   }
   private async initializeHarness(): Promise<ChatStatus> {
     const status = await this.connection.initialize();
-    if (!this.closing && this.harness.kind === 'acp' && status.available) await this.probeAcp(this.harness.spec);
-    return this.withHarness(status);
+    if (status.available) {
+      for (const entry of this.harnesses.values()) {
+        if (this.closing || this.acpProbe) break;
+        if (entry.harness.kind === 'acp') await this.probeAcp(entry);
+      }
+    }
+    return this.withHarnesses(status);
   }
   getStatus(): ChatStatus {
-    return this.withHarness(this.connection.getStatus());
+    return this.withHarnesses(this.connection.getStatus());
   }
-  private withHarness(status: ChatStatus): ChatStatus {
+  private withHarnesses(status: SandboxStatus): ChatStatus {
     if (this.closing) status = { ...status, available: false, reason: '对话服务正在关闭', version: null };
-    if (this.harness.kind === 'native')
-      return { ...status, harness: this.harness.adapter.descriptor(status.available ? status.version : null) };
-    const harness = acpDescriptor(this.harness.spec, this.acpInit);
-    if (!status.available) return { ...status, harness };
-    if (!this.acpInit)
-      return { ...status, available: false, reason: `${this.label} 不可用：${this.acpFailure ?? '尚未完成检查'}`, version: null, harness };
-    return { ...status, version: harness.version, harness };
+    return { ...status, harnesses: [...this.harnesses.values()].map((entry) => this.availability(entry, status)) };
+  }
+  private availability(entry: RegisteredHarness, status: SandboxStatus): HarnessAvailability {
+    const { harness } = entry;
+    if (harness.kind === 'native') {
+      const descriptor = harness.adapter.descriptor(status.available ? status.version : null);
+      return { descriptor, available: status.available, reason: status.available ? null : status.reason };
+    }
+    const descriptor = acpDescriptor(harness.spec, entry.acpInit);
+    if (!status.available) return { descriptor, available: false, reason: status.reason };
+    if (!entry.acpInit)
+      return { descriptor, available: false, reason: `${harness.spec.label} 不可用：${entry.acpFailure ?? '尚未完成检查'}` };
+    return { descriptor, available: true, reason: null };
   }
   /**
    * 可用性探测：在 guest 内启动 ACP Agent，只发 initialize（不调用模型），据回复声明能力，然后关闭 stdin 并确认清理。
-   * 清理未确认时判为不可用，避免留下未知进程。
+   * 清理未确认时判为不可用，避免留下未知进程。探测使用默认配置目录，不代表任何 Profile 已登录。
    */
-  private async probeAcp(spec: AcpAgentSpec) {
-    this.acpInit = null;
-    this.acpFailure = null;
+  private async probeAcp(entry: RegisteredHarness) {
+    const spec = (entry.harness as Extract<ChatHarness, { kind: 'acp' }>).spec;
+    entry.acpInit = null;
+    entry.acpFailure = null;
     let buffer = '';
     const probe = this.connection.start({ type: 'start', mode: 'codex', argv: spec.command, stdin: 'relay' }, (frame) => {
       if (frame.type !== 'output' || frame.stream !== 'stdout') return;
@@ -156,7 +209,7 @@ export class CodexChat {
         throw new AcpMethodNotFound(method);
       },
     });
-    const owned: AcpProbe = { process: probe, client, closePromise: null };
+    const owned: AcpProbe = { entry, process: probe, client, closePromise: null };
     this.acpProbe = owned;
     const exited = probe.done.then(
       () => client.close('Agent 进程在初始化前退出'),
@@ -169,7 +222,7 @@ export class CodexChat {
       if (init.protocolVersion !== ACP_PROTOCOL_VERSION) throw new AcpProtocolError(`ACP 协议版本不兼容：${init.protocolVersion}`);
       initialized = init;
     } catch (error) {
-      this.acpFailure = (error as Error).message;
+      entry.acpFailure = (error as Error).message;
     } finally {
       clearTimeout(timer);
       client.close('探测结束');
@@ -193,10 +246,10 @@ export class CodexChat {
       if (this.acpProbe === owned) this.acpProbe = null;
       if (settled.error || settled.exitCode !== 0) throw new Error(settled.error ?? '探测进程异常退出');
       // A shutdown or failed cleanup cannot publish late availability.
-      if (!this.closing) this.acpInit = initialized;
+      if (!this.closing) entry.acpInit = initialized;
     } catch (error) {
-      this.acpInit = null;
-      this.acpFailure = error instanceof Error ? error.message : String(error);
+      entry.acpInit = null;
+      entry.acpFailure = error instanceof Error ? error.message : String(error);
     } finally {
       clearTimeout(cleanupTimer);
     }
@@ -205,6 +258,234 @@ export class CodexChat {
     probe.client.close('ACP 探测正在停止');
     probe.closePromise ??= Promise.resolve().then(() => probe.process.close());
     return probe.closePromise;
+  }
+  /**
+   * 无模型自检一个 Profile（W4）：在 guest 内以其配置目录依次运行版本命令与登录状态命令。
+   * 只保留解析出的版本与登录状态；原始输出可能含账号信息，读完即丢弃。清理未确认时结果为 undetermined。
+   */
+  async checkProfile(harnessId: string, profileDir: ProfileDir | null): Promise<ProfileCheckResult> {
+    const receipt = await this.checkProfileReceipt(harnessId, profileDir);
+    if (!receipt.ok) throw new Error(receipt.error);
+    return receipt.result;
+  }
+  async checkProfileReceipt(harnessId: string, profileDir: ProfileDir | null): Promise<ProfileCheckReceipt> {
+    const operation: ProfileCheckOperation = { probes: new Set(), startUnconfirmed: false };
+    const cleanupConfirmed = () => !operation.startUnconfirmed && [...operation.probes].every((probe) => probe.cleanupConfirmed);
+    try {
+      const result = await this.checkProfileResult(harnessId, profileDir, operation);
+      return { type: 'profile-check', ok: true, result, cleanupConfirmed: cleanupConfirmed() };
+    } catch (error) {
+      return {
+        type: 'profile-check',
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+        cleanupConfirmed: cleanupConfirmed(),
+      };
+    }
+  }
+  private async checkProfileResult(
+    harnessId: string,
+    profileDir: ProfileDir | null,
+    operation: ProfileCheckOperation,
+  ): Promise<ProfileCheckResult> {
+    if (this.closing) throw new Error('对话服务正在关闭');
+    const entry = this.harnesses.get(harnessId);
+    if (!entry) throw new Error(`未注册的 Harness：${harnessId}`);
+    this.assertProfileDir(entry.harness, harnessId, profileDir);
+    if (!this.connection.getStatus().available)
+      return { cliVersion: null, login: 'undetermined', reason: this.connection.getStatus().reason };
+    this.assertCleanupKnown();
+    // Register the operation before it can start a process; shutdown owns queued checks too.
+    const checking = Promise.resolve().then(() => this.runProfileCheck(entry, profileDir, operation));
+    this.profileChecks.add(checking);
+    try {
+      return await checking;
+    } finally {
+      this.profileChecks.delete(checking);
+    }
+  }
+  private async runProfileCheck(
+    entry: RegisteredHarness,
+    profileDir: ProfileDir | null,
+    operation: ProfileCheckOperation,
+  ): Promise<ProfileCheckResult> {
+    const check = entry.harness.kind === 'native' ? entry.harness.adapter.selfCheck : entry.harness.spec.selfCheck;
+    const run = async (argv: string[]) => {
+      if (this.closing) throw new Error('对话服务正在关闭');
+      this.assertCleanupKnown();
+      let stdout = '';
+      let stderr = '';
+      operation.startUnconfirmed = true;
+      let process: GuestProcess;
+      try {
+        process = this.connection.start({ type: 'start', mode: 'codex', argv, ...(profileDir ? { profileDir } : {}) }, (frame) => {
+          if (frame.type !== 'output') return;
+          if (frame.stream === 'stdout' && stdout.length < 65536) stdout += frame.data;
+          if (frame.stream === 'stderr' && stderr.length < 65536) stderr += frame.data;
+        });
+      } catch (error) {
+        // A throwing start cannot prove that no process was created before returning ownership.
+        this.profileStartUnknown = true;
+        throw error;
+      }
+      const owned: ProfileProbe = { process, closePromise: null, cleanupError: null, cleanupConfirmed: false };
+      this.profileProbes.add(owned);
+      operation.probes.add(owned);
+      operation.startUnconfirmed = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        // start is synchronous, but its callbacks may already have closed admission.
+        const outcome = this.closing
+          ? await this.closeProfileProbe(owned)
+          : await Promise.race([
+              process.done,
+              new Promise<null>((resolve) => {
+                timer = setTimeout(() => resolve(null), 30000);
+              }),
+            ]);
+        const settled = outcome ?? (await this.closeProfileProbe(owned));
+        if (!settled.confirmed) {
+          owned.cleanupError = settled.error ?? '自检进程清理未确认';
+          return { stdout, stderr, settled };
+        }
+        // A close response cannot substitute for the owned process's actual completion.
+        const completed = await process.done;
+        if (completed.confirmed) {
+          owned.cleanupConfirmed = true;
+          this.profileProbes.delete(owned);
+        } else owned.cleanupError = completed.error ?? '自检进程清理未确认';
+        return { stdout, stderr, settled: { ...completed, error: settled.error ?? completed.error } };
+      } catch (error) {
+        owned.cleanupError = error instanceof Error ? error.message : String(error);
+        throw error;
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+    const version = await run(check.versionArgv);
+    if (this.closing) throw new Error('对话服务正在关闭');
+    if (!version.settled.confirmed || version.settled.error)
+      return { cliVersion: null, login: 'undetermined', reason: version.settled.error ?? '自检进程清理未确认' };
+    const cliVersion = version.settled.exitCode === 0 ? version.stdout.trim().split('\n')[0]?.slice(0, 200) || null : null;
+    const status = await run(check.statusArgv);
+    if (this.closing) throw new Error('对话服务正在关闭');
+    if (!status.settled.confirmed || status.settled.error)
+      return { cliVersion, login: 'undetermined', reason: status.settled.error ?? '自检进程清理未确认' };
+    const login = check.parseStatus(status.settled.exitCode, status.stdout, status.stderr);
+    return {
+      cliVersion,
+      login,
+      reason: login === 'undetermined' ? `无法从登录状态命令判断（退出码 ${String(status.settled.exitCode)}）` : null,
+    };
+  }
+  private closeProfileProbe(probe: ProfileProbe): Promise<GuestOutcome> {
+    probe.closePromise ??= Promise.resolve()
+      .then(() => probe.process.close())
+      .catch((error: unknown) => {
+        probe.cleanupError = error instanceof Error ? error.message : String(error);
+        throw error;
+      });
+    return probe.closePromise;
+  }
+  /** 配置目录必须正好是该 Profile 的约定目录，并映射到该 Harness 声明的环境变量；内置 Profile 不带目录。 */
+  private assertProfileDir(harness: ChatHarness, harnessId: string, profileDir: ProfileDir | null, profileId?: string) {
+    if (!profileDir) {
+      if (profileId !== undefined && !profileId.endsWith(':default')) throw new Error('非内置 Profile 缺少配置目录');
+      return;
+    }
+    const env = harness.kind === 'native' ? harness.adapter.configDirEnv : harness.spec.configDirEnv;
+    const id = profileDir.path.split('/').at(-1) ?? '';
+    const expected = profileDirOf(harnessId, profileId ?? id);
+    if (!env || env !== profileDir.env || !expected || expected.path !== profileDir.path || expected.env !== profileDir.env)
+      throw new Error('Profile 配置目录与 Harness 声明不符');
+  }
+  private warn(slot: Slot, text: string) {
+    const warning = text.slice(0, 2000);
+    if (!slot.conversation.warnings.includes(warning)) slot.conversation.warnings.push(warning);
+    slot.conversation.warnings = slot.conversation.warnings.slice(-20);
+  }
+  /**
+   * 把一个权限请求交给用户（W4b）：写入会话快照并等待回复；截止时间到后按拒绝处理。
+   * 轮次结束、取消或失败时由 settleApprovals 以 cancelled 收尾。
+   */
+  private ask(slot: Slot, turn: Turn, params: RequestPermissionParams, options: PermissionOption[]): Promise<PermissionOutcome> {
+    const cancelled: PermissionOutcome = { outcome: { outcome: 'cancelled' } };
+    const title = (params.toolCall.title ?? params.toolCall.toolCallId).slice(0, 200);
+    const once = options
+      .filter((option) => option.optionId.length <= 200)
+      .slice(0, 4)
+      .map((option) => ({ optionId: option.optionId, name: option.name.slice(0, 200), kind: option.kind as 'allow_once' | 'reject_once' }));
+    const rejection = (): PermissionOutcome => {
+      const reject = once.find((option) => option.kind === 'reject_once');
+      return reject ? { outcome: { outcome: 'selected', optionId: reject.optionId } } : cancelled;
+    };
+    if (slot.active !== turn || turn.cancel || turn.failure || !slot.conversation.turnId) return Promise.resolve(cancelled);
+    if (!once.some((option) => option.kind === 'allow_once')) {
+      this.warn(slot, `已拒绝 ${title} 的权限请求：没有可用的一次性允许选项`);
+      return Promise.resolve(rejection());
+    }
+    if (turn.approvals.size >= 4) {
+      this.warn(slot, `已拒绝 ${title} 的权限请求：待决请求过多`);
+      return Promise.resolve(rejection());
+    }
+    const now = Date.now();
+    const request: PermissionRequest = {
+      requestId: randomUUID(),
+      turnId: slot.conversation.turnId,
+      toolCallId: params.toolCall.toolCallId.slice(0, 200),
+      title,
+      kind: (params.toolCall.kind ?? 'unknown').slice(0, 40),
+      options: once,
+      requestedAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + this.approvalTimeoutMs).toISOString(),
+    };
+    return new Promise<PermissionOutcome>((resolve) => {
+      const settle = (outcome: PermissionOutcome, note: string | null, publish = true) => {
+        if (!turn.approvals.delete(request.requestId)) return;
+        clearTimeout(timer);
+        slot.conversation.permissionRequests = (slot.conversation.permissionRequests ?? []).filter(
+          (item) => item.requestId !== request.requestId,
+        );
+        if (note) this.warn(slot, note);
+        if (publish && slot.active === turn) {
+          try {
+            this.publish(slot);
+          } catch (error) {
+            this.completionFailed(slot, turn, error);
+          }
+        }
+        resolve(outcome);
+      };
+      const timer = setTimeout(() => settle(rejection(), `${title} 的权限请求在截止时间前未回复，已按拒绝处理`), this.approvalTimeoutMs);
+      turn.approvals.set(request.requestId, { request, settle });
+      slot.conversation.permissionRequests = [...(slot.conversation.permissionRequests ?? []), request];
+      this.publish(slot);
+    });
+  }
+  /** 轮次结束、取消或失败：待决请求一律以 cancelled 答复并移除，不单独发布（调用方随后发布终态）。 */
+  private settleApprovals(turn: Turn) {
+    for (const { settle } of [...turn.approvals.values()]) settle({ outcome: { outcome: 'cancelled' } }, null, false);
+  }
+  /**
+   * 用户对权限请求的回复（W4b）。只接受当前轮次仍待决的请求与其一次性选项；optionId 为 null 表示拒绝。
+   * 已结束、已超时或重复的回复报错，不产生决定。
+   */
+  answerPermission(id: ChatSlot, requestId: string, optionId: string | null): ChatConversation {
+    const turn = this.slots.get(id)?.active;
+    const entry = turn?.approvals.get(requestId);
+    if (!turn || !entry || turn.cancel || turn.failure || turn.finishing) throw new Error('权限请求已结束或不存在');
+    const { request } = entry;
+    const option =
+      optionId === null
+        ? request.options.find((item) => item.kind === 'reject_once')
+        : request.options.find((item) => item.optionId === optionId);
+    if (optionId !== null && !option) throw new Error('选项不属于该权限请求');
+    const allowed = option?.kind === 'allow_once';
+    entry.settle(
+      option ? { outcome: { outcome: 'selected', optionId: option.optionId } } : { outcome: { outcome: 'cancelled' } },
+      allowed ? `已允许 ${request.title}（用户，一次）` : `已拒绝 ${request.title} 的权限请求（用户）`,
+    );
+    return this.get(id);
   }
   private slot(id: ChatSlot): Slot {
     let slot = this.slots.get(id);
@@ -220,10 +501,12 @@ export class CodexChat {
           messages: [],
           toolExecutions: [],
           warnings: [],
+          permissionRequests: [],
           cleanupPending: false,
           error: null,
         },
         active: null,
+        threadOwner: null,
       };
       this.slots.set(id, slot);
     }
@@ -239,6 +522,8 @@ export class CodexChat {
     return snapshot;
   }
   private assertCleanupKnown(): void {
+    if (this.profileStartUnknown) throw new Error('自检进程启动归属未确认');
+    for (const probe of this.profileProbes) if (probe.cleanupError) throw new Error(probe.cleanupError);
     if (this.connection.getCleanupPending()) throw new Error('共享 sandbox 清理状态未知');
     for (const slot of this.slots.values()) {
       if (slot.active?.cleanupError) throw new Error(slot.active.cleanupError);
@@ -249,6 +534,7 @@ export class CodexChat {
     if (slot.active !== turn) return;
     const reason = error instanceof Error ? error.message : String(error);
     turn.failure ??= reason;
+    this.settleApprovals(turn);
     turn.observation.abort();
     if (!turn.cleanupConfirmed) turn.cleanupError ??= reason;
     slot.conversation.state = 'failed';
@@ -275,6 +561,7 @@ export class CodexChat {
     text: string,
     observationScope: ObservationTurnScope | undefined,
     references: CatalogReferenceSnapshot,
+    turnHarness: TurnHarness = CODEX_DEFAULT_TURN,
   ): Promise<ChatConversation> {
     if (this.closing) throw new Error('对话服务正在关闭');
     if (id !== 'conv-personal-default' && !this.workspaceBySession.has(id)) throw new Error('会话尚未由宿主注册');
@@ -283,8 +570,13 @@ export class CodexChat {
       if (observationScope.sessionId !== id || this.workspaceBySession.get(id) !== observationScope.workspaceId)
         throw new Error('观察会话不属于已注册空间');
     }
-    const status = this.getStatus();
+    const status = this.connection.getStatus();
     if (!status.available) throw new Error(status.reason ?? 'sbx 不可用');
+    const entry = this.harnesses.get(turnHarness.harnessId);
+    if (!entry) throw new Error(`未注册的 Harness：${turnHarness.harnessId}`);
+    const availability = this.availability(entry, status);
+    if (!availability.available) throw new Error(availability.reason ?? `${availability.descriptor.displayName} 不可用`);
+    this.assertProfileDir(entry.harness, turnHarness.harnessId, turnHarness.profileDir, turnHarness.profileId);
     const slot = this.slot(id);
     if (slot.active) throw new Error(slot.active?.cleanupError ?? '当前会话正在等待回复');
     const spaceId = this.workspaceBySession.get(id) ?? null;
@@ -302,9 +594,19 @@ export class CodexChat {
         throw new Error('参考资料正文摘要不匹配');
     Object.assign(slot.conversation, { turnId, state: 'running', error: null, cleanupPending: true });
     slot.conversation.messages.push({ id: turnId, role: 'user', text });
+    const owner = { harnessId: turnHarness.harnessId, profileId: turnHarness.profileId };
+    if (slot.conversation.threadId && (slot.threadOwner?.harnessId !== owner.harnessId || slot.threadOwner.profileId !== owner.profileId)) {
+      // 另一个 Harness 或账号建立的会话身份不能在这里恢复：开始新的 Agent 会话，并保留可见说明。
+      slot.conversation.threadId = null;
+      const warning = `本轮改用 ${availability.descriptor.displayName}（${owner.profileId}），已开始新的 Agent 会话；之前的上下文不会带入`;
+      if (!slot.conversation.warnings.includes(warning)) slot.conversation.warnings.push(warning);
+      slot.conversation.warnings = slot.conversation.warnings.slice(-20);
+    }
+    slot.threadOwner = owner;
     this.publish(slot);
-    const harness = this.harness;
-    const label = this.label;
+    const harness = entry.harness;
+    const label = harness.kind === 'native' ? harness.adapter.label : harness.spec.label;
+    const profileDir = turnHarness.profileDir;
     const native = harness.kind === 'native' ? harness.adapter : null;
     const argv = native ? native.argv(slot.conversation.threadId) : (harness as Extract<ChatHarness, { kind: 'acp' }>).spec.command;
     const maxLineChars = native ? native.maxLineChars : 1048576;
@@ -315,6 +617,7 @@ export class CodexChat {
     const fail = (reason: string) => {
       if (slot.active !== turn || turn.failure) return;
       turn.failure = reason;
+      this.settleApprovals(turn);
       turn.observation.abort();
       slot.conversation.state = 'failed';
       slot.conversation.error = reason;
@@ -419,10 +722,10 @@ export class CodexChat {
           sessionRef: slot.conversation.threadId,
           prompt: text,
           signal: turnRef.observation.signal,
-          decidePermission: workspaceWritePolicy((params, reason) => {
-            const warning = `已拒绝 ${params.toolCall.title ?? params.toolCall.toolCallId} 的权限请求：${reason}`.slice(0, 2000);
-            if (!slot.conversation.warnings.includes(warning)) slot.conversation.warnings.push(warning);
-            slot.conversation.warnings = slot.conversation.warnings.slice(-20);
+          decidePermission: approvalPolicy({
+            onDeny: (params, reason) =>
+              this.warn(slot, `已拒绝 ${params.toolCall.title ?? params.toolCall.toolCallId} 的权限请求：${reason}`),
+            ask: (params, options) => this.ask(slot, turnRef, params, options),
           }),
         },
       );
@@ -444,6 +747,7 @@ export class CodexChat {
         mode: 'codex',
         argv,
         ...(native ? { mcp: native.mcpInjection, prompt: text } : { mcp: 'acp-stdio' as const, stdin: 'relay' as const }),
+        ...(profileDir ? { profileDir } : {}),
         resourceBundle,
         observation: Boolean(observationScope && this.observationReader),
         observationImages: false,
@@ -553,12 +857,14 @@ export class CodexChat {
       completion: null,
       observation: new AbortController(),
       calls: new Map(),
+      approvals: new Map(),
     };
     slot.active = turn;
     turn.completion = process.done
       .then((outcome) => {
         if (slot.active !== turn) return;
         turn.finishing = true;
+        this.settleApprovals(turn);
         turn.observation.abort();
         // The final JSON event need not end with a newline. Only new frames are
         // blocked while finishing; this already-received tail is still consumed.
@@ -608,6 +914,7 @@ export class CodexChat {
     if (turn.cleanupError) throw new Error(turn.cleanupError);
     if (!turn.failure) {
       turn.cancel = true;
+      this.settleApprovals(turn);
       turn.observation.abort();
       slot.conversation.state = 'cancelling';
       try {
@@ -647,16 +954,27 @@ export class CodexChat {
           if (!outcome.confirmed) throw new Error(outcome.error ?? '探测进程清理未确认');
         })
       : Promise.resolve();
+    const profileCleanup = [...this.profileProbes].map((profile) =>
+      this.closeProfileProbe(profile).then((outcome) => {
+        if (!outcome.confirmed) throw new Error(outcome.error ?? '自检进程清理未确认');
+      }),
+    );
     const outcomes = await Promise.allSettled([
       this.connection.shutdown(),
       probeCleanup,
+      ...profileCleanup,
+      // Closing a check deliberately rejects its result; process cleanup remains a separate fact.
+      Promise.allSettled([...this.profileChecks]),
       // If a probe exists, await its done handling too; close alone is not a cleanup receipt.
       ...(probe && this.initialization ? [this.initialization] : []),
       ...[...this.slots.keys()].map((id) => this.cancel(id)),
     ]);
     const failure = outcomes.find((outcome) => outcome.status === 'rejected');
     if (failure?.status === 'rejected') throw failure.reason;
-    if (this.acpProbe) throw new Error(this.acpFailure ?? '探测进程清理未确认');
+    if (this.acpProbe) throw new Error(this.acpProbe.entry.acpFailure ?? '探测进程清理未确认');
+    if (this.profileStartUnknown) throw new Error('自检进程启动归属未确认');
+    if (this.profileProbes.size)
+      throw new Error([...this.profileProbes].find((profile) => profile.cleanupError)?.cleanupError ?? '自检进程清理未确认');
   }
 }
 

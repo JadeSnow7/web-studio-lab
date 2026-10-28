@@ -1,6 +1,7 @@
+import { CODEX_TEST_TURN } from './workbench/harness-test-fixture';
 import { emptyReferences } from '../../../service/src/reference-test-fixture';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ChatConversation, ChatStatus, ResourceInstanceIdentity, TerminalSnapshot } from '@wsl/protocol';
+import { profileDirOf, type ChatConversation, type ChatStatus, type ResourceInstanceIdentity, type TerminalSnapshot } from '@wsl/protocol';
 const mock = vi.hoisted(() => ({
   callbacks: new Map<string, (value: unknown) => void>(),
   postMessage: vi.fn(),
@@ -17,7 +18,7 @@ vi.mock('electron', () => ({
         if (name === 'message' && mock.initialized)
           callback({
             type: 'initialized',
-            status: { available: true, reason: null, version: 'fixture', sandbox: 'fixture', cwd: '/home/agent/workspace' },
+            status: { available: true, reason: null, version: 'fixture', sandbox: 'fixture', cwd: '/home/agent/workspace', harnesses: [] },
             cleanupPending: false,
           });
       },
@@ -62,6 +63,24 @@ beforeEach(() => {
   mock.kill.mockClear();
 });
 describe('对话服务宿主故障', () => {
+  it('forwards the selected non-default Harness profile through schema validation and its send ticket', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const profileId = 'a1b2c3d4-0000-4000-8000-00000000000a';
+    const harness = { harnessId: 'claude-code', profileId, profileDir: profileDirOf('claude-code', profileId) };
+    const sending = service.send(snapshot.conversationId, 'hello', undefined, emptyReferences(snapshot.conversationId), harness);
+    const outcome = sending.catch((error: unknown) => error);
+    const request = mock.postMessage.mock.calls.find(([entry]) => entry.method === 'send')?.[0];
+    try {
+      expect(request?.payload.harness).toEqual(harness);
+      expect(service.writeHolder()).toBe(snapshot.conversationId);
+    } finally {
+      if (request) mock.callbacks.get('message')?.({ type: 'response', id: request.id, result: snapshot });
+      await outcome;
+    }
+    expect(await sending).toEqual(snapshot);
+    mock.callbacks.get('message')?.({ type: 'event', conversation: { ...snapshot, seq: 2, state: 'idle', cleanupPending: false } });
+    expect(service.writeHolder()).toBeNull();
+  });
   it('send ACK 后服务退出仍推送不可用与会话失败', async () => {
     const states: ChatConversation[] = [];
     const statuses: ChatStatus[] = [];
@@ -69,7 +88,7 @@ describe('对话服务宿主故障', () => {
       (state) => states.push(state),
       (status) => statuses.push(status),
     );
-    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'));
+    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     const request = mock.postMessage.mock.calls[0]?.[0];
     mock.callbacks.get('message')?.({ type: 'response', id: request.id, result: snapshot });
     await sending;
@@ -170,7 +189,7 @@ describe('对话服务宿主故障', () => {
     );
     const request =
       method === 'send'
-        ? service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'))
+        ? service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN)
         : service.terminalOpen(80, 24, 'terminal-resource');
     const rejection = expect(request).rejects.toThrow('退出');
     mock.callbacks.get('exit')?.(1);
@@ -204,7 +223,7 @@ describe('对话服务宿主故障', () => {
   });
   it.each(['get', 'cancel', 'event'] as const)('未 ACK send 的 %s 快照不能在断连时证明该发送已清理', async (kind) => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'));
+    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     const outcome = sending.catch((error: unknown) => error);
     const settled: ChatConversation = {
       ...snapshot,
@@ -227,7 +246,7 @@ describe('对话服务宿主故障', () => {
   });
   it('send 对应 ACK 后的实际清理确认允许服务退出与正常关闭', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const sending = service.send(snapshot.conversationId, 'hello', undefined, emptyReferences(snapshot.conversationId));
+    const sending = service.send(snapshot.conversationId, 'hello', undefined, emptyReferences(snapshot.conversationId), CODEX_TEST_TURN);
     const request = mock.postMessage.mock.calls.at(-1)![0];
     mock.callbacks.get('message')?.({ type: 'response', id: request.id, result: snapshot });
     await sending;
@@ -259,7 +278,7 @@ describe('对话服务宿主故障', () => {
     );
     mock.callbacks.get('message')?.({
       type: 'initialized',
-      status: { available: false, reason: 'missing configuration', version: null, sandbox: null, cwd: null },
+      status: { available: false, reason: 'missing configuration', version: null, sandbox: null, cwd: null, harnesses: [] },
       cleanupPending: false,
     });
     mock.callbacks.get('exit')?.(1);
@@ -571,9 +590,9 @@ describe('source task dispatch uncertainty', () => {
     mock.postMessage.mockImplementationOnce(() => {
       throw new Error('synthetic post dispatch error');
     });
-    await expect(service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'))).rejects.toMatchObject(
-      { cleanupPending: true, knownNotSent: false },
-    );
+    await expect(
+      service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN),
+    ).rejects.toMatchObject({ cleanupPending: true, knownNotSent: false });
     mock.callbacks.get('exit')?.(1);
     await expect(service.shutdown()).rejects.toThrow('清理未确认');
   });
@@ -581,7 +600,7 @@ describe('source task dispatch uncertainty', () => {
     'does not treat malformed or foreign send receipts as proof of cleanup',
     async (result) => {
       const service = new ChatService(vi.fn(), vi.fn());
-      const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'));
+      const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
       const rejection = expect(sending).rejects.toMatchObject({ cleanupPending: true, knownNotSent: false });
       const request = mock.postMessage.mock.calls.at(-1)?.[0];
       mock.callbacks.get('message')?.({ type: 'response', id: request.id, result });
@@ -595,7 +614,7 @@ describe('source task dispatch uncertainty', () => {
 describe('source task explicit admission rejection', () => {
   it('distinguishes an ordered service rejection before executor publication', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'));
+    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     const rejection = expect(sending).rejects.toMatchObject({ cleanupPending: false, knownNotSent: true });
     const request = mock.postMessage.mock.calls.at(-1)?.[0];
     mock.callbacks.get('message')?.({ type: 'error', id: request.id, error: 'synthetic admission denied' });
@@ -605,7 +624,7 @@ describe('source task explicit admission rejection', () => {
   });
   it('preserves a published executor cleanup obligation even when send subsequently returns an error', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'));
+    const sending = service.send('conv-personal-default', 'hello', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     const rejection = expect(sending).rejects.toMatchObject({ cleanupPending: true, knownNotSent: false });
     const request = mock.postMessage.mock.calls.at(-1)?.[0];
     mock.callbacks.get('message')?.({ type: 'event', conversation: snapshot });
@@ -621,14 +640,14 @@ describe('source dispatch receipt ownership', () => {
     const service = new ChatService(vi.fn(), vi.fn());
     const a = 'conv-personal-default';
     const b = 'session-00000000-0000-4000-8000-000000000004';
-    const sendingB = service.send(b, 'B', undefined, emptyReferences(b));
+    const sendingB = service.send(b, 'B', undefined, emptyReferences(b), CODEX_TEST_TURN);
     const rejectedB = expect(sendingB).rejects.toMatchObject({ cleanupPending: true, knownNotSent: false });
     const requestB = mock.postMessage.mock.calls.at(-1)?.[0];
     mock.callbacks.get('message')?.({ type: 'event', conversation: { ...snapshot, conversationId: b, seq: 2 } });
     // W0 write lease: a concurrent send from another slot is refused before leaving Main,
     // so the forged B receipt arrives on A's slot-bound cancel reply instead.
     const postedBeforeA = mock.postMessage.mock.calls.length;
-    await expect(service.send(a, 'A', undefined, emptyReferences(a))).rejects.toThrow(/^conflict: /);
+    await expect(service.send(a, 'A', undefined, emptyReferences(a), CODEX_TEST_TURN)).rejects.toThrow(/^conflict: /);
     expect(mock.postMessage.mock.calls).toHaveLength(postedBeforeA);
     const rejectedA = expect(service.cancel(a)).rejects.toThrow('归属不匹配');
     const requestA = mock.postMessage.mock.calls.at(-1)?.[0];
@@ -677,7 +696,7 @@ describe('source cleanup cache boundary', () => {
     const service = new ChatService(vi.fn(), vi.fn());
     const target = { workspaceId: 'w', projectId: '00000000-0000-4000-8000-000000000003' };
     const b = 'session-concurrent-source-owner';
-    const sendingB = service.send(b, 'B', undefined, emptyReferences(b)).catch((error: unknown) => error);
+    const sendingB = service.send(b, 'B', undefined, emptyReferences(b), CODEX_TEST_TURN).catch((error: unknown) => error);
     const requestB = mock.postMessage.mock.calls.at(-1)?.[0];
     mock.callbacks.get('message')?.({ type: 'event', conversation: { ...snapshot, conversationId: b, seq: 2 } });
     const other =
@@ -716,16 +735,20 @@ describe('sandbox 工作区写入许可（W0）', () => {
 
   it('L13：发送前 schema 拒绝不取得许可，也不影响同槽已有 pending send', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    await expect(service.send('conv-personal-default', ' ', undefined, emptyReferences('conv-personal-default'))).rejects.toMatchObject({
+    await expect(
+      service.send('conv-personal-default', ' ', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN),
+    ).rejects.toMatchObject({
       knownNotSent: true,
       cleanupPending: false,
     });
     expect(service.writeHolder()).toBeNull();
     expect(sends()).toHaveLength(0);
-    const pending = service.send('conv-personal-default', 'valid', undefined, emptyReferences('conv-personal-default'));
+    const pending = service.send('conv-personal-default', 'valid', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     const sendRequest = mock.postMessage.mock.calls.at(-1)![0];
     try {
-      await expect(service.send('conv-personal-default', '', undefined, emptyReferences('conv-personal-default'))).rejects.toMatchObject({
+      await expect(
+        service.send('conv-personal-default', '', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN),
+      ).rejects.toMatchObject({
         knownNotSent: true,
         cleanupPending: false,
       });
@@ -740,7 +763,7 @@ describe('sandbox 工作区写入许可（W0）', () => {
   it('L9：未缓存会话的 get idle 不结算仍在排队的 send', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
     const pending = service
-      .send('conv-personal-default', 'queued', undefined, emptyReferences('conv-personal-default'))
+      .send('conv-personal-default', 'queued', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN)
       .catch((error: unknown) => error);
     const sendRequest = mock.postMessage.mock.calls.at(-1)![0];
     const reading = service.get('conv-personal-default');
@@ -748,7 +771,7 @@ describe('sandbox 工作区写入许可（W0）', () => {
     await reading;
     try {
       expect(service.writeHolder()).toBe('conv-personal-default');
-      await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'))).rejects.toThrow(/^conflict:/);
+      await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'), CODEX_TEST_TURN)).rejects.toThrow(/^conflict:/);
       expect(sends()).toHaveLength(1);
     } finally {
       mock.callbacks.get('message')?.({ type: 'error', id: sendRequest.id, error: 'queued send rejected' });
@@ -759,17 +782,17 @@ describe('sandbox 工作区写入许可（W0）', () => {
 
   it('L10：前一轮停止不能释放同槽下一次尚未结算的 send', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const first = service.send('conv-personal-default', 'first', undefined, emptyReferences('conv-personal-default'));
+    const first = service.send('conv-personal-default', 'first', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     reply(running);
     await first;
     const next = service
-      .send('conv-personal-default', 'queued next', undefined, emptyReferences('conv-personal-default'))
+      .send('conv-personal-default', 'queued next', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN)
       .catch((error: unknown) => error);
     const nextRequest = mock.postMessage.mock.calls.at(-1)![0];
     event({ ...running, seq: 2, state: 'idle', cleanupPending: false });
     try {
       expect(service.writeHolder()).toBe('conv-personal-default');
-      await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'))).rejects.toThrow(/^conflict:/);
+      await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'), CODEX_TEST_TURN)).rejects.toThrow(/^conflict:/);
     } finally {
       mock.callbacks.get('message')?.({ type: 'error', id: nextRequest.id, error: 'next send rejected' });
       await next;
@@ -780,18 +803,18 @@ describe('sandbox 工作区写入许可（W0）', () => {
   it('L11：同槽两个 pending send 的一个拒绝不结算另一个', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
     const first = service
-      .send('conv-personal-default', 'first', undefined, emptyReferences('conv-personal-default'))
+      .send('conv-personal-default', 'first', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN)
       .catch((error: unknown) => error);
     const firstRequest = mock.postMessage.mock.calls.at(-1)![0];
     const second = service
-      .send('conv-personal-default', 'second', undefined, emptyReferences('conv-personal-default'))
+      .send('conv-personal-default', 'second', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN)
       .catch((error: unknown) => error);
     const secondRequest = mock.postMessage.mock.calls.at(-1)![0];
     mock.callbacks.get('message')?.({ type: 'error', id: firstRequest.id, error: 'first rejected' });
     await first;
     try {
       expect(service.writeHolder()).toBe('conv-personal-default');
-      await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'))).rejects.toThrow(/^conflict:/);
+      await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'), CODEX_TEST_TURN)).rejects.toThrow(/^conflict:/);
     } finally {
       mock.callbacks.get('message')?.({ type: 'error', id: secondRequest.id, error: 'second rejected' });
       await second;
@@ -801,7 +824,7 @@ describe('sandbox 工作区写入许可（W0）', () => {
 
   it('L12：取消回执不代替被取消 queued send 自己的回执', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const pending = service.send('conv-personal-default', 'queued', undefined, emptyReferences('conv-personal-default'));
+    const pending = service.send('conv-personal-default', 'queued', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     const sendRequest = mock.postMessage.mock.calls.at(-1)![0];
     const cancelling = service.cancel('conv-personal-default');
     const cancelled: ChatConversation = { ...running, seq: 2, state: 'cancelled', cleanupPending: false };
@@ -818,17 +841,17 @@ describe('sandbox 工作区写入许可（W0）', () => {
 
   it('L1/L2：另一会话运行中时拒绝且不发请求，完成并确认清理后放行', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const first = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'));
+    const first = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     reply(running);
     await first;
-    await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'))).rejects.toThrow(
+    await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'), CODEX_TEST_TURN)).rejects.toThrow(
       /^conflict: .*conv-personal-default/,
     );
     expect(sends()).toHaveLength(1);
     expect(service.writeHolder()).toBe('conv-personal-default');
     event({ ...running, seq: 2, state: 'idle', cleanupPending: false });
     expect(service.writeHolder()).toBeNull();
-    const second = service.send('session-b', 'b', undefined, emptyReferences('session-b'));
+    const second = service.send('session-b', 'b', undefined, emptyReferences('session-b'), CODEX_TEST_TURN);
     expect(sends()).toHaveLength(2);
     reply({ ...running, conversationId: 'session-b', seq: 3 });
     await second;
@@ -837,29 +860,29 @@ describe('sandbox 工作区写入许可（W0）', () => {
 
   it('L3：取消或失败但清理未确认时继续占用', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const first = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'));
+    const first = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     reply(running);
     await first;
     event({ ...running, seq: 2, state: 'cancelled', cleanupPending: true });
-    await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'))).rejects.toThrow(/^conflict:/);
+    await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'), CODEX_TEST_TURN)).rejects.toThrow(/^conflict:/);
     event({ ...running, seq: 3, state: 'failed', cleanupPending: true, error: 'x' });
-    await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'))).rejects.toThrow(/^conflict:/);
+    await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'), CODEX_TEST_TURN)).rejects.toThrow(/^conflict:/);
     event({ ...running, seq: 4, state: 'cancelled', cleanupPending: false });
     expect(service.writeHolder()).toBeNull();
   });
 
   it('L4/L6：service 明确拒绝未启动的发送时立即释放；同一会话重复发送不额外拒绝', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const rejected = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'));
+    const rejected = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     const request = mock.postMessage.mock.calls.at(-1)![0];
     mock.callbacks.get('message')?.({ type: 'error', id: request.id, error: 'sbx 不可用' });
     await expect(rejected).rejects.toThrow('sbx 不可用');
     expect(service.writeHolder()).toBeNull();
 
-    const first = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'));
+    const first = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     reply(running);
     await first;
-    const again = service.send('conv-personal-default', 'again', undefined, emptyReferences('conv-personal-default'));
+    const again = service.send('conv-personal-default', 'again', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     expect(sends()).toHaveLength(3);
     const last = mock.postMessage.mock.calls.at(-1)![0];
     mock.callbacks.get('message')?.({ type: 'error', id: last.id, error: '当前会话正在等待回复' });
@@ -870,7 +893,7 @@ describe('sandbox 工作区写入许可（W0）', () => {
   it('L5：早于取得许可时的旧快照不释放', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
     event({ ...running, seq: 5, state: 'idle', cleanupPending: false });
-    const first = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'));
+    const first = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     event({ ...running, seq: 4, state: 'idle', cleanupPending: false });
     expect(service.writeHolder()).toBe('conv-personal-default');
     reply({ ...running, seq: 6 });
@@ -880,17 +903,17 @@ describe('sandbox 工作区写入许可（W0）', () => {
 
   it('服务通信失败后保留许可，并以原始故障拒绝后续发送', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const first = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'));
+    const first = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     mock.callbacks.get('exit')?.(1);
     await expect(first).rejects.toThrow('退出');
     expect(service.writeHolder()).toBe('conv-personal-default');
-    await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'))).rejects.toThrow('退出');
+    await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'), CODEX_TEST_TURN)).rejects.toThrow('退出');
   });
 
   // 以下对应 PR #17 的 RunDispatchFailure 判定：只有“从未启动”的拒绝释放许可。
   it('L4：判定为从未启动的拒绝（knownNotSent）释放许可', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const rejected = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'));
+    const rejected = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     const request = mock.postMessage.mock.calls.at(-1)![0];
     mock.callbacks.get('message')?.({ type: 'error', id: request.id, error: 'admission denied' });
     await expect(rejected).rejects.toMatchObject({ cleanupPending: false, knownNotSent: true });
@@ -899,18 +922,18 @@ describe('sandbox 工作区写入许可（W0）', () => {
 
   it('已接纳但清理未确认的拒绝保留许可', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const rejected = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'));
+    const rejected = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     const request = mock.postMessage.mock.calls.at(-1)![0];
     event(running);
     mock.callbacks.get('message')?.({ type: 'error', id: request.id, error: 'failed after admission' });
     await expect(rejected).rejects.toMatchObject({ cleanupPending: true, knownNotSent: false });
     expect(service.writeHolder()).toBe('conv-personal-default');
-    await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'))).rejects.toThrow(/^conflict:/);
+    await expect(service.send('session-b', 'b', undefined, emptyReferences('session-b'), CODEX_TEST_TURN)).rejects.toThrow(/^conflict:/);
   });
 
   it('已接纳且新快照确认停止与清理后，按 observe 释放', async () => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const rejected = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'));
+    const rejected = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     const request = mock.postMessage.mock.calls.at(-1)![0];
     event({ ...running, state: 'failed', cleanupPending: false, error: 'x' });
     mock.callbacks.get('message')?.({ type: 'error', id: request.id, error: 'failed after admission' });
@@ -923,9 +946,86 @@ describe('sandbox 工作区写入许可（W0）', () => {
     ['归属不符', { ...running, conversationId: 'session-b' }],
   ])('启动回执%s时视为清理未知并保留许可', async (_label, result) => {
     const service = new ChatService(vi.fn(), vi.fn());
-    const sending = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'));
+    const sending = service.send('conv-personal-default', 'a', undefined, emptyReferences('conv-personal-default'), CODEX_TEST_TURN);
     reply(result);
     await expect(sending).rejects.toMatchObject({ cleanupPending: true, knownNotSent: false });
     expect(service.writeHolder()).toBe('conv-personal-default');
   });
+});
+
+describe('Profile self-check host cleanup receipts', () => {
+  const result = { cliVersion: 'fixture', login: 'logged_in' as const, reason: null };
+  const receipt = (cleanupConfirmed: boolean) => ({ type: 'profile-check' as const, ok: true as const, result, cleanupConfirmed });
+  it.each(['exit', 'postMessage throw'] as const)('retains a pending Profile check across %s', async (failure) => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    if (failure === 'postMessage throw')
+      mock.postMessage.mockImplementationOnce(() => {
+        throw new Error('fixture transport lost');
+      });
+    const checking = service.checkProfile('codex', null).catch((error: unknown) => error);
+    mock.callbacks.get('exit')?.(1);
+    expect(await checking).toBeInstanceOf(Error);
+    await expect(service.shutdown()).rejects.toThrow('guest 清理未确认');
+  });
+  it.each(['unknown', 'generic-error', 'missing-cleanup', 'malformed'] as const)(
+    'retains %s cleanup after a reply and later disconnection',
+    async (kind) => {
+      const service = new ChatService(vi.fn(), vi.fn());
+      const checking = service.checkProfile('codex', null).catch((error: unknown) => error);
+      const request = mock.postMessage.mock.calls.at(-1)![0];
+      const message =
+        kind === 'generic-error'
+          ? { type: 'error', id: request.id, error: 'opaque failure' }
+          : {
+              type: 'response',
+              id: request.id,
+              result:
+                kind === 'unknown' ? receipt(false) : kind === 'missing-cleanup' ? result : { ...receipt(true), cleanupConfirmed: 'yes' },
+            };
+      mock.callbacks.get('message')?.(message);
+      await checking;
+      mock.callbacks.get('exit')?.(1);
+      await expect(service.shutdown()).rejects.toThrow('guest 清理未确认');
+    },
+  );
+  it('does not infer cleanup from an old legal undetermined business result after disconnection', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const checking = service.checkProfile('codex', null).catch((error: unknown) => error);
+    const request = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({
+      type: 'response',
+      id: request.id,
+      result: { cliVersion: null, login: 'undetermined', reason: 'fixture cleanup unknown' },
+    });
+    await checking;
+    mock.callbacks.get('exit')?.(1);
+    await expect(service.shutdown()).rejects.toThrow('guest 清理未确认');
+  });
+  it('does not let a concurrent clean check clear another request with unknown cleanup', async () => {
+    const service = new ChatService(vi.fn(), vi.fn());
+    const first = service.checkProfile('codex', null).catch((error: unknown) => error);
+    const firstRequest = mock.postMessage.mock.calls.at(-1)![0];
+    const second = service.checkProfile('claude-code', null).catch((error: unknown) => error);
+    const secondRequest = mock.postMessage.mock.calls.at(-1)![0];
+    mock.callbacks.get('message')?.({ type: 'response', id: firstRequest.id, result: receipt(false) });
+    mock.callbacks.get('message')?.({ type: 'response', id: secondRequest.id, result: receipt(true) });
+    await Promise.all([first, second]);
+    mock.callbacks.get('exit')?.(1);
+    await expect(service.shutdown()).rejects.toThrow('guest 清理未确认');
+  });
+  it.each(['success', 'error'] as const)(
+    'releases a matching confirmed-clean %s receipt without persisting transport metadata',
+    async (kind) => {
+      const service = new ChatService(vi.fn(), vi.fn());
+      const checking = service.checkProfile('codex', null).catch((error: unknown) => error);
+      const request = mock.postMessage.mock.calls.at(-1)![0];
+      const value =
+        kind === 'success' ? receipt(true) : { type: 'profile-check', ok: false, error: 'not available', cleanupConfirmed: true };
+      mock.callbacks.get('message')?.({ type: 'response', id: request.id, result: value });
+      if (kind === 'success') expect(await checking).toEqual(result);
+      else expect(await checking).toMatchObject({ message: 'not available' });
+      mock.callbacks.get('exit')?.(0);
+      await expect(service.shutdown()).resolves.toBeUndefined();
+    },
+  );
 });

@@ -39,6 +39,7 @@ const chat = (overrides: Partial<ChatStatus> = {}): ChatStatus => ({
   version: '0.160.0',
   sandbox: 'sbx-1',
   cwd: '/work',
+  harnesses: [],
   ...overrides,
 });
 const terminal = (state: string, overrides: Record<string, unknown> = {}) => ({

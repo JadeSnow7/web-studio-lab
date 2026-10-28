@@ -9,7 +9,8 @@ import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import type { AppTarget, ManagedApp, AppSource, CatalogReferenceSnapshot, AppAgentOperation } from '@wsl/protocol';
 import type { ObservationRequest, ObservationTurnScope, ResourceInstanceIdentity, WorkbenchResource } from '@wsl/protocol';
-import { harnessRefOf } from '@wsl/protocol';
+import type { HarnessSelection, TurnHarness } from '@wsl/protocol';
+import type { HarnessProfileService } from '../harness-profiles';
 import type { ChatService } from '../chat-service';
 import { BrowserObservation } from '../preview/observation';
 import { AppUiDriver } from '../preview/app-ui';
@@ -202,6 +203,7 @@ export class WorkbenchHost implements WorkbenchRuntime {
     private readonly window: BrowserWindow,
     private readonly chat: ChatService,
     private readonly demoRoot: string,
+    private readonly profiles: HarnessProfileService,
   ) {
     chat.setAppListener((snapshot) => {
       this.appEvents.set(snapshot.projectId, snapshot);
@@ -341,18 +343,29 @@ export class WorkbenchHost implements WorkbenchRuntime {
     const preview = this.browser(resourceId);
     return preview.captureResource(preview.getState().page);
   }
-  send(sessionId: string, text: string, scope: ObservationTurnScope | undefined, references: CatalogReferenceSnapshot) {
-    return this.chat.send(sessionId, text, scope, references);
+  send(
+    sessionId: string,
+    text: string,
+    scope: ObservationTurnScope | undefined,
+    references: CatalogReferenceSnapshot,
+    harness: TurnHarness,
+  ) {
+    return this.chat.send(sessionId, text, scope, references, harness);
   }
   cancel(sessionId: string) {
     return this.chat.cancel(sessionId);
   }
+  answerPermission(sessionId: string, requestId: string, optionId: string | null) {
+    return this.chat.answerPermission(sessionId, requestId, optionId);
+  }
   writeHolder() {
     return this.chat.writeHolder();
   }
-  currentHarness() {
-    const descriptor = this.chat.harness();
-    return descriptor ? harnessRefOf(descriptor) : null;
+  resolveHarness(selection: HarnessSelection | null) {
+    return this.profiles.resolve(selection);
+  }
+  prepareHarness(turn: TurnHarness) {
+    return this.profiles.prepare(turn);
   }
   dispose() {
     for (const driver of this.appUis.values()) driver.dispose();

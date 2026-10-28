@@ -1,4 +1,12 @@
-import { ChatSlotSchema, harnessDisplayName, type ChatConversation, type ChatStatus } from '@wsl/protocol';
+import {
+  ChatSlotSchema,
+  selectionDisplayName,
+  type ChatConversation,
+  type ChatStatus,
+  type HarnessProfileId,
+  type HarnessProfilesSnapshot,
+  type HarnessSelection,
+} from '@wsl/protocol';
 import { personalReferencesStore } from './references';
 import { createStore } from '../lib/store';
 import { draftActions, draftsStore, CONVERSATIONS } from './drafts';
@@ -8,8 +16,28 @@ export interface ChatState {
   conversations: Readonly<Record<string, ChatConversation>>;
   errors: Readonly<Record<string, string | null>>;
   pending: Readonly<Record<string, boolean>>;
+  /** Main 持有的 Harness Profile 快照（W4a）；只读投影，修改经 `profileActions`。 */
+  profiles: HarnessProfilesSnapshot | null;
+  profilesError: string | null;
 }
-export const chatStore = createStore<ChatState>({ status: null, conversations: {}, errors: {}, pending: {} });
+export const chatStore = createStore<ChatState>({
+  status: null,
+  conversations: {},
+  errors: {},
+  pending: {},
+  profiles: null,
+  profilesError: null,
+});
+
+/** 某个选择（缺省为全局默认）对应的 Harness 可用性；服务尚未报告时为 null。 */
+export function selectedHarness(state: ChatState, selection?: HarnessSelection | null) {
+  const chosen = selection ?? state.profiles?.defaultSelection;
+  return state.status?.harnesses.find((item) => item.descriptor.harnessId === chosen?.harnessId) ?? null;
+}
+/** 某个选择（缺省为全局默认）对应的 Harness 名称。 */
+export function selectedHarnessName(state: ChatState, selection?: HarnessSelection | null): string {
+  return selectionDisplayName(selection ?? state.profiles?.defaultSelection, state.status?.harnesses);
+}
 
 /** 服务序号全局递增：旧初始查询、旧轮次响应与 reset 前事件不会覆盖新快照。 */
 export function projectConversation(state: ChatState, snapshot: ChatConversation): ChatState {
@@ -22,7 +50,7 @@ export function receiveConversation(snapshot: ChatConversation) {
 }
 export function chatBlockedReason(id: string): string | null {
   const state = chatStore.get();
-  if (!state.status?.available) return state.status?.reason ?? `正在检查 ${harnessDisplayName(state.status)}…`;
+  if (!state.status?.available) return state.status?.reason ?? `正在检查 ${selectedHarnessName(state)}…`;
   const conversation = state.conversations[id];
   return state.pending[id] || conversation?.state === 'running' || conversation?.state === 'cancelling' ? '正在等待当前回复结束' : null;
 }
@@ -50,9 +78,37 @@ export const chatActions = {
   },
   cancel: (id: string) => act(id, () => window.studio.chat.cancel(ChatSlotSchema.parse(id))),
   reset: (id: string) => act(id, () => window.studio.chat.reset(ChatSlotSchema.parse(id))),
+  /** 回复个人对话的权限请求（W4b）；不经 act 的 pending 门，回复不应被“正在等待当前回复”挡住。 */
+  async answerPermission(id: string, requestId: string, optionId: string | null) {
+    try {
+      receiveConversation(await window.studio.chat.answerPermission(ChatSlotSchema.parse(id), requestId, optionId));
+      return true;
+    } catch (error) {
+      chatStore.set((state) => ({ ...state, errors: { ...state.errors, [id]: (error as Error).message } }));
+      return false;
+    }
+  },
+};
+async function profileAct(action: () => Promise<HarnessProfilesSnapshot>): Promise<boolean> {
+  try {
+    const profiles = await action();
+    chatStore.set((state) => ({ ...state, profiles, profilesError: null }));
+    return true;
+  } catch (error) {
+    chatStore.set((state) => ({ ...state, profilesError: (error as Error).message }));
+    return false;
+  }
+}
+export const profileActions = {
+  create: (label: string) => profileAct(() => window.studio.chat.profiles.create(label)),
+  check: (profileId: HarnessProfileId) => profileAct(() => window.studio.chat.profiles.check(profileId)),
+  remove: (profileId: HarnessProfileId) => profileAct(() => window.studio.chat.profiles.remove(profileId)),
+  setDefault: (selection: HarnessSelection) => profileAct(() => window.studio.chat.profiles.setDefault(selection)),
 };
 export async function initializeChat() {
   window.studio.chat.onStatus((status) => chatStore.set((state) => ({ ...state, status })));
+  window.studio.chat.profiles.onChange((profiles) => chatStore.set((state) => ({ ...state, profiles, profilesError: null })));
+  void profileAct(() => window.studio.chat.profiles.get());
   window.studio.chat.onConversation(receiveConversation);
   try {
     const status = await window.studio.chat.getStatus();
@@ -65,7 +121,7 @@ export async function initializeChat() {
   } catch (error) {
     chatStore.set((state) => ({
       ...state,
-      status: { available: false, reason: (error as Error).message, version: null, sandbox: null, cwd: null },
+      status: { available: false, reason: (error as Error).message, version: null, sandbox: null, cwd: null, harnesses: [] },
     }));
   }
 }

@@ -36,7 +36,12 @@ import {
   AppLogsSchema,
   type AppAgentOperation,
   type AppControlResult,
-  type HarnessDescriptor,
+  type HarnessAvailability,
+  type ProfileCheckResult,
+  type ProfileDir,
+  type TurnHarness,
+  ProfileCheckResultSchema,
+  ProfileCheckReceiptSchema,
 } from '@wsl/protocol';
 import { GuestWriteLease } from './workbench/guest-write-lease';
 
@@ -57,10 +62,12 @@ export class ChatService {
       resourceId?: string;
       conversationSlot?: ChatSlot;
       sendLease?: symbol;
+      profileCheck: boolean;
       start: { kind: 'chat'; slot: ChatSlot; seq: number } | { kind: 'terminal'; seq: number; resourceId: string } | null;
     }
   >();
   private readonly sourceCleanup = new Set<string>();
+  private readonly profileCleanup = new Set<string>();
   private unknownCleanup = false;
   private initializationPending = true;
   private failure: string | null = null;
@@ -211,6 +218,17 @@ export class ChatService {
         const request = this.pending.get(message.id);
         if (!request) throw new Error('对话服务返回未知请求身份');
         this.pending.delete(message.id);
+        if (request.profileCheck) {
+          const receipt = message.type === 'response' ? ProfileCheckReceiptSchema.safeParse(message.result) : null;
+          if (!receipt?.success) {
+            request.reject(new Error(message.type === 'error' ? message.error : 'Profile 自检清理回执无效'));
+            return;
+          }
+          if (receipt.data.cleanupConfirmed) this.profileCleanup.delete(message.id);
+          if (receipt.data.ok) request.resolve(receipt.data.result);
+          else request.reject(new Error(receipt.data.error));
+          return;
+        }
         if (message.type === 'error') {
           const start = request.start;
           if (start?.kind === 'chat' && request.sendLease)
@@ -301,6 +319,7 @@ export class ChatService {
         this.initializationPending ||
         this.unknownCleanup ||
         this.sourceCleanup.size > 0 ||
+        this.profileCleanup.size > 0 ||
         [...this.conversations.values()].some((conversation) => conversation.cleanupPending) ||
         [...this.terminals.values()].some((t) => t.cleanupPending)
           ? this.failure + '；guest 清理未确认'
@@ -308,6 +327,7 @@ export class ChatService {
       version: null,
       sandbox: this.lastStatus?.sandbox ?? null,
       cwd: this.lastStatus?.cwd ?? null,
+      harnesses: this.unavailableHarnesses(this.failure),
     });
     for (const [resourceId, terminal] of this.terminals) {
       const binding = this.resourceBindings.get(resourceId);
@@ -354,10 +374,16 @@ export class ChatService {
             ? data.payload.resourceId
             : undefined;
       const conversationSlot =
-        data.method === 'get' || data.method === 'send' || data.method === 'cancel' || data.method === 'reset'
+        data.method === 'get' ||
+        data.method === 'send' ||
+        data.method === 'cancel' ||
+        data.method === 'reset' ||
+        data.method === 'permission.reply'
           ? data.payload.conversationId
           : undefined;
-      this.pending.set(data.id, { resolve, reject, start, resourceId, conversationSlot, sendLease });
+      const profileCheck = data.method === 'profile.check';
+      if (profileCheck) this.profileCleanup.add(data.id);
+      this.pending.set(data.id, { resolve, reject, start, resourceId, conversationSlot, sendLease, profileCheck });
       try {
         this.child.postMessage(data);
       } catch (error) {
@@ -479,6 +505,7 @@ export class ChatService {
         version: null,
         sandbox: this.lastStatus?.sandbox ?? null,
         cwd: this.lastStatus?.cwd ?? null,
+        harnesses: this.unavailableHarnesses(this.failure),
       };
     this.lastStatus = ChatStatusSchema.parse(await this.request({ method: 'status' }));
     return this.lastStatus;
@@ -489,18 +516,33 @@ export class ChatService {
   async get(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'get', payload: { conversationId: id } }));
   }
-  /** 对话服务最近一次报告的 Harness；服务未初始化或旧版本未报告时为 null。 */
-  harness(): HarnessDescriptor | null {
-    return this.lastStatus?.harness ?? null;
+  /** 对话服务最近一次报告的全部 Harness 及可用性；服务未初始化时为空（W4a）。 */
+  harnesses(): HarnessAvailability[] {
+    if (this.failure) return this.unavailableHarnesses(this.failure);
+    return this.lastStatus?.harnesses ?? [];
+  }
+  /** 服务失败时，已知的 Harness 都不可用，原因与服务失败相同。 */
+  private unavailableHarnesses(reason: string): HarnessAvailability[] {
+    return (this.lastStatus?.harnesses ?? []).map((item) => ({ ...item, available: false, reason }));
+  }
+  /** 无模型自检一个 Profile（W4a）；结果只含版本与登录状态。 */
+  async checkProfile(harnessId: string, profileDir: ProfileDir | null): Promise<ProfileCheckResult> {
+    return ProfileCheckResultSchema.parse(await this.request({ method: 'profile.check', payload: { harnessId, profileDir } }));
   }
   /** 当前持有 guest 工作区写入许可的会话槽；无人持有时为 null。 */
   writeHolder(): ChatSlot | null {
     return this.writeLease.current();
   }
-  async send(id: ChatSlot, text: string, observationScope: ObservationTurnScope | undefined, references: CatalogReferenceSnapshot) {
+  async send(
+    id: ChatSlot,
+    text: string,
+    observationScope: ObservationTurnScope | undefined,
+    references: CatalogReferenceSnapshot,
+    harness: TurnHarness,
+  ) {
     // 服务已失败或正在关闭时不取得许可，让请求按原有原因拒绝，避免用写入冲突掩盖真实故障。
     if (this.stopped || this.failure) throw new RunDispatchFailure(this.failure ?? '对话服务正在关闭', false, true);
-    const payload = ChatSendSchema.safeParse({ conversationId: id, text, observationScope, references });
+    const payload = ChatSendSchema.safeParse({ conversationId: id, text, observationScope, references, harness });
     if (!payload.success) throw new RunDispatchFailure(payload.error.message, false, true);
     const sendLease = this.writeLease.acquire(id, this.conversations.get(id)?.seq ?? -1);
     try {
@@ -515,6 +557,12 @@ export class ChatService {
       this.unknownCleanup = true;
       throw new RunDispatchFailure(error instanceof Error ? error.message : '对话启动回执无效', true);
     }
+  }
+  /** 回复权限请求（W4b）；service 核对请求仍待决后答复 Agent，返回的新快照已移除该请求。 */
+  async answerPermission(id: ChatSlot, requestId: string, optionId: string | null) {
+    return ChatConversationSchema.parse(
+      await this.request({ method: 'permission.reply', payload: { conversationId: id, requestId, optionId } }),
+    );
   }
   async cancel(id: ChatSlot) {
     return ChatConversationSchema.parse(await this.request({ method: 'cancel', payload: { conversationId: id } }));
@@ -546,6 +594,7 @@ export class ChatService {
         (this.initializationPending ||
           this.unknownCleanup ||
           this.sourceCleanup.size > 0 ||
+          this.profileCleanup.size > 0 ||
           [...this.conversations.values()].some((conversation) => conversation.cleanupPending) ||
           [...this.terminals.values()].some((t) => t.cleanupPending))
       )
@@ -560,6 +609,7 @@ export class ChatService {
             available: false,
             reason: `guest 清理失败：${(error as Error).message}`,
             version: null,
+            harnesses: this.unavailableHarnesses(`guest 清理失败：${(error as Error).message}`),
             sandbox: this.lastStatus?.sandbox ?? null,
             cwd: this.lastStatus?.cwd ?? null,
           });
