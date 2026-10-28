@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { PROFILE_CREATABLE_HARNESSES, selectionDisplayName, type HarnessProfile } from '@wsl/protocol';
+import { useId, useRef, useState } from 'react';
+import { HarnessProfileSchema, PROFILE_CREATABLE_HARNESSES, selectionDisplayName, type HarnessProfile } from '@wsl/protocol';
 import { Notice } from '../components/Badges';
 import { useStore } from '../lib/store';
+import { useImeForm } from '../lib/ime';
 import { chatStore, profileActions } from '../state/chat';
 import { workspaceCommand, workspaceStore } from '../state/workspace';
 import { shellActions } from '../state/shell';
@@ -23,12 +24,21 @@ export function HarnessProfiles() {
   const harnesses = reported ?? [];
   const activeWorkspaceId = useStore(workspaceStore, (state) => state.snapshot?.activeWorkspaceId ?? null);
   const [label, setLabel] = useState('');
+  const [validation, setValidation] = useState<string | null>(null);
+  const labelInput = useRef<HTMLInputElement>(null);
+  const validationId = useId();
+  const ime = useImeForm();
   const [busy, setBusy] = useState<string | null>(null);
+  const pending = useRef(false);
   const run = async (key: string, action: () => Promise<boolean>) => {
+    // Block same-turn submits before React has rendered the disabled controls.
+    if (pending.current) return false;
+    pending.current = true;
     setBusy(key);
     try {
       return await action();
     } finally {
+      pending.current = false;
       setBusy(null);
     }
   };
@@ -136,10 +146,19 @@ export function HarnessProfiles() {
           </table>
           <form
             className="row"
+            noValidate
+            {...ime.handlers}
             onSubmit={(event) => {
               event.preventDefault();
-              if (!label.trim()) return;
-              void run('create', () => profileActions.create(label.trim())).then((ok) => ok && setLabel(''));
+              if (pending.current || ime.composing.current) return;
+              const parsed = HarnessProfileSchema.shape.label.safeParse(label);
+              if (!parsed.success) {
+                setValidation('请填写 1–60 个字符的标签（首尾空白不计）。');
+                labelInput.current?.focus();
+                return;
+              }
+              setValidation(null);
+              void run('create', () => profileActions.create(parsed.data)).then((ok) => ok && setLabel(''));
             }}
           >
             <label className="field">
@@ -150,9 +169,27 @@ export function HarnessProfiles() {
                 ).join('、')}{' '}
                 Profile
               </span>
-              <input value={label} maxLength={60} placeholder="标签，例如：工作账号" onChange={(event) => setLabel(event.target.value)} />
+              <input
+                ref={labelInput}
+                value={label}
+                maxLength={60}
+                placeholder="标签，例如：工作账号"
+                disabled={busy !== null}
+                aria-invalid={validation !== null}
+                aria-describedby={validation ? validationId : undefined}
+                onChange={(event) => {
+                  if (pending.current) return;
+                  setLabel(event.target.value);
+                  setValidation(null);
+                }}
+              />
+              {validation ? (
+                <span id={validationId} className="text-warn" role="alert">
+                  {validation}
+                </span>
+              ) : null}
             </label>
-            <button type="submit" className="btn" disabled={busy !== null || !label.trim()}>
+            <button type="submit" className="btn" disabled={busy !== null} aria-busy={busy === 'create'}>
               新建
             </button>
             <button type="button" className="btn btn-ghost" disabled={!activeWorkspaceId} onClick={() => void openTerminal()}>
