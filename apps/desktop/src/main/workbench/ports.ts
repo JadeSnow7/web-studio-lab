@@ -75,5 +75,7 @@ export interface WorkbenchRuntime {
     references: CatalogReferenceSnapshot,
   ): Promise<ChatConversation>;
   cancel(sessionId: string): Promise<ChatConversation>;
+  /** 当前持有 sandbox guest 工作区写入许可的会话；无人持有时为 null。未实现时视为不检查。 */
+  writeHolder?(): string | null;
 }
 export type CaptureListener = (resourceId: string, capture: PageCapture) => void;

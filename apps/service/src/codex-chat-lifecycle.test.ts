@@ -138,6 +138,7 @@ async function expectBlocked() {
 }
 
 describe('ordinary conversation completion and cleanup ownership', () => {
+  // service 层各会话槽互不阻塞；Main ChatService 的 sandbox 工作区写入许可另行拒绝跨会话并发写入（W0）。
   it('keeps healthy personal and separate space conversations concurrently available', async () => {
     const first = await begin(session);
     const second = await begin(other);

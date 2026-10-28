@@ -346,6 +346,9 @@ export class WorkbenchHost implements WorkbenchRuntime {
   cancel(sessionId: string) {
     return this.chat.cancel(sessionId);
   }
+  writeHolder() {
+    return this.chat.writeHolder();
+  }
   dispose() {
     for (const driver of this.appUis.values()) driver.dispose();
     this.appUis.clear();

@@ -62,6 +62,7 @@ import type { WorkbenchRepository } from './repository';
 import { RunDispatchFailure, type WorkbenchRuntime } from './ports';
 import type { AppControl, AppControlContext } from './app-control';
 import { AppControlFailure } from './app-control-failure';
+import { conflictMessage } from './guest-write-lease';
 
 type SourceRun = { target: AppTarget; baseline: AbortController; ready: boolean; capturing: boolean };
 const activeStates = ['starting', 'running', 'cancelling'];
@@ -222,6 +223,8 @@ export class WorkbenchApplication {
   private readonly observationScopes = new Map<string, ObservationTurnScope>();
   private readonly runLaunches = new Map<string, () => Promise<void>>();
   private readonly runLaunchPhases = new Map<string, 'registering' | 'baseline' | 'sending'>();
+  // A terminal snapshot cannot settle a send. Hold its evidence until the owned receipt arrives.
+  private readonly pendingRunDispatches = new Map<string, ChatConversation | null>();
   private readonly sourceRuns = new Map<string, SourceRun>();
   private readonly projectWriters = new Map<string, string>();
   private readonly runOperations = new Set<Promise<unknown>>();
@@ -1053,7 +1056,14 @@ export class WorkbenchApplication {
         if (
           c.type === 'startApp' &&
           ((sourceOwner && (!sourceOwner.ready || sourceOwner.capturing)) ||
-            w.runs.some((run) => run.sourceCleanupPending || (run.cleanupPending && !this.runLogBaselines.has(run.runId))))
+            w.runs.some(
+              (run) =>
+                run.sourceCleanupPending ||
+                (run.cleanupPending &&
+                  (!this.runLogBaselines.has(run.runId) ||
+                    run.executorState?.state === 'failed' ||
+                    this.pendingRunDispatches.has(run.runId))),
+            ))
         )
           throw new Error('conflict: 项目源码采集或 helper 清理未确认，暂不能启动写入工程的构建');
         const pending = this.appOperations.get(w.workspaceId);
@@ -2784,7 +2794,14 @@ export class WorkbenchApplication {
     const control = this.sourceRuns.get(run.runId);
     if (!control || !control.ready || control.capturing || !['completed', 'failed', 'cancelled'].includes(run.state)) return;
     const executor = run.executorState;
-    if (!executor || executor.cleanupPending || activeStates.includes(executor.state) || run.cleanupPending) return;
+    if (
+      !executor ||
+      executor.cleanupPending ||
+      activeStates.includes(executor.state) ||
+      run.cleanupPending ||
+      this.pendingRunDispatches.has(run.runId)
+    )
+      return;
     if (run.sourceChange?.state !== 'baseline') {
       this.releaseSourceRun(run.runId);
       return;
@@ -2912,6 +2929,12 @@ export class WorkbenchApplication {
     )
       throw new Error('conflict: 同项目执行、清理或结束源码采集尚未完成');
     if (w.runs.some((r) => r.sessionId === sessionId && activeStates.includes(r.state))) throw new Error('conflict: 会话已有执行');
+    // 所有会话共享同一个 sandbox guest 工作目录；在创建执行记录前拒绝，避免留下失败记录。发送时 ChatService 再次检查以兜底竞争。
+    const writer = this.runtime.writeHolder?.() ?? null;
+    if (writer && writer !== sessionId) {
+      const holder = this.snapshot.workspaces.flatMap((workspace) => workspace.sessions).find((session) => session.sessionId === writer);
+      throw new Error(conflictMessage(writer, holder?.title ?? (writer === 'conv-personal-default' ? '个人对话' : undefined)));
+    }
     if (v.targetRef?.kind === 'web') {
       const r = this.resource(w, v.targetRef.resourceId, 'web');
       if (
@@ -3007,6 +3030,8 @@ export class WorkbenchApplication {
           const current = this.run(this.requireWorkspace(workspaceId), run.runId);
           if (current.state !== 'starting' || this.closing) return false;
           this.runLaunchPhases.set(run.runId, 'sending');
+          this.pendingRunDispatches.set(run.runId, null);
+          current.cleanupPending = true;
           // Dispatch under the ownership check, but never await external I/O on the metadata queue.
           return { receipt: this.runtime.send(sessionId, text, structuredClone(scope), structuredClone(referenceSnapshot)) };
         });
@@ -3015,8 +3040,25 @@ export class WorkbenchApplication {
         await this.updateRuntime(() => {
           const workspace = this.requireWorkspace(workspaceId);
           const current = this.run(workspace, run.runId);
-          if (!activeStates.includes(current.state) || current.state === 'cancelling') return null;
-          this.applyConversation(workspace, conversation);
+          const terminal = this.pendingRunDispatches.get(run.runId);
+          this.pendingRunDispatches.delete(run.runId);
+          if (!activeStates.includes(current.state)) return null;
+          if (!this.runTurns.has(run.runId)) {
+            const binding = { generation: conversation.generation, turnId: conversation.turnId };
+            this.runTurns.set(run.runId, binding);
+            current.executionBinding = { ...binding };
+          }
+          // A cancellation may have completed while send awaited its ACK. Only a
+          // terminal snapshot of that acknowledged turn can finish the run now.
+          this.applyConversation(
+            workspace,
+            terminal &&
+              terminal.generation === conversation.generation &&
+              terminal.turnId === conversation.turnId &&
+              terminal.seq > conversation.seq
+              ? terminal
+              : conversation,
+          );
           return workspace;
         });
       } catch (error) {
@@ -3028,14 +3070,15 @@ export class WorkbenchApplication {
             this.markSourceCleanupUnknown(current);
             return workspace;
           }
-          if ((error instanceof RunDispatchFailure && error.cleanupPending) || current.executorState?.cleanupPending) {
+          if (error instanceof RunDispatchFailure ? error.cleanupPending : current.executorState?.cleanupPending) {
             current.state = 'cancelling';
             current.cleanupPending = true;
             current.executorState = { state: 'failed', cleanupPending: true };
             current.error = '启动回执失败；模型清理未确认，结束源码尚不能采集';
             return workspace;
           }
-          // A rejected dispatch started no executor, so a pending cancellation is already settled here;
+          this.pendingRunDispatches.delete(run.runId);
+          // A rejected dispatch has confirmed no outstanding executor, so cancellation is settled here;
           // the later cancel receipt only reflects the unchanged conversation and must not decide this run.
           const cancelled = current.state === 'cancelling';
           current.state = cancelled ? 'cancelled' : 'failed';
@@ -3199,6 +3242,17 @@ export class WorkbenchApplication {
     if (bound && (bound.generation !== conversation.generation || bound.turnId !== conversation.turnId)) return;
     if (!executing && s.conversation && s.conversation.generation !== conversation.generation) return;
     if (s.conversation?.generation === conversation.generation && s.conversation.seq >= conversation.seq) return;
+    if (
+      executing &&
+      this.pendingRunDispatches.has(executing.runId) &&
+      !activeStates.includes(conversation.state) &&
+      !conversation.cleanupPending
+    ) {
+      const previous = this.pendingRunDispatches.get(executing.runId);
+      if (!previous || previous.seq < conversation.seq) this.pendingRunDispatches.set(executing.runId, structuredClone(conversation));
+      executing.cleanupPending = true;
+      return;
+    }
     if (executing && !bound) this.runTurns.set(executing.runId, { generation: conversation.generation, turnId: conversation.turnId });
     if (executing) {
       const binding = this.runTurns.get(executing.runId);
@@ -3216,7 +3270,11 @@ export class WorkbenchApplication {
     }
     if (executing) {
       executing.appCleanupPending = this.appControl?.hasPending(w.workspaceId, executing.runId) ?? false;
-      executing.cleanupPending = executing.appCleanupPending || conversation.cleanupPending || Boolean(executing.sourceCleanupPending);
+      executing.cleanupPending =
+        executing.appCleanupPending ||
+        conversation.cleanupPending ||
+        Boolean(executing.sourceCleanupPending) ||
+        this.pendingRunDispatches.has(executing.runId);
       executing.cleanupRetryAvailable = this.appControl?.canRetryCleanup(executing.runId) ?? false;
       executing.cleanupReconciling = this.appControl?.isReconciling(executing.runId) ?? false;
       if (executing.cleanupPending && !['starting', 'running'].includes(conversation.state)) {
@@ -3248,7 +3306,8 @@ export class WorkbenchApplication {
       const model = run.executorState;
       // 历史 conversation 是展示记录，不能替代旧执行器的退出回执。
       const modelCleanupUnknown = !model || model.cleanupPending || activeStates.includes(model.state);
-      run.cleanupPending = run.appCleanupPending || modelCleanupUnknown || Boolean(run.sourceCleanupPending);
+      run.cleanupPending =
+        run.appCleanupPending || modelCleanupUnknown || Boolean(run.sourceCleanupPending) || this.pendingRunDispatches.has(run.runId);
       run.cleanupRetryAvailable = this.appControl?.canRetryCleanup(runId) ?? false;
       run.cleanupReconciling = this.appControl?.isReconciling(runId) ?? false;
       if (
