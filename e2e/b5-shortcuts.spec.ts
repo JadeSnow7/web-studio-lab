@@ -368,18 +368,27 @@ test('B5 installed menu: tab numbers, four-pane refusal, empty CmdW and backgrou
     await menuCommand(app, 'CmdOrCtrl+\\');
     await expect(page.getByRole('alert').filter({ hasText: '最多四个窗格' })).toBeVisible();
     expect((await active(page)).layout).toEqual(full.layout);
-    await app.evaluate(({ BrowserWindow }) => {
-      const other = new BrowserWindow({ show: true });
+    const otherWindowId = await app.evaluate(async ({ BrowserWindow }) => {
+      const other = new BrowserWindow({ show: false });
+      const windowId = other.id;
+      // Initial native show can arrive after close unless the fixture owns its completion.
+      const shown = new Promise<void>((resolve) => other.once('show', () => resolve()));
+      other.show();
+      await shown;
       other.focus();
+      return windowId;
     });
+    await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getFocusedWindow()?.id ?? null)).toBe(otherWindowId);
     const before = (await active(page)).tabs.length;
     await menuCommand(app, 'CmdOrCtrl+T');
     expect((await active(page)).tabs).toHaveLength(before);
-    await app.evaluate(({ BrowserWindow }) =>
-      BrowserWindow.getAllWindows()
-        .find((item) => item.webContents.getURL() === '')
-        ?.close(),
-    );
+    await app.evaluate(async ({ BrowserWindow }, windowId) => {
+      const other = BrowserWindow.fromId(windowId);
+      if (!other) throw new Error('Owned auxiliary window disappeared before close');
+      const closed = new Promise<void>((resolve) => other.once('closed', () => resolve()));
+      other.close();
+      await closed;
+    }, otherWindowId);
     await ensureForeground(app, page);
     for (const tab of (await active(page)).tabs) await setupCommand(page, { type: 'closeTab', tabId: tab.tabId });
     await menuCommand(app, 'CmdOrCtrl+W');

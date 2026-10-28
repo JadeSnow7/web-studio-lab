@@ -240,6 +240,8 @@ export async function launchApp(
   if (options.debugStatus && options.statusLog) env['WSL_STATUS_LOG'] = options.statusLog;
   // The build bootstrap installs fixtures before the real entrypoint creates any renderer.
   const bootstrap = path.join(await mkdtemp(path.join(tmpdir(), 'wsl-e2e-bootstrap-')), 'main.cjs');
+  // Keep each build launch's Main ledger after bootstrap cleanup, including profile-reuse tests.
+  const mainErrorsFile = path.join(userData, `main-errors-${path.basename(path.dirname(bootstrap))}.jsonl`);
   const rendererErrorsFile = path.join(path.dirname(bootstrap), 'renderer-errors.jsonl');
   await writeFile(rendererErrorsFile, '');
   const addressPreload = path.join(path.dirname(bootstrap), 'address-navigation-observer.cjs');
@@ -311,6 +313,12 @@ app.on('web-contents-created', (_event, contents) => {
       : ''
   }
 });
+const mainErrorsFile = ${JSON.stringify(mainErrorsFile)};
+const uncaughtExceptionListenersBefore = process.listenerCount('uncaughtException');
+process.on('uncaughtExceptionMonitor', (error, origin) => {
+  rendererErrorFs.appendFileSync(mainErrorsFile, JSON.stringify({ kind: 'error', name: error.name, message: error.message, stack: error.stack, origin, pid: process.pid }) + '\\n');
+});
+rendererErrorFs.appendFileSync(mainErrorsFile, JSON.stringify({ kind: 'monitor-installed', pid: process.pid, uncaughtExceptionListenersBefore, uncaughtExceptionListenersAfter: process.listenerCount('uncaughtException') }) + '\\n');
 require(${JSON.stringify(path.join(desktopDir, 'out/main/index.js'))});
 `,
   );
@@ -386,6 +394,36 @@ require(${JSON.stringify(path.join(desktopDir, 'out/main/index.js'))});
           if (typeof message !== 'string') throw new Error('Invalid renderer error ledger record');
           if (!rendererErrors.some((error) => error.includes(message))) rendererErrors.push(message);
         }
+      }
+    } catch (error) {
+      failures.push(error);
+    }
+    try {
+      // Packaged launches bypass this bootstrap; Main exception coverage here is build-only.
+      if (target === 'build') {
+        const lines = (await readFile(mainErrorsFile, 'utf8')).split('\n').filter(Boolean);
+        const mainErrors: unknown[] = [];
+        let receiptCount = 0;
+        for (const line of lines) {
+          const record: unknown = JSON.parse(line);
+          assert.ok(
+            typeof record === 'object' && record !== null && 'kind' in record && 'pid' in record,
+            'Invalid Main error ledger record',
+          );
+          assert.equal(record.pid, ownedProcess.pid, 'Main error ledger must belong to this launch');
+          if (record.kind === 'monitor-installed') {
+            assert.ok(
+              'uncaughtExceptionListenersBefore' in record && 'uncaughtExceptionListenersAfter' in record,
+              'Missing Main monitor receipt',
+            );
+            assert.equal(record.uncaughtExceptionListenersBefore, 1, 'Main default exception handler must be the only handler');
+            assert.equal(record.uncaughtExceptionListenersAfter, 1, 'Main default exception handler must remain the only handler');
+            receiptCount += 1;
+          } else if (record.kind === 'error') mainErrors.push(record);
+          else throw new Error('Unknown Main error ledger record');
+        }
+        assert.equal(receiptCount, 1, 'Each build launch must install exactly one Main exception monitor');
+        assert.deepEqual(mainErrors, [], `Main uncaught exceptions fail build E2E; ledger retained at ${mainErrorsFile}`);
       }
     } catch (error) {
       failures.push(error);
