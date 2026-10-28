@@ -6,6 +6,8 @@ Web Studio Lab 是基于 [Web Studio](https://github.com/JadeSnow7/Web-Studio) �
 
 移动端扩展已形成[Expo Android 第一阶段设计](docs/design/2026-10-11-expo-android-phase1.md)和[实施与验收计划](docs/plans/2026-10-11-expo-android-phase1.md)：拟支持固定 Expo 项目、工作台 Web 预览、Android USB 真机连接和本地 APK 导出。当前仅完成设计，尚未修改移动端源码或执行移动端验收；不计入既有比赛闭环已实现能力。
 
+多 Harness 协作已形成[设计](docs/design/2026-10-21-multi-harness-collaboration.md)、[ADR-0003](docs/architecture/adr/0003-pluggable-harness-and-collaboration.md)和[实施计划](docs/plans/2026-10-21-multi-harness-collaboration.md)：拟通过统一的 Harness 端口接入 Codex、Claude Code、Gemini CLI、Cursor、Devin 等，支持按用户自己的账号分 Profile 运行、Lane 隔离下的并行执行、Bot 与结构化会议，以及跨 Agent 的上下文交接。按工作包逐步实施，未落地部分不计入已实现能力。
+
 ## 当前状态
 
 当前候选树整合 Electron 工作台、统一观察、受管标准 App、账户资源目录、App 控制面、App 名称/说明和任务目标绑定，以及统一状态呈现与诊断。六板块布局继续遵循[空间页重制 SR-1](docs/acceptance/space-remake/SPEC.md)。2026-10-13 的 PR 范围、审查修复、实际验证与未运行项见[当前 PR 说明](docs/acceptance/consolidation-20261011/PR.md)；[2026-10-11 整合记录](docs/acceptance/consolidation-20261011/README.md)、[状态界面实施与修复记录](docs/acceptance/status-surface-20261011/README.md)及更早记录保留为历史，不能替代当前版本复验。独立源码工具支持 edu-web 源码快照、校验、三方合并和人工冲突解决，见[CLI 说明](docs/development/edu-source-cli.md)；edu 导入/运行接线仍保留在独立分支。
@@ -141,14 +143,14 @@ pnpm package:unsigned
 | `packages/protocol`  | Zod schema：页面现场、任务版本、run / attempt / 审阅、IPC 通道                                      |
 | `demo/`              | 演示页面，只供 Browser 区演示加载，与真实运行数据分开                                               |
 | `e2e/`               | Playwright 驱动 Electron 的端到端检查                                                               |
-| `docs/plans/`        | 比赛任务计划                                                                                        |
+| `docs/plans/`        | 比赛任务计划与后续实施计划                                                                          |
 | `docs/verification/` | 验证记录与截图                                                                                      |
 
 安全基线：工作台与 Browser 区都启用 `contextIsolation`、`sandbox`，关闭 `nodeIntegration`；Browser 区没有 preload，使用独立 session；IPC 在主进程用 Zod 校验参数，并只接受主窗口顶层工作台页面的请求。详见[当前运行时](docs/architecture/current-runtime.md)的Electron安全基线。
 
 ## 架构与固定验收入口
 
-[Agent 入口](AGENTS.md)、[架构基线](docs/ARCHITECTURE.md)与[开发规范](CONTRIBUTING.md)说明职责和协作要求；[当前运行时](docs/architecture/current-runtime.md)区分真实实现、目标约束与缺口。目标架构的取舍见 [ADR-0001](docs/architecture/adr/0001-modular-monolith.md)，受管 App 控制面的命名空间与 dispatcher 落点见 [ADR-0002](docs/architecture/adr/0002-app-control-plane.md)。
+[Agent 入口](AGENTS.md)、[架构基线](docs/ARCHITECTURE.md)与[开发规范](CONTRIBUTING.md)说明职责和协作要求；[当前运行时](docs/architecture/current-runtime.md)区分真实实现、目标约束与缺口。目标架构的取舍见 [ADR-0001](docs/architecture/adr/0001-modular-monolith.md)，受管 App 控制面的命名空间与 dispatcher 落点见 [ADR-0002](docs/architecture/adr/0002-app-control-plane.md)，可插拔 Harness 与多 Agent 协作见 [ADR-0003](docs/architecture/adr/0003-pluggable-harness-and-collaboration.md)。
 
 main 的 [VS001 固定验收基线](docs/acceptance/README.md)、`tests/vertical-slice`、固定 fixture 和实现前失败证据全部保留，包括 PR1 的观察值拒绝和源码类型检查修复。`src/vertical-slice/adapter.ts` 已接入现有 sbx/Codex、Vite 和 Electron Browser；实现及运行条件见 [VS001 接入记录](docs/acceptance/integrated-app-installer-public-20261009/README.md)。本轮真实五项与标准应用的结果分别记录在[最小闭环记录](docs/acceptance/integrated-app-installer-public-20261009/README.md)，不能据此认定完整比赛业务闭环完成；原验收需显式配置已有 sandbox 与实际模型。整合后的运行入口以本树 `package.json` 为准。
 
