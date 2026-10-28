@@ -6,6 +6,7 @@ import { SourceChangeSchema } from './source-change';
 import { CatalogSummarySchema, CatalogReferenceSnapshotSchema } from './resource-catalog';
 import { ManagedAppSchema, SpaceAppSchema } from './managed-app';
 import { ChatConversationSchema } from './chat';
+import { HarnessRefSchema } from './harness';
 import { PageCaptureSchema, PreviewLayoutSchema, PreviewStateSchema } from './preview';
 import { TerminalWriteSchema, TerminalSnapshotSchema } from './terminal';
 
@@ -86,6 +87,8 @@ export const WorkbenchRunSchema = z.object({
   cleanupReconciling: z.boolean().optional(),
   cleanupRetryAvailable: z.boolean().optional(),
   executionBinding: z.object({ generation: z.string(), turnId: z.string().nullable() }).nullable().default(null),
+  /** 启动时冻结的 Harness 出处；缺省表示 W2 之前的记录，按 LEGACY_CODEX_HARNESS_REF 解释。 */
+  harness: HarnessRefSchema.optional(),
   review: z.object({ decision: z.enum(['accepted', 'changes_requested']), reviewedAt: z.string(), candidateId: Id }).nullable(),
 });
 export type WorkbenchRun = z.infer<typeof WorkbenchRunSchema>;

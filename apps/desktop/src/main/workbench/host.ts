@@ -9,6 +9,7 @@ import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import type { AppTarget, ManagedApp, AppSource, CatalogReferenceSnapshot, AppAgentOperation } from '@wsl/protocol';
 import type { ObservationRequest, ObservationTurnScope, ResourceInstanceIdentity, WorkbenchResource } from '@wsl/protocol';
+import { harnessRefOf } from '@wsl/protocol';
 import type { ChatService } from '../chat-service';
 import { BrowserObservation } from '../preview/observation';
 import { AppUiDriver } from '../preview/app-ui';
@@ -348,6 +349,10 @@ export class WorkbenchHost implements WorkbenchRuntime {
   }
   writeHolder() {
     return this.chat.writeHolder();
+  }
+  currentHarness() {
+    const descriptor = this.chat.harness();
+    return descriptor ? harnessRefOf(descriptor) : null;
   }
   dispose() {
     for (const driver of this.appUis.values()) driver.dispose();

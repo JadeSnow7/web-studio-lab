@@ -273,10 +273,12 @@ def read_start():
     start = json.loads(first)
     if not isinstance(start, dict) or start.get("type") != "start" or start.get("mode") not in ("codex", "terminal"):
         raise ValueError("invalid start frame")
-    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "duplex", "eduOwner"}
+    allowed = {"type", "mode", "cols", "rows"} if start["mode"] == "terminal" else {"type", "mode", "argv", "mcp", "prompt", "resourceBundle", "observation", "observationImages", "workspace", "duplex", "eduOwner"}
     for key in ("observation", "observationImages", "duplex"):
         if key in start and type(start[key]) is not bool:
             raise ValueError("invalid observation capability")
+    if "mcp" in start and start["mcp"] != "codex-config":
+        raise ValueError("invalid MCP injection")
     if set(start) - allowed:
         raise ValueError("unknown start fields")
     return start
@@ -341,8 +343,9 @@ def main(start):
             if not isinstance(argv, list) or not argv or not all(isinstance(arg, str) for arg in argv):
                 raise ValueError("invalid Codex argv")
             if "resourceBundle" in start:
-                if argv[0] != "codex" or "exec" not in argv or not RESOURCE_MCP_BASE64:
-                    raise ValueError("resource capability requires fixed Codex exec")
+                # The trusted service declares how this Harness mounts MCP; the helper no longer infers it from argv.
+                if start.get("mcp") != "codex-config" or not RESOURCE_MCP_BASE64:
+                    raise ValueError("resource capability requires a declared MCP injection")
                 source = base64.b64decode(RESOURCE_MCP_BASE64, validate=True).decode("utf-8")
                 module = {"__name__": "wsl_resource_module"}
                 exec(compile(source, "<wsl-resource-mcp>", "exec"), module)

@@ -55,6 +55,8 @@ export type GuestStart =
       type: 'start';
       mode: 'codex';
       argv: string[];
+      /** 挂载 wsl_space MCP 的方式，由适配器声明；携带 resourceBundle 时必填，helper 不按 argv 识别 Harness。 */
+      mcp?: 'codex-config';
       prompt?: string;
       resourceBundle?: ResourceBundle;
       observation?: boolean;

@@ -88,6 +88,8 @@ main process 对每个 IPC 请求做两项检查：
 
 每次进程调用通过 `sbx exec -i` 启动内置 Python 标准库 helper。helper 在 guest 内管理所属进程、PTY 与清理；stdin 控制帧和模型 prompt 分开，stdout 使用明确帧封装。终端使用 xterm.js 与 fit addon 展示 guest PTY，不依赖 Electron native node-pty ABI。输入、尺寸和会话身份在 IPC 边界校验；隐藏终端保留同一 shell，关闭时等待远端清理确认。
 
+执行核心经 service 侧 Harness 适配器启动 CLI 并读取输出（ADR-0003，[W2 合同](../acceptance/harness-port-codex-20261022/SPEC.md)）：当前只有 Codex native 适配器（`apps/service/src/harness/codex/adapter.ts`），对话状态附带 Harness 描述符，`startRun` 把 Harness 出处冻结进执行记录；start 帧以 `mcp: 'codex-config'` 显式声明 MCP 挂载方式，guest helper 不再按 argv 识别 Harness。
+
 Codex 首轮使用 `exec --json`，续轮显式 `exec resume <threadId>`，采用 `workspace-write` 并启用 guest 工具。消息历史按应用会话隔离，但各会话和终端共享 guest 文件系统；开始新对话不删除文件。服务拥有 generation、threadId、turnId 与序号，保留有界工具结果和非致命警告，截断结果明确标示。成功要求助手文本、会话身份、完成事件、正常退出和远端清理确认。
 
 隔离 workspace 的返回快照仍限 256 文件和 524288 解码字节。目录先逐项计数、关闭扫描句柄，再对有界列表排序；空目录及根部排除项 `node_modules`、`dist`、`.vite` 本身均计数，排除目录内容不进入扫描。以根文件系统的 `PC_PATH_MAX=P` 推导路径段上界 `floor(P/2)`，全局枚举条目上限为 `256*floor(P/2)+3`，超限在读取到第一个超额条目时拒绝；路径限额不可用或未定时明确失败。完整路径访问受文件系统约束，公式忽略根路径长度以保守容纳所有合法文件祖先；不把 AppSource 的 500 字符限制新增到通用 GuestWorkspace。Linux 常见的 P=4096 对应 524291 项，macOS 的 P=1024 对应 131075 项；这是保守有限工作量，不是时延 SLO，也不为目录清理或整个 guest 生命周期新增截止时间。显式深度优先栈保持原排序，不依赖 Python 递归上限；拒绝不改变原有清理确认与保留工作目录的规则。

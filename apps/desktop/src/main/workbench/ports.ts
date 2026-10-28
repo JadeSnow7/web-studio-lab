@@ -20,6 +20,7 @@ import type {
   PreviewState,
   TerminalSnapshot,
   WorkbenchResource,
+  HarnessRef,
 } from '@wsl/protocol';
 export class RunDispatchFailure extends Error {
   constructor(
@@ -77,5 +78,7 @@ export interface WorkbenchRuntime {
   cancel(sessionId: string): Promise<ChatConversation>;
   /** 当前持有 sandbox guest 工作区写入许可的会话；无人持有时为 null。未实现时视为不检查。 */
   writeHolder?(): string | null;
+  /** 对话服务当前使用的 Harness 出处，startRun 时冻结进执行记录；未实现或未报告时为 null。 */
+  currentHarness?(): HarnessRef | null;
 }
 export type CaptureListener = (resourceId: string, capture: PageCapture) => void;

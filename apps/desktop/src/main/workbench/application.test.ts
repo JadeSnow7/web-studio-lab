@@ -276,6 +276,60 @@ describe('workbench authoritative commands', () => {
     });
     expect(own.ok).toBe(true);
   });
+  it('freezes the reported Harness into the run record at startRun (W2)', async () => {
+    const { app, runtime } = await make();
+    const s = (await app.getSnapshot()).workspaces[0]?.sessions[0];
+    if (!s) throw new Error('fixture');
+    const ref = { harnessId: 'codex', displayName: 'Codex CLI', adapter: 'native', version: '0.160.0' } as const;
+    runtime.currentHarness = vi.fn(() => ref);
+    vi.mocked(runtime.send).mockResolvedValue(conversation(s.sessionId, 'harness', 5));
+    await app.command({
+      type: 'confirmTask',
+      workspaceId: 'taskflow-demo',
+      commandId: 'confirm-h',
+      sessionId: s.sessionId,
+      goal: 'goal',
+      targetRef: null,
+    });
+    const v = (await app.getSnapshot()).workspaces[0]?.sessions[0]?.taskVersions[0];
+    if (!v) throw new Error('fixture');
+    await app.command({
+      type: 'startRun',
+      workspaceId: 'taskflow-demo',
+      commandId: 'start-h',
+      sessionId: s.sessionId,
+      taskVersionId: v.taskVersionId,
+    });
+    expect((await app.getSnapshot()).workspaces[0]?.runs[0]?.harness).toEqual(ref);
+    vi.mocked(runtime.currentHarness!).mockReturnValue({ ...ref, version: '9.9.9' });
+    expect((await app.getSnapshot()).workspaces[0]?.runs[0]?.harness?.version).toBe('0.160.0');
+  });
+  it('omits the Harness when the runtime reports none (W2)', async () => {
+    const { app, runtime } = await make();
+    const s = (await app.getSnapshot()).workspaces[0]?.sessions[0];
+    if (!s) throw new Error('fixture');
+    vi.mocked(runtime.send).mockResolvedValue(conversation(s.sessionId, 'none', 5));
+    await app.command({
+      type: 'confirmTask',
+      workspaceId: 'taskflow-demo',
+      commandId: 'confirm-n',
+      sessionId: s.sessionId,
+      goal: 'goal',
+      targetRef: null,
+    });
+    const v = (await app.getSnapshot()).workspaces[0]?.sessions[0]?.taskVersions[0];
+    if (!v) throw new Error('fixture');
+    await app.command({
+      type: 'startRun',
+      workspaceId: 'taskflow-demo',
+      commandId: 'start-n',
+      sessionId: s.sessionId,
+      taskVersionId: v.taskVersionId,
+    });
+    const run = (await app.getSnapshot()).workspaces[0]?.runs[0];
+    expect(run).toBeDefined();
+    expect(run && 'harness' in run).toBe(false);
+  });
   it('keeps verifier unavailable and rejects review of a failed run', async () => {
     const { app, runtime } = await make();
     const s = (await app.getSnapshot()).workspaces[0]?.sessions[0];

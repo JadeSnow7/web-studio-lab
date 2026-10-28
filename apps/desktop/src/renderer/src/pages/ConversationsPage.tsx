@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Notice } from '../components/Badges';
 import { DEMO_CONTACTS } from '../demo/sampleData';
 import { useStore } from '../lib/store';
+import { harnessDisplayName } from '@wsl/protocol';
+import { chatStore } from '../state/chat';
 import { CONVERSATIONS, draftsStore, PERSONAL_CONVERSATION_ID, type ConversationInfo } from '../state/drafts';
 import { Composer } from '../shell/Composer';
 import { ChatMessages } from '../shell/ChatMessages';
@@ -16,6 +18,7 @@ export function ConversationsPage() {
   const [section, setSection] = useState<Section>('agent');
   const [selectedId, setSelectedId] = useState(AGENT_CONVERSATIONS[0]?.id ?? '');
   const drafts = useStore(draftsStore, (d) => d);
+  const harnessName = useStore(chatStore, (state) => harnessDisplayName(state.status));
   const selected = CONVERSATIONS[selectedId] ?? null;
 
   return (
@@ -40,7 +43,7 @@ export function ConversationsPage() {
             >
               <span className="row space-between">
                 <strong>{c.title}</strong>
-                <span className="muted small">Codex CLI</span>
+                <span className="muted small">{harnessName}</span>
               </span>
               <span className="muted small">{c.scopeLabel}</span>
               {drafts[c.id] ? <span className="small text-warn">草稿：{drafts[c.id]}</span> : null}
@@ -76,7 +79,7 @@ export function ConversationsPage() {
               target={{ kind: 'conversation', conversation: selected }}
               sendBlockedReason={null}
               placeholder="输入消息…"
-              harnessLabel={selected.scope.kind === 'personal' ? '默认 Agent' : 'Codex CLI'}
+              harnessLabel={selected.scope.kind === 'personal' ? '默认 Agent' : harnessName}
               rows={3}
             />
           </>
