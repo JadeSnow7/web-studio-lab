@@ -1277,6 +1277,14 @@ async function openSessionTab(page: Page) {
 /** 用 sbx 夹具跑完一次会话运行（不调用模型）。 */
 async function completeSessionRun(page: Page, text: string) {
   await openSessionTab(page);
+  // These positive cases must not create a failed run while the selected CLI is still being checked.
+  await expect
+    .poll(async () =>
+      (await page.evaluate(() => window.studio.chat.getStatus())).harnesses.some(
+        (harness) => harness.descriptor.harnessId === 'codex' && harness.available,
+      ),
+    )
+    .toBe(true);
   await sessionMessageBox(page).fill(text);
   await sessionRegion(page).getByRole('button', { name: '发送', exact: true }).click();
   await expect.poll(async () => (await workspaceSnapshot(page)).workspaces[0]!.runs.at(-1)?.state).toBe('completed');
